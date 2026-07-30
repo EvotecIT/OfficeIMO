@@ -11,6 +11,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     /// editable importer, it does not build an intermediate workbook or Open XML projection.
     /// </summary>
     internal sealed class XlsbTabularWorkbook : IDisposable {
+        private const int BrtBeginBook = 131;
+        private const int BrtEndBook = 132;
         private const int BrtWbProp = 153;
         private const int BrtBundleSh = 156;
         private const int BrtSstItem = 19;
@@ -221,8 +223,34 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             List<XlsbBundleSheet> sheets,
             ref bool uses1904DateSystem) {
             var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
+            bool began = false;
+            bool ended = false;
             while (records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
+                if (!began) {
+                    if (record.Type != BrtBeginBook || record.RecordOffset != 0 || record.Size != 0) {
+                        throw new InvalidDataException(
+                            "The XLSB workbook part is missing its initial BrtBeginBook boundary.");
+                    }
+                    began = true;
+                    continue;
+                }
+                if (ended) {
+                    throw new InvalidDataException(
+                        "The XLSB workbook part contains records after BrtEndBook.");
+                }
+                if (record.Type == BrtBeginBook) {
+                    throw new InvalidDataException(
+                        "The XLSB workbook part contains more than one BrtBeginBook boundary.");
+                }
+                if (record.Type == BrtEndBook) {
+                    if (record.Size != 0) {
+                        throw new InvalidDataException(
+                            "The XLSB workbook part contains an invalid BrtEndBook boundary.");
+                    }
+                    ended = true;
+                    continue;
+                }
                 if (record.Type == BrtWbProp) {
                     var cursor = record.CreateCursor();
                     uses1904DateSystem = (cursor.ReadUInt32() & 0x01U) != 0;
@@ -246,6 +274,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 sheets.Add(new XlsbBundleSheet(name, relationshipId));
             }
 
+            if (!began || !ended) {
+                throw new InvalidDataException(
+                    "The XLSB workbook part is missing its BrtBeginBook/BrtEndBook boundaries.");
+            }
             if (sheets.Count > _limits.MaxWorksheets) {
                 throw new InvalidDataException(
                     $"The XLSB workbook contains {sheets.Count} worksheets, exceeding the configured limit of {_limits.MaxWorksheets}.");
@@ -269,13 +301,37 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             long totalCharacters = 0;
             bool began = false;
             bool ended = false;
+            uint declaredUniqueCount = 0;
             while (records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtBeginSst) {
+                    if (began || ended || record.RecordOffset != 0 || record.Size < 8) {
+                        throw new InvalidDataException(
+                            $"The BrtBeginSst record in '{partName}' is truncated or misplaced.");
+                    }
+                    var header = record.CreateCursor();
+                    uint declaredTotalCount = header.ReadUInt32();
+                    declaredUniqueCount = header.ReadUInt32();
+                    if (declaredTotalCount < declaredUniqueCount) {
+                        throw new InvalidDataException(
+                            $"The XLSB shared-string part '{partName}' declares fewer total strings than unique strings.");
+                    }
+                    if (declaredUniqueCount > _limits.MaxSharedStrings) {
+                        throw new InvalidDataException(
+                            $"The XLSB shared-string table declares {declaredUniqueCount} unique items, exceeding the configured limit of {_limits.MaxSharedStrings} items.");
+                    }
                     began = true;
                 } else if (record.Type == BrtEndSst) {
+                    if (!began || ended || record.Size != 0) {
+                        throw new InvalidDataException(
+                            $"The XLSB shared-string part '{partName}' contains an invalid BrtEndSst boundary.");
+                    }
                     ended = true;
                 } else if (record.Type == BrtSstItem) {
+                    if (!began || ended) {
+                        throw new InvalidDataException(
+                            $"The XLSB shared-string part '{partName}' contains an item outside its boundary records.");
+                    }
                     if (values.Count >= _limits.MaxSharedStrings) {
                         throw new InvalidDataException(
                             $"The XLSB shared-string table exceeds the configured limit of {_limits.MaxSharedStrings} items.");
@@ -291,12 +347,19 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                     totalCharacters += value.Length;
                     values.Add(value);
+                } else if (!began || ended) {
+                    throw new InvalidDataException(
+                        $"The XLSB shared-string part '{partName}' contains records outside its boundary records.");
                 }
             }
 
             if (!began || !ended) {
                 throw new InvalidDataException(
                     $"The XLSB shared-string part '{partName}' is missing its boundary records.");
+            }
+            if ((uint)values.Count != declaredUniqueCount) {
+                throw new InvalidDataException(
+                    $"The XLSB shared-string part '{partName}' declares {declaredUniqueCount} unique items but contains {values.Count}.");
             }
 
             return values;
