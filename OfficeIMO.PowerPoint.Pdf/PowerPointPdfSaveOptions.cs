@@ -19,22 +19,22 @@ public enum PowerPointPdfPageLayout {
 public sealed class PowerPointPdfSaveOptions {
     private int _handoutSlidesPerPage = 6;
     private PdfCore.PdfOptions? _pdfOptions;
-    private long? _fontlessRenderingProfileFontConfigurationState;
+    private long? _renderingProfileFontConfigurationState;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
     public PdfCore.PdfOptions? PdfOptions {
         get => _pdfOptions;
         set {
             _pdfOptions = value;
-            _fontlessRenderingProfileFontConfigurationState = null;
+            _renderingProfileFontConfigurationState = null;
         }
     }
 
     internal bool HasExplicitPdfFontConfiguration =>
         _pdfOptions != null
-        && (!_fontlessRenderingProfileFontConfigurationState.HasValue
+        && (!_renderingProfileFontConfigurationState.HasValue
             || _pdfOptions.FontConfigurationState
-                != _fontlessRenderingProfileFontConfigurationState.Value);
+                != _renderingProfileFontConfigurationState.Value);
 
     /// <summary>Optional PowerPoint-style font family used as the first-party PDF default font.</summary>
     public string? FontFamily { get; set; }
@@ -126,23 +126,22 @@ public sealed class PowerPointPdfSaveOptions {
     public PowerPointPdfSaveOptions UseRenderingProfile(
         DrawingCore.OfficeRenderingProfile profile,
         DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-        if (profile == null) throw new ArgumentNullException(nameof(profile));
-        if (_pdfOptions == null) {
-            _pdfOptions = new PdfCore.PdfOptions();
-            _pdfOptions.UseRenderingProfile(profile, mode);
-            if (profile.Fonts.Faces.Count == 0) {
-                _fontlessRenderingProfileFontConfigurationState =
-                    _pdfOptions.FontConfigurationState;
-            }
-            return this;
+        if (profile == null) {
+            throw new ArgumentNullException(nameof(profile));
         }
+        if (mode != DrawingCore.OfficeRenderingProfileApplyMode.Replace
+            && mode != DrawingCore.OfficeRenderingProfileApplyMode.Overlay) {
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+
+        _pdfOptions ??= new PdfCore.PdfOptions();
         _pdfOptions.UseRenderingProfile(profile, mode);
-        if (profile.Fonts.Faces.Count > 0) {
-            _fontlessRenderingProfileFontConfigurationState = null;
-        } else if (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-            _fontlessRenderingProfileFontConfigurationState =
-                _pdfOptions.FontConfigurationState;
-        }
+        _renderingProfileFontConfigurationState =
+            profile.Fonts.Faces.Count == 0
+            && (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                || _renderingProfileFontConfigurationState.HasValue)
+                ? _pdfOptions.FontConfigurationState
+                : null;
         return this;
     }
 
