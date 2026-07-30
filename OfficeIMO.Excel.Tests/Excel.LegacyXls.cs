@@ -7,6 +7,7 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.LegacyXls.Projection;
 using System.Globalization;
 using System.Threading;
 using Xunit;
@@ -1909,6 +1910,26 @@ namespace OfficeIMO.Tests {
                         CancellationToken = cancellation.Token
                     });
             });
+        }
+
+        [Fact]
+        public void LegacyMetadataProjectionObservesCancellationInsideDefinedNameTraversal() {
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableDefinedNames.Add(new LegacyXlsDefinedName(
+                "Data",
+                "Sheet1!$A$1",
+                localSheetIndex: null,
+                hidden: false,
+                builtIn: false));
+            using ExcelDocument document = ExcelDocument.Create();
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() =>
+                LegacyXlsWorkbookProjector.ProjectDefinedNames(
+                    workbook,
+                    document,
+                    cancellation.Token));
         }
 
         private static partial class LegacyXlsTestWorkbookBuilder {

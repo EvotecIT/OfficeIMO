@@ -1,22 +1,32 @@
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.LegacyXls.Projection {
     internal static partial class LegacyXlsWorkbookProjector {
-        private static void ProjectExternalQueryConnections(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectExternalQueryConnections(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             if (workbook.ExternalQueryConnections.Count == 0) {
                 return;
             }
 
-            document.AddWorkbookConnectionMetadata(BuildExternalQueryConnectionMetadataXml(workbook.ExternalQueryConnections));
+            document.AddWorkbookConnectionMetadata(
+                BuildExternalQueryConnectionMetadataXml(
+                    workbook.ExternalQueryConnections,
+                    cancellationToken));
         }
 
-        private static string BuildExternalQueryConnectionMetadataXml(IReadOnlyList<LegacyXlsExternalQueryConnection> connections) {
+        private static string BuildExternalQueryConnectionMetadataXml(
+            IReadOnlyList<LegacyXlsExternalQueryConnection> connections,
+            CancellationToken cancellationToken) {
             XNamespace main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
             var root = new XElement(main + "connections");
             uint connectionId = 1U;
             foreach (LegacyXlsExternalQueryConnection connection in connections) {
+                cancellationToken.ThrowIfCancellationRequested();
                 root.Add(BuildExternalQueryConnectionElement(main, connection, connectionId));
                 connectionId++;
             }

@@ -145,7 +145,9 @@ namespace OfficeIMO.Excel {
                 ? owner
                 : new CompositeOwner(owner, additionalOwner);
             try {
-                IReadOnlyList<string> sheets = SelectSheets(owner.GetSheetNames(), options.SheetName);
+                IReadOnlyList<string> availableSheets = owner.GetSheetNames();
+                ValidateUniqueSheetNames(availableSheets, options.CancellationToken);
+                IReadOnlyList<string> sheets = SelectSheets(availableSheets, options.SheetName);
                 return new ExcelWorkbookDataReader(
                     sheets,
                     index => OpenOpenXmlSheet(owner, sheets[index], options),
@@ -186,6 +188,19 @@ namespace OfficeIMO.Excel {
             } catch {
                 owner.Dispose();
                 throw;
+            }
+        }
+
+        private static void ValidateUniqueSheetNames(
+            IReadOnlyList<string> sheetNames,
+            CancellationToken cancellationToken) {
+            var uniqueNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string sheetName in sheetNames) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!uniqueNames.Add(sheetName)) {
+                    throw new InvalidDataException(
+                        $"The workbook contains duplicate worksheet name '{sheetName}' under case-insensitive matching.");
+                }
             }
         }
 

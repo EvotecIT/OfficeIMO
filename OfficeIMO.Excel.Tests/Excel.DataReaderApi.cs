@@ -69,6 +69,35 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_RejectsCaseInsensitiveDuplicateOpenXmlWorksheetNames() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.DuplicateOpenXmlWorksheetName.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddWorksheet("Data").CellValue(1, 1, "First");
+                document.AddWorksheet("Other").CellValue(1, 1, "Second");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                Sheet[] sheets = package.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().ToArray();
+                sheets[1].Name = "DATA";
+                package.WorkbookPart.Workbook.Save();
+            }
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("duplicate worksheet name", exception.Message, StringComparison.OrdinalIgnoreCase);
+            using var exclusive = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            Assert.True(exclusive.CanWrite);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_SupportsLegacyXlsThroughTheSameEntryPoint() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.DataReader.{Guid.NewGuid():N}.xls");
         try {

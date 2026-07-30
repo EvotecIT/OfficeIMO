@@ -1,11 +1,18 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Model;
+using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Projection {
     internal static partial class LegacyXlsWorkbookProjector {
-        private static void ProjectCellStyles(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectCellStyles(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             LegacyXlsCellStyleExtension[] styleExtensions = workbook.CellStyleExtensions
-                .Where(extension => extension.HasProjectableStyleMetadata)
+                .Where(extension => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return extension.HasProjectableStyleMetadata;
+                })
                 .ToArray();
             if (workbook.CellStyles.Count == 0 && styleExtensions.Length == 0) {
                 return;
@@ -17,10 +24,12 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             var projectedStyleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (LegacyXlsCellStyleExtension extension in styleExtensions) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ProjectStyleExtension(workbook, stylesheet, cellStyles, extension, projectedStyleNames);
             }
 
             foreach (LegacyXlsCellStyle style in workbook.CellStyles) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ProjectLegacyStyleRecord(workbook, stylesheet, cellStyles, style, projectedStyleNames);
             }
 
