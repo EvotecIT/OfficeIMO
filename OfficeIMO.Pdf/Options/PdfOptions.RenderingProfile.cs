@@ -833,13 +833,9 @@ public sealed partial class PdfOptions {
         HashSet<string> profileOwnedFallbackNames) {
         var merged = new List<PdfEmbeddedFontFallbackCandidate>();
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var replacements = new HashSet<string>(
-            profileCandidates.Select(candidate => candidate.FontName),
-            StringComparer.OrdinalIgnoreCase);
         if (existingFallbacks != null) {
             foreach (PdfEmbeddedFontFallbackCandidate candidate in existingFallbacks.Candidates) {
-                if (profileOwnedFallbackNames.Contains(candidate.FontName)
-                    && replacements.Contains(candidate.FontName)) {
+                if (profileOwnedFallbackNames.Contains(candidate.FontName)) {
                     continue;
                 }
                 if (names.Add(candidate.FontName)) {
