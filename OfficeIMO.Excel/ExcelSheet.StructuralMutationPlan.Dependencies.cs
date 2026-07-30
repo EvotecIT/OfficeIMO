@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
                     conditionalFormattingImpacts.Add(ancestor);
                     return;
                 }
-                if (ancestor is X14.Sparkline) {
+                if (ancestor is X14.Sparkline || ancestor is X14.SparklineGroup) {
                     sparklineImpacts.Add(ancestor);
                     return;
                 }
@@ -207,6 +207,7 @@ namespace OfficeIMO.Excel {
 
         private bool TableMetadataChangesForPlan(
             Table? table,
+            IReadOnlyList<OpenXmlElement> tableElements,
             ExcelRowMutationKind kind,
             int firstRow,
             int lastRow,
@@ -224,7 +225,7 @@ namespace OfficeIMO.Excel {
 
             return Changes(table.Reference?.Value)
                 || Changes(table.GetFirstChild<AutoFilter>()?.Reference?.Value)
-                || table.Descendants<SortState>().Any(sortState =>
+                || tableElements.OfType<SortState>().Any(sortState =>
                     Changes(sortState.Reference?.Value)
                     || sortState.Elements<SortCondition>()
                         .Any(condition => Changes(condition.Reference?.Value))
@@ -281,10 +282,12 @@ namespace OfficeIMO.Excel {
             int firstRow,
             int lastRow,
             int count,
-            MutationPlanScanBudget budget) {
+            MutationPlanScanBudget budget,
+            out IReadOnlyList<OpenXmlElement> tableElements) {
             budget.Consume();
             Table? table = tablePart.Table;
             if (table == null) {
+                tableElements = Array.Empty<OpenXmlElement>();
                 return 0;
             }
 
@@ -301,8 +304,10 @@ namespace OfficeIMO.Excel {
                 out int totalsRowAnchorRow);
 
             int impacts = 0;
+            var inspectedElements = new List<OpenXmlElement>();
             foreach (OpenXmlElement element in table.Descendants()) {
                 budget.Consume();
+                inspectedElements.Add(element);
                 bool changes;
                 if (element is CalculatedColumnFormula calculatedColumnFormula) {
                     changes = rewriteUnqualifiedReferences
@@ -352,6 +357,7 @@ namespace OfficeIMO.Excel {
                     impacts++;
                 }
             }
+            tableElements = inspectedElements;
             return impacts;
         }
 
@@ -479,15 +485,18 @@ namespace OfficeIMO.Excel {
                 XNamespace excelNamespace =
                     "urn:schemas-microsoft-com:office:excel";
                 XElement? root = document.Root;
+                var shapes = new List<XElement>();
                 if (root != null) {
                     budget.Consume();
-                    foreach (XElement _ in root.Descendants()) {
+                    foreach (XElement element in root.Descendants()) {
                         budget.Consume();
+                        if (element.Name == vmlNamespace + "shape"
+                            && ReferenceEquals(element.Parent, root)) {
+                            shapes.Add(element);
+                        }
                     }
                 }
-                foreach (XElement shape in
-                    root?.Elements(vmlNamespace + "shape")
-                        ?? Enumerable.Empty<XElement>()) {
+                foreach (XElement shape in shapes) {
                     XElement? clientData =
                         shape.Element(excelNamespace + "ClientData");
                     if (clientData == null

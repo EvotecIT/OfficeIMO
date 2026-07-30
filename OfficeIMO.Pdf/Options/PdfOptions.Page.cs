@@ -29,8 +29,9 @@ public sealed partial class PdfOptions {
         set {
             Guard.Positive(value.Width, nameof(PageSize));
             Guard.Positive(value.Height, nameof(PageSize));
-            PageWidth = value.Width;
-            PageHeight = value.Height;
+            _pageWidth = value.Width;
+            _pageHeight = value.Height;
+            _pageSizeConfigurationVersion++;
         }
     }
     /// <summary>Page orientation inferred from the current page size.</summary>

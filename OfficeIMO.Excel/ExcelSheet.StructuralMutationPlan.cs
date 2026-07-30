@@ -157,16 +157,21 @@ namespace OfficeIMO.Excel {
 
                         if (!pendingValueIsAuthoritative
                             && cell.CellFormula is CellFormula cellFormula) {
-                            bool formulaImpactRecorded = FormulaChangesForPlan(
-                                    inspectedSheet.ResolveCellFormulaText(
-                                        cell,
-                                        sharedFormulaDefinitions,
-                                        effectiveCoordinates),
-                                    kind,
-                                    firstRow,
-                                    lastRow,
-                                    count,
-                                    rewriteUnqualified);
+                            bool formulaImpactRecorded =
+                                rewriteUnqualified
+                                && kind == ExcelRowMutationKind.Delete
+                                && effectiveCoordinate.Row >= firstRow
+                                && effectiveCoordinate.Row <= lastRow;
+                            formulaImpactRecorded |= FormulaChangesForPlan(
+                                inspectedSheet.ResolveCellFormulaText(
+                                    cell,
+                                    sharedFormulaDefinitions,
+                                    effectiveCoordinates),
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count,
+                                rewriteUnqualified);
                             if (rewriteUnqualified
                                 && cellFormula.FormulaType?.Value != CellFormulaValues.Shared
                                 && ReferenceListChangesForPlan(
@@ -354,11 +359,13 @@ namespace OfficeIMO.Excel {
                         firstRow,
                         lastRow,
                         count,
-                        budget);
+                        budget,
+                        out IReadOnlyList<OpenXmlElement> tableElements);
                     formulas += tableFormulaImpacts;
                     if ((rewriteUnqualified
                             && TableMetadataChangesForPlan(
                                 tablePart.Table,
+                                tableElements,
                                 kind,
                                 firstRow,
                                 lastRow,
