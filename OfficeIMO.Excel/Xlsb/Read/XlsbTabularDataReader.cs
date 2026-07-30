@@ -56,6 +56,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private int _pendingRowIndex;
         private int _nextLogicalRowIndex;
         private int _recordsSinceCancellationCheck;
+        private readonly int[] _currentRowSpanBounds = new int[32];
+        private int _currentRowSpanCount;
 
         internal XlsbTabularDataReader(
             Stream worksheetPart,
@@ -324,18 +326,40 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             firstColumn = 0;
             lastColumn = -1;
             bool inSheetData = false;
+            bool sawDimension = false;
             while (_records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtWsDim) {
+                    if (sawDimension) {
+                        throw new InvalidDataException(
+                            "The XLSB worksheet contains more than one BrtWsDim record.");
+                    }
+                    if (record.Size != 16) {
+                        throw new InvalidDataException(
+                            $"The BrtWsDim record at offset {record.RecordOffset} has invalid payload length {record.Size}.");
+                    }
+                    sawDimension = true;
                     var cursor = record.CreateCursor();
-                    cursor.ReadUInt32();
-                    cursor.ReadUInt32();
-                    firstColumn = checked((int)cursor.ReadUInt32());
-                    lastColumn = checked((int)cursor.ReadUInt32());
+                    uint firstRow = cursor.ReadUInt32();
+                    uint lastRow = cursor.ReadUInt32();
+                    uint firstColumnValue = cursor.ReadUInt32();
+                    uint lastColumnValue = cursor.ReadUInt32();
+                    if (firstRow > lastRow
+                        || lastRow >= A1.MaxRows
+                        || firstColumnValue > lastColumnValue
+                        || lastColumnValue >= A1.MaxColumns) {
+                        throw new InvalidDataException(
+                            $"The BrtWsDim record at offset {record.RecordOffset} contains an invalid worksheet range.");
+                    }
+                    firstColumn = checked((int)firstColumnValue);
+                    lastColumn = checked((int)lastColumnValue);
                 } else if (record.Type == BrtBeginSheetData) {
                     inSheetData = true;
                 } else if (inSheetData && record.Type == BrtRowHdr) {
-                    int rowIndex = ValidateRowHeader(record);
+                    int rowIndex = ValidateRowHeader(
+                        record,
+                        _currentRowSpanBounds,
+                        out _currentRowSpanCount);
                     if (rowIndex == firstDataRow) {
                         _pendingRowIndex = rowIndex;
                         _hasPendingRow = true;
@@ -428,6 +452,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
             }
+            ValidateCellCoveredByCurrentRow(column, record);
             ValidateStyleIndex(styleIndex, record);
 
             bool isDate = _options.TreatDatesUsingNumberFormat
@@ -610,7 +635,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private bool TrySetPendingRow(XlsbRecordSlice record) {
-            int rowIndex = ValidateRowHeader(record);
+            int rowIndex = ValidateRowHeader(
+                record,
+                _currentRowSpanBounds,
+                out _currentRowSpanCount);
             if (rowIndex > _lastDataRow) {
                 return false;
             }
@@ -631,20 +659,75 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
         }
 
-        private static int ValidateRowHeader(XlsbRecordSlice record) {
+        private static int ValidateRowHeader(
+            XlsbRecordSlice record,
+            int[] spanBounds,
+            out int spanCount) {
             if (record.Size < 17) {
                 throw new InvalidDataException(
                     $"The BrtRowHdr record at offset {record.RecordOffset} is truncated.");
             }
+            if (spanBounds == null || spanBounds.Length < 32) {
+                throw new ArgumentException(
+                    "A row-span buffer must hold all 16 BIFF12 column spans.",
+                    nameof(spanBounds));
+            }
 
             var cursor = record.CreateCursor();
             uint rowIndex = cursor.ReadUInt32();
-            if (rowIndex >= A1.MaxRows) {
+            cursor.ReadUInt32();
+            cursor.ReadUInt16();
+            byte extraFlags = cursor.ReadByte();
+            byte flags = cursor.ReadByte();
+            byte phoneticFlags = cursor.ReadByte();
+            uint declaredSpanCount = cursor.ReadUInt32();
+            if (rowIndex >= A1.MaxRows
+                || (extraFlags & 0xFC) != 0
+                || (flags & 0x80) != 0
+                || (phoneticFlags & 0xFE) != 0
+                || declaredSpanCount > 16) {
                 throw new InvalidDataException(
-                    $"The BrtRowHdr record at offset {record.RecordOffset} contains invalid row index {rowIndex}.");
+                    $"The BrtRowHdr record at offset {record.RecordOffset} contains invalid row metadata.");
+            }
+            if (cursor.Remaining != checked((int)declaredSpanCount * 8)) {
+                throw new InvalidDataException(
+                    $"The BrtRowHdr record at offset {record.RecordOffset} has an invalid column-span payload.");
+            }
+
+            int previousLast = -1;
+            spanCount = checked((int)declaredSpanCount);
+            for (int index = 0; index < spanCount; index++) {
+                uint firstColumn = cursor.ReadUInt32();
+                uint lastColumn = cursor.ReadUInt32();
+                if (firstColumn > lastColumn
+                    || lastColumn >= A1.MaxColumns
+                    || firstColumn / 1024U != lastColumn / 1024U
+                    || firstColumn <= previousLast) {
+                    throw new InvalidDataException(
+                        $"The BrtRowHdr record at offset {record.RecordOffset} contains an invalid column span.");
+                }
+                int offset = index * 2;
+                spanBounds[offset] = checked((int)firstColumn);
+                spanBounds[offset + 1] = checked((int)lastColumn);
+                previousLast = checked((int)lastColumn);
             }
 
             return checked((int)rowIndex);
+        }
+
+        private void ValidateCellCoveredByCurrentRow(
+            int column,
+            XlsbRecordSlice record) {
+            for (int index = 0; index < _currentRowSpanCount; index++) {
+                int offset = index * 2;
+                if (_currentRowSpanBounds[offset] <= column
+                    && column <= _currentRowSpanBounds[offset + 1]) {
+                    return;
+                }
+            }
+
+            throw new InvalidDataException(
+                $"The XLSB cell record at offset {record.RecordOffset} for column {column} is not covered by its BrtRowHdr column spans.");
         }
 
         private static long CopySegment<T>(

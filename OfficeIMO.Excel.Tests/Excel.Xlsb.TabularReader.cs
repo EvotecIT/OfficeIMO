@@ -789,10 +789,16 @@ public partial class Excel {
     }
 
     private static byte[] CreateTabularRowHeaderPayload(int rowIndex) {
-        byte[] payload = new byte[17];
+        byte[] payload = new byte[17 + 16 * 8];
         using var stream = new MemoryStream(payload, writable: true);
         using var writer = new BinaryWriter(stream);
         writer.Write(rowIndex);
+        stream.Position = 13;
+        writer.Write(16U);
+        for (uint segment = 0; segment < 16U; segment++) {
+            writer.Write(segment * 1024U);
+            writer.Write(segment * 1024U + 1023U);
+        }
         return payload;
     }
 

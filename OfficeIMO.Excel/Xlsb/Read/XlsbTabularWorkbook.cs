@@ -467,11 +467,20 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     case BrtFmt when inFormats: {
                         var cursor = record.CreateCursor();
                         ushort numberFormatId = cursor.ReadUInt16();
-                        customFormats[numberFormatId] = cursor.ReadWideString(
+                        string formatCode = cursor.ReadWideString(
                             Math.Min(_limits.MaxStringCharacters, 255));
+                        if (customFormats.ContainsKey(numberFormatId)) {
+                            throw new InvalidDataException(
+                                $"The XLSB styles part '{partName}' contains duplicate custom number format {numberFormatId}.");
+                        }
+                        customFormats.Add(numberFormatId, formatCode);
                         break;
                     }
                     case BrtXf when inCellFormats: {
+                        if (record.Size != 16) {
+                            throw new InvalidDataException(
+                                $"The BrtXf record at offset {record.RecordOffset} has invalid payload length {record.Size}.");
+                        }
                         var cursor = record.CreateCursor();
                         cursor.ReadUInt16();
                         ushort numberFormatId = cursor.ReadUInt16();

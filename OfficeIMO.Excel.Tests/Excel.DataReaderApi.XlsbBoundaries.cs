@@ -80,6 +80,125 @@ public partial class Excel {
         }
     }
 
+    [Fact]
+    public void OpenDataReader_XlsbRejectsTruncatedCellFormatRecord() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.TruncatedCellFormat.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("styles-dates-formulas.xlsb"), path);
+        try {
+            ReplaceFirstXlsbRecordPayloadAfter(
+                path,
+                "xl/styles.bin",
+                collectionBeginType: 617,
+                recordType: 47,
+                data => data.Take(4).ToArray());
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("BrtXf", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("payload length", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbRejectsDuplicateCustomNumberFormat() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.DuplicateNumberFormat.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("styles-dates-formulas.xlsb"), path);
+        try {
+            DuplicateFirstXlsbRecord(path, "xl/styles.bin", recordType: 44);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("duplicate custom number format", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbRejectsCellOutsideRowHeaderSpans() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.CellOutsideRowSpan.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            ReplaceFirstXlsbRecordPayload(
+                path,
+                "xl/worksheets/sheet1.bin",
+                recordType: 0,
+                data => {
+                    var replacement = new byte[25];
+                    Buffer.BlockCopy(data, 0, replacement, 0, 13);
+                    WriteUInt32LittleEndian(replacement, 13, 1U);
+                    WriteUInt32LittleEndian(replacement, 17, 100U);
+                    WriteUInt32LittleEndian(replacement, 21, 100U);
+                    return replacement;
+                });
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("not covered", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbRejectsTruncatedRowHeaderSpans() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.TruncatedRowSpan.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            ReplaceFirstXlsbRecordPayload(
+                path,
+                "xl/worksheets/sheet1.bin",
+                recordType: 0,
+                data => {
+                    var replacement = new byte[17];
+                    Buffer.BlockCopy(data, 0, replacement, 0, 13);
+                    WriteUInt32LittleEndian(replacement, 13, 1U);
+                    return replacement;
+                });
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("column-span payload", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbRejectsDuplicateWorksheetDimension() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.DuplicateDimension.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            DuplicateFirstXlsbRecord(
+                path,
+                "xl/worksheets/sheet1.bin",
+                recordType: 148);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("more than one BrtWsDim", exception.Message, StringComparison.Ordinal);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static void RemoveFinalXlsbRecord(
         string path,
         string entryName,
@@ -234,6 +353,80 @@ public partial class Excel {
         ReplaceZipEntry(path, "xl/workbook.bin", expanded);
     }
 
+    private static void ReplaceFirstXlsbRecordPayload(
+        string path,
+        string entryName,
+        int recordType,
+        Func<byte[], byte[]> replace) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+        using var output = new MemoryStream();
+        bool replaced = false;
+        foreach (XlsbRecord record in records) {
+            byte[] data = !replaced && record.Type == recordType
+                ? replace(record.Data)
+                : record.Data;
+            if (!replaced && record.Type == recordType) {
+                replaced = true;
+            }
+            XlsbRecordWriter.Write(output, record.Type, data);
+        }
+
+        Assert.True(replaced);
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
+    private static void ReplaceFirstXlsbRecordPayloadAfter(
+        string path,
+        string entryName,
+        int collectionBeginType,
+        int recordType,
+        Func<byte[], byte[]> replace) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+        using var output = new MemoryStream();
+        bool inCollection = false;
+        bool replaced = false;
+        foreach (XlsbRecord record in records) {
+            if (record.Type == collectionBeginType) {
+                inCollection = true;
+            }
+            byte[] data = !replaced && inCollection && record.Type == recordType
+                ? replace(record.Data)
+                : record.Data;
+            if (!replaced && inCollection && record.Type == recordType) {
+                replaced = true;
+            }
+            XlsbRecordWriter.Write(output, record.Type, data);
+        }
+
+        Assert.True(replaced);
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
+    private static void DuplicateFirstXlsbRecord(
+        string path,
+        string entryName,
+        int recordType) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+        using var output = new MemoryStream();
+        bool duplicated = false;
+        foreach (XlsbRecord record in records) {
+            XlsbRecordWriter.Write(output, record.Type, record.Data);
+            if (!duplicated && record.Type == recordType) {
+                XlsbRecordWriter.Write(output, record.Type, record.Data);
+                duplicated = true;
+            }
+        }
+
+        Assert.True(duplicated);
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
     private static byte[] ReadZipEntry(string path, string entryName) {
         using var archive = ZipFile.OpenRead(path);
         ZipArchiveEntry entry = archive.GetEntry(entryName)
@@ -265,4 +458,5 @@ public partial class Excel {
             | bytes[offset + 1] << 8
             | bytes[offset + 2] << 16
             | bytes[offset + 3] << 24);
+
 }

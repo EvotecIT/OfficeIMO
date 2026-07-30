@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
             }
+            ValidateCellCoveredByCurrentRow(column, record);
             ValidateStyleIndex(styleIndex, record);
 
             int ordinal = column - _firstColumn;

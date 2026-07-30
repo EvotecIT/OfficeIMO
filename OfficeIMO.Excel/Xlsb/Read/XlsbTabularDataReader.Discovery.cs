@@ -36,6 +36,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int firstRecordType = -1;
                 int lastRecordType = -1;
                 int recordsSinceCancellationCheck = 0;
+                var currentRowSpanBounds = new int[32];
+                int currentRowSpanCount = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 while (scanner.TryRead(out XlsbRecordSlice record)) {
                     if (firstRecordType < 0) {
@@ -77,7 +79,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         continue;
                     }
                     if (record.Type == BrtRowHdr) {
-                        currentRow = ValidateRowHeader(record);
+                        currentRow = ValidateRowHeader(
+                            record,
+                            currentRowSpanBounds,
+                            out currentRowSpanCount);
                         continue;
                     }
                     if (!IsCellRecord(record.Type)) {
@@ -97,6 +102,19 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     if (column < 0 || column >= A1.MaxColumns) {
                         throw new InvalidDataException(
                             $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
+                    }
+                    bool covered = false;
+                    for (int index = 0; index < currentRowSpanCount; index++) {
+                        int offset = index * 2;
+                        if (currentRowSpanBounds[offset] <= column
+                            && column <= currentRowSpanBounds[offset + 1]) {
+                            covered = true;
+                            break;
+                        }
+                    }
+                    if (!covered) {
+                        throw new InvalidDataException(
+                            $"The XLSB cell record at offset {record.RecordOffset} for column {column} is not covered by its BrtRowHdr column spans.");
                     }
 
                     firstColumn = Math.Min(firstColumn, column);
