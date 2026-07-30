@@ -57,6 +57,12 @@ public sealed partial class PdfOptions {
                 CloneRenderingProfileFamilyFallbacks(_renderingProfileFamilyFallbacks),
             _renderingProfileDeclaredFallbackCandidates =
                 _renderingProfileDeclaredFallbackCandidates?.ToArray(),
+            _renderingProfileOwnedNamedFamilyNames =
+                _renderingProfileOwnedNamedFamilyNames == null
+                    ? null
+                    : new HashSet<string>(
+                        _renderingProfileOwnedNamedFamilyNames,
+                        StringComparer.OrdinalIgnoreCase),
             TextLineBreakCallback = _textLineBreakCallback,
             TextHyphenationCallback = _textHyphenationCallback,
             TextShapingMode = TextShapingMode,

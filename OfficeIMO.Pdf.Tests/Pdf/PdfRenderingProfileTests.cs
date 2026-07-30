@@ -138,6 +138,44 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void OverlayPreservesCallerNamedFamilyWhenProfileNameCollides() {
+        byte[] callerData = ManagedTextShapingTestAssets.CreateFont('A');
+        var options = new PdfOptions()
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Shared", callerData));
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", ManagedTextShapingTestAssets.CreateFont('B'));
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("named-collision", profileFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(callerData, options.NamedFontFamilies["Shared"].Regular);
+    }
+
+    [Fact]
+    public void OverlayRefreshesFallbackBytesOwnedByEarlierProfile() {
+        byte[] firstData = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] secondData = ManagedTextShapingTestAssets.CreateFont('B');
+        var firstFonts = new OfficeFontFaceCollection()
+            .Add("Shared", firstData)
+            .AddFallbackFamily("Shared");
+        var secondFonts = new OfficeFontFaceCollection()
+            .Add("Shared", secondData)
+            .AddFallbackFamily("Shared");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("first", firstFonts));
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("second", secondFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(secondData, options.NamedFontFamilies["Shared"].Regular);
+        Assert.Equal(
+            secondData,
+            Assert.Single(options.EmbeddedFontFallbacks!.Candidates).DataSnapshot);
+    }
+
+    [Fact]
     public void ProfileFallbackPlannerDoesNotReplaceStyledNamedFamily() {
         byte[] regular = ManagedTextShapingTestAssets.CreateFont('A');
         byte[] bold = ManagedTextShapingTestAssets.CreateFont('B');
@@ -289,6 +327,67 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.True(plan.IsFullyCovered);
         Assert.Equal(2, plan.Segments.Count);
+    }
+
+    [Fact]
+    public void RequestedFamilyListIncludesUnrestrictedAndScopedFamiliesInOrder() {
+        var onlyB = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('B', 'B')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", ManagedTextShapingTestAssets.CreateFont('A'))
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('B'),
+                OfficeFontStyle.Regular,
+                onlyB);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("mixed-families", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Primary, Scoped",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfTextFallbackPlan plan = Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks)
+            .PlanText("AB");
+
+        Assert.True(plan.IsFullyCovered);
+        Assert.Equal(2, plan.Segments.Count);
+        Assert.Equal("Primary", plan.Segments[0].FontName);
+        Assert.Equal(fonts.Faces[1].ResourceFamilyName, plan.Segments[1].FontName);
+    }
+
+    [Fact]
+    public void RequestedRangeFamilyListPreservesFamilyPriorityBeforeStyle() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "First",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .Add(
+                "Second",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Bold,
+                onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("styled-family-list", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "First, Second",
+            bold: true,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfTextFallbackSegment segment = Assert.Single(
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks)
+                .PlanText("A")
+                .Segments);
+
+        Assert.Equal(fonts.Faces[0].ResourceFamilyName, segment.FontName);
     }
 
     [Fact]
@@ -739,6 +838,41 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.True(allowed.IsFullyCovered);
         Assert.False(rejected.IsFullyCovered);
+    }
+
+    [Fact]
+    public void FallbackPlannerKeepsCombiningGraphemeWithinOneFont() {
+        var baseRange = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('a', 'a')
+        });
+        var markRange = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange(0x0301, 0x0301)
+        });
+        PdfTextFallbackPlan splitCandidates = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate(
+                    "Base",
+                    ManagedTextShapingTestAssets.CreateFont('a'),
+                    baseRange),
+                new PdfEmbeddedFontFallbackCandidate(
+                    "Mark",
+                    ManagedTextShapingTestAssets.CreateFont(0x0301),
+                    markRange)
+            })
+            .PlanText("a\u0301");
+        PdfTextFallbackPlan completeCandidate = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate(
+                    "Complete",
+                    ManagedTextShapingTestAssets.CreateFont('a', 0x0301))
+            })
+            .PlanText("a\u0301");
+
+        Assert.False(splitCandidates.IsFullyCovered);
+        Assert.Empty(splitCandidates.Segments);
+        Assert.Single(splitCandidates.Diagnostics);
+        Assert.True(completeCandidate.IsFullyCovered);
+        Assert.Equal("a\u0301", Assert.Single(completeCandidate.Segments).Text);
     }
 
     [Fact]
