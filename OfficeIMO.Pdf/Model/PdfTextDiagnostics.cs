@@ -177,7 +177,8 @@ internal static class PdfTextDiagnostics {
                     run.Italic,
                     out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks)
                 && profileFamilyFallbacks != null) {
-                diagnostics.AddRange(AnalyzeGeneratedTextWithFallback(
+                List<PdfTextEncodingDiagnostic> profileDiagnostics =
+                    AnalyzeGeneratedTextWithFallback(
                     run.Text,
                     profileFamilyFallbacks,
                     source,
@@ -187,9 +188,11 @@ internal static class PdfTextDiagnostics {
                     (string _, int _, out int length) => {
                         length = 0;
                         return false;
-                    }));
-                runIndex++;
-                continue;
+                    });
+                if (profileDiagnostics.Count == 0) {
+                    runIndex++;
+                    continue;
+                }
             }
             if (options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
                 if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&

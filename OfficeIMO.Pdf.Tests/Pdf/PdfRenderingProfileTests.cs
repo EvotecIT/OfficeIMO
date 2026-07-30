@@ -873,6 +873,31 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void EncodingPreflightFallsBackWhenProfilePlannerIsIncomplete() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .AddFallbackFamily("Scoped");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("incomplete-preflight", fonts));
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
+            PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+                new[] { TextRun.Normal("B") },
+                options,
+                PdfStandardFont.Helvetica,
+                "profile fallback preflight");
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
     public void ClearingNamedFamiliesAlsoClearsRangeScopedAuthoredFamilyPlanner() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')
