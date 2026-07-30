@@ -383,14 +383,7 @@ namespace OfficeIMO.Excel {
                     && pending.Row >= firstRow) {
                     cells++;
                 }
-                if (pending.Value is DirectFormulaCellValue pendingFormula
-                    && FormulaChangesForPlan(
-                        pendingFormula.Formula,
-                        kind,
-                        firstRow,
-                        lastRow,
-                        count,
-                        rewriteUnqualifiedReferences: ownerIsTarget)) {
+                if (pending.Value is DirectFormulaCellValue) {
                     formulas++;
                 }
             }

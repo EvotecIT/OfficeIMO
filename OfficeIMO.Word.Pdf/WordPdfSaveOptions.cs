@@ -7,9 +7,9 @@ namespace OfficeIMO.Word.Pdf {
     /// Options controlling first-party OfficeIMO PDF export.
     /// </summary>
     public class WordPdfSaveOptions {
-        private PdfCore.PdfOptions? _pdfOptions;
-        private long? _fontlessRenderingProfileFontConfigurationState;
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+        private PdfCore.PdfOptions? _pdfOptions;
+        private long? _renderingProfileFontConfigurationState;
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
@@ -17,15 +17,15 @@ namespace OfficeIMO.Word.Pdf {
             get => _pdfOptions;
             set {
                 _pdfOptions = value;
-                _fontlessRenderingProfileFontConfigurationState = null;
+                _renderingProfileFontConfigurationState = null;
             }
         }
 
         internal bool HasExplicitPdfFontConfiguration =>
             _pdfOptions != null
-            && (!_fontlessRenderingProfileFontConfigurationState.HasValue
+            && (!_renderingProfileFontConfigurationState.HasValue
                 || _pdfOptions.FontConfigurationState
-                    != _fontlessRenderingProfileFontConfigurationState.Value);
+                    != _renderingProfileFontConfigurationState.Value);
 
         /// <summary>
         /// Optional Word-style font family used as the first-party PDF default font. When the resource policy allows system fonts, an installed family is embedded; otherwise it maps to the nearest PDF standard font.
@@ -116,23 +116,17 @@ namespace OfficeIMO.Word.Pdf {
         public WordPdfSaveOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-            if (profile == null) throw new ArgumentNullException(nameof(profile));
-            if (_pdfOptions == null) {
-                _pdfOptions = new PdfCore.PdfOptions();
-                _pdfOptions.UseRenderingProfile(profile, mode);
-                if (profile.Fonts.Faces.Count == 0) {
-                    _fontlessRenderingProfileFontConfigurationState =
-                        _pdfOptions.FontConfigurationState;
-                }
-                return this;
-            }
+            bool profileOwnsCurrentFontConfiguration =
+                _pdfOptions == null
+                || (_renderingProfileFontConfigurationState.HasValue
+                    && _pdfOptions.FontConfigurationState
+                        == _renderingProfileFontConfigurationState.Value);
+            _pdfOptions ??= new PdfCore.PdfOptions();
             _pdfOptions.UseRenderingProfile(profile, mode);
-            if (profile.Fonts.Faces.Count > 0) {
-                _fontlessRenderingProfileFontConfigurationState = null;
-            } else if (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-                _fontlessRenderingProfileFontConfigurationState =
-                    _pdfOptions.FontConfigurationState;
-            }
+            _renderingProfileFontConfigurationState =
+                profileOwnsCurrentFontConfiguration
+                    ? _pdfOptions.FontConfigurationState
+                    : null;
             return this;
         }
 
@@ -183,8 +177,8 @@ namespace OfficeIMO.Word.Pdf {
                 PageNumberFormat = PageNumberFormat,
                 DefaultTableBorders = DefaultTableBorders
             };
-            clone._fontlessRenderingProfileFontConfigurationState =
-                _fontlessRenderingProfileFontConfigurationState;
+            clone._renderingProfileFontConfigurationState =
+                _renderingProfileFontConfigurationState;
             return clone;
         }
     }

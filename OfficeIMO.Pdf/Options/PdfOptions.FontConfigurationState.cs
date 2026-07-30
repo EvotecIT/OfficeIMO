@@ -46,9 +46,9 @@ public sealed partial class PdfOptions {
             AddInt64((int)_defaultFont);
             AddInt64((int)_headerFont);
             AddInt64((int)_footerFont);
-            AddInt64(BitConverter.DoubleToInt64Bits(_defaultFontSize));
-            AddInt64(BitConverter.DoubleToInt64Bits(_headerFontSize));
-            AddInt64(BitConverter.DoubleToInt64Bits(_footerFontSize));
+            AddInt64(BitConverter.DoubleToInt64Bits(DefaultFontSize));
+            AddInt64(BitConverter.DoubleToInt64Bits(HeaderFontSize));
+            AddInt64(BitConverter.DoubleToInt64Bits(FooterFontSize));
             AddByte(_hasExplicitDefaultFont ? (byte)1 : (byte)0);
             AddByte(_hasExplicitHeaderFont ? (byte)1 : (byte)0);
             AddByte(_hasExplicitFooterFont ? (byte)1 : (byte)0);
