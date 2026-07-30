@@ -20,7 +20,7 @@ if ($Publish -and $RunMode -ne 'full') {
 
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
 if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
-    Import-Module PSPublishModule -MinimumVersion 3.0.83 -Force
+    Import-Module PSPublishModule -MinimumVersion 3.0.84 -Force
 } else {
     $powerForgeModule = Join-Path $PowerForgeRoot "PSPublishModule\bin\Release\$PowerForgeFramework\PSPublishModule.dll"
     if (-not (Test-Path -LiteralPath $powerForgeModule -PathType Leaf)) {
