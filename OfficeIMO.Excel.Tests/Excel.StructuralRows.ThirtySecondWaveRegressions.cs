@@ -174,6 +174,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_UnchangedRowBreakContainerIsNotNormalized() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            var pageBreak = new Break {
+                Id = 1U,
+                ManualPageBreak = true
+            };
+            var rowBreaks = new RowBreaks(pageBreak);
+            sheet.WorksheetPart.Worksheet.Append(rowBreaks);
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
+
+            Assert.DoesNotContain(
+                plan.Impacts,
+                impact => impact.Category == "worksheet-range-metadata");
+            plan.Apply();
+            Assert.Null(rowBreaks.Count);
+            Assert.Null(rowBreaks.ManualBreakCount);
+            Assert.Equal(1U, pageBreak.Id!.Value);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanChargesNamedPivotLookup() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = CreatePivotSheet(document);

@@ -2411,7 +2411,7 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void PowerPointCallerFontMutationIsClearedByShapingOnlyProfileReplacement() {
+    public void PowerPointCallerFontMutationSurvivesShapingOnlyProfileReplacement() {
         var fontProfile = new OfficeRenderingProfile(
             "powerpoint-font-profile",
             new OfficeFontFaceCollection()
@@ -2424,9 +2424,26 @@ public sealed class PdfRenderingProfileTests {
             new OfficeRenderingProfile("shaping-only"),
             OfficeRenderingProfileApplyMode.Replace);
 
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-        Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
         Assert.Empty(options.PdfOptions!.NamedFontFamilies);
+        Assert.Equal(PdfStandardFont.Courier, options.PdfOptions.DefaultFont);
+    }
+
+    [Fact]
+    public void RepeatedPowerPointFontlessReplacementPreservesCallerAssignment() {
+        var fontless = new OfficeRenderingProfile("shaping-only");
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(fontless);
+        options.PdfOptions!.DefaultFontSize = 13;
+
+        options.UseRenderingProfile(
+            fontless,
+            OfficeRenderingProfileApplyMode.Replace);
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
     }
 
     private sealed class DecliningTextShapingProvider : IOfficeTextShapingProvider {

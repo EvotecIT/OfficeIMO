@@ -22,6 +22,8 @@ public sealed class PowerPointPdfSaveOptions {
     private bool _pdfOptionsCreatedByRenderingProfile;
     private long? _renderingProfileFontConfigurationState;
     private long? _renderingProfileFontAssignmentVersion;
+    private long? _renderingProfileOwnedFontConfigurationState;
+    private long? _renderingProfileOwnedFontAssignmentVersion;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
     public PdfCore.PdfOptions? PdfOptions {
@@ -31,6 +33,8 @@ public sealed class PowerPointPdfSaveOptions {
             _pdfOptionsCreatedByRenderingProfile = false;
             _renderingProfileFontConfigurationState = null;
             _renderingProfileFontAssignmentVersion = null;
+            _renderingProfileOwnedFontConfigurationState = null;
+            _renderingProfileOwnedFontAssignmentVersion = null;
         }
     }
 
@@ -144,12 +148,12 @@ public sealed class PowerPointPdfSaveOptions {
         bool createdPdfOptions = _pdfOptions == null;
         bool profileOwnsCurrentFontConfiguration =
             _pdfOptions != null
-            && _renderingProfileFontConfigurationState.HasValue
+            && _renderingProfileOwnedFontConfigurationState.HasValue
             && _pdfOptions.FontConfigurationState
-                == _renderingProfileFontConfigurationState.Value
-            && _renderingProfileFontAssignmentVersion.HasValue
+                == _renderingProfileOwnedFontConfigurationState.Value
+            && _renderingProfileOwnedFontAssignmentVersion.HasValue
             && _pdfOptions.FontConfigurationAssignmentVersion
-                == _renderingProfileFontAssignmentVersion.Value;
+                == _renderingProfileOwnedFontAssignmentVersion.Value;
         PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
         target.UseRenderingProfile(profile, mode);
         if (createdPdfOptions) {
@@ -160,12 +164,22 @@ public sealed class PowerPointPdfSaveOptions {
             profile.Fonts.Faces.Count == 0
             && _pdfOptionsCreatedByRenderingProfile
             && (createdPdfOptions
-                || mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
-                || profileOwnsCurrentFontConfiguration)
+                || (profileOwnsCurrentFontConfiguration
+                    && (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                        || _renderingProfileFontConfigurationState.HasValue)))
                 ? target.FontConfigurationState
                 : null;
         _renderingProfileFontAssignmentVersion =
             _renderingProfileFontConfigurationState.HasValue
+                ? target.FontConfigurationAssignmentVersion
+                : null;
+        _renderingProfileOwnedFontConfigurationState =
+            _pdfOptionsCreatedByRenderingProfile
+            && (createdPdfOptions || profileOwnsCurrentFontConfiguration)
+                ? target.FontConfigurationState
+                : null;
+        _renderingProfileOwnedFontAssignmentVersion =
+            _renderingProfileOwnedFontConfigurationState.HasValue
                 ? target.FontConfigurationAssignmentVersion
                 : null;
         return this;
