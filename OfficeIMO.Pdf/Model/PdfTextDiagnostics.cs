@@ -184,10 +184,10 @@ internal static class PdfTextDiagnostics {
                     runLocation,
                     runIndex,
                     shapingMode,
-                    (string _, int _, out int length) => {
-                        length = 0;
-                        return false;
-                    }));
+                    CreateSelectedCallerCoverage(
+                        options,
+                        run,
+                        shapingMode)));
                 runIndex++;
                 continue;
             }
@@ -243,6 +243,48 @@ internal static class PdfTextDiagnostics {
         }
 
         return diagnostics;
+    }
+
+    private static TryGetSelectedTextLength CreateSelectedCallerCoverage(
+        PdfOptions options,
+        TextRun run,
+        PdfTextShapingMode shapingMode) {
+        if (options.ShouldPreferSelectedCallerFamily(run.FontFamily)
+            && options.TryResolveNamedFontFace(
+                run.FontFamily,
+                run.Bold,
+                run.Italic,
+                out PdfNamedFontFace namedFace)) {
+            if (options.TryGetNamedFontProgram(
+                    namedFace,
+                    out PdfTrueTypeFontProgram? namedFontProgram)
+                && namedFontProgram != null) {
+                return (string value, int index, out int length) =>
+                    TryGetCoveredTextLength(
+                        value,
+                        index,
+                        namedFontProgram,
+                        shapingMode,
+                        out length);
+            }
+            if (options.TryGetNamedOpenTypeCffFontProgram(
+                    namedFace,
+                    out PdfOpenTypeCffFontProgram? namedCffFontProgram)
+                && namedCffFontProgram != null) {
+                return (string value, int index, out int length) =>
+                    TryGetCoveredTextLength(
+                        value,
+                        index,
+                        namedCffFontProgram,
+                        shapingMode,
+                        out length);
+            }
+        }
+
+        return (string _, int _, out int length) => {
+            length = 0;
+            return false;
+        };
     }
 
     /// <summary>

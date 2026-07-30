@@ -19,8 +19,22 @@ public enum PowerPointPdfPageLayout {
 public sealed class PowerPointPdfSaveOptions {
     private int _handoutSlidesPerPage = 6;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+    private PdfCore.PdfOptions? _pdfOptions;
+    private long? _renderingProfileFontConfigurationState;
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
-    public PdfCore.PdfOptions? PdfOptions { get; set; }
+    public PdfCore.PdfOptions? PdfOptions {
+        get => _pdfOptions;
+        set {
+            _pdfOptions = value;
+            _renderingProfileFontConfigurationState = null;
+        }
+    }
+
+    internal bool HasExplicitPdfFontConfiguration =>
+        _pdfOptions != null
+        && (!_renderingProfileFontConfigurationState.HasValue
+            || _pdfOptions.FontConfigurationState
+                != _renderingProfileFontConfigurationState.Value);
 
     /// <summary>Optional PowerPoint-style font family used as the first-party PDF default font.</summary>
     public string? FontFamily { get; set; }
@@ -112,8 +126,26 @@ public sealed class PowerPointPdfSaveOptions {
     public PowerPointPdfSaveOptions UseRenderingProfile(
         DrawingCore.OfficeRenderingProfile profile,
         DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-        PdfOptions ??= new PdfCore.PdfOptions();
-        PdfOptions.UseRenderingProfile(profile, mode);
+        if (profile == null) {
+            throw new ArgumentNullException(nameof(profile));
+        }
+        if (mode != DrawingCore.OfficeRenderingProfileApplyMode.Replace
+            && mode != DrawingCore.OfficeRenderingProfileApplyMode.Overlay) {
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+
+        bool profileOwnsCurrentFontConfiguration =
+            _pdfOptions == null
+            || (_renderingProfileFontConfigurationState.HasValue
+                && _pdfOptions.FontConfigurationState
+                    == _renderingProfileFontConfigurationState.Value);
+        _pdfOptions ??= new PdfCore.PdfOptions();
+        _pdfOptions.UseRenderingProfile(profile, mode);
+        _renderingProfileFontConfigurationState =
+            profileOwnsCurrentFontConfiguration
+            && profile.Fonts.Faces.Count == 0
+                ? _pdfOptions.FontConfigurationState
+                : null;
         return this;
     }
 
