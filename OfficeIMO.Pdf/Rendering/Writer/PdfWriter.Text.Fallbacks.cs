@@ -20,19 +20,34 @@ internal static partial class PdfWriter {
                 continue;
             }
 
+            bool preferSelectedCallerFamily =
+                options?.ShouldPreferSelectedCallerFamily(run.FontFamily) == true;
+            if (preferSelectedCallerFamily
+                && CanWriteRunWithSelectedFont(run, baseFont, options)) {
+                normalized.Add(run);
+                continue;
+            }
+
             if (options?.TryGetEffectiveRenderingProfileFallbacks(
                     run.FontFamily,
                     run.Bold,
                     run.Italic,
                     out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks) == true
                 && profileFamilyFallbacks != null
-                && TryPlanFallbackTextRuns(
-                    profileFamilyFallbacks,
-                    run.Text,
-                    run,
-                    options,
-                    ResolveFontForRun(run, baseFont),
-                    out System.Collections.Generic.IReadOnlyList<TextRun> profileRuns)) {
+                && ((preferSelectedCallerFamily
+                     && TryPlanFallbackRunsPreservingSelectedFont(
+                        run,
+                        baseFont,
+                        options,
+                        profileFamilyFallbacks,
+                        out System.Collections.Generic.IReadOnlyList<TextRun> profileRuns))
+                    || TryPlanFallbackTextRuns(
+                        profileFamilyFallbacks,
+                        run.Text,
+                        run,
+                        options,
+                        ResolveFontForRun(run, baseFont),
+                        out profileRuns))) {
                 normalized.AddRange(profileRuns);
                 continue;
             }

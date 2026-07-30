@@ -9,6 +9,9 @@ namespace OfficeIMO.Excel.Pdf {
         private int _headerRowCount = 1;
         private int? _maxRowsPerSheet;
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+        private PdfCore.PdfOptions? _pdfOptions;
+        private double? _renderingProfilePageWidth;
+        private double? _renderingProfilePageHeight;
 
         /// <summary>
         /// Warnings populated when workbook content cannot be mapped faithfully.
@@ -25,7 +28,21 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
-        public PdfCore.PdfOptions? PdfOptions { get; set; }
+        public PdfCore.PdfOptions? PdfOptions {
+            get => _pdfOptions;
+            set {
+                _pdfOptions = value;
+                _renderingProfilePageWidth = null;
+                _renderingProfilePageHeight = null;
+            }
+        }
+
+        internal bool HasExplicitPdfPageSizeConfiguration =>
+            _pdfOptions != null
+            && (!_renderingProfilePageWidth.HasValue
+                || !_renderingProfilePageHeight.HasValue
+                || _pdfOptions.PageWidth != _renderingProfilePageWidth.Value
+                || _pdfOptions.PageHeight != _renderingProfilePageHeight.Value);
 
         /// <summary>
         /// Optional workbook default font family used by the first-party PDF engine.
@@ -207,8 +224,21 @@ namespace OfficeIMO.Excel.Pdf {
         public ExcelPdfSaveOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-            PdfOptions ??= new PdfCore.PdfOptions();
-            PdfOptions.UseRenderingProfile(profile, mode);
+            bool profileOwnsCurrentPageSize =
+                _pdfOptions == null
+                || (_renderingProfilePageWidth.HasValue
+                    && _renderingProfilePageHeight.HasValue
+                    && _pdfOptions.PageWidth == _renderingProfilePageWidth.Value
+                    && _pdfOptions.PageHeight == _renderingProfilePageHeight.Value);
+            _pdfOptions ??= new PdfCore.PdfOptions();
+            _pdfOptions.UseRenderingProfile(profile, mode);
+            if (profileOwnsCurrentPageSize) {
+                _renderingProfilePageWidth = _pdfOptions.PageWidth;
+                _renderingProfilePageHeight = _pdfOptions.PageHeight;
+            } else {
+                _renderingProfilePageWidth = null;
+                _renderingProfilePageHeight = null;
+            }
             return this;
         }
 
