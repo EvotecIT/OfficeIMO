@@ -26,7 +26,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private const int BrtEndFonts = 612;
         private const int BrtBeginBorders = 613;
         private const int BrtEndBorders = 614;
+        private const int BrtFont = 43;
         private const int BrtFmt = 44;
+        private const int BrtFill = 45;
+        private const int BrtBorder = 46;
         private const int BrtXf = 47;
         private const int BrtBeginFmts = 615;
         private const int BrtEndFmts = 616;
@@ -34,6 +37,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private const int BrtEndCellXfs = 618;
         private const int BrtBeginCellStyleXfs = 626;
         private const int BrtEndCellStyleXfs = 627;
+        private const int MaxStyleItems = 65_536;
         private const string WorksheetRelationshipSuffix = "/worksheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
@@ -381,12 +385,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             var customFormats = new Dictionary<ushort, string>();
             var dateStyles = new List<bool>();
             int activeCollectionEnd = 0;
+            int declaredCollectionCount = 0;
+            int actualCollectionCount = 0;
+            string? activeCollectionName = null;
             bool beganStyleSheet = false;
             bool endedStyleSheet = false;
-            bool inFormats = false;
-            bool inCellFormats = false;
-            int declaredCellFormatCount = -1;
-            int actualCellFormatCount = 0;
+            bool sawCellFormats = false;
             while (records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (endedStyleSheet) {
@@ -410,73 +414,150 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         endedStyleSheet = true;
                         break;
                     case BrtBeginFmts:
-                        BeginStyleCollection(partName, BrtEndFmts, ref activeCollectionEnd);
-                        inFormats = true;
+                        BeginStyleCollection(
+                            partName,
+                            "number-format",
+                            BrtEndFmts,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            ref declaredCollectionCount,
+                            ref actualCollectionCount);
                         break;
                     case BrtEndFmts:
-                        EndStyleCollection(partName, BrtEndFmts, record, ref activeCollectionEnd);
-                        inFormats = false;
+                        EndStyleCollection(
+                            partName,
+                            BrtEndFmts,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            declaredCollectionCount,
+                            actualCollectionCount);
                         break;
                     case BrtBeginCellXfs:
-                        BeginStyleCollection(partName, BrtEndCellXfs, ref activeCollectionEnd);
-                        if (record.Size != sizeof(uint)) {
-                            throw new InvalidDataException(
-                                $"The XLSB styles part '{partName}' contains an invalid cell-format collection header.");
-                        }
-                        uint declaredCellFormats = record.CreateCursor().ReadUInt32();
-                        if (declaredCellFormats > int.MaxValue) {
-                            throw new InvalidDataException(
-                                $"The XLSB cell-format collection declares {declaredCellFormats} items, exceeding the supported limit of {int.MaxValue}.");
-                        }
-                        declaredCellFormatCount = checked((int)declaredCellFormats);
-                        actualCellFormatCount = 0;
-                        inCellFormats = true;
+                        BeginStyleCollection(
+                            partName,
+                            "cell-format",
+                            BrtEndCellXfs,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            ref declaredCollectionCount,
+                            ref actualCollectionCount);
+                        sawCellFormats = true;
                         break;
                     case BrtEndCellXfs:
-                        if (actualCellFormatCount != declaredCellFormatCount) {
-                            throw new InvalidDataException(
-                                $"The XLSB cell-format collection declares {declaredCellFormatCount} items but contains {actualCellFormatCount} item records.");
-                        }
-                        EndStyleCollection(partName, BrtEndCellXfs, record, ref activeCollectionEnd);
-                        inCellFormats = false;
+                        EndStyleCollection(
+                            partName,
+                            BrtEndCellXfs,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            declaredCollectionCount,
+                            actualCollectionCount);
                         break;
                     case BrtBeginFills:
-                        BeginStyleCollection(partName, BrtEndFills, ref activeCollectionEnd);
+                        BeginStyleCollection(
+                            partName,
+                            "fill",
+                            BrtEndFills,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            ref declaredCollectionCount,
+                            ref actualCollectionCount);
                         break;
                     case BrtEndFills:
-                        EndStyleCollection(partName, BrtEndFills, record, ref activeCollectionEnd);
+                        EndStyleCollection(
+                            partName,
+                            BrtEndFills,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            declaredCollectionCount,
+                            actualCollectionCount);
                         break;
                     case BrtBeginFonts:
-                        BeginStyleCollection(partName, BrtEndFonts, ref activeCollectionEnd);
+                        BeginStyleCollection(
+                            partName,
+                            "font",
+                            BrtEndFonts,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            ref declaredCollectionCount,
+                            ref actualCollectionCount);
                         break;
                     case BrtEndFonts:
-                        EndStyleCollection(partName, BrtEndFonts, record, ref activeCollectionEnd);
+                        EndStyleCollection(
+                            partName,
+                            BrtEndFonts,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            declaredCollectionCount,
+                            actualCollectionCount);
                         break;
                     case BrtBeginBorders:
-                        BeginStyleCollection(partName, BrtEndBorders, ref activeCollectionEnd);
+                        BeginStyleCollection(
+                            partName,
+                            "border",
+                            BrtEndBorders,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            ref declaredCollectionCount,
+                            ref actualCollectionCount);
                         break;
                     case BrtEndBorders:
-                        EndStyleCollection(partName, BrtEndBorders, record, ref activeCollectionEnd);
+                        EndStyleCollection(
+                            partName,
+                            BrtEndBorders,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            declaredCollectionCount,
+                            actualCollectionCount);
                         break;
                     case BrtBeginCellStyleXfs:
-                        BeginStyleCollection(partName, BrtEndCellStyleXfs, ref activeCollectionEnd);
+                        BeginStyleCollection(
+                            partName,
+                            "cell-style-format",
+                            BrtEndCellStyleXfs,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            ref declaredCollectionCount,
+                            ref actualCollectionCount);
                         break;
                     case BrtEndCellStyleXfs:
-                        EndStyleCollection(partName, BrtEndCellStyleXfs, record, ref activeCollectionEnd);
+                        EndStyleCollection(
+                            partName,
+                            BrtEndCellStyleXfs,
+                            record,
+                            ref activeCollectionEnd,
+                            ref activeCollectionName,
+                            declaredCollectionCount,
+                            actualCollectionCount);
                         break;
-                    case BrtFmt when inFormats: {
+                    case BrtFmt when activeCollectionEnd == BrtEndFmts: {
                         var cursor = record.CreateCursor();
                         ushort numberFormatId = cursor.ReadUInt16();
                         string formatCode = cursor.ReadWideString(
                             Math.Min(_limits.MaxStringCharacters, 255));
+                        if (cursor.Remaining != 0 || formatCode.Length == 0) {
+                            throw new InvalidDataException(
+                                $"The BrtFmt record at offset {record.RecordOffset} is malformed.");
+                        }
                         if (customFormats.ContainsKey(numberFormatId)) {
                             throw new InvalidDataException(
                                 $"The XLSB styles part '{partName}' contains duplicate custom number format {numberFormatId}.");
                         }
                         customFormats.Add(numberFormatId, formatCode);
+                        actualCollectionCount++;
                         break;
                     }
-                    case BrtXf when inCellFormats: {
+                    case BrtXf when activeCollectionEnd == BrtEndCellXfs: {
                         if (record.Size != 16) {
                             throw new InvalidDataException(
                                 $"The BrtXf record at offset {record.RecordOffset} has invalid payload length {record.Size}.");
@@ -488,9 +569,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             || (customFormats.TryGetValue(numberFormatId, out string? code)
                                 && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
                         dateStyles.Add(isDate);
-                        actualCellFormatCount++;
+                        actualCollectionCount++;
                         break;
                     }
+                    case BrtFont when activeCollectionEnd == BrtEndFonts:
+                    case BrtFill when activeCollectionEnd == BrtEndFills:
+                    case BrtBorder when activeCollectionEnd == BrtEndBorders:
+                    case BrtXf when activeCollectionEnd == BrtEndCellStyleXfs:
+                        actualCollectionCount++;
+                        break;
                 }
             }
 
@@ -498,33 +585,63 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB styles part '{partName}' is missing required stylesheet or collection boundary records.");
             }
+            if (!sawCellFormats || dateStyles.Count == 0) {
+                throw new InvalidDataException(
+                    $"The XLSB styles part '{partName}' is missing the required non-empty cell-format collection.");
+            }
 
-            return dateStyles.Count == 0 ? new[] { false } : dateStyles.ToArray();
+            return dateStyles.ToArray();
         }
 
         private static void BeginStyleCollection(
             string partName,
+            string collectionName,
             int expectedEndRecord,
-            ref int activeCollectionEnd) {
+            XlsbRecordSlice record,
+            ref int activeCollectionEnd,
+            ref string? activeCollectionName,
+            ref int declaredCollectionCount,
+            ref int actualCollectionCount) {
             if (activeCollectionEnd != 0) {
                 throw new InvalidDataException(
                     $"The XLSB styles part '{partName}' begins a style collection before the active collection ends.");
             }
+            if (record.Size != sizeof(uint)) {
+                throw new InvalidDataException(
+                    $"The XLSB styles part '{partName}' contains an invalid {collectionName} collection header.");
+            }
+
+            uint declared = record.CreateCursor().ReadUInt32();
+            if (declared > MaxStyleItems) {
+                throw new InvalidDataException(
+                    $"The XLSB {collectionName} collection declares {declared} items, exceeding the supported limit of {MaxStyleItems}.");
+            }
 
             activeCollectionEnd = expectedEndRecord;
+            activeCollectionName = collectionName;
+            declaredCollectionCount = checked((int)declared);
+            actualCollectionCount = 0;
         }
 
         private static void EndStyleCollection(
             string partName,
             int endRecord,
             XlsbRecordSlice record,
-            ref int activeCollectionEnd) {
+            ref int activeCollectionEnd,
+            ref string? activeCollectionName,
+            int declaredCollectionCount,
+            int actualCollectionCount) {
             if (activeCollectionEnd != endRecord || record.Size != 0) {
                 throw new InvalidDataException(
                     $"The XLSB styles part '{partName}' contains an invalid style collection end record.");
             }
+            if (actualCollectionCount != declaredCollectionCount) {
+                throw new InvalidDataException(
+                    $"The XLSB {activeCollectionName} collection declares {declaredCollectionCount} items but contains {actualCollectionCount} item records.");
+            }
 
             activeCollectionEnd = 0;
+            activeCollectionName = null;
         }
 
         private List<XlsbTabularSheet> ResolveWorksheets(

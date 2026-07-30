@@ -123,6 +123,48 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_XlsbRejectsMismatchedCustomNumberFormatCount() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.InvalidNumberFormatCount.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("styles-dates-formulas.xlsb"), path);
+        try {
+            IncrementXlsbStyleCollectionDeclaredCount(path, 615);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("number-format collection", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("declares", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("contains", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbRejectsExplicitlyEmptyCellFormatCollection() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.EmptyCellFormats.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            EmptyXlsbStyleCollection(
+                path,
+                beginRecordType: 617,
+                itemRecordType: 47,
+                endRecordType: 618);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("non-empty cell-format collection", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_XlsbRejectsCellOutsideRowHeaderSpans() {
         string path = Path.Combine(
             Path.GetTempPath(),
@@ -289,6 +331,55 @@ public partial class Excel {
             target.PayloadOffset,
             bytes.Length - target.PayloadOffset - target.Size);
         ReplaceZipEntry(path, entryName, mutated);
+    }
+
+    private static void EmptyXlsbStyleCollection(
+        string path,
+        int beginRecordType,
+        int itemRecordType,
+        int endRecordType) {
+        const string entryName = "xl/styles.bin";
+        byte[] bytes = ReadZipEntry(path, entryName);
+        var reader = new XlsbRecordSliceReader(
+            bytes,
+            int.MaxValue,
+            new XlsbRecordReadBudget(int.MaxValue));
+        using var output = new MemoryStream(bytes.Length);
+        bool inCollection = false;
+        bool foundBegin = false;
+        bool foundItem = false;
+        bool foundEnd = false;
+        while (reader.TryRead(out XlsbRecordSlice record)) {
+            int headerLength = record.PayloadOffset - record.RecordOffset;
+            if (record.Type == beginRecordType) {
+                Assert.False(inCollection);
+                Assert.Equal(sizeof(uint), record.Size);
+                output.Write(bytes, record.RecordOffset, headerLength);
+                output.Write(new byte[sizeof(uint)], 0, sizeof(uint));
+                inCollection = true;
+                foundBegin = true;
+                continue;
+            }
+
+            if (inCollection && record.Type == itemRecordType) {
+                foundItem = true;
+                continue;
+            }
+
+            int recordLength = checked(headerLength + record.Size);
+            output.Write(bytes, record.RecordOffset, recordLength);
+            if (record.Type == endRecordType) {
+                Assert.True(inCollection);
+                inCollection = false;
+                foundEnd = true;
+            }
+        }
+
+        Assert.True(foundBegin);
+        Assert.True(foundItem);
+        Assert.True(foundEnd);
+        Assert.False(inCollection);
+        ReplaceZipEntry(path, entryName, output.ToArray());
     }
 
     private static void DuplicateFirstXlsbBundleSheet(
