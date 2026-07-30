@@ -196,6 +196,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_UnchangedValidationContainersAreNotNormalized() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            var standard = new DataValidations(
+                new DataValidation {
+                    SequenceOfReferences = new ListValue<StringValue> {
+                        InnerText = "A1"
+                    }
+                });
+            var extended = new X14.DataValidations(
+                new X14.DataValidation(new Xm.ReferenceSequence("B1")));
+            sheet.WorksheetPart.Worksheet.Append(
+                standard,
+                new ExtensionList(
+                    new Extension(extended) {
+                        Uri = "{CCE6A557-97BC-4B89-ADB6-D9C93CAAB3DF}"
+                    }));
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
+
+            Assert.DoesNotContain(
+                plan.Impacts,
+                impact => impact.Category == "validation");
+            plan.Apply();
+            Assert.Null(standard.Count);
+            Assert.Null(extended.Count);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanChargesNamedPivotLookup() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = CreatePivotSheet(document);

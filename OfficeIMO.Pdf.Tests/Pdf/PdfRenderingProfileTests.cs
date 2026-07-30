@@ -1979,6 +1979,26 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RepeatedExcelFontlessReplacementPreservesCallerAssignment() {
+        var fontless = new OfficeRenderingProfile("shaping-only");
+        var options = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+            .UseRenderingProfile(fontless);
+        options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
+
+        options.UseRenderingProfile(
+            fontless,
+            OfficeRenderingProfileApplyMode.Replace);
+
+        System.Reflection.PropertyInfo state = typeof(OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions)
+            .GetProperty(
+                "HasExplicitPdfFontConfiguration",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic)!;
+        Assert.True(Assert.IsType<bool>(state.GetValue(options)));
+        Assert.Equal(PdfStandardFont.Courier, options.PdfOptions.DefaultFont);
+    }
+
+    [Fact]
     public void WordShapingOnlyProfileTreatsEqualFontSizeAssignmentAsExplicit() {
         var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
