@@ -65,6 +65,12 @@ namespace OfficeIMO.Excel {
                 firstRow,
                 lastRow,
                 count);
+            ILookup<OpenXmlElement?, OpenXmlElement> directChildren =
+                worksheetElements
+                    .Where(element => element is InputCells
+                        || element is SortCondition
+                        || element is X14.SortCondition)
+                    .ToLookup(element => element.Parent);
 
             foreach (AutoFilter filter in worksheetElements.OfType<AutoFilter>()) {
                 if (Changes(filter.Reference?.Value)) {
@@ -97,8 +103,13 @@ namespace OfficeIMO.Excel {
                 if (Changes(scenarios.SequenceOfReferences?.InnerText)) {
                     affected.Add(scenarios);
                 }
-                foreach (Scenario scenario in scenarios.Elements<Scenario>()) {
-                    if (scenario.Elements<InputCells>()
+                foreach (Scenario scenario in worksheetElements
+                    .OfType<Scenario>()
+                    .Where(candidate => ReferenceEquals(
+                        candidate.Parent,
+                        scenarios))) {
+                    if (directChildren[scenario]
+                        .OfType<InputCells>()
                         .Any(input => Changes(input.CellReference?.Value))) {
                         affected.Add(scenario);
                     }
@@ -129,9 +140,11 @@ namespace OfficeIMO.Excel {
 
             foreach (SortState sortState in worksheetElements.OfType<SortState>()) {
                 if (Changes(sortState.Reference?.Value)
-                    || sortState.Elements<SortCondition>()
+                    || directChildren[sortState]
+                        .OfType<SortCondition>()
                         .Any(condition => Changes(condition.Reference?.Value))
-                    || sortState.Elements<X14.SortCondition>()
+                    || directChildren[sortState]
+                        .OfType<X14.SortCondition>()
                         .Any(condition => Changes(condition.Reference?.Value))) {
                     affected.Add(sortState);
                 }
@@ -172,27 +185,32 @@ namespace OfficeIMO.Excel {
         }
 
         private int CountQueryTableSortPlanImpacts(
-            IReadOnlyList<SortState> sortStates,
+            IReadOnlyList<OpenXmlElement> queryElements,
             ExcelRowMutationKind kind,
             int firstRow,
             int lastRow,
             int count) {
             int impacts = 0;
-            foreach (SortState sortState in sortStates) {
+            ILookup<OpenXmlElement?, OpenXmlElement> directChildren =
+                queryElements
+                    .Where(element => element is SortCondition
+                        || element is X14.SortCondition)
+                    .ToLookup(element => element.Parent);
+            foreach (SortState sortState in queryElements.OfType<SortState>()) {
                 if (ReferenceListChangesForPlan(
                         sortState.Reference?.Value,
                         kind,
                         firstRow,
                         lastRow,
                         count)
-                    || sortState.Elements<SortCondition>().Any(condition =>
+                    || directChildren[sortState].OfType<SortCondition>().Any(condition =>
                         ReferenceListChangesForPlan(
                             condition.Reference?.Value,
                             kind,
                             firstRow,
                             lastRow,
                             count))
-                    || sortState.Elements<X14.SortCondition>().Any(condition =>
+                    || directChildren[sortState].OfType<X14.SortCondition>().Any(condition =>
                         ReferenceListChangesForPlan(
                             condition.Reference?.Value,
                             kind,
@@ -222,14 +240,19 @@ namespace OfficeIMO.Excel {
                 firstRow,
                 lastRow,
                 count);
+            ILookup<OpenXmlElement?, OpenXmlElement> directChildren =
+                tableElements
+                    .Where(element => element is SortCondition
+                        || element is X14.SortCondition)
+                    .ToLookup(element => element.Parent);
 
             return Changes(table.Reference?.Value)
                 || Changes(table.GetFirstChild<AutoFilter>()?.Reference?.Value)
                 || tableElements.OfType<SortState>().Any(sortState =>
                     Changes(sortState.Reference?.Value)
-                    || sortState.Elements<SortCondition>()
+                    || directChildren[sortState].OfType<SortCondition>()
                         .Any(condition => Changes(condition.Reference?.Value))
-                    || sortState.Elements<X14.SortCondition>()
+                    || directChildren[sortState].OfType<X14.SortCondition>()
                         .Any(condition => Changes(condition.Reference?.Value)));
         }
 

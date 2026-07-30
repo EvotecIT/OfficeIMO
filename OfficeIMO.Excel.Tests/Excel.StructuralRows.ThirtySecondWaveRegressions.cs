@@ -243,5 +243,31 @@ namespace OfficeIMO.Tests {
 
             Assert.True(namedPlan.ScannedElements > unnamedPlan.ScannedElements);
         }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanUsesChargedWorksheetSortSnapshot() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            var sortState = new SortState { Reference = "A1:A64" };
+            for (int index = 1; index <= 64; index++) {
+                sortState.Append(new SortCondition {
+                    Reference = $"A{index}:A{index}"
+                });
+            }
+            sheet.WorksheetPart.Worksheet.Append(
+                new AutoFilter(sortState) { Reference = "A1:A64" });
+            ExcelRowMutationPlan baseline = sheet.PlanInsertRows(65);
+
+            ExcelRowMutationPlan exactBudget = sheet.PlanInsertRows(
+                65,
+                options: new ExcelMutationPlanOptions {
+                    MaximumScannedElements = baseline.ScannedElements
+                });
+
+            Assert.Equal(baseline.ScannedElements, exactBudget.ScannedElements);
+            Assert.DoesNotContain(
+                exactBudget.Impacts,
+                impact => impact.Category == "worksheet-range-metadata");
+        }
     }
 }
