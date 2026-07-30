@@ -858,6 +858,43 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RangeScopedFallbackFacesUseAuthoredFamilyForStyleSelection() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Bold,
+                onlyA)
+            .AddFallbackFamily("Fallback");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("range-styled-fallback", fonts));
+
+        PdfEmbeddedFontFallbackSet regularPlanner = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                bold: false,
+                italic: false));
+        PdfEmbeddedFontFallbackSet boldPlanner = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                bold: true,
+                italic: false));
+
+        Assert.Equal(
+            fonts.Faces[0].ResourceFamilyName,
+            Assert.Single(regularPlanner.PlanText("A").Segments).FontName);
+        Assert.Equal(
+            fonts.Faces[1].ResourceFamilyName,
+            Assert.Single(boldPlanner.PlanText("A").Segments).FontName);
+    }
+
+    [Fact]
     public void DeclaredFallbackPlannerPreservesFamilyPriorityBeforeStyle() {
         var fonts = new OfficeFontFaceCollection()
             .Add("First", ManagedTextShapingTestAssets.CreateFont('A'))
@@ -1424,6 +1461,18 @@ public sealed class PdfRenderingProfileTests {
             .UseRenderingProfile(profile);
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
+    public void FreshFontlessOverlayDoesNotBecomeExplicitFontConfiguration() {
+        var profile = new OfficeRenderingProfile("fontless-overlay");
+        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(profile, OfficeRenderingProfileApplyMode.Overlay);
+        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(profile, OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.False(word.HasExplicitPdfFontConfiguration);
+        Assert.False(powerPoint.HasExplicitPdfFontConfiguration);
     }
 
     [Fact]

@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.Pdf {
         private PdfCore.PdfOptions? _pdfOptions;
         private bool _pdfOptionsCreatedByRenderingProfile;
         private long? _fontlessRenderingProfileFontConfigurationState;
+        private long? _fontlessRenderingProfileFontAssignmentVersion;
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         private long? _renderingProfilePageSizeConfigurationState;
 
@@ -35,6 +36,7 @@ namespace OfficeIMO.Excel.Pdf {
                 _pdfOptions = value;
                 _pdfOptionsCreatedByRenderingProfile = false;
                 _fontlessRenderingProfileFontConfigurationState = null;
+                _fontlessRenderingProfileFontAssignmentVersion = null;
                 _renderingProfilePageSizeConfigurationState = null;
             }
         }
@@ -43,7 +45,10 @@ namespace OfficeIMO.Excel.Pdf {
             _pdfOptions != null
             && (!_fontlessRenderingProfileFontConfigurationState.HasValue
                 || _pdfOptions.FontConfigurationState
-                    != _fontlessRenderingProfileFontConfigurationState.Value);
+                    != _fontlessRenderingProfileFontConfigurationState.Value
+                || !_fontlessRenderingProfileFontAssignmentVersion.HasValue
+                || _pdfOptions.FontConfigurationAssignmentVersion
+                    != _fontlessRenderingProfileFontAssignmentVersion.Value);
 
         internal bool HasExplicitPdfPageSizeConfiguration =>
             _pdfOptions != null
@@ -244,7 +249,10 @@ namespace OfficeIMO.Excel.Pdf {
                 _pdfOptions != null
                 && _fontlessRenderingProfileFontConfigurationState.HasValue
                 && _pdfOptions.FontConfigurationState
-                    == _fontlessRenderingProfileFontConfigurationState.Value;
+                    == _fontlessRenderingProfileFontConfigurationState.Value
+                && _fontlessRenderingProfileFontAssignmentVersion.HasValue
+                && _pdfOptions.FontConfigurationAssignmentVersion
+                    == _fontlessRenderingProfileFontAssignmentVersion.Value;
             bool profileOwnsCurrentPageSize =
                 createdPdfOptions
                 || (_pdfOptions != null
@@ -265,14 +273,18 @@ namespace OfficeIMO.Excel.Pdf {
             }
             if (profile.Fonts.Faces.Count > 0) {
                 _fontlessRenderingProfileFontConfigurationState = null;
+                _fontlessRenderingProfileFontAssignmentVersion = null;
             } else if (_pdfOptionsCreatedByRenderingProfile
                 && (createdPdfOptions
                     || mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
                     || profileOwnsCurrentFontConfiguration)) {
                 _fontlessRenderingProfileFontConfigurationState =
                     target.FontConfigurationState;
+                _fontlessRenderingProfileFontAssignmentVersion =
+                    target.FontConfigurationAssignmentVersion;
             } else {
                 _fontlessRenderingProfileFontConfigurationState = null;
+                _fontlessRenderingProfileFontAssignmentVersion = null;
             }
             return this;
         }

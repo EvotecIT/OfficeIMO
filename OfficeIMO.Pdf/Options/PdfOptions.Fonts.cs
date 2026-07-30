@@ -329,7 +329,6 @@ public sealed partial class PdfOptions {
         if (fallbackSet == null) {
             _embeddedFontFallbacks = null;
             _renderingProfileDeclaredFallbackCandidates = null;
-            MarkFontConfigurationChanged();
             return;
         }
 
@@ -356,7 +355,6 @@ public sealed partial class PdfOptions {
         _renderingProfileDeclaredFallbackCandidates = null;
         _embeddedFontFallbacks = prepared;
         _embeddedFontFallbacks.RegisterFonts(this);
-        MarkFontConfigurationChanged();
     }
 
     private static bool TryLoadOfficeFontFamily(string familyName, out PdfEmbeddedFontFamily? embeddedFamily) {

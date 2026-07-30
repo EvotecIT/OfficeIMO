@@ -269,7 +269,8 @@ public sealed partial class PdfOptions {
                     face.ResourceFamilyName,
                     face.Data,
                     face.UnicodeRanges,
-                    face.Style))
+                    face.Style,
+                    face.FamilyName))
                 .ToArray();
             if (candidates.Length == 0) {
                 continue;
@@ -302,12 +303,12 @@ public sealed partial class PdfOptions {
         OfficeFontStyle[] precedence = RenderingProfileStylePrecedence(bold, italic);
         var selected = new List<PdfEmbeddedFontFallbackCandidate>();
         foreach (IGrouping<string, PdfEmbeddedFontFallbackCandidate> family in candidates
-            .GroupBy(candidate => candidate.FontName, StringComparer.OrdinalIgnoreCase)) {
+            .GroupBy(candidate => candidate.PlannerFamilyName, StringComparer.OrdinalIgnoreCase)) {
             foreach (OfficeFontStyle style in precedence) {
-                PdfEmbeddedFontFallbackCandidate? candidate =
-                    family.FirstOrDefault(item => item.Style == style);
-                if (candidate != null) {
-                    selected.Add(candidate);
+                PdfEmbeddedFontFallbackCandidate[] matching =
+                    family.Where(item => item.Style == style).ToArray();
+                if (matching.Length > 0) {
+                    selected.AddRange(matching);
                     break;
                 }
             }
@@ -679,7 +680,8 @@ public sealed partial class PdfOptions {
                     candidate.FontName,
                     candidate.DataSnapshot,
                     candidate.UnicodeRanges,
-                    candidate.Style))
+                    candidate.Style,
+                    candidate.PlannerFamilyName))
                 .ToArray();
         }
         return clone;
@@ -737,7 +739,8 @@ public sealed partial class PdfOptions {
                     face.ResourceFamilyName,
                     face.Data,
                     face.UnicodeRanges,
-                    face.Style));
+                    face.Style,
+                    face.FamilyName));
             }
         }
 
