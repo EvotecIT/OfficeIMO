@@ -168,14 +168,35 @@ public sealed partial class PdfOptions {
         TryGetRenderingProfileFamilyCandidates(familyName, out _);
 
     internal bool ShouldPreferSelectedCallerFamily(string? familyName) {
-        if (!TryGetNamedFontFamily(
-                familyName,
-                out PdfEmbeddedFontFamily? selectedFamily)
-            || selectedFamily == null) {
+        if (string.IsNullOrWhiteSpace(familyName)) {
             return false;
         }
-        return _renderingProfileOwnedNamedFamilyNames?.Contains(
-            selectedFamily.FamilyName) != true;
+
+        foreach (string candidate in EnumerateOfficeFontFamilyCandidates(familyName!)) {
+            if (TryGetNamedFontFamilyDirect(
+                    candidate,
+                    out PdfEmbeddedFontFamily? directFamily)
+                && directFamily != null) {
+                return _renderingProfileOwnedNamedFamilyNames?.Contains(
+                    directFamily.FamilyName) != true;
+            }
+            if (HasRenderingProfileFamilyPlanner(candidate)) {
+                return false;
+            }
+            if (TryGetFontFamilySubstitution(
+                    candidate,
+                    out PdfFontFamilySubstitution? substitution)
+                && substitution != null
+                && TryGetNamedFontFamilyDirect(
+                    substitution.TargetFontFamily,
+                    out PdfEmbeddedFontFamily? substitutedFamily)
+                && substitutedFamily != null) {
+                return _renderingProfileOwnedNamedFamilyNames?.Contains(
+                    substitutedFamily.FamilyName) != true;
+            }
+        }
+
+        return false;
     }
 
     internal bool TryGetEffectiveRenderingProfileFallbacks(
