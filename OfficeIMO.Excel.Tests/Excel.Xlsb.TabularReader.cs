@@ -2,6 +2,7 @@ using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Read;
+using System.Data.Common;
 using System.IO.Compression;
 using System.Threading;
 using Xunit;
@@ -207,6 +208,24 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_WithoutInferenceKeepsObjectSchemaAcrossMixedRows() {
+        using var worksheetPart = CreateMixedTabularWorksheet();
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "Text" },
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10));
+
+        Assert.Equal(typeof(object), reader.GetFieldType(0));
+        Assert.True(reader.Read());
+        Assert.Equal(1.25, Assert.IsType<double>(reader.GetValue(0)));
+        Assert.Equal(typeof(object), reader.GetFieldType(0));
+        Assert.True(reader.Read());
+        Assert.Equal("Text", Assert.IsType<string>(reader.GetValue(0)));
+        Assert.Equal(typeof(object), reader.GetFieldType(0));
+    }
+
+    [Fact]
     public void XlsbTabularReader_NumericAsDecimalFallsBackToDoubleOutsideDecimalRange() {
         using var worksheetPart = CreateNumericTabularWorksheet((0, 1E100));
         using var reader = CreateTabularReader(
@@ -219,8 +238,43 @@ public partial class Excel {
         Assert.True(reader.Read());
         double value = Assert.IsType<double>(reader.GetValue(0));
         Assert.Equal(1E100, value);
-        Assert.Equal(typeof(double), reader.GetFieldType(0));
+        Assert.Equal(typeof(object), reader.GetFieldType(0));
         Assert.Throws<InvalidCastException>(() => reader.GetDecimal(0));
+    }
+
+    [Fact]
+    public void XlsbTabularWorkbook_UsesConfiguredAggregateCellLimit() {
+        string path = GetDataReaderXlsbFixture("basic-values-formula.xlsb");
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    HasHeaderRow = false,
+                    MaxXlsbCells = 1
+                });
+            while (reader.Read()) {
+            }
+        });
+
+        Assert.Contains("1 populated cells", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void XlsbRecordSliceReaders_RejectUnterminatedFourByteSizes() {
+        byte[] bytes = { 0x01, 0x80, 0x80, 0x80, 0x80 };
+        var arrayReader = new XlsbRecordSliceReader(
+            bytes,
+            int.MaxValue,
+            new XlsbRecordReadBudget(10));
+        using var stream = new MemoryStream(bytes, writable: false);
+        using var streamReader = new XlsbStreamRecordSliceReader(
+            stream,
+            int.MaxValue,
+            new XlsbRecordReadBudget(10));
+
+        Assert.Throws<InvalidDataException>(() => arrayReader.TryRead(out _));
+        Assert.Throws<InvalidDataException>(() => streamReader.TryRead(out _));
     }
 
     [Fact]
@@ -392,6 +446,19 @@ public partial class Excel {
             XlsbRecordWriter.Write(stream, 5, CreateRealCellPayload(0, value));
         }
 
+        XlsbRecordWriter.Write(stream, 146);
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream CreateMixedTabularWorksheet() {
+        var stream = new MemoryStream();
+        XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, 1, 0, 0));
+        XlsbRecordWriter.Write(stream, 145);
+        XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(0));
+        XlsbRecordWriter.Write(stream, 5, CreateRealCellPayload(0, 1.25));
+        XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(1));
+        XlsbRecordWriter.Write(stream, 7, CreateSharedStringCellPayload(0, 0U));
         XlsbRecordWriter.Write(stream, 146);
         stream.Position = 0;
         return stream;

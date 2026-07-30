@@ -207,13 +207,27 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_NonSeekableStreamReturnsBeforeReadingToEnd() {
+    public void OpenDataReader_DefaultSeekableStreamReturnsBeforeReadingToEnd() {
+        var csv = new StringBuilder("Id,Name\n");
+        for (int index = 0; index < 100_000; index++) {
+            csv.Append(index).Append(",Value").Append(index).Append('\n');
+        }
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv.ToString()));
+
+        using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+
+        Assert.True(stream.Position < stream.Length);
+        Assert.True(reader.Read());
+        Assert.Equal(0, reader.GetInt32(0));
+        Assert.Equal("Value0", reader.GetString(1));
+    }
+
+    [Fact]
+    public void OpenDataReader_DefaultNonSeekableStreamReturnsBeforeReadingToEnd() {
         using var stream = new SingleChunkNonSeekableReadStream(
             Encoding.UTF8.GetBytes("# metadata\nId,Name\n1,Ada\n"));
 
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using DbDataReader reader = CsvDocument.OpenDataReader(stream);
 
         Assert.Equal(1, stream.ReadCount);
         Assert.True(reader.Read());

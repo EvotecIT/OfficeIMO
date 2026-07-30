@@ -25,7 +25,7 @@ public class MarkPflug65KCsvBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        MarkPflug65KFixture.EnsureAuthentic();
+        MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.CsvFileName);
         _expected = OfficeIMO();
         Validate(nameof(Sep), Sep());
         Validate(nameof(Sylvan), Sylvan());

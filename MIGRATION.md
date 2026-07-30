@@ -26,6 +26,15 @@ CSV and Excel remain separate packages with format-specific dependencies. Office
 
 The streaming entry points return `DbDataReader`. Excel exposes worksheets as ordered results through `NextResult()`. Options stay with their format: use `CsvLoadOptions` and `CsvDataReaderOptions` for CSV, and `ExcelReadOptions` for Excel.
 
+`CsvDocument.OpenDataReader(...)` now streams by default for both path and stream inputs. Pass
+`new CsvLoadOptions { Mode = CsvLoadMode.InMemory }` explicitly only when the caller needs a
+materialized CSV document behind the reader.
+
+Excel keeps format-specific safety limits on `ExcelReadOptions`. For XLSB, `MaxXlsbCells` limits
+the aggregate cells accepted from the workbook while `MaxDataReaderBufferedCells` limits the cells
+buffered by an individual reader operation. Raise either limit explicitly only for trusted,
+intentionally larger workbooks.
+
 ```csharp
 using System.Data.Common;
 using OfficeIMO.CSV;

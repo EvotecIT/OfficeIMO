@@ -59,9 +59,11 @@ namespace OfficeIMO.Excel {
             }
 
             int declaredFieldCount = declaredLastColumn - declaredFirstColumn + 1;
+            long declaredRowCount = (long)declaredLastRow - declaredFirstRow + 1L;
+            long declaredCellCount = declaredRowCount * declaredFieldCount;
             if (declaredFieldCount <= 0
                 || declaredFieldCount > _opt.MaxDataReaderColumns
-                || declaredFieldCount > _opt.MaxDataReaderBufferedCells) {
+                || declaredCellCount > _opt.MaxDataReaderBufferedCells) {
                 return false;
             }
 

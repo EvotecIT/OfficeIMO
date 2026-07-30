@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             for (int index = 0; index < 4; index++) {
                 int current = ReadRequiredByte("record size");
                 value |= (current & 0x7F) << (index * 7);
-                if ((current & 0x80) == 0 || index == 3) {
+                if ((current & 0x80) == 0) {
                     return value;
                 }
             }
@@ -172,7 +172,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             for (int index = 0; index < 4; index++) {
                 int current = ReadRequiredByte("record size");
                 value |= (current & 0x7F) << (index * 7);
-                if ((current & 0x80) == 0 || index == 3) {
+                if ((current & 0x80) == 0) {
                     return value;
                 }
             }

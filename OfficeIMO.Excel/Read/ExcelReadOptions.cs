@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel {
         private long _maxSharedStringCharacters = 64L * 1024L * 1024L;
         private long _maxInputBytes = 512L * 1024L * 1024L;
         private int _schemaSampleRows = 1_024;
+        private int _maxXlsbCells = 4_000_000;
 
         /// <summary>
         /// Gets or sets the worksheet exposed by <see cref="ExcelDocument.OpenDataReader(string, ExcelReadOptions?)"/>.
@@ -63,6 +64,21 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Maximum cells materialized by a data-reader chunk or schema sample.</summary>
         public long MaxDataReaderBufferedCells { get; set; } = 1_000_000L;
+
+        /// <summary>
+        /// Maximum populated cell records accepted across one XLSB workbook. Default: 4,000,000.
+        /// This is an aggregate safety limit, independent of per-chunk data-reader buffering.
+        /// </summary>
+        public int MaxXlsbCells {
+            get => _maxXlsbCells;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "XLSB cell limit must be greater than zero.");
+                }
+
+                _maxXlsbCells = value;
+            }
+        }
 
         /// <summary>Maximum cells materialized by one dense range read. Default: 1,000,000.</summary>
         public long MaxRangeCells { get; set; } = 1_000_000L;

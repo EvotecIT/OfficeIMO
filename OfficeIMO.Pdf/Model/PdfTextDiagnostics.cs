@@ -605,6 +605,9 @@ internal static class PdfTextDiagnostics {
                 segmentFontIndex);
             if (fontIndex < 0) {
                 FlushSegment(scalarStart);
+                if (scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar)) {
+                    continue;
+                }
                 diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fonts));
                 index = scalarStart + Math.Max(coveredLength, index - scalarStart);
                 continue;

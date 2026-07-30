@@ -19,7 +19,7 @@ if (profileOfficeIMOXlsb || profileSylvanXlsb) {
         throw new ArgumentOutOfRangeException(nameof(iterations));
     }
 
-    MarkPflug65KFixture.EnsureAuthentic();
+    MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);
     var benchmark = new MarkPflug65KXlsbBenchmarks();
     Func<ExcelReadObservation> run = profileOfficeIMOXlsb
         ? benchmark.OfficeIMO

@@ -30,7 +30,7 @@ public static class OfficeImageExportOptionsExtensions {
             options.ImageCodec = profile.ImageCodec;
         } else {
             options.Fonts ??= new OfficeFontFaceCollection();
-            options.Fonts.AddRange(profile.FontsSnapshot);
+            options.Fonts.AddRangePreservingExisting(profile.FontsSnapshot);
             if (profile.TextShapingProvider != null) {
                 options.TextShapingProvider = profile.TextShapingProvider;
             }

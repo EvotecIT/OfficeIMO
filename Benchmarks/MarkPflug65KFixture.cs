@@ -10,6 +10,9 @@ internal static class MarkPflug65KFixture {
     internal const string SourceCommit = "5e1113a1195bed985c10788a6b89caf551663bb1";
     internal const int ExpectedRows = 65_535;
     internal const int ExpectedColumns = 14;
+    internal const string CsvFileName = "65K_Records_Data.csv";
+    internal const string XlsxFileName = "65K_Records_Data.xlsx";
+    internal const string XlsbFileName = "65K_Records_Data.xlsb";
 
     private const string SourceRoot =
         "https://raw.githubusercontent.com/MarkPflug/Benchmarks/" + SourceCommit +
@@ -17,33 +20,35 @@ internal static class MarkPflug65KFixture {
 
     private static readonly IReadOnlyDictionary<string, string> Hashes =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
-            ["65K_Records_Data.csv"] = "AC959F43CF1077B71D310E6E49E3C168BA63A448F1855D45F44E734273EBA490",
-            ["65K_Records_Data.xlsx"] = "0F44D3E06454508DBD2CDBAF701B04160637162AB71471616D8ADC59D2EDD3A8",
-            ["65K_Records_Data.xlsb"] = "9F03F160D32272CBE57D6023C73748D6C450783738FCD84CC552B03C00E23CC8"
+            [CsvFileName] = "AC959F43CF1077B71D310E6E49E3C168BA63A448F1855D45F44E734273EBA490",
+            [XlsxFileName] = "0F44D3E06454508DBD2CDBAF701B04160637162AB71471616D8ADC59D2EDD3A8",
+            [XlsbFileName] = "9F03F160D32272CBE57D6023C73748D6C450783738FCD84CC552B03C00E23CC8"
         };
 
     internal static string Root =>
         Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_DATA")
         ?? Path.Combine(Path.GetTempPath(), "OfficeIMO", "Benchmarks", "Fixtures", SourceCommit);
 
-    internal static string CsvPath => Path.Combine(Root, "65K_Records_Data.csv");
-    internal static string XlsxPath => Path.Combine(Root, "65K_Records_Data.xlsx");
-    internal static string XlsbPath => Path.Combine(Root, "65K_Records_Data.xlsb");
+    internal static string CsvPath => Path.Combine(Root, CsvFileName);
+    internal static string XlsxPath => Path.Combine(Root, XlsxFileName);
+    internal static string XlsbPath => Path.Combine(Root, XlsbFileName);
 
-    internal static void EnsureAuthentic() {
+    internal static void EnsureAuthentic(string fixtureName) {
+        if (!Hashes.TryGetValue(fixtureName, out string? expectedHash)) {
+            throw new ArgumentException($"Unknown benchmark fixture '{fixtureName}'.", nameof(fixtureName));
+        }
+
         Directory.CreateDirectory(Root);
         using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        foreach (KeyValuePair<string, string> fixture in Hashes) {
-            string path = Path.Combine(Root, fixture.Key);
-            if (!File.Exists(path) || !HashMatches(path, fixture.Value)) {
-                Download(client, fixture.Key, path);
-            }
+        string path = Path.Combine(Root, fixtureName);
+        if (!File.Exists(path) || !HashMatches(path, expectedHash)) {
+            Download(client, fixtureName, path);
+        }
 
-            string actual = ComputeHash(path);
-            if (!string.Equals(actual, fixture.Value, StringComparison.OrdinalIgnoreCase)) {
-                throw new InvalidDataException(
-                    $"Fixture hash mismatch for {fixture.Key}: expected {fixture.Value}, got {actual}.");
-            }
+        string actual = ComputeHash(path);
+        if (!string.Equals(actual, expectedHash, StringComparison.OrdinalIgnoreCase)) {
+            throw new InvalidDataException(
+                $"Fixture hash mismatch for {fixtureName}: expected {expectedHash}, got {actual}.");
         }
     }
 

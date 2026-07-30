@@ -80,6 +80,29 @@ if ($comparisonCatalog.schemaVersion -ne 2 -or
     throw 'Library comparison catalog does not expose the versioned three-platform model and explicit missing macOS lane.'
 }
 
+foreach ($entry in @($comparisonCatalog.entries)) {
+    if ([string]::IsNullOrWhiteSpace([string] $entry.resultPath) -or
+        [string]::IsNullOrWhiteSpace([string] $entry.resultSha256)) {
+        throw "Library comparison catalog entry '$($entry.comparisonId)' is missing result-path integrity metadata."
+    }
+
+    $relativeResultPath = ([string] $entry.resultPath).TrimStart('/').Replace(
+        '/',
+        [System.IO.Path]::DirectorySeparatorChar)
+    $publishedResultPath = Join-Path $resolvedSiteRoot $relativeResultPath
+    if (-not (Test-Path -LiteralPath $publishedResultPath -PathType Leaf)) {
+        throw "Library comparison result '$($entry.resultPath)' was not published."
+    }
+
+    $actualResultSha256 = (Get-FileHash -LiteralPath $publishedResultPath -Algorithm SHA256).Hash
+    if (-not [string]::Equals(
+            $actualResultSha256,
+            [string] $entry.resultSha256,
+            [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Library comparison result '$($entry.resultPath)' does not match its catalog SHA-256."
+    }
+}
+
 $pageHtml = Get-Content -LiteralPath $pagePath -Raw -Encoding UTF8
 if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-benchmark-matrix') {
     throw "Benchmark page did not render the generated data dashboard."

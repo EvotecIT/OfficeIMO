@@ -47,7 +47,7 @@ public class MarkPflug65KXlsxBenchmarks {
             ExcelPackage.License.SetNonCommercialOrganization("OfficeIMO local benchmarks");
         }
 
-        MarkPflug65KFixture.EnsureAuthentic();
+        MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsxFileName);
         _expected = OfficeIMO();
         Validate(nameof(Sylvan), Sylvan());
         Validate(nameof(ExcelDataReader), ExcelDataReader());
@@ -218,7 +218,7 @@ public class MarkPflug65KXlsbBenchmarks {
     [GlobalSetup]
     public void Setup() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        MarkPflug65KFixture.EnsureAuthentic();
+        MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);
         _expected = OfficeIMO();
         Validate(nameof(Sylvan), Sylvan());
         Validate(nameof(ExcelDataReader), ExcelDataReader());
@@ -285,7 +285,7 @@ public class XlsbOfficeIMOPipelineBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        MarkPflug65KFixture.EnsureAuthentic();
+        MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);
         _expected = PublicApi();
         ExcelReadObservation direct = DirectWorksheetReader();
         if (direct != _expected) {

@@ -31,11 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 return _columnTypes[ordinal];
             }
 
-            if (!_hasCurrentRow) {
-                return typeof(object);
-            }
-
-            return GetValueType(ordinal);
+            return typeof(object);
         }
 
         public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;

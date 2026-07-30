@@ -295,6 +295,31 @@ public sealed class OfficeFontFaceCollection {
         return this;
     }
 
+    internal OfficeFontFaceCollection AddRangePreservingExisting(OfficeFontFaceCollection? fonts) {
+        if (fonts == null || ReferenceEquals(fonts, this)) {
+            return this;
+        }
+
+        foreach (OfficeFontFace face in fonts.Faces) {
+            bool exists = _faces.Exists(existing =>
+                existing.Style == face.Style
+                && string.Equals(existing.FamilyName, face.FamilyName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(existing.ResourceFamilyName, face.ResourceFamilyName, StringComparison.OrdinalIgnoreCase));
+            if (!exists) {
+                _faces.Add(face.Clone());
+            }
+        }
+
+        foreach (string fallbackFamily in fonts.FallbackFamilies) {
+            if (!_fallbackFamilies.Exists(existing =>
+                    string.Equals(existing, fallbackFamily, StringComparison.OrdinalIgnoreCase))) {
+                _fallbackFamilies.Add(fallbackFamily);
+            }
+        }
+
+        return this;
+    }
+
     /// <summary>Creates an independent collection snapshot.</summary>
     public OfficeFontFaceCollection Clone() {
         var clone = new OfficeFontFaceCollection();

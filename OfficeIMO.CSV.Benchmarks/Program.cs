@@ -16,7 +16,7 @@ if (args.Length > 0 &&
         throw new ArgumentOutOfRangeException(nameof(iterations));
     }
 
-    MarkPflug65KFixture.EnsureAuthentic();
+    MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.CsvFileName);
     var benchmark = new MarkPflug65KCsvBenchmarks();
     for (int index = 0; index < 3; index++) {
         benchmark.OfficeIMO();

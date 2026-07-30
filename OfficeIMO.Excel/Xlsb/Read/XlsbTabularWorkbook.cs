@@ -56,6 +56,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _limits = new XlsbImportOptions {
                 MaxPackageBytes = readOptions.MaxInputBytes,
                 MaxSharedStrings = readOptions.MaxSharedStringItems,
+                MaxCells = readOptions.MaxXlsbCells,
                 ReportPreservedRecords = false
             };
             _limits.Validate();

@@ -583,6 +583,41 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RangeScopedPlannerKeepsLeadingWhitespaceOutsideAuthoredFontSegment()
+    {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont(' ', 'A'),
+                OfficeFontStyle.Regular,
+                onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped-leading-whitespace", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Scoped",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfEmbeddedFontFallbackSet planner = Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks);
+        PdfTextFallbackPlan plan = planner.PlanText(" A");
+
+        Assert.True(plan.IsFullyCovered);
+        PdfTextFallbackSegment segment = Assert.Single(plan.Segments);
+        Assert.Equal(1, segment.StartIndex);
+        Assert.Equal("A", segment.Text);
+        IReadOnlyList<TextRun> runs = plan.ToNamedTextRuns(
+            planner.FontFamilyNames,
+            TextRun.Normal(string.Empty, fontFamily: "Scoped"));
+        Assert.Equal(" ", runs[0].Text);
+        Assert.Equal("A", runs[1].Text);
+        Assert.Equal(planner.FontFamilyNames[segment.FontIndex], runs[1].FontFamily);
+    }
+
+    [Fact]
     public void EncodingPreflightResetsRangeScopedWhitespaceContextAtTextBoundaries() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')
