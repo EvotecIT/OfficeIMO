@@ -104,16 +104,20 @@ namespace OfficeIMO.Word.Pdf {
                     return false;
                 }
 
+                bool resolved = false;
+                double maximumRatio = 0D;
                 foreach (PdfCore.PdfEmbeddedFontFallbackCandidate candidate in
                          planner.Candidates) {
                     if (TryResolveEmbeddedLineSpacingRatio(
                             candidate.DataSnapshot,
-                            out ratio)) {
-                        return true;
+                            out double candidateRatio)) {
+                        maximumRatio = Math.Max(maximumRatio, candidateRatio);
+                        resolved = true;
                     }
                 }
 
-                return false;
+                ratio = maximumRatio;
+                return resolved;
             }
 
             private static bool TryResolveSlotLineSpacingRatio(

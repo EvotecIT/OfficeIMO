@@ -44,10 +44,18 @@ public sealed partial class PdfOptions {
                 ?? Enumerable.Empty<string>(),
             StringComparer.OrdinalIgnoreCase);
         ReadOnlyCollection<PdfEmbeddedFontFamily> families = CreateProfileFontFamilies(profileFonts);
-        if (families.Count > 0) {
+        ReadOnlyCollection<PdfEmbeddedFontFamily> effectiveFamilies =
+            mode == OfficeRenderingProfileApplyMode.Overlay
+                ? families
+                    .Where(family =>
+                        !preservedNamedFamilyNames.Contains(family.FamilyName))
+                    .ToList()
+                    .AsReadOnly()
+                : families;
+        if (effectiveFamilies.Count > 0) {
             existingFallbacks = PromoteCompatibilitySlotFallbacks(
                 existingFallbacks,
-                families,
+                effectiveFamilies,
                 preservedNamedFamilyNames,
                 mode);
         }
@@ -57,7 +65,10 @@ public sealed partial class PdfOptions {
                 .Where(name => !profileOwnedFallbackNames.Contains(name))
                 ?? Enumerable.Empty<string>(),
             StringComparer.OrdinalIgnoreCase);
-        ValidateRenderingProfileFamilyCapacity(families, existingFallbacks, mode);
+        ValidateRenderingProfileFamilyCapacity(
+            effectiveFamilies,
+            existingFallbacks,
+            mode);
         ValidateOptionalLanguage(profile.TextShapingLanguage, nameof(profile));
 
         if (mode == OfficeRenderingProfileApplyMode.Replace || profile.TextShapingProvider != null) {
@@ -75,12 +86,8 @@ public sealed partial class PdfOptions {
             _renderingProfileDeclaredFallbackCandidates = null;
             _renderingProfileOwnedNamedFamilyNames?.Clear();
         }
-        if (families.Count > 0) {
-            foreach (PdfEmbeddedFontFamily family in families) {
-                if (mode == OfficeRenderingProfileApplyMode.Overlay
-                    && preservedNamedFamilyNames.Contains(family.FamilyName)) {
-                    continue;
-                }
+        if (effectiveFamilies.Count > 0) {
+            foreach (PdfEmbeddedFontFamily family in effectiveFamilies) {
                 RegisterRenderingProfileNamedFamily(
                     mode == OfficeRenderingProfileApplyMode.Overlay
                         ? MergeRenderingProfileNamedFamily(family, profileFonts)
@@ -130,7 +137,7 @@ public sealed partial class PdfOptions {
                 existingFallbacks,
                 regularProfileCandidates,
                 profileOwnedFallbackNames);
-        if (families.Count > 0 && combinedCandidates.Length > 0) {
+        if (effectiveFamilies.Count > 0 && combinedCandidates.Length > 0) {
             EnsureNamedFallbackCandidatesRegistered(combinedCandidates);
 
             // The named families above may include complete styled profile families.

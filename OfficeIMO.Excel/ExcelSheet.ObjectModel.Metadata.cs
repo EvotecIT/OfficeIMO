@@ -286,6 +286,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedNamedSheetViewFilters(firstAffectedRow, rowDelta, lastDeletedRow);
 
             foreach (RowBreaks rowBreaks in WorksheetRoot.Descendants<RowBreaks>().ToList()) {
+                bool changed = false;
                 foreach (Break pageBreak in rowBreaks.Elements<Break>().ToList()) {
                     if (pageBreak.Id?.Value is not uint rowId || rowId == 0U) {
                         continue;
@@ -294,6 +295,7 @@ namespace OfficeIMO.Excel {
                     int row = checked((int)rowId);
                     if (lastDeletedRow.HasValue && row >= firstAffectedRow && row <= lastDeletedRow.Value) {
                         pageBreak.Remove();
+                        changed = true;
                         continue;
                     }
 
@@ -307,6 +309,11 @@ namespace OfficeIMO.Excel {
                     } else {
                         pageBreak.Id = (uint)shiftedRow;
                     }
+                    changed = true;
+                }
+
+                if (!changed) {
+                    continue;
                 }
 
                 uint breakCount = (uint)rowBreaks.Elements<Break>().Count();

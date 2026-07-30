@@ -337,6 +337,45 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RangeScopedStyledFallbackUsesRequestedProfileFace() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A', 'B'),
+                OfficeFontStyle.Bold,
+                onlyA)
+            .AddFallbackFamily("Scoped");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped-styles", fonts));
+
+        PdfTextFallbackSegment regular = Assert.Single(
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(
+                    options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                        bold: false,
+                        italic: false))
+                .PlanText("A")
+                .Segments);
+        PdfTextFallbackSegment bold = Assert.Single(
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(
+                    options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                        bold: true,
+                        italic: false))
+                .PlanText("A")
+                .Segments);
+
+        Assert.Equal(fonts.Faces[0].ResourceFamilyName, regular.FontName);
+        Assert.Equal(fonts.Faces[1].ResourceFamilyName, bold.FontName);
+    }
+
+    [Fact]
     public void RegisteringNamedFamilyReplacesReservedRangeScopedPlanner() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')
@@ -1663,6 +1702,43 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void FullyShadowedOverlayDoesNotPromoteOrReserveFallbackFamilies() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFont('A');
+        var options = new PdfOptions();
+        for (int index = 0; index < PdfOptions.MaximumNamedFontFamilies; index++) {
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                $"Existing {index}",
+                data));
+        }
+        options.RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("Slot", data) },
+            new[] { PdfStandardFont.Helvetica }));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Existing 0", data)
+            .AddFallbackFamily("Existing 0");
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile(
+                "shadowed",
+                fonts,
+                OfficeManagedTextShapingProvider.Instance,
+                "pl"),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(
+            PdfOptions.MaximumNamedFontFamilies,
+            options.NamedFontFamilies.Count);
+        Assert.False(options.EmbeddedFontFallbacks!.UsesNamedFontFamilies);
+        Assert.Equal(
+            new[] { PdfStandardFont.Helvetica },
+            options.EmbeddedFontFallbacks.FontSlots);
+        Assert.Same(
+            OfficeManagedTextShapingProvider.Instance,
+            options.TextShapingProvider);
+        Assert.Equal("pl", options.Language);
+    }
+
+    [Fact]
     public void CallerNamedFallbackCapacityFailureIsAtomic() {
         byte[] profileData = ManagedTextShapingTestAssets.CreateFont('A');
         byte[] callerData = ManagedTextShapingTestAssets.CreateFont('B');
@@ -2370,7 +2446,7 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void PowerPointCallerFontMutationIsClearedByShapingOnlyProfileReplacement() {
+    public void PowerPointCallerFontMutationSurvivesShapingOnlyProfileReplacement() {
         var fontProfile = new OfficeRenderingProfile(
             "powerpoint-font-profile",
             new OfficeFontFaceCollection()
@@ -2383,9 +2459,26 @@ public sealed class PdfRenderingProfileTests {
             new OfficeRenderingProfile("shaping-only"),
             OfficeRenderingProfileApplyMode.Replace);
 
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-        Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
         Assert.Empty(options.PdfOptions!.NamedFontFamilies);
+        Assert.Equal(PdfStandardFont.Courier, options.PdfOptions.DefaultFont);
+    }
+
+    [Fact]
+    public void RepeatedPowerPointFontlessReplacementPreservesCallerAssignment() {
+        var fontless = new OfficeRenderingProfile("shaping-only");
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(fontless);
+        options.PdfOptions!.DefaultFontSize = 13;
+
+        options.UseRenderingProfile(
+            fontless,
+            OfficeRenderingProfileApplyMode.Replace);
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
     }
 
     private sealed class DecliningTextShapingProvider : IOfficeTextShapingProvider {
