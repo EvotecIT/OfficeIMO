@@ -266,6 +266,115 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RequestedFamilyListCombinesEveryScopedFamily() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var onlyB = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('B', 'B')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add("First", ManagedTextShapingTestAssets.CreateFont('A'), OfficeFontStyle.Regular, onlyA)
+            .Add("Second", ManagedTextShapingTestAssets.CreateFont('B'), OfficeFontStyle.Regular, onlyB);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("multiple-scoped", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "First, Second",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfTextFallbackPlan plan = Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks)
+            .PlanText("AB");
+
+        Assert.True(plan.IsFullyCovered);
+        Assert.Equal(2, plan.Segments.Count);
+    }
+
+    [Fact]
+    public void UnrestrictedOnlyOverlayRefreshesExistingScopedFamilyPlanner() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var first = new OfficeFontFaceCollection()
+            .Add("Scoped", ManagedTextShapingTestAssets.CreateFont('A'), OfficeFontStyle.Regular, onlyA)
+            .Add("Scoped", ManagedTextShapingTestAssets.CreateFont('B'));
+        var second = new OfficeFontFaceCollection()
+            .Add("Scoped", ManagedTextShapingTestAssets.CreateFont('C'));
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("first", first))
+            .UseRenderingProfile(
+                new OfficeRenderingProfile("second", second),
+                OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Scoped",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfEmbeddedFontFallbackSet planner =
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks);
+
+        Assert.True(planner.PlanText("AC").IsFullyCovered);
+        Assert.False(planner.PlanText("B").IsFullyCovered);
+        Assert.Equal(
+            second.Faces[0].Data,
+            Assert.Single(planner.Candidates, candidate => candidate.FontName == "Scoped")
+                .DataSnapshot);
+    }
+
+    [Fact]
+    public void RegularFallbackUsesAvailableBoldFaceWhenRegularIsAbsent() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", ManagedTextShapingTestAssets.CreateFont('A'), OfficeFontStyle.Regular, onlyA)
+            .Add("Fallback", ManagedTextShapingTestAssets.CreateFont('B'), OfficeFontStyle.Bold)
+            .AddFallbackFamily("Fallback");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("bold-only-fallback", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Primary",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+
+        Assert.True(Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks)
+            .PlanText("B").IsFullyCovered);
+    }
+
+    [Fact]
+    public void EffectiveProfilePlannerRegistersSlotFallbackAsNamedFamily() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", ManagedTextShapingTestAssets.CreateFont('A'), OfficeFontStyle.Regular, onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("slot-fallback", fonts))
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+                new[] {
+                    new PdfEmbeddedFontFallbackCandidate(
+                        "Slot Fallback",
+                        ManagedTextShapingTestAssets.CreateFont('B'))
+                },
+                new[] { PdfStandardFont.Helvetica }));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Scoped",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfEmbeddedFontFallbackSet planner =
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks);
+
+        Assert.True(options.HasNamedFontFamily("Slot Fallback"));
+        Assert.True(planner.PlanText("AB").IsFullyCovered);
+    }
+
+    [Fact]
     public void RangeScopedPlannerKeepsWhitespaceWithAdjacentFont()
     {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
