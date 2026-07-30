@@ -873,6 +873,26 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_XlsbRejectsMismatchedCellFormatCount() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.InvalidStyleCount.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            IncrementXlsbStyleCollectionDeclaredCount(path, 617);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("cell-format collection", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("declares", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("contains", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ReadUsedRangeAsDataReaderObservesPreCancelledDiscovery() {
         string path = Path.Combine(
             Path.GetTempPath(),
@@ -1193,6 +1213,59 @@ public partial class Excel {
             CompressionLevel.Optimal);
         using Stream destination = replacement.Open();
         destination.Write(bytes, 0, truncatedLength);
+    }
+
+    private static void IncrementXlsbStyleCollectionDeclaredCount(string path, int recordType) {
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
+        ZipArchiveEntry originalEntry = archive.GetEntry("xl/styles.bin")
+            ?? throw new InvalidDataException("The XLSB fixture has no styles part.");
+        byte[] bytes;
+        using (Stream input = originalEntry.Open()) {
+            using var output = new MemoryStream();
+            input.CopyTo(output);
+            bytes = output.ToArray();
+        }
+
+        bool replaced = false;
+        int position = 0;
+        while (position < bytes.Length) {
+            int firstTypeByte = bytes[position++];
+            int type = firstTypeByte & 0x7F;
+            if ((firstTypeByte & 0x80) != 0) {
+                type |= (bytes[position++] & 0x7F) << 7;
+            }
+
+            int size = 0;
+            for (int index = 0; index < 4; index++) {
+                int current = bytes[position++];
+                size |= (current & 0x7F) << (index * 7);
+                if ((current & 0x80) == 0 || index == 3) {
+                    break;
+                }
+            }
+
+            if (type == recordType) {
+                Assert.Equal(sizeof(uint), size);
+                uint declared = (uint)(
+                    bytes[position]
+                    | bytes[position + 1] << 8
+                    | bytes[position + 2] << 16
+                    | bytes[position + 3] << 24);
+                WriteUInt32LittleEndian(bytes, position, checked(declared + 1U));
+                replaced = true;
+                break;
+            }
+
+            position = checked(position + size);
+        }
+
+        Assert.True(replaced);
+        originalEntry.Delete();
+        ZipArchiveEntry replacement = archive.CreateEntry(
+            "xl/styles.bin",
+            CompressionLevel.Optimal);
+        using Stream destination = replacement.Open();
+        destination.Write(bytes, 0, bytes.Length);
     }
 
     private static void WriteUInt32LittleEndian(byte[] bytes, int offset, uint value) {

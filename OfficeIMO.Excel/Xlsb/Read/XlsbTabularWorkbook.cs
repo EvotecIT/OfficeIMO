@@ -322,6 +322,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             bool endedStyleSheet = false;
             bool inFormats = false;
             bool inCellFormats = false;
+            int declaredCellFormatCount = -1;
+            int actualCellFormatCount = 0;
             while (records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (endedStyleSheet) {
@@ -354,9 +356,24 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         break;
                     case BrtBeginCellXfs:
                         BeginStyleCollection(partName, BrtEndCellXfs, ref activeCollectionEnd);
+                        if (record.Size != sizeof(uint)) {
+                            throw new InvalidDataException(
+                                $"The XLSB styles part '{partName}' contains an invalid cell-format collection header.");
+                        }
+                        uint declaredCellFormats = record.CreateCursor().ReadUInt32();
+                        if (declaredCellFormats > int.MaxValue) {
+                            throw new InvalidDataException(
+                                $"The XLSB cell-format collection declares {declaredCellFormats} items, exceeding the supported limit of {int.MaxValue}.");
+                        }
+                        declaredCellFormatCount = checked((int)declaredCellFormats);
+                        actualCellFormatCount = 0;
                         inCellFormats = true;
                         break;
                     case BrtEndCellXfs:
+                        if (actualCellFormatCount != declaredCellFormatCount) {
+                            throw new InvalidDataException(
+                                $"The XLSB cell-format collection declares {declaredCellFormatCount} items but contains {actualCellFormatCount} item records.");
+                        }
                         EndStyleCollection(partName, BrtEndCellXfs, record, ref activeCollectionEnd);
                         inCellFormats = false;
                         break;
@@ -399,6 +416,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             || (customFormats.TryGetValue(numberFormatId, out string? code)
                                 && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
                         dateStyles.Add(isDate);
+                        actualCellFormatCount++;
                         break;
                     }
                 }
