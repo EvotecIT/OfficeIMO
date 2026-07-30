@@ -851,6 +851,27 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData(47)]
+    [InlineData(618)]
+    public void OpenDataReader_XlsbRejectsTruncatedStylesPart(int truncateAfterRecordType) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.TruncatedStyles.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            TruncateXlsbStylesAfterRecord(path, truncateAfterRecordType);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("styles part", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("boundary", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void ReadUsedRangeAsDataReaderObservesPreCancelledDiscovery() {
         string path = Path.Combine(
@@ -1128,6 +1149,50 @@ public partial class Excel {
             CompressionLevel.Optimal);
         using Stream destination = replacement.Open();
         destination.Write(bytes, 0, bytes.Length);
+    }
+
+    private static void TruncateXlsbStylesAfterRecord(string path, int recordType) {
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
+        ZipArchiveEntry originalEntry = archive.GetEntry("xl/styles.bin")
+            ?? throw new InvalidDataException("The XLSB fixture has no styles part.");
+        byte[] bytes;
+        using (Stream input = originalEntry.Open()) {
+            using var output = new MemoryStream();
+            input.CopyTo(output);
+            bytes = output.ToArray();
+        }
+
+        int truncatedLength = -1;
+        int position = 0;
+        while (position < bytes.Length) {
+            int firstTypeByte = bytes[position++];
+            int type = firstTypeByte & 0x7F;
+            if ((firstTypeByte & 0x80) != 0) {
+                type |= (bytes[position++] & 0x7F) << 7;
+            }
+
+            int size = 0;
+            for (int index = 0; index < 4; index++) {
+                int current = bytes[position++];
+                size |= (current & 0x7F) << (index * 7);
+                if ((current & 0x80) == 0 || index == 3) {
+                    break;
+                }
+            }
+
+            position = checked(position + size);
+            if (type == recordType) {
+                truncatedLength = position;
+            }
+        }
+
+        Assert.InRange(truncatedLength, 1, bytes.Length - 1);
+        originalEntry.Delete();
+        ZipArchiveEntry replacement = archive.CreateEntry(
+            "xl/styles.bin",
+            CompressionLevel.Optimal);
+        using Stream destination = replacement.Open();
+        destination.Write(bytes, 0, truncatedLength);
     }
 
     private static void WriteUInt32LittleEndian(byte[] bytes, int offset, uint value) {

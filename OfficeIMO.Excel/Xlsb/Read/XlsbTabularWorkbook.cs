@@ -16,12 +16,22 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private const int BrtSstItem = 19;
         private const int BrtBeginSst = 159;
         private const int BrtEndSst = 160;
+        private const int BrtBeginStyleSheet = 278;
+        private const int BrtEndStyleSheet = 279;
+        private const int BrtBeginFills = 603;
+        private const int BrtEndFills = 604;
+        private const int BrtBeginFonts = 611;
+        private const int BrtEndFonts = 612;
+        private const int BrtBeginBorders = 613;
+        private const int BrtEndBorders = 614;
         private const int BrtFmt = 44;
         private const int BrtXf = 47;
         private const int BrtBeginFmts = 615;
         private const int BrtEndFmts = 616;
         private const int BrtBeginCellXfs = 617;
         private const int BrtEndCellXfs = 618;
+        private const int BrtBeginCellStyleXfs = 626;
+        private const int BrtEndCellStyleXfs = 627;
         private const string WorksheetRelationshipSuffix = "/worksheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
@@ -307,22 +317,72 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
             var customFormats = new Dictionary<ushort, string>();
             var dateStyles = new List<bool>();
+            int activeCollectionEnd = 0;
+            bool beganStyleSheet = false;
+            bool endedStyleSheet = false;
             bool inFormats = false;
             bool inCellFormats = false;
             while (records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
+                if (endedStyleSheet) {
+                    throw new InvalidDataException(
+                        $"The XLSB styles part '{partName}' contains records after BrtEndStyleSheet.");
+                }
+
                 switch (record.Type) {
+                    case BrtBeginStyleSheet:
+                        if (beganStyleSheet || record.RecordOffset != 0 || record.Size != 0) {
+                            throw new InvalidDataException(
+                                $"The XLSB styles part '{partName}' contains an invalid BrtBeginStyleSheet record.");
+                        }
+                        beganStyleSheet = true;
+                        break;
+                    case BrtEndStyleSheet:
+                        if (!beganStyleSheet || activeCollectionEnd != 0 || record.Size != 0) {
+                            throw new InvalidDataException(
+                                $"The XLSB styles part '{partName}' contains an invalid BrtEndStyleSheet record.");
+                        }
+                        endedStyleSheet = true;
+                        break;
                     case BrtBeginFmts:
+                        BeginStyleCollection(partName, BrtEndFmts, ref activeCollectionEnd);
                         inFormats = true;
                         break;
                     case BrtEndFmts:
+                        EndStyleCollection(partName, BrtEndFmts, record, ref activeCollectionEnd);
                         inFormats = false;
                         break;
                     case BrtBeginCellXfs:
+                        BeginStyleCollection(partName, BrtEndCellXfs, ref activeCollectionEnd);
                         inCellFormats = true;
                         break;
                     case BrtEndCellXfs:
+                        EndStyleCollection(partName, BrtEndCellXfs, record, ref activeCollectionEnd);
                         inCellFormats = false;
+                        break;
+                    case BrtBeginFills:
+                        BeginStyleCollection(partName, BrtEndFills, ref activeCollectionEnd);
+                        break;
+                    case BrtEndFills:
+                        EndStyleCollection(partName, BrtEndFills, record, ref activeCollectionEnd);
+                        break;
+                    case BrtBeginFonts:
+                        BeginStyleCollection(partName, BrtEndFonts, ref activeCollectionEnd);
+                        break;
+                    case BrtEndFonts:
+                        EndStyleCollection(partName, BrtEndFonts, record, ref activeCollectionEnd);
+                        break;
+                    case BrtBeginBorders:
+                        BeginStyleCollection(partName, BrtEndBorders, ref activeCollectionEnd);
+                        break;
+                    case BrtEndBorders:
+                        EndStyleCollection(partName, BrtEndBorders, record, ref activeCollectionEnd);
+                        break;
+                    case BrtBeginCellStyleXfs:
+                        BeginStyleCollection(partName, BrtEndCellStyleXfs, ref activeCollectionEnd);
+                        break;
+                    case BrtEndCellStyleXfs:
+                        EndStyleCollection(partName, BrtEndCellStyleXfs, record, ref activeCollectionEnd);
                         break;
                     case BrtFmt when inFormats: {
                         var cursor = record.CreateCursor();
@@ -344,7 +404,37 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
             }
 
+            if (!beganStyleSheet || !endedStyleSheet || activeCollectionEnd != 0) {
+                throw new InvalidDataException(
+                    $"The XLSB styles part '{partName}' is missing required stylesheet or collection boundary records.");
+            }
+
             return dateStyles.Count == 0 ? new[] { false } : dateStyles.ToArray();
+        }
+
+        private static void BeginStyleCollection(
+            string partName,
+            int expectedEndRecord,
+            ref int activeCollectionEnd) {
+            if (activeCollectionEnd != 0) {
+                throw new InvalidDataException(
+                    $"The XLSB styles part '{partName}' begins a style collection before the active collection ends.");
+            }
+
+            activeCollectionEnd = expectedEndRecord;
+        }
+
+        private static void EndStyleCollection(
+            string partName,
+            int endRecord,
+            XlsbRecordSlice record,
+            ref int activeCollectionEnd) {
+            if (activeCollectionEnd != endRecord || record.Size != 0) {
+                throw new InvalidDataException(
+                    $"The XLSB styles part '{partName}' contains an invalid style collection end record.");
+            }
+
+            activeCollectionEnd = 0;
         }
 
         private List<XlsbTabularSheet> ResolveWorksheets(
