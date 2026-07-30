@@ -135,7 +135,8 @@ namespace OfficeIMO.Excel {
                         registerSheetWrapper: false);
                 IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates =
                     inspectedSheet.BuildEffectiveCellCoordinates(
-                        worksheetElements.OfType<Row>());
+                        worksheetElements.OfType<Row>(),
+                        worksheetElements.OfType<Cell>());
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                     inspectedSheet.BuildSharedFormulaDefinitions(
                         effectiveCoordinates,
@@ -869,9 +870,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 budget.Consume();
-                bool chartChanges = false;
+                var chartElements = new List<OpenXmlElement>();
                 foreach (OpenXmlElement element in chartRoot.Descendants()) {
                     budget.Consume();
+                    chartElements.Add(element);
+                }
+                ILookup<OpenXmlElement?, OpenXmlElement> chartDirectChildren =
+                    chartElements.ToLookup(element => element.Parent);
+                bool chartChanges = false;
+                foreach (OpenXmlElement element in chartElements) {
                     if (element is OpenXmlLeafTextElement formula
                         && string.Equals(formula.LocalName, "f", StringComparison.Ordinal)) {
                         if (FormulaChangesForPlan(
@@ -884,7 +891,9 @@ namespace OfficeIMO.Excel {
                             formulas++;
                             chartChanges = true;
                         }
-                        if (ChartFormulaCacheWillBeInvalidated(formula)) {
+                        if (ChartFormulaCacheWillBeInvalidated(
+                                formula,
+                                chartDirectChildren)) {
                             chartChanges = true;
                         }
                     }

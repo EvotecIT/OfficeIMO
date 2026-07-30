@@ -243,11 +243,15 @@ namespace OfficeIMO.Excel {
             ILookup<OpenXmlElement?, OpenXmlElement> directChildren =
                 tableElements
                     .Where(element => element is SortCondition
-                        || element is X14.SortCondition)
+                        || element is X14.SortCondition
+                        || element is AutoFilter)
                     .ToLookup(element => element.Parent);
 
             return Changes(table.Reference?.Value)
-                || Changes(table.GetFirstChild<AutoFilter>()?.Reference?.Value)
+                || Changes(directChildren[table]
+                    .OfType<AutoFilter>()
+                    .FirstOrDefault()
+                    ?.Reference?.Value)
                 || tableElements.OfType<SortState>().Any(sortState =>
                     Changes(sortState.Reference?.Value)
                     || directChildren[sortState].OfType<SortCondition>()
@@ -256,14 +260,16 @@ namespace OfficeIMO.Excel {
                         .Any(condition => Changes(condition.Reference?.Value)));
         }
 
-        private static bool ChartFormulaCacheWillBeInvalidated(OpenXmlLeafTextElement formula) {
+        private static bool ChartFormulaCacheWillBeInvalidated(
+            OpenXmlLeafTextElement formula,
+            ILookup<OpenXmlElement?, OpenXmlElement> directChildren) {
             OpenXmlElement? reference = formula.Parent;
             return reference != null
-                && (reference.ChildElements.Any(element =>
+                && (directChildren[reference].Any(element =>
                         element.LocalName.EndsWith("Cache", StringComparison.OrdinalIgnoreCase))
                     || (string.Equals(reference.LocalName, "numDim", StringComparison.Ordinal)
                         || string.Equals(reference.LocalName, "strDim", StringComparison.Ordinal))
-                    && reference.ChildElements.Any(element =>
+                    && directChildren[reference].Any(element =>
                         string.Equals(element.LocalName, "lvl", StringComparison.Ordinal)));
         }
 

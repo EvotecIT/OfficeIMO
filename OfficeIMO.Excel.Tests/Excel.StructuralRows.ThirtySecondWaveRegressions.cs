@@ -271,6 +271,79 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanUsesChargedWorksheetCellSnapshot() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            SheetData sheetData =
+                sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            var row = new Row { RowIndex = 1U };
+            for (int column = 1; column <= 64; column++) {
+                row.Append(new Cell {
+                    CellReference = A1.CellReference(1, column),
+                    CellValue = new CellValue(column)
+                });
+            }
+            sheetData.Append(row);
+            ExcelRowMutationPlan baseline = sheet.PlanInsertRows(2);
+
+            ExcelRowMutationPlan exactBudget = sheet.PlanInsertRows(
+                2,
+                options: new ExcelMutationPlanOptions {
+                    MaximumScannedElements = baseline.ScannedElements
+                });
+
+            Assert.Equal(baseline.ScannedElements, exactBudget.ScannedElements);
+            Assert.DoesNotContain(
+                exactBudget.Impacts,
+                impact => impact.Category == "worksheet-cells");
+        }
+
+        [Fact]
+        public void Test_StructuralRows_UnchangedCellSmartTagCountIsNotNormalized() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            const string spreadsheetNamespace =
+                "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            var tags = new OpenXmlUnknownElement(
+                string.Empty,
+                "cellSmartTags",
+                spreadsheetNamespace);
+            tags.SetAttribute(new OpenXmlAttribute(
+                string.Empty,
+                "count",
+                string.Empty,
+                "9"));
+            var tag = new OpenXmlUnknownElement(
+                string.Empty,
+                "cellSmartTag",
+                spreadsheetNamespace);
+            tag.SetAttribute(new OpenXmlAttribute(
+                string.Empty,
+                "r",
+                string.Empty,
+                "A1"));
+            tags.Append(tag);
+            sheet.WorksheetPart.Worksheet.Append(tags);
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
+
+            Assert.DoesNotContain(
+                plan.Impacts,
+                impact => impact.Category == "worksheet-range-metadata");
+            plan.Apply();
+            Assert.Equal(
+                "9",
+                tags.GetAttributes()
+                    .Single(attribute => attribute.LocalName == "count")
+                    .Value);
+            Assert.Equal(
+                "A1",
+                tag.GetAttributes()
+                    .Single(attribute => attribute.LocalName == "r")
+                    .Value);
+        }
+
+        [Fact]
         public void Test_StructuralRows_UnchangedScenarioCountIsNotNormalized() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
