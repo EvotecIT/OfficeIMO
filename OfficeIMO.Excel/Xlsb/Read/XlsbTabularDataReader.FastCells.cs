@@ -60,17 +60,21 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 case BrtFmlaString:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
                     _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
+                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaNum:
                     StoreNumber(ordinal, cursor.ReadDouble(), styleIndex);
+                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaBool:
                     _kinds[ordinal] = XlsbTabularValueKind.Boolean;
                     _booleans[ordinal] = cursor.ReadByte() != 0;
+                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaError:
                     _kinds[ordinal] = XlsbTabularValueKind.Error;
                     _strings[ordinal] = BiffErrorValue.ToText(cursor.ReadByte());
+                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 default:
                     throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
@@ -83,6 +87,25 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 && _dateStyles[styleIndex];
             _kinds[ordinal] = isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number;
             _numbers[ordinal] = number;
+        }
+
+        private static void ValidateFormulaPayloadTail(
+            XlsbRecordSlice record,
+            ref XlsbSliceCursor cursor) {
+            const int mandatoryHeaderBytes = sizeof(ushort) + sizeof(uint);
+            if (cursor.Remaining < mandatoryHeaderBytes) {
+                throw new InvalidDataException(
+                    $"The XLSB formula record at offset {record.RecordOffset} ended before its flags and token-byte count.");
+            }
+
+            cursor.ReadUInt16(); // grbit flags
+            uint tokenCount = cursor.ReadUInt32();
+            if (tokenCount > cursor.Remaining) {
+                throw new InvalidDataException(
+                    $"The XLSB formula record at offset {record.RecordOffset} declares {tokenCount} token bytes but only {cursor.Remaining} remain.");
+            }
+
+            cursor.Skip(checked((int)tokenCount));
         }
     }
 }

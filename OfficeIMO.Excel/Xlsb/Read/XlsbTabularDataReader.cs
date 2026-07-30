@@ -435,19 +435,23 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     cell = new DecodedCell(column, XlsbTabularValueKind.Text) {
                         Text = cursor.ReadWideString(_limits.MaxStringCharacters)
                     };
+                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaNum:
                     cell = NumericCell(column, cursor.ReadDouble(), isDate);
+                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaBool:
                     cell = new DecodedCell(column, XlsbTabularValueKind.Boolean) {
                         Boolean = cursor.ReadByte() != 0
                     };
+                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaError:
                     cell = new DecodedCell(column, XlsbTabularValueKind.Error) {
                         Text = BiffErrorValue.ToText(cursor.ReadByte())
                     };
+                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 default:
                     throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");

@@ -378,6 +378,25 @@ public partial class Excel {
     }
 
     [Fact]
+    public void CreateDataReader_PreCancelledOpenDocumentDoesNotMaterializeDeferredRows() {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.InsertObjects(
+            new[] { new { Name = "North", Score = 10 } },
+            ("Name", row => row.Name),
+            ("Score", row => row.Score));
+        Assert.True(document.HasDeferredDirectDataSetImport);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            document.CreateDataReader(
+                new ExcelReadOptions { CancellationToken = cancellation.Token }));
+        Assert.True(document.HasDeferredDirectDataSetImport);
+    }
+
+    [Fact]
     public void OpenDataReader_PreCancelledLargeSeekableStreamStopsBeforeSizingItsSnapshot() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -493,6 +512,31 @@ public partial class Excel {
         Assert.Equal(typeof(object), reader.GetFieldType(1));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpenDataReader_XlsbRejectsFormulaWithoutMandatoryPayloadTail(bool useConverter) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.TruncatedFormula.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            TruncateFirstXlsbNumericFormulaTail(path);
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    CellValueConverter = useConverter
+                        ? static _ => ExcelCellValue.NotHandled
+                        : null
+                });
+            Assert.True(reader.Read());
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => reader.Read());
+            Assert.Contains("formula record", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("token-byte count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void OpenDataReader_XlsxObservesCancellationWhileBufferingInput() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Cancel.{Guid.NewGuid():N}.xlsx");
@@ -598,6 +642,68 @@ public partial class Excel {
             CompressionLevel.Optimal);
         using Stream destination = replacement.Open();
         destination.Write(bytes, 0, bytes.Length);
+    }
+
+    private static void TruncateFirstXlsbNumericFormulaTail(string path) {
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
+        ZipArchiveEntry originalEntry = archive.GetEntry("xl/worksheets/sheet1.bin")
+            ?? throw new InvalidDataException("The XLSB fixture has no first worksheet part.");
+        byte[] bytes;
+        using (Stream input = originalEntry.Open()) {
+            using var output = new MemoryStream();
+            input.CopyTo(output);
+            bytes = output.ToArray();
+        }
+
+        const int brtFmlaNum = 9;
+        const int cachedPayloadBytes = sizeof(int) + sizeof(uint) + sizeof(double);
+        byte[]? truncated = null;
+        int position = 0;
+        while (position < bytes.Length) {
+            int firstTypeByte = bytes[position++];
+            int type = firstTypeByte & 0x7F;
+            if ((firstTypeByte & 0x80) != 0) {
+                type |= (bytes[position++] & 0x7F) << 7;
+            }
+
+            int sizeHeaderStart = position;
+            int size = 0;
+            int sizeHeaderLength = 0;
+            for (int index = 0; index < 4; index++) {
+                int current = bytes[position++];
+                sizeHeaderLength++;
+                size |= (current & 0x7F) << (index * 7);
+                if ((current & 0x80) == 0) {
+                    break;
+                }
+            }
+
+            if (type == brtFmlaNum) {
+                Assert.True(size > cachedPayloadBytes);
+                Assert.Equal(1, sizeHeaderLength);
+                int bytesToRemove = size - cachedPayloadBytes;
+                truncated = new byte[bytes.Length - bytesToRemove];
+                Buffer.BlockCopy(bytes, 0, truncated, 0, position + cachedPayloadBytes);
+                truncated[sizeHeaderStart] = cachedPayloadBytes;
+                Buffer.BlockCopy(
+                    bytes,
+                    position + size,
+                    truncated,
+                    position + cachedPayloadBytes,
+                    bytes.Length - position - size);
+                break;
+            }
+
+            position = checked(position + size);
+        }
+
+        Assert.NotNull(truncated);
+        originalEntry.Delete();
+        ZipArchiveEntry replacement = archive.CreateEntry(
+            "xl/worksheets/sheet1.bin",
+            CompressionLevel.Optimal);
+        using Stream destination = replacement.Open();
+        destination.Write(truncated, 0, truncated.Length);
     }
 
     private static void WriteUInt32LittleEndian(byte[] bytes, int offset, uint value) {

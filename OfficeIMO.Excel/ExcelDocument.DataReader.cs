@@ -84,8 +84,9 @@ namespace OfficeIMO.Excel {
         /// The returned reader does not close the document.
         /// </summary>
         public DbDataReader CreateDataReader(ExcelReadOptions? options = null) {
-            MaterializeDeferredDataSetImport();
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+            MaterializeDeferredDataSetImport();
             return ExcelWorkbookDataReader.WrapOpenXml(
                 ExcelDocumentReader.Wrap(_spreadSheetDocument, effectiveOptions),
                 effectiveOptions);
