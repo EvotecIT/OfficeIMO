@@ -34,11 +34,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static int CountAffectedRowRecords(Worksheet worksheet, int firstRow) {
+        private static int CountAffectedRowRecords(
+            IReadOnlyList<OpenXmlElement> worksheetElements,
+            int firstRow) {
             int count = 0;
             uint previous = 0U;
-            foreach (Row row in worksheet.GetFirstChild<SheetData>()?.Elements<Row>()
-                ?? Enumerable.Empty<Row>()) {
+            foreach (Row row in worksheetElements.OfType<Row>()) {
                 uint effective = GetEffectiveRowIndex(row, previous);
                 if (effective >= (uint)firstRow) {
                     count++;
@@ -49,7 +50,7 @@ namespace OfficeIMO.Excel {
         }
 
         private int CountWorksheetRangeMetadataPlanImpacts(
-            Worksheet worksheet,
+            IReadOnlyList<OpenXmlElement> worksheetElements,
             ExcelRowMutationKind kind,
             int firstRow,
             int lastRow,
@@ -62,29 +63,33 @@ namespace OfficeIMO.Excel {
                 lastRow,
                 count);
 
-            foreach (AutoFilter filter in worksheet.Descendants<AutoFilter>()) {
+            foreach (AutoFilter filter in worksheetElements.OfType<AutoFilter>()) {
                 if (Changes(filter.Reference?.Value)) {
                     affected.Add(filter);
                 }
             }
 
-            SheetDimension? dimension = worksheet.GetFirstChild<SheetDimension>();
+            SheetDimension? dimension = worksheetElements
+                .OfType<SheetDimension>()
+                .FirstOrDefault(candidate => candidate.Parent is Worksheet);
             if (dimension != null && Changes(dimension.Reference?.Value)) {
                 affected.Add(dimension);
             }
 
-            foreach (IgnoredError error in worksheet.Descendants<IgnoredError>()) {
+            foreach (IgnoredError error in worksheetElements.OfType<IgnoredError>()) {
                 if (Changes(error.SequenceOfReferences?.InnerText)) {
                     affected.Add(error);
                 }
             }
-            foreach (X14.IgnoredError error in worksheet.Descendants<X14.IgnoredError>()) {
+            foreach (X14.IgnoredError error in worksheetElements.OfType<X14.IgnoredError>()) {
                 if (Changes(error.ReferenceSequence?.Text)) {
                     affected.Add(error);
                 }
             }
 
-            Scenarios? scenarios = worksheet.GetFirstChild<Scenarios>();
+            Scenarios? scenarios = worksheetElements
+                .OfType<Scenarios>()
+                .FirstOrDefault(candidate => candidate.Parent is Worksheet);
             if (scenarios != null) {
                 if (Changes(scenarios.SequenceOfReferences?.InnerText)) {
                     affected.Add(scenarios);
@@ -97,13 +102,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (CellWatch watch in worksheet.Descendants<CellWatch>()) {
+            foreach (CellWatch watch in worksheetElements.OfType<CellWatch>()) {
                 if (Changes(watch.CellReference?.Value)) {
                     affected.Add(watch);
                 }
             }
 
-            foreach (OpenXmlElement tag in worksheet.Descendants()
+            foreach (OpenXmlElement tag in worksheetElements
                 .Where(element => string.Equals(
                     element.LocalName,
                     "cellSmartTag",
@@ -119,7 +124,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (SortState sortState in worksheet.Descendants<SortState>()) {
+            foreach (SortState sortState in worksheetElements.OfType<SortState>()) {
                 if (Changes(sortState.Reference?.Value)
                     || sortState.Elements<SortCondition>()
                         .Any(condition => Changes(condition.Reference?.Value))
@@ -129,30 +134,30 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (SheetView view in worksheet.Descendants<SheetView>()) {
+            foreach (SheetView view in worksheetElements.OfType<SheetView>()) {
                 if (Changes(view.TopLeftCell?.Value)) {
                     affected.Add(view);
                 }
             }
-            foreach (CustomSheetView view in worksheet.Descendants<CustomSheetView>()) {
+            foreach (CustomSheetView view in worksheetElements.OfType<CustomSheetView>()) {
                 if (Changes(view.TopLeftCell?.Value)) {
                     affected.Add(view);
                 }
             }
-            foreach (Pane pane in worksheet.Descendants<Pane>()) {
+            foreach (Pane pane in worksheetElements.OfType<Pane>()) {
                 if (Changes(pane.TopLeftCell?.Value)) {
                     affected.Add(pane);
                 }
             }
-            foreach (Selection selection in worksheet.Descendants<Selection>()) {
+            foreach (Selection selection in worksheetElements.OfType<Selection>()) {
                 if (Changes(selection.ActiveCell?.Value)
                     || Changes(selection.SequenceOfReferences?.InnerText)) {
                     affected.Add(selection);
                 }
             }
 
-            foreach (Break pageBreak in worksheet.Descendants<RowBreaks>()
-                .SelectMany(rowBreaks => rowBreaks.Elements<Break>())) {
+            foreach (Break pageBreak in worksheetElements.OfType<Break>()
+                .Where(candidate => candidate.Parent is RowBreaks)) {
                 if (pageBreak.Id?.Value is uint rowId
                     && rowId > 0U
                     && rowId >= (uint)firstRow) {

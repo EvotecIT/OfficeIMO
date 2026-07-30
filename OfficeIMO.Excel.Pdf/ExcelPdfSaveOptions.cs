@@ -11,6 +11,8 @@ namespace OfficeIMO.Excel.Pdf {
         private PdfCore.PdfOptions? _pdfOptions;
         private long? _fontlessRenderingProfileFontConfigurationState;
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+        private double? _renderingProfilePageWidth;
+        private double? _renderingProfilePageHeight;
 
         /// <summary>
         /// Warnings populated when workbook content cannot be mapped faithfully.
@@ -32,6 +34,8 @@ namespace OfficeIMO.Excel.Pdf {
             set {
                 _pdfOptions = value;
                 _fontlessRenderingProfileFontConfigurationState = null;
+                _renderingProfilePageWidth = null;
+                _renderingProfilePageHeight = null;
             }
         }
 
@@ -40,6 +44,13 @@ namespace OfficeIMO.Excel.Pdf {
             && (!_fontlessRenderingProfileFontConfigurationState.HasValue
                 || _pdfOptions.FontConfigurationState
                     != _fontlessRenderingProfileFontConfigurationState.Value);
+
+        internal bool HasExplicitPdfPageSizeConfiguration =>
+            _pdfOptions != null
+            && (!_renderingProfilePageWidth.HasValue
+                || !_renderingProfilePageHeight.HasValue
+                || _pdfOptions.PageWidth != _renderingProfilePageWidth.Value
+                || _pdfOptions.PageHeight != _renderingProfilePageHeight.Value);
 
         /// <summary>
         /// Optional workbook default font family used by the first-party PDF engine.
@@ -222,19 +233,27 @@ namespace OfficeIMO.Excel.Pdf {
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
             if (profile == null) throw new ArgumentNullException(nameof(profile));
-            if (_pdfOptions == null) {
-                _pdfOptions = new PdfCore.PdfOptions();
-                _pdfOptions.UseRenderingProfile(profile, mode);
-                if (profile.Fonts.Faces.Count == 0) {
-                    _fontlessRenderingProfileFontConfigurationState =
-                        _pdfOptions.FontConfigurationState;
-                }
-                return this;
-            }
+            bool createdPdfOptions = _pdfOptions == null;
+            bool profileOwnsCurrentPageSize =
+                createdPdfOptions
+                || (_pdfOptions != null
+                    && _renderingProfilePageWidth.HasValue
+                    && _renderingProfilePageHeight.HasValue
+                    && _pdfOptions.PageWidth == _renderingProfilePageWidth.Value
+                    && _pdfOptions.PageHeight == _renderingProfilePageHeight.Value);
+            _pdfOptions ??= new PdfCore.PdfOptions();
             _pdfOptions.UseRenderingProfile(profile, mode);
+            if (profileOwnsCurrentPageSize) {
+                _renderingProfilePageWidth = _pdfOptions.PageWidth;
+                _renderingProfilePageHeight = _pdfOptions.PageHeight;
+            } else {
+                _renderingProfilePageWidth = null;
+                _renderingProfilePageHeight = null;
+            }
             if (profile.Fonts.Faces.Count > 0) {
                 _fontlessRenderingProfileFontConfigurationState = null;
-            } else if (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
+            } else if (createdPdfOptions
+                || mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
                 _fontlessRenderingProfileFontConfigurationState =
                     _pdfOptions.FontConfigurationState;
             }

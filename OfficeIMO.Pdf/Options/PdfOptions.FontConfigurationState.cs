@@ -82,6 +82,12 @@ public sealed partial class PdfOptions {
                     AddString(candidate.FontName);
                     AddInt64((int)candidate.Style);
                     AddBytes(candidate.DataSnapshot);
+                    AddInt64(candidate.UnicodeRanges.Ranges.Count);
+                    foreach (OfficeIMO.Drawing.OfficeFontUnicodeRange range in
+                        candidate.UnicodeRanges.Ranges) {
+                        AddInt64(range.Start);
+                        AddInt64(range.End);
+                    }
                 }
                 foreach (PdfStandardFont slot in _embeddedFontFallbacks.FontSlots) {
                     AddInt64((int)slot);

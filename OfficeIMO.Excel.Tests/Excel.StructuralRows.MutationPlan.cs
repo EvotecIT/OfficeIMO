@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_StructuralRows_MutationPlanIncludesFormulaReferenceAttributes() {
+        public void Test_StructuralRows_MutationPlanCountsFormulaCellOnceAcrossReferenceAttributes() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellAt(2, 3).SetValue(0);
@@ -347,7 +347,7 @@ namespace OfficeIMO.Tests {
             ExcelMutationImpact formulas = Assert.Single(
                 plan.Impacts,
                 impact => impact.Category == "formula-references");
-            Assert.Equal(3, formulas.ItemCount);
+            Assert.Equal(1, formulas.ItemCount);
         }
 
         [Fact]

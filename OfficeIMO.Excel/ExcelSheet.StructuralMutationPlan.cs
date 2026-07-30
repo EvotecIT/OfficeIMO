@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel {
                 bool isPendingOwner = pendingOwner != null
                     && ReferenceEquals(worksheetPart, pendingOwner._worksheetPart);
                 if (rewriteUnqualified) {
-                    rows += CountAffectedRowRecords(worksheetPart.Worksheet, firstRow);
+                    rows += CountAffectedRowRecords(worksheetElements, firstRow);
                 }
                 foreach (OpenXmlElement element in worksheetElements) {
                     if (element is Cell cell) {
@@ -154,8 +154,7 @@ namespace OfficeIMO.Excel {
 
                         if (!pendingValueIsAuthoritative
                             && cell.CellFormula is CellFormula cellFormula) {
-                            bool formulaImpactRecorded = false;
-                            if (FormulaChangesForPlan(
+                            bool formulaImpactRecorded = FormulaChangesForPlan(
                                     inspectedSheet.ResolveCellFormulaText(
                                         cell,
                                         sharedFormulaDefinitions,
@@ -164,10 +163,7 @@ namespace OfficeIMO.Excel {
                                     firstRow,
                                     lastRow,
                                     count,
-                                    rewriteUnqualified)) {
-                                formulas++;
-                                formulaImpactRecorded = true;
-                            }
+                                    rewriteUnqualified);
                             if (rewriteUnqualified
                                 && cellFormula.FormulaType?.Value != CellFormulaValues.Shared
                                 && ReferenceListChangesForPlan(
@@ -176,37 +172,32 @@ namespace OfficeIMO.Excel {
                                     firstRow,
                                     lastRow,
                                     count)) {
-                                formulas++;
                                 formulaImpactRecorded = true;
                             }
                             if (rewriteUnqualified
-                                && cellFormula.FormulaType?.Value == CellFormulaValues.DataTable) {
-                                if (ReferenceListChangesForPlan(
+                                && cellFormula.FormulaType?.Value == CellFormulaValues.DataTable
+                                && (ReferenceListChangesForPlan(
                                         cellFormula.R1?.Value,
                                         kind,
                                         firstRow,
                                         lastRow,
-                                        count)) {
-                                    formulas++;
-                                    formulaImpactRecorded = true;
-                                }
-                                if (ReferenceListChangesForPlan(
+                                        count)
+                                    || ReferenceListChangesForPlan(
                                         cellFormula.R2?.Value,
                                         kind,
                                         firstRow,
                                         lastRow,
-                                        count)) {
-                                    formulas++;
-                                    formulaImpactRecorded = true;
-                                }
+                                        count))) {
+                                formulaImpactRecorded = true;
                             }
-                            if (cellFormula.FormulaType?.Value == CellFormulaValues.Shared
-                                && !formulaImpactRecorded) {
-                                formulas++;
+                            if (cellFormula.FormulaType?.Value == CellFormulaValues.Shared) {
                                 formulaImpactRecorded = true;
                             }
                             if (!formulaImpactRecorded
                                 && cellFormula.CalculateCell?.Value != true) {
+                                formulaImpactRecorded = true;
+                            }
+                            if (formulaImpactRecorded) {
                                 formulas++;
                             }
                         }
@@ -341,7 +332,7 @@ namespace OfficeIMO.Excel {
 
                 if (rewriteUnqualified) {
                     worksheetRangeMetadata += CountWorksheetRangeMetadataPlanImpacts(
-                        worksheetPart.Worksheet,
+                        worksheetElements,
                         kind,
                         firstRow,
                         lastRow,
