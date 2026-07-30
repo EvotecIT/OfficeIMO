@@ -34,6 +34,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_InvalidRenderingProfileDoesNotCreatePdfOptions() {
+            var options = new WordPdfSaveOptions();
+
+            Assert.Throws<ArgumentNullException>(
+                () => options.UseRenderingProfile(null!));
+            Assert.Null(options.PdfOptions);
+
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => options.UseRenderingProfile(
+                    new OfficeRenderingProfile("invalid-mode"),
+                    (OfficeRenderingProfileApplyMode)999));
+            Assert.Null(options.PdfOptions);
+        }
+
+        [Fact]
         public void SaveAsPdf_Uses_DefaultPageSettings() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfDefaultSettings.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfDefaultSettings.pdf");

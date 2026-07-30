@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -447,6 +448,7 @@ namespace OfficeIMO.Excel {
             int count,
             MutationPlanScanBudget budget) {
             int comments = 0;
+            var impactedLegacyCommentCells = new HashSet<(int Row, int Column)>();
             WorksheetCommentsPart? legacyPart = _worksheetPart.WorksheetCommentsPart;
             if (legacyPart?.Comments != null) {
                 budget.Consume();
@@ -460,6 +462,63 @@ namespace OfficeIMO.Excel {
                             firstRow,
                             lastRow,
                             count)) {
+                        comments++;
+                        if (comment.Reference?.Value is string reference
+                            && TryParseReference(reference, out var bounds)
+                            && bounds.r1 == bounds.r2
+                            && bounds.c1 == bounds.c2) {
+                            impactedLegacyCommentCells.Add((bounds.r1, bounds.c1));
+                        }
+                    }
+                }
+            }
+
+            VmlDrawingPart? commentVmlPart = TryGetCommentVmlPart();
+            if (commentVmlPart != null) {
+                budget.Consume();
+                XDocument document = LoadOrCreateVmlDocument(commentVmlPart);
+                XNamespace vmlNamespace = "urn:schemas-microsoft-com:vml";
+                XNamespace excelNamespace =
+                    "urn:schemas-microsoft-com:office:excel";
+                XElement? root = document.Root;
+                if (root != null) {
+                    budget.Consume();
+                    foreach (XElement _ in root.Descendants()) {
+                        budget.Consume();
+                    }
+                }
+                foreach (XElement shape in
+                    root?.Elements(vmlNamespace + "shape")
+                        ?? Enumerable.Empty<XElement>()) {
+                    XElement? clientData =
+                        shape.Element(excelNamespace + "ClientData");
+                    if (clientData == null
+                        || !TryParseVmlCoordinate(
+                            clientData.Element(excelNamespace + "Row")?.Value,
+                            out int zeroBasedRow)
+                        || !TryParseVmlCoordinate(
+                            clientData.Element(excelNamespace + "Column")?.Value,
+                            out int zeroBasedColumn)) {
+                        continue;
+                    }
+
+                    XElement? anchor =
+                        clientData.Element(excelNamespace + "Anchor");
+                    if (anchor == null
+                        || !RemapVmlAnchorRows(
+                            new XElement(anchor),
+                            firstRow,
+                            kind == ExcelRowMutationKind.Insert ? count : -count,
+                            kind == ExcelRowMutationKind.Delete ? lastRow : (int?)null,
+                            columnDelta: 0,
+                            GetVmlAnchorPlacement(
+                                clientData,
+                                excelNamespace))) {
+                        continue;
+                    }
+
+                    if (impactedLegacyCommentCells.Add(
+                        (zeroBasedRow + 1, zeroBasedColumn + 1))) {
                         comments++;
                     }
                 }
