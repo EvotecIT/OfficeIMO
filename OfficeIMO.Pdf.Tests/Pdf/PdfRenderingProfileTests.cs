@@ -337,6 +337,45 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RangeScopedStyledFallbackUsesRequestedProfileFace() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A', 'B'),
+                OfficeFontStyle.Bold,
+                onlyA)
+            .AddFallbackFamily("Scoped");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped-styles", fonts));
+
+        PdfTextFallbackSegment regular = Assert.Single(
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(
+                    options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                        bold: false,
+                        italic: false))
+                .PlanText("A")
+                .Segments);
+        PdfTextFallbackSegment bold = Assert.Single(
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(
+                    options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                        bold: true,
+                        italic: false))
+                .PlanText("A")
+                .Segments);
+
+        Assert.Equal(fonts.Faces[0].ResourceFamilyName, regular.FontName);
+        Assert.Equal(fonts.Faces[1].ResourceFamilyName, bold.FontName);
+    }
+
+    [Fact]
     public void RangeScopedProfileFamilyIsReservedFromAdapterSystemFontDiscovery() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')
@@ -1563,6 +1602,43 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal(
             new[] { PdfStandardFont.Helvetica },
             options.EmbeddedFontFallbacks.FontSlots);
+    }
+
+    [Fact]
+    public void FullyShadowedOverlayDoesNotPromoteOrReserveFallbackFamilies() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFont('A');
+        var options = new PdfOptions();
+        for (int index = 0; index < PdfOptions.MaximumNamedFontFamilies; index++) {
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                $"Existing {index}",
+                data));
+        }
+        options.RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("Slot", data) },
+            new[] { PdfStandardFont.Helvetica }));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Existing 0", data)
+            .AddFallbackFamily("Existing 0");
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile(
+                "shadowed",
+                fonts,
+                OfficeManagedTextShapingProvider.Instance,
+                "pl"),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(
+            PdfOptions.MaximumNamedFontFamilies,
+            options.NamedFontFamilies.Count);
+        Assert.False(options.EmbeddedFontFallbacks!.UsesNamedFontFamilies);
+        Assert.Equal(
+            new[] { PdfStandardFont.Helvetica },
+            options.EmbeddedFontFallbacks.FontSlots);
+        Assert.Same(
+            OfficeManagedTextShapingProvider.Instance,
+            options.TextShapingProvider);
+        Assert.Equal("pl", options.Language);
     }
 
     [Fact]
