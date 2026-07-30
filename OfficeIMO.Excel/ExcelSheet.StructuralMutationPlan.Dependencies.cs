@@ -201,6 +201,33 @@ namespace OfficeIMO.Excel {
             return impacts;
         }
 
+        private bool TableMetadataChangesForPlan(
+            Table? table,
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count) {
+            if (table == null) {
+                return false;
+            }
+
+            bool Changes(string? reference) => ReferenceListChangesForPlan(
+                reference,
+                kind,
+                firstRow,
+                lastRow,
+                count);
+
+            return Changes(table.Reference?.Value)
+                || Changes(table.GetFirstChild<AutoFilter>()?.Reference?.Value)
+                || table.Descendants<SortState>().Any(sortState =>
+                    Changes(sortState.Reference?.Value)
+                    || sortState.Elements<SortCondition>()
+                        .Any(condition => Changes(condition.Reference?.Value))
+                    || sortState.Elements<X14.SortCondition>()
+                        .Any(condition => Changes(condition.Reference?.Value)));
+        }
+
         private static bool ChartFormulaCacheWillBeInvalidated(OpenXmlLeafTextElement formula) {
             OpenXmlElement? reference = formula.Parent;
             return reference != null
