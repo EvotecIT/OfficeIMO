@@ -87,24 +87,27 @@ namespace OfficeIMO.Drawing.Internal {
                     throw new InvalidDataException($"Stream length {remaining} exceeds the supported in-memory size.");
                 }
 
-                byte[] result = new byte[checked((int)remaining)];
-                int offset = 0;
-                while (offset < result.Length) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    int exactRead = source.Read(result, offset, result.Length - offset);
-                    if (exactRead == 0) {
-                        if (offset == 0) {
-                            return Array.Empty<byte>();
+                if (remaining >= BufferSize) {
+                    byte[] result = new byte[checked((int)remaining)];
+                    int offset = 0;
+                    while (offset < result.Length) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        int exactRead = source.Read(result, offset, result.Length - offset);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (exactRead == 0) {
+                            if (offset == 0) {
+                                return Array.Empty<byte>();
+                            }
+
+                            Array.Resize(ref result, offset);
+                            return result;
                         }
 
-                        Array.Resize(ref result, offset);
-                        return result;
+                        offset += exactRead;
                     }
 
-                    offset += exactRead;
+                    return result;
                 }
-
-                return result;
             }
 
             using var output = new MemoryStream();
@@ -114,6 +117,7 @@ namespace OfficeIMO.Drawing.Internal {
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
                 read = source.Read(buffer, 0, buffer.Length);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (read == 0) break;
                 total = checked(total + read);
                 EnsureWithinLimit(total, maxBytes);

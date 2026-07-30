@@ -22,6 +22,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             throw new IndexOutOfRangeException($"Column '{name}' was not found.");
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2063", Justification = "XLSB column types are returned as DbDataReader schema tokens; OfficeIMO does not activate or reflect over their public members.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2073", Justification = "XLSB column types are returned as DbDataReader schema tokens; OfficeIMO does not activate or reflect over their public members.")]
         [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
         public override Type GetFieldType(int ordinal) {
             ValidateOrdinal(ordinal);
