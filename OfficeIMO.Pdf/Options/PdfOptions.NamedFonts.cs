@@ -29,6 +29,8 @@ public sealed partial class PdfOptions {
     /// consume Helvetica, Times, or Courier compatibility slots and may be used together on one page.
     /// </summary>
     public PdfOptions RegisterNamedFontFamily(PdfEmbeddedFontFamily fontFamily) {
+        Guard.NotNull(fontFamily, nameof(fontFamily));
+        ReleaseRenderingProfileFontOwnership(fontFamily.FamilyName);
         if (!TryRegisterNamedFontFamily(fontFamily)) {
             throw new InvalidOperationException(
                 $"No more than {MaximumNamedFontFamilies} named font families can be registered.");
@@ -100,6 +102,7 @@ public sealed partial class PdfOptions {
         _namedFontProgramFailures?.Clear();
         _renderingProfileFamilyFallbacks?.Clear();
         _renderingProfileDeclaredFallbackCandidates = null;
+        _renderingProfileOwnedNamedFamilyNames?.Clear();
         return this;
     }
 

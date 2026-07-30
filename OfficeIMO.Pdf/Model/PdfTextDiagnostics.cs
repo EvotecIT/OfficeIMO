@@ -561,6 +561,7 @@ internal static class PdfTextDiagnostics {
             if (fontIndex < 0) {
                 FlushSegment(scalarStart);
                 diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fonts));
+                index = scalarStart + Math.Max(coveredLength, index - scalarStart);
                 continue;
             }
 
@@ -622,6 +623,7 @@ internal static class PdfTextDiagnostics {
                 previousFallbackFontIndex);
             if (fallbackFontIndex < 0) {
                 diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fallbackFonts, location, runIndex));
+                index = scalarStart + Math.Max(fallbackCoveredLength, index - scalarStart);
             } else {
                 previousFallbackFontIndex = fallbackFontIndex;
                 index = scalarStart + fallbackCoveredLength;
@@ -859,24 +861,44 @@ internal static class PdfTextDiagnostics {
             }
         }
 
+        string textElement = StringInfo.GetNextTextElement(text, textIndex);
+        int elementLength = textElement.Length;
         int endIndex = textIndex;
         int scalar = ReadScalar(text, ref endIndex);
         if (contextualFontIndex >= 0
             && contextualFontIndex < fonts.Count
+            && elementLength == endIndex - textIndex
             && char.IsWhiteSpace(text, textIndex)
             && fonts[contextualFontIndex].TryGetGlyphIdIgnoringUnicodeRanges(
                 scalar,
                 out int whitespaceGlyphId)
             && whitespaceGlyphId > 0) {
-            coveredLength = endIndex - textIndex;
+            coveredLength = elementLength;
             return contextualFontIndex;
         }
-        int fontIndex = FindCoveringFont(fonts, scalar);
-        if (fontIndex >= 0) {
-            coveredLength = endIndex - textIndex;
+        coveredLength = elementLength;
+        for (int fontIndex = 0; fontIndex < fonts.Count; fontIndex++) {
+            if (CoversTextElement(fonts[fontIndex], text, textIndex, elementLength)) {
+                return fontIndex;
+            }
         }
 
-        return fontIndex;
+        return -1;
+    }
+
+    private static bool CoversTextElement(
+        EmbeddedFontFallbackProgram font,
+        string text,
+        int textIndex,
+        int textLength) {
+        int end = textIndex + textLength;
+        for (int index = textIndex; index < end;) {
+            int scalar = ReadScalar(text, ref index);
+            if (!font.TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static PdfTextEncodingDiagnostic CreateDiagnostic(string text, int index, string source) {
