@@ -88,7 +88,8 @@ if ($Publish -and $gitDirty) {
     throw 'Publishable benchmark evidence requires a clean Git worktree so the recorded source commit identifies the measured code exactly.'
 }
 
-$measurements = foreach ($name in $selected) {
+$measurements = @(
+    foreach ($name in $selected) {
     $definition = $definitions[$name]
     $artifactsPath = Join-Path $OutputRoot "$platform-$name-$RunMode-$stamp"
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
@@ -113,7 +114,9 @@ $measurements = foreach ($name in $selected) {
     if ($LASTEXITCODE -ne 0) {
         throw "$name benchmark run failed with exit code $LASTEXITCODE."
     }
-    $provenanceCapture | Complete-BenchmarkProvenanceCapture
+    $provenanceCapture |
+        Complete-BenchmarkProvenanceCapture |
+        Out-Null
 
     $result = Import-BenchmarkResult -Path $artifactsPath -Suite $definition.Suite
     $successfulScenarios = @(
@@ -174,6 +177,12 @@ $measurements = foreach ($name in $selected) {
         ArtifactsPath = $artifactsPath
         NormalizedResult = $normalizedPath
     }
+    }
+)
+
+if (($measurements.Count -ne $selected.Count) -or
+    (@($measurements | Where-Object { $null -eq $_.Result }).Count -gt 0)) {
+    throw 'Benchmark measurement collection did not produce exactly one normalized result per selected workload.'
 }
 
 if ($catalogEligible) {
