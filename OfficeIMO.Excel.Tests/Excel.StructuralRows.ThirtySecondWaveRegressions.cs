@@ -1,4 +1,5 @@
 using System.IO;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
@@ -22,6 +23,41 @@ namespace OfficeIMO.Tests {
                 plan.Impacts,
                 impact => impact.Category == "formula-references");
             Assert.Equal(1, formulas.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanCountsFormulasRemovedWithMetadata() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            var validation = new DataValidation(new Formula1("B1")) {
+                SequenceOfReferences = new ListValue<StringValue> {
+                    InnerText = "A5"
+                }
+            };
+            var formatting = new ConditionalFormatting(
+                new ConditionalFormattingRule(new Formula("C1")) {
+                    Type = ConditionalFormatValues.Expression,
+                    Priority = 1
+                }) {
+                SequenceOfReferences = new ListValue<StringValue> {
+                    InnerText = "A5"
+                }
+            };
+            sheet.WorksheetPart.Worksheet.Append(
+                new DataValidations(validation) { Count = 1U },
+                formatting);
+
+            ExcelRowMutationPlan plan = sheet.PlanDeleteRows(5);
+
+            ExcelMutationImpact formulas = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "formula-references");
+            Assert.Equal(2, formulas.ItemCount);
+            plan.Apply();
+            Assert.Empty(
+                sheet.WorksheetPart.Worksheet.Descendants<DataValidation>());
+            Assert.Empty(
+                sheet.WorksheetPart.Worksheet.Descendants<ConditionalFormatting>());
         }
 
         [Fact]

@@ -223,6 +223,28 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void OverlayPreservesProfileOwnedFacesOmittedByLaterProfile() {
+        byte[] firstRegular = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] firstBold = ManagedTextShapingTestAssets.CreateFont('B');
+        byte[] secondRegular = ManagedTextShapingTestAssets.CreateFont('C');
+        var firstFonts = new OfficeFontFaceCollection()
+            .Add("Shared", firstRegular)
+            .Add("Shared", firstBold, OfficeFontStyle.Bold);
+        var secondFonts = new OfficeFontFaceCollection()
+            .Add("Shared", secondRegular);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("first", firstFonts));
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("second", secondFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        PdfEmbeddedFontFamily family = options.NamedFontFamilies["Shared"];
+        Assert.Equal(secondRegular, family.Regular);
+        Assert.Equal(firstBold, family.Bold);
+    }
+
+    [Fact]
     public void OverlayRefreshesInheritedFallbackWithoutRedeclaration() {
         byte[] firstData = ManagedTextShapingTestAssets.CreateFont('A');
         byte[] secondData = ManagedTextShapingTestAssets.CreateFont('B');
@@ -1422,6 +1444,26 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal("en", options.Language);
         Assert.True(options.HasNamedFontFamily("Existing"));
         Assert.Single(options.NamedFontFamilies);
+    }
+
+    [Fact]
+    public void InvalidRenderingProfileLanguageIsRejectedBeforeOptionsAreMutated() {
+        var originalProvider = new DecliningTextShapingProvider();
+        var replacementProvider = OfficeManagedTextShapingProvider.Instance;
+        var options = new PdfOptions {
+            TextShapingProvider = originalProvider,
+            Language = "en"
+        };
+        var profile = new OfficeRenderingProfile(
+            "invalid-language",
+            textShapingProvider: replacementProvider,
+            textShapingLanguage: "pl\u0001");
+
+        Assert.Throws<ArgumentException>(() =>
+            options.UseRenderingProfile(profile));
+
+        Assert.Same(originalProvider, options.TextShapingProvider);
+        Assert.Equal("en", options.Language);
     }
 
     [Fact]

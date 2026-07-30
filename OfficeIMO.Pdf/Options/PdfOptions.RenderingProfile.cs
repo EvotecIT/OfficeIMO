@@ -56,6 +56,7 @@ public sealed partial class PdfOptions {
                 ?? Enumerable.Empty<string>(),
             StringComparer.OrdinalIgnoreCase);
         ValidateRenderingProfileFamilyCapacity(families, existingFallbacks, mode);
+        ValidateOptionalLanguage(profile.TextShapingLanguage, nameof(profile));
 
         if (mode == OfficeRenderingProfileApplyMode.Replace || profile.TextShapingProvider != null) {
             TextShapingProvider = profile.TextShapingProvider;
@@ -78,7 +79,10 @@ public sealed partial class PdfOptions {
                     && preservedNamedFamilyNames.Contains(family.FamilyName)) {
                     continue;
                 }
-                RegisterRenderingProfileNamedFamily(family);
+                RegisterRenderingProfileNamedFamily(
+                    mode == OfficeRenderingProfileApplyMode.Overlay
+                        ? MergeRenderingProfileNamedFamily(family, profileFonts)
+                        : family);
             }
         }
 
@@ -350,6 +354,43 @@ public sealed partial class PdfOptions {
         (_renderingProfileOwnedNamedFamilyNames ??=
             new HashSet<string>(StringComparer.OrdinalIgnoreCase))
             .Add(family.FamilyName);
+    }
+
+    private PdfEmbeddedFontFamily MergeRenderingProfileNamedFamily(
+        PdfEmbeddedFontFamily supplied,
+        OfficeFontFaceCollection profileFonts) {
+        if (_renderingProfileOwnedNamedFamilyNames?.Contains(supplied.FamilyName) != true
+            || !TryGetNamedFontFamilyDirect(
+                supplied.FamilyName,
+                out PdfEmbeddedFontFamily? existing)
+            || existing == null) {
+            return supplied;
+        }
+
+        OfficeFontFace[] suppliedFaces = profileFonts.Faces
+            .Where(face => string.Equals(
+                face.ResourceFamilyName,
+                supplied.FamilyName,
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        OfficeFontFace? regular = SelectProfileFace(
+            suppliedFaces,
+            OfficeFontStyle.Regular);
+        OfficeFontFace? bold = SelectProfileFace(
+            suppliedFaces,
+            OfficeFontStyle.Bold);
+        OfficeFontFace? italic = SelectProfileFace(
+            suppliedFaces,
+            OfficeFontStyle.Italic);
+        OfficeFontFace? boldItalic = SelectProfileFace(
+            suppliedFaces,
+            OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+        return new PdfEmbeddedFontFamily(
+            supplied.FamilyName,
+            regular?.Data ?? existing.RegularSnapshot,
+            bold?.Data ?? existing.BoldSnapshot,
+            italic?.Data ?? existing.ItalicSnapshot,
+            boldItalic?.Data ?? existing.BoldItalicSnapshot);
     }
 
     private void ReleaseRenderingProfileFontOwnership(string familyName) {

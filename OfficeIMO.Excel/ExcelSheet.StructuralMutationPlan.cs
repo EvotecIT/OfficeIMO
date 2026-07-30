@@ -117,9 +117,14 @@ namespace OfficeIMO.Excel {
                 bool rewriteUnqualified = ReferenceEquals(worksheetPart, _worksheetPart)
                     || string.Equals(sheetElement.Name?.Value, Name, StringComparison.OrdinalIgnoreCase);
                 var worksheetElements = new List<OpenXmlElement>();
+                var anchoredMetadataFormulaTexts =
+                    new Dictionary<OpenXmlElement, List<string?>>();
                 foreach (OpenXmlElement element in worksheetPart.Worksheet.Descendants()) {
                     budget.Consume();
                     worksheetElements.Add(element);
+                    AddAnchoredMetadataFormulaText(
+                        anchoredMetadataFormulaTexts,
+                        element);
                 }
                 ExcelSheet inspectedSheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     ? this
@@ -290,6 +295,7 @@ namespace OfficeIMO.Excel {
                         int metadataFormulaImpacts =
                             CountAnchoredMetadataFormulaPlanImpacts(
                             element,
+                            anchoredMetadataFormulaTexts,
                             kind,
                             firstRow,
                             lastRow,
