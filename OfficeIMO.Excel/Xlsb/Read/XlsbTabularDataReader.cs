@@ -50,6 +50,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private bool _closed;
         private bool _hasPendingRow;
         private bool _hasCurrentRow;
+        private bool _reachedEndSheetData;
         private readonly bool _hasRows;
         private int _pendingRowIndex;
         private int _nextLogicalRowIndex;
@@ -208,7 +209,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private bool ReadSourceRow() {
             if (!_hasPendingRow) {
-                return false;
+                if (_reachedEndSheetData) {
+                    return false;
+                }
+
+                throw new InvalidDataException(
+                    "The XLSB worksheet ended before the required BrtEndSheetData record.");
             }
 
             Array.Clear(_kinds, 0, _kinds.Length);
@@ -222,15 +228,22 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int currentRowIndex = _pendingRowIndex;
             _hasPendingRow = false;
+            bool reachedRowBoundary = false;
             if (_cancellationToken.CanBeCanceled) {
                 while (_records.TryRead(out XlsbRecordSlice record)) {
                     CheckCancellation();
                     if (record.Type == BrtRowHdr) {
-                        TrySetPendingRow(record);
-                        break;
+                        if (TrySetPendingRow(record)) {
+                            reachedRowBoundary = true;
+                            break;
+                        }
+
+                        continue;
                     }
 
                     if (record.Type == BrtEndSheetData) {
+                        _reachedEndSheetData = true;
+                        reachedRowBoundary = true;
                         break;
                     }
 
@@ -241,11 +254,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             } else {
                 while (_records.TryRead(out XlsbRecordSlice record)) {
                     if (record.Type == BrtRowHdr) {
-                        TrySetPendingRow(record);
-                        break;
+                        if (TrySetPendingRow(record)) {
+                            reachedRowBoundary = true;
+                            break;
+                        }
+
+                        continue;
                     }
 
                     if (record.Type == BrtEndSheetData) {
+                        _reachedEndSheetData = true;
+                        reachedRowBoundary = true;
                         break;
                     }
 
@@ -253,6 +272,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         StoreCell(record);
                     }
                 }
+            }
+
+            if (!reachedRowBoundary) {
+                throw new InvalidDataException(
+                    "The XLSB worksheet ended before the required BrtEndSheetData record.");
             }
 
             _nextLogicalRowIndex = checked(currentRowIndex + 1);
@@ -310,8 +334,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         return;
                     }
                 } else if (inSheetData && record.Type == BrtEndSheetData) {
+                    _reachedEndSheetData = true;
                     return;
                 }
+            }
+
+            if (inSheetData) {
+                throw new InvalidDataException(
+                    "The XLSB worksheet ended before the required BrtEndSheetData record.");
             }
         }
 
@@ -321,11 +351,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             while (_records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtRowHdr) {
-                    TrySetPendingRow(record);
-                    break;
+                    if (TrySetPendingRow(record)) {
+                        break;
+                    }
+
+                    continue;
                 }
 
                 if (record.Type == BrtEndSheetData) {
+                    _reachedEndSheetData = true;
                     break;
                 }
 
@@ -335,6 +369,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                 DecodedCell cell = DecodeCell(record);
                 values[cell.Column] = CellToHeaderText(cell);
+            }
+
+            if (!_hasPendingRow && !_reachedEndSheetData) {
+                throw new InvalidDataException(
+                    "The XLSB worksheet ended before the required BrtEndSheetData record.");
             }
 
             return values;

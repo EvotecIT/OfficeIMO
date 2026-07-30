@@ -524,10 +524,7 @@ namespace OfficeIMO.Excel {
                 dateTimeValue = default;
                 objectValue = null;
                 ReadOnlySpan<byte> trimmed = TrimAsciiWhitespace(value);
-                bool dateStyle = (targetKind == XmlDataReaderTargetKind.None
-                        || targetKind == XmlDataReaderTargetKind.DateTime
-                        || targetKind == XmlDataReaderTargetKind.String)
-                    && IsDateStyle(_styleIndexes![ordinal]);
+                bool dateStyle = IsDateStyle(_styleIndexes![ordinal]);
                 if (targetKind == XmlDataReaderTargetKind.String) {
                     if (dateStyle && TryParseDouble(trimmed, out double serialDate)) {
                         objectValue = _owner.FromExcelSerialDate(serialDate).ToString(_options.Culture);
@@ -541,7 +538,12 @@ namespace OfficeIMO.Excel {
                 if (TryParseDouble(trimmed, out double number)) {
                     if (dateStyle) {
                         DateTime date = _owner.FromExcelSerialDate(number);
-                        if (targetKind == XmlDataReaderTargetKind.DateTime) {
+                        if (targetKind == XmlDataReaderTargetKind.Int32
+                            || targetKind == XmlDataReaderTargetKind.Double) {
+                            primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                            doubleValue = number;
+                            objectValue = date;
+                        } else if (targetKind == XmlDataReaderTargetKind.DateTime) {
                             primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
                             dateTimeValue = date;
                         } else {
@@ -599,7 +601,12 @@ namespace OfficeIMO.Excel {
                     || double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number);
                 if (parsedNumber && dateStyle) {
                     DateTime date = _owner.FromExcelSerialDate(number);
-                    if (targetKind == XmlDataReaderTargetKind.DateTime) {
+                    if (targetKind == XmlDataReaderTargetKind.Int32
+                        || targetKind == XmlDataReaderTargetKind.Double) {
+                        primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                        doubleValue = number;
+                        objectValue = date;
+                    } else if (targetKind == XmlDataReaderTargetKind.DateTime) {
                         primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
                         dateTimeValue = date;
                     } else {

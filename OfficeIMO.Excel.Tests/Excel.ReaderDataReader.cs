@@ -331,6 +331,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadUsedRangeAsDataReader_TypedNumericAccessPreservesCanonicalDates() {
+            var expectedDate = new DateTime(2026, 7, 29);
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "DateAsDouble");
+                sheet.CellValue(1, 2, "DateAsInt32");
+                sheet.CellValue(2, 1, expectedDate);
+                sheet.CellValue(2, 2, expectedDate);
+            }
+
+            using var reader = ExcelDocumentReader.Open(
+                memory.ToArray(),
+                new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+            using var dataReader = reader.GetSheet("Data").ReadUsedRangeAsDataReader();
+
+            Assert.True(dataReader.Read());
+            Assert.True(dataReader.GetDouble(0) > 0);
+            Assert.True(dataReader.GetInt32(1) > 0);
+            Assert.Equal(expectedDate, Assert.IsType<DateTime>(dataReader.GetValue(0)));
+            Assert.Equal(expectedDate, Assert.IsType<DateTime>(dataReader.GetValue(1)));
+            Assert.False(dataReader.Read());
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesUtf8FastPathCellKinds() {
             var expectedDate = new DateTime(2026, 7, 10, 12, 30, 0);
             using var memory = new MemoryStream();

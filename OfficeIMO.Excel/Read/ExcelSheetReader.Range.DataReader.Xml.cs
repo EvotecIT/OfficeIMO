@@ -760,12 +760,12 @@ namespace OfficeIMO.Excel {
                     return _currentRow![ordinal];
                 }
 
-                object value = _currentPrimitiveKinds[ordinal] switch {
+                object value = _currentValues[ordinal] ?? (_currentPrimitiveKinds[ordinal] switch {
                     XmlDataReaderPrimitiveKind.Double => _currentDoubleValues[ordinal],
                     XmlDataReaderPrimitiveKind.DateTime => _currentDateTimeValues[ordinal],
                     XmlDataReaderPrimitiveKind.Boolean => BoxBoolean(_currentBooleanValues[ordinal]),
                     _ => _currentRow![ordinal]!
-                };
+                });
                 _currentValues[ordinal] = value;
                 _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.None;
                 return value;

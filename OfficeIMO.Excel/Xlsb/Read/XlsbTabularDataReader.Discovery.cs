@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     recordBudget,
                     leaveOpen: true);
                 bool inSheetData = false;
+                bool reachedEndSheetData = false;
                 int recordsSinceCancellationCheck = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 while (scanner.TryRead(out XlsbRecordSlice record)) {
@@ -46,6 +47,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         continue;
                     }
                     if (record.Type == BrtEndSheetData) {
+                        reachedEndSheetData = true;
                         break;
                     }
                     if (record.Type == BrtRowHdr) {
@@ -70,6 +72,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                     firstColumn = Math.Min(firstColumn, column);
                     lastColumn = Math.Max(lastColumn, column);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                if (inSheetData && !reachedEndSheetData) {
+                    throw new InvalidDataException(
+                        "The XLSB worksheet ended before the required BrtEndSheetData record.");
                 }
             } finally {
                 worksheetPart.Position = startPosition;

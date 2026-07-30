@@ -107,14 +107,18 @@ namespace OfficeIMO.Drawing.Internal {
                 long maximumDirectoryBytes = checked((long)options.MaxDirectoryEntries * DirectoryEntrySize);
                 byte[] directoryBytes = ReadRegularStream(bytes, sectorSize, fat, directoryStart, long.MaxValue,
                     maximumDirectoryBytes, cancellationToken);
-                List<DirectoryEntry> entries = ReadDirectoryEntries(directoryBytes, majorVersion, options.MaxDirectoryEntries);
+                List<DirectoryEntry> entries = ReadDirectoryEntries(
+                    directoryBytes,
+                    majorVersion,
+                    options.MaxDirectoryEntries,
+                    cancellationToken);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
                 if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > int.MaxValue) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured bounds.");
                 }
 
-                IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries);
+                IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries, cancellationToken);
                 DirectoryEntry[] streamEntries = entries.Where(entry => entry.ObjectType == 2).ToArray();
                 if (streamEntries.Length > options.MaxStreamCount) {
                     throw new InvalidDataException($"Compound file stream count {streamEntries.Length} exceeds {options.MaxStreamCount}.");

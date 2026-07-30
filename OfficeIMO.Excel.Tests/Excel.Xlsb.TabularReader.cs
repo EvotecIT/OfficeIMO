@@ -278,6 +278,34 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_RejectsWorksheetWithoutEndSheetData() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 0, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            0,
+            CreateTabularRowHeaderPayload(0));
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            7,
+            CreateSharedStringCellPayload(0, 0U));
+        worksheetPart.Position = 0;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                worksheetPart,
+                new[] { "Value" },
+                hasHeaderRow: false,
+                new XlsbCellReadBudget(10)));
+
+        Assert.Contains("BrtEndSheetData", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void XlsbTabularReader_DiscoversHeaderlessColumnsBeyondDeclaredDimension() {
         using var worksheetPart = CreateHeaderlessTabularWorksheet(
             declaredLastColumn: 0,
@@ -412,7 +440,7 @@ public partial class Excel {
         new(
             worksheetPart,
             sharedStrings,
-            Array.Empty<bool>(),
+            new[] { false },
             uses1904DateSystem: false,
             hasHeaderRow,
             options ?? new ExcelReadOptions(),
