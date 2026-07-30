@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 using Xm = DocumentFormat.OpenXml.Office.Excel;
 
@@ -254,6 +255,36 @@ namespace OfficeIMO.Tests {
                 plan.Impacts,
                 impact => impact.Category == "comments");
             Assert.Equal(2, comments.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanTraversesReverseOrderedThreadedCommentChain() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            WorksheetThreadedCommentsPart threadedPart =
+                sheet.WorksheetPart.AddNewPart<WorksheetThreadedCommentsPart>();
+            var threadedComments = new Threaded.ThreadedComments();
+            const int commentCount = 128;
+            string[] ids = Enumerable.Range(0, commentCount)
+                .Select(index => $"{{00000000-0000-0000-0000-{index:D12}}}")
+                .ToArray();
+            for (int index = commentCount - 1; index >= 0; index--) {
+                var comment = new Threaded.ThreadedComment(
+                    new Threaded.ThreadedCommentText($"Comment {index}")) {
+                    Id = ids[index],
+                    Ref = index == 0 ? "A3" : null,
+                    ParentId = index == 0 ? null : ids[index - 1]
+                };
+                threadedComments.Append(comment);
+            }
+            threadedPart.ThreadedComments = threadedComments;
+
+            ExcelRowMutationPlan plan = sheet.PlanDeleteRows(3);
+
+            ExcelMutationImpact comments = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "comments");
+            Assert.Equal(commentCount, comments.ItemCount);
         }
 
         [Fact]

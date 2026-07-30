@@ -473,8 +473,20 @@ namespace OfficeIMO.Excel {
                     .Elements<Threaded.ThreadedComment>()
                     .ToList();
                 var removedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var childrenByParentId =
+                    new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
                 foreach (Threaded.ThreadedComment comment in allComments) {
                     budget.Consume();
+                    if (comment.Id?.Value is string commentId
+                        && comment.ParentId?.Value is string parentId) {
+                        if (!childrenByParentId.TryGetValue(
+                                parentId,
+                                out List<string>? children)) {
+                            children = new List<string>();
+                            childrenByParentId[parentId] = children;
+                        }
+                        children.Add(commentId);
+                    }
                     if (comment.Ref?.Value is string reference
                         && kind == ExcelRowMutationKind.Delete
                         && TryParseReference(reference, out var bounds)
@@ -489,18 +501,20 @@ namespace OfficeIMO.Excel {
                         removedIds.Add(id);
                     }
                 }
-                bool added;
-                do {
-                    added = false;
-                    foreach (Threaded.ThreadedComment comment in allComments) {
-                        if (comment.Id?.Value is string id
-                            && comment.ParentId?.Value is string parentId
-                            && removedIds.Contains(parentId)
-                            && removedIds.Add(id)) {
-                            added = true;
+                var pendingRemovedParents = new Queue<string>(removedIds);
+                while (pendingRemovedParents.Count > 0) {
+                    string removedParent = pendingRemovedParents.Dequeue();
+                    if (!childrenByParentId.TryGetValue(
+                            removedParent,
+                            out List<string>? children)) {
+                        continue;
+                    }
+                    foreach (string childId in children) {
+                        if (removedIds.Add(childId)) {
+                            pendingRemovedParents.Enqueue(childId);
                         }
                     }
-                } while (added);
+                }
 
                 foreach (Threaded.ThreadedComment comment in allComments) {
                     if ((comment.Id?.Value is string id && removedIds.Contains(id))

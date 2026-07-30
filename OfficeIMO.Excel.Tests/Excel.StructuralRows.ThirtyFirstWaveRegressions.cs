@@ -29,6 +29,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesPendingUnchangedFormulaRecalculation() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet summary = document.AddWorksheet("Summary");
+            for (int column = 1; column <= 128; column++) {
+                summary.CellValue(1, column, column);
+            }
+            summary.CellFormula(1, 129, "1+1");
+            Assert.True(document.HasPendingDirectCellValues);
+            ExcelSheet data = AddWorksheetWithoutMaterializingPending(
+                document,
+                "Data");
+
+            ExcelRowMutationPlan plan = data.PlanInsertRows(100);
+
+            ExcelMutationImpact formulas = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "formula-references");
+            Assert.Equal(1, formulas.ItemCount);
+
+            plan.Apply();
+
+            CellFormula formula = Assert.Single(
+                summary.WorksheetPart.Worksheet.Descendants<CellFormula>());
+            Assert.True(formula.CalculateCell?.Value);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanIgnoresUnchangedHyperlinksAndTables() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
