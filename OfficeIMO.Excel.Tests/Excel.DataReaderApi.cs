@@ -490,7 +490,7 @@ public partial class Excel {
 
         Assert.True(reader.Read());
         Assert.Equal("converted", reader.GetString(1));
-        Assert.Equal(typeof(string), reader.GetFieldType(1));
+        Assert.Equal(typeof(object), reader.GetFieldType(1));
     }
 
     [Fact]
