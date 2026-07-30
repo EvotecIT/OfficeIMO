@@ -33,9 +33,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 bool inSheetData = false;
                 bool sawBeginSheetData = false;
                 bool sawEndSheetData = false;
+                int firstRecordType = -1;
+                int lastRecordType = -1;
                 int recordsSinceCancellationCheck = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 while (scanner.TryRead(out XlsbRecordSlice record)) {
+                    if (firstRecordType < 0) {
+                        firstRecordType = record.Type;
+                    }
+                    lastRecordType = record.Type;
                     recordsSinceCancellationCheck++;
                     if ((recordsSinceCancellationCheck & 1023) == 0) {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -98,6 +104,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
+                if (firstRecordType != BrtBeginSheet
+                    || lastRecordType != BrtEndSheet) {
+                    throw new InvalidDataException(
+                        "The XLSB worksheet is missing its outer BrtBeginSheet/BrtEndSheet boundaries.");
+                }
                 if (!sawBeginSheetData) {
                     throw new InvalidDataException(
                         "The XLSB worksheet does not contain the required BrtBeginSheetData record.");

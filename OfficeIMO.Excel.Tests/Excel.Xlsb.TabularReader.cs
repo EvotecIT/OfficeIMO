@@ -51,6 +51,7 @@ public partial class Excel {
     [Fact]
     public void XlsbTabularReader_SkipsFormattingOnlyRowsBeforeHeaderData() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
@@ -69,6 +70,7 @@ public partial class Excel {
             7,
             CreateSharedStringCellPayload(0, 0U));
         XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         using var reader = CreateTabularReader(
@@ -84,6 +86,7 @@ public partial class Excel {
     [Fact]
     public void XlsbTabularReader_StopsBeforeFormattingOnlyRowsAfterLastPopulatedRow() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
@@ -102,6 +105,7 @@ public partial class Excel {
             0,
             CreateTabularRowHeaderPayload(100));
         XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         using var reader = CreateTabularReader(
@@ -124,7 +128,7 @@ public partial class Excel {
             new[] { "Value" },
             hasHeaderRow: false,
             new XlsbCellReadBudget(10),
-            recordBudget: new XlsbRecordReadBudget(5));
+            recordBudget: new XlsbRecordReadBudget(7));
 
         Assert.True(reader.Read());
         Assert.Equal("Value", reader.GetString(0));
@@ -207,6 +211,30 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_DateCellsRetainNumericTypedAccess() {
+        using var worksheetPart = CreateNumericTabularWorksheet((0, 2D));
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            Array.Empty<string>(),
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10),
+            new ExcelReadOptions {
+                TreatDatesUsingNumberFormat = true
+            },
+            dateStyle: true);
+
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetByte(0));
+        Assert.Equal(2, reader.GetInt16(0));
+        Assert.Equal(2, reader.GetInt32(0));
+        Assert.Equal(2L, reader.GetInt64(0));
+        Assert.Equal(2F, reader.GetFloat(0));
+        Assert.Equal(2D, reader.GetDouble(0));
+        Assert.Equal(2M, reader.GetDecimal(0));
+        Assert.IsType<DateTime>(reader.GetValue(0));
+    }
+
+    [Fact]
     public void XlsbTabularReader_WithoutInferenceKeepsObjectSchemaAcrossMixedRows() {
         using var worksheetPart = CreateMixedTabularWorksheet();
         using var reader = CreateTabularReader(
@@ -277,8 +305,53 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_RejectsWorksheetWithoutOuterBeginSheet() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 0, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
+        worksheetPart.Position = 0;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                worksheetPart,
+                Array.Empty<string>(),
+                hasHeaderRow: false,
+                new XlsbCellReadBudget(10)));
+
+        Assert.Contains("BrtBeginSheet", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XlsbTabularReader_RejectsWorksheetWithoutOuterEndSheet() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 0, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        worksheetPart.Position = 0;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                worksheetPart,
+                Array.Empty<string>(),
+                hasHeaderRow: false,
+                new XlsbCellReadBudget(10)));
+
+        Assert.Contains("BrtEndSheet", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void XlsbTabularReader_RejectsWorksheetWithoutEndSheetData() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
@@ -292,6 +365,7 @@ public partial class Excel {
             worksheetPart,
             7,
             CreateSharedStringCellPayload(0, 0U));
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -307,11 +381,13 @@ public partial class Excel {
     [Fact]
     public void XlsbTabularReader_RejectsWorksheetWithoutBeginSheetData() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
             CreateWorksheetDimensionPayload(0, 0, 0, 0));
         XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -327,6 +403,7 @@ public partial class Excel {
     [Fact]
     public void XlsbTabularReader_RejectsDuplicateBeginSheetData() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
@@ -334,6 +411,7 @@ public partial class Excel {
         XlsbRecordWriter.Write(worksheetPart, 145);
         XlsbRecordWriter.Write(worksheetPart, 145);
         XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -350,6 +428,7 @@ public partial class Excel {
     [Fact]
     public void XlsbTabularReader_RejectsUnmatchedEndSheetData() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
@@ -357,6 +436,7 @@ public partial class Excel {
         XlsbRecordWriter.Write(worksheetPart, 145);
         XlsbRecordWriter.Write(worksheetPart, 146);
         XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -373,6 +453,7 @@ public partial class Excel {
     [Fact]
     public void XlsbTabularReader_RejectsRowThatDoesNotFollowHeader() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
@@ -395,6 +476,7 @@ public partial class Excel {
             7,
             CreateSharedStringCellPayload(0, 1U));
         XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -411,6 +493,7 @@ public partial class Excel {
     [Fact]
     public void XlsbTabularReader_RejectsCellBeforeRowHeader() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
@@ -421,6 +504,7 @@ public partial class Excel {
             7,
             CreateSharedStringCellPayload(0, 0U));
         XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -436,6 +520,7 @@ public partial class Excel {
     [Fact]
     public void XlsbTabularReader_RejectsCellOutsideSheetData() {
         using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(worksheetPart, 129);
         XlsbRecordWriter.Write(
             worksheetPart,
             148,
@@ -446,6 +531,7 @@ public partial class Excel {
             CreateSharedStringCellPayload(0, 0U));
         XlsbRecordWriter.Write(worksheetPart, 145);
         XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -590,11 +676,12 @@ public partial class Excel {
         bool hasHeaderRow,
         XlsbCellReadBudget cellBudget,
         ExcelReadOptions? options = null,
-        XlsbRecordReadBudget? recordBudget = null) =>
+        XlsbRecordReadBudget? recordBudget = null,
+        bool dateStyle = false) =>
         new(
             worksheetPart,
             sharedStrings,
-            new[] { false },
+            new[] { dateStyle },
             uses1904DateSystem: false,
             hasHeaderRow,
             options ?? new ExcelReadOptions(),
@@ -606,6 +693,7 @@ public partial class Excel {
     private static MemoryStream CreateTabularWorksheet(params (int RowIndex, uint SharedStringIndex)[] rows) {
         var stream = new MemoryStream();
         int lastRow = rows.Length == 0 ? 0 : rows.Max(static row => row.RowIndex);
+        XlsbRecordWriter.Write(stream, 129);
         XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, lastRow, 0, 0));
         XlsbRecordWriter.Write(stream, 145);
         foreach ((int rowIndex, uint sharedStringIndex) in rows) {
@@ -614,6 +702,7 @@ public partial class Excel {
         }
 
         XlsbRecordWriter.Write(stream, 146);
+        XlsbRecordWriter.Write(stream, 130);
         stream.Position = 0;
         return stream;
     }
@@ -621,6 +710,7 @@ public partial class Excel {
     private static MemoryStream CreateNumericTabularWorksheet(params (int RowIndex, double Value)[] rows) {
         var stream = new MemoryStream();
         int lastRow = rows.Length == 0 ? 0 : rows.Max(static row => row.RowIndex);
+        XlsbRecordWriter.Write(stream, 129);
         XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, lastRow, 0, 0));
         XlsbRecordWriter.Write(stream, 145);
         foreach ((int rowIndex, double value) in rows) {
@@ -629,12 +719,14 @@ public partial class Excel {
         }
 
         XlsbRecordWriter.Write(stream, 146);
+        XlsbRecordWriter.Write(stream, 130);
         stream.Position = 0;
         return stream;
     }
 
     private static MemoryStream CreateMixedTabularWorksheet() {
         var stream = new MemoryStream();
+        XlsbRecordWriter.Write(stream, 129);
         XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, 1, 0, 0));
         XlsbRecordWriter.Write(stream, 145);
         XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(0));
@@ -642,6 +734,7 @@ public partial class Excel {
         XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(1));
         XlsbRecordWriter.Write(stream, 7, CreateSharedStringCellPayload(0, 0U));
         XlsbRecordWriter.Write(stream, 146);
+        XlsbRecordWriter.Write(stream, 130);
         stream.Position = 0;
         return stream;
     }
@@ -651,6 +744,7 @@ public partial class Excel {
         params (int RowIndex, int Column, uint SharedStringIndex)[] cells) {
         var stream = new MemoryStream();
         int lastRow = cells.Length == 0 ? 0 : cells.Max(static cell => cell.RowIndex);
+        XlsbRecordWriter.Write(stream, 129);
         XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, lastRow, 0, declaredLastColumn));
         XlsbRecordWriter.Write(stream, 145);
         foreach (IGrouping<int, (int RowIndex, int Column, uint SharedStringIndex)> row in
@@ -662,17 +756,20 @@ public partial class Excel {
         }
 
         XlsbRecordWriter.Write(stream, 146);
+        XlsbRecordWriter.Write(stream, 130);
         stream.Position = 0;
         return stream;
     }
 
     private static MemoryStream CreateWideNumericTabularWorksheet(int fieldCount) {
         var stream = new MemoryStream();
+        XlsbRecordWriter.Write(stream, 129);
         XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, 0, 0, fieldCount - 1));
         XlsbRecordWriter.Write(stream, 145);
         XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(0));
         XlsbRecordWriter.Write(stream, 5, CreateRealCellPayload(0, 1.25));
         XlsbRecordWriter.Write(stream, 146);
+        XlsbRecordWriter.Write(stream, 130);
         stream.Position = 0;
         return stream;
     }

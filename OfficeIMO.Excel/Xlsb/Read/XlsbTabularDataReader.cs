@@ -26,6 +26,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private const int BrtFmlaBool = 10;
         private const int BrtFmlaError = 11;
         private const int BrtCellRString = 62;
+        private const int BrtBeginSheet = 129;
+        private const int BrtEndSheet = 130;
         private const int BrtBeginSheetData = 145;
         private const int BrtEndSheetData = 146;
         private const int BrtWsDim = 148;
