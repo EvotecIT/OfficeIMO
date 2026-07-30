@@ -83,5 +83,26 @@ namespace OfficeIMO.Tests {
                 impact => impact.Category == "sparklines");
             Assert.Equal(1, sparklines.ItemCount);
         }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanClassifiesTargetSheetSparklineGroupDateAxisFormula() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(2, 1, 2);
+            sheet.CellValue(5, 1, 5);
+            sheet.CellValue(6, 1, 6);
+            sheet.AddSparklines("A1:A2", "B1");
+            X14.SparklineGroup group = Assert.Single(
+                sheet.WorksheetPart.Worksheet.Descendants<X14.SparklineGroup>());
+            group.Formula = new Xm.Formula("A5:A6");
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
+
+            ExcelMutationImpact sparklines = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "sparklines");
+            Assert.Equal(1, sparklines.ItemCount);
+        }
     }
 }
