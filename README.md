@@ -546,7 +546,7 @@ _Dependency footprint:_ Excel, Excel OpenDocument, PDF, and native OpenDocument 
 - [x] Visual-page reconstruction by default, with explicit editable-table mode
 - [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
 
-_Dependency footprint:_ PowerPoint, PowerPoint OpenDocument, PDF, and native OpenDocument only; no Word or Excel stack. The 4.0 package graph has no all-formats umbrella or bridge-specific Core package.
+_Dependency footprint:_ PowerPoint, PowerPoint OpenDocument, PDF, and native OpenDocument only; no Word or Excel stack. The 3.1 package graph has no all-formats umbrella or bridge-specific Core package.
 
 #### [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 
