@@ -269,5 +269,33 @@ namespace OfficeIMO.Tests {
                 exactBudget.Impacts,
                 impact => impact.Category == "worksheet-range-metadata");
         }
+
+        [Fact]
+        public void Test_StructuralRows_UnchangedScenarioCountIsNotNormalized() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            var scenario = new Scenario(
+                new InputCells { CellReference = "A1", Val = "10" }) {
+                Name = "Stable"
+            };
+            sheet.WorksheetPart.Worksheet.Append(
+                new Scenarios(scenario) {
+                    SequenceOfReferences = new ListValue<StringValue> {
+                        InnerText = "A1"
+                    }
+                });
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
+
+            Assert.DoesNotContain(
+                plan.Impacts,
+                impact => impact.Category == "worksheet-range-metadata");
+            plan.Apply();
+            Assert.Null(scenario.Count);
+            Assert.Equal(
+                "A1",
+                Assert.Single(scenario.Elements<InputCells>())
+                    .CellReference!.Value);
+        }
     }
 }

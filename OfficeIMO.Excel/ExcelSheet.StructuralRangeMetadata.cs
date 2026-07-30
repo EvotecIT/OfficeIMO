@@ -125,6 +125,7 @@ namespace OfficeIMO.Excel {
             var removedScenarioIndices = new HashSet<int>();
             for (int scenarioIndex = 0; scenarioIndex < originalScenarios.Count; scenarioIndex++) {
                 Scenario scenario = originalScenarios[scenarioIndex];
+                bool inputsChanged = false;
                 foreach (InputCells input in scenario.Elements<InputCells>().ToList()) {
                     if (input.CellReference?.Value is not string reference
                         || !TryRemapShiftedReferenceListRows(
@@ -136,6 +137,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
+                    inputsChanged = true;
                     if (remappedInputs.Count == 0) {
                         input.Remove();
                     } else {
@@ -147,7 +149,7 @@ namespace OfficeIMO.Excel {
                 if (inputCount == 0U) {
                     scenario.Remove();
                     removedScenarioIndices.Add(scenarioIndex);
-                } else {
+                } else if (inputsChanged) {
                     scenario.Count = inputCount;
                 }
             }
