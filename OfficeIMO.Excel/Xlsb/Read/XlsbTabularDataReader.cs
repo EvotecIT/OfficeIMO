@@ -36,7 +36,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly bool _uses1904DateSystem;
         private readonly ExcelReadOptions _options;
         private readonly XlsbImportOptions _limits;
-        private readonly XlsbCellReadBudget _cellBudget;
         private readonly string[] _headers;
         private readonly Dictionary<string, int> _ordinals;
         private readonly XlsbTabularValueKind[] _kinds;
@@ -72,7 +71,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _uses1904DateSystem = uses1904DateSystem;
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _limits = limits ?? throw new ArgumentNullException(nameof(limits));
-            _cellBudget = cellBudget ?? throw new ArgumentNullException(nameof(cellBudget));
+            if (cellBudget == null) {
+                throw new ArgumentNullException(nameof(cellBudget));
+            }
             _cancellationToken = cancellationToken;
             if (worksheetPart == null) {
                 throw new ArgumentNullException(nameof(worksheetPart));
@@ -87,6 +88,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     worksheetPart,
                     limits,
                     recordBudget,
+                    cellBudget,
                     cancellationToken,
                     out actualFirstColumn,
                     out actualLastColumn,
@@ -413,7 +415,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private DecodedCell DecodeCell(XlsbRecordSlice record) {
             EnsureFormulaModeSupported(record.Type);
-            _cellBudget.Consume();
             var cursor = record.CreateCursor();
             int column = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;

@@ -73,6 +73,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanRejectsUnloadedLargeSheetBeforeMaterializingItsDom() {
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.MutationBudget.{Guid.NewGuid():N}.xlsx");
+            try {
+                using (var source = ExcelDocument.Create(path)) {
+                    ExcelSheet target = source.AddWorksheet("Target");
+                    target.CellValue(1, 1, "Value");
+                    ExcelSheet unrelated = source.AddWorksheet("Unrelated");
+                    for (int row = 1; row <= 100; row++) {
+                        unrelated.CellValue(row, 1, row);
+                    }
+                    source.Save();
+                }
+
+                using var document = ExcelDocument.Load(path);
+                Sheet unrelatedSheet = document.WorkbookRoot.Sheets!
+                    .Elements<Sheet>()
+                    .Single(sheet => sheet.Name?.Value == "Unrelated");
+                WorksheetPart unrelatedPart = (WorksheetPart)document.WorkbookPartRoot
+                    .GetPartById(unrelatedSheet.Id!);
+                Assert.False(unrelatedPart.IsRootElementLoaded);
+
+                InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                    document["Target"].PlanInsertRows(
+                        1,
+                        options: new ExcelMutationPlanOptions { MaximumScannedElements = 50 }));
+
+                Assert.Contains("exceeded its limit", exception.Message, StringComparison.Ordinal);
+                Assert.False(unrelatedPart.IsRootElementLoaded);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanRejectsDeferredWritesWithoutMaterializing() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");

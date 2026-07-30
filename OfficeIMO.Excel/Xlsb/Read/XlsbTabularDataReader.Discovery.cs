@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Stream worksheetPart,
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
+            XlsbCellReadBudget cellBudget,
             CancellationToken cancellationToken,
             out int firstColumn,
             out int lastColumn,
@@ -58,6 +59,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         continue;
                     }
 
+                    cellBudget.Consume();
                     if (firstDataRow < 0 && currentRow >= 0) {
                         firstDataRow = currentRow;
                     }

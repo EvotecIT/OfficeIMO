@@ -88,26 +88,28 @@ namespace OfficeIMO.Excel {
                 options);
         }
 
-        private static void ValidateLegacyFormulaProjection(
+        internal static void ValidateLegacyFormulaProjection(
             LegacyXlsWorkbook workbook,
             ExcelReadOptions options) {
             if (options.UseCachedFormulaResult) {
                 return;
             }
 
+            options.CancellationToken.ThrowIfCancellationRequested();
             foreach (LegacyXlsWorksheet worksheet in workbook.Worksheets) {
-                LegacyXlsCell? unprojectable = worksheet.Cells.FirstOrDefault(cell =>
-                    cell.IsFormula &&
-                    (string.IsNullOrWhiteSpace(cell.FormulaText) ||
-                     !LegacyXlsWorkbookProjector.ShouldProjectFormula(workbook, cell.FormulaText!)));
-                if (unprojectable == null) {
-                    continue;
-                }
+                foreach (LegacyXlsCell cell in worksheet.Cells) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                    if (!cell.IsFormula
+                        || (!string.IsNullOrWhiteSpace(cell.FormulaText)
+                            && LegacyXlsWorkbookProjector.ShouldProjectFormula(workbook, cell.FormulaText!))) {
+                        continue;
+                    }
 
-                string reference = A1.CellReference(unprojectable.Row, unprojectable.Column);
-                throw new NotSupportedException(
-                    $"Legacy XLS formula text cannot be projected for '{worksheet.Name}'!{reference}. " +
-                    "UseCachedFormulaResult=false cannot return the cached value as ordinary data.");
+                    string reference = A1.CellReference(cell.Row, cell.Column);
+                    throw new NotSupportedException(
+                        $"Legacy XLS formula text cannot be projected for '{worksheet.Name}'!{reference}. " +
+                        "UseCachedFormulaResult=false cannot return the cached value as ordinary data.");
+                }
             }
         }
 

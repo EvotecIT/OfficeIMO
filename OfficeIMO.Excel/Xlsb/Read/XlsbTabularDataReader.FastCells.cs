@@ -19,7 +19,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     $"The XLSB row contains column {column} outside the schema established by its header or worksheet dimension.");
             }
 
-            _cellBudget.Consume();
             switch (record.Type) {
                 case BrtCellBlank:
                     _kinds[ordinal] = XlsbTabularValueKind.Empty;

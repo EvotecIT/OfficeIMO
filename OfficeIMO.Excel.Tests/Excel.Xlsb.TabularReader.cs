@@ -145,13 +145,12 @@ public partial class Excel {
         }
 
         using var secondWorksheet = CreateTabularWorksheet((0, 0U));
-        using var secondReader = CreateTabularReader(
-            secondWorksheet,
-            new[] { "Second" },
-            hasHeaderRow: false,
-            cellBudget);
-
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => secondReader.Read());
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                secondWorksheet,
+                new[] { "Second" },
+                hasHeaderRow: false,
+                cellBudget));
         Assert.Contains("workbook", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("populated cells", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

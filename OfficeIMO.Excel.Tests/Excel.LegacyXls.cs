@@ -8,6 +8,7 @@ using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -1889,6 +1890,25 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(legacy.Diagnostics, item => item.Code == "XLS-COMPOUND-SIGNATURE");
             Assert.Empty(legacy.Worksheets);
+        }
+
+        [Fact]
+        public void LegacyFormulaProjectionValidationObservesCancellationAfterParsing() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4FormulaWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
+                new MemoryStream(compound));
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() => {
+                ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
+                    result.Workbook,
+                    new ExcelReadOptions {
+                        UseCachedFormulaResult = false,
+                        CancellationToken = cancellation.Token
+                    });
+            });
         }
 
         private static partial class LegacyXlsTestWorkbookBuilder {
