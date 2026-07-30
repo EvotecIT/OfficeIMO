@@ -172,17 +172,13 @@ namespace OfficeIMO.Excel {
         }
 
         private int CountQueryTableSortPlanImpacts(
-            QueryTable? queryTable,
+            IReadOnlyList<SortState> sortStates,
             ExcelRowMutationKind kind,
             int firstRow,
             int lastRow,
             int count) {
-            if (queryTable == null) {
-                return 0;
-            }
-
             int impacts = 0;
-            foreach (SortState sortState in queryTable.Descendants<SortState>()) {
+            foreach (SortState sortState in sortStates) {
                 if (ReferenceListChangesForPlan(
                         sortState.Reference?.Value,
                         kind,

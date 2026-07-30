@@ -1427,6 +1427,18 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void EqualDefaultFontSizeAssignmentAfterFontlessProfileIsExplicit() {
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
+
+        Assert.False(options.HasExplicitPdfFontConfiguration);
+        options.PdfOptions!.DefaultFontSize = options.PdfOptions.DefaultFontSize;
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
     public void WordFontProfileRemainsExplicitFontConfiguration() {
         var profile = new OfficeRenderingProfile(
             "word-font-profile",

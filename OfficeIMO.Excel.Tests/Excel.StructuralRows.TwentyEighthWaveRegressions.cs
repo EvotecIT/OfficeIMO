@@ -76,6 +76,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_QueryTableSortInspectionUsesChargedSnapshot() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            AddQueryTableRefreshSortState(document, sheet, "A5:C10");
+
+            ExcelRowMutationPlan baseline = sheet.PlanInsertRows(5);
+            ExcelRowMutationPlan bounded = sheet.PlanInsertRows(
+                5,
+                options: new ExcelMutationPlanOptions {
+                    MaximumScannedElements = baseline.ScannedElements
+                });
+
+            Assert.Equal(baseline.ScannedElements, bounded.ScannedElements);
+            Assert.Contains(
+                bounded.Impacts,
+                impact => impact.Category == "query-table-sorts"
+                    && impact.ItemCount == 1);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanIncludesChartCacheInvalidation() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddWorksheet("Data");

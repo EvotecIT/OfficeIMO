@@ -437,12 +437,16 @@ namespace OfficeIMO.Excel {
             var queryConnectionIds = new HashSet<uint>();
             foreach (QueryTablePart queryPart in _worksheetPart.QueryTableParts) {
                 budget.Consume();
-                foreach (OpenXmlElement _ in queryPart.QueryTable?.Descendants()
+                var querySortStates = new List<SortState>();
+                foreach (OpenXmlElement element in queryPart.QueryTable?.Descendants()
                     ?? Enumerable.Empty<OpenXmlElement>()) {
                     budget.Consume();
+                    if (element is SortState sortState) {
+                        querySortStates.Add(sortState);
+                    }
                 }
                 queryTableSorts += CountQueryTableSortPlanImpacts(
-                    queryPart.QueryTable,
+                    querySortStates,
                     kind,
                     firstRow,
                     lastRow,
