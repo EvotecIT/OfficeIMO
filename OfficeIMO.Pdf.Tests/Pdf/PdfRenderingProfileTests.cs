@@ -1558,6 +1558,42 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void ReplacingPromotedCompatibilityFallbackReusesItsNamedAlias() {
+        byte[] profileData = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] firstFallbackData = ManagedTextShapingTestAssets.CreateFont('B');
+        byte[] secondFallbackData = ManagedTextShapingTestAssets.CreateFont('C');
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", profileData);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile(
+                "shared-profile",
+                profileFonts));
+        string? promotedFamilyName = null;
+
+        for (int index = 0;
+             index < PdfOptions.MaximumNamedFontFamilies + 2;
+             index++) {
+            byte[] data = index % 2 == 0
+                ? firstFallbackData
+                : secondFallbackData;
+            options.RegisterEmbeddedFontFallbacks(
+                new PdfEmbeddedFontFallbackSet(
+                    new[] {
+                        new PdfEmbeddedFontFallbackCandidate("Shared", data)
+                    },
+                    new[] { PdfStandardFont.Helvetica }));
+
+            PdfEmbeddedFontFallbackCandidate active = Assert.Single(
+                options.EmbeddedFontFallbacks!.Candidates);
+            promotedFamilyName ??= active.FontName;
+            Assert.Equal(promotedFamilyName, active.FontName);
+            Assert.Equal(data, options.NamedFontFamilies[active.FontName].Regular);
+        }
+
+        Assert.Equal(2, options.NamedFontFamilies.Count);
+    }
+
+    [Fact]
     public void FontConfigurationStateIncludesFallbackUnicodeRanges() {
         byte[] data = ManagedTextShapingTestAssets.CreateFont('A', 'B');
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
