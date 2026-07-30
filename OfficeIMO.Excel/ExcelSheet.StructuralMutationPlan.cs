@@ -152,15 +152,16 @@ namespace OfficeIMO.Excel {
                         }
 
                         long coordinate = ((long)effectiveCoordinate.Row << 32) | (uint)effectiveCoordinate.Column;
+                        object? pendingValue = null;
                         bool pendingValueIsAuthoritative = isPendingOwner
-                            && pendingOwnerCells.ContainsKey(coordinate);
+                            && pendingOwnerCells.TryGetValue(coordinate, out pendingValue);
                         if (rewriteUnqualified
                             && targetCellCoordinates.Add(coordinate)
                             && effectiveCoordinate.Row >= firstRow) {
                             cells++;
                         }
 
-                        if (!pendingValueIsAuthoritative
+                        if ((!pendingValueIsAuthoritative || pendingValue is not DirectFormulaCellValue)
                             && cell.CellFormula is CellFormula cellFormula) {
                             bool formulaImpactRecorded =
                                 rewriteUnqualified

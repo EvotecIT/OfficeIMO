@@ -2217,7 +2217,7 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void WordCallerFontMutationIsClearedByShapingOnlyProfileReplacement() {
+    public void WordCallerFontMutationSurvivesShapingOnlyProfileReplacement() {
         var fontProfile = new OfficeRenderingProfile(
             "word-font-profile",
             new OfficeFontFaceCollection()
@@ -2230,9 +2230,25 @@ public sealed class PdfRenderingProfileTests {
             new OfficeRenderingProfile("shaping-only"),
             OfficeRenderingProfileApplyMode.Replace);
 
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-        Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
         Assert.Empty(options.PdfOptions!.NamedFontFamilies);
+    }
+
+    [Fact]
+    public void RepeatedWordFontlessReplacementPreservesCallerAssignment() {
+        var fontless = new OfficeRenderingProfile("shaping-only");
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(fontless);
+        options.PdfOptions!.DefaultFontSize = 13;
+
+        options.UseRenderingProfile(
+            fontless,
+            OfficeRenderingProfileApplyMode.Replace);
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
     }
 
     [Fact]
