@@ -233,6 +233,49 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_XlsxRejectsUnexpandedSharedFormulaFollowerWithoutCachedValue() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.SharedFormulaMissingCache.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Shared");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellFormula(2, 1, "B2+1");
+                sheet.CellFormula(3, 1, "B3+1");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                Worksheet worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                Cell master = worksheet.Descendants<Cell>()
+                    .Single(cell => cell.CellReference?.Value == "A2");
+                Cell follower = worksheet.Descendants<Cell>()
+                    .Single(cell => cell.CellReference?.Value == "A3");
+                master.CellFormula = new CellFormula("B2+1") {
+                    FormulaType = CellFormulaValues.Shared,
+                    SharedIndex = 8U,
+                    Reference = "A2:A3"
+                };
+                follower.CellFormula = new CellFormula {
+                    FormulaType = CellFormulaValues.Shared,
+                    SharedIndex = 8U
+                };
+                follower.CellValue = null;
+                worksheet.Save();
+            }
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("shared-formula follower", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("A3", exception.Message, StringComparison.Ordinal);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_MissingWorksheetReleasesTheFile() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.MissingSheet.{Guid.NewGuid():N}.xlsx");
         try {

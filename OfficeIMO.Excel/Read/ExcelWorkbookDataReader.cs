@@ -144,11 +144,9 @@ namespace OfficeIMO.Excel {
                 : new CompositeOwner(owner, additionalOwner);
             try {
                 IReadOnlyList<string> sheets = SelectSheets(owner.GetSheetNames(), options.SheetName);
-                if (!options.UseCachedFormulaResult) {
-                    foreach (string sheetName in sheets) {
-                        owner.GetSheet(sheetName)
-                            .ValidateFormulaTextDataReaderProjection(options.CancellationToken);
-                    }
+                foreach (string sheetName in sheets) {
+                    owner.GetSheet(sheetName)
+                        .ValidateFormulaTextDataReaderProjection(options.CancellationToken);
                 }
                 return new ExcelWorkbookDataReader(
                     sheets,
