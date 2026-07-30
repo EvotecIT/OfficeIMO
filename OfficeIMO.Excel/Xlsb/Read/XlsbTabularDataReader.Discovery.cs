@@ -63,6 +63,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         continue;
                     }
                     if (!inSheetData) {
+                        if (IsCellRecord(record.Type)) {
+                            throw new InvalidDataException(
+                                $"The XLSB cell record at offset {record.RecordOffset} appears outside BrtBeginSheetData/BrtEndSheetData.");
+                        }
+
                         continue;
                     }
                     if (record.Type == BrtRowHdr) {
@@ -72,14 +77,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     if (!IsCellRecord(record.Type)) {
                         continue;
                     }
+                    if (currentRow < 0) {
+                        throw new InvalidDataException(
+                            $"The XLSB cell record at offset {record.RecordOffset} appears before a row header.");
+                    }
 
                     cellBudget.Consume();
-                    if (firstDataRow < 0 && currentRow >= 0) {
+                    if (firstDataRow < 0) {
                         firstDataRow = currentRow;
                     }
-                    if (currentRow >= 0) {
-                        lastDataRow = currentRow;
-                    }
+                    lastDataRow = currentRow;
                     int column = record.CreateCursor().ReadInt32();
                     if (column < 0 || column >= A1.MaxColumns) {
                         throw new InvalidDataException(
