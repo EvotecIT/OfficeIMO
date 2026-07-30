@@ -38,6 +38,7 @@ namespace OfficeIMO.Excel {
             return ReadRangeAsDataReader(
                 usedRange,
                 headersInFirstRow: headersInFirstRow,
+                chunkRows: Math.Min(1024, _opt.MaxDataReaderChunkRows),
                 schemaSampleRows: schemaSampleRows,
                 ct: ct);
         }

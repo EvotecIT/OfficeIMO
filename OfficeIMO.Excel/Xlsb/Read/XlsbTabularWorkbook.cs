@@ -523,11 +523,21 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships,
             IReadOnlyList<XlsbBundleSheet> bundleSheets) {
             var sheets = new List<XlsbTabularSheet>(bundleSheets.Count);
+            var worksheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (XlsbBundleSheet bundle in bundleSheets) {
-                if (!relationships.TryGetValue(bundle.RelationshipId, out XlsbPackageRelationship? relationship)
-                    || relationship.IsExternal
+                if (!relationships.TryGetValue(
+                        bundle.RelationshipId,
+                        out XlsbPackageRelationship? relationship)) {
+                    throw new InvalidDataException(
+                        $"The XLSB worksheet '{bundle.Name}' references missing relationship '{bundle.RelationshipId}'.");
+                }
+                if (relationship.IsExternal
                     || !relationship.Type.EndsWith(WorksheetRelationshipSuffix, StringComparison.Ordinal)) {
                     continue;
+                }
+                if (!worksheetNames.Add(bundle.Name)) {
+                    throw new InvalidDataException(
+                        $"The XLSB workbook contains duplicate worksheet name '{bundle.Name}'.");
                 }
 
                 string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);

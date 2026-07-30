@@ -833,6 +833,34 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_XlsxInfersSchemaWithinSmallChunkLimit() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.SmallChunkSchema.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, 42);
+                document.Save();
+            }
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    InferSchema = true,
+                    MaxDataReaderChunkRows = 1
+                });
+
+            Assert.Equal(typeof(double), reader.GetFieldType(0));
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_XlsbRejectsMissingCellStyleInFastPath() {
         string path = Path.Combine(
             Path.GetTempPath(),

@@ -44,6 +44,42 @@ public partial class Excel {
         }
     }
 
+    [Fact]
+    public void OpenDataReader_XlsbRejectsMissingWorksheetRelationship() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.MissingWorksheetRelationship.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            DuplicateFirstXlsbBundleSheet(path, mutateRelationshipId: true);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("missing relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbRejectsCaseInsensitiveDuplicateWorksheetNames() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.DuplicateWorksheetName.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            DuplicateFirstXlsbBundleSheet(path, changeWorksheetNameCase: true);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("duplicate worksheet name", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static void RemoveFinalXlsbRecord(
         string path,
         string entryName,
@@ -102,6 +138,102 @@ public partial class Excel {
         ReplaceZipEntry(path, entryName, mutated);
     }
 
+    private static void DuplicateFirstXlsbBundleSheet(
+        string path,
+        bool mutateRelationshipId = false,
+        bool changeWorksheetNameCase = false) {
+        byte[] bytes = ReadZipEntry(path, "xl/workbook.bin");
+        var reader = new XlsbRecordSliceReader(
+            bytes,
+            int.MaxValue,
+            new XlsbRecordReadBudget(int.MaxValue));
+        XlsbRecordSlice bundle = default;
+        XlsbRecordSlice endBook = default;
+        bool foundBundle = false;
+        bool foundEndBook = false;
+        while (reader.TryRead(out XlsbRecordSlice record)) {
+            if (!foundBundle && record.Type == 156) {
+                bundle = record;
+                foundBundle = true;
+            }
+            if (record.Type == 132) {
+                endBook = record;
+                foundEndBook = true;
+            }
+        }
+
+        Assert.True(foundBundle);
+        Assert.True(foundEndBook);
+        int bundleLength = bundle.PayloadOffset - bundle.RecordOffset + bundle.Size;
+        var duplicate = new byte[bundleLength];
+        Buffer.BlockCopy(
+            bytes,
+            bundle.RecordOffset,
+            duplicate,
+            0,
+            bundleLength);
+        int payloadOffset = bundle.PayloadOffset - bundle.RecordOffset;
+        int relationshipLength = checked((int)ReadUInt32LittleEndian(
+            duplicate,
+            payloadOffset + 8));
+        int relationshipOffset = payloadOffset + 12;
+        int nameLengthOffset = checked(
+            relationshipOffset + relationshipLength * 2);
+        int nameLength = checked((int)ReadUInt32LittleEndian(
+            duplicate,
+            nameLengthOffset));
+        int nameOffset = nameLengthOffset + 4;
+        if (mutateRelationshipId) {
+            Assert.True(relationshipLength > 0);
+            duplicate[relationshipOffset] =
+                duplicate[relationshipOffset] == (byte)'z'
+                    ? (byte)'y'
+                    : (byte)'z';
+        }
+        if (changeWorksheetNameCase) {
+            bool changed = false;
+            for (int index = 0; index < nameLength; index++) {
+                int characterOffset = nameOffset + index * 2;
+                char value = (char)(
+                    duplicate[characterOffset]
+                    | duplicate[characterOffset + 1] << 8);
+                if (!char.IsLetter(value)) {
+                    continue;
+                }
+
+                char replacement = char.IsUpper(value)
+                    ? char.ToLowerInvariant(value)
+                    : char.ToUpperInvariant(value);
+                duplicate[characterOffset] = (byte)replacement;
+                duplicate[characterOffset + 1] = (byte)(replacement >> 8);
+                changed = true;
+                break;
+            }
+            Assert.True(changed);
+        }
+
+        var expanded = new byte[bytes.Length + duplicate.Length];
+        Buffer.BlockCopy(
+            bytes,
+            0,
+            expanded,
+            0,
+            endBook.RecordOffset);
+        Buffer.BlockCopy(
+            duplicate,
+            0,
+            expanded,
+            endBook.RecordOffset,
+            duplicate.Length);
+        Buffer.BlockCopy(
+            bytes,
+            endBook.RecordOffset,
+            expanded,
+            endBook.RecordOffset + duplicate.Length,
+            bytes.Length - endBook.RecordOffset);
+        ReplaceZipEntry(path, "xl/workbook.bin", expanded);
+    }
+
     private static byte[] ReadZipEntry(string path, string entryName) {
         using var archive = ZipFile.OpenRead(path);
         ZipArchiveEntry entry = archive.GetEntry(entryName)
@@ -126,4 +258,11 @@ public partial class Excel {
         using Stream destination = replacement.Open();
         destination.Write(bytes, 0, bytes.Length);
     }
+
+    private static uint ReadUInt32LittleEndian(byte[] bytes, int offset) =>
+        (uint)(
+            bytes[offset]
+            | bytes[offset + 1] << 8
+            | bytes[offset + 2] << 16
+            | bytes[offset + 3] << 24);
 }
