@@ -228,7 +228,8 @@ namespace OfficeIMO.Excel {
                             count,
                             rewriteUnqualified)) {
                         formulas++;
-                        if (!rewriteUnqualified) {
+                        if (!rewriteUnqualified
+                            || formula.Parent is X14.SparklineGroup) {
                             ClassifyExternalFormulaPlanImpact(
                                 formula,
                                 externalValidationImpacts,
