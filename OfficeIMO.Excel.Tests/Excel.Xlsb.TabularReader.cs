@@ -562,6 +562,28 @@ public partial class Excel {
         Assert.Equal("Actual", reader.GetString(1));
     }
 
+    [Theory]
+    [InlineData(1, 1, "duplicated")]
+    [InlineData(1, 0, "out of order")]
+    public void XlsbTabularReader_RejectsDuplicateOrDescendingCellColumns(
+        int firstColumn,
+        int secondColumn,
+        string expectedMessage) {
+        using var worksheetPart = CreateHeaderlessTabularWorksheet(
+            declaredLastColumn: 1,
+            (0, firstColumn, 0U),
+            (0, secondColumn, 1U));
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                worksheetPart,
+                new[] { "First", "Second" },
+                hasHeaderRow: false,
+                new XlsbCellReadBudget(10)));
+
+        Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void XlsbTabularReader_DiscoversHeadedDataColumnsBeyondHeaderAndDeclaredDimension() {
         using var worksheetPart = CreateHeaderlessTabularWorksheet(

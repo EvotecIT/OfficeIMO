@@ -95,7 +95,7 @@ foreach ($name in $selected) {
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
     $provenanceMetadata = [ordered]@{
         'benchmark.workload.id' = $definition.ComparisonId
-        'benchmark.workload.sourceCommit' = '5e1113a1195bed985c10788a6b89caf551663bb1'
+        'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
     }
     $provenanceCapture = Start-BenchmarkProvenanceCapture `

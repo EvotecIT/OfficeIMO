@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             firstDataRow = -1;
             lastDataRow = -1;
             int currentRow = -1;
+            int previousCellColumn = -1;
             long startPosition = worksheetPart.Position;
             try {
                 using var scanner = new XlsbStreamRecordSliceReader(
@@ -83,6 +84,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             record,
                             currentRowSpanBounds,
                             out currentRowSpanCount);
+                        previousCellColumn = -1;
                         continue;
                     }
                     if (!IsCellRecord(record.Type)) {
@@ -103,6 +105,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         throw new InvalidDataException(
                             $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
                     }
+                    if (column <= previousCellColumn) {
+                        throw new InvalidDataException(
+                            $"The XLSB cell record at offset {record.RecordOffset} is duplicated or out of order within its row.");
+                    }
+                    previousCellColumn = column;
                     bool covered = false;
                     for (int index = 0; index < currentRowSpanCount; index++) {
                         int offset = index * 2;

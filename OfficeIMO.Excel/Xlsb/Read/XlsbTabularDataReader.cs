@@ -58,6 +58,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private int _recordsSinceCancellationCheck;
         private readonly int[] _currentRowSpanBounds = new int[32];
         private int _currentRowSpanCount;
+        private int _previousCellColumn = -1;
 
         internal XlsbTabularDataReader(
             Stream worksheetPart,
@@ -452,6 +453,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
             }
+            ValidateCellColumnOrder(column, record);
             ValidateCellCoveredByCurrentRow(column, record);
             ValidateStyleIndex(styleIndex, record);
 
@@ -645,7 +647,19 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             _pendingRowIndex = rowIndex;
             _hasPendingRow = true;
+            _previousCellColumn = -1;
             return true;
+        }
+
+        private void ValidateCellColumnOrder(
+            int column,
+            XlsbRecordSlice record) {
+            if (column <= _previousCellColumn) {
+                throw new InvalidDataException(
+                    $"The XLSB cell record at offset {record.RecordOffset} is duplicated or out of order within its row.");
+            }
+
+            _previousCellColumn = column;
         }
 
         private void CheckCancellation() {
