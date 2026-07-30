@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly string?[] _strings;
         private readonly object?[] _customValues;
         private readonly int _firstColumn;
+        private readonly int _lastDataRow;
         private readonly CancellationToken _cancellationToken;
         private bool _closed;
         private bool _hasPendingRow;
@@ -79,6 +80,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int actualFirstColumn = int.MaxValue;
             int actualLastColumn = -1;
             int actualFirstDataRow = -1;
+            int actualLastDataRow = -1;
             try {
                 DiscoverDataColumns(
                     worksheetPart,
@@ -87,7 +89,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     cancellationToken,
                     out actualFirstColumn,
                     out actualLastColumn,
-                    out actualFirstDataRow);
+                    out actualFirstDataRow,
+                    out actualLastDataRow);
             } catch {
                 worksheetPart.Dispose();
                 throw;
@@ -96,8 +99,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             var records = new XlsbStreamRecordSliceReader(
                 worksheetPart ?? throw new ArgumentNullException(nameof(worksheetPart)),
                 limits.MaxRecordBytes,
-                recordBudget ?? throw new ArgumentNullException(nameof(recordBudget)));
+                recordBudget ?? throw new ArgumentNullException(nameof(recordBudget)),
+                consumeRecordBudget: false);
             _records = records;
+            _lastDataRow = actualLastDataRow;
             try {
                 FindSheetData(
                     actualFirstDataRow,
@@ -221,7 +226,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 while (_records.TryRead(out XlsbRecordSlice record)) {
                     CheckCancellation();
                     if (record.Type == BrtRowHdr) {
-                        SetPendingRow(record);
+                        TrySetPendingRow(record);
                         break;
                     }
 
@@ -236,7 +241,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             } else {
                 while (_records.TryRead(out XlsbRecordSlice record)) {
                     if (record.Type == BrtRowHdr) {
-                        SetPendingRow(record);
+                        TrySetPendingRow(record);
                         break;
                     }
 
@@ -316,7 +321,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             while (_records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtRowHdr) {
-                    SetPendingRow(record);
+                    TrySetPendingRow(record);
                     break;
                 }
 
@@ -553,9 +558,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
         }
 
-        private void SetPendingRow(XlsbRecordSlice record) {
-            _pendingRowIndex = ValidateRowHeader(record);
+        private bool TrySetPendingRow(XlsbRecordSlice record) {
+            int rowIndex = ValidateRowHeader(record);
+            if (rowIndex > _lastDataRow) {
+                return false;
+            }
+
+            _pendingRowIndex = rowIndex;
             _hasPendingRow = true;
+            return true;
         }
 
         private void CheckCancellation() {

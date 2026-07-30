@@ -90,6 +90,9 @@ $outputs = foreach ($name in $selected) {
     $definition = $definitions[$name]
     $artifactsPath = Join-Path $OutputRoot "$platform-$name-$RunMode-$stamp"
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
+    $provenanceCapture = Start-BenchmarkProvenanceCapture `
+        -SourceRoot $repositoryRoot `
+        -ArtifactRoot $artifactsPath
 
     $arguments = @(
         'run',
@@ -108,6 +111,7 @@ $outputs = foreach ($name in $selected) {
     if ($LASTEXITCODE -ne 0) {
         throw "$name benchmark run failed with exit code $LASTEXITCODE."
     }
+    $provenanceCapture | Complete-BenchmarkProvenanceCapture
 
     $result = Import-BenchmarkResult -Path $artifactsPath -Suite $definition.Suite
     $successfulScenarios = @(

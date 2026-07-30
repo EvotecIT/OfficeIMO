@@ -81,6 +81,56 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_StopsBeforeFormattingOnlyRowsAfterLastPopulatedRow() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 100, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            0,
+            CreateTabularRowHeaderPayload(0));
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            7,
+            CreateSharedStringCellPayload(0, 0U));
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            0,
+            CreateTabularRowHeaderPayload(100));
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        worksheetPart.Position = 0;
+
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "Only Value" },
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10));
+
+        Assert.True(reader.HasRows);
+        Assert.True(reader.Read());
+        Assert.Equal("Only Value", reader.GetString(0));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    public void XlsbTabularReader_ChargesWorksheetRecordsOnceAcrossDiscoveryAndDelivery() {
+        using var worksheetPart = CreateTabularWorksheet((0, 0U));
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "Value" },
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10),
+            recordBudget: new XlsbRecordReadBudget(5));
+
+        Assert.True(reader.Read());
+        Assert.Equal("Value", reader.GetString(0));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
     public void XlsbTabularReader_SharesCellBudgetAcrossWorksheetReaders() {
         var cellBudget = new XlsbCellReadBudget(1);
         using (var firstWorksheet = CreateTabularWorksheet((0, 0U)))
@@ -107,7 +157,7 @@ public partial class Excel {
 
     [Fact]
     public void XlsbTabularReader_SharesDiscoveryRecordBudgetAcrossWorksheetReaders() {
-        var recordBudget = new XlsbRecordReadBudget(12);
+        var recordBudget = new XlsbRecordReadBudget(9);
         using (var firstWorksheet = CreateTabularWorksheet((0, 0U)))
         using (var firstReader = CreateTabularReader(
             firstWorksheet,

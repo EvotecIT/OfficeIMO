@@ -10,7 +10,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             CancellationToken cancellationToken,
             out int firstColumn,
             out int lastColumn,
-            out int firstDataRow) {
+            out int firstDataRow,
+            out int lastDataRow) {
             if (!worksheetPart.CanSeek) {
                 throw new InvalidOperationException(
                     "XLSB reads require a seekable worksheet part for schema discovery.");
@@ -19,6 +20,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             firstColumn = int.MaxValue;
             lastColumn = -1;
             firstDataRow = -1;
+            lastDataRow = -1;
             int currentRow = -1;
             long startPosition = worksheetPart.Position;
             try {
@@ -56,6 +58,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                     if (firstDataRow < 0 && currentRow >= 0) {
                         firstDataRow = currentRow;
+                    }
+                    if (currentRow >= 0) {
+                        lastDataRow = currentRow;
                     }
                     int column = record.CreateCursor().ReadInt32();
                     if (column < 0 || column >= A1.MaxColumns) {
