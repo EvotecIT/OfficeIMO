@@ -40,6 +40,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanIgnoresUnchangedMergesSparklinesAndComments() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellAt(1, 1).SetValue(1);
+            sheet.CellAt(1, 2).SetValue(2);
+            sheet.WorksheetPart.Worksheet.Append(
+                new MergeCells(new MergeCell { Reference = "A1:B2" }) {
+                    Count = 1U
+                });
+            sheet.AddSparklines("A1:B1", "C1");
+            sheet.SetComment("D1", "Legacy");
+            sheet.AddThreadedComment("E1", "Threaded");
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(100);
+
+            Assert.DoesNotContain(
+                plan.Impacts,
+                impact => impact.Category == "merged-cells");
+            Assert.DoesNotContain(
+                plan.Impacts,
+                impact => impact.Category == "sparklines");
+            Assert.DoesNotContain(
+                plan.Impacts,
+                impact => impact.Category == "comments");
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanIncludesUnchangedSharedFormulaMaterialization() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddWorksheet("Data");
