@@ -115,6 +115,15 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal(
             new[] { "Existing Fallback", "Profile Sans" },
             options.EmbeddedFontFallbacks?.FontFamilyNames);
+
+        PdfEmbeddedFontFallbackSet styledFallbacks =
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(
+                options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                    bold: false,
+                    italic: false));
+        PdfTextFallbackSegment segment = Assert.Single(
+            styledFallbacks.PlanText("B").Segments);
+        Assert.Equal("Existing Fallback", segment.FontName);
     }
 
     [Fact]
@@ -787,6 +796,39 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal(
             fonts.Faces.Single(face => face.Style == OfficeFontStyle.Bold).ResourceFamilyName,
             segment.FontName);
+    }
+
+    [Fact]
+    public void RangeScopedProfileFacesApplyStyleBeforeOverlappingRangeOrder() {
+        var aThroughB = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'B')
+        });
+        var aThroughC = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'C')
+        });
+        byte[] bold = ManagedTextShapingTestAssets.CreateFont('A', 'B');
+        byte[] regular = ManagedTextShapingTestAssets.CreateFont('A', 'B', 'C');
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", bold, OfficeFontStyle.Bold, aThroughB)
+            .Add("Scoped", regular, OfficeFontStyle.Regular, aThroughC);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile(
+                "styled-overlap",
+                fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Scoped",
+            bold: true,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfEmbeddedFontFallbackSet planner =
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks);
+        PdfTextFallbackSegment segment = Assert.Single(
+            planner.PlanText("A").Segments);
+
+        Assert.Equal(bold, planner.Candidates[segment.FontIndex].DataSnapshot);
+        Assert.Contains(planner.Candidates, candidate =>
+            candidate.DataSnapshot.SequenceEqual(regular));
     }
 
     [Fact]

@@ -1601,6 +1601,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Uses_Range_Scoped_Profile_Metrics_For_Auto_Line_Spacing() {
+            using WordDocument document = WordDocument.Create(
+                Path.Combine(
+                    _directoryWithFiles,
+                    "PdfNativeRangeScopedMetricLineSpacing.docx"));
+            WordParagraph paragraph = document.AddParagraph("A");
+            paragraph.FontFamily = "Scoped Metric";
+            paragraph.LineSpacing = 240;
+            paragraph.LineSpacingRule = LineSpacingRuleValues.Auto;
+
+            var onlyA = new OfficeIMO.Drawing.OfficeFontUnicodeRangeSet(new[] {
+                new OfficeIMO.Drawing.OfficeFontUnicodeRange('A', 'A')
+            });
+            var profile = new OfficeIMO.Drawing.OfficeRenderingProfile(
+                "scoped-metric",
+                new OfficeIMO.Drawing.OfficeFontFaceCollection()
+                    .Add(
+                        "Scoped Metric",
+                        ManagedTextShapingTestAssets.CreateFont('A'),
+                        OfficeIMO.Drawing.OfficeFontStyle.Regular,
+                        onlyA));
+            var saveOptions = new WordPdfSaveOptions()
+                .UseRenderingProfile(profile);
+
+            Type converterType = typeof(WordPdfConverterExtensions);
+            Type nativeFontMapType = converterType.GetNestedType(
+                "NativeFontMap",
+                BindingFlags.NonPublic)!;
+            object nativeFontMap = Activator.CreateInstance(
+                nativeFontMapType,
+                nonPublic: true)!;
+            MethodInfo createOptions = converterType.GetMethod(
+                "CreateNativeOptions",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+            _ = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new[] {
+                document,
+                saveOptions,
+                nativeFontMap
+            }));
+            MethodInfo resolveSingleLine = converterType.GetMethod(
+                "ResolveNativeWordSingleLineHeight",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                binder: null,
+                new[] { nativeFontMapType, typeof(string[]) },
+                modifiers: null)!;
+
+            double resolvedRatio = Assert.IsType<double>(
+                resolveSingleLine.Invoke(
+                    null,
+                    new object?[] {
+                        nativeFontMap,
+                        new[] { "Scoped Metric" }
+                    }));
+
+            Assert.Equal(1D, resolvedRatio, 6);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_AtLeast_Paragraph_Line_Spacing() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAtLeastParagraphStyle.docx"));
             WordParagraph directParagraph = document.AddParagraph("Native at least line spacing");
