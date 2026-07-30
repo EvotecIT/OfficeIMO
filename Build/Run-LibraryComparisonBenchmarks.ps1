@@ -7,6 +7,8 @@ param(
     [string] $Workload = 'all',
     [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
+    [ValidateSet('net8.0', 'net10.0')]
+    [string] $PowerForgeFramework = 'net8.0',
     [switch] $Publish
 )
 
@@ -20,9 +22,9 @@ if ($Publish -and $RunMode -ne 'full') {
 if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
     Import-Module PSPublishModule -MinimumVersion 3.0.81 -Force
 } else {
-    $powerForgeModule = Join-Path $PowerForgeRoot "PSPublishModule\bin\Release\$Framework\PSPublishModule.dll"
+    $powerForgeModule = Join-Path $PowerForgeRoot "PSPublishModule\bin\Release\$PowerForgeFramework\PSPublishModule.dll"
     if (-not (Test-Path -LiteralPath $powerForgeModule -PathType Leaf)) {
-        throw "The local PowerForge binary was not found at '$powerForgeModule'. Build PSPublishModule for $Framework in Release configuration first."
+        throw "The local PowerForge binary was not found at '$powerForgeModule'. Build PSPublishModule for $PowerForgeFramework in Release configuration first."
     }
     Import-Module $powerForgeModule -Force
 }
