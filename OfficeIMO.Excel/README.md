@@ -66,7 +66,8 @@ for reproducibility, not as a current cross-platform library ranking.
 
 Hardware, runtime, workload shape, package versions, warm-up, and library
 options change outcomes. Use the benchmark website's hash-pinned CSV/XLSX/XLSB
-matrix for current Windows, Linux, and macOS evidence. The
+matrix for current Windows and Linux evidence, with missing macOS lanes kept
+visible until comparable results are available. The
 [benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) covers the broader
 comparison suite against ClosedXML, EPPlus, MiniExcel, LargeXlsx,
 SpreadCheetah, ExcelDataReader, and Sylvan.Data.Excel. The opt-in

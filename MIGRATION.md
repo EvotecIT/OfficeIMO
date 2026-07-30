@@ -66,7 +66,7 @@ The 3.1 cleanup removes public backend-specific reader and parser roots. Migrate
 | --- | --- |
 | `CsvDocument.CreateDataReader(pathOrStream, ...)` | `CsvDocument.OpenDataReader(pathOrStream, ...)` |
 | Public `CsvDataReader` construction or return types | `DbDataReader` from `CsvDocument.OpenDataReader(...)` or `csv.CreateDataReader(...)` |
-| `CsvParser.Read*` and span-visitor entry points | `CsvDocument.OpenDataReader(...)` for streaming, or `CsvDocument.Load(...)` / `Parse(...)` for a materialized document |
+| `CsvDocument.ReadFieldSpans*`, `CsvDocument.ReadRowFieldSpans*`, `CsvFieldSpanAction`, `ICsvFieldSpanVisitor`, `ICsvProjectedFieldSpanVisitor`, and `ICsvRowFieldSpanVisitor` | `CsvDocument.OpenDataReader(...)` for streaming, or `CsvDocument.Load(...)` / `Parse(...)` for a materialized document |
 | `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenDataReader(...)` |
 | `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenDataReader(...)` for streaming, or `ExcelDocument.Load(...)` for the editable workbook model |
 | Concrete Excel reader return types | `DbDataReader` |

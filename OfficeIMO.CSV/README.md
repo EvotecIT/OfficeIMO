@@ -76,7 +76,8 @@ cross-platform library ranking.
 
 Runtime, CPU, input shape, quoting, encoding, storage, warm-up, and consumer
 behavior all matter. Use the benchmark website's hash-pinned CSV/XLSX/XLSB
-matrix for current Windows, Linux, and macOS evidence. See the
+matrix for current Windows and Linux evidence, with missing macOS lanes kept
+visible until comparable results are available. See the
 [full benchmark harness](../OfficeIMO.CSV.Benchmarks/README.md) for CsvHelper,
 Dataplat/dbatools, LumenWorks, Sep, Sylvan, `DataTable`, and `DbDataReader`
 lanes and the exact commands used to reproduce them.
