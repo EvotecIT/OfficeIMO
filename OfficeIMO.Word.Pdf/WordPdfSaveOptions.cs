@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Pdf {
     public class WordPdfSaveOptions {
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         private PdfCore.PdfOptions? _pdfOptions;
-        private bool _hasExplicitPdfOptions;
+        private long? _renderingProfileFontConfigurationState;
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
@@ -17,11 +17,15 @@ namespace OfficeIMO.Word.Pdf {
             get => _pdfOptions;
             set {
                 _pdfOptions = value;
-                _hasExplicitPdfOptions = value != null;
+                _renderingProfileFontConfigurationState = null;
             }
         }
 
-        internal bool HasExplicitPdfOptions => _hasExplicitPdfOptions;
+        internal bool HasExplicitPdfFontConfiguration =>
+            _pdfOptions != null
+            && (!_renderingProfileFontConfigurationState.HasValue
+                || _pdfOptions.FontConfigurationState
+                    != _renderingProfileFontConfigurationState.Value);
 
         /// <summary>
         /// Optional Word-style font family used as the first-party PDF default font. When the resource policy allows system fonts, an installed family is embedded; otherwise it maps to the nearest PDF standard font.
@@ -112,8 +116,17 @@ namespace OfficeIMO.Word.Pdf {
         public WordPdfSaveOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
+            bool profileOwnsCurrentFontConfiguration =
+                _pdfOptions == null
+                || (_renderingProfileFontConfigurationState.HasValue
+                    && _pdfOptions.FontConfigurationState
+                        == _renderingProfileFontConfigurationState.Value);
             _pdfOptions ??= new PdfCore.PdfOptions();
             _pdfOptions.UseRenderingProfile(profile, mode);
+            _renderingProfileFontConfigurationState =
+                profileOwnsCurrentFontConfiguration
+                    ? _pdfOptions.FontConfigurationState
+                    : null;
             return this;
         }
 
@@ -164,7 +177,8 @@ namespace OfficeIMO.Word.Pdf {
                 PageNumberFormat = PageNumberFormat,
                 DefaultTableBorders = DefaultTableBorders
             };
-            clone._hasExplicitPdfOptions = _hasExplicitPdfOptions;
+            clone._renderingProfileFontConfigurationState =
+                _renderingProfileFontConfigurationState;
             return clone;
         }
     }

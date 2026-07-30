@@ -1030,14 +1030,19 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal("pl", word.PdfOptions?.Language);
         Assert.Equal("pl", excel.PdfOptions?.Language);
         Assert.Equal("pl", powerPoint.PdfOptions?.Language);
-        Assert.False(word.HasExplicitPdfOptions);
-        Assert.False(word.CloneForConversion().HasExplicitPdfOptions);
+        Assert.False(word.HasExplicitPdfFontConfiguration);
+        Assert.False(word.CloneForConversion().HasExplicitPdfFontConfiguration);
 
         var explicitlyConfiguredWord = new OfficeIMO.Word.Pdf.WordPdfSaveOptions {
             PdfOptions = new PdfOptions()
         }.UseRenderingProfile(profile);
-        Assert.True(explicitlyConfiguredWord.HasExplicitPdfOptions);
-        Assert.True(explicitlyConfiguredWord.CloneForConversion().HasExplicitPdfOptions);
+        Assert.True(explicitlyConfiguredWord.HasExplicitPdfFontConfiguration);
+        Assert.True(explicitlyConfiguredWord
+            .CloneForConversion()
+            .HasExplicitPdfFontConfiguration);
+
+        word.PdfOptions!.DefaultFontSize = 17D;
+        Assert.True(word.HasExplicitPdfFontConfiguration);
     }
 
     [Fact]
