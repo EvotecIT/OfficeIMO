@@ -69,6 +69,32 @@ public sealed class DrawingRenderingProfileTests {
     }
 
     [Fact]
+    public void OverlayKeepsCallerFaceAheadOfProfileRangeVariantForSameFamilyAndStyle() {
+        byte[] callerFace = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] profileRangeFace = ManagedTextShapingTestAssets.CreateFont('A');
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var options = new OfficeImageExportOptions {
+            Fonts = new OfficeFontFaceCollection()
+                .Add("Shared", callerFace)
+        };
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", profileRangeFace, OfficeFontStyle.Regular, onlyA);
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("overlay-range", profileFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(2, options.Fonts.Faces.Count);
+        Assert.Equal(profileRangeFace, options.Fonts.Faces[0].Data);
+        Assert.Equal(callerFace, options.Fonts.Faces[1].Data);
+        OfficeFontFallbackRun run = Assert.Single(
+            options.Fonts.PlanFallbackRuns("A", "Shared", OfficeFontStyle.Regular));
+        Assert.Equal("Shared", run.FamilyName);
+    }
+
+    [Fact]
     public void ProfileOwnsDefensiveFontAndPolicySnapshots() {
         var policy = new OfficeImageExportPolicy { RequireNoLoss = true };
         var profile = new OfficeRenderingProfile(" deterministic ", policy: policy);

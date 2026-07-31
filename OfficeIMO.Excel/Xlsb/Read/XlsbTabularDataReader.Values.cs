@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal].ToString(),
                 XlsbTabularValueKind.Date => ConvertDate(_numbers[ordinal]).ToString(_options.Culture),
-                XlsbTabularValueKind.Custom when _customValues[ordinal] != null =>
+                XlsbTabularValueKind.Custom when !IsMissingCustomValue(_customValues[ordinal]) =>
                     Convert.ToString(_customValues[ordinal], _options.Culture)
                     ?? string.Empty,
                 _ => throw new InvalidCastException("The XLSB cell is blank.")

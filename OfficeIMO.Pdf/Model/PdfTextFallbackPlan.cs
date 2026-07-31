@@ -87,7 +87,10 @@ public sealed class PdfTextFallbackPlan {
         int cursor = 0;
         foreach (PdfTextFallbackSegment segment in Segments) {
             if (segment.StartIndex > cursor) {
-                AddLayoutControlRuns(runs, OriginalText.Substring(cursor, segment.StartIndex - cursor));
+                AddLayoutControlRuns(
+                    runs,
+                    OriginalText.Substring(cursor, segment.StartIndex - cursor),
+                    styleTemplate);
             }
 
             runs.Add(CreateStyledRun(segment.Text, resolveFont(segment.FontIndex), styleTemplate));
@@ -95,7 +98,7 @@ public sealed class PdfTextFallbackPlan {
         }
 
         if (cursor < OriginalText.Length) {
-            AddLayoutControlRuns(runs, OriginalText.Substring(cursor));
+            AddLayoutControlRuns(runs, OriginalText.Substring(cursor), styleTemplate);
         }
 
         return runs.AsReadOnly();
@@ -110,7 +113,10 @@ public sealed class PdfTextFallbackPlan {
         int cursor = 0;
         foreach (PdfTextFallbackSegment segment in Segments) {
             if (segment.StartIndex > cursor) {
-                AddLayoutControlRuns(runs, OriginalText.Substring(cursor, segment.StartIndex - cursor));
+                AddLayoutControlRuns(
+                    runs,
+                    OriginalText.Substring(cursor, segment.StartIndex - cursor),
+                    styleTemplate);
             }
 
             runs.Add(CreateStyledNamedRun(segment.Text, resolveFontFamily(segment.FontIndex), styleTemplate));
@@ -118,7 +124,7 @@ public sealed class PdfTextFallbackPlan {
         }
 
         if (cursor < OriginalText.Length) {
-            AddLayoutControlRuns(runs, OriginalText.Substring(cursor));
+            AddLayoutControlRuns(runs, OriginalText.Substring(cursor), styleTemplate);
         }
 
         return runs.AsReadOnly();
@@ -173,7 +179,25 @@ public sealed class PdfTextFallbackPlan {
             fontFamily: fontFamily);
     }
 
-    private static void AddLayoutControlRuns(List<TextRun> runs, string text) {
+    private static TextRun CreateStyledLayoutRun(string text, TextRun? styleTemplate) {
+        if (styleTemplate == null) {
+            return TextRun.Normal(text);
+        }
+
+        return new TextRun(
+            text,
+            styleTemplate.Bold,
+            styleTemplate.Underline,
+            styleTemplate.Color,
+            styleTemplate.Italic,
+            styleTemplate.Strike,
+            styleTemplate.FontSize,
+            styleTemplate.Font,
+            baseline: styleTemplate.Baseline,
+            backgroundColor: styleTemplate.BackgroundColor);
+    }
+
+    private static void AddLayoutControlRuns(List<TextRun> runs, string text, TextRun? styleTemplate) {
         for (int i = 0; i < text.Length; i++) {
             char ch = text[i];
             if (ch == '\n' || ch == '\r') {
@@ -184,7 +208,7 @@ public sealed class PdfTextFallbackPlan {
             } else if (ch == '\t') {
                 runs.Add(TextRun.Tab());
             } else if (!char.IsControl(ch)) {
-                runs.Add(TextRun.Normal(ch.ToString()));
+                runs.Add(CreateStyledLayoutRun(ch.ToString(), styleTemplate));
             }
         }
     }

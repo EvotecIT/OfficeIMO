@@ -300,15 +300,17 @@ public sealed class OfficeFontFaceCollection {
             return this;
         }
 
+        var additions = new List<OfficeFontFace>();
         foreach (OfficeFontFace face in fonts.Faces) {
             bool exists = _faces.Exists(existing =>
                 existing.Style == face.Style
                 && string.Equals(existing.FamilyName, face.FamilyName, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(existing.ResourceFamilyName, face.ResourceFamilyName, StringComparison.OrdinalIgnoreCase));
             if (!exists) {
-                _faces.Add(face.Clone());
+                additions.Add(face.Clone());
             }
         }
+        _faces.InsertRange(0, additions);
 
         foreach (string fallbackFamily in fonts.FallbackFamilies) {
             if (!_fallbackFamilies.Exists(existing =>

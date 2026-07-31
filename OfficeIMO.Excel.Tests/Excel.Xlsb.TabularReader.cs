@@ -691,6 +691,8 @@ public partial class Excel {
         Assert.True(reader.Read());
         Assert.Equal(DBNull.Value, reader.GetValue(0));
         Assert.True(reader.IsDBNull(0));
+        Assert.Throws<InvalidCastException>(() => reader.GetString(0));
+        Assert.Throws<InvalidCastException>(() => reader.GetChars(0, 0, null, 0, 0));
         Assert.True(reader.Read());
         Assert.Equal(42, reader.GetInt32(0));
         Assert.False(reader.IsDBNull(0));

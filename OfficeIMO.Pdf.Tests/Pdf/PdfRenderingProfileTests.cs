@@ -806,10 +806,32 @@ public sealed class PdfRenderingProfileTests {
         PdfTextFallbackSegment segment = Assert.Single(plan.Segments);
         Assert.Equal(1, segment.StartIndex);
         Assert.Equal("A", segment.Text);
+        var styleTemplate = new TextRun(
+            string.Empty,
+            bold: true,
+            underline: true,
+            color: PdfColor.FromRgb(10, 20, 30),
+            italic: true,
+            strike: true,
+            fontSize: 13,
+            font: PdfStandardFont.Courier,
+            baseline: PdfTextBaseline.Superscript,
+            backgroundColor: PdfColor.FromRgb(40, 50, 60),
+            fontFamily: "Scoped");
         IReadOnlyList<TextRun> runs = plan.ToNamedTextRuns(
             planner.FontFamilyNames,
-            TextRun.Normal(string.Empty, fontFamily: "Scoped"));
+            styleTemplate);
         Assert.Equal(" ", runs[0].Text);
+        Assert.True(runs[0].Bold);
+        Assert.True(runs[0].Underline);
+        Assert.Equal(styleTemplate.Color, runs[0].Color);
+        Assert.True(runs[0].Italic);
+        Assert.True(runs[0].Strike);
+        Assert.Equal(13, runs[0].FontSize);
+        Assert.Equal(PdfStandardFont.Courier, runs[0].Font);
+        Assert.Equal(PdfTextBaseline.Superscript, runs[0].Baseline);
+        Assert.Equal(styleTemplate.BackgroundColor, runs[0].BackgroundColor);
+        Assert.Null(runs[0].FontFamily);
         Assert.Equal("A", runs[1].Text);
         Assert.Equal(planner.FontFamilyNames[segment.FontIndex], runs[1].FontFamily);
     }
