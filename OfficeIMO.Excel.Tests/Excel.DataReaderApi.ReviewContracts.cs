@@ -9,6 +9,61 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void OpenDataReader_RejectsMissingOpenXmlSharedStringsBeforeDelivery(
+        int invalidSheetIndex) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.InvalidOpenXmlSharedString.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                for (int index = 0; index < 2; index++) {
+                    ExcelSheet sheet = document.AddWorksheet($"Sheet{index + 1}");
+                    sheet.CellValue(1, 1, "Value");
+                    sheet.CellValue(2, 1, $"Sheet {index + 1}");
+                }
+                document.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Sheet sheet = workbookPart.Workbook.Sheets!
+                    .Elements<Sheet>()
+                    .ElementAt(invalidSheetIndex);
+                WorksheetPart worksheetPart = Assert.IsType<WorksheetPart>(
+                    workbookPart.GetPartById(sheet.Id!.Value!));
+                Cell dataCell = worksheetPart.Worksheet
+                    .Descendants<Cell>()
+                    .Single(cell => cell.CellReference?.Value == "A2");
+                dataCell.DataType = CellValues.SharedString;
+                dataCell.CellValue = new CellValue(uint.MaxValue.ToString());
+                worksheetPart.Worksheet.Save();
+            }
+
+            if (invalidSheetIndex == 0) {
+                InvalidDataException openException = Assert.Throws<InvalidDataException>(
+                    () => ExcelDocument.OpenDataReader(path));
+                Assert.Contains(
+                    "missing shared string",
+                    openException.Message,
+                    StringComparison.OrdinalIgnoreCase);
+                return;
+            }
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            InvalidDataException nextResultException = Assert.Throws<InvalidDataException>(
+                () => reader.NextResult());
+            Assert.Contains(
+                "missing shared string",
+                nextResultException.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.True(reader.IsClosed);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void OpenDataReader_XlsbNextResultRejectsMissingSharedStringDuringDiscovery() {
         string path = Path.Combine(

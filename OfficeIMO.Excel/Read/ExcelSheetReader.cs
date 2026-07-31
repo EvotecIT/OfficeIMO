@@ -64,12 +64,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name => _sheetName;
 
-        internal void ValidateFormulaTextDataReaderProjection(CancellationToken ct) {
+        internal void ValidateDataReaderProjection(CancellationToken ct) {
             if (_canStreamWorksheetPart) {
                 try {
                     using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                     if (TryPrepareWorksheetStream(stream)) {
-                        ValidateFormulaTextDataReaderProjectionXml(stream, ct);
+                        ValidateDataReaderProjectionXml(stream, ct);
                         return;
                     }
                 } catch (XmlException) {
@@ -84,6 +84,11 @@ namespace OfficeIMO.Excel {
                 ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
                 ct.ThrowIfCancellationRequested();
+                string reference = cell.CellReference?.Value ?? "(unknown cell)";
+                if (cell.DataType?.Value == CellValues.SharedString) {
+                    ValidateSharedStringReference(cell.CellValue?.Text, reference);
+                }
+
                 CellFormula? formula = cell.CellFormula;
                 if (formula?.FormulaType?.Value != CellFormulaValues.Shared
                     || !string.IsNullOrWhiteSpace(formula?.Text)) {
@@ -93,7 +98,6 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string reference = cell.CellReference?.Value ?? "(unknown cell)";
                 throw new NotSupportedException(
                     $"Data-reader projection cannot safely expand the shared-formula follower " +
                     $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
@@ -101,7 +105,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ValidateFormulaTextDataReaderProjectionXml(
+        private void ValidateDataReaderProjectionXml(
             Stream stream,
             CancellationToken ct) {
             using var reader = OpenWorksheetXmlReader(stream);
@@ -112,8 +116,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 string reference = reader.GetAttribute("r") ?? "(unknown cell)";
+                bool sharedStringCell = string.Equals(
+                    reader.GetAttribute("t"),
+                    "s",
+                    StringComparison.Ordinal);
                 bool sharedFollower = false;
                 bool hasCachedValue = false;
+                string? sharedStringReference = null;
                 using XmlReader cellReader = reader.ReadSubtree();
                 while (cellReader.Read()) {
                     ct.ThrowIfCancellationRequested();
@@ -132,6 +141,9 @@ namespace OfficeIMO.Excel {
 
                     if (cellReader.LocalName == "v") {
                         hasCachedValue = true;
+                        if (sharedStringCell) {
+                            sharedStringReference = cellReader.ReadElementContentAsString();
+                        }
                         continue;
                     }
 
@@ -154,6 +166,10 @@ namespace OfficeIMO.Excel {
                     sharedFollower |= isFollower;
                 }
 
+                if (sharedStringCell) {
+                    ValidateSharedStringReference(sharedStringReference, reference);
+                }
+
                 if (!sharedFollower
                     || (_opt.UseCachedFormulaResult && hasCachedValue)) {
                     continue;
@@ -164,6 +180,17 @@ namespace OfficeIMO.Excel {
                     $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
                     "shared-formula text is required.");
             }
+        }
+
+        private void ValidateSharedStringReference(string? rawIndex, string reference) {
+            var items = _sharedStringItems ??= _sst.GetItems();
+            if (TryParseSharedStringIndex(rawIndex, out int index)
+                && (uint)index < (uint)items.Count) {
+                return;
+            }
+
+            throw new InvalidDataException(
+                $"Worksheet '{_sheetName}' cell {reference} references a missing shared string.");
         }
 
         /// <summary>

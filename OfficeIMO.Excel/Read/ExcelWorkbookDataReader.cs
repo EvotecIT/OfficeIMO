@@ -173,7 +173,7 @@ namespace OfficeIMO.Excel {
             string sheetName,
             ExcelReadOptions options) {
             ExcelSheetReader sheet = owner.GetSheet(sheetName);
-            sheet.ValidateFormulaTextDataReaderProjection(options.CancellationToken);
+            sheet.ValidateDataReaderProjection(options.CancellationToken);
             return (DbDataReader)sheet.ReadUsedRangeAsDataReader(
                 headersInFirstRow: options.HasHeaderRow,
                 schemaSampleRows: options.InferSchema ? options.SchemaSampleRows : 0,
