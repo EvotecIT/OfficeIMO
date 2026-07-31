@@ -83,6 +83,80 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_RejectsSheetRelationshipToUnrelatedInternalPart() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.UnrelatedWorksheetPart.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddWorksheet("First").CellValue(1, 1, "Ready");
+                document.AddWorksheet("Second").CellValue(1, 1, "Never delivered");
+                document.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Sheet second = workbookPart.Workbook.Sheets!.Elements<Sheet>().ElementAt(1);
+                WorkbookStylesPart stylesPart = Assert.IsType<WorkbookStylesPart>(
+                    workbookPart.WorkbookStylesPart);
+                second.Id = workbookPart.GetIdOfPart(stylesPart);
+                workbookPart.Workbook.Save();
+            }
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("unsupported internal part", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_SkipsSupportedNonWorksheetSheetParts() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.NonWorksheetParts.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet data = document.AddWorksheet("Data");
+                data.CellValue(1, 1, "Value");
+                data.CellValue(2, 1, "Ready");
+                document.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Sheets sheets = Assert.IsType<Sheets>(workbookPart.Workbook.Sheets);
+                uint nextSheetId = sheets.Elements<Sheet>().Max(sheet => sheet.SheetId!.Value) + 1U;
+
+                ChartsheetPart chartPart = workbookPart.AddNewPart<ChartsheetPart>();
+                chartPart.Chartsheet = new Chartsheet();
+                sheets.Append(new Sheet {
+                    Name = "Chart",
+                    SheetId = nextSheetId,
+                    Id = workbookPart.GetIdOfPart(chartPart)
+                });
+
+                DialogsheetPart dialogPart = workbookPart.AddNewPart<DialogsheetPart>();
+                dialogPart.DialogSheet = new DialogSheet();
+                sheets.Append(new Sheet {
+                    Name = "Dialog",
+                    SheetId = nextSheetId + 1U,
+                    Id = workbookPart.GetIdOfPart(dialogPart)
+                });
+                workbookPart.Workbook.Save();
+            }
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            Assert.Equal(1, reader.FieldCount);
+            Assert.True(reader.Read());
+            Assert.Equal("Ready", reader.GetString(0));
+            Assert.False(reader.NextResult());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_XlsbClassifiesCustomDateStylesAfterAllStyleCollections() {
         string path = Path.Combine(
             Path.GetTempPath(),

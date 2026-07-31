@@ -548,6 +548,7 @@ namespace OfficeIMO.Excel {
             VmlDrawingPart? commentVmlPart = TryGetCommentVmlPart();
             if (commentVmlPart != null) {
                 budget.Consume();
+                ConsumeVmlElementsForMutationPlan(commentVmlPart, budget);
                 XDocument document = LoadOrCreateVmlDocument(commentVmlPart);
                 XNamespace vmlNamespace = "urn:schemas-microsoft-com:vml";
                 XNamespace excelNamespace =
@@ -555,9 +556,7 @@ namespace OfficeIMO.Excel {
                 XElement? root = document.Root;
                 var shapes = new List<XElement>();
                 if (root != null) {
-                    budget.Consume();
                     foreach (XElement element in root.Descendants()) {
-                        budget.Consume();
                         if (element.Name == vmlNamespace + "shape"
                             && ReferenceEquals(element.Parent, root)) {
                             shapes.Add(element);

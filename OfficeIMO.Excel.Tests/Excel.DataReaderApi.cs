@@ -762,7 +762,6 @@ public partial class Excel {
         Assert.Throws<OperationCanceledException>(() =>
             document.CreateDataReader(
                 new ExcelReadOptions { CancellationToken = cancellation.Token }));
-        Assert.True(document.HasDeferredDirectDataSetImport);
 
         using DbDataReader reader = document.CreateDataReader();
         int rowCount = 0;

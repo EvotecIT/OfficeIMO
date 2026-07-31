@@ -38,10 +38,23 @@ namespace OfficeIMO.Excel {
 
                 if (part is WorksheetPart) {
                     names.Add(validatedName);
+                } else if (!IsSupportedNonWorksheetSheetPart(part)) {
+                    throw new InvalidDataException(
+                        $"The OpenXML sheet '{validatedName}' references unsupported internal part '{part.Uri}'.");
                 }
             }
 
             return names;
+        }
+
+        private static bool IsSupportedNonWorksheetSheetPart(OpenXmlPart part) {
+            if (part is ChartsheetPart || part is DialogsheetPart) {
+                return true;
+            }
+
+            string relationshipType = part.RelationshipType;
+            return relationshipType.EndsWith("/macrosheet", StringComparison.OrdinalIgnoreCase)
+                   || relationshipType.EndsWith("/intlMacrosheet", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
