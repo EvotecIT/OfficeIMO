@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
                     options.MaxCertificates,
                     options.MaxCertificateBytes,
                     findings));
-                byte[]? signatureValue = ReadSignatureValue(document, findings, signaturePartInfo.Uri);
+                XmlElement? signatureValue = ReadSignatureValue(document, findings, signaturePartInfo.Uri);
                 WordSignatureValidationState cryptographicStatus;
                 X509Certificate2? signer = null;
 
@@ -269,9 +269,7 @@ namespace OfficeIMO.Word {
             List<WordSignatureValidationFinding> findings,
             string signaturePartUri) {
             try {
-                long maxEncodedCharacters = maxCertificateBytes > (long.MaxValue / 4L) * 3L
-                    ? long.MaxValue
-                    : ((maxCertificateBytes + 2L) / 3L) * 4L;
+                long maxEncodedCharacters = GetMaxBase64EncodedCharacters(maxCertificateBytes);
                 if (encoded.Length > maxEncodedCharacters) {
                     throw new InvalidDataException("The " + source + " value exceeds the " + maxCertificateBytes + " byte limit.");
                 }
@@ -290,7 +288,7 @@ namespace OfficeIMO.Word {
 
         private static void ValidateTimestampTokens(
             XmlDocument document,
-            byte[] signatureValue,
+            XmlElement signatureValue,
             WordSignatureValidationOptions options,
             string signaturePartUri,
             List<Rfc3161TimestampVerificationResult> results,
@@ -302,16 +300,30 @@ namespace OfficeIMO.Word {
             foreach (XmlElement tokenElement in tokens.OfType<XmlElement>()) {
                 byte[] encoded;
                 try {
+                    if (tokenElement.InnerText.Length > GetMaxBase64EncodedCharacters(options.MaxTimestampBytes)) {
+                        throw new InvalidDataException("An embedded RFC 3161 timestamp token exceeds the " + options.MaxTimestampBytes + " byte limit.");
+                    }
                     encoded = Convert.FromBase64String(tokenElement.InnerText);
+                    if (encoded.LongLength > options.MaxTimestampBytes) {
+                        throw new InvalidDataException("An embedded RFC 3161 timestamp token exceeds the " + options.MaxTimestampBytes + " byte limit.");
+                    }
                 } catch (FormatException exception) {
                     findings.Add(Finding("TimestampMalformed", WordSignatureValidationState.Failed,
                         "An embedded RFC 3161 timestamp token is not valid base64: " + exception.Message,
                         signaturePartUri));
                     continue;
                 }
+                byte[] timestampedData;
+                try {
+                    timestampedData = CanonicalizeTimestampedSignatureValue(signatureValue, tokenElement);
+                } catch (NotSupportedException exception) {
+                    findings.Add(Finding("TimestampCanonicalizationUnsupported", WordSignatureValidationState.Unsupported,
+                        exception.Message, signaturePartUri));
+                    continue;
+                }
                 Rfc3161TimestampVerificationResult result = Rfc3161TimestampVerifier.Verify(
                     encoded,
-                    signatureValue,
+                    timestampedData,
                     options.TimestampCertificateValidation,
                     options.MaxTimestampBytes,
                     options.MaxCertificates);
@@ -320,6 +332,53 @@ namespace OfficeIMO.Word {
                     findings.Add(Finding(finding.Code, MapStatus(result.Status), finding.Message, signaturePartUri));
                 }
             }
+        }
+
+        private static byte[] CanonicalizeTimestampedSignatureValue(XmlElement signatureValue, XmlElement tokenElement) {
+            XmlElement? timestampProperty = tokenElement;
+            while (timestampProperty != null && !timestampProperty.LocalName.Equals("SignatureTimeStamp", StringComparison.Ordinal)) {
+                timestampProperty = timestampProperty.ParentNode as XmlElement;
+            }
+            string algorithm = timestampProperty?
+                .ChildNodes
+                .OfType<XmlElement>()
+                .FirstOrDefault(element => element.LocalName.Equals("CanonicalizationMethod", StringComparison.Ordinal))?
+                .GetAttribute("Algorithm") ?? SignedXml.XmlDsigC14NTransformUrl;
+
+            Transform transform;
+            switch (algorithm) {
+                case SignedXml.XmlDsigC14NTransformUrl:
+                    transform = new XmlDsigC14NTransform();
+                    break;
+                case SignedXml.XmlDsigC14NWithCommentsTransformUrl:
+                    transform = new XmlDsigC14NWithCommentsTransform();
+                    break;
+                case SignedXml.XmlDsigExcC14NTransformUrl:
+                    transform = new XmlDsigExcC14NTransform();
+                    break;
+                case SignedXml.XmlDsigExcC14NWithCommentsTransformUrl:
+                    transform = new XmlDsigExcC14NTransform(includeComments: true);
+                    break;
+                default:
+                    throw new NotSupportedException("XAdES timestamp canonicalization method " + algorithm + " is not supported.");
+            }
+
+            var input = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            XmlElement imported = (XmlElement)input.ImportNode(signatureValue, deep: true);
+            var namespaceNames = new HashSet<string>(StringComparer.Ordinal);
+            for (XmlElement? ancestor = signatureValue; ancestor != null; ancestor = ancestor.ParentNode as XmlElement) {
+                foreach (XmlAttribute attribute in ancestor.Attributes) {
+                    if (attribute.Prefix != "xmlns" && attribute.Name != "xmlns") continue;
+                    if (!namespaceNames.Add(attribute.Name) || imported.HasAttribute(attribute.Name)) continue;
+                    imported.Attributes.Append((XmlAttribute)input.ImportNode(attribute, deep: true));
+                }
+            }
+            input.AppendChild(imported);
+            transform.LoadInput(input);
+            using Stream canonical = (Stream)transform.GetOutput(typeof(Stream));
+            using var output = new MemoryStream();
+            canonical.CopyTo(output);
+            return output.ToArray();
         }
 
         private static WordSignatureValidationState ResolveTimestampStatus(
@@ -377,7 +436,7 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static byte[]? ReadSignatureValue(
+        private static XmlElement? ReadSignatureValue(
             XmlDocument document,
             List<WordSignatureValidationFinding> findings,
             string signaturePartUri) {
@@ -390,12 +449,19 @@ namespace OfficeIMO.Word {
                 return null;
             }
             try {
-                return Convert.FromBase64String(element.InnerText);
+                Convert.FromBase64String(element.InnerText);
+                return element;
             } catch (FormatException exception) {
                 findings.Add(Finding("SignatureValueMalformed", WordSignatureValidationState.Failed,
                     "SignatureValue is not valid base64: " + exception.Message, signaturePartUri));
                 return null;
             }
+        }
+
+        private static long GetMaxBase64EncodedCharacters(long maxDecodedBytes) {
+            return maxDecodedBytes > (long.MaxValue / 4L) * 3L
+                ? long.MaxValue
+                : ((maxDecodedBytes + 2L) / 3L) * 4L;
         }
 
         private static XmlDocument LoadXml(byte[] bytes, long maxBytes) {

@@ -52,12 +52,45 @@ namespace OfficeIMO.Word {
             result.AddLimitation(new WordComparisonLimitation(code, message, sourceContainsShape, targetContainsShape));
         }
 
-        private static bool ContainsThemeFormatting(MainDocumentPart mainPart) =>
-            EnumerateComparisonRoots(mainPart)
+        private static bool ContainsThemeFormatting(MainDocumentPart mainPart) {
+            OpenXmlElement[] content = EnumerateComparisonRoots(mainPart)
                 .SelectMany(root => new[] { root }.Concat(root.Descendants()))
-                .SelectMany(element => element.GetAttributes())
-                .Any(attribute => attribute.LocalName.EndsWith("Theme", StringComparison.OrdinalIgnoreCase) ||
-                                  attribute.LocalName.Equals("themeColor", StringComparison.OrdinalIgnoreCase));
+                .ToArray();
+            if (content.SelectMany(element => element.GetAttributes()).Any(IsThemeAttribute)) return true;
+
+            var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (OpenXmlElement element in content) {
+                string? styleId = element switch {
+                    ParagraphStyleId paragraphStyle => paragraphStyle.Val?.Value,
+                    RunStyle runStyle => runStyle.Val?.Value,
+                    TableStyle tableStyle => tableStyle.Val?.Value,
+                    _ => null
+                };
+                if (!string.IsNullOrWhiteSpace(styleId)) usedStyleIds.Add(styleId!);
+            }
+
+            IEnumerable<Style> styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>());
+            Dictionary<string, Style> stylesById = styles
+                .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
+                .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            var inspectedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string usedStyleId in usedStyleIds) {
+                string? currentStyleId = usedStyleId;
+                while (!string.IsNullOrWhiteSpace(currentStyleId) && inspectedStyleIds.Add(currentStyleId!)) {
+                    if (!stylesById.TryGetValue(currentStyleId!, out Style? style)) break;
+                    if (new[] { style }.Concat(style.Descendants())
+                        .SelectMany(element => element.GetAttributes()).Any(IsThemeAttribute)) return true;
+                    currentStyleId = style.BasedOn?.Val?.Value;
+                }
+            }
+            return false;
+        }
+
+        private static bool IsThemeAttribute(OpenXmlAttribute attribute) =>
+            attribute.LocalName.EndsWith("Theme", StringComparison.OrdinalIgnoreCase) ||
+            attribute.LocalName.Equals("themeColor", StringComparison.OrdinalIgnoreCase);
 
         private static bool ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart) =>
             EnumerateComparisonRoots(mainPart).Any(root =>

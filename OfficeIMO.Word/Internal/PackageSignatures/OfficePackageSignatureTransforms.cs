@@ -177,10 +177,9 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrWhiteSpace(uri)) return null;
             string trimmed = uri!.Trim();
             if (!trimmed.StartsWith("/", StringComparison.Ordinal)) return null;
+            if (trimmed.IndexOf('#') >= 0) return null;
             int query = trimmed.IndexOf('?');
             if (query >= 0) trimmed = trimmed.Substring(0, query);
-            int fragment = trimmed.IndexOf('#');
-            if (fragment >= 0) trimmed = trimmed.Substring(0, fragment);
             return trimmed.Length == 0 ? null : NormalizePartUri(trimmed);
         }
 
@@ -237,7 +236,7 @@ namespace OfficeIMO.Word {
                 if (algorithm.Equals(CanonicalXmlAlgorithm, StringComparison.Ordinal) ||
                     algorithm.Equals(CanonicalXmlWithCommentsAlgorithm, StringComparison.Ordinal)) {
                     if (currentXml == null) {
-                        currentXml = LoadXml(currentBytes ?? ReadPart(targetPartUri, maxPartBytes));
+                        currentXml = LoadXml(currentBytes ?? ReadPart(targetPartUri, maxPartBytes), maxPartBytes);
                     }
                     currentBytes = Canonicalize(
                         currentXml,
@@ -256,7 +255,7 @@ namespace OfficeIMO.Word {
         }
 
         private XmlDocument ApplyRelationshipTransform(string targetPartUri, XElement transform, long maxPartBytes) {
-            XmlDocument source = LoadXml(ReadPart(targetPartUri, maxPartBytes));
+            XmlDocument source = LoadXml(ReadPart(targetPartUri, maxPartBytes), maxPartBytes);
             const string relationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
             XNamespace opc = "http://schemas.openxmlformats.org/package/2006/digital-signature";
             var ids = new HashSet<string>(transform
@@ -331,9 +330,9 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static XmlDocument LoadXml(byte[] bytes) {
+        private static XmlDocument LoadXml(byte[] bytes, long maxCharacters) {
             using var stream = new MemoryStream(bytes, writable: false);
-            using XmlReader reader = XmlReader.Create(stream, SafeXmlReaderSettings());
+            using XmlReader reader = XmlReader.Create(stream, SafeXmlReaderSettings(maxCharacters));
             XmlDocument document = CreateXmlDocument();
             document.Load(reader);
             return document;
@@ -349,10 +348,10 @@ namespace OfficeIMO.Word {
             XmlResolver = null
         };
 
-        private static XmlReaderSettings SafeXmlReaderSettings() => new() {
+        private static XmlReaderSettings SafeXmlReaderSettings(long maxCharacters = 64L * 1024 * 1024) => new() {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
-            MaxCharactersInDocument = 64L * 1024 * 1024
+            MaxCharactersInDocument = maxCharacters
         };
 
         private static Func<HashAlgorithm>? CreateHashAlgorithm(string digestMethod) {

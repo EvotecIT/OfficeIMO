@@ -652,7 +652,7 @@ namespace OfficeIMO.Word {
 
             int fragmentIndex = trimmed.IndexOf('#');
             if (fragmentIndex >= 0) {
-                trimmed = trimmed.Substring(0, fragmentIndex);
+                return null;
             }
 
             int queryIndex = trimmed.IndexOf('?');

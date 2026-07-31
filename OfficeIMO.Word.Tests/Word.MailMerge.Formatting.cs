@@ -109,6 +109,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_ReportsAndUpdatesComplexFieldInsideInlineContentControl() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(new SdtRun(
+                new SdtProperties(new Tag { Val = "ClientName" }),
+                new SdtContentRun(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" MERGEFIELD ClientName ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("stale")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })))));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["ClientName"] = "Northwind" },
+                removeFields: false);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal(1, report.MergedCount);
+            Assert.Contains("Northwind", body.InnerText);
+            Assert.DoesNotContain("stale", body.InnerText);
+            Assert.Contains("MERGEFIELD ClientName", body.InnerXml);
+        }
+
+        [Fact]
         public void Test_MailMerge_NestedRegionsPreserveTableCellFieldFormatting() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeFormattingNestedRegionsTableCells.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

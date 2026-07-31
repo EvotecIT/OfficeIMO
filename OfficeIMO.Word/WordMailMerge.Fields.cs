@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
             foreach (var paragraph in EnumerateParagraphs(root)) {
                 var activeFields = new List<ComplexFieldFrame>();
 
-                foreach (var run in paragraph.Elements<Run>().ToList()) {
+                foreach (var run in paragraph.Descendants<Run>().ToList()) {
                     var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
                         foreach (ComplexFieldFrame activeField in activeFields) {
@@ -329,7 +329,7 @@ namespace OfficeIMO.Word {
 
             foreach (var paragraph in EnumerateParagraphs(root)) {
                 List<Run>? fieldRuns = null;
-                foreach (var run in paragraph.Elements<Run>()) {
+                foreach (var run in paragraph.Descendants<Run>()) {
                     var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
                         fieldRuns = new List<Run> { run };
@@ -389,7 +389,7 @@ namespace OfficeIMO.Word {
 
             foreach (var paragraph in EnumerateParagraphs(root)) {
                 List<Run>? fieldRuns = null;
-                foreach (var run in paragraph.Elements<Run>()) {
+                foreach (var run in paragraph.Descendants<Run>()) {
                     var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
                         fieldRuns = new List<Run> { run };

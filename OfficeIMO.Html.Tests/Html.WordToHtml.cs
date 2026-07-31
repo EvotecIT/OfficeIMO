@@ -21,7 +21,9 @@ namespace OfficeIMO.Tests {
             HtmlTextConversionResult result = doc.ToHtmlResult();
 
             Assert.True(result.Succeeded);
+            Assert.False(result.HasLoss);
             Assert.Contains("Result contract", result.RequireValue(), StringComparison.Ordinal);
+            Assert.Equal(result.Value, result.RequireNoLoss());
         }
 
         [Fact]

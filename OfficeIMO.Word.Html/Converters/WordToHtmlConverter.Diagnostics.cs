@@ -91,7 +91,9 @@ namespace OfficeIMO.Word.Html {
             if (document._wordprocessingDocument.DigitalSignatureOriginPart != null) {
                 AddExportDiagnostic(options, "PackageSignaturesOmitted", "OPC package signatures are not represented in HTML.", HtmlConversionLossKind.Omission);
             }
-            if (!options.ExportHeadersAndFooters && document.Sections.Any(section => section.Header != null || section.Footer != null)) {
+            if (!options.ExportHeadersAndFooters && document.Sections.Any(section =>
+                section.Header.Default != null || section.Header.Even != null || section.Header.First != null ||
+                section.Footer.Default != null || section.Footer.Even != null || section.Footer.First != null)) {
                 AddExportDiagnostic(options, "HeadersFootersOmitted", "Section headers or footers were omitted because ExportHeadersAndFooters is false.", HtmlConversionLossKind.Omission);
             }
             if (!options.ExportFootnotes && document.FootNotes.Count > 0) {

@@ -189,6 +189,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsThemeLimitationFromUsedStyleDefinitions() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_style_theme_source.docx");
+            CreateDocumentWithInheritedComparisonStyle(sourcePath, paragraphSpacingAfter: "120", runColor: "1F4E79");
+            SetComparisonStyleThemeColor(sourcePath, ThemeColorValues.Accent1);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_style_theme_target.docx");
+            CreateDocumentWithInheritedComparisonStyle(targetPath, paragraphSpacingAfter: "120", runColor: "1F4E79");
+            SetComparisonStyleThemeColor(targetPath, ThemeColorValues.Accent2);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureOptionsCanDisableImageFindings() {
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -395,6 +413,16 @@ namespace OfficeIMO.Tests {
                 ThemeColor = themeColor
             };
             wordDocument.MainDocumentPart.Document.Save();
+        }
+
+        private static void SetComparisonStyleThemeColor(string path, ThemeColorValues themeColor) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Style style = wordDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .Elements<Style>()
+                .Single(item => string.Equals(item.StyleId?.Value, "OfficeIMOEffectiveBase", StringComparison.Ordinal));
+            style.StyleRunProperties ??= new StyleRunProperties();
+            style.StyleRunProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color { ThemeColor = themeColor };
+            wordDocument.MainDocumentPart.StyleDefinitionsPart.Styles.Save();
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Xml;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Collections.Generic;
@@ -275,6 +276,26 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Failed, result.Status);
             Assert.Contains("content type", result.Detail, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_FragmentBearingPackageReferenceIsUnsupported() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureFragmentReference.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Fragment-bearing package reference");
+                document.Save();
+            }
+            string digest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            AddDigitalSignatureMetadata(filePath, CreateSignatureXml(
+                referenceUri: "/word/document.xml#target",
+                digestValue: digest));
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures();
+
+            Assert.Equal(WordSignatureValidationState.Unsupported, validation.SignedPartCoverageStatus);
+            Assert.NotEqual(WordSignatureValidationState.Passed, validation.SignedPartDigestStatus);
+            Assert.False(validation.IsValidUnderPolicy);
         }
 
         [Fact]
@@ -683,7 +704,10 @@ namespace OfficeIMO.Tests {
             WordDocument.SignPackage(filePath, signer, new WordPackageSigningOptions {
                 SignatureId = "OfficeIMOTimestampedSignature"
             });
-            AddRfc3161Timestamp(filePath, timestampCorrectSignatureValue: true);
+            AddRfc3161Timestamp(
+                filePath,
+                timestampCorrectSignatureValue: true,
+                canonicalizationAlgorithm: SignedXml.XmlDsigExcC14NTransformUrl);
 
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
@@ -751,6 +775,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordSignatureValidationState.Failed, validation.TimestampStatus);
             Assert.False(validation.IsValidUnderPolicy);
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "TimestampMalformed");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_RejectsOversizedTimestampBeforeDecoding() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureOversizedTimestamp.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Oversized RFC 3161 timestamp token");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer);
+            AddRfc3161Timestamp(filePath, timestampCorrectSignatureValue: true, timestampTokenText: new string('A', 512));
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions { MaxTimestampBytes = 32 };
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.False(validation.IsValidUnderPolicy);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
         }
 
         [Fact]
@@ -1009,7 +1057,11 @@ namespace OfficeIMO.Tests {
             return new X509Certificate2(certificate.Export(X509ContentType.Pfx), (string?)null, X509KeyStorageFlags.Exportable);
         }
 
-        private static void AddRfc3161Timestamp(string filePath, bool timestampCorrectSignatureValue, string? timestampTokenText = null) {
+        private static void AddRfc3161Timestamp(
+            string filePath,
+            bool timestampCorrectSignatureValue,
+            string? timestampTokenText = null,
+            string? canonicalizationAlgorithm = null) {
             using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
             ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
                 entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
@@ -1025,7 +1077,7 @@ namespace OfficeIMO.Tests {
             XmlElement signature = signatureXml.DocumentElement!;
             XmlElement signatureValue = (XmlElement)signature.SelectSingleNode("ds:SignatureValue", namespaceManager)!;
             byte[] timestampedValue = timestampCorrectSignatureValue
-                ? System.Convert.FromBase64String(signatureValue.InnerText)
+                ? CanonicalizeSignatureValue(signatureValue, canonicalizationAlgorithm)
                 : Encoding.UTF8.GetBytes("not the XML signature value");
             byte[] timestampToken = CreateRfc3161TimestampToken(timestampedValue);
 
@@ -1035,6 +1087,11 @@ namespace OfficeIMO.Tests {
             XmlElement unsignedProperties = signatureXml.CreateElement("xades", "UnsignedProperties", qualifyingProperties.NamespaceURI);
             XmlElement unsignedSignatureProperties = signatureXml.CreateElement("xades", "UnsignedSignatureProperties", qualifyingProperties.NamespaceURI);
             XmlElement signatureTimeStamp = signatureXml.CreateElement("xades", "SignatureTimeStamp", qualifyingProperties.NamespaceURI);
+            if (!string.IsNullOrWhiteSpace(canonicalizationAlgorithm)) {
+                XmlElement canonicalizationMethod = signatureXml.CreateElement("ds", "CanonicalizationMethod", SignedXml.XmlDsigNamespaceUrl);
+                canonicalizationMethod.SetAttribute("Algorithm", canonicalizationAlgorithm);
+                signatureTimeStamp.AppendChild(canonicalizationMethod);
+            }
             XmlElement encapsulated = signatureXml.CreateElement("xades", "EncapsulatedTimeStamp", qualifyingProperties.NamespaceURI);
             encapsulated.InnerText = timestampTokenText ?? System.Convert.ToBase64String(timestampToken);
             signatureTimeStamp.AppendChild(encapsulated);
@@ -1047,6 +1104,21 @@ namespace OfficeIMO.Tests {
             using Stream destination = signatureEntry.Open();
             destination.SetLength(0);
             signatureXml.Save(destination);
+        }
+
+        private static byte[] CanonicalizeSignatureValue(XmlElement signatureValue, string? algorithm) {
+            var input = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            XmlElement imported = (XmlElement)input.ImportNode(signatureValue, deep: true);
+            imported.SetAttribute("xmlns", SignedXml.XmlDsigNamespaceUrl);
+            input.AppendChild(imported);
+            Transform transform = algorithm == SignedXml.XmlDsigExcC14NTransformUrl
+                ? new XmlDsigExcC14NTransform()
+                : new XmlDsigC14NTransform();
+            transform.LoadInput(input);
+            using Stream canonical = (Stream)transform.GetOutput(typeof(Stream));
+            using var output = new MemoryStream();
+            canonical.CopyTo(output);
+            return output.ToArray();
         }
 
         private static byte[] CreateRfc3161TimestampToken(byte[] timestampedData) {
