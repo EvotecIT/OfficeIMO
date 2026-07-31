@@ -6,6 +6,8 @@ namespace OfficeIMO.Excel;
 /// Shared Excel built-in number format lookup used by style inspection, auto-fit, pivots, and image export.
 /// </summary>
 internal static class ExcelBuiltInNumberFormats {
+    internal const uint FirstCustomId = 164U;
+
     internal static readonly IReadOnlyDictionary<uint, string> Codes = new Dictionary<uint, string> {
         [0U] = "General",
         [1U] = "0",

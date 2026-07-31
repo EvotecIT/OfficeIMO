@@ -39,6 +39,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private const int BrtEndCellStyleXfs = 627;
         private const int MaxStyleItems = 65_536;
         private const string WorksheetRelationshipSuffix = "/worksheet";
+        private const string ChartSheetRelationshipSuffix = "/chartsheet";
+        private const string DialogSheetRelationshipSuffix = "/dialogsheet";
+        private const string MacroSheetRelationshipSuffix = "/macrosheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
 
@@ -291,7 +294,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private IReadOnlyList<string> ReadSharedStrings(
             string workbookPartName,
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships) {
-            XlsbPackageRelationship? relationship = GetOptionalSingletonRelationship(
+            XlsbPackageRelationship? relationship = XlsbPackagePartReader.GetOptionalSingletonRelationship(
                 relationships,
                 SharedStringsRelationshipSuffix,
                 "shared-string");
@@ -373,7 +376,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private bool[] ReadDateStyles(
             string workbookPartName,
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships) {
-            XlsbPackageRelationship? relationship = GetOptionalSingletonRelationship(
+            XlsbPackageRelationship? relationship = XlsbPackagePartReader.GetOptionalSingletonRelationship(
                 relationships,
                 StylesRelationshipSuffix,
                 "styles");
@@ -615,7 +618,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 cellFormats,
                 fontCount,
                 fillCount,
-                borderCount);
+                borderCount,
+                customFormats);
 
             return cellFormats
                 .Select(format =>
@@ -623,28 +627,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     || (customFormats.TryGetValue(format.NumberFormatId, out string? code)
                         && ExcelNumberFormatClassifier.LooksLikeDateFormat(code)))
                 .ToArray();
-        }
-
-        private static XlsbPackageRelationship? GetOptionalSingletonRelationship(
-            IReadOnlyDictionary<string, XlsbPackageRelationship> relationships,
-            string relationshipTypeSuffix,
-            string relationshipName) {
-            XlsbPackageRelationship? match = null;
-            foreach (XlsbPackageRelationship candidate in relationships.Values) {
-                if (candidate.IsExternal
-                    || !candidate.Type.EndsWith(relationshipTypeSuffix, StringComparison.Ordinal)) {
-                    continue;
-                }
-
-                if (match != null) {
-                    throw new InvalidDataException(
-                        $"The XLSB workbook contains multiple internal {relationshipName} relationships.");
-                }
-
-                match = candidate;
-            }
-
-            return match;
         }
 
         private static bool IsSupportedStyleCollectionBegin(int recordType) =>
@@ -705,7 +687,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     throw new InvalidDataException(
                         $"The BrtFill record at offset {record.RecordOffset} declares too many gradient stops.");
                 }
-                if (gradientStopCount == 0 && cursor.Remaining != 0) {
+                for (uint index = 0; index < gradientStopCount; index++) {
+                    cursor.ReadDouble();
+                    cursor.Skip(8);
+                }
+                if (cursor.Remaining != 0) {
                     throw new InvalidDataException(
                         $"The BrtFill record at offset {record.RecordOffset} has unexpected trailing data.");
                 }
@@ -758,13 +744,19 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             IReadOnlyList<XlsbTabularCellFormatReference> cellFormats,
             int fontCount,
             int fillCount,
-            int borderCount) {
+            int borderCount,
+            IReadOnlyDictionary<ushort, string> customFormats) {
             foreach (XlsbTabularCellFormatReference format in cellStyleFormats.Concat(cellFormats)) {
                 if (format.FontId >= fontCount
                     || format.FillId >= fillCount
                     || format.BorderId >= borderCount) {
                     throw new InvalidDataException(
                         $"The XLSB styles part '{partName}' contains a cell format with an out-of-range font, fill, or border reference.");
+                }
+                if (format.NumberFormatId >= ExcelBuiltInNumberFormats.FirstCustomId
+                    && !customFormats.ContainsKey(format.NumberFormatId)) {
+                    throw new InvalidDataException(
+                        $"The XLSB styles part '{partName}' contains a cell format that references missing custom number format {format.NumberFormatId}.");
                 }
             }
 
@@ -869,7 +861,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         $"The XLSB worksheet '{bundle.Name}' references external relationship '{bundle.RelationshipId}'.");
                 }
                 if (!relationship.Type.EndsWith(WorksheetRelationshipSuffix, StringComparison.Ordinal)) {
-                    continue;
+                    if (IsSupportedNonWorksheetSheetRelationship(relationship.Type)) {
+                        continue;
+                    }
+
+                    throw new InvalidDataException(
+                        $"The XLSB sheet '{bundle.Name}' references unrelated internal relationship '{bundle.RelationshipId}'.");
                 }
                 if (!worksheetNames.Add(bundle.Name)) {
                     throw new InvalidDataException(
@@ -882,6 +879,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             return sheets;
         }
+
+        private static bool IsSupportedNonWorksheetSheetRelationship(string relationshipType) =>
+            relationshipType.EndsWith(ChartSheetRelationshipSuffix, StringComparison.Ordinal)
+            || relationshipType.EndsWith(DialogSheetRelationshipSuffix, StringComparison.Ordinal)
+            || relationshipType.EndsWith(MacroSheetRelationshipSuffix, StringComparison.Ordinal);
 
         private void ThrowIfDisposed() {
             if (_disposed) {

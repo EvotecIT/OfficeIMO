@@ -139,10 +139,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int headerLastColumn = headerValues != null && headerValues.Count > 0
                     ? headerValues.Keys.Max()
                     : -1;
-                int firstColumn = int.MaxValue;
-                if (dimensionLastColumn >= dimensionFirstColumn) {
-                    firstColumn = dimensionFirstColumn;
-                }
+                int firstColumn = dimensionLastColumn >= dimensionFirstColumn
+                    ? dimensionFirstColumn
+                    : int.MaxValue;
                 if (headerFirstColumn != int.MaxValue) {
                     firstColumn = Math.Min(firstColumn, headerFirstColumn);
                 }
@@ -154,8 +153,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
 
                 int lastColumn = Math.Max(
-                    Math.Max(dimensionLastColumn, headerLastColumn),
+                    headerLastColumn,
                     actualLastColumn);
+                if (lastColumn < 0 && dimensionLastColumn >= dimensionFirstColumn) {
+                    lastColumn = dimensionLastColumn;
+                }
                 _firstColumn = firstColumn;
                 int fieldCount = lastColumn >= firstColumn
                     ? checked(lastColumn - firstColumn + 1)

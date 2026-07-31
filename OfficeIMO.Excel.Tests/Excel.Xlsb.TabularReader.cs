@@ -666,6 +666,7 @@ public partial class Excel {
         Assert.Equal(1000, reader.FieldCount);
         Assert.True(reader.Read());
         Assert.Equal(1.25, reader.GetDouble(0));
+        Assert.Equal(2.5, reader.GetDouble(999));
         Assert.False(reader.Read());
     }
 
@@ -819,6 +820,7 @@ public partial class Excel {
         XlsbRecordWriter.Write(stream, 145);
         XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(0));
         XlsbRecordWriter.Write(stream, 5, CreateRealCellPayload(0, 1.25));
+        XlsbRecordWriter.Write(stream, 5, CreateRealCellPayload(fieldCount - 1, 2.5));
         XlsbRecordWriter.Write(stream, 146);
         XlsbRecordWriter.Write(stream, 130);
         stream.Position = 0;

@@ -126,6 +126,30 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             return relationships;
         }
 
+        internal static XlsbPackageRelationship? GetOptionalSingletonRelationship(
+            IReadOnlyDictionary<string, XlsbPackageRelationship> relationships,
+            string relationshipTypeSuffix,
+            string relationshipName) {
+            XlsbPackageRelationship? match = null;
+            foreach (XlsbPackageRelationship candidate in relationships.Values) {
+                if (!candidate.Type.EndsWith(relationshipTypeSuffix, StringComparison.Ordinal)) {
+                    continue;
+                }
+                if (candidate.IsExternal) {
+                    throw new InvalidDataException(
+                        $"The XLSB workbook contains an external {relationshipName} relationship.");
+                }
+                if (match != null) {
+                    throw new InvalidDataException(
+                        $"The XLSB workbook contains multiple internal {relationshipName} relationships.");
+                }
+
+                match = candidate;
+            }
+
+            return match;
+        }
+
         internal static string ResolveTarget(string sourcePartName, string target) {
             if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("Relationship target cannot be empty.", nameof(target));
             string normalizedTarget = target.Replace('\\', '/');

@@ -379,8 +379,10 @@ namespace OfficeIMO.Excel.Xlsb {
             XlsbImportOptions options,
             XlsbWorkbook workbook,
             XlsbRecordReadBudget recordBudget) {
-            XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(item =>
-                !item.IsExternal && item.Type.EndsWith(StylesRelationshipSuffix, StringComparison.Ordinal));
+            XlsbPackageRelationship? relationship = XlsbPackagePartReader.GetOptionalSingletonRelationship(
+                relationships,
+                StylesRelationshipSuffix,
+                "styles");
             if (relationship == null) return null;
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
@@ -395,8 +397,10 @@ namespace OfficeIMO.Excel.Xlsb {
             XlsbImportOptions options,
             XlsbWorkbook workbook,
             XlsbRecordReadBudget recordBudget) {
-            XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(item =>
-                !item.IsExternal && item.Type.EndsWith(SharedStringsRelationshipSuffix, StringComparison.Ordinal));
+            XlsbPackageRelationship? relationship = XlsbPackagePartReader.GetOptionalSingletonRelationship(
+                relationships,
+                SharedStringsRelationshipSuffix,
+                "shared-string");
             if (relationship == null) return Array.Empty<string>();
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
