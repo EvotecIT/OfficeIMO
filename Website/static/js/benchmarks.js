@@ -386,6 +386,18 @@
     return key ? compatibility[key] : null;
   }
 
+  function compatibilityIssueSummary(issues) {
+    var categories = [];
+    var text = (issues || []).join(' ');
+    if (/sourceCommit|gitSha/.test(text)) categories.push('source commit');
+    if (/runtimeVersion|dotNetSdkVersion/.test(text)) categories.push('runtime/SDK');
+    if (/Architecture|processorName|CoreCount|ProcessorCount/.test(text)) categories.push('hardware');
+    if (/benchmark\.(?:workload|comparison)\.shape|(?:^| )suite:/.test(text)) {
+      categories.push('workload definition');
+    }
+    return categories.length ? categories.join(', ') : 'recorded evidence dimensions';
+  }
+
   function comparisonGroupName(row) {
     var variables = row && row.variables ? row.variables : {};
     var dimensions = [];
@@ -454,7 +466,17 @@
       meta.appendChild(span);
     });
 
-    state.hidden = true;
+    if (entry.comparable === false) {
+      state.hidden = false;
+      state.className = 'imo-library-comparison-state incompatible';
+      state.textContent =
+        'Results below compare libraries within the selected lane only. Cross-OS comparison is disabled because ' +
+        compatibilityIssueSummary(entry.compatibilityIssues) + ' differ.';
+      state.title = (entry.compatibilityIssues || []).join(' ');
+    } else {
+      state.hidden = true;
+      state.removeAttribute('title');
+    }
     table.hidden = false;
   }
 
@@ -464,6 +486,7 @@
     setQuery();
     table.hidden = true;
     meta.innerHTML = '';
+    state.removeAttribute('title');
     var entry = (catalog.entries || []).find(function (candidate) {
       return candidate.comparisonId === selectedComparison &&
         candidate.platform === selectedPlatform &&
@@ -476,13 +499,6 @@
       state.textContent = 'No ' + selectedMode + ' evidence has been published for ' + platformLabel(selectedPlatform) + ' yet.';
       return;
     }
-    if (entry.comparable === false) {
-      state.hidden = false;
-      state.className = 'imo-library-comparison-state incompatible';
-      state.textContent = 'This lane is not directly comparable: ' + (entry.compatibilityIssues || []).join(' ');
-      return;
-    }
-
     state.hidden = false;
     state.className = 'imo-library-comparison-state';
     state.textContent = 'Loading ' + platformLabel(selectedPlatform) + ' ' + selectedMode + ' results…';

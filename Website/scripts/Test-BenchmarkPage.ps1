@@ -249,6 +249,8 @@ if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch "compatibilityValue\(entry, 'gitSha'\)" -or
     $scriptText -notmatch "sourceCommit\.substring\(0, 12\)" -or
     $scriptText -notmatch 'compatibilityIssues' -or
+    $scriptText -notmatch 'Results below compare libraries within the selected lane only' -or
+    $scriptText -notmatch 'compatibilityIssueSummary' -or
     $scriptText -notmatch "macos:\s*'macOS'" -or
     $scriptText -notmatch 'workloadName\(\)' -or
     $scriptText -notmatch 'comparisonGroupName\(row\)' -or
