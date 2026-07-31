@@ -105,9 +105,24 @@ public sealed class ReleasePackagingGuardrails {
         AssertDotNetInstallCommands(
             readme,
             releasePackageIds,
-            expectedCount: 17,
-            expectedVersion: CurrentPublishedPackageVersion,
-            toolPackageIds: ["OfficeIMO.Tool"]);
+            expectedCount: 16,
+            expectedVersion: CurrentPublishedPackageVersion);
+        Assert.DoesNotContain(
+            "dotnet tool install --global OfficeIMO.Tool --version 3.0.3",
+            readme,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- <command>",
+            readme,
+            StringComparison.Ordinal);
+
+        string toolReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Tool", "README.md"));
+        Assert.Contains("This README describes the `3.1.x` source-tree surface", toolReadme, StringComparison.Ordinal);
+        Assert.Contains(
+            "dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- mcp serve --stdio",
+            toolReadme,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("OfficeIMO.Tool@3.0.3", toolReadme, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -10,6 +10,7 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         var report = MarkdigExtensionInventory.Build(repositoryRoot);
         string markdown = MarkdigExtensionInventoryMarkdownWriter.Write(report);
         string matrix = MarkdigExtensionCompatibilityMatrixWriter.Write(report);
+        string partialBoundaries = MarkdigExtensionInventoryMarkdownWriter.WritePublishedPartialBoundaries(report);
 
         Assert.Empty(report.MissingTrackedUseMethods);
         Assert.Empty(report.ObsoleteTrackedUseMethods);
@@ -30,10 +31,18 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Contains("AST/source", matrix, StringComparison.Ordinal);
         Assert.Contains("Writer/render", matrix, StringComparison.Ordinal);
 
-        string publishedMatrix = File.ReadAllText(Path.Combine(
+        string publishedMatrixPath = Path.Combine(
             repositoryRoot,
             "Docs",
-            "officeimo.markdown.compatibility-matrix.md"));
+            "officeimo.markdown.compatibility-matrix.md");
+        if (string.Equals(
+                Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_MARKDIG_INVENTORY"),
+                "1",
+                StringComparison.Ordinal)) {
+            UpdatePublishedPartialBoundaries(publishedMatrixPath, partialBoundaries);
+        }
+
+        string publishedMatrix = NormalizeLineEndings(File.ReadAllText(publishedMatrixPath));
         Assert.Contains($"| Extension-family rows | {report.Total} |", publishedMatrix, StringComparison.Ordinal);
         Assert.Contains($"| Covered | {report.Covered} |", publishedMatrix, StringComparison.Ordinal);
         Assert.Contains($"| Partial | {report.Partial} |", publishedMatrix, StringComparison.Ordinal);
@@ -43,6 +52,7 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
             $"| {row.Family} | `{row.Status}` | {row.Route} |",
             publishedMatrix,
             StringComparison.Ordinal));
+        Assert.Contains(partialBoundaries, publishedMatrix, StringComparison.Ordinal);
     }
 
     private static string GetRepositoryRoot() {
@@ -57,5 +67,21 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
 
         throw new DirectoryNotFoundException("Unable to locate OfficeIMO repository root from test runtime base directory.");
     }
+
+    private static void UpdatePublishedPartialBoundaries(string path, string generatedSection) {
+        string content = NormalizeLineEndings(File.ReadAllText(path));
+        int start = content.IndexOf(MarkdigExtensionInventoryMarkdownWriter.PartialBoundariesStart, StringComparison.Ordinal);
+        int end = content.IndexOf(MarkdigExtensionInventoryMarkdownWriter.PartialBoundariesEnd, StringComparison.Ordinal);
+        if (start < 0 || end < start) {
+            throw new InvalidDataException("The published extension partial-boundary markers are missing or out of order.");
+        }
+
+        end += MarkdigExtensionInventoryMarkdownWriter.PartialBoundariesEnd.Length;
+        string updated = content.Substring(0, start) + generatedSection + content.Substring(end);
+        File.WriteAllText(path, updated);
+    }
+
+    private static string NormalizeLineEndings(string value) =>
+        value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
 
 }

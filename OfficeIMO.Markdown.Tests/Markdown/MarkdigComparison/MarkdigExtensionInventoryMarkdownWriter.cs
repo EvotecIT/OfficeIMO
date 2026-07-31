@@ -1,6 +1,9 @@
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class MarkdigExtensionInventoryMarkdownWriter {
+    internal const string PartialBoundariesStart = "<!-- extension-partial-boundaries:start -->";
+    internal const string PartialBoundariesEnd = "<!-- extension-partial-boundaries:end -->";
+
     public static string Write(MarkdigExtensionInventoryReport report) {
         var sb = new StringBuilder();
 
@@ -68,5 +71,29 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         return sb.ToString().Replace("\r\n", "\n");
     }
 
+    public static string WritePublishedPartialBoundaries(MarkdigExtensionInventoryReport report) {
+        var sb = new StringBuilder();
+        sb.AppendLine(PartialBoundariesStart);
+        sb.AppendLine("### Partial-family boundaries");
+        sb.AppendLine();
+        sb.AppendLine("These are the exact current implementation boundaries and promotion requirements for every `Partial` family in the structured extension inventory.");
+
+        foreach (MarkdigExtensionInventoryRow row in report.Rows.Where(static row =>
+                     row.Status == MarkdigExtensionInventoryStatus.Partial)) {
+            sb.AppendLine();
+            sb.Append("#### ").AppendLine(EscapePublishedText(row.Family));
+            sb.AppendLine();
+            sb.Append("- **OfficeIMO state:** ").AppendLine(EscapePublishedText(row.OfficeImoState));
+            sb.Append("- **Promotion bar:** ").AppendLine(EscapePublishedText(row.PromotionBar));
+        }
+
+        sb.AppendLine(PartialBoundariesEnd);
+        return sb.ToString().Replace("\r\n", "\n").TrimEnd();
+    }
+
     private static string EscapeTable(string value) => value.Replace("|", "\\|");
+
+    private static string EscapePublishedText(string value) => value
+        .Replace("<", "&lt;", StringComparison.Ordinal)
+        .Replace(">", "&gt;", StringComparison.Ordinal);
 }

@@ -72,7 +72,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 - [ ] Keep `OfficeIMO.Reader.Core` dependency-light while expanding the stable rich-result contract for pages, blocks, tables, links, forms, assets, visuals, OCR candidates, chunks, metadata, and source references.
 - [ ] Deepen PDF logical-model projection, structured tables, assets, visual extraction, hierarchical chunks, and format-specific provenance.
-- [ ] Add processor-pipeline and structured-extraction capabilities only when they remain deterministic, bounded, and format-neutral.
+- [ ] Define the deferred generic `ExtractStructured<T>()` contract only after the delivered non-generic structured extractor and processor pipeline have downstream compatibility evidence; keep model/client SDK dependencies outside Core.
 - [ ] Keep OCR and other heavy/platform-specific providers optional; define their input, timeout, cancellation, and diagnostic contracts at the Core boundary.
 
 ## Email, stores, and cloud adapters
