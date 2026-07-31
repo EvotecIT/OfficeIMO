@@ -143,17 +143,20 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            using (PreserveDirectDataSetSaveCandidateDuringDirtyMarks()) {
-                _materializingDeferredDataSetImport = true;
-                try {
-                    MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
-                    if (ReferenceEquals(_directDataSetSaveCandidate, candidate)) {
-                        _directDataSetSaveCandidate = null;
-                        candidate.Dispose();
-                    }
-                } finally {
-                    _materializingDeferredDataSetImport = false;
+            _directDataSetSaveCandidate = null;
+            _materializingDeferredDataSetImport = true;
+            try {
+                MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
+                candidate.Dispose();
+            } catch {
+                if (_directDataSetSaveCandidate == null) {
+                    _directDataSetSaveCandidate = candidate;
+                } else {
+                    candidate.Dispose();
                 }
+                throw;
+            } finally {
+                _materializingDeferredDataSetImport = false;
             }
         }
 
