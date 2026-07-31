@@ -427,6 +427,12 @@ public sealed class ReleasePackagingGuardrails {
             "`TrackComments`",
             "`ImageShapeStyleHelper`",
             "`HorizontalAlignmentHelper`",
+            "`WasLoadedFromLegacyDoc`",
+            "`MaxWordDocumentStreamBytes`",
+            "`ReportUnsupportedFeatures`",
+            "`WasLoadedFromLegacyXls`",
+            "`MaxWorkbookStreamBytes`",
+            "`ReportUnsupportedRecords`",
             "`AsciiDocPdfSaveOptions.PdfOptions`",
             "`LatexPdfSaveOptions.PdfOptions`",
             "`OneNotePdfSaveOptions.PdfOptions`",
@@ -446,6 +452,7 @@ public sealed class ReleasePackagingGuardrails {
         Assert.DoesNotContain("Save and associate a path or stream", rootReadme, StringComparison.Ordinal);
         Assert.Contains("PDF -->|\"visual pages or editable tables\"| PowerPoint", rootReadme, StringComparison.Ordinal);
         Assert.DoesNotContain("PDF -->|\"logical tables only\"| PowerPoint", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("ignored-error metadata preservation", rootReadme, StringComparison.Ordinal);
 
         string visioReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Visio", "README.md"));
         Assert.Contains("### Loaded-diagram compatibility boundary", visioReadme, StringComparison.Ordinal);
@@ -522,7 +529,15 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
         Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
         Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
+        Assert.Contains("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Add Visio and portable-document adapters", roadmap, StringComparison.Ordinal);
+
+        string legacyXlsCompatibility = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.excel.legacy-xls-compatibility.md"));
+        string legacyDocCompatibility = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.word.legacy-doc-compatibility.md"));
+        Assert.DoesNotContain("## Breaking API cleanup", legacyXlsCompatibility, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Breaking API cleanup", legacyDocCompatibility, StringComparison.Ordinal);
+        Assert.DoesNotContain("`WasLoadedFromLegacyXls`", legacyXlsCompatibility, StringComparison.Ordinal);
+        Assert.DoesNotContain("`WasLoadedFromLegacyDoc`", legacyDocCompatibility, StringComparison.Ordinal);
 
         string wordCompatibility = File.ReadAllText(Path.Combine(
             repositoryRoot,

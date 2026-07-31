@@ -176,6 +176,34 @@ Detailed `LegacyXlsImportReport` record-family counters such as `CommentsByObjec
 
 The `OfficeIMO.Drawing` target-framework compatibility type `System.Runtime.CompilerServices.IsExternalInit` is internal in 3.0. Remove any application reference to that shim; normal record and `init` usage remains supported.
 
+### Legacy DOC and XLS API changes
+
+Legacy Word callers use the normal `WordDocument` lifecycle and explicit conversion policies:
+
+| OfficeIMO 2.x | OfficeIMO 3.0 |
+| --- | --- |
+| `SaveAs(pathOrStream)` | `SaveCopy(pathOrStream)` |
+| `SaveAsByteArray()` | `ToBytes()` |
+| `SaveAsMemoryStream()` | `ToStream()` |
+| `WasLoadedFromLegacyDoc` | `SourceFormat == WordFileFormat.Doc` |
+| `MaxWordDocumentStreamBytes` | `MaxInputBytes` |
+| `ReportUnsupportedFeatures` | `ReportUnsupportedContent` |
+| positional overwrite conversion flag | `FileConflictPolicy` |
+| save-triggered application launch | Call `OpenInApplication(path)` explicitly after a successful save |
+| lossy conversion Boolean | `LossPolicy` |
+
+Legacy Excel callers use the same explicit format and policy vocabulary:
+
+| OfficeIMO 2.x | OfficeIMO 3.0 |
+| --- | --- |
+| `WasLoadedFromLegacyXls` | `SourceFormat == ExcelFileFormat.Xls` |
+| `MaxWorkbookStreamBytes` | `MaxInputBytes` |
+| `ReportUnsupportedRecords` | `ReportUnsupportedContent` |
+| overwrite conversion Boolean | `FileConflictPolicy` |
+| save-triggered application launch | Call `OpenInApplication(path)` explicitly after a successful save |
+| lossy conversion/save Boolean | `LossPolicy` |
+| implicit stream format option | `Save(stream, ExcelFileFormat, options)` or `ToXlsx()` / `ToXls()` |
+
 ## OfficeIMO 1.x to 2.0
 
 OfficeIMO 2.0 established the shared lifecycle and result vocabulary used by the current packages.

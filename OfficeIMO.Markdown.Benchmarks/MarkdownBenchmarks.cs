@@ -21,7 +21,11 @@ public class MarkdownParseBenchmarks {
         _commonMarkOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
         _portableOptions = MarkdownReaderOptions.CreatePortableProfile();
         _markdown = MarkdownBenchmarkCorpus.Get(CorpusName);
-        MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(CorpusName, _markdown, _commonMarkOptions);
+        MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(
+            CorpusName,
+            _markdown,
+            _commonMarkOptions,
+            MarkdownBenchmarkValidation.CreateOfficeCommonMarkHtmlOptions());
     }
 
     [Benchmark(Baseline = true)]
@@ -53,6 +57,7 @@ public class MarkdownHtmlBenchmarks {
 
     private MarkdownReaderOptions _commonMarkOptions = null!;
     private MarkdownReaderOptions _portableOptions = null!;
+    private HtmlOptions _commonMarkHtmlOptions = null!;
     private string _markdown = string.Empty;
 
     [ParamsSource(nameof(CorpusNames))]
@@ -64,12 +69,13 @@ public class MarkdownHtmlBenchmarks {
     public void Setup() {
         _commonMarkOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
         _portableOptions = MarkdownReaderOptions.CreatePortableProfile();
+        _commonMarkHtmlOptions = MarkdownBenchmarkValidation.CreateOfficeCommonMarkHtmlOptions();
         _markdown = MarkdownBenchmarkCorpus.Get(CorpusName);
-        MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(CorpusName, _markdown, _commonMarkOptions);
+        MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(CorpusName, _markdown, _commonMarkOptions, _commonMarkHtmlOptions);
     }
 
     [Benchmark(Baseline = true)]
-    public string OfficeIMO_ToHtml_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions).ToHtmlFragment();
+    public string OfficeIMO_ToHtml_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions).ToHtmlFragment(_commonMarkHtmlOptions);
 
     [Benchmark]
     public string Markdig_ToHtml_CommonMark() => Markdig.Markdown.ToHtml(_markdown, MarkdigCommonMarkPipeline);

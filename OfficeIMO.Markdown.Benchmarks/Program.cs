@@ -7,7 +7,8 @@ if (args.Length == 1 && string.Equals(args[0], "--validate-equivalence", StringC
         MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(
             corpusName,
             MarkdownBenchmarkCorpus.Get(corpusName),
-            MarkdownReaderOptions.CreateCommonMarkProfile());
+            MarkdownReaderOptions.CreateCommonMarkProfile(),
+            MarkdownBenchmarkValidation.CreateOfficeCommonMarkHtmlOptions());
     }
 
     Console.WriteLine("CommonMark benchmark equivalence validation passed.");

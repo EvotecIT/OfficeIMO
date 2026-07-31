@@ -137,7 +137,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 - [x] Object, dictionary, `DataTable`, `DataSet`, row, stream, and typed-model import/export with editable-row workflows
 - [x] Streaming reads, direct package writers, parallel compute/apply phases, progress, cancellation, and large-workbook controls
 - [x] Fonts, fills, borders, alignment, number formats, rich text, themes, row/column sizing, and reusable report styling
-- [x] Data validation, conditional formatting, icon sets, data bars, color scales, ignored-error metadata, and sparklines
+- [x] Data validation, conditional formatting, icon sets, data bars, color scales, ignored-error metadata preservation, and sparklines
 - [x] Formula authoring, dependency graphs, unsupported-formula diagnostics, and a bounded calculation engine for reporting functions
 - [x] Charts across common 2-D/3-D, pie, radar, stock, surface, combo, secondary-axis, trendline, and dashboard scenarios
 - [x] Pivot tables with row/column/page/data fields, layouts, styles, filters, grouping metadata, calculated fields, and readback

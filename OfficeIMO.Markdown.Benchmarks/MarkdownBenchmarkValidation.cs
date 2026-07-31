@@ -9,8 +9,9 @@ internal static class MarkdownBenchmarkValidation {
     internal static void AssertCommonMarkEquivalent(
         string corpusName,
         string markdown,
-        MarkdownReaderOptions officeOptions) {
-        string officeHtml = NormalizeHtml(MarkdownReader.Parse(markdown, officeOptions).ToHtmlFragment());
+        MarkdownReaderOptions officeOptions,
+        HtmlOptions officeHtmlOptions) {
+        string officeHtml = NormalizeHtml(MarkdownReader.Parse(markdown, officeOptions).ToHtmlFragment(officeHtmlOptions));
         string markdigHtml = NormalizeHtml(Markdig.Markdown.ToHtml(markdown, MarkdigCommonMarkPipeline));
         if (string.Equals(officeHtml, markdigHtml, StringComparison.Ordinal)) {
             return;
@@ -28,19 +29,15 @@ internal static class MarkdownBenchmarkValidation {
         string normalized = html.Replace("\r\n", "\n", StringComparison.Ordinal)
             .Replace('\r', '\n')
             .Trim();
-        const string articlePrefix = "<article class=\"markdown-body\">";
-        if (normalized.StartsWith(articlePrefix, StringComparison.Ordinal) &&
-            normalized.EndsWith("</article>", StringComparison.Ordinal)) {
-            normalized = normalized.Substring(
-                articlePrefix.Length,
-                normalized.Length - articlePrefix.Length - "</article>".Length);
-        }
-
-        normalized = Regex.Replace(normalized, "(<h[1-6]) id=\"[^\"]*\"", "$1");
         normalized = Regex.Replace(normalized, ">\\n+<", "><");
         normalized = normalized.Replace("<br />", "<br>", StringComparison.Ordinal).Trim();
         return NormalizeCollapsibleWhitespace(normalized);
     }
+
+    internal static HtmlOptions CreateOfficeCommonMarkHtmlOptions() => new HtmlOptions {
+        AutoHeadingIdentifiers = false,
+        BodyClass = null
+    };
 
     private static string NormalizeCollapsibleWhitespace(string html) {
         string[] segments = Regex.Split(html, "(<pre(?:\\s[^>]*)?>.*?</pre>)", RegexOptions.IgnoreCase | RegexOptions.Singleline);

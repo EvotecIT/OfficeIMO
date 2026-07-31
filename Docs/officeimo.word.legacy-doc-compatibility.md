@@ -100,22 +100,6 @@ if (summary.HasConversionLoss) {
 
 For corpus analysis or forensic detail, use `load.AdvancedDocument` and `load.CreateAdvancedImportReport()`. Import options use the common names `MaxInputBytes` and `ReportUnsupportedContent`. File conversion always enables unsupported-content discovery—even when a supplied import option disables reporting—because `LossPolicy.Block` must never be bypassed silently. Import options are selected from detected physical content, so format-specific limits still apply when a legacy file has a misleading extension.
 
-## Breaking API cleanup
-
-The parity API intentionally uses one vocabulary:
-
-| Removed API | Use |
-|---|---|
-| `SaveAs(path/stream)` | `SaveCopy(path/stream)` |
-| `SaveAsByteArray()` | `ToBytes()` |
-| `SaveAsMemoryStream()` | `ToStream()` |
-| `WasLoadedFromLegacyDoc` | `SourceFormat == WordFileFormat.Doc` |
-| `MaxWordDocumentStreamBytes` | `MaxInputBytes` |
-| `ReportUnsupportedFeatures` | `ReportUnsupportedContent` |
-| positional overwrite conversion flag | `FileConflictPolicy` |
-| save-triggered application launch | Call `OpenInApplication(path)` explicitly after a successful save |
-| lossy conversion Boolean | `LossPolicy` |
-
 ## Validation
 
 The normal automated test lane is dependency-free. Optional desktop Word validation is explicitly skipped unless `OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION` is enabled. When enabled, missing Windows, Word, or required corpus inputs fail the lane instead of producing a false pass.

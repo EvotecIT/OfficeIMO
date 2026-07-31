@@ -35,7 +35,7 @@ Benchmark classes currently cover:
 - document normalization transform cost, including syntax-tree diagnostics
 - HTML-to-Markdown conversion cost across OfficeIMO output profiles and the current ReverseMarkdown benchmark-only baseline
 
-The CommonMark parse and HTML comparison classes run an untimed setup preflight for every corpus. The preflight parses with both OfficeIMO and Markdig, renders both results, removes renderer-only wrappers and heading anchors, normalizes HTML-collapsible whitespace while preserving preformatted blocks, and rejects the benchmark case unless the remaining HTML is identical. Timings therefore begin only after both implementations have proven the same observable output for that input.
+The CommonMark parse and HTML comparison classes run an untimed setup preflight for every corpus. Both measured HTML paths render without automatic heading identifiers or an outer body wrapper, matching CommonMark's heading and fragment output rather than hiding different work during validation. The preflight parses with both OfficeIMO and Markdig, renders both results, normalizes line endings, equivalent break-tag spelling, and HTML-collapsible whitespace while preserving preformatted blocks, and rejects the benchmark case unless the remaining HTML is identical. Timings therefore begin only after both implementations have proven the same observable output for that input.
 
 Run the same preflight without collecting timings:
 

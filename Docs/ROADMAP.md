@@ -28,6 +28,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Build one reusable reference syntax tree and rewriter for formulas, names, tables, charts, pivots, print definitions, and structural edits.
 - [ ] Provide transactional row, column, and cell insertion/deletion plus copy, move, and transpose, with a dry-run mutation plan and post-edit package diagnostics.
 - [ ] Complete AutoFilter criteria/state, table schema mutation, formula-aware search, range algebra, named styles, view/print state, conditional-formatting, and sparkline lifecycles.
+- [ ] Add format-neutral public management for allowed-edit ranges and ignored-error regions, including preservation and remapping through structural edits.
 - [ ] Complete A1/R1C1 conversion and explicit authored, cached, evaluated, dirty, deferred, and unsupported formula states, including dynamic-array metadata and high-value function clusters.
 - [ ] Deepen pivot, slicer, timeline, modern-chart, query-backed source, and shared-cache workflows.
 - [ ] Add native in-cell images and preserve their behavior through sorting, filtering, resizing, copying, and structural edits.
