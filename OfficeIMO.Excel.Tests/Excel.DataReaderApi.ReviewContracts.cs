@@ -1,0 +1,205 @@
+using System.Data.Common;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Xlsb.Biff12;
+using Xunit;
+
+namespace OfficeIMO.Excel.Tests;
+
+public partial class Excel {
+    [Fact]
+    public void OpenDataReader_XlsbNextResultRejectsMissingSharedStringDuringDiscovery() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.InvalidSkippedSheetSharedString.{Guid.NewGuid():N}.xlsb");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet first = document.AddWorksheet("First");
+                first.CellValue(1, 1, "Value");
+                first.CellValue(2, 1, "Ready");
+                ExcelSheet second = document.AddWorksheet("Second");
+                second.CellValue(1, 1, "Value");
+                second.CellValue(2, 1, "Never delivered");
+                File.WriteAllBytes(path, document.ToBytes(ExcelFileFormat.Xlsb));
+            }
+            ReplaceXlsbTextCellWithSharedStringIndex(
+                path,
+                "xl/worksheets/sheet2.bin",
+                occurrence: 2,
+                uint.MaxValue);
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions { InferSchema = false });
+            Assert.True(reader.Read());
+            Assert.Equal("Ready", reader.GetString(0));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => reader.NextResult());
+
+            Assert.Contains("missing shared string", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(reader.IsClosed);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, "missing relationship")]
+    [InlineData(true, "external relationship")]
+    public void OpenDataReader_RejectsInvalidOpenXmlWorksheetRelationship(
+        bool external,
+        string expectedMessage) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.InvalidWorksheetRelationship.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddWorksheet("First").CellValue(1, 1, "Ready");
+                document.AddWorksheet("Second").CellValue(1, 1, "Never delivered");
+                document.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Sheet second = workbookPart.Workbook.Sheets!.Elements<Sheet>().ElementAt(1);
+                const string relationshipId = "rIdInvalidWorksheet";
+                if (external) {
+                    workbookPart.AddExternalRelationship(
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+                        new Uri("https://example.invalid/sheet2.xml"),
+                        relationshipId);
+                }
+                second.Id = relationshipId;
+                workbookPart.Workbook.Save();
+            }
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbClassifiesCustomDateStylesAfterAllStyleCollections() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.LateNumberFormats.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("styles-dates-formulas.xlsb"), path);
+        try {
+            MoveXlsbCollectionAfter(
+                path,
+                "xl/styles.bin",
+                beginRecordType: 615,
+                endRecordType: 616,
+                targetEndRecordType: 618);
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+
+            Assert.True(reader.Read());
+            Assert.Equal(new DateTime(2024, 2, 29), reader.GetDateTime(0));
+            Assert.Equal(new DateTime(2024, 2, 29), Assert.IsType<DateTime>(reader.GetValue(0)));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Reader_NumericGettersDoNotMaterializeOutOfRangeDateStyles() {
+        using var memory = new MemoryStream();
+        using (var document = ExcelDocument.Create(
+            memory,
+            new ExcelCreateOptions {
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+            })) {
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "AsDouble");
+            sheet.CellValue(1, 2, "AsInt32");
+            sheet.CellValue(2, 1, 1E100);
+            sheet.CellValue(2, 2, int.MaxValue);
+            sheet.CellAt(2, 1).SetNumberFormat("yyyy-mm-dd");
+            sheet.CellAt(2, 2).SetNumberFormat("yyyy-mm-dd");
+        }
+
+        using ExcelDocumentReader owner = ExcelDocumentReader.Open(
+            memory.ToArray(),
+            new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+        using var reader = owner
+            .GetSheet("Data")
+            .ReadUsedRangeAsDataReader(schemaSampleRows: 0);
+
+        Assert.True(reader.Read());
+        Assert.Equal(1E100, reader.GetDouble(0));
+        Assert.Equal(int.MaxValue, reader.GetInt32(1));
+    }
+
+    private static void ReplaceXlsbTextCellWithSharedStringIndex(
+        string path,
+        string entryName,
+        int occurrence,
+        uint sharedStringIndex) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+        using var output = new MemoryStream();
+        int currentOccurrence = 0;
+        bool replaced = false;
+        foreach (XlsbRecord record in records) {
+            byte[] data = record.Data;
+            int recordType = record.Type;
+            if ((record.Type == 6 || record.Type == 7)
+                && ++currentOccurrence == occurrence) {
+                Assert.True(data.Length >= 8);
+                var replacement = new byte[12];
+                Buffer.BlockCopy(data, 0, replacement, 0, 8);
+                data = replacement;
+                WriteUInt32LittleEndian(data, 8, sharedStringIndex);
+                recordType = 7;
+                replaced = true;
+            }
+            XlsbRecordWriter.Write(output, recordType, data);
+        }
+
+        Assert.True(replaced);
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
+    private static void MoveXlsbCollectionAfter(
+        string path,
+        string entryName,
+        int beginRecordType,
+        int endRecordType,
+        int targetEndRecordType) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        List<XlsbRecord> records = XlsbRecordReader.ReadAll(input).ToList();
+        int beginIndex = records.FindIndex(record => record.Type == beginRecordType);
+        int endIndex = records.FindIndex(
+            beginIndex,
+            record => record.Type == endRecordType);
+        int targetEndIndex = records.FindIndex(record => record.Type == targetEndRecordType);
+        Assert.True(beginIndex >= 0);
+        Assert.True(endIndex >= beginIndex);
+        Assert.True(targetEndIndex > endIndex);
+        List<XlsbRecord> moved = records.GetRange(beginIndex, endIndex - beginIndex + 1);
+
+        using var output = new MemoryStream();
+        for (int index = 0; index < records.Count; index++) {
+            if (index < beginIndex || index > endIndex) {
+                XlsbRecord record = records[index];
+                XlsbRecordWriter.Write(output, record.Type, record.Data);
+            }
+            if (index == targetEndIndex) {
+                foreach (XlsbRecord record in moved) {
+                    XlsbRecordWriter.Write(output, record.Type, record.Data);
+                }
+            }
+        }
+
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+}

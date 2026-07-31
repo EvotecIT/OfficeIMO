@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
             int styleCount,
+            int sharedStringCount,
             CancellationToken cancellationToken,
             out int firstColumn,
             out int lastColumn,
@@ -129,6 +130,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     int column = ValidateCellPayloadStructure(
                         record,
                         styleCount,
+                        sharedStringCount,
                         limits.MaxStringCharacters);
                     if (column < 0 || column >= A1.MaxColumns) {
                         throw new InvalidDataException(
@@ -209,6 +211,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private static int ValidateCellPayloadStructure(
             XlsbRecordSlice record,
             int styleCount,
+            int sharedStringCount,
             int maxStringCharacters) {
             try {
                 var cursor = record.CreateCursor();
@@ -223,8 +226,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     case BrtCellBlank:
                         break;
                     case BrtCellRk:
-                    case BrtCellIsst:
                         cursor.ReadUInt32();
+                        break;
+                    case BrtCellIsst:
+                        uint sharedStringIndex = cursor.ReadUInt32();
+                        if (sharedStringIndex >= sharedStringCount) {
+                            throw new InvalidDataException(
+                                $"The XLSB cell record at offset {record.RecordOffset} refers to missing shared string " +
+                                $"{sharedStringIndex}; the shared-string part exposes {sharedStringCount} item(s).");
+                        }
                         break;
                     case BrtCellError:
                     case BrtCellBool:

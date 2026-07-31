@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
                 ? owner
                 : new CompositeOwner(owner, additionalOwner);
             try {
-                IReadOnlyList<string> availableSheets = owner.GetSheetNames();
+                IReadOnlyList<string> availableSheets = owner.GetValidatedWorksheetNames();
                 ValidateUniqueSheetNames(availableSheets, options.CancellationToken);
                 IReadOnlyList<string> sheets = SelectSheets(availableSheets, options.SheetName);
                 return new ExcelWorkbookDataReader(

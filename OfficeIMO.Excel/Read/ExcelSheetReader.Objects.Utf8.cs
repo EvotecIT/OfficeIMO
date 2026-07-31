@@ -40,6 +40,7 @@ namespace OfficeIMO.Excel {
                             out _,
                             out _,
                             out _,
+                            out _,
                             out headerValues[columnOffset]);
                     }
 
@@ -117,6 +118,7 @@ namespace OfficeIMO.Excel {
                 out DateTime dateTimeValue,
                 out bool booleanValue,
                 out bool isFormulaText,
+                out _,
                 out object? objectValue);
 
             switch (primitiveKind) {

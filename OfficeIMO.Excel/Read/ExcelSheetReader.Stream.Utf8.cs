@@ -48,6 +48,7 @@ namespace OfficeIMO.Excel {
                                 out _,
                                 out _,
                                 out _,
+                                out _,
                                 out rowValues[columnOffset]);
                         }
                     }

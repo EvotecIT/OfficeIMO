@@ -383,7 +383,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             byte[] bytes = _parts.ReadPart(partName, _cancellationToken);
             var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
             var customFormats = new Dictionary<ushort, string>();
-            var dateStyles = new List<bool>();
             var cellStyleFormats = new List<XlsbTabularCellFormatReference>();
             var cellFormats = new List<XlsbTabularCellFormatReference>();
             var seenCollectionBegins = new HashSet<int>();
@@ -573,11 +572,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     }
                     case BrtXf when activeCollectionEnd == BrtEndCellXfs: {
                         XlsbTabularCellFormatReference format = ReadCellFormatReference(record);
-                        bool isDate = ExcelBuiltInNumberFormats.IsDate(format.NumberFormatId)
-                            || (customFormats.TryGetValue(format.NumberFormatId, out string? code)
-                                && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
                         cellFormats.Add(format);
-                        dateStyles.Add(isDate);
                         actualCollectionCount++;
                         break;
                     }
@@ -604,7 +599,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB styles part '{partName}' is missing required stylesheet or collection boundary records.");
             }
-            if (!sawCellFormats || dateStyles.Count == 0) {
+            if (!sawCellFormats || cellFormats.Count == 0) {
                 throw new InvalidDataException(
                     $"The XLSB styles part '{partName}' is missing the required non-empty cell-format collection.");
             }
@@ -620,7 +615,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 fillCount,
                 borderCount);
 
-            return dateStyles.ToArray();
+            return cellFormats
+                .Select(format =>
+                    ExcelBuiltInNumberFormats.IsDate(format.NumberFormatId)
+                    || (customFormats.TryGetValue(format.NumberFormatId, out string? code)
+                        && ExcelNumberFormatClassifier.LooksLikeDateFormat(code)))
+                .ToArray();
         }
 
         private static bool IsSupportedStyleCollectionBegin(int recordType) =>

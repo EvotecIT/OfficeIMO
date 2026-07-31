@@ -542,8 +542,9 @@ namespace OfficeIMO.Excel {
                         out _currentDateTimeValues[ordinal],
                         out _currentBooleanValues[ordinal],
                         out _,
+                        out bool deferObjectMaterialization,
                         out _currentValues[ordinal]);
-                    _currentValueLoaded[ordinal] = true;
+                    _currentValueLoaded[ordinal] = !deferObjectMaterialization;
                     return;
                 }
 
