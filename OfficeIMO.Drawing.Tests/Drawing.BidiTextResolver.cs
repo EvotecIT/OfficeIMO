@@ -51,6 +51,19 @@ public partial class Drawing {
     }
 
     [Fact]
+    public void BidiTextResolver_OverflowIsolateCannotClearPendingEmbeddingOverflow() {
+        string logical = "A\u202E"
+            + new string('\u202A', 200)
+            + "\u2067\u2069"
+            + new string('\u202C', 200)
+            + "abc\u202CB";
+
+        string visual = OfficeBidiTextResolver.ToVisualOrder(logical, OfficeTextDirection.LeftToRight);
+
+        Assert.Equal("AcbaB", visual);
+    }
+
+    [Fact]
     public void BidiTextResolver_HonorsCancellationDuringBoundedResolution() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

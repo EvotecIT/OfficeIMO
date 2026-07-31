@@ -199,6 +199,42 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocument_ToPowerPointPresentation_HybridRetainsEditableTablesWhenVisualRenderFails() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "14" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 180, 80 }
+            })
+            .ToBytes();
+        var options = PdfPowerPointImportOptions.CreateHybrid();
+        options.MaxPixelsPerPage = 10;
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf).ToPowerPointPresentationResult(options);
+
+        Assert.False(Assert.Single(result.Report.VisualPages).Succeeded);
+        Assert.Single(result.Report.TableEntries);
+        using var presentation = new MemoryStream();
+        using (result.Value) result.Value.Save(presentation);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
+        SlidePart slide = Assert.Single(package.PresentationPart!.SlideParts);
+        Assert.Empty(slide.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>());
+        Assert.Single(slide.Slide.Descendants<A.Table>());
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_ImportsDetectedTablesAsPowerPointTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

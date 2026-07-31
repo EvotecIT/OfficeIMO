@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Drawing;
@@ -73,7 +74,7 @@ public static partial class OfficeSvgDrawingReader {
             AddChildren(maskElement, maskContent, maskStyle, paintServers, references, maskTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                 ref visited, ref pathCommands, ref unsupported);
-            OfficeDrawing maskDrawing = ClipMaskToRegion(maskContent, regionX, regionY, regionWidth, regionHeight);
+            OfficeDrawing maskDrawing = ClipMaskToRegion(maskContent, regionX, regionY, regionWidth, regionHeight, transform);
             OfficeSoftMaskMode mode = ReadPresentationProperty(maskElement, "mask-type")?.Trim().Equals("alpha", StringComparison.OrdinalIgnoreCase) == true
                 ? OfficeSoftMaskMode.Alpha
                 : OfficeSoftMaskMode.Luminosity;
@@ -117,23 +118,99 @@ public static partial class OfficeSvgDrawingReader {
         double regionX,
         double regionY,
         double regionWidth,
-        double regionHeight) {
-        double left = Math.Max(0D, regionX);
-        double top = Math.Max(0D, regionY);
-        double right = Math.Min(content.Width, regionX + regionWidth);
-        double bottom = Math.Min(content.Height, regionY + regionHeight);
-        if (right <= left || bottom <= top) return new OfficeDrawing(content.Width, content.Height);
-        if (left <= 0D && top <= 0D && right >= content.Width && bottom >= content.Height) return content;
+        double regionHeight,
+        OfficeTransform transform) {
+        var region = new List<OfficePoint>(4) {
+            transform.TransformPoint(new OfficePoint(regionX, regionY)),
+            transform.TransformPoint(new OfficePoint(regionX + regionWidth, regionY)),
+            transform.TransformPoint(new OfficePoint(regionX + regionWidth, regionY + regionHeight)),
+            transform.TransformPoint(new OfficePoint(regionX, regionY + regionHeight))
+        };
+        region = ClipPolygon(region, MaskClipBoundary.Left, 0D);
+        region = ClipPolygon(region, MaskClipBoundary.Top, 0D);
+        region = ClipPolygon(region, MaskClipBoundary.Right, content.Width);
+        region = ClipPolygon(region, MaskClipBoundary.Bottom, content.Height);
+        if (region.Count < 3) return new OfficeDrawing(content.Width, content.Height);
+
+        double left = double.MaxValue;
+        double top = double.MaxValue;
+        double right = double.MinValue;
+        double bottom = double.MinValue;
+        var commands = new List<OfficePathCommand>(region.Count + 1);
+        for (int index = 0; index < region.Count; index++) {
+            OfficePoint point = region[index];
+            left = Math.Min(left, point.X);
+            top = Math.Min(top, point.Y);
+            right = Math.Max(right, point.X);
+            bottom = Math.Max(bottom, point.Y);
+            commands.Add(index == 0
+                ? OfficePathCommand.MoveTo(point)
+                : OfficePathCommand.LineTo(point));
+        }
+        if (right - left <= 0.000001D || bottom - top <= 0.000001D) {
+            return new OfficeDrawing(content.Width, content.Height);
+        }
+        commands.Add(OfficePathCommand.Close());
 
         var clipped = new OfficeDrawing(content.Width, content.Height);
         clipped.AddClippedDrawing(
             content,
             left,
             top,
-            OfficeClipPath.Rectangle(right - left, bottom - top),
+            OfficeClipPath.Path(commands),
             -left,
             -top);
         return clipped;
+    }
+
+    private static List<OfficePoint> ClipPolygon(
+        IReadOnlyList<OfficePoint> source,
+        MaskClipBoundary boundary,
+        double boundaryValue) {
+        var result = new List<OfficePoint>(source.Count + 2);
+        if (source.Count == 0) return result;
+        OfficePoint previous = source[source.Count - 1];
+        bool previousInside = IsInsideMaskBoundary(previous, boundary, boundaryValue);
+        for (int index = 0; index < source.Count; index++) {
+            OfficePoint current = source[index];
+            bool currentInside = IsInsideMaskBoundary(current, boundary, boundaryValue);
+            if (currentInside != previousInside) {
+                result.Add(IntersectMaskBoundary(previous, current, boundary, boundaryValue));
+            }
+            if (currentInside) result.Add(current);
+            previous = current;
+            previousInside = currentInside;
+        }
+        return result;
+    }
+
+    private static bool IsInsideMaskBoundary(OfficePoint point, MaskClipBoundary boundary, double value) {
+        switch (boundary) {
+            case MaskClipBoundary.Left: return point.X >= value;
+            case MaskClipBoundary.Top: return point.Y >= value;
+            case MaskClipBoundary.Right: return point.X <= value;
+            default: return point.Y <= value;
+        }
+    }
+
+    private static OfficePoint IntersectMaskBoundary(
+        OfficePoint start,
+        OfficePoint end,
+        MaskClipBoundary boundary,
+        double value) {
+        if (boundary is MaskClipBoundary.Left or MaskClipBoundary.Right) {
+            double ratio = (value - start.X) / (end.X - start.X);
+            return new OfficePoint(value, start.Y + ratio * (end.Y - start.Y));
+        }
+        double verticalRatio = (value - start.Y) / (end.Y - start.Y);
+        return new OfficePoint(start.X + verticalRatio * (end.X - start.X), value);
+    }
+
+    private enum MaskClipBoundary {
+        Left,
+        Top,
+        Right,
+        Bottom
     }
 
     private static string? ReadPresentationProperty(XElement element, string propertyName) {

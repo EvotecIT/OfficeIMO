@@ -418,7 +418,9 @@ public static partial class PowerPointPdfConverterExtensions {
         double slideWidthPoints,
         double slideHeightPoints) {
         const double emusPerPoint = 12700D;
-        VisualPagePlacement placement = GetVisualPagePlacement(render, slideWidthPoints, slideHeightPoints);
+        VisualPagePlacement placement = render.Width > 0 && render.Height > 0
+            ? GetVisualPagePlacement(render.Width, render.Height, slideWidthPoints, slideHeightPoints)
+            : GetVisualPagePlacement(page.Width, page.Height, slideWidthPoints, slideHeightPoints);
         int firstColumn = Math.Min(segment.ColumnStartIndex, Math.Max(0, table.Columns.Count - 1));
         int lastColumn = Math.Min(table.Columns.Count, segment.ColumnStartIndex + segment.ColumnCount) - 1;
         double leftPoints = table.Columns.Count == 0 ? 0D : table.Columns[firstColumn].From;
@@ -448,10 +450,19 @@ public static partial class PowerPointPdfConverterExtensions {
     private static VisualPagePlacement GetVisualPagePlacement(
         PdfCore.PdfPageRenderResult page,
         double slideWidthPoints,
+        double slideHeightPoints) =>
+        GetVisualPagePlacement(page.Width, page.Height, slideWidthPoints, slideHeightPoints);
+
+    private static VisualPagePlacement GetVisualPagePlacement(
+        double pageWidth,
+        double pageHeight,
+        double slideWidthPoints,
         double slideHeightPoints) {
-        double scale = Math.Min(slideWidthPoints / Math.Max(1D, page.Width), slideHeightPoints / Math.Max(1D, page.Height));
-        double width = page.Width * scale;
-        double height = page.Height * scale;
+        double safePageWidth = Math.Max(1D, pageWidth);
+        double safePageHeight = Math.Max(1D, pageHeight);
+        double scale = Math.Min(slideWidthPoints / safePageWidth, slideHeightPoints / safePageHeight);
+        double width = safePageWidth * scale;
+        double height = safePageHeight * scale;
         return new VisualPagePlacement(
             (slideWidthPoints - width) / 2D,
             (slideHeightPoints - height) / 2D,

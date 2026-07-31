@@ -64,6 +64,26 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgDrawingReader_TransformsUserSpaceMaskRegionWithReferencingGroup() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><defs>"
+            + "<mask id='translated' maskUnits='userSpaceOnUse' x='0' y='0' width='2' height='4'>"
+            + "<rect width='2' height='4' fill='white'/></mask></defs>"
+            + "<rect width='10' height='4' fill='blue'/>"
+            + "<g transform='translate(4 0)' mask='url(#translated)'><rect width='2' height='4' fill='red'/></g></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.True(raster.GetPixel(1, 2).B > 240);
+        Assert.True(raster.GetPixel(5, 2).R > 240);
+    }
+
+    [Fact]
     public void OfficeSvgDrawingReader_DiagnosesUnsupportedFiltersWithoutDroppingSupportedGeometry() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><rect width='10' height='10' fill='red' filter='url(#blur)'/></svg>";
 

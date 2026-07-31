@@ -185,7 +185,7 @@ public static class OfficeBidiTextResolver {
         int level = NextEmbeddingLevel(states.Peek().Level, direction);
         bool overflowed = level > MaximumEmbeddingDepth
             || overflow.OverflowIsolateCount > 0
-            || (!isolate && overflow.OverflowEmbeddingCount > 0);
+            || overflow.OverflowEmbeddingCount > 0;
         if (overflowed) {
             if (isolate) overflow.OverflowIsolateCount++;
             else if (overflow.OverflowIsolateCount == 0) overflow.OverflowEmbeddingCount++;
