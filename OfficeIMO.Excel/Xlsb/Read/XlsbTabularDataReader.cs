@@ -94,6 +94,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     limits,
                     recordBudget,
                     cellBudget,
+                    dateStyles.Length,
                     cancellationToken,
                     out actualFirstColumn,
                     out actualLastColumn,

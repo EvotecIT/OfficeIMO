@@ -69,6 +69,20 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_GetFieldValueSupportsNullablePrimitives() {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Value");
+        sheet.CellValue(2, 1, 42);
+        byte[] workbook = document.ToBytes();
+
+        using DbDataReader reader = ExcelDocument.OpenDataReader(workbook);
+
+        Assert.True(reader.Read());
+        Assert.Equal(42, reader.GetFieldValue<int?>(0));
+    }
+
+    [Fact]
     public void OpenDataReader_RejectsCaseInsensitiveDuplicateOpenXmlWorksheetNames() {
         string path = Path.Combine(
             Path.GetTempPath(),
@@ -956,7 +970,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void OpenDataReader_XlsbRejectsMissingCellStyleInFastPath() {
+    public void OpenDataReader_XlsbRejectsMissingCellStyleDuringDiscovery() {
         string path = Path.Combine(
             Path.GetTempPath(),
             $"OfficeIMO.Excel.InvalidStyle.{Guid.NewGuid():N}.xlsb");
@@ -964,9 +978,8 @@ public partial class Excel {
         try {
             ReplaceFirstXlsbDataCellStyleIndex(path, 0x00FFFFFEU);
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => reader.Read());
+                () => ExcelDocument.OpenDataReader(path));
 
             Assert.Contains("missing cell format", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -1242,10 +1255,11 @@ public partial class Excel {
 
     private static void ReplaceFirstXlsbDataCellStyleIndex(
         string path,
-        uint styleIndex) {
+        uint styleIndex,
+        string entryName = "xl/worksheets/sheet1.bin") {
         using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
-        ZipArchiveEntry originalEntry = archive.GetEntry("xl/worksheets/sheet1.bin")
-            ?? throw new InvalidDataException("The XLSB fixture has no first worksheet part.");
+        ZipArchiveEntry originalEntry = archive.GetEntry(entryName)
+            ?? throw new InvalidDataException($"The XLSB fixture has no '{entryName}' worksheet part.");
         byte[] bytes;
         using (Stream input = originalEntry.Open()) {
             using var output = new MemoryStream();
@@ -1288,7 +1302,7 @@ public partial class Excel {
         Assert.True(replaced);
         originalEntry.Delete();
         ZipArchiveEntry replacement = archive.CreateEntry(
-            "xl/worksheets/sheet1.bin",
+            entryName,
             CompressionLevel.Optimal);
         using Stream destination = replacement.Open();
         destination.Write(bytes, 0, bytes.Length);

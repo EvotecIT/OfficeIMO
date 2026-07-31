@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
+            int styleCount,
             CancellationToken cancellationToken,
             out int firstColumn,
             out int lastColumn,
@@ -108,6 +109,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     lastDataRow = currentRow;
                     int column = ValidateCellPayloadStructure(
                         record,
+                        styleCount,
                         limits.MaxStringCharacters);
                     if (column < 0 || column >= A1.MaxColumns) {
                         throw new InvalidDataException(
@@ -157,11 +159,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private static int ValidateCellPayloadStructure(
             XlsbRecordSlice record,
+            int styleCount,
             int maxStringCharacters) {
             try {
                 var cursor = record.CreateCursor();
                 int column = cursor.ReadInt32();
-                cursor.ReadUInt32(); // style index
+                uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
+                if (styleIndex >= styleCount) {
+                    throw new InvalidDataException(
+                        $"The XLSB cell record at offset {record.RecordOffset} refers to missing cell format " +
+                        $"{styleIndex}; the styles part exposes {styleCount} format(s).");
+                }
                 switch (record.Type) {
                     case BrtCellBlank:
                         break;

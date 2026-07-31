@@ -338,6 +338,40 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_XlsbNextResultRejectsMissingCellStyleDuringDiscovery() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.InvalidSkippedSheetStyle.{Guid.NewGuid():N}.xlsb");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet first = document.AddWorksheet("First");
+                first.CellValue(1, 1, "Value");
+                first.CellValue(2, 1, "Ready");
+                ExcelSheet second = document.AddWorksheet("Second");
+                second.CellValue(1, 1, "Value");
+                second.CellValue(2, 1, "Never delivered");
+                File.WriteAllBytes(path, document.ToBytes(ExcelFileFormat.Xlsb));
+            }
+            ReplaceFirstXlsbDataCellStyleIndex(
+                path,
+                0x00FFFFFEU,
+                "xl/worksheets/sheet2.bin");
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            Assert.True(reader.Read());
+            Assert.Equal("Ready", reader.GetString(0));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => reader.NextResult());
+
+            Assert.Contains("missing cell format", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(reader.IsClosed);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_XlsbNextResultRejectsDuplicateRowHeaderDuringDiscovery() {
         string path = Path.Combine(
             Path.GetTempPath(),
