@@ -641,6 +641,7 @@ namespace OfficeIMO.Excel {
 
         internal void ApplyAutoFilterBlankCriteria(string range, uint columnId) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
+            ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
@@ -679,6 +680,7 @@ namespace OfficeIMO.Excel {
             bool isPercent) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             if (value < 1 || value > 500) throw new ArgumentOutOfRangeException(nameof(value), "Top10 AutoFilter values must be between 1 and 500.");
+            ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
@@ -711,6 +713,16 @@ namespace OfficeIMO.Excel {
                 autoFilter.Append(filterColumn);
                 worksheet.Save();
             });
+        }
+
+        private static void ValidateAutoFilterColumnOffset(string range, uint columnId) {
+            ExcelReference reference = ExcelReference.Parse(range);
+            if (reference.Kind != ExcelReferenceKind.Cell && reference.Kind != ExcelReferenceKind.Range) {
+                throw new ArgumentException("AutoFilter ranges require a cell or rectangular range reference.", nameof(range));
+            }
+            reference.GetBounds(out _, out int firstColumn, out _, out int lastColumn);
+            uint width = checked((uint)(lastColumn - firstColumn + 1));
+            if (columnId >= width) throw new ArgumentOutOfRangeException(nameof(columnId), "AutoFilter column offset must be inside the filter range.");
         }
 
     }

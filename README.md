@@ -138,7 +138,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 - [x] Streaming reads, direct package writers, parallel compute/apply phases, progress, cancellation, and large-workbook controls
 - [x] Fonts, fills, borders, alignment, number formats, rich text, themes, row/column sizing, and reusable report styling
 - [x] Transactional row/column/cell shifts plus copy/move/transpose with dry-runs, rollback budgets, reference remapping, and package diagnostics
-- [x] Data validation, conditional formatting, icon sets, data bars, color scales, allowed-edit/ignored-error management, and sparkline lifecycles
+- [x] Data validation, conditional formatting, icon sets, data bars, color scales, allowed-edit range management, ignored-error metadata preservation, and sparkline lifecycles
 - [x] Shared A1/R1C1 formula/reference syntax, formula-aware search and state diagnostics, dependency graphs, and a bounded calculation engine for reporting functions
 - [x] Charts across common 2-D/3-D, pie, radar, stock, surface, combo, secondary-axis, trendline, and dashboard scenarios
 - [x] Pivot tables with row/column/page/data fields, layouts, styles, filters, grouping metadata, calculated fields, and readback

@@ -109,6 +109,30 @@ namespace OfficeIMO.Excel {
                         part.FeedData(restore);
                     });
                 }
+                var relationshipBaselines = new Dictionary<OpenXmlPartContainer, HashSet<string>>();
+                var pending = new Stack<OpenXmlPartContainer>();
+                pending.Push(workbookPart);
+                while (pending.Count > 0) {
+                    OpenXmlPartContainer parent = pending.Pop();
+                    if (relationshipBaselines.ContainsKey(parent)) continue;
+                    IdPartPair[] parts = parent.Parts.ToArray();
+                    relationshipBaselines[parent] = new HashSet<string>(parts.Select(pair => pair.RelationshipId), StringComparer.Ordinal);
+                    foreach (IdPartPair pair in parts) pending.Push(pair.OpenXmlPart);
+                }
+                snapshot._restore.Add(() => {
+                    foreach (KeyValuePair<OpenXmlPartContainer, HashSet<string>> baseline in relationshipBaselines) {
+                        List<IdPartPair> addedParts;
+                        try {
+                            addedParts = baseline.Key.Parts
+                                .Where(pair => !baseline.Value.Contains(pair.RelationshipId)).ToList();
+                        } catch (InvalidOperationException) {
+                            continue;
+                        }
+                        foreach (IdPartPair added in addedParts) {
+                            baseline.Key.DeletePart(added.RelationshipId);
+                        }
+                    }
+                });
                 return snapshot;
             }
 

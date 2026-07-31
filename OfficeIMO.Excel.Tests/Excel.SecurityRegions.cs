@@ -61,5 +61,18 @@ namespace OfficeIMO.Tests {
             Assert.Empty(sheet.GetAllowedEditRanges());
             Assert.Empty(sheet.GetIgnoredErrorRegions());
         }
+
+        [Fact]
+        public void Test_SecurityRegions_RejectOtherWorksheetQualifiers() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            document.AddWorksheet("Other");
+            sheet.Protect();
+
+            Assert.Throws<System.ArgumentException>(() => sheet.SetAllowedEditRange("Inputs", new[] { "Other!A1" }));
+            Assert.Throws<System.ArgumentException>(() => sheet.AddIgnoredErrorRegion(new[] { "Other!A1" }, ExcelIgnoredErrorKind.NumberStoredAsText));
+            sheet.SetAllowedEditRange("Inputs", new[] { "'Data'!A1" });
+            Assert.Equal("A1", Assert.Single(Assert.Single(sheet.GetAllowedEditRanges()).Ranges));
+        }
     }
 }

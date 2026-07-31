@@ -50,12 +50,22 @@ namespace OfficeIMO.Excel {
             int changed = 0;
             WriteLock(() => {
                 foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>().ToList()) {
-                    bool matches = group.Descendants<Sparkline>().Any(sparkline =>
-                        SparklineLocationIntersects(sparkline, target));
-                    if (!matches || group.Type?.Value == type) continue;
-                    group.Type = type;
-                    changed += group.Descendants<Sparkline>().Count(sparkline =>
-                        SparklineLocationIntersects(sparkline, target));
+                    Sparkline[] all = group.Descendants<Sparkline>().ToArray();
+                    Sparkline[] matches = all.Where(sparkline => SparklineLocationIntersects(sparkline, target)).ToArray();
+                    if (matches.Length == 0 || group.Type?.Value == type) continue;
+                    if (matches.Length == all.Length) {
+                        group.Type = type;
+                    } else {
+                        var changedGroup = (SparklineGroup)group.CloneNode(true);
+                        Sparkline[] changedClones = changedGroup.Descendants<Sparkline>().ToArray();
+                        for (int index = changedClones.Length - 1; index >= 0; index--) {
+                            if (!SparklineLocationIntersects(changedClones[index], target)) changedClones[index].Remove();
+                        }
+                        foreach (Sparkline match in matches) match.Remove();
+                        changedGroup.Type = type;
+                        group.Parent!.InsertAfter(changedGroup, group);
+                    }
+                    changed += matches.Length;
                 }
                 if (changed > 0) WorksheetRoot.Save();
             });

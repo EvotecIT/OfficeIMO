@@ -42,6 +42,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_RangeMutations_MovePreservesOutsideReferencesInsideMovedFormula() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellFormula(1, 2, "A1");
+
+            sheet.MoveRange("B1", "C1");
+
+            Assert.Equal("A1", Assert.Single(sheet.GetFormulaCells()).Formula);
+        }
+
+        [Fact]
         public void Test_RangeMutations_InsertAndDeleteCellsRoundTripReferences() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Data");

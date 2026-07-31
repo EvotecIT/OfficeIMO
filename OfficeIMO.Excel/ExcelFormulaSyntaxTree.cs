@@ -112,6 +112,15 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (TryReadQualifiedName(formula, cursor, out int qualifiedNameLength)) {
+                    AddText(nodes, formula, textStart, cursor - textStart);
+                    string name = formula.Substring(cursor, qualifiedNameLength);
+                    nodes.Add(new ExcelFormulaNameSyntax(name, name));
+                    cursor += qualifiedNameLength;
+                    textStart = cursor;
+                    continue;
+                }
+
                 if (TryReadName(formula, cursor, out int nameLength)) {
                     AddText(nodes, formula, textStart, cursor - textStart);
                     string name = formula.Substring(cursor, nameLength);
@@ -182,7 +191,7 @@ namespace OfficeIMO.Excel {
             foreach (ExcelFormulaSyntaxNode node in _nodes) {
                 if (node is ExcelFormulaStructuredReferenceSyntax structured && structured.TableName != null) {
                     builder.Append(rewriter(structured.TableName) ?? "#REF!").Append(structured.Selector);
-                } else if (node is ExcelFormulaNameSyntax name) {
+                } else if (node is ExcelFormulaNameSyntax name && name.Name.IndexOf('!') < 0) {
                     builder.Append(rewriter(name.Name) ?? "#REF!");
                 } else {
                     builder.Append(node.Text);
@@ -240,6 +249,38 @@ namespace OfficeIMO.Excel {
             if (string.Equals(candidate, "TRUE", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(candidate, "FALSE", StringComparison.OrdinalIgnoreCase)) return false;
             length = index - start;
+            return true;
+        }
+
+        private static bool TryReadQualifiedName(string formula, int start, out int length) {
+            length = 0;
+            if (start > 0 && IsNamePart(formula[start - 1])) return false;
+            int separator;
+            if (formula[start] == '\'') {
+                int index = start + 1;
+                while (index < formula.Length) {
+                    if (formula[index] != '\'') { index++; continue; }
+                    if (index + 1 < formula.Length && formula[index + 1] == '\'') { index += 2; continue; }
+                    break;
+                }
+                if (index >= formula.Length || index + 1 >= formula.Length || formula[index + 1] != '!') return false;
+                separator = index + 1;
+            } else {
+                int index = start;
+                if (formula[index] == '[') {
+                    int close = formula.IndexOf(']', index + 1);
+                    if (close < 0) return false;
+                    index = close + 1;
+                }
+                if (index >= formula.Length || !IsNameStart(formula[index])) return false;
+                index++;
+                while (index < formula.Length && IsNamePart(formula[index])) index++;
+                if (index >= formula.Length || formula[index] != '!') return false;
+                separator = index;
+            }
+            int nameStart = separator + 1;
+            if (nameStart >= formula.Length || !TryReadName(formula, nameStart, out int nameLength)) return false;
+            length = nameStart + nameLength - start;
             return true;
         }
 

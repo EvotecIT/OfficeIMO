@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Removes every standard ignored-error region overlapping the supplied A1 cell or range.</summary>
         public int RemoveIgnoredErrorRegions(string range) {
-            ExcelReference target = ExcelReference.Parse(range);
+            ExcelReference target = ExcelReference.Parse(AssertLocalRegionReference(ExcelReference.Parse(range), nameof(range)));
             int removed = 0;
             WriteLock(() => {
                 IgnoredErrors? container = WorksheetRoot.GetFirstChild<IgnoredErrors>();
@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static IReadOnlyList<string> NormalizeRegionReferences(IEnumerable<string> ranges) {
+        private IReadOnlyList<string> NormalizeRegionReferences(IEnumerable<string> ranges) {
             if (ranges == null) throw new ArgumentNullException(nameof(ranges));
             var result = new List<string>();
             foreach (string raw in ranges) {
@@ -204,13 +204,28 @@ namespace OfficeIMO.Excel {
                 if (reference.Kind != ExcelReferenceKind.Cell && reference.Kind != ExcelReferenceKind.Range) {
                     throw new ArgumentException("Security regions require cell or rectangular range references.", nameof(ranges));
                 }
-                string normalized = reference.ToString(ExcelReferenceStyle.A1);
-                int separator = normalized.LastIndexOf('!');
-                if (separator >= 0) normalized = normalized.Substring(separator + 1);
+                string normalized = AssertLocalRegionReference(reference, nameof(ranges));
                 if (!result.Contains(normalized, StringComparer.OrdinalIgnoreCase)) result.Add(normalized);
             }
             if (result.Count == 0) throw new ArgumentException("At least one security region is required.", nameof(ranges));
             return new ReadOnlyCollection<string>(result);
+        }
+
+        private string AssertLocalRegionReference(ExcelReference reference, string parameterName) {
+            string? qualifier = reference.Qualifier;
+            if (!string.IsNullOrWhiteSpace(qualifier)) {
+                string sheet = qualifier!.Trim();
+                if (sheet.Length >= 2 && sheet[0] == '\'' && sheet[sheet.Length - 1] == '\'') {
+                    sheet = sheet.Substring(1, sheet.Length - 2).Replace("''", "'");
+                }
+                if (sheet.IndexOf('[') >= 0 || sheet.IndexOf(':') >= 0
+                    || !string.Equals(sheet, Name, StringComparison.OrdinalIgnoreCase)) {
+                    throw new ArgumentException($"Security region qualifier '{qualifier}' does not target worksheet '{Name}'.", parameterName);
+                }
+            }
+            string normalized = reference.ToString(ExcelReferenceStyle.A1);
+            int separator = normalized.LastIndexOf('!');
+            return separator >= 0 ? normalized.Substring(separator + 1) : normalized;
         }
 
         private static IReadOnlyList<string> ParseRegionReferences(string? references) {

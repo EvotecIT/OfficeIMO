@@ -68,6 +68,14 @@ namespace OfficeIMO.Excel {
                 if (targetBounds.r2 - targetBounds.r1 + 1 < Math.Max(1, headerRows + totalsRows)) {
                     throw new InvalidOperationException("The resized table must retain its configured header and totals rows.");
                 }
+                foreach (TableDefinitionPart otherPart in _worksheetPart.TableDefinitionParts) {
+                    Table? other = otherPart.Table;
+                    if (ReferenceEquals(other, table) || !ExcelReference.TryParse(other?.Reference?.Value, out ExcelReference? otherRange)) continue;
+                    string targetText = A1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + A1.CellReference(targetBounds.r2, targetBounds.c2);
+                    if (ExcelReference.Parse(targetText).Intersects(otherRange!)) {
+                        throw new InvalidOperationException($"Table resize would overlap table '{other!.DisplayName?.Value ?? other.Name?.Value}'.");
+                    }
+                }
 
                 TableColumns columns = table.TableColumns ??= new TableColumns();
                 List<TableColumn> existing = columns.Elements<TableColumn>().ToList();
@@ -179,6 +187,19 @@ namespace OfficeIMO.Excel {
                 formula.Text = ExcelFormulaSyntaxTree.Parse(formula.Text).RewriteStructuredReferences((name, selector) => name == null
                     ? ReplaceStructuredColumns(selector, renames)
                     : name + selector);
+            }
+        }
+
+        internal void InvalidateTableColumnReferences(string tableName, IReadOnlyCollection<string> removedNames, Table owner) {
+            bool ContainsRemoved(string selector) => removedNames.Any(name =>
+                selector.IndexOf("[" + name + "]", StringComparison.OrdinalIgnoreCase) >= 0);
+            RewriteFormulaRoots(text => ExcelFormulaSyntaxTree.Parse(text).RewriteStructuredReferences((name, selector) =>
+                name != null && string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase) && ContainsRemoved(selector)
+                    ? null
+                    : (name ?? string.Empty) + selector));
+            foreach (OpenXmlLeafTextElement formula in owner.Descendants<OpenXmlLeafTextElement>().Where(IsFormulaLeaf)) {
+                formula.Text = ExcelFormulaSyntaxTree.Parse(formula.Text).RewriteStructuredReferences((name, selector) =>
+                    name == null && ContainsRemoved(selector) ? null : (name ?? string.Empty) + selector);
             }
         }
 

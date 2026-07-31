@@ -232,7 +232,9 @@ namespace OfficeIMO.Excel {
                 Cell clone = snapshot.Cell;
                 clone.CellReference = A1.CellReference(targetRow, targetColumn);
                 if (clone.CellFormula != null) {
-                    clone.CellFormula.Text = TranslateCopiedFormula(clone.CellFormula.Text, snapshot.Row, snapshot.Column, targetRow, targetColumn, transpose);
+                    clone.CellFormula.Text = move
+                        ? TranslateMovedFormula(clone.CellFormula.Text, source, destinationRow, destinationColumn, transpose)
+                        : TranslateCopiedFormula(clone.CellFormula.Text, snapshot.Row, snapshot.Column, targetRow, targetColumn, transpose);
                     clone.CellFormula.CalculateCell = true;
                     clone.CellValue = null;
                 }
@@ -271,6 +273,33 @@ namespace OfficeIMO.Excel {
                     kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.Start),
                     kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.End),
                     kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.End),
+                    transpose ? reference.Start.ColumnAbsolute : null,
+                    transpose ? reference.Start.RowAbsolute : null,
+                    transpose ? reference.End.ColumnAbsolute : null,
+                    transpose ? reference.End.RowAbsolute : null);
+            });
+        }
+
+        private string TranslateMovedFormula(string formula, ExcelReference source, int destinationRow, int destinationColumn, bool transpose) {
+            source.GetBounds(out int sr1, out int sc1, out int sr2, out int sc2);
+            return ExcelFormulaSyntaxTree.Parse(formula).Rewrite(reference => {
+                if (!string.IsNullOrWhiteSpace(reference.Qualifier)
+                    && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) return reference;
+                reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
+                if (rr1 < sr1 || rr2 > sr2 || rc1 < sc1 || rc2 > sc2) return reference;
+                int MapRow(int row, int column) => transpose ? destinationRow + column - sc1 : destinationRow + row - sr1;
+                int MapColumn(int row, int column) => transpose ? destinationColumn + row - sr1 : destinationColumn + column - sc1;
+                ExcelReferenceKind kind = transpose
+                    ? reference.Kind == ExcelReferenceKind.WholeRow ? ExcelReferenceKind.WholeColumn
+                        : reference.Kind == ExcelReferenceKind.WholeColumn ? ExcelReferenceKind.WholeRow
+                        : reference.Kind
+                    : reference.Kind;
+                return reference.WithCoordinates(
+                    kind,
+                    kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.Start.Row, reference.Start.Column),
+                    kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.Start.Row, reference.Start.Column),
+                    kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.End.Row, reference.End.Column),
+                    kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.End.Row, reference.End.Column),
                     transpose ? reference.Start.ColumnAbsolute : null,
                     transpose ? reference.Start.RowAbsolute : null,
                     transpose ? reference.End.ColumnAbsolute : null,

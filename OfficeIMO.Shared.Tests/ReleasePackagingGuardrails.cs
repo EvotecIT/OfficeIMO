@@ -611,8 +611,11 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
         Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
         Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
-        Assert.Contains("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
-        Assert.Contains("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
+        Assert.Contains("native slicer and timeline UI authoring", roadmap, StringComparison.Ordinal);
+        Assert.Contains("query-backed source execution and refresh", roadmap, StringComparison.Ordinal);
+        Assert.Contains("native ChartEx and imported modern-chart mutation", roadmap, StringComparison.Ordinal);
         Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
         Assert.Contains("generic-attribute ownership across the remaining supported block and inline families", roadmap, StringComparison.Ordinal);
         Assert.Contains("precise source locations partial until lossless trivia", roadmap, StringComparison.Ordinal);

@@ -56,5 +56,20 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("DataTable[B]+DataTable[A]", sheet.GetFormulaCells().Single().Formula);
         }
+
+        [Fact]
+        public void Test_TableSchema_RejectsResizeOverlappingAnotherTable() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "A");
+            sheet.CellValue(2, 1, 1);
+            sheet.CellValue(1, 3, "B");
+            sheet.CellValue(2, 3, 2);
+            sheet.AddTable("A1:A2", true, "First", TableStyle.TableStyleMedium2);
+            sheet.AddTable("C1:C2", true, "Second", TableStyle.TableStyleMedium2);
+
+            Assert.Throws<InvalidOperationException>(() => sheet.SetTableSchema("First", new[] { "A", "New", "B" }, "A1:C2"));
+            Assert.Equal("A1:A2", document.GetTables().Single(table => table.Name == "First").Range);
+        }
     }
 }

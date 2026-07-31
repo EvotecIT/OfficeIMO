@@ -19,5 +19,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, sheet.ClearSparklines());
             Assert.Empty(sheet.GetSparklines());
         }
+
+        [Fact]
+        public void Test_Sparklines_TypeUpdateSplitsPartiallyMatchedGroup() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.AddSparklines("A1:C2", "D1:D2");
+
+            Assert.Equal(1, sheet.SetSparklineType("D1", SparklineTypeValues.Column));
+
+            ExcelSparklineInfo[] sparklines = sheet.GetSparklines().OrderBy(item => item.LocationRange).ToArray();
+            Assert.Equal(SparklineTypeValues.Column, sparklines[0].Type);
+            Assert.Equal(SparklineTypeValues.Line, sparklines[1].Type);
+            Assert.NotEqual(sparklines[0].GroupIndex, sparklines[1].GroupIndex);
+        }
     }
 }

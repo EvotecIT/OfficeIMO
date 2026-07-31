@@ -93,6 +93,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaSyntaxTree_DoesNotTreatQualifiedDefinedNameAsTableName() {
+            ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse("=Sales!TaxRate+Sales[Amount]");
+
+            Assert.Equal(new[] { "Sales!TaxRate" }, tree.Nodes.OfType<ExcelFormulaNameSyntax>().Select(node => node.Name));
+            Assert.Equal("=Sales!TaxRate+Ledger[Amount]", tree.RewriteTableNames(name => name == "Sales" ? "Ledger" : name));
+        }
+
+        [Fact]
         public void Test_FormulaSyntaxTree_ConvertsReferencesToR1C1() {
             ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse("=A1+$B$2+C$3+$D4");
 
@@ -181,6 +189,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, referenceMatches.Length);
             Assert.Contains(referenceMatches, item => item.SheetName == "Summary" && item.CellReference == "A1");
             Assert.Single(document.SearchFormulas(new ExcelFormulaSearchOptions { Function = "XLOOKUP" }));
+        }
+
+        [Fact]
+        public void Test_FormulaSearch_DistinguishesExternalWorkbookQualifiers() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellFormula(1, 1, "[BookA.xlsx]Data!B2");
+            sheet.CellFormula(2, 1, "[BookB.xlsx]Data!B2");
+
+            ExcelFormulaCellInfo match = Assert.Single(document.SearchFormulas(
+                new ExcelFormulaSearchOptions { Reference = "[BookA.xlsx]Data!B2" }));
+
+            Assert.Equal("A1", match.CellReference);
         }
     }
 }

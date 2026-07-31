@@ -122,8 +122,6 @@ namespace OfficeIMO.Excel {
             if (result.Length >= 2 && result[0] == '\'' && result[result.Length - 1] == '\'') {
                 result = result.Substring(1, result.Length - 2).Replace("''", "'");
             }
-            int workbookEnd = result.IndexOf(']');
-            if (result.StartsWith("[", StringComparison.Ordinal) && workbookEnd >= 0) result = result.Substring(workbookEnd + 1);
             return result;
         }
     }

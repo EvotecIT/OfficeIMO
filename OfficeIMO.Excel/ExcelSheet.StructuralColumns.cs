@@ -97,11 +97,19 @@ namespace OfficeIMO.Excel {
                 int overlap = Math.Max(0, Math.Min(c2, lastColumn) - Math.Max(c1, firstColumn) + 1);
                 if (overlap >= c2 - c1 + 1) throw new InvalidOperationException($"Column deletion would remove every column from table '{table!.Name?.Value}'.");
             }
+            foreach (PivotTablePart part in _worksheetPart.PivotTableParts) {
+                if (!ExcelReference.TryParse(part.PivotTableDefinition?.Location?.Reference?.Value, out ExcelReference? range)) continue;
+                range!.GetBounds(out _, out int c1, out _, out int c2);
+                bool conflict = deleting
+                    ? c1 <= lastColumn && c2 >= firstColumn
+                    : c1 < firstColumn && c2 >= firstColumn;
+                if (conflict) throw new InvalidOperationException("Column mutation would intersect or split a PivotTable output range.");
+            }
         }
 
         private void ApplyColumnMutation(int firstColumn, int count, bool deleting, CancellationToken cancellationToken) {
             int lastColumn = firstColumn + count - 1;
-            AdjustTableSchemasForColumnMutation(firstColumn, lastColumn, count, deleting);
+            IReadOnlyList<(int Row, int Column, string Name)> pendingHeaders = AdjustTableSchemasForColumnMutation(firstColumn, lastColumn, count, deleting);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
                 foreach (Row row in sheetData.Elements<Row>()) {
@@ -123,13 +131,15 @@ namespace OfficeIMO.Excel {
                     if (!row.Elements<Cell>().Any()) row.Remove();
                 }
             }
+            foreach ((int row, int column, string name) in pendingHeaders) CellValueCoreNoMaterialize(row, column, name);
             RewriteColumnDefinitions(firstColumn, lastColumn, count, deleting);
             _excelDocument.RewriteColumnMutationReferences(this, firstColumn, count, deleting);
             _excelDocument.CleanupCalculationArtifacts(save: false, ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
             ResetMutationCaches();
         }
 
-        private void AdjustTableSchemasForColumnMutation(int firstColumn, int lastColumn, int count, bool deleting) {
+        private IReadOnlyList<(int Row, int Column, string Name)> AdjustTableSchemasForColumnMutation(int firstColumn, int lastColumn, int count, bool deleting) {
+            var pendingHeaders = new List<(int Row, int Column, string Name)>();
             foreach (TableDefinitionPart part in _worksheetPart.TableDefinitionParts) {
                 Table? table = part.Table;
                 if (!ExcelReference.TryParse(table?.Reference?.Value, out ExcelReference? range)) continue;
@@ -146,11 +156,20 @@ namespace OfficeIMO.Excel {
                         var added = new TableColumn { Id = nextId++, Name = name };
                         TableColumn? before = columns.Elements<TableColumn>().ElementAtOrDefault(offset + index);
                         if (before == null) columns.Append(added); else columns.InsertBefore(added, before);
-                        CellValueCoreNoMaterialize(r1, firstColumn + index, name);
+                        pendingHeaders.Add((r1, firstColumn + index, name));
+                    }
+                    AutoFilter? filter = table.GetFirstChild<AutoFilter>();
+                    if (filter != null) {
+                        foreach (FilterColumn column in filter.Elements<FilterColumn>()) {
+                            uint id = column.ColumnId?.Value ?? uint.MaxValue;
+                            if (id >= (uint)offset) column.ColumnId = id + (uint)count;
+                        }
                     }
                 } else if (deleting && firstColumn <= c2 && lastColumn >= c1) {
                     int removeStart = Math.Max(firstColumn, c1) - c1;
                     int removeEnd = Math.Min(lastColumn, c2) - c1;
+                    string[] removedNames = existing.Skip(removeStart).Take(removeEnd - removeStart + 1)
+                        .Select(item => item.Name?.Value ?? string.Empty).Where(name => name.Length > 0).ToArray();
                     for (int index = removeEnd; index >= removeStart; index--) existing[index].Remove();
                     AutoFilter? filter = table.GetFirstChild<AutoFilter>();
                     if (filter != null) {
@@ -161,9 +180,14 @@ namespace OfficeIMO.Excel {
                             else if (id > (uint)removeEnd) column.ColumnId = id - (uint)removed;
                         }
                     }
+                    string tableName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
+                    if (tableName.Length > 0 && removedNames.Length > 0) {
+                        _excelDocument.InvalidateTableColumnReferences(tableName, removedNames, table);
+                    }
                 }
                 columns.Count = (uint)columns.Elements<TableColumn>().Count();
             }
+            return pendingHeaders;
         }
 
         private static string CreateUnusedTableColumnName(HashSet<string> used, int suggestedIndex) {
