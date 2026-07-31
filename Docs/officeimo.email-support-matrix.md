@@ -40,7 +40,7 @@ This matrix describes the current public contract for persisted email and Outloo
 | MsgReader 6.0.12 | OfficeIMO output is readable for message, recipient, room/resource, body, attachment, appointment, contact, task, and journal contracts |
 | MsgReader 6.0.12 sample corpus | 15 real MSG fixtures matched subject, attachment count, and recipient count with no MSG parse errors, named-property warnings, or property-stream alignment warnings |
 | OpenMcdf 3.1.4 | Test-only oracle opens OfficeIMO mini-stream, regular-stream, hierarchical, empty-stream, and DIFAT compound output |
-| Independent TNEF interoperability reader | Accepts OfficeIMO TNEF output as compliant |
+| MimeKit 4.x TNEF reader | Accepts OfficeIMO TNEF output as compliant |
 | iCalendar/vCard contract suite | Read-edit-write-reopen coverage includes multiple calendars/cards, nested alarms, recurrence and temporal forms, scoped TZID validation, vCard 2.1/3.0/4.0, grouped/repeated fields, media values, legacy parameter quoting, quoted-printable continuation, RFC 6868, Unicode octet folding, and configured size/depth/count limits |
 | Microsoft Outlook for Mac | Opens OfficeIMO-authored message, appointment, contact, task, journal, and note MSG files by their native subjects; the message view showed sender, recipient, body, and attachment content |
 | Public Outlook S/MIME corpus | The opt-in exact-commit corpus test verifies signed Outlook EML and binary MSG, decrypts encrypted EML/MSG with the supplied exportable test key, and decrypts then verifies signed-and-encrypted EML/MSG on `net472`, `net8.0`, and `net10.0`; an Outlook 11 mailing-list artifact also proves CRLF canonicalization against OpenSSL 3.0 without redistributing that external message |

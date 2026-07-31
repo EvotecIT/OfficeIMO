@@ -617,6 +617,12 @@ public sealed class ReleasePackagingGuardrails {
         Assert.DoesNotContain("Publish the browser conversion playground", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Add Visio and portable-document adapters", roadmap, StringComparison.Ordinal);
 
+        string emailSupportMatrix = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Docs",
+            "officeimo.email-support-matrix.md"));
+        Assert.Contains("| MimeKit 4.x TNEF reader |", emailSupportMatrix, StringComparison.Ordinal);
+
         string markdownCompatibility = File.ReadAllText(Path.Combine(
             repositoryRoot,
             "Docs",
