@@ -55,7 +55,8 @@ Every adapter returns stable conversion evidence. `Faithful`, `FaithfulWithSubst
 | Office, OpenDocument, HTML, Markdown, RTF, OneNote, AsciiDoc, and LaTeX to PDF | Thin source adapters use the shared PDF/Drawing owners and the generated scenario manifest records the evidence level |
 | Normalized Reader result to PDF | Pages, blocks, tables, assets, links, forms, and diagnostics project through one explicit policy and merged evidence contract |
 | PDF to Word | Metadata, page breaks, headings, paragraphs, lists, logical tables, links, supported images, and form placeholders are recovered when represented by the logical model |
-| PDF to Excel or PowerPoint | Logical tables can be recovered with page/range limits and loss reports; unrelated fixed-layout content is not presented as editable reconstruction |
+| PDF to Excel | Logical tables can be recovered with page/range limits and loss reports; unrelated fixed-layout content is not presented as editable reconstruction |
+| PDF to PowerPoint | `PdfPowerPointImportOptions` defaults to `VisualPages`: each selected PDF page becomes a rendered, movable, resizable slide image. Use `CreateEditableTables()` / `EditableTables` to reconstruct detected tables instead; reports identify omitted non-table page content |
 | PDF to HTML | Semantic and positioned-review profiles share the PDF logical/read model |
 | PDF to PNG, JPEG, TIFF, WebP, or SVG | One page-to-Drawing projection serves authored and loaded documents, batches, and source-conversion results with budgets and diagnostics |
 

@@ -444,6 +444,8 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("Write once to a caller-owned stream", rootReadme, StringComparison.Ordinal);
         Assert.Contains("does not replace the document's associated path or source stream", rootReadme, StringComparison.Ordinal);
         Assert.DoesNotContain("Save and associate a path or stream", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("PDF -->|\"visual pages or editable tables\"| PowerPoint", rootReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("PDF -->|\"logical tables only\"| PowerPoint", rootReadme, StringComparison.Ordinal);
 
         string visioReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Visio", "README.md"));
         Assert.Contains("### Loaded-diagram compatibility boundary", visioReadme, StringComparison.Ordinal);
@@ -451,6 +453,13 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("richer threaded comment and author workflows", visioReadme, StringComparison.Ordinal);
         Assert.Contains("broader whole-diagram relayout and polish", visioReadme, StringComparison.Ordinal);
         Assert.Contains("rather than a complete typed object model", visioReadme, StringComparison.Ordinal);
+
+        string pdfCurrentState = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.pdf.current-state.md"));
+        Assert.Contains("| PDF to Excel |", pdfCurrentState, StringComparison.Ordinal);
+        Assert.Contains("| PDF to PowerPoint |", pdfCurrentState, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointImportOptions` defaults to `VisualPages`", pdfCurrentState, StringComparison.Ordinal);
+        Assert.Contains("`CreateEditableTables()` / `EditableTables`", pdfCurrentState, StringComparison.Ordinal);
+        Assert.Contains("omitted non-table page content", pdfCurrentState, StringComparison.Ordinal);
 
         string excelCompatibility = File.ReadAllText(Path.Combine(
             repositoryRoot,

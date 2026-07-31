@@ -143,6 +143,11 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("--word-mail-merge-workflows", matrix, StringComparison.Ordinal);
             Assert.Contains("WordMailMerge.PreflightTemplate", matrix, StringComparison.Ordinal);
+            Assert.Contains("Word-native record controls", matrix, StringComparison.Ordinal);
+            Assert.Contains("`NEXT`, `NEXTIF`, `SKIPIF`, `MERGEREC`, and `MERGESEQ`", matrix, StringComparison.Ordinal);
+            Assert.Contains("`UnsupportedMailMergeControlField`", matrix, StringComparison.Ordinal);
+            Assert.Contains("`CanBindTemplate` to `false`", matrix, StringComparison.Ordinal);
+            Assert.Contains("Test_MailMerge_PreflightTemplateReportsUnsupportedWordNativeRecordControlFields", matrix, StringComparison.Ordinal);
 
             Assert.Contains("unknown-document-feature-preflight", manifest.ToString(SaveOptions.DisableFormatting), StringComparison.Ordinal);
             Assert.Contains("feature-report.md", manifest.ToString(SaveOptions.DisableFormatting), StringComparison.Ordinal);
