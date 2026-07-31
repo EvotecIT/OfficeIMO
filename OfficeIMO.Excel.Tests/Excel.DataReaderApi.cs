@@ -223,12 +223,10 @@ public partial class Excel {
 
     [Fact]
     public void OpenDataReader_XlsbRejectsFormulaTokensWhenCachedResultsAreDisabled() {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
-            GetDataReaderXlsbFixture("basic-values-formula.xlsb"),
-            new ExcelReadOptions { UseCachedFormulaResult = false });
-
-        Assert.True(reader.Read());
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => reader.Read());
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            ExcelDocument.OpenDataReader(
+                GetDataReaderXlsbFixture("basic-values-formula.xlsb"),
+                new ExcelReadOptions { UseCachedFormulaResult = false }));
         Assert.Contains("formula-token", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -757,11 +755,27 @@ public partial class Excel {
         Assert.True(document.HasDeferredDirectDataSetImport);
 
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(25));
-
-        Assert.Throws<OperationCanceledException>(() =>
-            document.CreateDataReader(
-                new ExcelReadOptions { CancellationToken = cancellation.Token }));
+        using var cancelThreadReady = new ManualResetEventSlim();
+        int materializationObserved = 0;
+        var cancelThread = new Thread(() => {
+            cancelThreadReady.Set();
+            if (SpinWait.SpinUntil(
+                    () => document.IsMaterializingDeferredDataSetImport,
+                    TimeSpan.FromSeconds(10))) {
+                Interlocked.Exchange(ref materializationObserved, 1);
+                cancellation.Cancel();
+            }
+        });
+        cancelThread.Start();
+        cancelThreadReady.Wait();
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                document.CreateDataReader(
+                    new ExcelReadOptions { CancellationToken = cancellation.Token }));
+        } finally {
+            Assert.True(cancelThread.Join(TimeSpan.FromSeconds(10)));
+        }
+        Assert.Equal(1, Volatile.Read(ref materializationObserved));
 
         using DbDataReader reader = document.CreateDataReader();
         int rowCount = 0;
@@ -785,10 +799,26 @@ public partial class Excel {
         Assert.True(document.HasPendingDirectCellValues);
 
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(5));
-
-        Assert.Throws<OperationCanceledException>(() =>
-            sheet.MaterializePendingDirectCellValues(cancellation.Token));
+        using var cancelThreadReady = new ManualResetEventSlim();
+        int materializationObserved = 0;
+        var cancelThread = new Thread(() => {
+            cancelThreadReady.Set();
+            if (SpinWait.SpinUntil(
+                    () => sheet.IsMaterializingPendingDirectCellValues,
+                    TimeSpan.FromSeconds(10))) {
+                Interlocked.Exchange(ref materializationObserved, 1);
+                cancellation.Cancel();
+            }
+        });
+        cancelThread.Start();
+        cancelThreadReady.Wait();
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                sheet.MaterializePendingDirectCellValues(cancellation.Token));
+        } finally {
+            Assert.True(cancelThread.Join(TimeSpan.FromSeconds(10)));
+        }
+        Assert.Equal(1, Volatile.Read(ref materializationObserved));
         Assert.True(document.HasPendingDirectCellValues);
 
         sheet.MaterializePendingDirectCellValues();

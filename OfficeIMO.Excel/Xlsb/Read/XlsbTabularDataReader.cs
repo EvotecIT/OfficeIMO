@@ -96,6 +96,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     cellBudget,
                     dateStyles.Length,
                     sharedStrings.Count,
+                    options.UseCachedFormulaResult,
                     cancellationToken,
                     out actualFirstColumn,
                     out actualLastColumn,
@@ -627,7 +628,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             recordType is >= BrtFmlaString and <= BrtFmlaError;
 
         private void EnsureFormulaModeSupported(int recordType) {
-            if (!_options.UseCachedFormulaResult && IsFormulaRecord(recordType)) {
+            EnsureFormulaModeSupported(recordType, _options.UseCachedFormulaResult);
+        }
+
+        private static void EnsureFormulaModeSupported(
+            int recordType,
+            bool useCachedFormulaResult) {
+            if (!useCachedFormulaResult && IsFormulaRecord(recordType)) {
                 throw new NotSupportedException(
                     "XLSB formula-token projection is not supported when cached formula results are disabled.");
             }

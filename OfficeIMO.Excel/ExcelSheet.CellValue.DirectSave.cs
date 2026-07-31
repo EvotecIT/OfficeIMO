@@ -340,6 +340,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool IsMaterializingPendingDirectCellValues
+            => Volatile.Read(ref _materializingPendingCellValueDirectSaveBuffer);
+
         internal bool TryPromotePendingDirectCellValuesToSaveCandidate() {
             var buffer = _pendingCellValueDirectSaveBuffer;
             if (buffer == null) {

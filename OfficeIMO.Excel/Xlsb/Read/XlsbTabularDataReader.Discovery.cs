@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbCellReadBudget cellBudget,
             int styleCount,
             int sharedStringCount,
+            bool useCachedFormulaResult,
             CancellationToken cancellationToken,
             out int firstColumn,
             out int lastColumn,
@@ -123,6 +124,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     }
 
                     cellBudget.Consume();
+                    EnsureFormulaModeSupported(
+                        record.Type,
+                        useCachedFormulaResult);
                     if (firstDataRow < 0) {
                         firstDataRow = currentRow;
                     }

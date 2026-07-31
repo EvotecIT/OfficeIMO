@@ -85,6 +85,9 @@ namespace OfficeIMO.Excel {
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
                 ct.ThrowIfCancellationRequested();
                 string reference = cell.CellReference?.Value ?? "(unknown cell)";
+                if (cell.StyleIndex?.Value is uint styleIndex) {
+                    ValidateCellStyleReference(styleIndex, reference);
+                }
                 if (cell.DataType?.Value == CellValues.SharedString) {
                     ValidateSharedStringReference(cell.CellValue?.Text, reference);
                 }
@@ -116,6 +119,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 string reference = reader.GetAttribute("r") ?? "(unknown cell)";
+                string? styleIndex = reader.GetAttribute("s");
+                if (styleIndex != null) {
+                    ValidateCellStyleReference(styleIndex, reference);
+                }
                 bool sharedStringCell = string.Equals(
                     reader.GetAttribute("t"),
                     "s",
@@ -180,6 +187,25 @@ namespace OfficeIMO.Excel {
                     $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
                     "shared-formula text is required.");
             }
+        }
+
+        private void ValidateCellStyleReference(string rawIndex, string reference) {
+            if (TryParseUInt(rawIndex, out uint styleIndex)) {
+                ValidateCellStyleReference(styleIndex, reference);
+                return;
+            }
+
+            throw new InvalidDataException(
+                $"Worksheet '{_sheetName}' cell {reference} contains an invalid cell style index.");
+        }
+
+        private void ValidateCellStyleReference(uint styleIndex, string reference) {
+            if (styleIndex < (uint)Styles.CellFormatCount) {
+                return;
+            }
+
+            throw new InvalidDataException(
+                $"Worksheet '{_sheetName}' cell {reference} references a missing cell style.");
         }
 
         private void ValidateSharedStringReference(string? rawIndex, string reference) {

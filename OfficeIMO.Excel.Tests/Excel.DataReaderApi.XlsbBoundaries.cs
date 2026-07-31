@@ -496,6 +496,38 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_XlsbNextResultRejectsFormulaTokensDuringDiscovery() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.UnsupportedSkippedSheetFormula.{Guid.NewGuid():N}.xlsb");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet first = document.AddWorksheet("First");
+                first.CellValue(1, 1, "Value");
+                first.CellValue(2, 1, "Ready");
+                ExcelSheet second = document.AddWorksheet("Second");
+                second.CellValue(1, 1, "Value");
+                second.CellFormula(2, 1, "1+1");
+                File.WriteAllBytes(path, document.ToBytes(ExcelFileFormat.Xlsb));
+            }
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions { UseCachedFormulaResult = false });
+            Assert.True(reader.Read());
+            Assert.Equal("Ready", reader.GetString(0));
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                () => reader.NextResult());
+
+            Assert.Contains("formula-token", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(reader.IsClosed);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_XlsbNextResultRejectsDuplicateRowHeaderDuringDiscovery() {
         string path = Path.Combine(
             Path.GetTempPath(),
