@@ -69,11 +69,14 @@ An item belongs here when it has a clear product outcome and an owning package. 
 ## Markdown and text formats
 
 - [ ] Close the remaining CommonMark 0.31.2 inventory failure and broaden GFM evidence without changing OfficeIMO-specific profile defaults.
+- [ ] Finish generic-attribute ownership across the remaining supported block and inline families, including containers, source-backed edits, HTML output, and Markdown writing.
+- [ ] Keep precise source locations partial until lossless trivia, delimiter tokens, original-to-normalized mapping, generated-node semantics, and broader source edits share one documented model.
 - [ ] Make the semantic tree the canonical behavior owner and finish stable associations between semantic subobjects and source syntax.
 - [ ] Complete lossless trivia and delimiter coverage, original-to-normalized source mapping, generated-node semantics, and broader source-edit/round-trip writing.
 - [ ] Broaden parser, renderer, writer, transform, and extension contracts while keeping raw HTML grammar separate from security and host policy.
-- [ ] Decide optional syntax ownership only when a real use case requires it, including grid tables, math, media, figures, diagrams, and container variants.
-- [ ] Harden RTF untrusted-input limits, safe HTML output profiles, semantic-loss reporting, cancellation, producer corpora, structural editing, Word bridging, and performance baselines.
+- [ ] Decide optional syntax ownership only when a real use case requires it, including grid tables, math, media, figures, diagrams, citations, footers, globalization, pragma lines, and container variants.
+- [ ] Harden RTF untrusted-input limits, safe HTML output profiles, semantic-loss reporting, cancellation, structural editing, Word bridging, and performance baselines beyond the current tested profiles.
+- [ ] Expand the provenance-recorded RTF producer corpus beyond current Word, Outlook, and LibreOffice evidence to Google Docs, macOS TextEdit/RTFD, EHR/CRM/helpdesk generators, and commercial libraries.
 - [ ] Keep AsciiDoc and LaTeX support inside their documented bounded profiles; expand native syntax, semantic editing, adapters, and diagnostics only with source-preserving proof.
 - [ ] Expand OpenDocument style, formula, drawing, embedded-content, signature, encryption, and producer-corpus coverage while preserving unknown package content.
 

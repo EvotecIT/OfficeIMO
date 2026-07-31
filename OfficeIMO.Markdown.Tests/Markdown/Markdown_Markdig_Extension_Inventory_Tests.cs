@@ -53,6 +53,9 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
             publishedMatrix,
             StringComparison.Ordinal));
         Assert.Contains(partialBoundaries, publishedMatrix, StringComparison.Ordinal);
+        Assert.DoesNotContain("Markdig", partialBoundaries, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("competitor", partialBoundaries, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("parity", partialBoundaries, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetRepositoryRoot() {

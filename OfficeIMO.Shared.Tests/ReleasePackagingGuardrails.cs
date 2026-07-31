@@ -419,8 +419,19 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`MaxDataReaderBufferedCells`", migration, StringComparison.Ordinal);
         Assert.Contains("`CsvFieldSpanAction`", migration, StringComparison.Ordinal);
         Assert.Contains("`ICsvProjectedFieldSpanVisitor`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeRenderingProfile`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PlanInsertRows(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PlanDeleteRows(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.OpenDocument.Odt.Pdf`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.OpenDocument.Ods.Pdf`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.OpenDocument.Odp.Pdf`", migration, StringComparison.Ordinal);
+        Assert.Contains("`HasWarnings` remains the PDF-stage flag", migration, StringComparison.Ordinal);
+        Assert.Contains("`new PdfConversionProofOptions().RequireNoLoss()`", migration, StringComparison.Ordinal);
         Assert.Contains("`PdfWordImportOptions.CreateTablesOnly()`", migration, StringComparison.Ordinal);
         Assert.Contains("`PdfPowerPointConversionReport.TableEntries`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfLogicalTextRun`", migration, StringComparison.Ordinal);
+        Assert.Contains("`HasOmittedPageContent`", migration, StringComparison.Ordinal);
+        Assert.Contains("`SourceScope`", migration, StringComparison.Ordinal);
         Assert.Contains("`RtfDocument.ReadAsync(string)`", migration, StringComparison.Ordinal);
         Assert.Contains("`RtfDocument.LoadAsync(byte[])`", migration, StringComparison.Ordinal);
         Assert.Contains("Save and associate a path", migration, StringComparison.Ordinal);
@@ -450,6 +461,15 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("compiled `OfficeIMO.Shared` implementation package no longer exists", migration, StringComparison.Ordinal);
         Assert.Contains("`OfficeIMO.SharedSource` is source-only", migration, StringComparison.Ordinal);
         Assert.Contains("`OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; neutral CMS", migration, StringComparison.Ordinal);
+        Assert.Contains("### HTML, Reader, and theme ownership", migration, StringComparison.Ordinal);
+        Assert.Contains("`HtmlConversionDocument.Parse(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("immutable `OfficeDocumentReader`", migration, StringComparison.Ordinal);
+        Assert.Contains("`MarkdownPdfSaveOptions.Style`", migration, StringComparison.Ordinal);
+        Assert.Contains("`MarkdownPdfStyle.DocumentTheme`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ExportEach(...)` / `ExportEachAsync(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`SaveFiles(...)` / `SaveFilesAsync(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfReadPage.ToDrawing()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPageRenderResult` remains a lower-level", migration, StringComparison.Ordinal);
         string[] retainedLegacyMigrationNames = {
             "`SheetComposer.DefinitionList(...)`",
             "`PowerPointUnits.Cm/Mm/Inches/Points(...)`",
@@ -480,6 +500,10 @@ public sealed class ReleasePackagingGuardrails {
         foreach (string legacyName in retainedLegacyMigrationNames) {
             Assert.Contains(legacyName, migration, StringComparison.Ordinal);
         }
+        Assert.Contains(
+            "`SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveTablesAsExcel()` / `SaveAsWord()` / `SaveAsPowerPoint()`",
+            migration,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", migration, StringComparison.Ordinal);
 
@@ -587,8 +611,31 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
         Assert.Contains("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
         Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
+        Assert.Contains("generic-attribute ownership across the remaining supported block and inline families", roadmap, StringComparison.Ordinal);
+        Assert.Contains("precise source locations partial until lossless trivia", roadmap, StringComparison.Ordinal);
+        Assert.Contains("RTF producer corpus beyond current Word, Outlook, and LibreOffice evidence", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Publish the browser conversion playground", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Add Visio and portable-document adapters", roadmap, StringComparison.Ordinal);
+
+        string markdownCompatibility = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Docs",
+            "officeimo.markdown.compatibility-matrix.md"));
+        Assert.DoesNotContain("Markdig", markdownCompatibility, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("competitor", markdownCompatibility, StringComparison.OrdinalIgnoreCase);
+
+        string markdownBlog = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Website",
+            "content",
+            "blog",
+            "zero-dependency-markdown.md"));
+        Assert.DoesNotContain("Markdig", markdownBlog, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("competitor", markdownBlog, StringComparison.OrdinalIgnoreCase);
+
+        string solution = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.sln"));
+        Assert.Contains("Docs\\README.md = Docs\\README.md", solution, StringComparison.Ordinal);
+        Assert.DoesNotContain("Docs\\index.md = Docs\\index.md", solution, StringComparison.Ordinal);
 
         string markdownRoundtripDesign = File.ReadAllText(Path.Combine(
             repositoryRoot,

@@ -1,19 +1,17 @@
 ---
-title: "Zero-Dependency Markdown: Why We Built OfficeIMO.Markdown"
-description: "A deep dive into the design philosophy behind OfficeIMO.Markdown, its typed AST, builder API, and why we chose zero external dependencies over Markdig."
+title: "Zero-Dependency Markdown: Inside OfficeIMO.Markdown"
+description: "A deep dive into OfficeIMO.Markdown's typed model, builder API, source-aware editing, and dependency-light deployment for .NET applications."
 date: 2025-08-01
 tags: [markdown, design, aot]
 categories: [Deep Dive]
 author: "Przemyslaw Klys"
 ---
 
-Markdown is everywhere: README files, documentation sites, CMS content, chat messages. Yet most .NET Markdown libraries either produce raw HTML strings or depend on a large pipeline of extensions. When we needed Markdown support inside OfficeIMO for document-to-Markdown conversion, we decided to build our own. Here is why.
+Markdown is everywhere: README files, documentation sites, CMS content, and chat messages. OfficeIMO needs Markdown as an editable document model as well as an interchange format, so `OfficeIMO.Markdown` owns parsing, a typed semantic tree, source-aware editing, writing, and HTML projection in one first-party package.
 
-## Why Not Markdig?
+## Why a first-party document model?
 
-Markdig is an excellent library. It is fast, well-tested, and extensible. But it was designed primarily as a Markdown-to-HTML renderer. Its AST is optimised for rendering, not for programmatic inspection or round-trip transformation. It also brings a dependency graph that, while small, conflicts with our goal of NativeAOT readiness and single-assembly deployment.
-
-We needed a Markdown layer that:
+The package is designed around four current contracts:
 
 1. **Parses into a strongly typed AST** where every node is a concrete C# type.
 2. **Builds Markdown programmatically** without string concatenation.
@@ -22,7 +20,7 @@ We needed a Markdown layer that:
 
 ## The Typed AST
 
-Every Markdown construct maps to a sealed class:
+Supported Markdown constructs map to typed public block and inline classes:
 
 ```csharp
 using OfficeIMO.Markdown;
@@ -50,7 +48,7 @@ foreach (var block in doc.TopLevelBlocks)
 }
 ```
 
-Pattern matching on sealed types gives you exhaustiveness checking at compile time. Adding a block type produces a compiler warning in an exhaustive switch expression rather than a silent behavior change.
+Pattern matching makes structural inspection explicit. Applications should retain a default branch because optional extensions can introduce additional block or inline types.
 
 ## The Builder API
 
@@ -97,13 +95,14 @@ This is the kind of structural manipulation that is awkward with a string-based 
 
 OfficeIMO.Markdown's checked-in NativeAOT executable composes and renders a document, and CI republishes that scenario on Linux. That is a concrete baseline, not a blanket guarantee for every extension or consumer graph, so add your actual parsing and rendering paths before production.
 
-## When to Use Markdig Instead
+## Current boundaries
 
-If you need full CommonMark compliance, GFM autolinks, or an extensive plugin ecosystem, Markdig is the better choice. OfficeIMO.Markdown targets the practical subset of Markdown used in documentation and reports: headings, paragraphs, lists, tables, code blocks, and inline emphasis. For that scope, it is smaller, faster, and easier to reason about.
+CommonMark, GFM, OfficeIMO profile behavior, optional extension families, and source-model limits are tracked independently. The generated inventories record 651 of 652 CommonMark `0.31.2` examples and all 52 tracked GFM fixtures as matching the current contracts. Optional families remain explicitly `Covered`, `Partial`, `Intentional`, `Gap`, or `Unsupported`; applications should choose a parser profile and review the compatibility matrix for the exact boundary they depend on.
 
 ## Continue with
 
 - [OfficeIMO.Markdown](/products/markdown/) for the package overview and runtime guidance.
 - [Markdown documentation](/docs/markdown/) for the document model, parser profiles, and renderer surface.
 - [Builder API guide](/docs/markdown/builder/) if you want to generate Markdown fluently.
+- [Markdown compatibility matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.markdown.compatibility-matrix.md) for standards profiles, extension families, and source-model boundaries.
 - [AOT and trimming guidance](/docs/advanced/aot-trimming/) for deployment notes across the package family.

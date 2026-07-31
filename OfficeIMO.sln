@@ -30,7 +30,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Word.Pdf", "Offic
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{5A10AB86-32EA-42AE-A029-222CCE1E282C}"
 	ProjectSection(SolutionItems) = preProject
-		Docs\index.md = Docs\index.md
+		Docs\README.md = Docs\README.md
 		Docs\officeimo.word.applicationproperties.md = Docs\officeimo.word.applicationproperties.md
 		Docs\officeimo.word.builtindocumentproperties.md = Docs\officeimo.word.builtindocumentproperties.md
 		Docs\officeimo.word.capsstyle.md = Docs\officeimo.word.capsstyle.md

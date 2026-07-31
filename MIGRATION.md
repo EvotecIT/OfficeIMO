@@ -27,7 +27,15 @@ The repository source is on the coordinated `3.1.x` line; the latest NuGet relea
 
 There is no replacement umbrella OpenDocument PDF package. The focused packages keep Word, Excel, and PowerPoint dependencies out of applications that do not use those routes.
 
+| Route | Focused package | Reverse entry point |
+| --- | --- | --- |
+| ODT to or from PDF | `OfficeIMO.OpenDocument.Odt.Pdf` | `pdf.ToOdtDocument()` |
+| ODS to or from PDF | `OfficeIMO.OpenDocument.Ods.Pdf` | `pdf.ToOdsDocument()` |
+| ODP to or from PDF | `OfficeIMO.OpenDocument.Odp.Pdf` | `pdf.ToOdpPresentation()` |
+
 OpenDocument forward PDF results expose the typed OpenDocument projection report in `SourceConversionReports` and PDF-layout warnings in `Report`; `ConversionReports` presents both stages in order. Read OpenDocument mappings from `OdfConversionReport.Mappings` instead of looking for the removed synthetic `ODF_*` PDF warnings. Use `HasLoss` or `RequireNoLoss()` for the end-to-end fidelity gate. AsciiDoc, LaTeX, and semantic OneNote PDF routes use the same ordered source-stage and PDF-stage model.
+
+`HasWarnings` remains the PDF-stage flag because source reports have format-specific diagnostic models. Use `new PdfConversionProofOptions().RequireNoLoss()` when conversion proof must enforce the same end-to-end fidelity rule. `PdfDocumentConversionResult.Warnings` describes the PDF stage only.
 
 ### Google Workspace preview options
 
@@ -71,6 +79,8 @@ When configuring a streaming CSV read with `CsvLoadOptions`, set `Mode = CsvLoad
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
+The shared `OfficeRenderingProfile` and Excel structural row mutation methods `PlanInsertRows(...)` and `PlanDeleteRows(...)` are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy, and use a mutation plan when an application must inspect workbook impact before applying a row change.
+
 ### PDF conversion and import
 
 The 3.1 PDF adapters use destination-shaped names for general conversion and explicit feature names for narrow recovery.
@@ -91,6 +101,8 @@ PowerPoint behavior broadens in 3.1: an opened `PdfDocument` creates one rendere
 
 Use `PdfWordImportOptions.CreateTablesOnly()` for narrow Word table recovery. PowerPoint table details remain available through `PdfPowerPointConversionReport.TableEntries` when the editable-table profile is selected.
 
+Open a source once with `PdfDocument.Open(...)`. Destination adapters also accept `PdfLogicalDocument` when an application performs custom layout analysis or page selection before conversion. Word and RTF semantic import consume shared `PdfLogicalTextRun` fragments so color, font size, and best-effort bold or italic classification do not need to be reconstructed independently in each adapter.
+
 The common conversion grammar is:
 
 | Intent | Shape | Example |
@@ -99,9 +111,32 @@ The common conversion grammar is:
 | Return a model plus diagnostics | `To{TargetModel}Result` | `pdf.ToWordDocumentResult()` |
 | Return serialized content | `To{Format}` | `word.ToPdf()` |
 | Write a converted artifact | `SaveAs{Format}` | `pdf.SaveAsPowerPoint(...)` |
+| Write asynchronously when the operation performs asynchronous I/O | `SaveAs{Format}Async` | `pdf.SaveAsRtfAsync(...)` |
+| Persist a document in its native format | `Save` / `SaveAsync` | `word.Save(...)` |
 | Recover a narrow feature | Name the feature | `pdf.SaveTablesAsExcel(...)` |
 | Configure forward PDF output | `{Source}PdfSaveOptions` | `WordPdfSaveOptions` |
+| Configure the shared writer inside direct save options | `PdfOptions` | `HtmlPdfSaveOptions.PdfOptions` |
+| Configure an intermediate conversion stage | `{Intermediate}Options` | `OneNotePdfSaveOptions.MarkdownOptions` |
 | Configure reconstruction from PDF | `Pdf{Target}ImportOptions` | `PdfWordImportOptions` |
+| Report a general reverse conversion | `Pdf{Target}ConversionResult` | `PdfPowerPointConversionResult` |
+| Report narrow table recovery | `Pdf{Target}TableImportResult` | `PdfExcelTableImportResult` |
+
+Target names use .NET casing: `Pdf`, `Html`, `Rtf`, `Odt`, `Ods`, `Odp`, and `PowerPoint`. Image export follows the same result-versus-write distinction: `ToImage()` opens the fluent builder, `ExportImage()` returns one structured render result, `SaveAsPng(...)` and `SaveAsJpeg(...)` write explicit encodings, and `SaveAsImages(...)` writes a page, slide, or sheet set. The public surface does not use ambiguous `SaveImage` or singular `SaveAsImage` names.
+
+The reverse-route boundaries are:
+
+| Route | Default result | Important limit |
+| --- | --- | --- |
+| PDF to Word | Semantic headings, paragraphs, lists, tables, supported images, and links | Not fixed-layout page reconstruction |
+| PDF to Excel | Detected tables and structured data | Non-table page content is reported rather than placed on a worksheet canvas |
+| PDF to PowerPoint | One rendered PDF page per slide | The slide image is movable, but its internals are not editable |
+| PDF to PowerPoint with `EditableTables` | Detected tables on editable slides | Other page content is reported as omitted |
+| PDF to RTF | Semantic text, lists, page breaks, and detected run styling | Unsupported tables, images, links, and widgets produce loss diagnostics |
+| PDF to HTML | Semantic or positioned review HTML | Neither profile claims browser-clone fidelity for arbitrary PDFs |
+| PDF to Markdown | Logical readable text through `pdf.Read.Markdown(...)` | Portable text rather than visual fidelity |
+| PDF to ODT, ODS, or ODP | Composed Word, Excel-table, or PowerPoint-visual routes | Inspect both conversion stages and their loss reports |
+
+`PdfResourcePolicy.CreateDefault()` is the balanced adapter default: installed and document fonts are available while arbitrary local-file and remote-resource access remains denied. Use `PdfResourcePolicy.CreatePortableDeterministic()` for untrusted or reproducible conversion. Use `PdfResourcePolicy.CreateTrustedHost()` only when the operation intentionally resolves host or remote resources.
 
 ### PowerPoint lifecycle, composition, and inspection
 
@@ -176,6 +211,8 @@ OfficeIMO 3.0 renamed its table-only PDF routes so they did not imply full-page 
 
 The PowerPoint names broaden again in 3.1 because the default route changes from table-only recovery to one visual slide per PDF page. Apply the 3.0-to-3.1 mappings after completing this section.
 
+For table-only recovery, `HasLoss` means a detected table was truncated by an import limit. `HasOmittedPageContent` means the source also contains non-table text, vectors, images, links, forms, annotations, or actions that the adapter does not import. Use `SourceScope` for the counts behind that decision. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
+
 ### Word, Excel, and EPUB changes
 
 | OfficeIMO 2.x | OfficeIMO 3.0 |
@@ -193,7 +230,11 @@ The PowerPoint names broaden again in 3.1 because the default route changes from
 
 Detailed `LegacyXlsImportReport` record-family counters such as `CommentsByObjectType` and `DataValidationsByType` are internal diagnostics rather than public application contracts. Use the stable summary counts, `HasImportErrors`, `HasUnsupportedFeatures`, and the public `Diagnostics`, `UnsupportedFeatures`, `PreservedFeatures`, `UnsupportedSheets`, and `CompoundFeatures` collections. Exhaustive parser telemetry is not exposed as public API.
 
-The `OfficeIMO.Drawing` target-framework compatibility type `System.Runtime.CompilerServices.IsExternalInit` is internal in 3.0. Remove any application reference to that shim; normal record and `init` usage remains supported.
+`LegacyXlsLoadResult.AdvancedWorkbook` is the public imported workbook. Replace `LegacyXlsLoadResult.CreateAdvancedImportReport()` and the old `ImportReport` property with the cached `CreateImportReport()` result.
+
+The `OfficeIMO.Drawing` target-framework compatibility type `System.Runtime.CompilerServices.IsExternalInit` is internal in the `netstandard2.0` and `net472` assets. Remove any application reference to that shim; normal record and `init` usage remains supported.
+
+Markdown-to-Word callers should parse through `OfficeIMO.Word.Markdown` rather than calling the removed inline-run helper directly. `ConvertDotxToDocx(...)` also resolves relative template paths before package URI construction, so relative and absolute template paths use the same behavior.
 
 ### Legacy DOC and XLS API changes
 
@@ -231,6 +272,8 @@ OfficeIMO 2.0 established the shared lifecycle and result vocabulary used by the
 
 The compiled `OfficeIMO.Shared` implementation package no longer exists. `OfficeIMO.SharedSource` is source-only and is not a runtime package replacement. Move direct package references and namespace imports to the public owner of each reusable value: shared colors, fonts, images, charts, lifecycle options, stream contracts, and export results belong to `OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; neutral CMS, X.509, and RFC 3161 contracts belong to `OfficeIMO.Security`. Native document behavior remains in its format package.
 
+There is no `OfficeIMO.Core` package and no `.Drawing`-to-`.Core` rename. Native packages own parsing, loading, editing, validation, and serialization for their formats. Adapter packages project one native model into another rather than exposing another parser or document model. `OfficeIMO.Html` owns the canonical HTML source model and resource policy; format adapters consume it. These ownership changes replace direct use of the former shared implementation layer rather than introducing a catch-all dependency.
+
 ### Document lifecycle
 
 | Intent | Current API |
@@ -266,6 +309,8 @@ OpenDocument save methods now return `OdfSaveResult` directly. Replace the disca
 | `SaveFlatXmlResult` | `SaveFlatXml` returning `OdfSaveResult` |
 
 Reusable conversion options no longer retain operation state in members such as `LastSaveReport`, `LastSaveDiagnostics`, `ConversionReport`, or `Warnings`. Read that evidence from the returned result.
+
+The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfLogicalDocument` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF adapters, while `ToPdf()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
 
 ### Common member replacements
 
@@ -307,7 +352,7 @@ Reusable conversion options no longer retain operation state in members such as 
 | `RtfDocument.ToMemoryStream()` | `ToStream()` |
 | `ToRtfMemoryStream()` | `ToRtfStream()` |
 | `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWord()` / `SaveAsRtf()` on `PdfDocument` |
-| `SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveAsExcel()` / `SaveAsWordDocument()` / `SaveAsPowerPoint()` |
+| `SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveTablesAsExcel()` / `SaveAsWord()` / `SaveAsPowerPoint()` |
 | `ToPngResult` / `ToSvgResult` and plural result aliases | `ExportImage()` / `ExportImages()` returning `OfficeImageExportResult` values |
 | `PdfImageExportOptions.MaxPages` | `MaximumOutputCount` or `ToImages().WithMaximumPages(...)` |
 | `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |
@@ -321,9 +366,17 @@ Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `
 | `WithDpi(...)` | `AtDpi(...)` for physical output density |
 | `ForHighResolution(...)` | `ForPrint(...)` for the print profile |
 
+The byte-returning helpers remain encoding-specific: `ToPng()`, `ToJpeg()`, `ToTiff()`, and `ToWebp()` return bytes, while `ToSvg()` returns SVG text. Format-specific saves such as `SaveAsPng(...)`, `SaveAsJpeg(...)`, and the fluent `As...().Save(...)` surface write a destination and return structured evidence. `WithScale(...)` remains available for renderer-relative scaling.
+
 Image file saves now default to `OfficeImageExportFileConflictPolicy.FailIfExists`. A repeated write to the same path therefore throws unless the caller explicitly selects `Replace` or `CreateUnique` with `OnFileConflict(...)`.
 
 Raster exports share a 50-million-output-pixel default. The default overflow policy reduces scale before allocating the pixel buffer and reports `IMAGE_RASTER_SCALE_REDUCED`; set `RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw` to receive an `OfficeImageExportLimitException` instead.
+
+`OfficeImageExportResult` validates that encoded bytes, format, and dimensions agree. `DpiX`, `DpiY`, `PhysicalWidthInches`, `PhysicalHeightInches`, and `EncodedLength` are derived from the encoded payload. Shared options own `MaximumRasterPixels`, `RasterOverflowBehavior`, `ImageCodec`, `RasterEncoding`, `TargetDpi`, `Fonts`, `Policy`, `Progress`, batch limits, and maximum concurrency; document-specific options inherit those values rather than redefining them.
+
+Batch builders use `ExportEach(...)` / `ExportEachAsync(...)` for bounded streaming and `SaveFiles(...)` / `SaveFilesAsync(...)` when callers need saved path, metadata, and diagnostics without retaining every encoded payload. `OfficeImageExportPolicy` can reject loss, omissions, failures, or selected diagnostic codes. Supply intended TrueType faces through `WithFont(...)`, `WithFonts(...)`, or `OfficeImageExportOptions.Fonts` when `OfficeImageExportDiagnosticCodes.FontSubstituted` would otherwise be reported.
+
+PDF image export uses the same builder. Use `PdfReadPage.ToDrawing()` when an application needs the intermediate `OfficeDrawing` scene. `PdfPageRenderResult` remains a lower-level inspection, OCR, and verification contract with timing and PDF capability diagnostics; it is not the general multi-format export result.
 
 Format-neutral SVG image export now writes whole-pixel `px` root dimensions so the encoded size matches `OfficeImageExportResult.Width` and `Height`. If a lower-level Drawing workflow requires physical point units, call `OfficeDrawingSvgExporter.ToSvg(...)` with `OfficeSvgSizeUnit.Point` explicitly.
 
@@ -338,6 +391,14 @@ Image decode and font-fallback diagnostics moved to the shared Drawing result:
 | `ExcelCellFontFamilyFallback`, `ExcelChartFontFamilyFallback`, `ExcelHeaderFooterFontFamilyFallback` | `IMAGE_FONT_SUBSTITUTED` |
 
 `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` records that a caller-supplied `ImageCodec` handled the source.
+
+### HTML, Reader, and theme ownership
+
+Raw HTML is parsed once into `HtmlConversionDocument`. PDF, image, Word, Markdown, RTF, Excel, and PowerPoint adapters consume that model so the caller's base URI, document `<base>` semantics, source DOM, URL policy, media intent, and diagnostics are not reinterpreted by separate parsers. Replace adapter-specific raw-HTML parsing with `HtmlConversionDocument.Parse(...)`, then call the destination adapter.
+
+Reader orchestration uses an immutable `OfficeDocumentReader` built from explicit typed handlers. Native packages retain parser ownership; Reader adapters project native models into `OfficeDocumentReadResult` and return diagnostics from the operation. Do not replace removed parser classes with another public Reader parser hierarchy.
+
+Markdown HTML and PDF options use the shared `MarkdownVisualTheme` through `Theme`; PDF-only overrides use `MarkdownPdfSaveOptions.Style` and `MarkdownPdfStyle.DocumentTheme`. Visio styling and package themes are separate contracts: `VisioStyleTheme` describes reusable diagram styling, while `VisioPackageTheme` represents theme data stored in a Visio package. Shared colors and hexadecimal formatting belong to `OfficeIMO.Drawing` rather than duplicate Word or Excel helpers.
 
 PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches. Replace the removed switches as follows:
 
