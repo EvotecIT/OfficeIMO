@@ -29,6 +29,23 @@ There is no replacement umbrella OpenDocument PDF package. The focused packages 
 
 OpenDocument forward PDF results expose the typed OpenDocument projection report in `SourceConversionReports` and PDF-layout warnings in `Report`; `ConversionReports` presents both stages in order. Read OpenDocument mappings from `OdfConversionReport.Mappings` instead of looking for the removed synthetic `ODF_*` PDF warnings. Use `HasLoss` or `RequireNoLoss()` for the end-to-end fidelity gate. AsciiDoc, LaTeX, and semantic OneNote PDF routes use the same ordered source-stage and PDF-stage model.
 
+### Google Workspace preview options
+
+The completed Google Workspace adapters replace preview booleans that described behavior without proving that the fallback executed. Configure the operation through `UnsupportedFeatures`, `GoogleWorkspaceFidelityPolicy`, the format support catalog, and an executed fallback mode:
+
+| Removed preview option | Current action |
+| --- | --- |
+| Google Docs `FlattenFloatingContent` | Set `UnsupportedFeatures.FloatingContent` to the required `UnsupportedFeatureMode`, such as `Flatten`, `Rasterize`, `WarnAndSkip`, or `Error`. |
+| Google Docs `RasterizeWordCharts` | Set `UnsupportedFeatures.Charts = UnsupportedFeatureMode.Rasterize`; configure bounded rendered-page output through `RasterFallbackImageOptions`. |
+| Google Docs `PreserveCommentsViaDriveApi` | Set `Comments = GoogleDocsCommentMode.UnanchoredDriveComments`; use `UnsupportedFeatures.Comments` for content that cannot use that executed route. |
+| Google Docs `IncludeHeadersAndFooters`, `IncludeFootnotes`, and `IncludeBookmarksAsNamedRanges` | Supported content is translated according to the code-owned catalog; gate unsupported content with `FidelityPolicy` and `UnsupportedFeatures` instead of disabling a promise-only switch. |
+| Google Sheets `IncludeCharts` | Set `UnsupportedFeatures.Charts` to the required executed or fail-fast mode. |
+| Google Sheets `IncludePivotTables` | Set `UnsupportedFeatures.PivotTables` to the required executed or fail-fast mode. |
+| Google Sheets `IncludeHeaderFooterMetadata` and `TreatPrintLayoutAsDiagnosticOnly` | Set `UnsupportedFeatures.PrintLayout`, normally to `WarnAndSkip` or `Error`. |
+| Google Sheets `PreserveUnsupportedFormulasAsText` | Set `Formulas.UnsupportedFormulaMode` to `PreserveWithWarning`, `UseCachedValue`, or `Error`. |
+
+Read the target before replacement. Docs and Slides require the observed API revision; Sheets requires the observed Drive version. The [generated support matrix](https://officeimo.com/docs/google-workspace/support/) is the current capability owner.
+
 ### CSV and Excel tabular reads
 
 CSV and Excel retain separate document models and use the same entry-point grammar:
@@ -99,6 +116,8 @@ Replace lifecycle calls as follows:
 | `Open(stream, readOnly: true, autoSave: false)` | `Load(stream, new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })` |
 | `Create(stream, autoSave: false)` | `Create(stream)` |
 | Implicit save on dispose | Set `PersistenceMode = DocumentPersistenceMode.SaveOnDispose`, or call `Save()` explicitly |
+
+`PowerPointPresentation.Create(...)` now starts with zero slides, and every `AddSlide()` call creates one new slide. Replace code that indexed or reused the old placeholder at `Slides[0]` with an explicit `AddSlide()` before accessing the new slide.
 
 The designer and deck-composer entry points now route through one plan and one composition call:
 
@@ -208,6 +227,10 @@ Legacy Excel callers use the same explicit format and policy vocabulary:
 
 OfficeIMO 2.0 established the shared lifecycle and result vocabulary used by the current packages.
 
+### Shared foundation package
+
+The compiled `OfficeIMO.Shared` implementation package no longer exists. `OfficeIMO.SharedSource` is source-only and is not a runtime package replacement. Move direct package references and namespace imports to the public owner of each reusable value: shared colors, fonts, images, charts, lifecycle options, stream contracts, and export results belong to `OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; neutral CMS, X.509, and RFC 3161 contracts belong to `OfficeIMO.Security`. Native document behavior remains in its format package.
+
 ### Document lifecycle
 
 | Intent | Current API |
@@ -301,6 +324,8 @@ Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `
 Image file saves now default to `OfficeImageExportFileConflictPolicy.FailIfExists`. A repeated write to the same path therefore throws unless the caller explicitly selects `Replace` or `CreateUnique` with `OnFileConflict(...)`.
 
 Raster exports share a 50-million-output-pixel default. The default overflow policy reduces scale before allocating the pixel buffer and reports `IMAGE_RASTER_SCALE_REDUCED`; set `RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw` to receive an `OfficeImageExportLimitException` instead.
+
+Format-neutral SVG image export now writes whole-pixel `px` root dimensions so the encoded size matches `OfficeImageExportResult.Width` and `Height`. If a lower-level Drawing workflow requires physical point units, call `OfficeDrawingSvgExporter.ToSvg(...)` with `OfficeSvgSizeUnit.Point` explicitly.
 
 Image decode and font-fallback diagnostics moved to the shared Drawing result:
 

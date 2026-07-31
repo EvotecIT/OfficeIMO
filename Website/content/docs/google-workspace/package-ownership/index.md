@@ -24,6 +24,8 @@ OfficeIMO separates transport, Drive operations, authentication, synchronization
 
 Use `UnsupportedFeatures`, `GoogleWorkspaceFidelityPolicy`, and the format support catalogs to decide whether a mapping is native, simplified, rasterized, preserved through a fallback, or blocked. A successful HTTP request is not a fidelity claim.
 
+Applications upgrading from the preview booleans should follow the [Google Workspace migration actions](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md#google-workspace-preview-options), including the replacements for Docs flattening, rasterization, and comments and Sheets chart, pivot, formula, and print-layout switches.
+
 ## Existing-file updates
 
 Import or read the target before replacement. Docs and Slides use the observed API revision; Sheets uses the observed Drive version. Pass that evidence to the replacement operation. Choose an overwrite mode only when last-writer-wins is an application decision.

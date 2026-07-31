@@ -216,7 +216,8 @@ or preserve-only content by default. Set `LossPolicy` to
 `WordConversionLossPolicy.Allow` on `WordDocumentConversionOptions` or
 `WordSaveOptions` only when that loss has been reviewed and is intentional.
 See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-compatibility.md)
-for the current capability matrix, safety contract, and canonical API replacement table.
+for the current capability matrix and safety contract. Use the
+[migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
 
 ### Protection
 

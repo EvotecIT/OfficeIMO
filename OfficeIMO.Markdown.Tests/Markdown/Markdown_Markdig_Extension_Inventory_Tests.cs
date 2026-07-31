@@ -49,7 +49,7 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Contains($"| Intentional | {report.Intentional} |", publishedMatrix, StringComparison.Ordinal);
         Assert.Contains($"| Gap | {report.Gap} |", publishedMatrix, StringComparison.Ordinal);
         Assert.All(report.Rows, row => Assert.Contains(
-            $"| {row.Family} | `{row.Status}` | {row.Route} |",
+            $"| {row.Family} | `{row.Status}` | {MarkdigExtensionInventoryMarkdownWriter.GetPublishedRoute(row)} |",
             publishedMatrix,
             StringComparison.Ordinal));
         Assert.Contains(partialBoundaries, publishedMatrix, StringComparison.Ordinal);

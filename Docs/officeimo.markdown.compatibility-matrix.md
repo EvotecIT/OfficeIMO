@@ -9,6 +9,7 @@ Open Markdown work is tracked in the repository [roadmap](ROADMAP.md).
 - **Covered:** implemented and protected by focused evidence.
 - **Partial:** useful behavior exists with a named incomplete edge or source/writer limit.
 - **Intentional:** the OfficeIMO profile deliberately adds behavior outside a standards profile.
+- **Gap:** unavailable; no parser, transform, or renderer option implements the named behavior. The route names only the candidate owner for a possible implementation.
 - **Unsupported:** input remains literal, source-preserved, diagnosed, or rejected according to the named profile.
 
 ## Evidence baseline
@@ -43,29 +44,29 @@ This is the published routing inventory for optional and profile-specific extens
 | Extended autolinks | `Covered` | Core parser, profile-gated |
 | Bootstrap renderer helpers | `Intentional` | Renderer theme policy |
 | CJK-friendly emphasis | `Covered` | Core delimiter parser option |
-| Citations | `Gap` | Optional parser extension, deferred |
+| Citations | `Gap` | Unavailable; candidate owner: Optional parser extension, deferred |
 | Custom containers | `Partial` | Core extension seam plus optional built-in parser |
 | Definition lists | `Covered` | Core parser, opt-in/profile-gated |
 | Diagrams | `Partial` | Renderer/host policy over semantic fences |
-| Emoji and smiley | `Gap` | Optional inline transform |
+| Emoji and smiley | `Gap` | Unavailable; candidate owner: Optional inline transform |
 | Emphasis extras | `Covered` | Core inline parser, profile-gated |
 | Figures | `Partial` | Core image AST plus optional parser syntax |
-| Footers | `Gap` | Deferred document semantics |
+| Footers | `Gap` | Unavailable; candidate owner: Deferred document semantics |
 | Footnotes | `Covered` | Core parser, GFM profile |
 | Generic attributes | `Partial` | Core AST/source architecture |
-| Globalization | `Gap` | Deferred compatibility option |
-| Grid tables | `Gap` | Optional block parser extension |
-| Jira links | `Gap` | Optional link inline extension |
+| Globalization | `Gap` | Unavailable; candidate owner: Deferred compatibility option |
+| Grid tables | `Gap` | Unavailable; candidate owner: Optional block parser extension |
+| Jira links | `Gap` | Unavailable; candidate owner: Optional link inline extension |
 | List extras | `Partial` | Core parser, opt-in |
 | Mathematics | `Partial` | Optional parser plus renderer/host policy |
 | Media links | `Partial` | Renderer/host policy with optional link parser |
 | Non-ASCII no-escape rendering | `Covered` | Renderer escaping policy |
 | Pipe tables | `Covered` | Core parser, GFM profile |
-| Pragma lines | `Gap` | Deferred metadata parser |
+| Pragma lines | `Gap` | Unavailable; candidate owner: Deferred metadata parser |
 | Precise source location | `Partial` | Cross-cutting core source architecture |
-| Referral links | `Gap` | Renderer policy |
+| Referral links | `Gap` | Unavailable; candidate owner: Renderer policy |
 | Self pipeline | `Intentional` | Intentional composition difference |
-| SmartyPants | `Gap` | Optional inline transform |
+| SmartyPants | `Gap` | Unavailable; candidate owner: Optional inline transform |
 | Soft line break as hard line break | `Covered` | Core parser option |
 | Task lists | `Covered` | Core parser, GFM profile |
 | YAML front matter | `Covered` | Core parser, OfficeIMO profile |

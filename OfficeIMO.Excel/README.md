@@ -97,7 +97,8 @@ legacy sources with unsupported or preserve-only content by default. Set
 `LossPolicy` to `ExcelConversionLossPolicy.Allow` on conversion or save options
 only after reviewing that loss. See
 [XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) for
-the current capability matrix, safety contract, and canonical API replacement table.
+the current capability matrix and safety contract. Use the
+[migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
 
 ### Work with XLSB workbooks
 

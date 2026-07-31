@@ -431,6 +431,25 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`HasImportErrors`", migration, StringComparison.Ordinal);
         Assert.Contains("`HasUnsupportedFeatures`", migration, StringComparison.Ordinal);
         Assert.Contains("public `Diagnostics`, `UnsupportedFeatures`, `PreservedFeatures`, `UnsupportedSheets`, and `CompoundFeatures` collections", migration, StringComparison.Ordinal);
+        Assert.Contains("### Google Workspace preview options", migration, StringComparison.Ordinal);
+        Assert.Contains("`FlattenFloatingContent`", migration, StringComparison.Ordinal);
+        Assert.Contains("`RasterizeWordCharts`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PreserveCommentsViaDriveApi`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeHeadersAndFooters`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeFootnotes`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeBookmarksAsNamedRanges`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeCharts`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludePivotTables`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeHeaderFooterMetadata`", migration, StringComparison.Ordinal);
+        Assert.Contains("`TreatPrintLayoutAsDiagnosticOnly`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PreserveUnsupportedFormulasAsText`", migration, StringComparison.Ordinal);
+        Assert.Contains("starts with zero slides", migration, StringComparison.Ordinal);
+        Assert.Contains("explicit `AddSlide()`", migration, StringComparison.Ordinal);
+        Assert.Contains("whole-pixel `px` root dimensions", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeSvgSizeUnit.Point`", migration, StringComparison.Ordinal);
+        Assert.Contains("compiled `OfficeIMO.Shared` implementation package no longer exists", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.SharedSource` is source-only", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; neutral CMS", migration, StringComparison.Ordinal);
         string[] retainedLegacyMigrationNames = {
             "`SheetComposer.DefinitionList(...)`",
             "`PowerPointUnits.Cm/Mm/Inches/Points(...)`",
@@ -472,6 +491,23 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("PDF -->|\"visual pages or editable tables\"| PowerPoint", rootReadme, StringComparison.Ordinal);
         Assert.DoesNotContain("PDF -->|\"logical tables only\"| PowerPoint", rootReadme, StringComparison.Ordinal);
         Assert.Contains("ignored-error metadata preservation", rootReadme, StringComparison.Ordinal);
+
+        string excelReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Excel", "README.md"));
+        string wordReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Word", "README.md"));
+        Assert.Contains("[migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes)", excelReadme, StringComparison.Ordinal);
+        Assert.Contains("[migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes)", wordReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("canonical API replacement table", excelReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("canonical API replacement table", wordReadme, StringComparison.Ordinal);
+
+        string googleWorkspaceOwnership = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Website",
+            "content",
+            "docs",
+            "google-workspace",
+            "package-ownership",
+            "index.md"));
+        Assert.Contains("MIGRATION.md#google-workspace-preview-options", googleWorkspaceOwnership, StringComparison.Ordinal);
 
         string visioReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Visio", "README.md"));
         Assert.Contains("### Loaded-diagram compatibility boundary", visioReadme, StringComparison.Ordinal);

@@ -18,7 +18,7 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         sb.AppendLine("- `Intentional`: the Markdig entry point is a bundle, helper, or renderer policy that OfficeIMO should model differently.");
         sb.AppendLine("- `Gap`: no meaningful OfficeIMO equivalent exists yet.");
         sb.AppendLine();
-        sb.AppendLine("Route values name the owning layer for future work. Scope decisions collapse those routes into execution buckets, so missing behavior is fixed in the reusable engine, optional extension, renderer/host policy, deferred backlog, or intentionally documented difference instead of drifting into ad hoc tests.");
+        sb.AppendLine("Route values name the candidate owner for an implementation. Scope decisions collapse those routes into execution buckets, so missing behavior belongs in the reusable engine, optional extension, renderer/host policy, deferred backlog, or intentionally documented difference instead of drifting into ad hoc tests.");
         sb.AppendLine();
         sb.AppendLine("Refresh command:");
         sb.AppendLine();
@@ -90,6 +90,11 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         sb.AppendLine(PartialBoundariesEnd);
         return sb.ToString().Replace("\r\n", "\n").TrimEnd();
     }
+
+    public static string GetPublishedRoute(MarkdigExtensionInventoryRow row) =>
+        row.Status == MarkdigExtensionInventoryStatus.Gap
+            ? "Unavailable; candidate owner: " + row.Route
+            : row.Route;
 
     private static string EscapeTable(string value) => value.Replace("|", "\\|");
 
