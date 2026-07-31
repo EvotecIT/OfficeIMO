@@ -360,6 +360,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanBudgetsThreadedCommentsBeforeCollectingThem() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            WorksheetThreadedCommentsPart threadedPart =
+                sheet.WorksheetPart.AddNewPart<WorksheetThreadedCommentsPart>();
+            var threadedComments = new Threaded.ThreadedComments();
+            for (int index = 0; index < 128; index++) {
+                threadedComments.Append(new Threaded.ThreadedComment(
+                    new Threaded.ThreadedCommentText($"Comment {index}")) {
+                    Id = $"{{00000000-0000-0000-0000-{index:D12}}}",
+                    Ref = "A3"
+                });
+            }
+            threadedPart.ThreadedComments = threadedComments;
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                sheet.PlanDeleteRows(
+                    3,
+                    options: new ExcelMutationPlanOptions {
+                        MaximumScannedElements = 64
+                    }));
+
+            Assert.Contains("exceeded its limit", exception.Message, StringComparison.Ordinal);
+            Assert.Equal(128, threadedPart.ThreadedComments.Elements<Threaded.ThreadedComment>().Count());
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanIncludesChartsHostedOnOtherSheets() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddWorksheet("Data");
@@ -398,6 +425,29 @@ namespace OfficeIMO.Tests {
                 plan.Impacts,
                 impact => impact.Category == "pivots");
             Assert.True(pivots.ItemCount >= 1);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanBudgetsEveryPivotDefinitionElement() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = CreatePivotSheet(document);
+            PivotTablePart pivotPart = Assert.Single(sheet.WorksheetPart.PivotTableParts);
+            PivotFields pivotFields = Assert.IsType<PivotFields>(
+                pivotPart.PivotTableDefinition!.GetFirstChild<PivotFields>());
+            for (int index = 0; index < 256; index++) {
+                pivotFields.Append(new PivotField());
+            }
+            pivotFields.Count = (uint)pivotFields.ChildElements.Count;
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                sheet.PlanInsertRows(
+                    2,
+                    options: new ExcelMutationPlanOptions {
+                        MaximumScannedElements = 128
+                    }));
+
+            Assert.Contains("exceeded its limit", exception.Message, StringComparison.Ordinal);
+            Assert.Equal(258, pivotFields.ChildElements.Count);
         }
 
         [Fact]

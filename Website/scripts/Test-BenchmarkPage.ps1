@@ -79,6 +79,11 @@ if ($comparisonRunnerText -notmatch 'if \(\$catalogEligible -and \$gitDirty\)' -
     $comparisonRunnerText -notmatch 'Cataloged benchmark evidence requires a clean Git worktree') {
     throw 'Catalog-eligible benchmark runs do not enforce source-commit provenance from a clean worktree.'
 }
+if ($comparisonRunnerText -notmatch 'GetUnresolvedProviderPathFromPSPath' -or
+    $comparisonRunnerText -notmatch '-ResultArtifactPath \$measurement\.EvidenceLocation\.Path' -or
+    $comparisonRunnerText -match '-Path \$measurement\.EvidenceLocation\.Path') {
+    throw 'The benchmark runner does not preserve caller-relative output roots and atomic evidence publication.'
+}
 
 $caseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
     Scenario = 'OfficeIMO_WriteDataReader'

@@ -16,14 +16,16 @@ namespace OfficeIMO.Excel {
     /// <summary>Controls resource use while an Excel structural mutation plan is inspected.</summary>
     public sealed class ExcelMutationPlanOptions {
         /// <summary>
-        /// Maximum Open XML elements inspected while building a dry-run impact summary.
-        /// The bounded scan completes before semantic mutation preflight is allowed to run.
+        /// Maximum Open XML parts and elements admitted for one dry-run inspection phase.
+        /// Unloaded package XML is bounded before materialization, and the impact scan applies
+        /// the same limit independently before semantic mutation preflight is allowed to run.
         /// </summary>
         public int MaximumScannedElements { get; set; } = 250_000;
 
         /// <summary>
-        /// Maximum XML characters read while pre-scanning one lazily loaded worksheet.
-        /// This bounds decompressed worksheet text before its Open XML DOM is materialized.
+        /// Maximum XML characters admitted per lazily loaded part before semantic inspection. The same value is
+        /// also applied as a conservative aggregate decompressed-byte ceiling across all lazily loaded XML parts,
+        /// before any Open XML DOM is materialized.
         /// </summary>
         public long MaximumScannedCharacters { get; set; } = 64_000_000;
 

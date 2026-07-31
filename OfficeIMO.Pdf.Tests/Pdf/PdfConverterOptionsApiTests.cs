@@ -270,7 +270,7 @@ public sealed class PdfConverterOptionsApiTests {
 
     private static void AssertBalancedDefault(PdfResourcePolicy policy) {
         Assert.True(policy.AllowSystemFontEmbedding);
-        Assert.True(policy.AllowDocumentFontEmbedding);
+        Assert.False(policy.AllowDocumentFontEmbedding);
         Assert.False(policy.AllowLocalFileAccess);
         Assert.False(policy.AllowRemoteResourceResolution);
         Assert.True(policy.AllowDataUris);

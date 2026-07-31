@@ -607,17 +607,23 @@ public sealed partial class PdfOptions {
 
         var promoted = new List<PdfEmbeddedFontFallbackCandidate>(
             fallbackSet.Candidates.Count);
+        var promotedFamilyKeys = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 0; index < fallbackSet.Candidates.Count; index++) {
             PdfEmbeddedFontFallbackCandidate candidate = fallbackSet.Candidates[index];
             string familyName = candidate.FontName;
             string key = NormalizeNamedFontFamilyKey(familyName);
-            if (prospectiveFamilies.TryGetValue(key, out PdfEmbeddedFontFamily? existing)
-                && !NamedFamilyMatchesFallbackCandidate(existing, candidate)) {
-                familyName = FindReusablePromotedFallbackFamilyName(
-                        candidate,
-                        fallbackSet.FontSlots[index],
-                        prospectiveFamilies)
-                    ?? CreatePromotedFallbackFamilyName(
+            if (promotedFamilyKeys.Contains(key)
+                || (prospectiveFamilies.TryGetValue(key, out PdfEmbeddedFontFamily? existing)
+                    && !NamedFamilyMatchesFallbackCandidate(existing, candidate))) {
+                string? reusableFamilyName = FindReusablePromotedFallbackFamilyName(
+                    candidate,
+                    fallbackSet.FontSlots[index],
+                    prospectiveFamilies);
+                familyName = reusableFamilyName != null
+                        && !promotedFamilyKeys.Contains(
+                            NormalizeNamedFontFamilyKey(reusableFamilyName))
+                    ? reusableFamilyName
+                    : CreatePromotedFallbackFamilyName(
                         candidate.FontName,
                         fallbackSet.FontSlots[index],
                         prospectiveFamilies);
@@ -631,6 +637,7 @@ public sealed partial class PdfOptions {
                 candidate.Style,
                 candidate.PlannerFamilyName);
             promoted.Add(promotedCandidate);
+            promotedFamilyKeys.Add(key);
             if (!prospectiveFamilies.ContainsKey(key)) {
                 prospectiveFamilies[key] = new PdfEmbeddedFontFamily(
                     familyName,
