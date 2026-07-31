@@ -53,6 +53,16 @@ public sealed partial class PdfOptions {
             Encryption = _encryption?.Clone(),
             AcroFormDefaultTextAlignment = AcroFormDefaultTextAlignment,
             _embeddedFontFallbacks = _embeddedFontFallbacks?.Clone(),
+            _renderingProfileFamilyFallbacks =
+                CloneRenderingProfileFamilyFallbacks(_renderingProfileFamilyFallbacks),
+            _renderingProfileDeclaredFallbackCandidates =
+                _renderingProfileDeclaredFallbackCandidates?.ToArray(),
+            _renderingProfileOwnedNamedFamilyNames =
+                _renderingProfileOwnedNamedFamilyNames == null
+                    ? null
+                    : new HashSet<string>(
+                        _renderingProfileOwnedNamedFamilyNames,
+                        StringComparer.OrdinalIgnoreCase),
             TextLineBreakCallback = _textLineBreakCallback,
             TextHyphenationCallback = _textHyphenationCallback,
             TextShapingMode = TextShapingMode,
@@ -149,6 +159,8 @@ public sealed partial class PdfOptions {
         clone._hasExplicitDefaultFont = _hasExplicitDefaultFont;
         clone._hasExplicitHeaderFont = _hasExplicitHeaderFont;
         clone._hasExplicitFooterFont = _hasExplicitFooterFont;
+        clone._defaultFontSizeAssignmentVersion = _defaultFontSizeAssignmentVersion;
+        clone._pageSizeAssignmentVersion = _pageSizeAssignmentVersion;
         clone._pageNumberStart = _pageNumberStart;
         clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;
         return clone;

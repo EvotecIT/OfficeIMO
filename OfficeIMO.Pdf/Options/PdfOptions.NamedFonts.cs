@@ -29,6 +29,8 @@ public sealed partial class PdfOptions {
     /// consume Helvetica, Times, or Courier compatibility slots and may be used together on one page.
     /// </summary>
     public PdfOptions RegisterNamedFontFamily(PdfEmbeddedFontFamily fontFamily) {
+        Guard.NotNull(fontFamily, nameof(fontFamily));
+        ReleaseRenderingProfileFontOwnership(fontFamily.FamilyName);
         if (!TryRegisterNamedFontFamily(fontFamily)) {
             throw new InvalidOperationException(
                 $"No more than {MaximumNamedFontFamilies} named font families can be registered.");
@@ -97,6 +99,12 @@ public sealed partial class PdfOptions {
         _namedFontPrograms?.Clear();
         _namedOpenTypeCffFontPrograms?.Clear();
         _namedFontProgramFailures?.Clear();
+        if (_embeddedFontFallbacks?.UsesNamedFontFamilies == true) {
+            _embeddedFontFallbacks = null;
+        }
+        _renderingProfileFamilyFallbacks?.Clear();
+        _renderingProfileDeclaredFallbackCandidates = null;
+        _renderingProfileOwnedNamedFamilyNames?.Clear();
         return this;
     }
 
@@ -238,6 +246,10 @@ public sealed partial class PdfOptions {
         }
 
         foreach (string candidate in EnumerateOfficeFontFamilyCandidates(familyName!)) {
+            if (_renderingProfileOwnedNamedFamilyNames?.Contains(candidate) == true
+                && TryGetNamedFontFamilyDirect(candidate, out family)) {
+                return true;
+            }
             if (TryGetFontFamilySubstitution(candidate, out PdfFontFamilySubstitution? substitution) &&
                 substitution != null &&
                 TryGetNamedFontFamilyDirect(substitution.TargetFontFamily, out family)) {

@@ -7,17 +7,48 @@ internal static partial class PdfWriter {
         PdfStandardFont.Courier
     };
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance",
+        "CA1859:Use concrete types when possible",
+        Justification = "Callers expose read-only run collections and should not depend on the mutable implementation.")]
     private static System.Collections.Generic.IReadOnlyList<TextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<TextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
         Guard.NotNull(runs, nameof(runs));
-        PdfEmbeddedFontFallbackSet? fallbackSet = options?.EmbeddedFontFallbacksSnapshot;
-        if (fallbackSet == null) {
-            return runs as System.Collections.Generic.IReadOnlyList<TextRun> ?? runs.ToArray();
-        }
-
         var normalized = new System.Collections.Generic.List<TextRun>();
         foreach (TextRun run in runs) {
             if (run.InlineElement != null) {
                 normalized.Add(run);
+                continue;
+            }
+
+            bool preferSelectedCallerFamily =
+                options?.ShouldPreferSelectedCallerFamily(run.FontFamily) == true;
+            if (preferSelectedCallerFamily
+                && CanWriteRunWithSelectedFont(run, baseFont, options)) {
+                normalized.Add(run);
+                continue;
+            }
+
+            if (options?.TryGetEffectiveRenderingProfileFallbacks(
+                    run.FontFamily,
+                    run.Bold,
+                    run.Italic,
+                    out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks) == true
+                && profileFamilyFallbacks != null
+                && ((preferSelectedCallerFamily
+                     && TryPlanFallbackRunsPreservingSelectedFont(
+                        run,
+                        baseFont,
+                        options,
+                        profileFamilyFallbacks,
+                        out System.Collections.Generic.IReadOnlyList<TextRun> profileRuns))
+                    || TryPlanFallbackTextRuns(
+                        profileFamilyFallbacks,
+                        run.Text,
+                        run,
+                        options,
+                        ResolveFontForRun(run, baseFont),
+                        out profileRuns))) {
+                normalized.AddRange(profileRuns);
                 continue;
             }
 
@@ -26,8 +57,14 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            if (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns) ||
-                TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns)) {
+            PdfEmbeddedFontFallbackSet? fallbackSet =
+                options?.GetEffectiveRenderingProfileDeclaredFallbacks(
+                    run.Bold,
+                    run.Italic)
+                ?? options?.EmbeddedFontFallbacksSnapshot;
+            if (fallbackSet != null
+                && (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns)
+                    || TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns))) {
                 normalized.AddRange(plannedRuns);
             } else {
                 normalized.Add(run);
@@ -208,43 +245,46 @@ internal static partial class PdfWriter {
         ch == '\n' || ch == '\r' || ch == '\t';
 
     private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, TextRun run, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
-        length = GetNextFallbackScalarLength(text, index);
+        string textElement = System.Globalization.StringInfo.GetNextTextElement(text, index);
+        length = textElement.Length;
         if (options != null &&
             options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
             if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
                 namedFontProgram != null) {
-                return TryGetCoveredTextLength(text, index, namedFontProgram, options.TextShapingModeSnapshot, out length);
+                return CanWriteWithEmbeddedFont(
+                    textElement,
+                    namedFontProgram,
+                    options.TextShapingModeSnapshot);
             }
 
             if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
                 namedCffFontProgram != null) {
-                return TryGetCoveredTextLength(text, index, namedCffFontProgram, options.TextShapingModeSnapshot, out length);
+                return CanWriteWithEmbeddedFont(
+                    textElement,
+                    namedCffFontProgram,
+                    options.TextShapingModeSnapshot);
             }
         }
 
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return TryGetCoveredTextLength(text, index, fontProgram, options.TextShapingModeSnapshot, out length);
+            return CanWriteWithEmbeddedFont(
+                textElement,
+                fontProgram,
+                options.TextShapingModeSnapshot);
         }
 
         if (options != null &&
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(fontForRun, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            return TryGetCoveredTextLength(text, index, cffFontProgram, options.TextShapingModeSnapshot, out length);
+            return CanWriteWithEmbeddedFont(
+                textElement,
+                cffFontProgram,
+                options.TextShapingModeSnapshot);
         }
 
-        return CanWriteTextWithSelectedFont(text.Substring(index, length), fontForRun, options);
-    }
-
-    private static int GetNextFallbackScalarLength(string text, int index) {
-        if (index + 1 < text.Length &&
-            char.IsHighSurrogate(text[index]) &&
-            char.IsLowSurrogate(text[index + 1])) {
-            return 2;
-        }
-
-        return 1;
+        return CanWriteTextWithSelectedFont(textElement, fontForRun, options);
     }
 
     private static bool FontFamilySlotIsEmptyOrCandidate(

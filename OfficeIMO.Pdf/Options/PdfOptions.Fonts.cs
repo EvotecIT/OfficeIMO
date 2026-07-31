@@ -19,8 +19,7 @@ public sealed partial class PdfOptions {
     public PdfEmbeddedFontFallbackSet? EmbeddedFontFallbacks {
         get => _embeddedFontFallbacks?.Clone();
         set {
-            _embeddedFontFallbacks = value?.Clone();
-            _embeddedFontFallbacks?.RegisterFonts(this);
+            SetCallerEmbeddedFontFallbacks(value);
         }
     }
 
@@ -321,9 +320,47 @@ public sealed partial class PdfOptions {
     /// <param name="fallbackSet">Fallback set that pairs prioritized embedded font candidates with generated font slots.</param>
     public PdfOptions RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
         Guard.NotNull(fallbackSet, nameof(fallbackSet));
-        _embeddedFontFallbacks = fallbackSet.Clone();
-        _embeddedFontFallbacks.RegisterFonts(this);
+        SetCallerEmbeddedFontFallbacks(fallbackSet);
         return this;
+    }
+
+    private void SetCallerEmbeddedFontFallbacks(
+        PdfEmbeddedFontFallbackSet? fallbackSet) {
+        if (fallbackSet == null) {
+            _embeddedFontFallbacks = null;
+            _renderingProfileDeclaredFallbackCandidates = null;
+            return;
+        }
+
+        PdfEmbeddedFontFallbackSet prepared = fallbackSet.Clone();
+        if (!prepared.UsesNamedFontFamilies
+            && _renderingProfileOwnedNamedFamilyNames?.Count > 0) {
+            prepared = PromoteCompatibilitySlotFallbacks(
+                    prepared,
+                    Array.Empty<PdfEmbeddedFontFamily>(),
+                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                    OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay)
+                ?? prepared;
+            ValidateRenderingProfileFamilyCapacity(
+                Array.Empty<PdfEmbeddedFontFamily>(),
+                prepared,
+                OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay);
+        }
+        if (prepared.UsesNamedFontFamilies) {
+            ValidateRenderingProfileFamilyCapacity(
+                Array.Empty<PdfEmbeddedFontFamily>(),
+                prepared,
+                OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay);
+            foreach (PdfEmbeddedFontFallbackCandidate candidate in prepared.Candidates) {
+                // Release stale profile ownership before the caller's active set is installed.
+                // Otherwise registration can filter the newly assigned candidate itself.
+                ReleaseRenderingProfileFontOwnership(candidate.FontName);
+            }
+        }
+
+        _renderingProfileDeclaredFallbackCandidates = null;
+        _embeddedFontFallbacks = prepared;
+        _embeddedFontFallbacks.RegisterFonts(this);
     }
 
     private static bool TryLoadOfficeFontFamily(string familyName, out PdfEmbeddedFontFamily? embeddedFamily) {

@@ -85,12 +85,39 @@ namespace OfficeIMO.Word.Pdf {
                 string? registeredFamilyName,
                 out double ratio) {
                 ratio = 0D;
-                if (string.IsNullOrWhiteSpace(registeredFamilyName) ||
-                    !options.NamedFontFamilies.TryGetValue(registeredFamilyName!, out PdfCore.PdfEmbeddedFontFamily? family)) {
+                if (string.IsNullOrWhiteSpace(registeredFamilyName)) {
                     return false;
                 }
 
-                return TryResolveEmbeddedLineSpacingRatio(family.RegularSnapshot, out ratio);
+                if (options.NamedFontFamilies.TryGetValue(
+                        registeredFamilyName!,
+                        out PdfCore.PdfEmbeddedFontFamily? family)) {
+                    return TryResolveEmbeddedLineSpacingRatio(
+                        family.RegularSnapshot,
+                        out ratio);
+                }
+
+                if (!options.TryGetRenderingProfileFamilyFallbacks(
+                        registeredFamilyName,
+                        out PdfCore.PdfEmbeddedFontFallbackSet? planner)
+                    || planner == null) {
+                    return false;
+                }
+
+                bool resolved = false;
+                double maximumRatio = 0D;
+                foreach (PdfCore.PdfEmbeddedFontFallbackCandidate candidate in
+                         planner.Candidates) {
+                    if (TryResolveEmbeddedLineSpacingRatio(
+                            candidate.DataSnapshot,
+                            out double candidateRatio)) {
+                        maximumRatio = Math.Max(maximumRatio, candidateRatio);
+                        resolved = true;
+                    }
+                }
+
+                ratio = maximumRatio;
+                return resolved;
             }
 
             private static bool TryResolveSlotLineSpacingRatio(

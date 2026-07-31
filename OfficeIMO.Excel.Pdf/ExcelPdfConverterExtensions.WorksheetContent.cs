@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return true;
             }
 
-            if (options.PdfOptions != null) {
+            if (options.HasExplicitPdfPageSizeConfiguration) {
                 return false;
             }
 

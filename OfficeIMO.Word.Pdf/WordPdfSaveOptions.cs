@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PdfCore = OfficeIMO.Pdf;
+using DrawingCore = OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word.Pdf {
     /// <summary>
@@ -7,10 +8,27 @@ namespace OfficeIMO.Word.Pdf {
     /// </summary>
     public class WordPdfSaveOptions {
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+        private PdfCore.PdfOptions? _pdfOptions;
+        private long? _renderingProfileFontConfigurationState;
+        private bool _renderingProfileContainsFonts;
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
-        public PdfCore.PdfOptions? PdfOptions { get; set; }
+        public PdfCore.PdfOptions? PdfOptions {
+            get => _pdfOptions;
+            set {
+                _pdfOptions = value;
+                _renderingProfileFontConfigurationState = null;
+                _renderingProfileContainsFonts = false;
+            }
+        }
+
+        internal bool HasExplicitPdfFontConfiguration =>
+            _pdfOptions != null
+            && (_renderingProfileContainsFonts
+                || !_renderingProfileFontConfigurationState.HasValue
+                || _pdfOptions.FontConfigurationState
+                    != _renderingProfileFontConfigurationState.Value);
 
         /// <summary>
         /// Optional Word-style font family used as the first-party PDF default font. When the resource policy allows system fonts, an installed family is embedded; otherwise it maps to the nearest PDF standard font.
@@ -95,6 +113,45 @@ namespace OfficeIMO.Word.Pdf {
         public bool DefaultTableBorders { get; set; } = false;
 
         /// <summary>
+        /// Applies shared deterministic typography resources to the first-party PDF engine.
+        /// Word pagination and layout settings remain owned by this converter.
+        /// </summary>
+        public WordPdfSaveOptions UseRenderingProfile(
+            DrawingCore.OfficeRenderingProfile profile,
+            DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
+            if (profile == null) {
+                throw new ArgumentNullException(nameof(profile));
+            }
+            if (mode != DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                && mode != DrawingCore.OfficeRenderingProfileApplyMode.Overlay) {
+                throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+
+            bool profileOwnsResultingFontConfiguration =
+                _pdfOptions == null
+                || (_renderingProfileFontConfigurationState.HasValue
+                    && (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                        || _pdfOptions.FontConfigurationState
+                            == _renderingProfileFontConfigurationState.Value));
+            bool retainedProfileFonts =
+                mode == DrawingCore.OfficeRenderingProfileApplyMode.Overlay
+                && _renderingProfileContainsFonts;
+            PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
+            target.UseRenderingProfile(profile, mode);
+            _pdfOptions ??= target;
+            if (profileOwnsResultingFontConfiguration) {
+                _renderingProfileFontConfigurationState =
+                    _pdfOptions.FontConfigurationState;
+                _renderingProfileContainsFonts =
+                    retainedProfileFonts || profile.Fonts.Faces.Count > 0;
+            } else {
+                _renderingProfileFontConfigurationState = null;
+                _renderingProfileContainsFonts = false;
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Applies a high-level export profile by setting the Word PDF options that correspond to that profile.
         /// </summary>
         public WordPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
@@ -122,23 +179,30 @@ namespace OfficeIMO.Word.Pdf {
             return this;
         }
 
-        internal WordPdfSaveOptions CloneForConversion() => new() {
-            PdfOptions = PdfOptions,
-            FontFamily = FontFamily,
-            ResourcePolicy = ResourcePolicy.Clone(),
-            TextFallbacks = TextFallbacks,
-            PageSize = PageSize,
-            Margins = Margins,
-            Orientation = Orientation,
-            DefaultPageSize = DefaultPageSize,
-            DefaultOrientation = DefaultOrientation,
-            Title = Title,
-            Author = Author,
-            Subject = Subject,
-            Keywords = Keywords,
-            IncludePageNumbers = IncludePageNumbers,
-            PageNumberFormat = PageNumberFormat,
-            DefaultTableBorders = DefaultTableBorders
-        };
+        internal WordPdfSaveOptions CloneForConversion() {
+            var clone = new WordPdfSaveOptions {
+                PdfOptions = PdfOptions,
+                FontFamily = FontFamily,
+                ResourcePolicy = ResourcePolicy.Clone(),
+                TextFallbacks = TextFallbacks,
+                PageSize = PageSize,
+                Margins = Margins,
+                Orientation = Orientation,
+                DefaultPageSize = DefaultPageSize,
+                DefaultOrientation = DefaultOrientation,
+                Title = Title,
+                Author = Author,
+                Subject = Subject,
+                Keywords = Keywords,
+                IncludePageNumbers = IncludePageNumbers,
+                PageNumberFormat = PageNumberFormat,
+                DefaultTableBorders = DefaultTableBorders
+            };
+            clone._renderingProfileFontConfigurationState =
+                _renderingProfileFontConfigurationState;
+            clone._renderingProfileContainsFonts =
+                _renderingProfileContainsFonts;
+            return clone;
+        }
     }
 }

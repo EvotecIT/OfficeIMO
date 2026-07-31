@@ -22,7 +22,8 @@ public static partial class PowerPointPdfConverterExtensions {
             pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
         }
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);
-        bool preserveConfiguredFontSlots = options.PdfOptions != null;
+        bool preserveConfiguredFontSlots =
+            options.HasExplicitPdfFontConfiguration;
         if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
             TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.ResourcePolicy.AllowSystemFontEmbedding)) {
             preserveConfiguredFontSlots = true;
@@ -283,6 +284,10 @@ public static partial class PowerPointPdfConverterExtensions {
         int slideNumber,
         bool reportSubstitution = true) {
         if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
+            if (pdfOptions.HasRenderingProfileFamilyPlanner(trimmedFamilyName)) {
+                return;
+            }
+
             if (pdfOptions.TryResolveFontFamilySubstitution(
                     trimmedFamilyName,
                     out PdfCore.PdfFontFamilySubstitution? substitution) &&

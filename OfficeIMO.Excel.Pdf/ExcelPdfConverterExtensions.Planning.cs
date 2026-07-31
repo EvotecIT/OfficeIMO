@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.Pdf {
             pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Excel.Pdf");
 
             pdfOptions.CreateOutlineFromHeadings = true;
-            preserveConfiguredFontSlots = options.PdfOptions != null;
+            preserveConfiguredFontSlots = options.HasExplicitPdfFontConfiguration;
 
             if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
                 TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.ResourcePolicy.AllowSystemFontEmbedding)) {
@@ -169,6 +169,10 @@ namespace OfficeIMO.Excel.Pdf {
             string sheetName,
             bool reportSubstitution = true) {
             if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
+                if (pdfOptions.HasRenderingProfileFamilyPlanner(trimmedFamilyName)) {
+                    return;
+                }
+
                 if (pdfOptions.TryResolveFontFamilySubstitution(
                         trimmedFamilyName,
                         out PdfCore.PdfFontFamilySubstitution? substitution) &&

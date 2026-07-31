@@ -239,7 +239,13 @@ public sealed class PdfConversionScenarioManifestTests {
 
         byte[] pdf;
         try {
-            pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+            var renderingFonts = new DrawingCore.OfficeFontFaceCollection()
+                .Add("OfficeIMO Multilingual", File.ReadAllBytes(fontPath));
+            var renderingProfile = new DrawingCore.OfficeRenderingProfile(
+                "manifest-multilingual",
+                renderingFonts,
+                DrawingCore.OfficeManagedTextShapingProvider.Instance);
+            var pdfOptions = new PdfCore.PdfOptions {
                     CompressContentStreams = false,
                     CompressEmbeddedFonts = false,
                     PageWidth = 520,
@@ -248,7 +254,9 @@ public sealed class PdfConversionScenarioManifestTests {
                     MarginRight = 36,
                     MarginTop = 36,
                     MarginBottom = 36
-                })
+                }
+                .UseRenderingProfile(renderingProfile);
+            pdf = PdfCore.PdfDocument.Create(pdfOptions)
                 .UseFontFamily("OfficeIMO Multilingual", fontPath)
                 .Header(header => header.Text("Q2 multilingual revenue report"))
                 .H1("Q2 multilingual revenue report")
@@ -2053,6 +2061,11 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.NotEmpty(ReadStringArray(entry, "extensionTypes"));
             Assert.False(string.IsNullOrWhiteSpace(RequireString(entry, "optionsType")));
             Assert.False(string.IsNullOrWhiteSpace(RequireString(entry, "conversionMode")));
+            if (id == "word" || id == "excel" || id == "powerpoint") {
+                Assert.Equal(
+                    "OfficeIMO.Drawing.OfficeRenderingProfile",
+                    RequireString(entry, "renderingProfileType"));
+            }
 
             string projectPath = RequireString(entry, "projectPath");
             Assert.True(File.Exists(Path.Combine(repositoryRoot, projectPath.Replace('/', Path.DirectorySeparatorChar))),
