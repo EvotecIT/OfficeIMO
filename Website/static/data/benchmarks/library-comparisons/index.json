@@ -475,6 +475,53 @@
       },
       "comparable": true,
       "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "platform": "macos",
+      "runMode": "quick",
+      "generatedUtc": "2026-07-31T10:28:47.27305+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/xlsx-25k-datareader-write-net10.0-macos-quick.json",
+      "resultSha256": "d87d17385db5f54833d388f9b69a85b9114ebdd6d04930b4410375c2a8942cae",
+      "artifactDestinationSha256": "6ec8fe449cdd2d06b4e43dafb43aa97226aeffc7f5e26b74320009953d25e4a5",
+      "artifactFileName": "xlsx-25k-datareader-write-net10.0-macos-quick.json",
+      "artifactRelativePath": "xlsx-25k-datareader-write-net10.0-macos-quick.json",
+      "suite": "OfficeIMO.Excel.DataReaderWrite25K",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS Tahoe 26.5 (25F71) [Darwin 25.5.0]",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "processorName": "Apple M4",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 10,
+        "logicalCoreCount": 10,
+        "runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "dotNetSdkVersion": "10.0.102",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.DataReaderWrite25K",
+        "environment.runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "environment.dotNetSdkVersion": "10.0.102",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "Arm64",
+        "environment.processArchitecture": "Arm64",
+        "environment.processorName": "Apple M4",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "10",
+        "environment.logicalCoreCount": "10",
+        "benchmark.workload.shape.sha256": "0511ad4299145d78c306cc0259dff4abcf3fed55011ec920bae0fd6f32000e31",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "xlsx-25k-datareader-write-net10.0",
+        "benchmark.workload.sourceCommit": "63aa40e3dd5a7820799678dbdfe578331a74e9db",
+        "gitSha": "63aa40e3dd5a7820799678dbdfe578331a74e9db",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
     }
   ],
   "availability": [
@@ -665,6 +712,32 @@
       "available": false,
       "runModes": [],
       "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-31T10:28:47.27305+00:00"
     }
   ]
 }
