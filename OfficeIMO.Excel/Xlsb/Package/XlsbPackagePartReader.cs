@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO.Compression;
 using System.Threading;
 using System.Xml;
@@ -62,6 +63,58 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             }
 
             return output;
+        }
+
+        internal Stream ReadSeekablePart(
+            string partName,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string normalized = NormalizePartName(partName);
+            if (!_entries.TryGetValue(normalized, out ZipArchiveEntry? entry)) {
+                throw new InvalidDataException($"The XLSB package part '{normalized}' is missing.");
+            }
+
+            if (entry.Length > _options.MaxPartBytes) {
+                throw new InvalidDataException(
+                    $"The XLSB package part '{normalized}' declares {entry.Length} decompressed bytes, exceeding the configured limit of {_options.MaxPartBytes} bytes.");
+            }
+
+            int length = checked((int)entry.Length);
+            byte[] output = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
+            try {
+                using Stream input = entry.Open();
+                int offset = 0;
+                while (offset < length) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int read = input.Read(
+                        output,
+                        offset,
+                        Math.Min(PartReadBufferSize, length - offset));
+                    if (read == 0) {
+                        throw new EndOfStreamException(
+                            $"The XLSB package part '{normalized}' ended after {offset} of {length} declared bytes.");
+                    }
+
+                    _decompressedBytesRead = checked(_decompressedBytesRead + read);
+                    if (_decompressedBytesRead > _options.MaxPackageBytes) {
+                        throw new InvalidDataException(
+                            $"The XLSB package exceeds the configured aggregate decompression budget of {_options.MaxPackageBytes} bytes.");
+                    }
+
+                    offset += read;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                if (input.ReadByte() >= 0) {
+                    throw new InvalidDataException(
+                        $"The XLSB package part '{normalized}' exceeds its declared decompressed length of {length} bytes.");
+                }
+
+                return new XlsbPooledPartStream(output, length);
+            } catch {
+                ArrayPool<byte>.Shared.Return(output, clearArray: true);
+                throw;
+            }
         }
 
         internal Stream OpenPart(string partName) {

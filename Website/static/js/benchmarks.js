@@ -11,7 +11,16 @@
   var sortMetric = root.querySelector('[data-benchmark-sort-mode]');
   var reset = root.querySelector('[data-benchmark-reset]');
   var count = root.querySelector('[data-benchmark-count]');
+  var empty = root.querySelector('[data-benchmark-empty]');
   var sortState = { key: 'original', direction: 'none', type: 'number' };
+
+  function queryValue(name) {
+    try {
+      return new URL(window.location.href).searchParams.get(name) || '';
+    } catch (_) {
+      return '';
+    }
+  }
 
   rows.forEach(function (row) {
     row._libraryCells = {};
@@ -130,11 +139,15 @@
     var workload = filterValue('workload');
     var category = filterValue('category');
     var library = filterValue('library');
+    var platform = filterValue('platform');
+    var runMode = filterValue('runMode');
 
     if (search && row._filterText.indexOf(search) === -1) return false;
     if (rowCount && row.getAttribute('data-row-count') !== rowCount) return false;
     if (workload && row.getAttribute('data-workload') !== workload) return false;
     if (category && row.getAttribute('data-category') !== category) return false;
+    if (platform && row.getAttribute('data-platform') !== platform) return false;
+    if (runMode && row.getAttribute('data-run-mode') !== runMode) return false;
     if (library) {
       var cell = row._libraryCells[library];
       if (!cell || cell.querySelector('.imo-benchmark-missing')) return false;
@@ -168,6 +181,7 @@
     });
     rows.sort(compareRows).forEach(function (row) { tbody.appendChild(row); });
     if (count) count.textContent = 'Showing ' + visible + ' of ' + rows.length + ' rows';
+    if (empty) empty.hidden = visible !== 0;
   }
 
   function sortBy(key, direction) {
@@ -244,6 +258,13 @@
     },
     sortBy: sortBy
   };
+
+  var requestedPlatform = queryValue('benchmark-os');
+  var requestedMode = queryValue('benchmark-mode');
+  var platformFilter = root.querySelector('[data-benchmark-filter="platform"]');
+  var modeFilter = root.querySelector('[data-benchmark-filter="runMode"]');
+  if (platformFilter && requestedPlatform) platformFilter.value = requestedPlatform;
+  if (modeFilter && requestedMode) modeFilter.value = requestedMode;
 
   apply();
 }());
@@ -348,7 +369,9 @@
   function workloadName() {
     var names = {
       'markpflug-65k-csv-decoded-net10.0': 'CSV · decoded strings',
+      'csv-25k-datareader-write-net10.0': 'CSV · IDataReader write',
       'markpflug-65k-xlsx-typed-net10.0': 'XLSX · typed values',
+      'xlsx-25k-datareader-write-net10.0': 'XLSX · IDataReader write',
       'markpflug-65k-xlsb-typed-net10.0': 'XLSB · typed values'
     };
     return names[selectedComparison] || selectedComparison || 'Library comparison';
@@ -363,12 +386,40 @@
     return key ? compatibility[key] : null;
   }
 
+  function compatibilityIssueSummary(issues) {
+    var categories = [];
+    var text = (issues || []).join(' ');
+    if (/sourceCommit|gitSha/.test(text)) categories.push('source commit');
+    if (/runtimeVersion|dotNetSdkVersion/.test(text)) categories.push('runtime/SDK');
+    if (/Architecture|processorName|CoreCount|ProcessorCount/.test(text)) categories.push('hardware');
+    if (/benchmark\.(?:workload|comparison)\.shape|(?:^| )suite:/.test(text)) {
+      categories.push('workload definition');
+    }
+    return categories.length ? categories.join(', ') : 'recorded evidence dimensions';
+  }
+
+  function comparisonGroupName(row) {
+    var variables = row && row.variables ? row.variables : {};
+    var dimensions = [];
+    Object.keys(variables).filter(function (key) {
+      return ['namespace', 'type', 'fullname'].indexOf(key.toLowerCase()) === -1;
+    }).sort().forEach(function (key) {
+      String(variables[key]).split('&').forEach(function (part, index) {
+        var separator = part.indexOf('=');
+        var label = separator >= 0 ? part.substring(0, separator) : (index === 0 ? key : '');
+        var value = separator >= 0 ? part.substring(separator + 1) : part;
+        dimensions.push((label + ' ' + decodeURIComponent(value)).trim());
+      });
+    });
+    return [workloadName()].concat(dimensions).join(' · ');
+  }
+
   function renderResult(entry, result, requestId) {
     if (requestId !== activeRequestId) return;
     var summaries = result.summary || [];
     var groups = {};
     summaries.forEach(function (row) {
-      var workload = workloadName();
+      var workload = comparisonGroupName(row);
       if (!groups[workload]) groups[workload] = [];
       groups[workload].push(row);
     });
@@ -415,7 +466,17 @@
       meta.appendChild(span);
     });
 
-    state.hidden = true;
+    if (entry.comparable === false) {
+      state.hidden = false;
+      state.className = 'imo-library-comparison-state incompatible';
+      state.textContent =
+        'Results below compare libraries within the selected lane only. Cross-OS comparison is disabled because ' +
+        compatibilityIssueSummary(entry.compatibilityIssues) + ' differ.';
+      state.title = (entry.compatibilityIssues || []).join(' ');
+    } else {
+      state.hidden = true;
+      state.removeAttribute('title');
+    }
     table.hidden = false;
   }
 
@@ -425,6 +486,7 @@
     setQuery();
     table.hidden = true;
     meta.innerHTML = '';
+    state.removeAttribute('title');
     var entry = (catalog.entries || []).find(function (candidate) {
       return candidate.comparisonId === selectedComparison &&
         candidate.platform === selectedPlatform &&
@@ -437,13 +499,6 @@
       state.textContent = 'No ' + selectedMode + ' evidence has been published for ' + platformLabel(selectedPlatform) + ' yet.';
       return;
     }
-    if (entry.comparable === false) {
-      state.hidden = false;
-      state.className = 'imo-library-comparison-state incompatible';
-      state.textContent = 'This lane is not directly comparable: ' + (entry.compatibilityIssues || []).join(' ');
-      return;
-    }
-
     state.hidden = false;
     state.className = 'imo-library-comparison-state';
     state.textContent = 'Loading ' + platformLabel(selectedPlatform) + ' ' + selectedMode + ' results…';

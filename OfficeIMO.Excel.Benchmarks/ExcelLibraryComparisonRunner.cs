@@ -1733,7 +1733,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static int OfficeImoWriteDataReaderCompactPackage(DataTable dataTable)
         => ByteCount(OfficeImoWriteDataReaderCompactPackageBytes(dataTable));
 
-    private static byte[] OfficeImoWriteDataReaderCompactPackageBytes(DataTable dataTable) {
+    internal static byte[] OfficeImoWriteDataReaderCompactPackageBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using var reader = dataTable.CreateDataReader();
         ExcelDocument.WriteDataReader(stream, reader, CompactTabularWriteOptions);
@@ -2188,7 +2188,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static int SylvanWriteDataReaderPlain(DataTable dataTable)
         => ByteCount(SylvanWriteDataReaderPlainBytes(dataTable));
 
-    private static byte[] SylvanWriteDataReaderPlainBytes(DataTable dataTable) {
+    internal static byte[] SylvanWriteDataReaderPlainBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using (var writer = SylvanExcelDataWriter.Create(stream, ExcelWorkbookType.ExcelXml, new ExcelDataWriterOptions {
             OwnsStream = false
@@ -2232,7 +2232,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static int LargeXlsxWriteDataReaderPlainCompact(DataTable dataTable)
         => ByteCount(LargeXlsxWriteDataReaderPlainBytes(dataTable, requireCellReferences: false));
 
-    private static byte[] LargeXlsxWriteDataReaderPlainBytes(DataTable dataTable, bool requireCellReferences = true) {
+    internal static byte[] LargeXlsxWriteDataReaderPlainBytes(DataTable dataTable, bool requireCellReferences = true) {
         using var stream = new MemoryStream();
         using (var writer = new XlsxWriter(stream, requireCellReferences: requireCellReferences))
         using (var reader = dataTable.CreateDataReader()) {
@@ -5557,7 +5557,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         return dataSet;
     }
 
-    private static DataTable CreateSalesDataTable(IEnumerable<ExcelBenchmarkScenarioFactory.SalesRecord> rows, string tableName) {
+    internal static DataTable CreateSalesDataTable(IEnumerable<ExcelBenchmarkScenarioFactory.SalesRecord> rows, string tableName) {
         var table = CreateSalesDataTable();
         table.TableName = tableName;
         foreach (var row in rows) {

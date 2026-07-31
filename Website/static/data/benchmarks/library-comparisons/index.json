@@ -7,6 +7,53 @@
   ],
   "entries": [
     {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "platform": "macos",
+      "runMode": "quick",
+      "generatedUtc": "2026-07-31T10:57:12.894909+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/csv-25k-datareader-write-net10.0-macos-quick.json",
+      "resultSha256": "cce2373fa79d57c955df4d9ac71cf72fcaa5a1db177723bd941b18de935bff71",
+      "artifactDestinationSha256": "c9d378189c832a2961f3a6ff716d23ba9fb25f6be52aa0e4c40f04d12235f38c",
+      "artifactFileName": "csv-25k-datareader-write-net10.0-macos-quick.json",
+      "artifactRelativePath": "csv-25k-datareader-write-net10.0-macos-quick.json",
+      "suite": "OfficeIMO.CSV.DataReaderWrite25K",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS Tahoe 26.5 (25F71) [Darwin 25.5.0]",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "processorName": "Apple M4",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 10,
+        "logicalCoreCount": 10,
+        "runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "dotNetSdkVersion": "10.0.102",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.CSV.DataReaderWrite25K",
+        "environment.runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "environment.dotNetSdkVersion": "10.0.102",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "Arm64",
+        "environment.processArchitecture": "Arm64",
+        "environment.processorName": "Apple M4",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "10",
+        "environment.logicalCoreCount": "10",
+        "benchmark.workload.shape.sha256": "12db894d2c8046c42d1ed3ab59e3d2c5091549f8096254d56abec00d618d12bb",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "csv-25k-datareader-write-net10.0",
+        "benchmark.workload.sourceCommit": "3c43b5b6caea775cf067ffbc72f27a02f3e29a16",
+        "gitSha": "3c43b5b6caea775cf067ffbc72f27a02f3e29a16",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "linux",
       "runMode": "full",
@@ -337,6 +384,63 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "platform": "macos",
+      "runMode": "quick",
+      "generatedUtc": "2026-07-31T10:49:02.003238+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-macos-quick.json",
+      "resultSha256": "adcad90d397dfabafe911095f960b2f173d79f556500b2b0f4b8bbac480840b2",
+      "artifactDestinationSha256": "f03a65119a53472f7caaad1392f4e427e86df9033851ceca966763a8910d2c1d",
+      "artifactFileName": "markpflug-65k-xlsx-typed-net10.0-macos-quick.json",
+      "artifactRelativePath": "markpflug-65k-xlsx-typed-net10.0-macos-quick.json",
+      "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS Tahoe 26.5 (25F71) [Darwin 25.5.0]",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "processorName": "Apple M4",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 10,
+        "logicalCoreCount": 10,
+        "runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "dotNetSdkVersion": "10.0.102",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
+        "environment.runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "environment.dotNetSdkVersion": "10.0.102",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "Arm64",
+        "environment.processArchitecture": "Arm64",
+        "environment.processorName": "Apple M4",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "10",
+        "environment.logicalCoreCount": "10",
+        "benchmark.workload.shape.sha256": "67a2b32b82484c46f5b59084e7990a932cb9d982d38e033796e8d6d2a33cc458",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-xlsx-typed-net10.0",
+        "benchmark.workload.sourceCommit": "356c59c9c837fdc616a96b1a7458ce21cefe1d43",
+        "gitSha": "356c59c9c837fdc616a96b1a7458ce21cefe1d43",
+        "runMode": "quick"
+      },
+      "comparable": false,
+      "compatibilityIssues": [
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027356c59c9c837fdc616a96b1a7458ce21cefe1d43\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.102\u0027, \u002710.0.302\u0027).",
+        "environment.logicalCoreCount: lanes contain incompatible values (\u002710\u0027, \u002732\u0027).",
+        "environment.osArchitecture: lanes contain incompatible values (\u0027Arm64\u0027, \u0027X64\u0027).",
+        "environment.physicalCoreCount: lanes contain incompatible values (\u002710\u0027, \u002716\u0027).",
+        "environment.processArchitecture: lanes contain incompatible values (\u0027Arm64\u0027, \u0027X64\u0027).",
+        "environment.processorName: lanes contain incompatible values (\u0027AMD Ryzen 9 9950X3D2\u0027, \u0027Apple M4\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.2 (10.0.2, 10.0.225.61305)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027356c59c9c837fdc616a96b1a7458ce21cefe1d43\u0027)."
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
       "generatedUtc": "2026-07-31T02:13:35.6623382+02:00",
@@ -426,11 +530,94 @@
         "gitSha": "093ec62d034e47e10285ea24f2cae55a9d67ff8d",
         "runMode": "quick"
       },
+      "comparable": false,
+      "compatibilityIssues": [
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027356c59c9c837fdc616a96b1a7458ce21cefe1d43\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.102\u0027, \u002710.0.302\u0027).",
+        "environment.logicalCoreCount: lanes contain incompatible values (\u002710\u0027, \u002732\u0027).",
+        "environment.osArchitecture: lanes contain incompatible values (\u0027Arm64\u0027, \u0027X64\u0027).",
+        "environment.physicalCoreCount: lanes contain incompatible values (\u002710\u0027, \u002716\u0027).",
+        "environment.processArchitecture: lanes contain incompatible values (\u0027Arm64\u0027, \u0027X64\u0027).",
+        "environment.processorName: lanes contain incompatible values (\u0027AMD Ryzen 9 9950X3D2\u0027, \u0027Apple M4\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.2 (10.0.2, 10.0.225.61305)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027356c59c9c837fdc616a96b1a7458ce21cefe1d43\u0027)."
+      ]
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "platform": "macos",
+      "runMode": "quick",
+      "generatedUtc": "2026-07-31T10:28:47.27305+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/xlsx-25k-datareader-write-net10.0-macos-quick.json",
+      "resultSha256": "d87d17385db5f54833d388f9b69a85b9114ebdd6d04930b4410375c2a8942cae",
+      "artifactDestinationSha256": "6ec8fe449cdd2d06b4e43dafb43aa97226aeffc7f5e26b74320009953d25e4a5",
+      "artifactFileName": "xlsx-25k-datareader-write-net10.0-macos-quick.json",
+      "artifactRelativePath": "xlsx-25k-datareader-write-net10.0-macos-quick.json",
+      "suite": "OfficeIMO.Excel.DataReaderWrite25K",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS Tahoe 26.5 (25F71) [Darwin 25.5.0]",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "processorName": "Apple M4",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 10,
+        "logicalCoreCount": 10,
+        "runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "dotNetSdkVersion": "10.0.102",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.DataReaderWrite25K",
+        "environment.runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "environment.dotNetSdkVersion": "10.0.102",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "Arm64",
+        "environment.processArchitecture": "Arm64",
+        "environment.processorName": "Apple M4",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "10",
+        "environment.logicalCoreCount": "10",
+        "benchmark.workload.shape.sha256": "0511ad4299145d78c306cc0259dff4abcf3fed55011ec920bae0fd6f32000e31",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "xlsx-25k-datareader-write-net10.0",
+        "benchmark.workload.sourceCommit": "63aa40e3dd5a7820799678dbdfe578331a74e9db",
+        "gitSha": "63aa40e3dd5a7820799678dbdfe578331a74e9db",
+        "runMode": "quick"
+      },
       "comparable": true,
       "compatibilityIssues": []
     }
   ],
   "availability": [
+    {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-31T10:57:12.894909+00:00"
+    },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "runMode": "full",
@@ -589,9 +776,37 @@
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
       "runMode": "quick",
       "platform": "macos",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-31T10:49:02.003238+00:00"
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
       "available": false,
       "runModes": [],
       "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-31T10:28:47.27305+00:00"
     }
   ]
 }

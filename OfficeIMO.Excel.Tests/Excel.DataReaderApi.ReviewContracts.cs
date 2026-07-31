@@ -1,5 +1,6 @@
 using System.Data.Common;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -9,6 +10,164 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
+    [Fact]
+    public void OpenDataReader_RejectsMalformedWorksheetXmlAfterSheetData() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.MalformedWorksheetTail.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Ready");
+                document.Save();
+            }
+
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            int worksheetEnd = worksheetXml.LastIndexOf("</", StringComparison.Ordinal);
+            Assert.True(worksheetEnd >= 0);
+            worksheetXml = worksheetXml.Insert(worksheetEnd, "<broken>");
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(worksheetXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_RejectsNestedMarkupInSharedStringValue() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.NestedSharedStringValue.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Ready");
+                document.Save();
+            }
+
+            const string entryName = "xl/worksheets/sheet1.xml";
+            XDocument worksheet = XDocument.Parse(
+                Encoding.UTF8.GetString(ReadZipEntry(path, entryName)));
+            XNamespace spreadsheet = worksheet.Root!.Name.Namespace;
+            XElement cell = Assert.Single(
+                worksheet.Descendants(spreadsheet + "c"),
+                element => string.Equals(
+                    (string?)element.Attribute("r"),
+                    "A2",
+                    StringComparison.Ordinal));
+            XElement value = Assert.IsType<XElement>(cell.Element(spreadsheet + "v"));
+            value.Add(new XElement(spreadsheet + "ext"));
+            ReplaceZipEntry(
+                path,
+                entryName,
+                Encoding.UTF8.GetBytes(worksheet.ToString(SaveOptions.DisableFormatting)));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+            Assert.Contains("only text", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_RejectsForeignNamespaceSharedStringValuesOnIndexedPath() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.ForeignNamespaceValue.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Ready");
+                document.Save();
+            }
+
+            const string entryName = "xl/worksheets/sheet1.xml";
+            XDocument worksheet = XDocument.Parse(
+                Encoding.UTF8.GetString(ReadZipEntry(path, entryName)));
+            XNamespace spreadsheet = worksheet.Root!.Name.Namespace;
+            XNamespace extension = "urn:officeimo:foreign-value";
+            XElement cell = Assert.Single(
+                worksheet.Descendants(spreadsheet + "c"),
+                element => string.Equals(
+                    (string?)element.Attribute("r"),
+                    "A2",
+                    StringComparison.Ordinal));
+            XElement value = Assert.IsType<XElement>(cell.Element(spreadsheet + "v"));
+            value.Name = extension + "v";
+            ReplaceZipEntry(
+                path,
+                entryName,
+                Encoding.UTF8.GetBytes(worksheet.ToString(SaveOptions.DisableFormatting)));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+            Assert.Contains("SpreadsheetML namespace", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OpenDataReader_DecodesCharacterReferencesInSharedFormulaTypes(
+        bool useCachedFormulaResult) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.SharedFormulaEntity.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Shared");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellFormula(2, 1, "B2+1");
+                sheet.CellFormula(3, 1, "B3+1");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                Worksheet worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                Cell master = worksheet.Descendants<Cell>()
+                    .Single(cell => cell.CellReference?.Value == "A2");
+                Cell follower = worksheet.Descendants<Cell>()
+                    .Single(cell => cell.CellReference?.Value == "A3");
+                master.CellFormula = new CellFormula("B2+1") {
+                    FormulaType = CellFormulaValues.Shared,
+                    SharedIndex = 21U,
+                    Reference = "A2:A3"
+                };
+                follower.CellFormula = new CellFormula {
+                    FormulaType = CellFormulaValues.Shared,
+                    SharedIndex = 21U
+                };
+                follower.CellValue = null;
+                worksheet.Save();
+            }
+
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            Assert.Contains("t=\"shared\"", worksheetXml, StringComparison.Ordinal);
+            worksheetXml = worksheetXml.Replace(
+                "t=\"shared\"",
+                "t=\"sh&#x61;red\"");
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(worksheetXml));
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                ExcelDocument.OpenDataReader(
+                    path,
+                    new ExcelReadOptions { UseCachedFormulaResult = useCachedFormulaResult }));
+            Assert.Contains("shared-formula follower", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("A3", exception.Message, StringComparison.Ordinal);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

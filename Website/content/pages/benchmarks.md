@@ -25,9 +25,9 @@ meta.raw_html: true
       <p>A comparison measures equivalent libraries. A regression suite protects OfficeIMO against its own baseline. We keep those claims separate.</p>
     </div>
     <div class="imo-benchmark-coverage__grid">
-      <article data-family="data-readers"><span>Cross-platform comparison</span><h3>CSV and Excel reads</h3><p>The same pinned 65K-record fixtures and validated work are measured across compatible libraries, separately on Windows, Linux, and macOS. Missing and not-applicable lanes remain visible.</p><a href="#library-comparison-evidence">Select a workload and platform</a></article>
-      <article data-family="excel"><span>Focused workstation suite</span><h3>Excel create and write</h3><p>25,000-row create, write, and package scenarios, plus a detailed engineering matrix. These historical snapshots are kept separate from the cross-platform read ranking.</p><a href="#excel-evidence">See Excel evidence</a></article>
-      <article data-family="csv"><span>Focused workstation suite</span><h3>CSV write workloads</h3><p>Wide and database-shaped write contracts, with field traversal and semantic output validation included. These rows are reproducible engineering evidence, not a universal ranking.</p><a href="#csv-evidence">See CSV evidence</a></article>
+      <article data-family="data-readers"><span>Cross-platform comparison</span><h3>CSV and Excel reads and writes</h3><p>Pinned 65K-record read fixtures and validated 25,000-row IDataReader write contracts are measured across capable libraries, separately on Windows, Linux, and macOS. Missing lanes remain visible.</p><a href="#library-comparison-evidence">Select a workload and platform</a></article>
+      <article data-family="excel"><span>Current and historical evidence</span><h3>Excel create and write</h3><p>The current compact IDataReader write lane records OS and run mode. Additional create, write, package, and engineering scenarios remain available as explicitly historical snapshots.</p><a href="#library-comparison-evidence">Select current XLSX write evidence</a></article>
+      <article data-family="csv"><span>Current and historical evidence</span><h3>CSV write workloads</h3><p>The current IDataReader lane records OS and run mode. Additional wide and database-shaped snapshots are retained as historical engineering evidence because their original environment dimensions were not recorded.</p><a href="#library-comparison-evidence">Select current CSV write evidence</a></article>
       <article data-family="reader"><span>Regression baseline</span><h3>Reader</h3><p>25 cases across 14 document formats, with detection, chunking, and transport lanes. Timings are a local regression baseline, not a cross-machine promise.</p><a href="https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/officeimo.reader.foundation-2026-07-10.md" target="_blank" rel="noopener">Open the Reader evidence</a></article>
       <article data-family="guardrails"><span>Performance guardrails</span><h3>PDF, RTF, and Email</h3><p>Budget and regression checks cover representative rendering, parsing, memory, and I/O behavior without presenting unrelated engines as equivalent competitors.</p><a href="/docs/capabilities/benchmarks/#performance-guardrails">Run the guardrail suites</a></article>
       <article data-family="formats"><span>Repeatable suites</span><h3>Markdown, HTML, and open formats</h3><p>Dedicated projects exercise Markdown, HTML, OneNote, OpenDocument, and drawing workloads with scenario-specific validation.</p><a href="/docs/capabilities/benchmarks/#additional-benchmark-projects">Find the projects and commands</a></article>
@@ -40,18 +40,12 @@ meta.raw_html: true
     {{< include path="../../themes/officeimo/partials/library-comparison-benchmarks.html" >}}
   </div>
 
-  <aside class="imo-benchmark-method">
-    <p class="imo-benchmark-eyebrow">Focused historical snapshots</p>
-    <p>The create, write, and engineering matrices below retain their original workstation and contract-specific evidence. Compare values within one row only; use the platform selector above for current cross-library read claims.</p>
-  </aside>
-
-  {{< include path="../../themes/officeimo/partials/generated/benchmarks-overview.html" >}}
-
-  <details class="imo-benchmark-explorer" id="excel-matrix">
+  <details class="imo-benchmark-explorer" id="historical-benchmark-evidence">
     <summary>
-      <span><strong>Explore the full Excel engineering matrix</strong><small>Filter and sort the historical workstation scenarios when you need contract-level detail.</small></span>
-      <span aria-hidden="true">Open explorer</span>
+      <span><strong>Open legacy snapshots with incomplete environment provenance</strong><small>These older Excel and CSV artifacts did not record OS and/or run mode, so they are excluded from the current comparison selector.</small></span>
+      <span aria-hidden="true">Open history</span>
     </summary>
+    {{< include path="../../themes/officeimo/partials/generated/benchmarks-overview.html" >}}
     {{< include path="../../themes/officeimo/partials/generated/benchmarks-excel.html" >}}
   </details>
 

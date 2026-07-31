@@ -34,6 +34,7 @@ namespace OfficeIMO.Excel {
                 return indexedReader!;
             }
 
+            ValidateDataReaderProjection(ct);
             string usedRange = GetUsedRangeA1(ct);
             return ReadRangeAsDataReader(
                 usedRange,

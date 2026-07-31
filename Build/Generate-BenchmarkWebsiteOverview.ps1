@@ -64,6 +64,20 @@ function Get-SnapshotLabel([object] $Document) {
     return 'current committed snapshot'
 }
 
+function Get-RecordedDimensionLabel([object] $Document, [string] $Property, [string] $MissingLabel) {
+    $values = @(
+        $Document.comparison |
+            ForEach-Object { [string] $_.$Property } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+    if ($values.Count -eq 0) {
+        return $MissingLabel
+    }
+
+    return $values -join ', '
+}
+
 function Add-ComparisonFamily(
     [System.Collections.Generic.List[string]] $Lines,
     [object] $Document,
@@ -86,12 +100,14 @@ function Add-ComparisonFamily(
     }
 
     $snapshot = Get-SnapshotLabel $Document
+    $platform = Get-RecordedDimensionLabel $Document 'os' 'OS not recorded'
+    $runMode = Get-RecordedDimensionLabel $Document 'runMode' 'Run mode not recorded'
     $Lines.Add('<section class="imo-benchmark-family" id="' + (Encode-Html $Family) + '-evidence" data-benchmark-family="' + (Encode-Html $Family) + '">')
     $Lines.Add('<header class="imo-benchmark-family__header">')
-    $Lines.Add('<div><p class="imo-benchmark-eyebrow">Published comparison</p><h2>' + (Encode-Html $Title) + '</h2></div>')
+    $Lines.Add('<div><p class="imo-benchmark-eyebrow">Historical focused snapshot</p><h2>' + (Encode-Html $Title) + '</h2></div>')
     $Lines.Add('<p>' + (Encode-Html $Description) + '</p>')
     $Lines.Add('</header>')
-    $Lines.Add('<div class="imo-benchmark-family__meta"><span>Snapshot ' + (Encode-Html $snapshot) + '</span><span>25,000 rows</span><span>.NET 8</span><a href="' + (Encode-Html $EvidenceUrl) + '" target="_blank" rel="noopener">' + (Encode-Html $EvidenceLabel) + '</a></div>')
+    $Lines.Add('<div class="imo-benchmark-family__meta"><span>Snapshot ' + (Encode-Html $snapshot) + '</span><span>' + (Encode-Html $platform) + '</span><span>' + (Encode-Html $runMode) + '</span><span>25,000 rows</span><span>.NET 8</span><a href="' + (Encode-Html $EvidenceUrl) + '" target="_blank" rel="noopener">' + (Encode-Html $EvidenceLabel) + '</a></div>')
     $Lines.Add('<div class="imo-benchmark-highlight-grid">')
 
     foreach ($scenario in $scenarioOrder) {
@@ -121,7 +137,7 @@ $csv = Get-Content -LiteralPath $csvPath -Raw -Encoding UTF8 | ConvertFrom-Json 
 
 $lines = [System.Collections.Generic.List[string]]::new()
 $lines.Add('<section class="imo-benchmark-evidence" aria-labelledby="benchmark-evidence-title">')
-$lines.Add('<div class="imo-benchmark-evidence__intro"><p class="imo-benchmark-eyebrow">Measured comparisons</p><h2 id="benchmark-evidence-title">Current Excel and CSV evidence</h2><p>These compact views are generated from committed benchmark artifacts. They compare equivalent, validated work on one recorded machine; they are reproducible evidence, not a promise for every workload or environment.</p></div>')
+$lines.Add('<div class="imo-benchmark-evidence__intro"><p class="imo-benchmark-eyebrow">Legacy engineering evidence</p><h2 id="benchmark-evidence-title">Historical Excel and CSV snapshots</h2><p>These compact views preserve older committed artifacts whose operating system and run mode were not recorded. They remain useful within one scenario, but they are excluded from current platform-specific rankings.</p></div>')
 
 Add-ComparisonFamily -Lines $lines -Document $excel -Family 'excel' -Title 'Excel report and data pipelines' -Description 'Median timings from rotated local runs with 20 warmups and 9 measured iterations. The scenarios cover feature-rich output, styled IDataReader writes, typed reads, and compact streaming writes.' -MetricLabel 'Median' -EvidenceLabel 'Inspect Excel benchmark evidence' -EvidenceUrl 'https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/readme-current/officeimo.excel.comparison.json'
 Add-ComparisonFamily -Lines $lines -Document $csv -Family 'csv' -Title 'CSV read and write pipelines' -Description 'BenchmarkDotNet means for wide CSV workloads. Read lanes traverse every field; write lanes validate every emitted value so faster output cannot hide incomplete work.' -MetricLabel 'Mean' -EvidenceLabel 'Inspect CSV benchmark evidence' -EvidenceUrl 'https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/readme-current/officeimo.csv.comparison.json'

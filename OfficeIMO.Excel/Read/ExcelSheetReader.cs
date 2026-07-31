@@ -130,45 +130,56 @@ namespace OfficeIMO.Excel {
                 bool sharedFollower = false;
                 bool hasCachedValue = false;
                 string? sharedStringReference = null;
-                using XmlReader cellReader = reader.ReadSubtree();
-                while (cellReader.Read()) {
+                if (reader.IsEmptyElement) {
+                    if (sharedStringCell) {
+                        ValidateSharedStringReference(null, reference);
+                    }
+                    continue;
+                }
+
+                int cellDepth = reader.Depth;
+                while (reader.Read()) {
                     ct.ThrowIfCancellationRequested();
-                    if (cellReader.NodeType != XmlNodeType.Element
-                        || cellReader.Depth != 1
+                    if (reader.NodeType == XmlNodeType.EndElement
+                        && reader.Depth == cellDepth
+                        && reader.LocalName == "c") {
+                        break;
+                    }
+                    if (reader.NodeType != XmlNodeType.Element
+                        || reader.Depth != cellDepth + 1
                         || (!string.Equals(
-                                cellReader.NamespaceURI,
+                                reader.NamespaceURI,
                                 SpreadsheetNamespace,
                                 StringComparison.Ordinal)
                             && !string.Equals(
-                                cellReader.NamespaceURI,
+                                reader.NamespaceURI,
                                 StrictSpreadsheetNamespace,
                                 StringComparison.Ordinal))) {
                         continue;
                     }
 
-                    if (cellReader.LocalName == "v") {
+                    if (reader.LocalName == "v") {
                         hasCachedValue = true;
                         if (sharedStringCell) {
-                            sharedStringReference = cellReader.ReadElementContentAsString();
+                            sharedStringReference = reader.IsEmptyElement
+                                ? string.Empty
+                                : ReadSimpleElementText(reader, ct, reference);
                         }
                         continue;
                     }
 
-                    if (cellReader.LocalName != "f"
+                    if (reader.LocalName != "f"
                         || !string.Equals(
-                            cellReader.GetAttribute("t"),
+                            reader.GetAttribute("t"),
                             "shared",
                             StringComparison.OrdinalIgnoreCase)) {
                         continue;
                     }
 
-                    bool isFollower = cellReader.IsEmptyElement;
+                    bool isFollower = reader.IsEmptyElement;
                     if (!isFollower) {
-                        using XmlReader formulaReader = cellReader.ReadSubtree();
-                        if (formulaReader.Read()) {
-                            isFollower = string.IsNullOrWhiteSpace(
-                                formulaReader.ReadElementContentAsString());
-                        }
+                        isFollower = string.IsNullOrWhiteSpace(
+                            ReadSimpleElementText(reader, ct, reference));
                     }
                     sharedFollower |= isFollower;
                 }
@@ -187,6 +198,26 @@ namespace OfficeIMO.Excel {
                     $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
                     "shared-formula text is required.");
             }
+        }
+
+        private static string ReadSimpleElementText(
+            XmlReader reader,
+            CancellationToken ct,
+            string cellReference) {
+            int elementDepth = reader.Depth;
+            string elementName = reader.LocalName;
+            string elementNamespace = reader.NamespaceURI;
+            string value = reader.ReadString();
+            ct.ThrowIfCancellationRequested();
+            if (reader.NodeType != XmlNodeType.EndElement
+                || reader.Depth != elementDepth
+                || !string.Equals(reader.LocalName, elementName, StringComparison.Ordinal)
+                || !string.Equals(reader.NamespaceURI, elementNamespace, StringComparison.Ordinal)) {
+                throw new InvalidDataException(
+                    $"Worksheet cell {cellReference} element '{elementName}' must contain only text.");
+            }
+
+            return value;
         }
 
         private void ValidateCellStyleReference(string rawIndex, string reference) {

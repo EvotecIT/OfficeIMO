@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ClosedXML.Excel;
+using Sylvan.Data.Excel;
+using SylvanExcelDataReader = Sylvan.Data.Excel.ExcelDataReader;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
@@ -39,6 +41,10 @@ internal static class ExcelBenchmarkSnapshotRunner {
                     () => OfficeImoReadObjectsAs(workbookBytes, dataRange)),
                 Measure($"Excel: Read DataTable ({rowLabel} rows)", "OfficeIMO.Excel", "Reader path materializing a DataTable from the same workbook.",
                     () => OfficeImoReadDataTable(workbookBytes, dataRange)),
+                Measure($"Excel: Read rows ({rowLabel} rows)", "OfficeIMO.Excel", "Forward-only typed scan over the same workbook payload.",
+                    () => OfficeImoReadRows(workbookBytes)),
+                Measure($"Excel: Read rows ({rowLabel} rows)", "Sylvan.Data.Excel", "Forward-only typed scan over the same workbook payload.",
+                    () => SylvanReadRows(workbookBytes)),
                 Measure($"Excel: Read rows ({rowLabel} rows)", "ClosedXML", "Worksheet row iteration over the same workbook payload.",
                     () => ClosedXmlReadRows(workbookBytes)),
                 Measure($"Excel: Load/edit/save ({rowLabel} rows)", "OfficeIMO.Excel", "Load workbook, add review column, save to memory.",
@@ -167,6 +173,34 @@ internal static class ExcelBenchmarkSnapshotRunner {
         for (int row = 2; row <= lastRow; row++) {
             _ = worksheet.Cell(row, 1).GetValue<int>();
             _ = worksheet.Cell(row, 5).GetValue<double>();
+            count++;
+        }
+
+        return count;
+    }
+
+    private static int OfficeImoReadRows(byte[] workbookBytes) {
+        using var reader = ExcelDocument.OpenDataReader(workbookBytes);
+        int count = 0;
+        while (reader.Read()) {
+            _ = reader.GetInt32(0);
+            _ = reader.GetDouble(4);
+            count++;
+        }
+
+        return count;
+    }
+
+    private static int SylvanReadRows(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using SylvanExcelDataReader reader = SylvanExcelDataReader.Create(
+            stream,
+            ExcelWorkbookType.ExcelXml,
+            new ExcelDataReaderOptions { Schema = ExcelSchema.Default });
+        int count = 0;
+        while (reader.Read()) {
+            _ = reader.GetInt32(0);
+            _ = reader.GetDouble(4);
             count++;
         }
 
