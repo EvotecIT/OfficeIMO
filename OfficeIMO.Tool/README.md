@@ -83,18 +83,12 @@ Tool results contain a short text summary plus compact structured content. The s
 | `6` | Output failed or conversion completed with error-severity diagnostics |
 | `130` | Cancelled |
 
-## Reader tool migration
+## Reader commands
 
-`OfficeIMO.Reader.Tool` 3.0.0 used the `officeimo-reader` executable. New releases use
-the unified package and add the `reader` command area:
+Reader operations use the unified `officeimo reader` command area:
 
 ```powershell
-# Before
-officeimo-reader read document.docx --format markdown
-
-# Now
 officeimo reader read document.docx --format markdown
 ```
 
-The Reader command contract remains explicit; the migration does not add a compatibility
-shim or duplicate Reader implementation.
+The command remains a thin surface over the Reader packages and does not duplicate the Reader implementation.

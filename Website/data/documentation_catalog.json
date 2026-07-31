@@ -8,8 +8,8 @@
     "benchmarkProjectCount": 12,
     "validationProjectCount": 17,
     "apiReferenceCount": 17,
-    "conceptualPageCount": 96,
-    "conceptualWordCount": 39800
+    "conceptualPageCount": 95,
+    "conceptualWordCount": 39536
   },
   "categories": [
     {
@@ -209,7 +209,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 900,
+      "sourceFileCount": 903,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -625,7 +625,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 929,
+      "sourceFileCount": 930,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",

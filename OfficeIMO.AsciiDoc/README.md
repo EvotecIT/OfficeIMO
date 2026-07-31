@@ -2,7 +2,7 @@
 
 `OfficeIMO.AsciiDoc` is a dependency-free, source-preserving AsciiDoc parser, semantic model, writer, and explicit preprocessing engine.
 
-The experimental Phase 1 profile covers headings and metadata, typed inline formatting and references, ordered/unordered/description/compound lists, admonitions, variable-length delimited blocks, structured PSV/CSV/TSV/DSV tables, document attributes, substitution plans, conditionals, safe includes with line/tag selection, and caller-registered directives. Unsupported constructs remain in the lossless source tree, and unchanged input writes back character-for-character.
+The bounded profile covers headings and metadata, typed inline formatting and references, ordered/unordered/description/compound lists, admonitions, variable-length delimited blocks, structured PSV/CSV/TSV/DSV tables, document attributes, substitution plans, conditionals, safe includes with line/tag selection, and caller-registered directives. Unsupported constructs remain in the lossless source tree, and unchanged input writes back character-for-character.
 
 ```csharp
 using OfficeIMO.AsciiDoc;

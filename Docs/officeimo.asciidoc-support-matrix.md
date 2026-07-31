@@ -1,6 +1,6 @@
 # OfficeIMO.AsciiDoc support matrix
 
-- Status: experimental bounded-profile implementation (Phases 0-1)
+- Status: bounded-profile implementation
 - Updated: 2026-07-10
 - Runtime dependencies: BCL and existing OfficeIMO project references only
 
@@ -61,7 +61,7 @@ This matrix describes the implemented contract. It is not a claim of complete As
 | Links, images, and general inline macros | Semantic | Common link/image forms convert; unknown macro names retain source and produce a fallback diagnostic. |
 | Inline STEM | Semantic | Retains AsciiDoc math source and converts through Markdown's semantic math carrier with diagnostics where layout is unavailable. |
 | Inline passthrough | Semantic | Exact source is retained; conversion is explicit and may fall back. |
-| Superscript, subscript, mark, footnote, UI/callout macros | Source-preserved | Not yet bound to dedicated semantic types. |
+| Superscript, subscript, mark, footnote, UI/callout macros | Source-preserved | No dedicated semantic types in the current profile. |
 
 ## Tables
 

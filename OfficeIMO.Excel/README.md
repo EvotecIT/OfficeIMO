@@ -40,7 +40,7 @@ document.Save();
 - Applies optional shared package-security policy before parsing Open XML, XLSB, or compound XLS files.
 - Includes parallel execution controls for heavy export and autofit workloads while serializing the Open XML mutation phase safely.
 
-## Competitive performance with workbook features
+## Performance evidence
 
 OfficeIMO.Excel is optimized for fast tabular reads and writes, but it is not
 only a streaming data pipe. The same first-party model authors and edits styles,
@@ -48,32 +48,9 @@ tables, formulas, charts, pivots, conditional formatting, validation, images,
 templates, protection, print settings, headers and footers, and both `.xlsx`
 and the supported legacy `.xls` subset.
 
-The historical single-workstation table below deliberately mixes raw data paths
-with feature-bearing work: typed-object reads, plain and styled `DataReader`
-exports, and a report containing normal workbook features. Each row only
-includes libraries with a directly comparable public API. Lower is faster
-within a row. Differences below 5% are treated as ties. This table is retained
-for reproducibility, not as a current cross-platform library ranking.
+Performance claims use validated outputs and record the workload, package versions, runtime, operating system, processor, warm-up, iterations, allocations, and source provenance. Windows, Linux, and macOS remain separate evidence lanes; missing platforms stay visible rather than being inferred from another operating system.
 
-<!-- officeimo-excel-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | OfficeIMO.Excel | ClosedXML | EPPlus | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |
-| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Compact DataReader to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Write | 1.00x (23ms) | n/a | n/a | 1.11x (26ms) | 1.00x (23ms) | 1.11x (26ms) | OfficeIMO.Excel tied with SpreadCheetah |
-| Feature-rich report to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Create | 1.00x (37ms) | n/a | 11.12x (409ms) | n/a | n/a | n/a | OfficeIMO.Excel fastest |
-| Styled DataReader table to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Write | 1.00x (34ms) | 9.50x (320ms) | 9.76x (329ms) | n/a | n/a | n/a | OfficeIMO.Excel fastest |
-| Typed objects streamed from XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Read | 1.00x (25ms) | 11.13x (278ms) | 10.08x (252ms) | n/a | n/a | 1.56x (39ms) | OfficeIMO.Excel fastest |
-<!-- officeimo-excel-benchmark-table:end -->
-
-Hardware, runtime, workload shape, package versions, warm-up, and library
-options change outcomes. Use the benchmark website's hash-pinned CSV/XLSX/XLSB
-matrix for current Windows and Linux evidence, with missing macOS lanes kept
-visible until comparable results are available. The
-[benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) covers the broader
-comparison suite against ClosedXML, EPPlus, MiniExcel, LargeXlsx,
-SpreadCheetah, ExcelDataReader, and Sylvan.Data.Excel. The opt-in
-[NPOI comparison](../OfficeIMO.Excel.Benchmarks.NPOI/README.md) separately covers
-`.xlsx` row/cell work and legacy `.xls` values, formulas, metadata, formatting,
-filters, styles, and pictures.
+Use the [benchmark website](https://officeimo.com/benchmarks/) for the current comparison matrix. The [benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) documents reproducible local runs, workload validation, allocation evidence, and data publication. Benchmark-only libraries remain isolated from the `OfficeIMO.Excel` runtime package.
 
 ## Examples
 
@@ -119,8 +96,8 @@ caller can save as `.xlsx`, remove the feature, or choose a different workflow.
 legacy sources with unsupported or preserve-only content by default. Set
 `LossPolicy` to `ExcelConversionLossPolicy.Allow` on conversion or save options
 only after reviewing that loss. See
-[XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-roadmap.md) for
-the current capability matrix, safety contract, and breaking API migration.
+[XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) for
+the current capability matrix, safety contract, and canonical API replacement table.
 
 ### Work with XLSB workbooks
 
@@ -522,7 +499,7 @@ Excel layout, print-title, page-setup, and header/footer composition stays in `O
 
 - [Compatibility matrix](COMPATIBILITY.md)
 - [Large workbook guidance](../Docs/officeimo.excel.large-workbook-guidance.md)
-- [Excel roadmap](../Docs/officeimo.excel.roadmap.md)
+- [Repository roadmap](../Docs/ROADMAP.md)
 - [Excel examples](../OfficeIMO.Examples/Excel)
 
 ## Targets and license

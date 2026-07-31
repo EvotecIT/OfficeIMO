@@ -93,14 +93,14 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Equal(10, CountProjectHeadings(readme, "Markdown rendering and OfficeIMO Markup"));
         Assert.Equal(94, projectHeadings.Count);
 
-        Assert.Contains($"| Coordinated `3.0.x` release packages | {releasePackageCount} |", readme, StringComparison.Ordinal);
+        Assert.Contains($"| Coordinated `3.1.x` source packages | {releasePackageCount} |", readme, StringComparison.Ordinal);
         Assert.Contains($"| Documented package, tool, and example projects below | {projectHeadings.Count} |", readme, StringComparison.Ordinal);
         Assert.Contains("| Native format, foundation, and shared-service packages | 26 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Conversion and cloud bridge packages | 31 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Unified Reader packages | 27 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Markdown renderer and OfficeIMO Markup surfaces | 10 |", readme, StringComparison.Ordinal);
-        Assert.Contains("NuGet publication is a separate release step.", readme, StringComparison.Ordinal);
-        Assert.DoesNotContain("All OfficeIMO .NET packages are published", readme, StringComparison.Ordinal);
+        Assert.Contains("The current source and package line is `3.1.x`", readme, StringComparison.Ordinal);
+        Assert.Contains("Keep OfficeIMO package references on the same coordinated version", readme, StringComparison.Ordinal);
         AssertDotNetInstallCommands(
             readme,
             releasePackageIds,
@@ -272,8 +272,8 @@ public sealed class ReleasePackagingGuardrails {
                 "Installation guide references an unknown package: " + packageId);
             Assert.Equal(project!.Version, match.Groups["version"].Value);
         });
-        Assert.Contains("NuGet publication is a separate release step", installation, StringComparison.Ordinal);
-        Assert.DoesNotContain("All OfficeIMO .NET packages are published", installation, StringComparison.Ordinal);
+        Assert.Contains("The current OfficeIMO package line is `3.1.0`", installation, StringComparison.Ordinal);
+        Assert.Contains("keep coordinated OfficeIMO package references on the same version", installation, StringComparison.Ordinal);
         HashSet<string> releasePackageIds = packageProjects.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         string[] installationCommandIds = AssertDotNetInstallCommands(
             installation,
@@ -357,42 +357,28 @@ public sealed class ReleasePackagingGuardrails {
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", changelog, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", changelog, StringComparison.Ordinal);
 
-        string migrationPath = Path.Combine(repositoryRoot, "MIGRATION.md");
-        string migration = File.ReadAllText(migrationPath);
-        Assert.Contains("# OfficeIMO migration guide", migration, StringComparison.Ordinal);
-        Assert.Contains("## Migrating from OfficeIMO 3.0 to 3.1", migration, StringComparison.Ordinal);
-        Assert.Contains("## Migrating from OfficeIMO 2.x to 3.0", migration, StringComparison.Ordinal);
-        Assert.Contains("## Migrating from OfficeIMO 1.x to 2.0", migration, StringComparison.Ordinal);
-        Assert.Contains("### Conversion API grammar", migration, StringComparison.Ordinal);
-        Assert.Contains("`SaveImage`", migration, StringComparison.Ordinal);
-        Assert.Contains("`PdfExcelTableImportOptions`", migration, StringComparison.Ordinal);
-        Assert.Contains("`PdfPowerPointConversionResult`", migration, StringComparison.Ordinal);
-        Assert.Contains("`new WordHelpers()`", migration, StringComparison.Ordinal);
-        Assert.Contains("using OfficeIMO.Word;", migration, StringComparison.Ordinal);
-        Assert.Contains("vector graphics", migration, StringComparison.Ordinal);
-        Assert.Contains("System.Runtime.CompilerServices.IsExternalInit", migration, StringComparison.Ordinal);
-        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-3.0-migration.md")));
-        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-4.0-pdf-bridges.md")));
-        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo.breaking-api-migration.md")));
+        string documentationIndex = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "README.md"));
+        Assert.Contains("# OfficeIMO documentation", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("Package READMEs explain the public API", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("[ROADMAP.md](ROADMAP.md) owns open product work", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("Generated files state their source", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("do not create another backlog", documentationIndex, StringComparison.Ordinal);
 
-        string apiReview = File.ReadAllText(Path.Combine(
-            repositoryRoot,
-            "Docs",
-            "officeimo-3.0-public-api-review.md"));
-        Assert.Contains("323 assembly/target pairs", apiReview, StringComparison.Ordinal);
-        Assert.Contains("Seventy-four of the 81", apiReview, StringComparison.Ordinal);
-        Assert.Contains("Seven packages changed", apiReview, StringComparison.Ordinal);
-        Assert.Contains("955ce7b589512499aa42ba1da654b4a7742817f4", apiReview, StringComparison.Ordinal);
-        Assert.Contains("584bff01202c7a1da2f8fc51b1d2b9636cc66821", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Drawing", apiReview, StringComparison.Ordinal);
-        Assert.Contains("System.Runtime.CompilerServices.IsExternalInit", apiReview, StringComparison.Ordinal);
-        Assert.Contains("`netstandard2.0`", apiReview, StringComparison.Ordinal);
-        Assert.Contains("`net472`", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Epub.Html", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Epub.Image", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Excel.Pdf", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.PowerPoint.Pdf", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Word", apiReview, StringComparison.Ordinal);
+        string roadmap = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "ROADMAP.md"));
+        Assert.Contains("# OfficeIMO roadmap", roadmap, StringComparison.Ordinal);
+        Assert.Contains("It contains open work only", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Excel", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## PDF, HTML, and image rendering", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Markdown and text formats", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Reader and document intelligence", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Email, stores, and cloud adapters", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Browser and agent surfaces", roadmap, StringComparison.Ordinal);
+
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "MIGRATION.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "powerpoint.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "OfficeIMO.Markup", "IMPLEMENTATION_PLAN.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-3.0-public-api-review.md")));
     }
 
     private static string[] AssertDotNetInstallCommands(

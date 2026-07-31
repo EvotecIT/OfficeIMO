@@ -55,7 +55,7 @@ workbook.SaveCopy("report.xlsx");
 
 A PowerShell or CLI wrapper should expose an asynchronous command surface and map its parameters directly to `ExcelHttpLoadOptions`. The wrapper may present values such as URI, maximum bytes, timeout, headers, user agent, and HTTP opt-in, but it should not implement its own downloader, retry policy, redirect handling, ZIP validation, or temporary-file cleanup.
 
-Authentication in this contract is explicit through request headers. Richer transport customization should be added only if OfficeIMO can continue enforcing redirect, scheme, byte-limit, and credential-forwarding policy.
+Authentication in this contract is explicit through request headers. Richer transport customization is outside the current API so redirect, scheme, byte-limit, and credential-forwarding policy remain enforceable in one owner.
 
 ## Non-goals
 

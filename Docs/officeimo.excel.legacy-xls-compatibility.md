@@ -2,7 +2,7 @@
 
 OfficeIMO.Excel provides first-party support for Office Open XML `.xlsx` and the supported Excel 97-2003 BIFF binary `.xls` subset. Microsoft Excel, COM automation, and third-party spreadsheet conversion libraries are not runtime dependencies.
 
-This document is the current capability contract. It replaces the implementation roadmap.
+This document is the current capability contract.
 
 ## Normal API
 

@@ -1,4 +1,4 @@
-# OfficeIMO Image Export
+# OfficeIMO image export
 
 OfficeIMO image export is a first-party, dependency-free pipeline shared by Drawing, Excel, Word, PowerPoint, HTML, email, EPUB, OneNote, Visio, PDF, and OpenDocument adapters.
 
@@ -97,4 +97,4 @@ Load EPUB with `IncludeRawHtml = true` and `IncludeResourceData = true` for the 
 - Exact cross-machine typography requires caller-supplied font data.
 - ICC workflows, EXIF preservation, and CMYK color conversion are not part of the current contract.
 
-Further work should improve fidelity and proof for these existing surfaces. It should not add more output formats or package-local copies of the shared engine.
+Open fidelity and proof work is tracked in [ROADMAP.md](ROADMAP.md). Additional output formats and package-local copies of the shared engine are outside the current contract.

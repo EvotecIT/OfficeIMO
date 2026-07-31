@@ -161,8 +161,8 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 
 ## Deeper docs
 
-- [Correctness roadmap](../Docs/officeimo.markdown.correctness-roadmap.md)
-- [Correctness backlog](../Docs/officeimo.markdown.correctness-backlog.md)
+- [Repository roadmap](../Docs/ROADMAP.md)
+- [Compatibility matrix](../Docs/officeimo.markdown.compatibility-matrix.md)
 - [Extension authoring](../Docs/officeimo.markdown.extension-authoring.md)
 - [Benchmarks](../OfficeIMO.Markdown.Benchmarks/README.md)
 
@@ -174,7 +174,7 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 
 ## Dependency footprint
 
-- **External:** None; no Markdig or other Markdown parser.
+- **External:** None; parsing, syntax, semantic models, and writing are first-party.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The AST, parser, builder, transformations, and HTML renderer are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

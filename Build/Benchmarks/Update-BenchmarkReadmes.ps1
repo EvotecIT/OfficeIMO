@@ -269,9 +269,7 @@ try {
     }
 
     foreach ($target in @(
-        @{ Path = "./OfficeIMO.CSV/README.md"; Block = "officeimo-csv-benchmark-table"; Data = $csvComparisonPath },
         @{ Path = "./OfficeIMO.CSV.Benchmarks/README.md"; Block = "officeimo-csv-benchmark-table"; Data = $csvComparisonPath },
-        @{ Path = "./OfficeIMO.Excel/README.md"; Block = "officeimo-excel-benchmark-table"; Data = $excelComparisonPath },
         @{ Path = "./OfficeIMO.Excel.Benchmarks/README.md"; Block = "officeimo-excel-benchmark-table"; Data = $excelComparisonPath }
     )) {
         Update-BenchmarkDocument -Path $target.Path -BlockId $target.Block -ComparisonPath $target.Data -Renderer ComparisonTable | Out-Null

@@ -50,8 +50,8 @@ public sealed class Markdown_CommonMark_Inventory_Tests {
         Assert.Contains(inventoryText, compatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains(failureText, compatibilityMatrix, StringComparison.Ordinal);
 
-        string parityGapPlan = File.ReadAllText(GetRepositoryPath("Docs", "officeimo.markdown.markdig-parity-gap-plan.md"));
-        Assert.Contains(inventoryText, parityGapPlan, StringComparison.Ordinal);
-        Assert.Contains($"{report.Failing} are failing", parityGapPlan, StringComparison.Ordinal);
+        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown", "COMPATIBILITY.md"));
+        Assert.Contains($"{report.PassingPinned} CommonMark 0.31.2 examples are pinned as smoke fixtures", packageCompatibility, StringComparison.Ordinal);
+        Assert.Contains($"{report.PassingPinned + report.PassingUnpinned} of {report.Total} examples matching", packageCompatibility, StringComparison.Ordinal);
     }
 }

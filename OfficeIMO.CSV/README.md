@@ -47,7 +47,7 @@ new CsvDocument()
 - Provides schema inference and schema validation with required columns, typed columns, defaults, and custom rules.
 - Maps rows to typed objects with explicit no-reflection mapping.
 - Supports streaming mode for large files and explicit materialization when transforms are needed.
-- Includes benchmark lanes against Dataplat/dbatools CSV, Sep, Sylvan, CsvHelper, and OfficeIMO fast paths.
+- Includes validated cross-library benchmark lanes with operating-system and run-mode provenance.
 
 ## Performance without giving up the document model
 
@@ -57,30 +57,7 @@ features expected from a document and ingestion model: schema inference and
 validation, typed values, transforms, compressed files, malformed-input policy,
 formula-injection protection, progress, cancellation, and diagnostics.
 
-The historical single-workstation table below compares equivalent 25,000-row
-wide field-span reads, projected-array writes, `IDataReader` writes, and
-prepared-text writes. Benchmark preflight parses every typed field or compares
-every prepared text field, so a library cannot win by merely producing the
-right row shape. Lower is faster within a row; differences below 5% should be
-treated as ties. This table is retained for reproducibility, not as a current
-cross-platform library ranking.
-
-<!-- officeimo-csv-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
-| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (27ms) | n/a | 1.74x (47ms) | n/a | 0.99x (26ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.06x (2ms) | 4.47x (9ms) | OfficeIMO.CSV fastest |
-| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (31ms) | 2.65x (82ms) | 1.43x (45ms) | n/a | n/a | OfficeIMO.CSV fastest |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.33x (23ms) | 1.25x (21ms) | 1.20x (20ms) | 0.99x (17ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
-<!-- officeimo-csv-benchmark-table:end -->
-
-Runtime, CPU, input shape, quoting, encoding, storage, warm-up, and consumer
-behavior all matter. Use the benchmark website's hash-pinned CSV/XLSX/XLSB
-matrix for current Windows and Linux evidence, with missing macOS lanes kept
-visible until comparable results are available. See the
-[full benchmark harness](../OfficeIMO.CSV.Benchmarks/README.md) for CsvHelper,
-Dataplat/dbatools, LumenWorks, Sep, Sylvan, `DataTable`, and `DbDataReader`
-lanes and the exact commands used to reproduce them.
+Runtime, CPU, input shape, quoting, encoding, storage, warm-up, and consumer behavior all matter. Use the [benchmark website](https://officeimo.com/benchmarks/) for the current hash-pinned CSV/XLSX/XLSB comparison matrix. Missing operating-system or run-mode evidence remains visible rather than being inferred. The [benchmark harness](../OfficeIMO.CSV.Benchmarks/README.md) documents the exact commands, semantic output validation, allocation evidence, and publication path.
 
 ## Schema example
 

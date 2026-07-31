@@ -32,20 +32,6 @@ This matrix describes the current public contract for persisted email and Outloo
 | OfficeIMO.Reader integration | Supported | `OfficeIMO.Reader.Email` registers individual email artifacts, calendars/cards, PST/OST/OLM/EMLX and mailbox-directory stores, and typed OAB entry projection | One selective adapter depends only on `OfficeIMO.Reader.Core` and the unified `OfficeIMO.Email` package; it owns no parser |
 | Mixed email-data discovery | Supported | The included `OfficeIMO.Email.Data` API detects one file or directory and returns the existing `EmailDocument`, `IcsDocument`, `VCardDocument`, `EmailStoreSession`, or `OfflineAddressBookSession` owner result | The facade contains no alternate parsers, mutation logic, or document extraction. Profile/autocomplete caches remain deferred until a real consumer defines that contract |
 
-## MsgKit, MsgReader, and OpenMcdf replacement map
-
-| Previous dependency capability | OfficeIMO owner |
-| --- | --- |
-| MsgKit EML-to-MSG and MSG authoring | `EmailDocumentReader`, `EmailDocumentWriter`, and the typed Outlook models |
-| MsgKit sender, representing sender, recipient, body, metadata, and attachment builders | `EmailDocument`, `EmailAddress`, `EmailRecipient`, `EmailBody`, `EmailMessageMetadata`, and `EmailAttachment` |
-| MsgReader MSG projection | `EmailDocumentReader` and typed message/appointment/contact/task/journal/note models |
-| MsgReader unknown property access | Retained `MapiProperties` plus `GetMapiProperty` and `GetMapiValue` helpers |
-| MsgReader compressed RTF and RTF-to-HTML | `OfficeIMO.Email` transport compression plus `OfficeIMO.Rtf` semantic projection |
-| MsgReader signature parsing | `EmailSmime` orchestration over the neutral `OfficeIMO.Security` CMS/X.509 owner |
-| MsgReader nested MSG and `winmail.dat` expansion | `EmailAttachment.EmbeddedDocument` for embedded MSG, RFC message, and encapsulated TNEF content |
-| OpenMcdf storage used by MSG | Internal OfficeIMO shared compound reader/writer compiled into `OfficeIMO.Email` |
-| General-purpose OpenMcdf transactions | Intentionally not replaced by `OfficeIMO.Email`; consumers needing arbitrary CFB use a dedicated CFB library |
-
 ## Interoperability evidence
 
 | Oracle or evidence | Result |
@@ -54,7 +40,7 @@ This matrix describes the current public contract for persisted email and Outloo
 | MsgReader 6.0.12 | OfficeIMO output is readable for message, recipient, room/resource, body, attachment, appointment, contact, task, and journal contracts |
 | MsgReader 6.0.12 sample corpus | 15 real MSG fixtures matched subject, attachment count, and recipient count with no MSG parse errors, named-property warnings, or property-stream alignment warnings |
 | OpenMcdf 3.1.4 | Test-only oracle opens OfficeIMO mini-stream, regular-stream, hierarchical, empty-stream, and DIFAT compound output |
-| MimeKit 4.x TNEF reader | Accepts OfficeIMO TNEF output as compliant |
+| Independent TNEF interoperability reader | Accepts OfficeIMO TNEF output as compliant |
 | iCalendar/vCard contract suite | Read-edit-write-reopen coverage includes multiple calendars/cards, nested alarms, recurrence and temporal forms, scoped TZID validation, vCard 2.1/3.0/4.0, grouped/repeated fields, media values, legacy parameter quoting, quoted-printable continuation, RFC 6868, Unicode octet folding, and configured size/depth/count limits |
 | Microsoft Outlook for Mac | Opens OfficeIMO-authored message, appointment, contact, task, journal, and note MSG files by their native subjects; the message view showed sender, recipient, body, and attachment content |
 | Public Outlook S/MIME corpus | The opt-in exact-commit corpus test verifies signed Outlook EML and binary MSG, decrypts encrypted EML/MSG with the supplied exportable test key, and decrypts then verifies signed-and-encrypted EML/MSG on `net472`, `net8.0`, and `net10.0`; an Outlook 11 mailing-list artifact also proves CRLF canonicalization against OpenSSL 3.0 without redistributing that external message |
@@ -74,9 +60,9 @@ This matrix describes the current public contract for persisted email and Outloo
 - DKIM, ARC, OpenPGP, certificate/key discovery, and automatic recipient or trust-policy selection
 - In-place PST NDB mutation/append, ANSI PST mutation, OST mutation/output, in-place repair, or password/encryption authoring
 - OLM authoring, proprietary DBX mailboxes, Outlook/Mac profile databases, autocomplete caches, search indexes, synchronization state, and other profile/cache formats outside the dedicated OAB owner
-- xCal/xCard, jCal/jCard, JSCalendar, and JSContact public adapters. The shared content-line model remains the canonical ICS/VCF owner so future XML/JSON adapters can reuse it without duplicating calendar/contact semantics; JSCalendar and JSContact require separate mapping contracts rather than syntax substitution
+- xCal/xCard, jCal/jCard, JSCalendar, and JSContact public adapters. The shared content-line model remains the canonical ICS/VCF owner so XML/JSON adapters can reuse it without duplicating calendar/contact semantics; JSCalendar and JSContact require separate mapping contracts rather than syntax substitution
 - a public arbitrary-CFB editing or transaction package
 - Outlook UI automation or identical editors across platforms; Outlook for Mac uses its generic item viewer for non-mail MSG classes
 - pretending that every vendor-specific named property has a typed convenience field; retained MAPI values are the compatibility escape hatch
 
-Mailozaurr's migration and ownership split are documented in [Moving Mailozaurr MSG support to OfficeIMO.Email](officeimo.email-mailozaurr-migration.md).
+Mail transport remains outside this package. `OfficeIMO.Email` owns persisted EML/MIME, MSG/OFT, TNEF, mailbox-store, calendar/contact, and address-book artifacts; transport libraries consume those public models without introducing another persisted-file engine.

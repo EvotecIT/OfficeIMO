@@ -148,7 +148,7 @@ Use `WordPdfSaveOptions` when callers need to override page geometry, metadata, 
 ## Boundaries
 
 - This package does not try to be a full Word renderer with perfect Microsoft Word parity or a fixed-layout PDF-to-DOCX recreation engine.
-- PDF-to-Word import is semantic reconstruction over parser-supported logical PDF objects. Complex/unsupported PDF image streams, interactive controls, unresolved destinations, and remote/cross-document PDF navigation actions are not yet reconstructed as native Word objects.
+- PDF-to-Word import is semantic reconstruction over parser-supported logical PDF objects. Complex or unsupported PDF image streams, interactive controls, unresolved destinations, and remote or cross-document navigation actions are not reconstructed as native Word objects. Open reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 - Unsupported or simplified Word features should surface warnings rather than being hidden in the README as broad claims.
 - Reusable PDF layout work belongs in `OfficeIMO.Pdf`; Word-specific mapping belongs here.
 - PowerShell PDF workflows should be exposed through [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).

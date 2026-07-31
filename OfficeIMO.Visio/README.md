@@ -218,14 +218,13 @@ IReadOnlyList<OfficeImageExportResult> pages = document
 
 - `OfficeIMO.Visio` should generate and edit real `.vsdx` packages; optional desktop Visio validation belongs in examples, proof tooling, or tests.
 - External stencil/package support should keep licensing and package structure explicit.
-- Long assessment and roadmap notes belong in `Docs/officeimo.visio.assessment.md` and `Docs/officeimo.visio.roadmap.md`.
+- Open Visio product work belongs in the repository [roadmap](../Docs/ROADMAP.md); this README owns the current public API and its boundaries.
 - PowerShell wrappers belong in [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
 ## Deeper docs
 
-- [Visio assessment](../Docs/officeimo.visio.assessment.md)
-- [Visio roadmap](../Docs/officeimo.visio.roadmap.md)
-- [Document intelligence roadmap](../Docs/officeimo.document-intelligence-roadmap.md)
+- [Repository roadmap](../Docs/ROADMAP.md)
+- [Reader package family](../Docs/officeimo.reader.md)
 - [Examples](../OfficeIMO.Examples)
 
 ## Targets and license

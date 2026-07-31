@@ -95,10 +95,7 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks -- --filte
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks -- comparison-suite --out-dir .\artifacts\excel --row-set 2500,25000
 ```
 
-The suites compare OfficeIMO with the libraries that support each equivalent
-workload, including Sep, Sylvan, CsvHelper, Dataplat/dbatools, LumenWorks,
-ClosedXML, EPPlus, MiniExcel, LargeXlsx, SpreadCheetah, ExcelDataReader, and
-opt-in NPOI. No library is treated as an opponent or universal baseline.
+The suites compare OfficeIMO with the configured libraries that support each equivalent workload. Product guidance uses the validated OfficeIMO contract; competitor-specific results stay in benchmark artifacts and the benchmark website.
 Windows, Linux, and macOS remain separate evidence lanes; never average them or
 substitute one platform when another platform is missing.
 

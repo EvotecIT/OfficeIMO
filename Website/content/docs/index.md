@@ -13,7 +13,7 @@ slug: index
 - [Content publishing](/docs/workflows/content-publishing/) covers Markdown, HTML, RTF, OneNote, OpenDocument, Office, and PDF routes.
 - [Generated output gallery](/showcase/) shows committed document previews tied to examples and tests.
 - [PSWriteOffice benchmarks](/docs/workflows/powershell-benchmarks/) explains the comparison contract and provides reproducible commands.
-- [Release previews](/docs/workflows/release-previews/) lists implemented capabilities that are still waiting for merge or package publication.
+- [OfficeIMO roadmap](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md) lists open product work; package and workflow pages describe the current source contract.
 
 ## Package feeds
 

@@ -143,7 +143,7 @@ report.RequireNoLoss(); // checks table-row truncation, not unrelated page conte
 - PDF layout and writing stay in `OfficeIMO.Pdf`.
 - This package should remain a translation adapter, not a second PDF engine.
 - PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables.
-- The roadmap is better table continuation, repeated-header recognition, typed values, and bounded positioned-cell recovery—not pretending arbitrary PDF page art is an editable workbook.
+- The current reverse route recovers detected tables and structured values; arbitrary PDF page art is reported rather than presented as an editable workbook. Open recovery work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 - Fidelity gaps should be documented as warnings or deeper current-state notes, not hidden in marketing text.
 
 ## Related packages

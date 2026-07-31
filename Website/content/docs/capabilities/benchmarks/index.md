@@ -5,7 +5,7 @@ meta.seo_title: "OfficeIMO .NET benchmark evidence and reproduction guide"
 order: 25
 ---
 
-OfficeIMO uses three kinds of performance evidence. A **comparison benchmark** measures equivalent work across libraries and validates the resulting files or data. A **regression baseline** records an OfficeIMO workflow so future changes can be compared with the same scenario. A **performance guardrail** fails when a representative workload exceeds a documented time, allocation, memory, or I/O budget.
+OfficeIMO uses three kinds of performance evidence. A **comparison benchmark** measures equivalent work across libraries and validates the resulting files or data. A **regression baseline** records an OfficeIMO workflow so later changes can be compared with the same scenario. A **performance guardrail** fails when a representative workload exceeds a documented time, allocation, memory, or I/O budget.
 
 Those categories answer different questions. A regression result is not presented as a competitor ranking, and a timing from one machine is not a promise for every environment.
 

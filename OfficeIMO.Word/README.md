@@ -215,8 +215,8 @@ uses those same load and save paths and blocks legacy sources with unsupported
 or preserve-only content by default. Set `LossPolicy` to
 `WordConversionLossPolicy.Allow` on `WordDocumentConversionOptions` or
 `WordSaveOptions` only when that loss has been reviewed and is intentional.
-See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-roadmap.md)
-for the current capability matrix, safety contract, and breaking API migration.
+See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-compatibility.md)
+for the current capability matrix, safety contract, and canonical API replacement table.
 
 ### Protection
 

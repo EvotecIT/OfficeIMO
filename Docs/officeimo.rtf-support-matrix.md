@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-07-10
 
-This is the current contract for RTF read, write, edit, conversion, and ingestion. The machine-readable source is [officeimo.rtf-capabilities.json](officeimo.rtf-capabilities.json); a test requires every capability below to remain represented here. The original findings and competitor comparison remain in [the 2026-07-10 audit](reviews/officeimo.rtf-end-to-end-market-gap-2026-07-10.md).
+This is the current contract for RTF read, write, edit, conversion, and ingestion. The machine-readable source is [officeimo.rtf-capabilities.json](officeimo.rtf-capabilities.json); a test requires every capability below to remain represented here. Open RTF work is tracked in the repository [roadmap](ROADMAP.md).
 
 Status meanings:
 

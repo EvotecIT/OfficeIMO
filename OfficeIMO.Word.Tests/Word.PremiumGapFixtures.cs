@@ -88,22 +88,22 @@ namespace OfficeIMO.Tests {
             }
 
             string repositoryRoot = LocateRepositoryRootForPremiumGapTests();
-            string planPath = Path.Combine(repositoryRoot, "Docs", "officeimo.word-premium-gap-plan.md");
-            string plan = File.ReadAllText(planPath);
-            Assert.Contains("OfficeIMO.TestAssets/Documents/Word/PremiumGaps/premium-gap-fixtures.xml", plan, StringComparison.Ordinal);
-            Assert.Contains("officeimo.word-template-mail-merge-scenarios.md", plan, StringComparison.Ordinal);
-            Assert.DoesNotContain("Docs/reviews/officeimo.word-review", plan, StringComparison.OrdinalIgnoreCase);
+            string roadmapPath = Path.Combine(repositoryRoot, "Docs", "ROADMAP.md");
+            string roadmap = File.ReadAllText(roadmapPath);
+            Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
+            Assert.Contains("officeimo.word-template-mail-merge-scenarios.md", roadmap, StringComparison.Ordinal);
+            Assert.Contains("Broaden imported review and redline corpus coverage", roadmap, StringComparison.Ordinal);
+            Assert.Contains("Extend structured comparison and redline generation", roadmap, StringComparison.Ordinal);
+            Assert.Contains("Complete field evaluation and refresh", roadmap, StringComparison.Ordinal);
 
-            string capabilityAssessmentPath = Path.Combine(repositoryRoot, "Docs", "officeimo.word-excel-capability-assessment.md");
-            string capabilityAssessment = File.ReadAllText(capabilityAssessmentPath);
-            Assert.Contains("Docs/officeimo.word-premium-gap-plan.md", capabilityAssessment, StringComparison.Ordinal);
-            Assert.Contains("Website/content/docs/word/market-readiness/index.md", capabilityAssessment, StringComparison.Ordinal);
-            Assert.DoesNotContain("Docs/reviews/officeimo.word-review", capabilityAssessment, StringComparison.OrdinalIgnoreCase);
-
-            string reviewsPath = Path.Combine(repositoryRoot, "Docs", "reviews");
-            if (Directory.Exists(reviewsPath)) {
-                Assert.Empty(Directory.EnumerateFiles(reviewsPath, "officeimo.word-review-*.md"));
-            }
+            string fixtureManifestPath = Path.Combine(
+                repositoryRoot,
+                "OfficeIMO.TestAssets",
+                "Documents",
+                "Word",
+                "PremiumGaps",
+                "premium-gap-fixtures.xml");
+            Assert.True(File.Exists(fixtureManifestPath), $"Missing premium-gap fixture manifest: {fixtureManifestPath}");
 
             string matrixPath = Path.Combine(repositoryRoot, "Docs", "officeimo.word-template-mail-merge-scenarios.md");
             Assert.True(File.Exists(matrixPath), $"Missing template/mail-merge scenario matrix: {matrixPath}");

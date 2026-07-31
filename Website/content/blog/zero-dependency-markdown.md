@@ -50,7 +50,7 @@ foreach (var block in doc.TopLevelBlocks)
 }
 ```
 
-Pattern matching on sealed types gives you exhaustiveness checking at compile time. If we add a new block type in a future release, your switch expression will produce a compiler warning, not a silent bug.
+Pattern matching on sealed types gives you exhaustiveness checking at compile time. Adding a block type produces a compiler warning in an exhaustive switch expression rather than a silent behavior change.
 
 ## The Builder API
 

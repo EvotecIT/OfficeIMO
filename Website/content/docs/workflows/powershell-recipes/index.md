@@ -84,4 +84,4 @@ Use the normalized Reader commands for indexing, migration, classification, sear
 
 Start with the [PowerPoint service brief](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) for a complete deck, or the [PowerPoint examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/PowerPoint) for focused charts, layouts, themes, transitions, imported slides, and HTML review.
 
-See the [PSWriteOffice command families](/docs/pswriteoffice/command-families/) for the supported surface and [release previews](/docs/workflows/release-previews/) before relying on commands that are still waiting for package publication.
+See the [PSWriteOffice command families](/docs/pswriteoffice/command-families/) for the current supported surface and use the package-specific examples below for concrete workflows.

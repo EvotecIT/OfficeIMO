@@ -57,7 +57,7 @@ Browse [all 16 generated families](/docs/pswriteoffice/command-families/) or sea
 | Build a PowerPoint service brief | [PowerPoint showcase example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) |
 | Browse copyable PowerShell patterns | [PSWriteOffice recipe gallery](/docs/workflows/powershell-recipes/) |
 | Compare Excel and CSV performance | [PSWriteOffice benchmark guide](/docs/workflows/powershell-benchmarks/) |
-| Evaluate mixed search, authenticated PDF, or Confluence publishing | [Release-preview status](/docs/workflows/release-previews/) |
+| Evaluate mixed search, authenticated PDF, or Confluence publishing | [PSWriteOffice command families](/docs/pswriteoffice/command-families/) |
 
 ## Quick start
 
@@ -145,7 +145,7 @@ PSWriteOffice is available from the [PowerShell Gallery](https://www.powershellg
 | [Markdown cmdlets](/docs/pswriteoffice/open-text-formats/#markdown) | Generate Markdown reports and repository-friendly docs from scripts. |
 | [Database reporting](/docs/workflows/database-reporting/) | Connect DbaClientX queries and bulk writes to Excel and CSV artifacts. |
 | [Performance evidence](/docs/workflows/powershell-benchmarks/) | Reproduce the PowerForge-backed Excel and CSV comparisons. |
-| [Release previews](/docs/workflows/release-previews/) | See implemented commands that are still waiting for package publication. |
+| [OfficeIMO roadmap](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md) | See open cross-package work without mixing it into current command documentation. |
 | [PowerShell API reference](/api/powershell/) | Browse the full cmdlet surface with parameters and examples. |
 
 ## Related packages

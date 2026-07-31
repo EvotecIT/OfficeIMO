@@ -536,7 +536,7 @@ Use `layout.ResolvePlaceholder("Customer Screenshot")` or `ResolvePlaceholder(Po
 Concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` objects are the editing API. There is
 no separate PowerPoint builder vocabulary to learn or keep synchronized.
 
-See [the breaking API migration guide](../Docs/officeimo.powerpoint-api-migration.md) for old-to-new mappings.
+The concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` types shown here are the supported editing surface. Semantic plans remain optional composition input and do not replace the concrete document model.
 
 ## Managed image export
 

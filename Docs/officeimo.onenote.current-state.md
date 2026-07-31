@@ -1,6 +1,6 @@
 # OfficeIMO OneNote current state
 
-OfficeIMO owns the offline OneNote format engine. Microsoft Graph and GraphEssentialsX are outside this implementation boundary; they can be added later as optional cloud transport without becoming a prerequisite for local files.
+OfficeIMO owns the offline OneNote format engine. Microsoft Graph and GraphEssentialsX are outside this implementation boundary. Local file support has no cloud transport prerequisite.
 
 ## Artifact coverage
 

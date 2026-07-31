@@ -120,41 +120,6 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion() {
-        string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.compatibility-matrix.md"));
-        Assert.Contains($"| External comparison package | Markdig `{CurrentMarkdigVersion}`", compatibilityMatrix, StringComparison.Ordinal);
-
-        string competitorRoadmap = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-competitor-roadmap.md"));
-        Assert.Contains($"external parity baseline: Markdig `{CurrentMarkdigVersion}`", competitorRoadmap, StringComparison.Ordinal);
-
-        string correctnessBacklog = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.correctness-backlog.md"));
-        Assert.Contains($"`OfficeIMO.Shared.Tests`, `OfficeIMO.Markdown.Tests`, and `OfficeIMO.Markdown.Benchmarks` all reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
-
-        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
-        Assert.Contains($"curated Markdig {CurrentMarkdigVersion} parity cases", packageCompatibility, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void MarkdownCompatibilityDocs_TrackCurrentFixtureBaselineCounts() {
-        int commonMarkFixtureCount = CountJsonArrayEntries("OfficeIMO.Markdown.Tests/Markdown/Fixtures/CommonMark/commonmark-0.31.2-smoke.json");
-        int gfmFixtureCount = CountJsonArrayEntries("OfficeIMO.Markdown.Tests/Markdown/Fixtures/GitHubFlavoredMarkdown/cmark-gfm-extensions-smoke.json");
-
-        string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.compatibility-matrix.md"));
-        Assert.Contains($"| CommonMark reference | {commonMarkFixtureCount} of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |", compatibilityMatrix, StringComparison.Ordinal);
-        Assert.Contains($"| GFM reference | {gfmFixtureCount} cmark-gfm extension smoke fixtures plus focused OfficeIMO supplements for upstream ignored-autolink crash and query/fragment autolink regressions |", compatibilityMatrix, StringComparison.Ordinal);
-
-        string competitorRoadmap = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-competitor-roadmap.md"));
-        Assert.Contains($"standards smoke baseline: {commonMarkFixtureCount} CommonMark `0.31.2` fixtures, {gfmFixtureCount} cmark-gfm extension fixtures", competitorRoadmap, StringComparison.Ordinal);
-
-        string parityGapPlan = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-parity-gap-plan.md"));
-        Assert.Contains($"| CommonMark corpus | {commonMarkFixtureCount} of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |", parityGapPlan, StringComparison.Ordinal);
-        Assert.Contains($"| GFM corpus | {gfmFixtureCount} cmark-gfm extension smoke fixtures plus focused crash/regression coverage |", parityGapPlan, StringComparison.Ordinal);
-
-        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
-        Assert.Contains($"includes {commonMarkFixtureCount} pinned CommonMark 0.31.2 fixtures, {gfmFixtureCount} cmark-gfm smoke fixtures", packageCompatibility, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Projects_DoNotReferenceImageSharpPackage() {
         var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
             .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
@@ -1080,15 +1045,6 @@ public sealed class PackageDependencyGuardrailTests {
                 yield return projectPath;
             }
         }
-    }
-
-    private static int CountJsonArrayEntries(string relativePath) {
-        var path = GetRepositoryPath(relativePath);
-        Assert.True(File.Exists(path), "Fixture file is missing: " + path);
-
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path));
-        Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
-        return document.RootElement.GetArrayLength();
     }
 
     private static bool IsNonProductionProject(string projectPath) {

@@ -11,7 +11,7 @@ preview_id: "powerpoint"
 meta.software.name: "OfficeIMO.PowerPoint"
 meta.software.application_category: "DeveloperApplication"
 meta.software.operating_system: "Windows, Linux, macOS"
-meta.software.version: "3.0.0"
+meta.software.version: "3.1.0"
 meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
 meta.software.price: 0
 meta.software.price_currency: "USD"

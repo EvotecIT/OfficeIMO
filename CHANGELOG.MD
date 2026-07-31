@@ -1,8 +1,8 @@
 ## Unreleased
 ### Breaking Changes
 * Replace public color/image helper usage of `SixLabors.ImageSharp` with first-party `OfficeIMO.Drawing` types. Consumers that passed `SixLabors.ImageSharp.Color` should migrate to `OfficeIMO.Drawing.OfficeColor`.
-* Standardize document persistence, conversion results, diagnostics, themes, and async I/O across the solution. Compatibility aliases and fake in-memory async methods were removed; see the [OfficeIMO 3.1 migration guide](MIGRATION.md#migrating-from-officeimo-30-to-31).
-* Unify the 3.1 PDF bridge surface around `PdfDocument` and `PdfLogicalDocument`, with format-owned save/import options, immutable result reports, and consistent `To...`, `To...Result`, `SaveAs...`, and `SaveAs...Async` entry points. See the [3.0 to 3.1 migration section](MIGRATION.md#migrating-from-officeimo-30-to-31).
+* Standardize document persistence, conversion results, diagnostics, themes, and async I/O across the solution. Compatibility aliases and fake in-memory async methods were removed; upgrade coordinated OfficeIMO packages together and use the canonical package-owned APIs.
+* Unify the 3.1 PDF bridge surface around `PdfDocument` and `PdfLogicalDocument`, with format-owned save/import options, immutable result reports, and consistent `To...`, `To...Result`, `SaveAs...`, and `SaveAs...Async` entry points.
 * Give CSV and Excel parallel package-owned tabular entry points: use `OpenDataReader(...)` for a path or stream and `CreateDataReader(...)` for an already-open document. Backend-specific parser and reader types are internal in 3.1.
 * Replace the all-formats `OfficeIMO.OpenDocument.Pdf` package with focused ODT, ODS, and ODP packages. Each package provides bidirectional routes without pulling unrelated Office stacks; no umbrella or bridge-specific Core package is retained.
 * Make PDF-to-PowerPoint useful beyond detected tables: the default opened-PDF route creates one rendered visual slide per page, while `PdfPowerPointImportMode.EditableTables` retains editable table recovery with explicit omitted-content diagnostics.

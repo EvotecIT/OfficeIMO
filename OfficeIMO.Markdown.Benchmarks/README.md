@@ -29,9 +29,9 @@ The benchmark corpus is intentionally stable and reviewable in source. It covers
 
 Benchmark classes currently cover:
 
-- parse cost against the current Markdig baseline
+- parse cost across the configured implementations
 - syntax-tree parse cost
-- HTML render cost against the current Markdig baseline
+- HTML render cost across the configured implementations
 - document normalization transform cost, including syntax-tree diagnostics
 - HTML-to-Markdown conversion cost across OfficeIMO output profiles and the current ReverseMarkdown benchmark-only baseline
 

@@ -163,7 +163,7 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 - This package should remain a thin adapter over shared PDF primitives.
 - Opened-PDF import defaults to `PdfPowerPointImportMode.VisualPages`. Managed-renderer capability diagnostics report page failures or simplifications.
 - `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
-- The next meaningful expansion is a hybrid visual/editable mode followed by bounded text-box and image-layer reconstruction. Arbitrary vectors, groups, forms, annotations, and animations are not yet claimed as editable slide objects.
+- The current route does not claim arbitrary vectors, groups, forms, annotations, or animations as editable slide objects. Open hybrid visual/editable and bounded text/image reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 - Complex slide fidelity gaps should be reported through warnings and deeper docs rather than broad README claims.
 
 ## Related packages

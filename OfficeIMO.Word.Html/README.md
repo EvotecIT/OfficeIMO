@@ -95,7 +95,7 @@ budget can be rejected before their bodies are read.
 ## Deeper docs
 
 - [Word/HTML support matrix](../Docs/officeimo.word-html-support-matrix.md)
-- [Word/HTML roadmap](../Docs/officeimo.word-html-roadmap.md)
+- [Repository roadmap](../Docs/ROADMAP.md)
 - [OfficeIMO.Word](../OfficeIMO.Word/README.md)
 
 ## Targets and license
