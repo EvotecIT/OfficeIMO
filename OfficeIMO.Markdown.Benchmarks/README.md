@@ -15,6 +15,7 @@ Run a narrower benchmark by class when you only need one lane:
 ```powershell
 dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --filter *MarkdownTransformBenchmarks*
 dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlToMarkdownBenchmarks*
+dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlToMarkdownOfficeProfileBenchmarks*
 ```
 
 For a quick harness smoke without publication-grade timing, use BenchmarkDotNet's dry job:
@@ -29,16 +30,23 @@ The benchmark corpus is intentionally stable and reviewable in source. It covers
 
 Benchmark classes currently cover:
 
-- parse cost against the current Markdig baseline
+- parse cost across the configured implementations
 - syntax-tree parse cost
-- HTML render cost against the current Markdig baseline
+- HTML render cost across the configured implementations
 - document normalization transform cost, including syntax-tree diagnostics
-- HTML-to-Markdown conversion cost across OfficeIMO output profiles and the current ReverseMarkdown benchmark-only baseline
+- comparable HTML-to-Markdown default conversion cost for OfficeIMO and the current ReverseMarkdown benchmark-only baseline
+- OfficeIMO-specific HTML-to-Markdown profile costs in a separate, non-competitive benchmark class
 
-## Boundaries
+The CommonMark parse and HTML comparison classes run an untimed setup preflight for every corpus. Both measured HTML paths render without automatic heading identifiers or an outer body wrapper, matching CommonMark's heading and fragment output rather than hiding different work during validation. The preflight parses with both OfficeIMO and Markdig, renders both results, normalizes line endings, equivalent break-tag spelling, and HTML-collapsible whitespace while preserving preformatted blocks, and rejects the benchmark case unless the remaining HTML is identical.
 
-- Benchmark scenarios belong here.
-- Runtime Markdown behavior belongs in `OfficeIMO.Markdown`.
-- Renderer host behavior belongs in `OfficeIMO.MarkdownRenderer`.
-- ReverseMarkdown is a benchmark-only comparison package in this project and must not become a runtime dependency.
-- Release decisions should use benchmark evidence together with correctness tests and representative document fixtures.
+The competitive HTML-to-Markdown class likewise checks every included corpus before timing. It renders both generated Markdown results through the same pipeline and requires identical normalized semantic HTML. Both timed methods accept the same raw HTML and include parsing; OfficeIMO does not reuse a document parsed during setup while ReverseMarkdown parses inside its measured call. Nested-list and feature-rich inputs remain in the OfficeIMO-only prepared-document profile class because those paths produce structurally different output and would make cross-library ratios misleading. Timings therefore begin only after compared implementations have proven the same observable output for that input.
+
+Run the same preflight without collecting timings:
+
+```powershell
+dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --validate-equivalence
+```
+
+## Interpretation
+
+Use benchmark results together with correctness tests and representative document fixtures. Timing alone does not establish syntax coverage, output fidelity, or safe handling of untrusted input.

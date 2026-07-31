@@ -63,6 +63,12 @@ VisioDocument.Load("operations.vsdx")
     .Save("operations.updated.vsdx");
 ```
 
+### Loaded-diagram compatibility boundary
+
+Loaded `.vsdx` editing covers common pages, shapes, connectors, text, styles, Shape Data, hyperlinks, layers, containers, comments, selection, topology queries, and targeted layout operations. Unmodeled package XML is preserved where possible, but this is strong round-trip preservation rather than a complete typed object model for every Visio feature.
+
+Current editing limits include advanced nested and container behavior, deeper swimlane metadata and automatic assignment, richer threaded comment and author workflows, advanced resize-to-content, and broader whole-diagram relayout and polish. Data graphics, legends, general ShapeSheet formulas, and many less-common ShapeSheet sections are preserved where possible but are not fully exposed as typed APIs. Track open work in the repository [roadmap](../Docs/ROADMAP.md).
+
 ## Examples
 
 The quick start shows the fluent page API. These examples show the higher-level builders and editing surfaces that belong in `OfficeIMO.Visio`.
@@ -214,18 +220,17 @@ IReadOnlyList<OfficeImageExportResult> pages = document
     .Save("pipeline-pages");
 ```
 
-## Boundaries
+## Related packages and limits
 
-- `OfficeIMO.Visio` should generate and edit real `.vsdx` packages; optional desktop Visio validation belongs in examples, proof tooling, or tests.
-- External stencil/package support should keep licensing and package structure explicit.
-- Long assessment and roadmap notes belong in `Docs/officeimo.visio.assessment.md` and `Docs/officeimo.visio.roadmap.md`.
-- PowerShell wrappers belong in [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
+- `OfficeIMO.Visio` generates and edits `.vsdx` packages without requiring desktop Visio at runtime.
+- External stencil packages retain their package and licensing requirements.
+- Use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for PowerShell workflows.
+- Open Visio product work is listed in the repository [roadmap](../Docs/ROADMAP.md).
 
 ## Deeper docs
 
-- [Visio assessment](../Docs/officeimo.visio.assessment.md)
-- [Visio roadmap](../Docs/officeimo.visio.roadmap.md)
-- [Document intelligence roadmap](../Docs/officeimo.document-intelligence-roadmap.md)
+- [Repository roadmap](../Docs/ROADMAP.md)
+- [Reader package family](../Docs/officeimo.reader.md)
 - [Examples](../OfficeIMO.Examples)
 
 ## Targets and license

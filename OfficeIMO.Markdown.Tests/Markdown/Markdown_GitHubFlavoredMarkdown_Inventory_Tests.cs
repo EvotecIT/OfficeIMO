@@ -49,8 +49,8 @@ public sealed class Markdown_GitHubFlavoredMarkdown_Inventory_Tests {
         Assert.Contains(trackedText, compatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains(passingText, compatibilityMatrix, StringComparison.Ordinal);
 
-        string parityGapPlan = File.ReadAllText(GetRepositoryPath("Docs", "officeimo.markdown.markdig-parity-gap-plan.md"));
-        Assert.Contains(trackedText, parityGapPlan, StringComparison.Ordinal);
-        Assert.Contains("generated GFM inventory", parityGapPlan, StringComparison.Ordinal);
+        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown", "COMPATIBILITY.md"));
+        Assert.Contains($"{report.Total} tracked fixtures", packageCompatibility, StringComparison.Ordinal);
+        Assert.Contains($"{report.Passing} passing", packageCompatibility, StringComparison.Ordinal);
     }
 }

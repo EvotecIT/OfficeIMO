@@ -18,9 +18,7 @@ using ExcelDocument workbook = await ExcelDocument.LoadAsync(
     },
     cancellationToken: cancellationToken);
 
-using ExcelDocumentReader reader = await ExcelDocumentReader.OpenAsync(
-    uri,
-    cancellationToken: cancellationToken);
+using var reader = workbook.CreateDataReader();
 ```
 
 There are no synchronous `Load(Uri)` or `Open(Uri)` counterparts. A remote request cannot complete synchronously, and hiding it behind a synchronous API would create blocking and cancellation problems. Local path, stream, and byte-array inputs retain their synchronous entry points.
@@ -42,7 +40,7 @@ Options are snapshotted when the operation starts, so mutating the caller-owned 
 
 The loader materializes a bounded, seekable package in memory and hands it to the same native Open XML load path used by byte-array input. No temporary file or hidden path becomes associated with the returned document.
 
-The caller owns the returned `ExcelDocument` or `ExcelDocumentReader` and must dispose it. To persist a remote workbook locally, choose the destination explicitly:
+Remote loading returns an `ExcelDocument`. Create a public `DbDataReader` from that workbook with `CreateDataReader(...)` when a streaming row interface is needed, and dispose the reader before disposing the workbook. To persist a remote workbook locally, choose the destination explicitly:
 
 ```csharp
 using ExcelDocument workbook = await ExcelDocument.LoadAsync(uri, cancellationToken: cancellationToken);
@@ -55,7 +53,7 @@ workbook.SaveCopy("report.xlsx");
 
 A PowerShell or CLI wrapper should expose an asynchronous command surface and map its parameters directly to `ExcelHttpLoadOptions`. The wrapper may present values such as URI, maximum bytes, timeout, headers, user agent, and HTTP opt-in, but it should not implement its own downloader, retry policy, redirect handling, ZIP validation, or temporary-file cleanup.
 
-Authentication in this contract is explicit through request headers. Richer transport customization should be added only if OfficeIMO can continue enforcing redirect, scheme, byte-limit, and credential-forwarding policy.
+Authentication in this contract is explicit through request headers. Richer transport customization is outside the current API so redirect, scheme, byte-limit, and credential-forwarding policy remain enforceable in one owner.
 
 ## Non-goals
 

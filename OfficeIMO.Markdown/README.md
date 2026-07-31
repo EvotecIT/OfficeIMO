@@ -152,17 +152,17 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 | [OfficeIMO.Word.Markdown](../OfficeIMO.Word.Markdown/README.md) | Word to/from Markdown conversion. |
 | [OfficeIMO.Markup](../OfficeIMO.Markup/README.md) | Markdown-inspired semantic authoring for OfficeIMO document outputs. |
 
-## Boundaries
+## Related packages
 
-- `OfficeIMO.Markdown` owns the Markdown model, parser, writer, and HTML renderer.
-- PDF output belongs in `OfficeIMO.Markdown.Pdf`.
-- HTML ingestion belongs in `OfficeIMO.Markdown.Html`.
-- Host shell behavior belongs in `OfficeIMO.MarkdownRenderer` and host-specific plug-ins.
+- `OfficeIMO.Markdown` provides the Markdown model, parser, writer, and HTML renderer.
+- Use `OfficeIMO.Markdown.Pdf` for PDF output.
+- Use `OfficeIMO.Markdown.Html` for HTML ingestion.
+- Use `OfficeIMO.MarkdownRenderer` and its host-specific plug-ins for application shells.
 
 ## Deeper docs
 
-- [Correctness roadmap](../Docs/officeimo.markdown.correctness-roadmap.md)
-- [Correctness backlog](../Docs/officeimo.markdown.correctness-backlog.md)
+- [Repository roadmap](../Docs/ROADMAP.md)
+- [Compatibility matrix](../Docs/officeimo.markdown.compatibility-matrix.md)
 - [Extension authoring](../Docs/officeimo.markdown.extension-authoring.md)
 - [Benchmarks](../OfficeIMO.Markdown.Benchmarks/README.md)
 
@@ -174,7 +174,7 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 
 ## Dependency footprint
 
-- **External:** None; no Markdig or other Markdown parser.
+- **External:** None; parsing, syntax, semantic models, and writing are first-party.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The AST, parser, builder, transformations, and HTML renderer are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

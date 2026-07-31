@@ -46,7 +46,7 @@ public static class HtmlRenderCapabilityCatalog {
             HtmlRenderDiagnosticCodes.FlexValueUnsupported),
         Partial("layout-grid", "Layout", HtmlRenderCapabilityKind.Css,
             Features("display:grid", "display:inline-grid", "grid-template-*", "grid-auto-*", "repeat()", "minmax()", "gap", "placement"),
-            "Lays out bounded explicit and implicit grids with numeric placement. Subgrid, named-line resolution, and intrinsic track sizing are not yet represented.",
+            "Lays out bounded explicit and implicit grids with numeric placement. Subgrid, named-line resolution, and intrinsic track sizing are outside the current contract.",
             HtmlRenderDiagnosticCodes.GridLayoutPending,
             HtmlRenderDiagnosticCodes.GridValueUnsupported),
         Partial("layout-columns", "Layout", HtmlRenderCapabilityKind.Css,

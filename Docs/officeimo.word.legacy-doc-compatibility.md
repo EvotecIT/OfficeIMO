@@ -2,7 +2,7 @@
 
 OfficeIMO.Word provides first-party, dependency-free support for Office Open XML `.docx` and the supported Word 97-2003 binary `.doc` subset. Microsoft Word, COM automation, LibreOffice, and third-party conversion libraries are not used at runtime.
 
-This document is the current capability contract. It replaces the implementation roadmap.
+This document is the current capability contract.
 
 ## Normal API
 
@@ -98,23 +98,7 @@ if (summary.HasConversionLoss) {
 }
 ```
 
-For corpus analysis or forensic detail, use `load.AdvancedDocument` and `load.CreateAdvancedImportReport()`. Import options use the common names `MaxInputBytes` and `ReportUnsupportedContent`. File conversion always enables unsupported-content discovery—even when a supplied import option disables reporting—because `LossPolicy.Block` must never be bypassed silently. Import options are selected from detected physical content, so limits and XLS passwords still apply when a legacy file has a misleading extension.
-
-## Breaking API cleanup
-
-The parity API intentionally uses one vocabulary:
-
-| Removed API | Use |
-|---|---|
-| `SaveAs(path/stream)` | `SaveCopy(path/stream)` |
-| `SaveAsByteArray()` | `ToBytes()` |
-| `SaveAsMemoryStream()` | `ToStream()` |
-| `WasLoadedFromLegacyDoc` | `SourceFormat == WordFileFormat.Doc` |
-| `MaxWordDocumentStreamBytes` | `MaxInputBytes` |
-| `ReportUnsupportedFeatures` | `ReportUnsupportedContent` |
-| positional overwrite conversion flag | `FileConflictPolicy` |
-| save-triggered application launch | Call `OpenInApplication(path)` explicitly after a successful save |
-| lossy conversion Boolean | `LossPolicy` |
+For corpus analysis or forensic detail, use `load.AdvancedDocument` and `load.CreateAdvancedImportReport()`. Import options use the common names `MaxInputBytes` and `ReportUnsupportedContent`. File conversion always enables unsupported-content discovery—even when a supplied import option disables reporting—because `LossPolicy.Block` must never be bypassed silently. Import options are selected from detected physical content, so format-specific limits still apply when a legacy file has a misleading extension.
 
 ## Validation
 

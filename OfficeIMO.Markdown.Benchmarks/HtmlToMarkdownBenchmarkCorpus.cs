@@ -13,6 +13,8 @@ internal static class HtmlToMarkdownBenchmarkCorpus {
 
     public static IEnumerable<string> Names => Corpora.Keys;
 
+    public static IEnumerable<string> ComparisonNames => ["Article", "LargeArticle", "Table"];
+
     public static string Get(string name) => Corpora[name];
 
     public static string GetExpectedFragment(string name) => name switch {

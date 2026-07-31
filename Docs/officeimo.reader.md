@@ -92,6 +92,4 @@ providers, and native tools remain explicit host choices and are not pulled into
 - `ReadStructured(...)` and `ReadHierarchical(...)` provide bounded structured records and hierarchy-aware RAG leaves.
 - Ordered processors can normalize or filter every rich result in one immutable reader instance.
 
-The detailed API guide is [OfficeIMO.Reader.Core/README.md](../OfficeIMO.Reader.Core/README.md). Package ownership,
-migration, dependency, and release gates are recorded in
-[officeimo.reader.modular-roadmap.md](officeimo.reader.modular-roadmap.md).
+The detailed API guide and package-ownership rules are in [OfficeIMO.Reader.Core/README.md](../OfficeIMO.Reader.Core/README.md). Open Reader and document-intelligence work is tracked in the repository [roadmap](ROADMAP.md).

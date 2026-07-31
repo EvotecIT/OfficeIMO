@@ -6,6 +6,8 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class ReleasePackagingGuardrails {
+    private const string CurrentPublishedPackageVersion = "3.0.3";
+
     [Fact]
     public void CodexMarketplace_LocalPluginSourcesResolveFromRepositoryRoot() {
         string repositoryRoot = GetRepositoryRoot();
@@ -59,7 +61,6 @@ public sealed class ReleasePackagingGuardrails {
     [Fact]
     public void ReadmeInventory_MatchesReleaseMapAndLinkedProjectCatalog() {
         string repositoryRoot = GetRepositoryRoot();
-        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string readme = File.ReadAllText(Path.Combine(repositoryRoot, "README.md"));
         using JsonDocument buildDocument = JsonDocument.Parse(
             File.ReadAllText(Path.Combine(repositoryRoot, "Build", "project.build.json")));
@@ -93,20 +94,39 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Equal(10, CountProjectHeadings(readme, "Markdown rendering and OfficeIMO Markup"));
         Assert.Equal(94, projectHeadings.Count);
 
-        Assert.Contains($"| Coordinated `3.0.x` release packages | {releasePackageCount} |", readme, StringComparison.Ordinal);
+        Assert.Contains($"| Coordinated `3.1.x` source packages | {releasePackageCount} |", readme, StringComparison.Ordinal);
         Assert.Contains($"| Documented package, tool, and example projects below | {projectHeadings.Count} |", readme, StringComparison.Ordinal);
         Assert.Contains("| Native format, foundation, and shared-service packages | 26 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Conversion and cloud bridge packages | 31 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Unified Reader packages | 27 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Markdown renderer and OfficeIMO Markup surfaces | 10 |", readme, StringComparison.Ordinal);
-        Assert.Contains("NuGet publication is a separate release step.", readme, StringComparison.Ordinal);
-        Assert.DoesNotContain("All OfficeIMO .NET packages are published", readme, StringComparison.Ordinal);
+        Assert.Contains("The current source line is `3.1.x`; the latest NuGet release is `3.0.3`", readme, StringComparison.Ordinal);
+        Assert.Contains("Keep OfficeIMO package references in one application on the same published version", readme, StringComparison.Ordinal);
         AssertDotNetInstallCommands(
             readme,
             releasePackageIds,
-            expectedCount: 17,
-            expectedVersion: coordinatedVersion,
-            toolPackageIds: ["OfficeIMO.Tool"]);
+            expectedCount: 16,
+            expectedVersion: CurrentPublishedPackageVersion);
+        Assert.DoesNotContain(
+            "dotnet tool install --global OfficeIMO.Tool --version 3.0.3",
+            readme,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- <command>",
+            readme,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("OfficeIMO.Tool/OfficeIMO.Tool.csproj -- ", readme, StringComparison.Ordinal);
+
+        string toolReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Tool", "README.md"));
+        Assert.Contains("This README describes the `3.1.x` source-tree surface", toolReadme, StringComparison.Ordinal);
+        Assert.Contains(
+            "dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- mcp serve --stdio",
+            toolReadme,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("OfficeIMO.Tool@3.0.3", toolReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("OfficeIMO.Tool/OfficeIMO.Tool.csproj -- ", toolReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("\nofficeimo ", toolReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("= officeimo ", toolReadme, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -241,9 +261,8 @@ public sealed class ReleasePackagingGuardrails {
     }
 
     [Fact]
-    public void PublicReleaseDocs_UseCurrentPackageVersionsDependenciesAndMigrationNames() {
+    public void PublicReleaseDocs_UseCurrentPackageVersionsAndDocumentationOwners() {
         string repositoryRoot = GetRepositoryRoot();
-        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string installation = File.ReadAllText(Path.Combine(
             repositoryRoot,
             "Website",
@@ -270,16 +289,16 @@ public sealed class ReleasePackagingGuardrails {
             Assert.True(
                 packageProjects.TryGetValue(packageId, out PackageProject? project),
                 "Installation guide references an unknown package: " + packageId);
-            Assert.Equal(project!.Version, match.Groups["version"].Value);
+            Assert.Equal(CurrentPublishedPackageVersion, match.Groups["version"].Value);
         });
-        Assert.Contains("NuGet publication is a separate release step", installation, StringComparison.Ordinal);
-        Assert.DoesNotContain("All OfficeIMO .NET packages are published", installation, StringComparison.Ordinal);
+        Assert.Contains("The current NuGet package line is `3.0.3`", installation, StringComparison.Ordinal);
+        Assert.Contains("keep coordinated OfficeIMO package references on the same version", installation, StringComparison.Ordinal);
         HashSet<string> releasePackageIds = packageProjects.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         string[] installationCommandIds = AssertDotNetInstallCommands(
             installation,
             releasePackageIds,
             expectedCount: 9,
-            expectedVersion: coordinatedVersion);
+            expectedVersion: CurrentPublishedPackageVersion);
         string[] packageReferenceIds = documentedPackages
             .Cast<Match>()
             .Select(static match => match.Groups["id"].Value)
@@ -292,7 +311,7 @@ public sealed class ReleasePackagingGuardrails {
             installation,
             releasePackageIds,
             expectedCount: 4,
-            expectedVersion: coordinatedVersion);
+            expectedVersion: CurrentPublishedPackageVersion);
 
         string openXmlVersion = ReadPackageReferenceVersion(
             repositoryRoot,
@@ -349,50 +368,321 @@ public sealed class ReleasePackagingGuardrails {
             "index.md"));
         Assert.Contains($"`{openXmlVersion}`", aotGuide, StringComparison.Ordinal);
 
-        string changelog = File.ReadAllText(Path.Combine(repositoryRoot, "CHANGELOG.MD"));
-        Assert.Contains("SaveTablesAsExcel", changelog, StringComparison.Ordinal);
-        Assert.Contains("SaveAsPowerPoint", changelog, StringComparison.Ordinal);
-        Assert.Contains("ImportTablesToExcelDocument", changelog, StringComparison.Ordinal);
-        Assert.Contains("ToPowerPointPresentation", changelog, StringComparison.Ordinal);
-        Assert.DoesNotContain("SaveAs{Format}FromPdfTables", changelog, StringComparison.Ordinal);
-        Assert.DoesNotContain("To{Format}BytesFromPdfTables", changelog, StringComparison.Ordinal);
+        string migration = File.ReadAllText(Path.Combine(repositoryRoot, "MIGRATION.md"));
+        Assert.Contains("# Upgrading OfficeIMO", migration, StringComparison.Ordinal);
+        Assert.Contains("GitHub Releases", migration, StringComparison.Ordinal);
+        Assert.Contains("## OfficeIMO 3.0 to 3.1", migration, StringComparison.Ordinal);
+        Assert.Contains("## OfficeIMO 2.x to 3.0", migration, StringComparison.Ordinal);
+        Assert.Contains("## OfficeIMO 1.x to 2.0", migration, StringComparison.Ordinal);
+        Assert.Contains("SaveTablesAsExcel", migration, StringComparison.Ordinal);
+        Assert.Contains("SaveAsPowerPoint", migration, StringComparison.Ordinal);
+        Assert.Contains("ImportTablesToExcelDocument", migration, StringComparison.Ordinal);
+        Assert.Contains("ToPowerPointPresentation", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfWordReadOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfWordImportOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointTableImportOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointImportOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ImportTablesToPowerPointPresentation`", migration, StringComparison.Ordinal);
+        Assert.Contains("### PowerPoint lifecycle, composition, and inspection", migration, StringComparison.Ordinal);
+        Assert.Contains("`OpenRead(path)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PowerPointTemplate.Inspect(path)`", migration, StringComparison.Ordinal);
+        Assert.Contains("PowerPointCompositionOptions.FromBrief(brief)", migration, StringComparison.Ordinal);
+        Assert.Contains("`InspectPreflight()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.Drawing.OfficeChartData`", migration, StringComparison.Ordinal);
+        Assert.Contains("`WithDpi(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ForHighResolution(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeImageExportFileConflictPolicy.FailIfExists`", migration, StringComparison.Ordinal);
+        Assert.Contains("`Replace` or `CreateUnique`", migration, StringComparison.Ordinal);
+        Assert.Contains("`AllowSystemFontEmbedding`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ResourcePolicy.AllowSystemFontEmbedding`", migration, StringComparison.Ordinal);
+        Assert.Contains("Markdown `IncludeLocalImages`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ResourcePolicy.AllowLocalFileAccess`", migration, StringComparison.Ordinal);
+        Assert.Contains("Markdown `IncludeDataUriImages`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ResourcePolicy.AllowDataUris`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeDocumentReadResultSchema.Version`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeDocumentReadResultSchema.CurrentVersion`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ApplyWordLikeTheme()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ApplyDefaultTheme()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`UseFrontMatterVisualTheme`", migration, StringComparison.Ordinal);
+        Assert.Contains("`UseFrontMatterTheme`", migration, StringComparison.Ordinal);
+        Assert.Contains("`SaveResult` / `SaveResultAsync`", migration, StringComparison.Ordinal);
+        Assert.Contains("`Save` / `SaveAsync` returning `OdfSaveResult`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ToBytesResult`", migration, StringComparison.Ordinal);
+        Assert.Contains("`Serialize` returning `OdfSaveResult`", migration, StringComparison.Ordinal);
+        Assert.Contains("Word `IncludePageNumbers`", migration, StringComparison.Ordinal);
+        Assert.Contains("Excel `IncludeSheetHeadings`", migration, StringComparison.Ordinal);
+        Assert.Contains("`SourceConversionReports`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OdfConversionReport.Mappings`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ODF_*`", migration, StringComparison.Ordinal);
+        Assert.Contains("`CsvDataReaderOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`MaxXlsbCells`", migration, StringComparison.Ordinal);
+        Assert.Contains("`MaxDataReaderBufferedCells`", migration, StringComparison.Ordinal);
+        Assert.Contains("`CsvFieldSpanAction`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ICsvProjectedFieldSpanVisitor`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeRenderingProfile`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PlanInsertRows(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PlanDeleteRows(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.OpenDocument.Odt.Pdf`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.OpenDocument.Ods.Pdf`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.OpenDocument.Odp.Pdf`", migration, StringComparison.Ordinal);
+        Assert.Contains("`HasWarnings` remains the PDF-stage flag", migration, StringComparison.Ordinal);
+        Assert.Contains("`new PdfConversionProofOptions().RequireNoLoss()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfWordImportOptions.CreateTablesOnly()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointConversionReport.TableEntries`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfLogicalTextRun`", migration, StringComparison.Ordinal);
+        Assert.Contains("`HasOmittedPageContent`", migration, StringComparison.Ordinal);
+        Assert.Contains("`SourceScope`", migration, StringComparison.Ordinal);
+        Assert.Contains("`RtfDocument.ReadAsync(string)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`RtfDocument.LoadAsync(byte[])`", migration, StringComparison.Ordinal);
+        Assert.Contains("Save and associate a path", migration, StringComparison.Ordinal);
+        Assert.Contains("Write once to a caller-owned stream", migration, StringComparison.Ordinal);
+        Assert.Contains("does not replace the document's associated path or source stream", migration, StringComparison.Ordinal);
+        Assert.Contains("`CommentsByObjectType`", migration, StringComparison.Ordinal);
+        Assert.Contains("`DataValidationsByType`", migration, StringComparison.Ordinal);
+        Assert.Contains("`HasImportErrors`", migration, StringComparison.Ordinal);
+        Assert.Contains("`HasUnsupportedFeatures`", migration, StringComparison.Ordinal);
+        Assert.Contains("public `Diagnostics`, `UnsupportedFeatures`, `PreservedFeatures`, `UnsupportedSheets`, and `CompoundFeatures` collections", migration, StringComparison.Ordinal);
+        Assert.Contains("### Google Workspace preview options", migration, StringComparison.Ordinal);
+        Assert.Contains("`FlattenFloatingContent`", migration, StringComparison.Ordinal);
+        Assert.Contains("`RasterizeWordCharts`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PreserveCommentsViaDriveApi`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeHeadersAndFooters`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeFootnotes`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeBookmarksAsNamedRanges`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeCharts`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludePivotTables`", migration, StringComparison.Ordinal);
+        Assert.Contains("`IncludeHeaderFooterMetadata`", migration, StringComparison.Ordinal);
+        Assert.Contains("`TreatPrintLayoutAsDiagnosticOnly`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PreserveUnsupportedFormulasAsText`", migration, StringComparison.Ordinal);
+        Assert.Contains("starts with zero slides", migration, StringComparison.Ordinal);
+        Assert.Contains("explicit `AddSlide()`", migration, StringComparison.Ordinal);
+        Assert.Contains("whole-pixel `px` root dimensions", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeSvgSizeUnit.Point`", migration, StringComparison.Ordinal);
+        Assert.Contains("compiled `OfficeIMO.Shared` implementation package no longer exists", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.SharedSource` is source-only", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; neutral CMS", migration, StringComparison.Ordinal);
+        Assert.Contains("### HTML, Reader, and theme ownership", migration, StringComparison.Ordinal);
+        Assert.Contains("`HtmlConversionDocument.Parse(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("immutable `OfficeDocumentReader`", migration, StringComparison.Ordinal);
+        Assert.Contains("`MarkdownPdfSaveOptions.Style`", migration, StringComparison.Ordinal);
+        Assert.Contains("`MarkdownPdfStyle.DocumentTheme`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ExportEach(...)` / `ExportEachAsync(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`SaveFiles(...)` / `SaveFilesAsync(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfReadPage.ToDrawing()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPageRenderResult` remains a lower-level", migration, StringComparison.Ordinal);
+        string[] retainedLegacyMigrationNames = {
+            "`SheetComposer.DefinitionList(...)`",
+            "`PowerPointUnits.Cm/Mm/Inches/Points(...)`",
+            "`VisioDocument.UseMastersFromTemplate(...)`",
+            "`OrderedListBlock.ListItems` / `UnorderedListBlock.ListItems`",
+            "`ListItem.Children`",
+            "`QuoteBlock.Children` / `DetailsBlock.Children`",
+            "`TableCell.Blocks` / `DefinitionListDefinition.Blocks`",
+            "`FootnoteDefinitionBlock.Blocks`",
+            "tuple-based `DefinitionListBlock.Items`",
+            "`OutlookContact.Email1Address`",
+            "phone compatibility properties",
+            "`TrackComments`",
+            "`ImageShapeStyleHelper`",
+            "`HorizontalAlignmentHelper`",
+            "`WasLoadedFromLegacyDoc`",
+            "`MaxWordDocumentStreamBytes`",
+            "`ReportUnsupportedFeatures`",
+            "`WasLoadedFromLegacyXls`",
+            "`MaxWorkbookStreamBytes`",
+            "`ReportUnsupportedRecords`",
+            "`AsciiDocPdfSaveOptions.PdfOptions`",
+            "`LatexPdfSaveOptions.PdfOptions`",
+            "`OneNotePdfSaveOptions.PdfOptions`",
+            "`SavePdfAsWord()` / `SavePdfAsRtf()`",
+            "`SavePdfTablesAsExcel/Word/PowerPoint()`"
+        };
+        foreach (string legacyName in retainedLegacyMigrationNames) {
+            Assert.Contains(legacyName, migration, StringComparison.Ordinal);
+        }
+        Assert.Contains(
+            "`SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveTablesAsExcel()` / `SaveAsWord()` / `SaveAsPowerPoint()`",
+            migration,
+            StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.PowerPoint.Fluent` namespace", migration, StringComparison.Ordinal);
+        Assert.Contains("public `PowerPointDeckComposer`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PowerPointDeckPlan.AddCustom(...)`", migration, StringComparison.Ordinal);
+        Assert.DoesNotContain("SaveAs{Format}FromPdfTables", migration, StringComparison.Ordinal);
+        Assert.DoesNotContain("To{Format}BytesFromPdfTables", migration, StringComparison.Ordinal);
 
-        string migrationPath = Path.Combine(repositoryRoot, "MIGRATION.md");
-        string migration = File.ReadAllText(migrationPath);
-        Assert.Contains("# OfficeIMO migration guide", migration, StringComparison.Ordinal);
-        Assert.Contains("## Migrating from OfficeIMO 3.0 to 3.1", migration, StringComparison.Ordinal);
-        Assert.Contains("## Migrating from OfficeIMO 2.x to 3.0", migration, StringComparison.Ordinal);
-        Assert.Contains("## Migrating from OfficeIMO 1.x to 2.0", migration, StringComparison.Ordinal);
-        Assert.Contains("### Conversion API grammar", migration, StringComparison.Ordinal);
-        Assert.Contains("`SaveImage`", migration, StringComparison.Ordinal);
-        Assert.Contains("`PdfExcelTableImportOptions`", migration, StringComparison.Ordinal);
-        Assert.Contains("`PdfPowerPointConversionResult`", migration, StringComparison.Ordinal);
-        Assert.Contains("`new WordHelpers()`", migration, StringComparison.Ordinal);
-        Assert.Contains("using OfficeIMO.Word;", migration, StringComparison.Ordinal);
-        Assert.Contains("vector graphics", migration, StringComparison.Ordinal);
-        Assert.Contains("System.Runtime.CompilerServices.IsExternalInit", migration, StringComparison.Ordinal);
-        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-3.0-migration.md")));
-        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-4.0-pdf-bridges.md")));
-        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo.breaking-api-migration.md")));
+        string rootReadme = File.ReadAllText(Path.Combine(repositoryRoot, "README.md"));
+        Assert.Contains("Save and associate a path", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("Write once to a caller-owned stream", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("does not replace the document's associated path or source stream", rootReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("Save and associate a path or stream", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("PDF -->|\"visual pages or editable tables\"| PowerPoint", rootReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("PDF -->|\"logical tables only\"| PowerPoint", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("ignored-error metadata preservation", rootReadme, StringComparison.Ordinal);
 
-        string apiReview = File.ReadAllText(Path.Combine(
+        string excelReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Excel", "README.md"));
+        string wordReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Word", "README.md"));
+        Assert.Contains("[migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes)", excelReadme, StringComparison.Ordinal);
+        Assert.Contains("[migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes)", wordReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("canonical API replacement table", excelReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("canonical API replacement table", wordReadme, StringComparison.Ordinal);
+
+        string googleWorkspaceOwnership = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Website",
+            "content",
+            "docs",
+            "google-workspace",
+            "package-ownership",
+            "index.md"));
+        Assert.Contains("MIGRATION.md#google-workspace-preview-options", googleWorkspaceOwnership, StringComparison.Ordinal);
+
+        string visioReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Visio", "README.md"));
+        Assert.Contains("### Loaded-diagram compatibility boundary", visioReadme, StringComparison.Ordinal);
+        Assert.Contains("advanced nested and container behavior", visioReadme, StringComparison.Ordinal);
+        Assert.Contains("richer threaded comment and author workflows", visioReadme, StringComparison.Ordinal);
+        Assert.Contains("broader whole-diagram relayout and polish", visioReadme, StringComparison.Ordinal);
+        Assert.Contains("rather than a complete typed object model", visioReadme, StringComparison.Ordinal);
+
+        string pdfCurrentState = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.pdf.current-state.md"));
+        Assert.Contains("| PDF to Excel |", pdfCurrentState, StringComparison.Ordinal);
+        Assert.Contains("| PDF to PowerPoint |", pdfCurrentState, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointImportOptions` defaults to `VisualPages`", pdfCurrentState, StringComparison.Ordinal);
+        Assert.Contains("`CreateEditableTables()` / `EditableTables`", pdfCurrentState, StringComparison.Ordinal);
+        Assert.Contains("omitted non-table page content", pdfCurrentState, StringComparison.Ordinal);
+
+        string excelCompatibility = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "OfficeIMO.Excel",
+            "COMPATIBILITY.md"));
+        Assert.Contains("## Formula evaluator", excelCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`FORECAST.LINEAR`", excelCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`WORKDAY.INTL`", excelCompatibility, StringComparison.Ordinal);
+        Assert.Contains("Custom application functions", excelCompatibility, StringComparison.Ordinal);
+        int formulaEvaluatorIndex = excelCompatibility.IndexOf("## Formula evaluator", StringComparison.Ordinal);
+        Assert.True(formulaEvaluatorIndex >= 0);
+        int documentedFormulaFunctions = Regex.Matches(
+                excelCompatibility.Substring(formulaEvaluatorIndex),
+                @"`([A-Z][A-Z0-9]*(?:\.[A-Z]+)?)`")
+            .Cast<Match>()
+            .Select(static match => match.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        Assert.Equal(151, documentedFormulaFunctions);
+
+        string releasesPage = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Website",
+            "content",
+            "pages",
+            "releases.md"));
+        Assert.Contains("  - /changelog/", releasesPage, StringComparison.Ordinal);
+        Assert.Contains("  - /docs/workflows/release-previews/", releasesPage, StringComparison.Ordinal);
+        Assert.Contains("title: \"Releases and Downloads\"", releasesPage, StringComparison.Ordinal);
+
+        string documentationIndex = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "README.md"));
+        Assert.Contains("# OfficeIMO documentation", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("Use this index to find package guides", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("Package READMEs are the best starting point", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("[Migration guide](../MIGRATION.md)", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("[GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases)", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("These reports are generated from repository catalogs", documentationIndex, StringComparison.Ordinal);
+        Assert.DoesNotContain("Documentation ownership rules", documentationIndex, StringComparison.Ordinal);
+
+        string agentInstructions = File.ReadAllText(Path.Combine(repositoryRoot, "AGENTS.md"));
+        Assert.Contains("## Documentation audiences", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("root README and package READMEs are user-facing", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("`MIGRATION.md` is the user-facing upgrade contract", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("Docs/README.md` is a navigation page", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("Docs/ROADMAP.md` is the single product backlog", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("Do not put agent workflow", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("## Documentation maintenance", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("Do not add release-wait", agentInstructions, StringComparison.Ordinal);
+
+        string roadmap = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "ROADMAP.md"));
+        Assert.Contains("# OfficeIMO roadmap", roadmap, StringComparison.Ordinal);
+        Assert.Contains("It contains open work only", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Excel", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## PDF, HTML, and image rendering", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Markdown and text formats", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Reader and document intelligence", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Email, stores, and cloud adapters", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Browser and agent surfaces", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
+        Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
+        Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
+        Assert.Contains("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
+        Assert.Contains("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
+        Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
+        Assert.Contains("generic-attribute ownership across the remaining supported block and inline families", roadmap, StringComparison.Ordinal);
+        Assert.Contains("precise source locations partial until lossless trivia", roadmap, StringComparison.Ordinal);
+        Assert.Contains("RTF producer corpus beyond current Word, Outlook, and LibreOffice evidence", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Publish the browser conversion playground", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Add Visio and portable-document adapters", roadmap, StringComparison.Ordinal);
+
+        string emailSupportMatrix = File.ReadAllText(Path.Combine(
             repositoryRoot,
             "Docs",
-            "officeimo-3.0-public-api-review.md"));
-        Assert.Contains("323 assembly/target pairs", apiReview, StringComparison.Ordinal);
-        Assert.Contains("Seventy-four of the 81", apiReview, StringComparison.Ordinal);
-        Assert.Contains("Seven packages changed", apiReview, StringComparison.Ordinal);
-        Assert.Contains("955ce7b589512499aa42ba1da654b4a7742817f4", apiReview, StringComparison.Ordinal);
-        Assert.Contains("584bff01202c7a1da2f8fc51b1d2b9636cc66821", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Drawing", apiReview, StringComparison.Ordinal);
-        Assert.Contains("System.Runtime.CompilerServices.IsExternalInit", apiReview, StringComparison.Ordinal);
-        Assert.Contains("`netstandard2.0`", apiReview, StringComparison.Ordinal);
-        Assert.Contains("`net472`", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Epub.Html", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Epub.Image", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Excel.Pdf", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.PowerPoint.Pdf", apiReview, StringComparison.Ordinal);
-        Assert.Contains("OfficeIMO.Word", apiReview, StringComparison.Ordinal);
+            "officeimo.email-support-matrix.md"));
+        Assert.Contains("| MimeKit 4.x TNEF reader |", emailSupportMatrix, StringComparison.Ordinal);
+
+        string markdownCompatibility = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Docs",
+            "officeimo.markdown.compatibility-matrix.md"));
+        Assert.DoesNotContain("Markdig", markdownCompatibility, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("competitor", markdownCompatibility, StringComparison.OrdinalIgnoreCase);
+
+        string markdownBlog = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Website",
+            "content",
+            "blog",
+            "zero-dependency-markdown.md"));
+        Assert.DoesNotContain("Markdig", markdownBlog, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("competitor", markdownBlog, StringComparison.OrdinalIgnoreCase);
+
+        string solution = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.sln"));
+        Assert.Contains("Docs\\README.md = Docs\\README.md", solution, StringComparison.Ordinal);
+        Assert.DoesNotContain("Docs\\index.md = Docs\\index.md", solution, StringComparison.Ordinal);
+
+        string markdownRoundtripDesign = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Docs",
+            "officeimo.markdown.lossless-roundtrip-design.md"));
+        Assert.Contains("MarkdownParseResult parsed = MarkdownReader.ParseWithSyntaxTree(", markdownRoundtripDesign, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkdownParseResult parsed = MarkdownReader.Parse(", markdownRoundtripDesign, StringComparison.Ordinal);
+
+        string legacyXlsCompatibility = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.excel.legacy-xls-compatibility.md"));
+        string legacyDocCompatibility = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.word.legacy-doc-compatibility.md"));
+        Assert.DoesNotContain("## Breaking API cleanup", legacyXlsCompatibility, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Breaking API cleanup", legacyDocCompatibility, StringComparison.Ordinal);
+        Assert.DoesNotContain("`WasLoadedFromLegacyXls`", legacyXlsCompatibility, StringComparison.Ordinal);
+        Assert.DoesNotContain("`WasLoadedFromLegacyDoc`", legacyDocCompatibility, StringComparison.Ordinal);
+
+        string wordCompatibility = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "OfficeIMO.Word",
+            "COMPATIBILITY.md"));
+        Assert.Contains("## Field evaluator", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`CREATEDATE`, `SAVEDATE`, `PRINTDATE`", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`SECTION` / `SECTIONPAGES`", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`SUM`, `AVERAGE`, `MIN`, `MAX`, `PRODUCT`, `COUNT`", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`DEFINED`", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`ABOVE`, `BELOW`, `LEFT`, and `RIGHT`", wordCompatibility, StringComparison.Ordinal);
+
+        string excelRemoteLoading = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Docs",
+            "officeimo.excel.remote-loading.md"));
+        Assert.Contains("workbook.CreateDataReader()", excelRemoteLoading, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExcelDocumentReader", excelRemoteLoading, StringComparison.Ordinal);
+
+        Assert.True(File.Exists(Path.Combine(repositoryRoot, "MIGRATION.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "CHANGELOG.MD")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "powerpoint.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "OfficeIMO.Markup", "IMPLEMENTATION_PLAN.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-3.0-public-api-review.md")));
     }
 
     private static string[] AssertDotNetInstallCommands(

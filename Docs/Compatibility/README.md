@@ -4,14 +4,14 @@ OfficeIMO treats compatibility as a feature-level contract, not as a claim that 
 
 The generated contracts in [`generated`](generated/README.md) are the source of truth for current coverage. They include the concrete format inventory and separate import, authoring, round-trip, modern-to-legacy, and legacy-to-modern states for every tracked capability.
 
-## Implemented phases
+## Current compatibility system
 
-- [x] Phase 0: shared format descriptors, feature states, impacts, reports, JSON, and Markdown catalogs
-- [x] Phase 1: content-aware routing across Word, Excel, PowerPoint, and OfficeIMO.Reader
-- [x] Phase 2: checked corpus manifests, hashes, bidirectional conversion cases, LibreOffice checks, and optional Microsoft Office desktop checks
-- [x] Phase 3: Word DOC/DOT native conversion plus omission-free page-image and retained-source fallbacks
-- [x] Phase 4: Excel XLS/XLSB native conversion plus palette-quantized worksheet visual and retained-source fallbacks
-- [x] Phase 5: PowerPoint PPT/POT/PPS native conversion plus shape-level static visual and retained-source fallbacks
+- Shared format descriptors, feature states, impacts, reports, and generated JSON/Markdown catalogs.
+- Content-aware routing across Word, Excel, PowerPoint, and OfficeIMO.Reader.
+- Checked corpus manifests and hashes, bidirectional conversion cases, LibreOffice checks, and optional Microsoft Office desktop checks.
+- Word DOC/DOT native conversion plus omission-free page-image and retained-source fallbacks.
+- Excel XLS/XLSB native conversion plus palette-quantized worksheet visual and retained-source fallbacks.
+- PowerPoint PPT/POT/PPS native conversion plus shape-level static visual and retained-source fallbacks.
 
 ## Format coverage
 

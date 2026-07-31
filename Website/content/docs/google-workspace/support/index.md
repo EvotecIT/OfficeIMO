@@ -49,7 +49,7 @@ order: 80
 | Basic shapes | Native | Partial | Common geometry maps natively; exact custom geometry is rendered when complex-slide fallback is enabled. |
 | Speaker notes | Native | Native | Only the speaker-notes BODY placeholder is writable in the Slides API. |
 | Charts and SmartArt | Rasterized | DriveFallback | PowerPoint charts are not equivalent to linked Google Sheets charts; complex slides use renderer-owned PNG fallback. |
-| Video and audio | Rasterized | DriveFallback | Media is rendered unless a future source-link contract proves matching semantics. |
+| Video and audio | Rasterized | DriveFallback | Media is rendered; no matching editable source-link contract is currently defined. |
 | Masters, themes and layouts | Partial | DriveFallback | Blank-slide authoring and template-copy workflows are supported; full master mutation is intentionally not inferred. |
 | Transitions, animations, diagrams, equations and OLE | Rasterized | DriveFallback | These remain explicit fidelity boundaries and are preserved visually through complex-slide rendering. |
 

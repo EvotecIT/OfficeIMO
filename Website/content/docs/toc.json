@@ -16,8 +16,7 @@
       { "title": "Database Reporting", "path": "workflows/database-reporting/index.md", "href": "/docs/workflows/database-reporting/" },
       { "title": "Content Publishing", "path": "workflows/content-publishing/index.md", "href": "/docs/workflows/content-publishing/" },
       { "title": "PowerShell Recipes", "path": "workflows/powershell-recipes/index.md", "href": "/docs/workflows/powershell-recipes/" },
-      { "title": "PSWriteOffice Benchmarks", "path": "workflows/powershell-benchmarks/index.md", "href": "/docs/workflows/powershell-benchmarks/" },
-      { "title": "Release Previews", "path": "workflows/release-previews/index.md", "href": "/docs/workflows/release-previews/" }
+      { "title": "PSWriteOffice Benchmarks", "path": "workflows/powershell-benchmarks/index.md", "href": "/docs/workflows/powershell-benchmarks/" }
     ]
   },
   {
@@ -158,7 +157,7 @@
       { "title": "Synchronization", "path": "google-workspace/sync/index.md", "href": "/docs/google-workspace/sync/" },
       { "title": "Live tests", "path": "google-workspace/live-tests/index.md", "href": "/docs/google-workspace/live-tests/" },
       { "title": "Support matrix", "path": "google-workspace/support/index.md", "href": "/docs/google-workspace/support/" },
-      { "title": "Preview migration", "path": "google-workspace/migration/index.md", "href": "/docs/google-workspace/migration/" }
+      { "title": "Package ownership", "path": "google-workspace/package-ownership/index.md", "href": "/docs/google-workspace/package-ownership/" }
     ]
   },
   {

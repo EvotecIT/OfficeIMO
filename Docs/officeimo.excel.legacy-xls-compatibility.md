@@ -2,7 +2,7 @@
 
 OfficeIMO.Excel provides first-party support for Office Open XML `.xlsx` and the supported Excel 97-2003 BIFF binary `.xls` subset. Microsoft Excel, COM automation, and third-party spreadsheet conversion libraries are not runtime dependencies.
 
-This document is the current capability contract. It replaces the implementation roadmap.
+This document is the current capability contract.
 
 ## Normal API
 
@@ -99,18 +99,6 @@ load.EnsureNoConversionLoss();
 ```
 
 Use `load.CreateImportReport()` for compact totals or a Markdown diagnostic report, and `load.AdvancedWorkbook` when an application genuinely needs the neutral BIFF model. Corpus-only aggregation details remain internal so they do not become hundreds of compatibility commitments. Import options consistently use `MaxInputBytes` and `ReportUnsupportedContent`; `Password` is additionally available for supported password-to-open XLS inputs. File conversion always enables unsupported-content discovery—even when a supplied import option disables reporting—because `LossPolicy.Block` must never be bypassed silently. Import options are selected from detected physical content, so limits and passwords still apply when a legacy workbook has a misleading extension.
-
-## Breaking API cleanup
-
-| Removed API | Use |
-|---|---|
-| `WasLoadedFromLegacyXls` | `SourceFormat == ExcelFileFormat.Xls` |
-| `MaxWorkbookStreamBytes` | `MaxInputBytes` |
-| `ReportUnsupportedRecords` | `ReportUnsupportedContent` |
-| overwrite conversion Boolean | `FileConflictPolicy` |
-| save-triggered application launch | Call `OpenInApplication(path)` explicitly after a successful save |
-| lossy conversion/save Boolean | `LossPolicy` |
-| implicit stream format option | `Save(stream, ExcelFileFormat, options)` or `ToXlsx/ToXls` |
 
 ## Validation
 

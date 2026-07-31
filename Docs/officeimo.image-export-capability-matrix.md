@@ -1,6 +1,6 @@
 # OfficeIMO Image Export Capability Matrix
 
-This matrix tracks dependency-free image export across OfficeIMO document packages. It is intentionally implementation-facing: each item names the owning layer so improvements keep flowing into the shared rendering foundation instead of becoming separate document renderers. See [the 2026-07-18 assessment](reviews/officeimo.to-image-conversion-assessment-2026-07-18.md) for the cross-package findings and delivery order.
+This matrix tracks dependency-free image export across OfficeIMO document packages. It is intentionally implementation-facing: each item names the owning layer so improvements keep flowing into the shared rendering foundation instead of becoming separate document renderers. Open cross-package rendering work is tracked in the repository [roadmap](ROADMAP.md).
 
 ## Ownership Model
 
@@ -88,7 +88,7 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | --- | --- | --- | --- |
 | Continuous and paged surfaces | Five-format single and batch export supported | `HtmlConversionDocument.ExportImage(s)`, `ToImage()`, `ToImages()`, raster-format signature tests | Expand representative visual galleries |
 | Async rendering | Resource-aware direct and fluent async APIs supported | `ExportImageAsync`, `ExportImagesAsync`, async save/cancellation tests, and an HTML fluent test proving the resource-aware renderer is invoked | CPU-only document projection remains synchronous; async is reserved for resource resolution and file/stream I/O |
-| Friendly API | Direct PNG/JPEG/TIFF/SVG/WebP helpers and fluent builders | Format-specific byte/save helpers plus `ToImage(options)` / `ToImages(options)` cloned configuration | Keep future adapters on `HtmlConversionDocument`, not raw string reparsing |
+| Friendly API | Direct PNG/JPEG/TIFF/SVG/WebP helpers and fluent builders | Format-specific byte/save helpers plus `ToImage(options)` / `ToImages(options)` cloned configuration | Keep adapters on `HtmlConversionDocument`, not raw string reparsing |
 | Email | Five-format single/batch bridge supported | HTML/RTF/text selection, message chrome, CID/content-location attachment resolution, direct and fluent sync/async tests | Fidelity follows retained email body and HTML support |
 | EPUB | Five-format selected chapter/page batch bridge supported | `OfficeIMO.Epub.Image`, retained raw HTML/resource mapping, fluent chapter selection, diagnosed text fallback | Encrypted/incomplete packages remain diagnostic-driven |
 
@@ -125,9 +125,9 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | ODS | Selected worksheet batch supported | `ExcelOpenDocumentImageExportExtensions`; ODF report mapped into image diagnostics | Inherits ODS-to-Excel and Excel page/range limits |
 | ODP | Selected slide batch supported | `PowerPointOpenDocumentImageExportExtensions`; ODF report mapped into image diagnostics | Inherits ODP-to-PowerPoint projection limits |
 
-## Diagnostic Gaps To Burn Down
+## Diagnostic Meanings And Responses
 
-| Diagnostic | Current meaning | Preferred next move |
+| Diagnostic | Current meaning | Current response |
 | --- | --- | --- |
 | `IMAGE_SOURCE_DECODE_FALLBACK` | Drawing and the optional caller codec could not decode a source image, so the output contains a visible placeholder or a documented family-specific artwork fallback | Add a bounded Drawing decoder only for a justified format subset, or supply `ImageCodec`; do not reintroduce family-specific “skipped image” warnings |
 | `IMAGE_TEXT_SHAPING_FALLBACK` | Raster output used the bounded managed Arabic/bidi path because no host shaper accepted the run | Supply `IOfficeTextShapingProvider` for full OpenType shaping, or reject the approximation with `OfficeImageExportPolicy.RequireNoLoss` |
@@ -143,11 +143,4 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | `limited-word-floating-image-wrap` | Tight/through wrapped image rendered with a rectangular exclusion instead of true polygon or transparent-region wrapping | Add Word-owned polygon/transparent-region wrapping and remove this fallback warning when fidelity is real |
 | `unsupported-word-pagination` | A content family cannot yet advance through the renderer's estimated pagination model | Fix that Word-owned layout path without claiming Word-exact pagination |
 
-## Near-Term Fidelity Order
-
-1. Keep Excel as the parity benchmark and avoid regressing range export behavior.
-2. Push PowerPoint next because fixed-size slides map naturally to Drawing.
-3. Improve shared Drawing geometry and chart fidelity whenever PowerPoint/Excel need the same concept. Common and expanded DrawingML polygon/star, flowchart, callout, arrow-callout, symbol, bracket/brace, multi-direction arrow, and additional arrow presets now live in `OfficeShapePresets`, keeping fixed-slide diagram support reusable.
-4. Keep improving Word's estimated pagination by content family: row splitting, complex nested tables, floating-object interaction, and exact tight/through wrap geometry. Do not describe it as Microsoft Word-exact pagination.
-5. Add source convenience only as a thin adapter over a proven visual owner. Common format selection, preview/print profiles, DPI, policy, fonts, batch limits, streaming, and save mechanics live on the Drawing builders.
-6. Extend the existing first-party PDF page-to-Drawing projection by capability-manifest evidence; all five output formats, shared raster safety, and source-to-PDF adapter bridging are now in place.
+Open rendering work is tracked in [the repository roadmap](ROADMAP.md). This matrix records the implemented surface, evidence, current limitations, and diagnostic response only.

@@ -2,11 +2,10 @@
 
 Opt-in benchmark verification runner for OfficeIMO.Excel and NPOI.
 
-This project is intentionally not included in `OfficeIMO.sln`. Normal solution
-restore and build should not pull NPOI. Run it explicitly when external
-benchmark verification evidence is wanted. The project sets NPOI's OSMF EULA
-acceptance property for this benchmark-only runner; OfficeIMO runtime projects
-must not reference NPOI. Keep this runner local, explicit, and opt-in.
+This project is not included in `OfficeIMO.sln`, so normal solution restore and
+build do not pull NPOI. Run it explicitly when external benchmark verification
+evidence is wanted. The project sets NPOI's OSMF EULA acceptance property for
+this runner.
 SkiaSharp is referenced explicitly here because NPOI HSSF comment/drawing reads
 load it at runtime while NPOI's package metadata excludes those runtime assets
 from the transitive reference.
@@ -45,7 +44,3 @@ The first lanes are deliberately plain workbook operations:
 - `xls-read-pictures`: read embedded PNG picture signals from an HSSF-generated
   `.xls` workbook through NPOI and OfficeIMO's preserve-only drawing/image
   metadata.
-
-Do not add OfficeIMO-specific template, preflight, PDF, package-copy,
-direct-package, or report-workflow scenarios here unless the external benchmark
-path measures the same work without artificial adapter behavior.

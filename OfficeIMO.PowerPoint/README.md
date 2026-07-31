@@ -536,7 +536,7 @@ Use `layout.ResolvePlaceholder("Customer Screenshot")` or `ResolvePlaceholder(Po
 Concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` objects are the editing API. There is
 no separate PowerPoint builder vocabulary to learn or keep synchronized.
 
-See [the breaking API migration guide](../Docs/officeimo.powerpoint-api-migration.md) for old-to-new mappings.
+The concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` types shown here are the supported editing surface. Semantic plans remain optional composition input and do not replace the concrete document model.
 
 ## Managed image export
 
@@ -566,11 +566,11 @@ PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns
 | [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Export editable PowerPoint slides to PDF and import PDF tables to PowerPoint. |
 | [OfficeIMO.Markup.PowerPoint](../OfficeIMO.Markup.PowerPoint/README.md) | Render semantic markup documents to PowerPoint. |
 
-## Boundaries
+## Related packages
 
-- `OfficeIMO.PowerPoint` owns editable PowerPoint creation and manipulation.
-- PDF export belongs in `OfficeIMO.PowerPoint.Pdf` and shared PDF primitives belong in `OfficeIMO.Pdf`.
-- Showcase decks and long design examples belong in `OfficeIMO.Examples` or focused docs, not in the package README.
+- `OfficeIMO.PowerPoint` provides editable PowerPoint creation and manipulation.
+- Use `OfficeIMO.PowerPoint.Pdf` for PDF export; it uses the shared `OfficeIMO.Pdf` engine.
+- See `OfficeIMO.Examples` for complete showcase decks and design examples.
 
 ## Targets and license
 

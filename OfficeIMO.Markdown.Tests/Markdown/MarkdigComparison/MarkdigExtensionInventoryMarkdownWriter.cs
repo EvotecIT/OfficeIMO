@@ -1,6 +1,9 @@
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class MarkdigExtensionInventoryMarkdownWriter {
+    internal const string PartialBoundariesStart = "<!-- extension-partial-boundaries:start -->";
+    internal const string PartialBoundariesEnd = "<!-- extension-partial-boundaries:end -->";
+
     public static string Write(MarkdigExtensionInventoryReport report) {
         var sb = new StringBuilder();
 
@@ -15,7 +18,7 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         sb.AppendLine("- `Intentional`: the Markdig entry point is a bundle, helper, or renderer policy that OfficeIMO should model differently.");
         sb.AppendLine("- `Gap`: no meaningful OfficeIMO equivalent exists yet.");
         sb.AppendLine();
-        sb.AppendLine("Route values name the owning layer for future work. Scope decisions collapse those routes into execution buckets, so missing behavior is fixed in the reusable engine, optional extension, renderer/host policy, deferred backlog, or intentionally documented difference instead of drifting into ad hoc tests.");
+        sb.AppendLine("Route values name the candidate owner for an implementation. Scope decisions collapse those routes into execution buckets, so missing behavior belongs in the reusable engine, optional extension, renderer/host policy, deferred backlog, or intentionally documented difference instead of drifting into ad hoc tests.");
         sb.AppendLine();
         sb.AppendLine("Refresh command:");
         sb.AppendLine();
@@ -68,5 +71,60 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         return sb.ToString().Replace("\r\n", "\n");
     }
 
+    public static string WritePublishedPartialBoundaries(MarkdigExtensionInventoryReport report) {
+        var sb = new StringBuilder();
+        sb.AppendLine(PartialBoundariesStart);
+        sb.AppendLine("### Partial-family boundaries");
+        sb.AppendLine();
+        sb.AppendLine("These are the exact current implementation boundaries and promotion requirements for every `Partial` family in the structured extension inventory.");
+
+        foreach (MarkdigExtensionInventoryRow row in report.Rows.Where(static row =>
+                     row.Status == MarkdigExtensionInventoryStatus.Partial)) {
+            sb.AppendLine();
+            sb.Append("#### ").AppendLine(EscapePublishedText(row.Family));
+            sb.AppendLine();
+            sb.Append("- **OfficeIMO state:** ").AppendLine(EscapePublishedText(GetPublishedOfficeImoState(row)));
+            sb.Append("- **Promotion bar:** ").AppendLine(EscapePublishedText(GetPublishedPromotionBar(row)));
+        }
+
+        sb.AppendLine(PartialBoundariesEnd);
+        return sb.ToString().Replace("\r\n", "\n").TrimEnd();
+    }
+
+    public static string GetPublishedRoute(MarkdigExtensionInventoryRow row) =>
+        row.Status == MarkdigExtensionInventoryStatus.Gap
+            ? "Unavailable; candidate owner: " + row.Route
+            : row.Route;
+
+    private static string GetPublishedOfficeImoState(MarkdigExtensionInventoryRow row) =>
+        row.Family switch {
+            "Custom containers" => "Opt-in colon-fenced containers support root and nested blocks, child parsing, HTML rendering, Markdown writing, syntax/native fields, source slices, and source edits. Remaining container interactions and writer breadth keep this family partial.",
+            "Diagrams" => "Semantic fenced blocks and visual renderer hooks exist; named diagram-language mapping and a complete renderer handoff contract remain open.",
+            "Figures" => "Image and figure import plus publisher rendering paths exist; a dedicated Markdown figure syntax and its source/writer contract remain open.",
+            "Generic attributes" => "Generic attributes are stored on semantic and syntax nodes and are source-backed for the covered heading, paragraph, code, list, table, image, definition-list, footnote, link, image-link, emphasis, and inline-code shapes. Arbitrary block and inline families remain incomplete.",
+            "List extras" => "Opt-in alphabetic and Roman ordered markers support nested parsing, marker-style HTML, source metadata and edits, and Markdown writer preservation. Remaining edge, source-edit, and reparse coverage keeps this family partial.",
+            "Mathematics" => "Math-oriented semantic and rendering hooks exist, but inline and block delimiter parsing does not yet have a complete AST, source, writer, and renderer contract.",
+            "Media links" => "Image and media semantics exist, but shortcut media providers do not yet have a complete parser, safe-renderer, source, and writer contract.",
+            "Precise source location" => "Syntax, semantic, native, transform, renderer, writer, and source-edit APIs expose broad normalized and original source evidence. Complete lossless trivia, original mapping, generated-node semantics, and arbitrary source edits remain partial.",
+            _ => throw new InvalidOperationException("Published partial-family text is missing for " + row.Family + ".")
+        };
+
+    private static string GetPublishedPromotionBar(MarkdigExtensionInventoryRow row) =>
+        row.Family switch {
+            "Custom containers" => "Complete remaining blockquote and container interactions plus broader writer behavior.",
+            "Diagrams" => "Define named diagram-language mapping, renderer-package ownership, source/writer behavior, and focused fixtures.",
+            "Figures" => "Separate HTML-import figure recovery from authored Markdown figure syntax, then prove renderer, writer, and source behavior.",
+            "Generic attributes" => "Complete arbitrary block-family parsing, inline-family breadth, and writer/source preservation across supported shapes.",
+            "List extras" => "Broaden remaining list-marker edges, native source edits, and writer reparse proof.",
+            "Mathematics" => "Define inline and block delimiters, AST/source/native metadata, writer preservation, and renderer handoff.",
+            "Media links" => "Define the provider model, safe renderer output, writer preservation, and source metadata for shortcut media links.",
+            "Precise source location" => "Complete lossless trivia and original mapping, generated-node round-trip semantics, and source-edit coverage.",
+            _ => throw new InvalidOperationException("Published promotion text is missing for " + row.Family + ".")
+        };
+
     private static string EscapeTable(string value) => value.Replace("|", "\\|");
+
+    private static string EscapePublishedText(string value) => value
+        .Replace("<", "&lt;")
+        .Replace(">", "&gt;");
 }

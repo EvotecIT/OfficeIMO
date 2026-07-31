@@ -145,13 +145,12 @@ pdf.SaveAsWord(
 
 Use `WordPdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum. The balanced resource default enables installed fonts but denies arbitrary local and remote reads; use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion and `CreateTrustedHost()` only when local or remote resource access is intentional. Profiles do not inject page numbers; set `IncludePageNumbers = true` explicitly when generated numbering is desired. Request `ToPdfDocumentResult()` or `TrySaveAsPdf()` when diagnostics matter; unsupported Word features should become actionable operation results instead of mutable option state. Available embeddable Word families use shared named PDF resources and are not limited to three compatibility slots. Unavailable or non-embeddable families fall back to a mapped PDF font with an explicit warning.
 
-## Boundaries
+## Current limits
 
 - This package does not try to be a full Word renderer with perfect Microsoft Word parity or a fixed-layout PDF-to-DOCX recreation engine.
-- PDF-to-Word import is semantic reconstruction over parser-supported logical PDF objects. Complex/unsupported PDF image streams, interactive controls, unresolved destinations, and remote/cross-document PDF navigation actions are not yet reconstructed as native Word objects.
-- Unsupported or simplified Word features should surface warnings rather than being hidden in the README as broad claims.
-- Reusable PDF layout work belongs in `OfficeIMO.Pdf`; Word-specific mapping belongs here.
-- PowerShell PDF workflows should be exposed through [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
+- PDF-to-Word import is semantic reconstruction over parser-supported logical PDF objects. Complex or unsupported PDF image streams, interactive controls, unresolved destinations, and remote or cross-document navigation actions are not reconstructed as native Word objects. Open reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
+
+Use `OfficeIMO.Pdf` for direct PDF layout and manipulation. PowerShell workflows are available through [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
 ## Related packages
 

@@ -12,9 +12,9 @@ OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing,
 
 This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
-The current source and packaging line is `3.1.x`. Applications should upgrade OfficeIMO packages together: 3.1 completes the public API cleanup, keeps CSV and Excel package-owned, and aligns the complete release set on one version. See the [OfficeIMO migration guide](MIGRATION.md#migrating-from-officeimo-30-to-31).
+The current source line is `3.1.x`; the latest NuGet release is `3.0.3`. Applications should keep OfficeIMO packages on the same coordinated version. The 3.1 source API keeps CSV and Excel behavior package-owned, uses one document lifecycle vocabulary, and keeps converters explicit about fidelity and diagnostics.
 
-NuGet publication is a separate release step. The repository, project files, and locally packed artifacts target `3.1.0`; a package ID is installable from NuGet.org only after that exact artifact has been published there. Until then, use the clean local feed produced by the release build or remain on the current public stable version.
+Upgrading an existing application? Use the [OfficeIMO migration guide](MIGRATION.md) for version-to-version package, API, and behavior changes. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
@@ -54,7 +54,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.0.x` release packages | 87 |
+| Coordinated `3.1.x` source packages | 87 |
 | Documented package, tool, and example projects below | 94 |
 | Native format, foundation, and shared-service packages | 26 |
 | Conversion and cloud bridge packages | 31 |
@@ -137,7 +137,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 - [x] Object, dictionary, `DataTable`, `DataSet`, row, stream, and typed-model import/export with editable-row workflows
 - [x] Streaming reads, direct package writers, parallel compute/apply phases, progress, cancellation, and large-workbook controls
 - [x] Fonts, fills, borders, alignment, number formats, rich text, themes, row/column sizing, and reusable report styling
-- [x] Data validation, conditional formatting, icon sets, data bars, color scales, ignored-error metadata, and sparklines
+- [x] Data validation, conditional formatting, icon sets, data bars, color scales, ignored-error metadata preservation, and sparklines
 - [x] Formula authoring, dependency graphs, unsupported-formula diagnostics, and a bounded calculation engine for reporting functions
 - [x] Charts across common 2-D/3-D, pie, radar, stock, surface, combo, secondary-axis, trendline, and dashboard scenarios
 - [x] Pivot tables with row/column/page/data fields, layouts, styles, filters, grouping metadata, calculated fields, and readback
@@ -147,7 +147,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 - [x] Print areas, page breaks, page setup, and first/odd/even headers and footers with supported images
 - [x] Feature inspection and preservation reporting for macros, external links, custom XML, embedded packages, signatures, controls, slicers, timelines, and query metadata
 - [x] Workbook, worksheet, and range export to PNG, JPEG, TIFF, lossless WebP, and SVG; adapters add PDF, HTML, ODS, and Google Sheets
-- [x] Reproducible read, write, edit, package-size, and feature-rich benchmark suites against ClosedXML, EPPlus, MiniExcel, LargeXlsx, SpreadCheetah, ExcelDataReader, Sylvan.Data.Excel, and opt-in NPOI lanes
+- [x] Reproducible read, write, edit, package-size, and feature-rich cross-library benchmark suites with output validation and platform provenance
 
 _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.xls` support and image export are OfficeIMO implementations.
 
@@ -245,7 +245,7 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus `OfficeIMO.Drawing
 - [x] HTML fragment/document rendering with CSS profiles and optional Prism, Mermaid, chart, and math shell assets
 - [x] AOT-friendly typed selectors and DTO-style AST projection for editor, chat, transcript, and document hosts
 
-_Dependency footprint:_ only `OfficeIMO.Drawing`; no Markdig or other Markdown parser dependency.
+_Dependency footprint:_ only `OfficeIMO.Drawing`; Markdown parsing and writing are first-party.
 
 #### [OfficeIMO.Adf](OfficeIMO.Adf/README.md)
 
@@ -297,7 +297,7 @@ _Dependency footprint:_ only `OfficeIMO.Drawing`; no TeX runtime, compiler, or p
 - [x] `DataTable`, `IDataReader`/`DbDataReader`, typed-reader, SQL/bulk-copy-shaped, reusable-row, field-span, and trusted-text paths
 - [x] Cancellation, progress, collected parse errors, quote normalization, field/input limits, string interning, and deterministic diagnostics
 - [x] Spreadsheet formula-injection escaping and explicit malformed-input policy for ingestion boundaries
-- [x] BenchmarkDotNet coverage against Sep, Sylvan, CsvHelper, Dataplat/dbatools, and LumenWorks with row-count and payload checks so lanes cannot win by under-reading
+- [x] Cross-library BenchmarkDotNet coverage with row-count and payload checks so lanes cannot win by under-reading
 
 _Dependency footprint:_ BCL compatibility packages only; no third-party CSV parser.
 
@@ -330,7 +330,7 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] Seeded CRC, record-framing, and full-schema validation with progress, cancellation, and explicit limits
 - [x] Shared `EmailAddress`, `OutlookContact`, `MapiProperty`, and diagnostics models instead of duplicate directory primitives
 
-_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing, RTF, and Security. Security contributes one `BouncyCastle.Cryptography` dependency; there is no MailKit, MimeKit, Outlook installation, native library, or third-party message/store/OAB parser.
+_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing, RTF, and Security. Security contributes one `BouncyCastle.Cryptography` dependency; there is no Outlook installation, native library, or third-party message/store/OAB parser.
 
 #### [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md)
 
@@ -978,7 +978,7 @@ flowchart LR
     PowerPoint["PowerPoint: PPT/POT/PPS/PPTX"] <--> HTML
     PowerPoint <--> ODP["OpenDocument: ODP"]
     PowerPoint -->|"layout export"| PDF
-    PDF -->|"logical tables only"| PowerPoint
+    PDF -->|"visual pages or editable tables"| PowerPoint
     OneNote["OneNote: ONE/ONETOC2/ONEPKG"] -->|"semantic adapter"| Markdown
     OneNote -->|"semantic adapter"| HTML
     OneNote -->|"semantic or visual adapter"| PDF
@@ -1004,38 +1004,37 @@ Fixed-layout PDF import is necessarily semantic rather than visually lossless. R
 
 ## Install
 
-Install only the native packages and adapters an application needs. The commands below deliberately request `3.1.0`; they work against NuGet.org after each package ID is published, or against the clean local feed produced by `Build/Build-Project.ps1` before publication.
+Install only the native packages and adapters an application needs. The commands below use the current `3.0.3` NuGet release.
 
 ```powershell
-dotnet add package OfficeIMO.Word --version 3.1.0
-dotnet add package OfficeIMO.Word.Pdf --version 3.1.0
+dotnet add package OfficeIMO.Word --version 3.0.3
+dotnet add package OfficeIMO.Word.Pdf --version 3.0.3
 
-dotnet add package OfficeIMO.Excel --version 3.1.0
-dotnet add package OfficeIMO.Excel.Html --version 3.1.0
-dotnet add package OfficeIMO.Excel.Pdf --version 3.1.0
+dotnet add package OfficeIMO.Excel --version 3.0.3
+dotnet add package OfficeIMO.Excel.Html --version 3.0.3
+dotnet add package OfficeIMO.Excel.Pdf --version 3.0.3
 
-dotnet add package OfficeIMO.Epub --version 3.1.0
-dotnet add package OfficeIMO.Epub.Image --version 3.1.0
+dotnet add package OfficeIMO.Epub --version 3.0.3
+dotnet add package OfficeIMO.Epub.Image --version 3.0.3
 
-dotnet add package OfficeIMO.Adf --version 3.1.0
-dotnet add package OfficeIMO.Confluence --version 3.1.0
+dotnet add package OfficeIMO.Adf --version 3.0.3
+dotnet add package OfficeIMO.Confluence --version 3.0.3
 
-dotnet add package OfficeIMO.Reader.Pdf --version 3.1.0
+dotnet add package OfficeIMO.Reader.Pdf --version 3.0.3
 
 # Add every Reader adapter only when a broad ingestion host genuinely needs all formats.
-dotnet add package OfficeIMO.Reader.All --version 3.1.0
+dotnet add package OfficeIMO.Reader.All --version 3.0.3
 
-dotnet add package OfficeIMO.OneNote --version 3.1.0
-dotnet add package OfficeIMO.OneNote.Markdown --version 3.1.0
-dotnet add package OfficeIMO.OneNote.Html --version 3.1.0
-dotnet add package OfficeIMO.OneNote.Pdf --version 3.1.0
-dotnet add package OfficeIMO.Reader.OneNote --version 3.1.0
-
-# Install the unified command surface for HTML, Reader, Markup, agent, and MCP workflows.
-dotnet tool install --global OfficeIMO.Tool --version 3.1.0
+dotnet add package OfficeIMO.OneNote --version 3.0.3
+dotnet add package OfficeIMO.OneNote.Markdown --version 3.0.3
+dotnet add package OfficeIMO.OneNote.Html --version 3.0.3
+dotnet add package OfficeIMO.OneNote.Pdf --version 3.0.3
+dotnet add package OfficeIMO.Reader.OneNote --version 3.0.3
 ```
 
-All coordinated source packages use the same `3.1.x` compatibility line. Avoid mixing OfficeIMO `2.x`, `3.0`, and `3.1` packages in one application.
+Keep OfficeIMO package references in one application on the same published version. The repository source is already on the coordinated `3.1.x` line.
+
+The unified `OfficeIMO.Tool` CLI documented in this repository is the `3.1.x` source-tree surface, not part of the published `3.0.3` package block above. In this checkout, run it directly with `dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- <command>`.
 
 ## Common workflows
 
@@ -1163,21 +1162,22 @@ var chunks = reader.ReadFolder("KnowledgeBase",
     }).ToList();
 ```
 
-## Document lifecycle in 3.0
+## Document lifecycle
 
-OfficeIMO 3.0 retains one vocabulary across mutable document packages:
+OfficeIMO uses one vocabulary across mutable document packages:
 
 | Intent | API |
 | --- | --- |
 | Save to the associated destination | `Save()` / `SaveAsync()` |
-| Save and associate a path or stream | `Save(pathOrStream)` / `SaveAsync(pathOrStream)` |
+| Save and associate a path | `Save(path)` / `SaveAsync(path)` |
+| Write once to a caller-owned stream | `Save(stream)` / `SaveAsync(stream)` |
 | Write a copy without changing the associated destination | `SaveCopy(path)` / `SaveCopyAsync(path)` |
 | Produce bytes without changing document state | `ToBytes()` |
 | Produce a new stream positioned at the beginning | `ToStream()` |
 | Convert in memory | `To{Format}()` or `To{Format}Result()` |
 | Write another format | `SaveAs{Format}()` / `SaveAs{Format}Async()` |
 
-Caller-owned streams stay open. Seekable input streams are restored to their original position. Pure in-memory conversions remain synchronous; async APIs are used for real I/O and remote-resource resolution.
+Saving to a caller-owned stream does not replace the document's associated path or source stream. A later parameterless `Save()` uses the existing association, or throws when the document has none. Caller-owned streams stay open. Seekable input streams are restored to their original position. Pure in-memory conversions remain synchronous; async APIs are used for real I/O and remote-resource resolution.
 
 ## Target frameworks and platform support
 
@@ -1190,9 +1190,9 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 
 ## More documentation
 
+- [Documentation index](Docs/README.md)
+- [OfficeIMO roadmap](Docs/ROADMAP.md)
 - [Examples](OfficeIMO.Examples/README.md)
-- [Versioned migration guide](MIGRATION.md)
-- [2.x to 3.0 public API review](Docs/officeimo-3.0-public-api-review.md)
 - [Image export capability matrix](Docs/officeimo.image-export-capability-matrix.md)
 - [PDF current state](Docs/officeimo.pdf.current-state.md)
 - [PDF conversion support matrix](Docs/officeimo.pdf-conversion-support-matrix.md)
@@ -1204,4 +1204,5 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 - [LaTeX support matrix](Docs/officeimo.latex-support-matrix.md)
 - [Markdown compatibility matrix](Docs/officeimo.markdown.compatibility-matrix.md)
 - [OneNote current state](Docs/officeimo.onenote.current-state.md)
-- [Changelog](CHANGELOG.MD)
+- [Migration guide](MIGRATION.md)
+- [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases)

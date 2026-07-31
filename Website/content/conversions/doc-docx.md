@@ -51,6 +51,6 @@ DOC has a smaller feature vocabulary than DOCX. Modern charts, content controls,
 
 ## When to use each direction
 
-Choose DOC to DOCX for archive modernization, search ingestion, future editing, and integration with modern Office workflows. Choose DOCX to DOC only when a downstream system genuinely requires the legacy format and the compatibility report meets that system's needs.
+Choose DOC to DOCX for archive modernization, search ingestion, continued editing, and integration with modern Office workflows. Choose DOCX to DOC only when a downstream system genuinely requires the legacy format and the compatibility report meets that system's needs.
 
 For the current feature-level evidence, see [Word compatibility](/compatibility/#word). For authoring and review APIs after conversion, use the [Word guide](/docs/word/).

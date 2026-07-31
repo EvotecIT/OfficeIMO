@@ -85,17 +85,16 @@ budget can be rejected before their bodies are read.
 - `new HtmlToWordOptions()` embeds data URI images only; use a trusted/compatibility profile or set `ImageProcessing = ImageProcessingMode.Embed` for trusted remote image fetching.
 - Local file images are not loaded by default; use a trusted/compatibility profile or add `Uri.UriSchemeFile` to `AllowedImageUriSchemes` for trusted local files.
 
-## Boundaries
+## Related packages
 
-- Word document modeling belongs in `OfficeIMO.Word`.
-- HTML-to-Markdown ingestion belongs in `OfficeIMO.Markdown.Html`.
-- HTML-to-PDF bridge behavior belongs in `OfficeIMO.Html.Pdf`.
-- Full support matrices and roadmap detail belong in `Docs/`, not this README.
+- Use `OfficeIMO.Word` for Word document creation and editing.
+- Use `OfficeIMO.Markdown.Html` for HTML-to-Markdown ingestion.
+- Use `OfficeIMO.Html.Pdf` for HTML-to-PDF conversion.
 
 ## Deeper docs
 
 - [Word/HTML support matrix](../Docs/officeimo.word-html-support-matrix.md)
-- [Word/HTML roadmap](../Docs/officeimo.word-html-roadmap.md)
+- [Repository roadmap](../Docs/ROADMAP.md)
 - [OfficeIMO.Word](../OfficeIMO.Word/README.md)
 
 ## Targets and license

@@ -57,7 +57,7 @@ foreach ($converter in @($scenarioManifest.converterCatalog)) {
     }
 }
 $supportLines.Add('')
-$supportLines.Add('## Direct, Composed, And Planned Routes')
+$supportLines.Add('## Current Direct And Composed Routes')
 $supportLines.Add('')
 $supportLines.Add('| Route | Formats | Status | Implementation owner | Contract evidence | Diagnostic contract |')
 $supportLines.Add('| --- | --- | --- | --- | --- | --- |')

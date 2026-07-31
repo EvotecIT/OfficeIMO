@@ -1,6 +1,6 @@
 # OfficeIMO.Latex support matrix
 
-- Status: experimental Phase 2/3 bounded-profile implementation
+- Status: bounded-profile implementation
 - Updated: 2026-07-10
 - Profile: `LatexDocumentProfile.OfficeIMO`
 - Runtime dependencies: BCL and existing OfficeIMO project references only
