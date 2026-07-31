@@ -58,6 +58,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ReferenceSyntax_TreatsQuotedAndUnquotedQualifiersAsEquivalent() {
+            ExcelReference unquoted = ExcelReference.Parse("Data!A1:B2");
+            ExcelReference quoted = ExcelReference.Parse("'Data'!B2:C3");
+
+            Assert.True(unquoted.Intersects(quoted));
+            Assert.Equal("Data!B2", unquoted.Intersect(quoted)!.ToString());
+            Assert.Equal("Data!A1:C3", unquoted.BoundingUnion(quoted).ToString());
+            Assert.Equal(ExcelReference.Parse("'Data'!A1:B2"), unquoted);
+            Assert.Equal(ExcelReference.Parse("'Data'!A1:B2").GetHashCode(), unquoted.GetHashCode());
+        }
+
+        [Fact]
         public void Test_FormulaSyntaxTree_PreservesLiteralsAndRewritesReferencesOnce() {
             ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse(
                 "=SUM('Sales 2026'!A1:B2,\"A1 and \"\"quoted\"\" B2\",Table1[Amount],[Book.xlsx]Sheet1!C3#)");
@@ -202,6 +214,25 @@ namespace OfficeIMO.Tests {
                 new ExcelFormulaSearchOptions { Reference = "[BookA.xlsx]Data!B2" }));
 
             Assert.Equal("A1", match.CellReference);
+        }
+
+        [Fact]
+        public void Test_FormulaSearch_NormalizesLeadingEqualsAndSkipsQuotedSheetNames() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            document.AddWorksheet("SUM(A1)");
+            document.AddWorksheet("SUM('A1')");
+            sheet.CellFormula(1, 1, "SUM(B1:B2)");
+            sheet.CellFormula(2, 1, "'SUM(A1)'!B1");
+            sheet.CellFormula(3, 1, "'SUM(''A1'')'!B1");
+
+            ExcelFormulaCellInfo textMatch = Assert.Single(sheet.SearchFormulas(
+                new ExcelFormulaSearchOptions { Text = "=SUM(B1:B2)" }));
+            ExcelFormulaCellInfo functionMatch = Assert.Single(sheet.SearchFormulas(
+                new ExcelFormulaSearchOptions { Function = "SUM" }));
+
+            Assert.Equal("A1", textMatch.CellReference);
+            Assert.Equal("A1", functionMatch.CellReference);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Linq;
 using OfficeIMO.Excel;
 using Xunit;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -129,6 +130,54 @@ namespace OfficeIMO.Tests {
             Assert.Throws<System.InvalidOperationException>(() => sheet.CopyRange("A1", "D1"));
             Assert.Equal("Source", sheet.CellAt(1, 1).GetValue<string>());
             Assert.Equal("One", sheet.CellAt(1, 4).GetValue<string>());
+        }
+
+        [Fact]
+        public void Test_RangeMutations_TransposeMapsAbsoluteAxes() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellFormula(2, 2, "$A2");
+
+            sheet.TransposeRange("B2", "D4");
+
+            Assert.Equal("D$1", sheet.GetFormulaCells().Single(item => item.CellReference == "D4").Formula);
+        }
+
+        [Fact]
+        public void Test_RangeMutations_CopyPreservesImageMetadataAndTwoCellGeometry() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelImage source = sheet.AddImageToRange(
+                "A1:B2",
+                TinyPng,
+                name: "Logo",
+                altText: "Accessible logo",
+                title: "Brand",
+                lockAspectRatio: false,
+                placement: ExcelImagePlacement.MoveOnly,
+                rotationDegrees: 12.5);
+            source.SetCropRatio(0.1, 0.2, 0.05, 0.15).SetFlip(true, false);
+
+            sheet.CopyRange("A1:B2", "D4");
+
+            ExcelImage copy = Assert.Single(sheet.Images, image => image.RowIndex == 4 && image.ColumnIndex == 4);
+            Assert.True(copy.HasTwoCellAnchor);
+            Assert.Equal(6, copy.ToRowIndex);
+            Assert.Equal(6, copy.ToColumnIndex);
+            Assert.Equal("Logo", copy.Name);
+            Assert.Equal("Brand", copy.Title);
+            Assert.Equal("Accessible logo", copy.Description);
+            Assert.False(copy.IsAspectRatioLocked);
+            Assert.Equal(12.5, copy.RotationDegrees, 3);
+            Assert.True(copy.FlipHorizontal);
+            Assert.False(copy.FlipVertical);
+            Assert.Equal(0.1, copy.CropLeftRatio, 3);
+            Assert.Equal(0.2, copy.CropTopRatio, 3);
+            Assert.Equal(0.05, copy.CropRightRatio, 3);
+            Assert.Equal(0.15, copy.CropBottomRatio, 3);
+            Xdr.TwoCellAnchor copiedAnchor = sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!
+                .Elements<Xdr.TwoCellAnchor>().Last();
+            Assert.Equal(Xdr.EditAsValues.OneCell, copiedAnchor.EditAs!.Value);
         }
     }
 }

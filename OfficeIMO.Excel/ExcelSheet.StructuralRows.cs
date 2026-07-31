@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -71,9 +72,11 @@ namespace OfficeIMO.Excel {
         internal void ApplyStructuralRowMutationPlan(
             ExcelRowMutationKind kind,
             int firstRow,
-            int count) {
+            int count,
+            CancellationToken cancellationToken = default) {
             ValidateStructuralRowArguments(firstRow, count);
             void ApplyCore() {
+                cancellationToken.ThrowIfCancellationRequested();
                 WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
                 if (!workbookPart.Parts.Any(pair =>
                         ReferenceEquals(pair.OpenXmlPart, _worksheetPart))) {
@@ -92,12 +95,15 @@ namespace OfficeIMO.Excel {
                         "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 MaterializeDeferredDataSetImportIfNeeded();
+                cancellationToken.ThrowIfCancellationRequested();
                 if (kind == ExcelRowMutationKind.Insert) {
-                    ShiftRowsDown(firstRow, count);
+                    ShiftRowsDown(firstRow, count, cancellationToken);
                 } else {
-                    RemoveRowsAndShiftUp(firstRow, count);
+                    RemoveRowsAndShiftUp(firstRow, count, cancellationToken);
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 WorksheetRoot.Save();
                 MarkRequiresSavePreparation();
             }
@@ -121,12 +127,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ShiftRowsDown(int firstRow, int count) {
+        private void ShiftRowsDown(int firstRow, int count, CancellationToken cancellationToken = default) {
             if (count <= 0) {
                 return;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             PreflightRowInsertion(firstRow, count);
+            cancellationToken.ThrowIfCancellationRequested();
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
 
@@ -136,9 +144,11 @@ namespace OfficeIMO.Excel {
                     .Where(item => item.RowIndex?.Value >= (uint)firstRow)
                     .OrderByDescending(item => item.RowIndex?.Value ?? 0U)
                     .ToList()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int newRowIndex = checked((int)(row.RowIndex!.Value + (uint)count));
                     row.RowIndex = (uint)newRowIndex;
                     foreach (Cell cell in row.Elements<Cell>()) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
                             continue;
                         }
@@ -151,25 +161,32 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             RewriteWorksheetFormulaReferences(firstRow, count);
-            RemapShiftedRowMetadata(firstRow, count);
+            cancellationToken.ThrowIfCancellationRequested();
+            RemapShiftedRowMetadata(firstRow, count, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             ShiftMergeCellsRows(firstRow, count);
+            cancellationToken.ThrowIfCancellationRequested();
             InvalidateStructuralFormulaResults();
             ResetStructuralMutationCaches();
         }
 
-        private void RemoveRowsAndShiftUp(int firstRow, int count) {
+        private void RemoveRowsAndShiftUp(int firstRow, int count, CancellationToken cancellationToken = default) {
             if (count <= 0) {
                 return;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             int lastRemovedRow = firstRow + count - 1;
             PreflightRowDeletion(firstRow, count);
+            cancellationToken.ThrowIfCancellationRequested();
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
                 NormalizeImplicitRowIndices(sheetData);
                 foreach (Row row in sheetData.Elements<Row>().ToList()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int rowIndex = checked((int)row.RowIndex!.Value);
                     if (rowIndex >= firstRow && rowIndex <= lastRemovedRow) {
                         row.Remove();
@@ -180,6 +197,7 @@ namespace OfficeIMO.Excel {
                         int newRowIndex = rowIndex - count;
                         row.RowIndex = (uint)newRowIndex;
                         foreach (Cell cell in row.Elements<Cell>()) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
                                 continue;
                             }
@@ -193,9 +211,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             RewriteDeletedWorksheetFormulaReferences(firstRow, lastRemovedRow, -count);
-            RemapDeletedRowMetadata(firstRow, lastRemovedRow, -count);
+            cancellationToken.ThrowIfCancellationRequested();
+            RemapDeletedRowMetadata(firstRow, lastRemovedRow, -count, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             ShiftMergeCellsRows(firstRow, -count, lastRemovedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             InvalidateStructuralFormulaResults();
             ResetStructuralMutationCaches();
         }

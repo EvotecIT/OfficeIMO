@@ -83,7 +83,7 @@ namespace OfficeIMO.Excel {
     /// <summary>Validated dry-run plan for a single transactional worksheet mutation.</summary>
     public sealed class ExcelStructuralMutationPlan {
         private readonly ExcelSheet _owner;
-        private readonly Action<CancellationToken> _apply;
+        private readonly Func<CancellationToken, int> _apply;
         private readonly ExcelMutationPlanOptions _options;
         private int _state;
 
@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel {
             int affectedCells,
             IReadOnlyList<ExcelMutationImpact> impacts,
             ExcelMutationPlanOptions options,
-            Action<CancellationToken> apply) {
+            Func<CancellationToken, int> apply) {
             _owner = owner;
             Kind = kind;
             SourceRange = sourceRange;
@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("This Excel mutation plan has already been consumed.");
             }
             try {
-                Result = _owner.ApplyTransactionalMutation(_apply, AffectedCells, _options, cancellationToken);
+                Result = _owner.ApplyTransactionalMutation(_apply, _options, cancellationToken);
                 Volatile.Write(ref _state, 2);
                 return Result;
             } catch {

@@ -234,7 +234,7 @@ namespace OfficeIMO.Excel {
         public bool Equals(ExcelReference? other) =>
             other != null
             && Kind == other.Kind
-            && string.Equals(Qualifier, other.Qualifier, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(NormalizeQualifierForComparison(Qualifier), NormalizeQualifierForComparison(other.Qualifier), StringComparison.OrdinalIgnoreCase)
             && Start.Equals(other.Start)
             && End.Equals(other.End);
 
@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
         public override int GetHashCode() {
             unchecked {
                 int hash = (int)Kind;
-                hash = (hash * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(Qualifier ?? string.Empty);
+                hash = (hash * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(NormalizeQualifierForComparison(Qualifier));
                 hash = (hash * 397) ^ Start.GetHashCode();
                 return (hash * 397) ^ End.GetHashCode();
             }
@@ -286,7 +286,15 @@ namespace OfficeIMO.Excel {
         }
 
         private bool SameQualifier(ExcelReference other) =>
-            string.Equals(Qualifier, other.Qualifier, StringComparison.OrdinalIgnoreCase);
+            string.Equals(NormalizeQualifierForComparison(Qualifier), NormalizeQualifierForComparison(other.Qualifier), StringComparison.OrdinalIgnoreCase);
+
+        private static string NormalizeQualifierForComparison(string? qualifier) {
+            string result = qualifier?.Trim() ?? string.Empty;
+            if (result.Length >= 2 && result[0] == '\'' && result[result.Length - 1] == '\'') {
+                result = result.Substring(1, result.Length - 2).Replace("''", "'");
+            }
+            return result;
+        }
 
         private static ExcelReference FromBounds(int r1, int c1, int r2, int c2, string? qualifier) {
             ValidateCell(r1, c1);

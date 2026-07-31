@@ -74,6 +74,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralColumns_ResultUsesRevalidatedAffectedCellCount() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "One");
+            ExcelStructuralMutationPlan plan = sheet.PlanInsertColumns(1);
+            sheet.CellValue(2, 1, "Two");
+            sheet.CellValue(3, 2, "Three");
+
+            ExcelMutationResult result = plan.Apply();
+
+            Assert.Equal(3, result.AffectedCells);
+        }
+
+        [Fact]
         public void Test_StructuralMutation_RollbackRestoresDeletedCalculationChain() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Data");
@@ -90,6 +104,23 @@ namespace OfficeIMO.Tests {
             DocumentFormat.OpenXml.Spreadsheet.CalculationCell restored = Assert.Single(document.WorkbookPartRoot.CalculationChainPart!
                 .CalculationChain!.Elements<DocumentFormat.OpenXml.Spreadsheet.CalculationCell>());
             Assert.Equal("A1", restored.CellReference!.Value);
+        }
+
+        [Fact]
+        public void Test_StructuralMutation_RollbackRestoresConnections() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            ConnectionsPart connectionsPart = document.WorkbookPartRoot.AddNewPart<ConnectionsPart>();
+            connectionsPart.Connections = new S.Connections(
+                new S.Connection { Id = 1U, Name = "Original" });
+            using var cancellation = new CancellationTokenSource();
+
+            Assert.Throws<OperationCanceledException>(() => sheet.ApplyTransactionalMutation(_ => {
+                Assert.Single(connectionsPart.Connections.Elements<S.Connection>()).Name = "Changed";
+                cancellation.Cancel();
+            }, 0, new ExcelMutationPlanOptions(), cancellation.Token));
+
+            Assert.Equal("Original", Assert.Single(connectionsPart.Connections.Elements<S.Connection>()).Name!.Value);
         }
 
         [Fact]

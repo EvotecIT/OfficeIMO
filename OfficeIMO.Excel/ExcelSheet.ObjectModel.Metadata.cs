@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -55,43 +56,77 @@ namespace OfficeIMO.Excel {
 
             return false;
         }
-        private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta) {
+        private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedDataConsolidationReferences(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedWebPublishItems(firstAffectedRow, rowDelta, lastDeletedRow: null);
-            RemapShiftedConnectionParameters(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
+            RemapShiftedConnectionParameters(firstAffectedRow, rowDelta, lastDeletedRow: null, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedPivotSources(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedWorksheetRangeMetadata(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedPivotLocations(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedComments(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedThreadedComments(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedHyperlinks(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedDataValidations(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedConditionalFormatting(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedSparklines(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedDrawingAnchors(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedChartReferences(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            cancellationToken.ThrowIfCancellationRequested();
             InvalidateWorkbookChartCaches();
         }
 
-        private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
+        private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedDataConsolidationReferences(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedWebPublishItems(firstDeletedRow, rowDelta, lastDeletedRow);
-            RemapShiftedConnectionParameters(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
+            RemapShiftedConnectionParameters(firstDeletedRow, rowDelta, lastDeletedRow, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedPivotSources(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedWorksheetRangeMetadata(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedPivotLocations(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedComments(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedThreadedComments(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedHyperlinks(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedDataValidations(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedConditionalFormatting(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedSparklines(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedDrawingAnchors(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             RemapShiftedChartReferences(firstDeletedRow, rowDelta, lastDeletedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             InvalidateWorkbookChartCaches();
         }
 
@@ -143,7 +178,8 @@ namespace OfficeIMO.Excel {
         private void RemapShiftedConnectionParameters(
             int firstAffectedRow,
             int rowDelta,
-            int? lastDeletedRow) {
+            int? lastDeletedRow,
+            CancellationToken cancellationToken = default) {
             ConnectionsPart? connectionsPart = WorkbookPartRoot.ConnectionsPart;
             Connections? connections = connectionsPart?.Connections;
             if (connections == null) {
@@ -158,7 +194,9 @@ namespace OfficeIMO.Excel {
             bool changed = false;
             foreach (Connection connection in connections.Elements<Connection>()
                 .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (parameter.Cell?.Value is not string reference
                         || !TryRemapShiftedReferenceListRows(
                             reference,

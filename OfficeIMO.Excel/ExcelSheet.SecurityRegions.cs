@@ -112,6 +112,14 @@ namespace OfficeIMO.Excel {
                 string? hash = ExcelProtectionHash.ResolveLegacyHash(password, null);
                 target.Password = hash;
                 if (hash == null) target.RemoveAttribute("password", string.Empty);
+                target.AlgorithmName = null;
+                target.HashValue = null;
+                target.SaltValue = null;
+                target.SpinCount = null;
+                target.RemoveAttribute("algorithmName", string.Empty);
+                target.RemoveAttribute("hashValue", string.Empty);
+                target.RemoveAttribute("saltValue", string.Empty);
+                target.RemoveAttribute("spinCount", string.Empty);
                 target.SecurityDescriptor = string.IsNullOrWhiteSpace(securityDescriptor) ? null : securityDescriptor;
                 if (string.IsNullOrWhiteSpace(securityDescriptor)) target.RemoveAttribute("securityDescriptor", string.Empty);
                 EnsureWorksheetElementOrder();

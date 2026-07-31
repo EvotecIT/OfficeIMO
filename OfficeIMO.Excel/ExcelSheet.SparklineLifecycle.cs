@@ -109,9 +109,15 @@ namespace OfficeIMO.Excel {
             return removed;
         }
 
-        private static ExcelReference ParseLocalSparklineReference(string reference) {
+        private ExcelReference ParseLocalSparklineReference(string reference) {
             if (!ExcelReference.TryParse(reference, out ExcelReference? parsed)) {
                 throw new ArgumentException($"Invalid sparkline destination reference '{reference}'.", nameof(reference));
+            }
+            if (parsed!.Kind != ExcelReferenceKind.Cell && parsed.Kind != ExcelReferenceKind.Range) {
+                throw new ArgumentException("Sparkline destination must be a cell or rectangular cell range.", nameof(reference));
+            }
+            if (parsed.IsQualified && !IsCurrentSheetQualifier(parsed.Qualifier!, Name)) {
+                throw new ArgumentException("Sparkline destination must belong to the current worksheet.", nameof(reference));
             }
             return parsed!;
         }

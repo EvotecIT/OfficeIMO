@@ -79,6 +79,10 @@ namespace OfficeIMO.Excel {
 
                 TableColumns columns = table.TableColumns ??= new TableColumns();
                 List<TableColumn> existing = columns.Elements<TableColumn>().ToList();
+                string[] removedNames = existing.Skip(names.Length)
+                    .Select(column => column.Name?.Value ?? string.Empty)
+                    .Where(name => name.Length > 0)
+                    .ToArray();
                 uint nextId = existing.Count == 0 ? 1U : existing.Max(column => column.Id?.Value ?? 0U) + 1U;
                 var renames = new List<(string OldName, string NewName)>();
                 for (int index = 0; index < names.Length; index++) {
@@ -117,6 +121,7 @@ namespace OfficeIMO.Excel {
                 var renameMap = renames
                     .Where(item => item.OldName.Length > 0)
                     .ToDictionary(item => item.OldName, item => item.NewName, StringComparer.OrdinalIgnoreCase);
+                if (removedNames.Length > 0) _excelDocument.InvalidateTableColumnReferences(tableName, removedNames, table);
                 if (renameMap.Count > 0) _excelDocument.RewriteTableColumnReferences(tableName, renameMap, table);
                 table.Save();
                 WorksheetRoot.Save();
@@ -136,9 +141,10 @@ namespace OfficeIMO.Excel {
             var bounds = A1.ParseRange(newRange);
             int targetWidth = bounds.c2 - bounds.c1 + 1;
             if (targetWidth > names.Length) {
+                var used = new HashSet<string>(names.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase);
                 Array.Resize(ref names, targetWidth);
                 for (int index = 0; index < names.Length; index++) {
-                    if (string.IsNullOrWhiteSpace(names[index])) names[index] = "Column" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    if (string.IsNullOrWhiteSpace(names[index])) names[index] = CreateUnusedTableColumnName(used, index + 1);
                 }
             } else if (targetWidth < names.Length) {
                 Array.Resize(ref names, targetWidth);
@@ -192,7 +198,8 @@ namespace OfficeIMO.Excel {
 
         internal void InvalidateTableColumnReferences(string tableName, IReadOnlyCollection<string> removedNames, Table owner) {
             bool ContainsRemoved(string selector) => removedNames.Any(name =>
-                selector.IndexOf("[" + name + "]", StringComparison.OrdinalIgnoreCase) >= 0);
+                selector.IndexOf("[" + name + "]", StringComparison.OrdinalIgnoreCase) >= 0
+                || selector.IndexOf("[@" + name + "]", StringComparison.OrdinalIgnoreCase) >= 0);
             RewriteFormulaRoots(text => ExcelFormulaSyntaxTree.Parse(text).RewriteStructuredReferences((name, selector) =>
                 name != null && string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase) && ContainsRemoved(selector)
                     ? null
@@ -238,12 +245,13 @@ namespace OfficeIMO.Excel {
             while (cursor < selector.Length) {
                 bool replaced = false;
                 foreach (KeyValuePair<string, string> rename in renames) {
-                    string needle = "[" + rename.Key + "]";
+                    bool rowContext = cursor + 2 < selector.Length && selector[cursor] == '[' && selector[cursor + 1] == '@';
+                    string needle = rowContext ? "[@" + rename.Key + "]" : "[" + rename.Key + "]";
                     if (cursor + needle.Length > selector.Length
                         || string.Compare(selector, cursor, needle, 0, needle.Length, StringComparison.OrdinalIgnoreCase) != 0) {
                         continue;
                     }
-                    builder.Append('[').Append(rename.Value).Append(']');
+                    builder.Append(rowContext ? "[@" : "[").Append(rename.Value).Append(']');
                     cursor += needle.Length;
                     replaced = true;
                     break;

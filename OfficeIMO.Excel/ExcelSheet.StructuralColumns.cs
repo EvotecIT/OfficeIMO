@@ -63,8 +63,9 @@ namespace OfficeIMO.Excel {
                     effective,
                     cancellationToken => {
                         cancellationToken.ThrowIfCancellationRequested();
-                        _ = PlanColumnMutation(firstColumn, count, deleting, effective);
+                        ExcelStructuralMutationPlan current = PlanColumnMutation(firstColumn, count, deleting, effective);
                         ApplyColumnMutation(firstColumn, count, deleting, cancellationToken);
+                        return current.AffectedCells;
                     });
             });
         }

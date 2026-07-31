@@ -13,13 +13,22 @@ namespace OfficeIMO.Excel {
             Action<CancellationToken> operation,
             int affectedCells,
             ExcelMutationPlanOptions options,
+            CancellationToken cancellationToken) =>
+            ApplyTransactionalMutation(token => {
+                operation(token);
+                return affectedCells;
+            }, options, cancellationToken);
+
+        internal ExcelMutationResult ApplyTransactionalMutation(
+            Func<CancellationToken, int> operation,
+            ExcelMutationPlanOptions options,
             CancellationToken cancellationToken) {
             ExcelMutationResult? result = null;
             Batch(_ => {
                 cancellationToken.ThrowIfCancellationRequested();
                 var snapshot = PackageMutationSnapshot.Capture(_excelDocument.WorkbookPartRoot, options.MaximumSnapshotCharacters);
                 try {
-                    operation(cancellationToken);
+                    int affectedCells = operation(cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
                     WorksheetRoot.Save();
                     MarkRequiresSavePreparation();
@@ -63,6 +72,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 AddRoot(workbookPart.Workbook, value => workbookPart.Workbook = value);
+                AddRoot(workbookPart.ConnectionsPart?.Connections, value => workbookPart.ConnectionsPart!.Connections = value);
                 AddRoot(workbookPart.WorkbookStylesPart?.Stylesheet, value => workbookPart.WorkbookStylesPart!.Stylesheet = value);
                 AddRoot(workbookPart.SharedStringTablePart?.SharedStringTable, value => workbookPart.SharedStringTablePart!.SharedStringTable = value);
                 CalculationChainPart? calculationChainPart = workbookPart.CalculationChainPart;

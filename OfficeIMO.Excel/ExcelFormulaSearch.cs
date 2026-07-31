@@ -52,9 +52,11 @@ namespace OfficeIMO.Excel {
 
             var matches = new List<ExcelFormulaCellInfo>();
             StringComparison comparison = options.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            string? requestedText = options.Text;
+            if (!string.IsNullOrEmpty(requestedText) && requestedText![0] == '=') requestedText = requestedText.Substring(1);
             foreach (ExcelFormulaCellInfo formula in formulas) {
-                if (!string.IsNullOrWhiteSpace(options.Text)
-                    && formula.Formula.IndexOf(options.Text!, comparison) < 0) {
+                if (!string.IsNullOrWhiteSpace(requestedText)
+                    && formula.Formula.IndexOf(requestedText!, comparison) < 0) {
                     continue;
                 }
                 if (!string.IsNullOrWhiteSpace(options.Function)
@@ -93,6 +95,17 @@ namespace OfficeIMO.Excel {
                     if (inString && index + 1 < formula.Length && formula[index + 1] == '"') { index += 2; continue; }
                     inString = !inString;
                     index++;
+                    continue;
+                }
+                if (!inString && current == '\'') {
+                    index++;
+                    while (index < formula.Length) {
+                        if (formula[index] != '\'') { index++; continue; }
+                        if (index + 1 < formula.Length && formula[index + 1] == '\'') { index += 2; continue; }
+                        index++;
+                        break;
+                    }
+                    if (index < formula.Length && formula[index] == '!') index++;
                     continue;
                 }
                 if (inString || !(char.IsLetter(current) || current == '_')) { index++; continue; }

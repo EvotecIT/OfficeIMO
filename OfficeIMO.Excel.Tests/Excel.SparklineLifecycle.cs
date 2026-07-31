@@ -33,5 +33,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal(SparklineTypeValues.Line, sparklines[1].Type);
             Assert.NotEqual(sparklines[0].GroupIndex, sparklines[1].GroupIndex);
         }
+
+        [Fact]
+        public void Test_Sparklines_RejectForeignDestinationQualifiers() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            document.AddWorksheet("Other");
+            sheet.AddSparklines("A1:C1", "D1");
+
+            Assert.Throws<System.ArgumentException>(() => sheet.SetSparklineType("Other!D1", SparklineTypeValues.Column));
+            Assert.Throws<System.ArgumentException>(() => sheet.RemoveSparklines("[Book.xlsx]Data!D1"));
+            Assert.Single(sheet.GetSparklines());
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System.Linq;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -73,6 +74,28 @@ namespace OfficeIMO.Tests {
             Assert.Throws<System.ArgumentException>(() => sheet.AddIgnoredErrorRegion(new[] { "Other!A1" }, ExcelIgnoredErrorKind.NumberStoredAsText));
             sheet.SetAllowedEditRange("Inputs", new[] { "'Data'!A1" });
             Assert.Equal("A1", Assert.Single(Assert.Single(sheet.GetAllowedEditRanges()).Ranges));
+        }
+
+        [Fact]
+        public void Test_SecurityRegions_ReplacementClearsModernPasswordHash() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.Protect();
+            sheet.SetAllowedEditRange("Inputs", new[] { "A1" });
+            ProtectedRange range = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<ProtectedRange>());
+            range.AlgorithmName = "SHA-512";
+            range.HashValue = "AQID";
+            range.SaltValue = "BAUG";
+            range.SpinCount = 1000U;
+
+            sheet.SetAllowedEditRange("Inputs", new[] { "B2" });
+
+            range = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<ProtectedRange>());
+            Assert.Null(range.AlgorithmName);
+            Assert.Null(range.HashValue);
+            Assert.Null(range.SaltValue);
+            Assert.Null(range.SpinCount);
+            Assert.False(Assert.Single(sheet.GetAllowedEditRanges()).IsPasswordProtected);
         }
     }
 }

@@ -71,5 +71,48 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() => sheet.SetTableSchema("First", new[] { "A", "New", "B" }, "A1:C2"));
             Assert.Equal("A1:A2", document.GetTables().Single(table => table.Name == "First").Range);
         }
+
+        [Fact]
+        public void Test_TableSchema_ShrinkInvalidatesRemovedStructuredColumn() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "A");
+            sheet.CellValue(1, 2, "B");
+            sheet.CellValue(2, 1, 1);
+            sheet.CellValue(2, 2, 2);
+            sheet.AddTable("A1:B2", true, "Sales", TableStyle.TableStyleMedium2);
+            sheet.CellFormula(4, 1, "SUM(Sales[B])");
+
+            sheet.ResizeTable("Sales", "A1:A2");
+
+            Assert.Equal("SUM(#REF!)", Assert.Single(sheet.GetFormulaCells()).Formula);
+        }
+
+        [Fact]
+        public void Test_TableSchema_RenamesRowContextStructuredReference() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Amount");
+            sheet.CellValue(2, 1, 1);
+            sheet.AddTable("A1:A2", true, "Sales", TableStyle.TableStyleMedium2);
+            sheet.CellFormula(4, 1, "Sales[@Amount]*2");
+
+            sheet.SetTableSchema("Sales", new[] { "Net" });
+
+            Assert.Equal("Sales[@Net]*2", Assert.Single(sheet.GetFormulaCells()).Formula);
+        }
+
+        [Fact]
+        public void Test_TableSchema_ExpansionGeneratesUnusedColumnName() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Column2");
+            sheet.CellValue(2, 1, 1);
+            sheet.AddTable("A1:A2", true, "Sales", TableStyle.TableStyleMedium2);
+
+            sheet.ResizeTable("Sales", "A1:B2");
+
+            Assert.Equal(new[] { "Column2", "Column3" }, Assert.Single(document.GetTables()).Columns.Select(column => column.Name));
+        }
     }
 }

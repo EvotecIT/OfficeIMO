@@ -86,8 +86,9 @@ namespace OfficeIMO.Excel {
                 return new ExcelStructuralMutationPlan(this, kind, affected.ToString(), null, count, impacts, effective,
                     cancellationToken => {
                         cancellationToken.ThrowIfCancellationRequested();
-                        _ = PlanCellShift(affected.ToString(), direction, inserting, effective);
+                        ExcelStructuralMutationPlan current = PlanCellShift(affected.ToString(), direction, inserting, effective);
                         ApplyCellShift(affected, direction, inserting, cancellationToken);
+                        return current.AffectedCells;
                     });
             });
         }
@@ -128,8 +129,9 @@ namespace OfficeIMO.Excel {
                 return new ExcelStructuralMutationPlan(this, kind, source.ToString(), destination.ToString(), (int)area, impacts, effective,
                     cancellationToken => {
                         cancellationToken.ThrowIfCancellationRequested();
-                        _ = PlanRangeTransfer(source.ToString(), destination.ToString(), move, transpose, effective);
+                        ExcelStructuralMutationPlan current = PlanRangeTransfer(source.ToString(), destination.ToString(), move, transpose, effective);
                         ApplyRangeTransfer(source, destination.Start.Row, destination.Start.Column, move, transpose, cancellationToken);
+                        return current.AffectedCells;
                     });
             });
         }
@@ -216,8 +218,9 @@ namespace OfficeIMO.Excel {
                     TryGetCellCoordinates(cell, out int row, out int column);
                     return (Row: row, Column: column, Cell: (Cell)cell.CloneNode(true));
                 }).ToList();
-            var imageSnapshots = Images.Where(image => source.Contains(image.RowIndex, image.ColumnIndex))
-                .Select(image => new { Image = image, Bytes = image.ToBytes(), image.ContentType, image.WidthPixels, image.HeightPixels, image.OffsetXPixels, image.OffsetYPixels })
+            List<RangeTransferImageSnapshot> imageSnapshots = Images
+                .Where(image => source.Contains(image.RowIndex, image.ColumnIndex))
+                .Select(image => new RangeTransferImageSnapshot(image))
                 .ToList();
 
             if (move) _excelDocument.RewriteMovedRangeReferences(this, source, destinationRow, destinationColumn, transpose);
@@ -241,16 +244,65 @@ namespace OfficeIMO.Excel {
                 PutClonedCell(targetRow, targetColumn, clone);
             }
             foreach (var image in imageSnapshots) {
-                int rowOffset = image.Image.RowIndex - sr1;
-                int columnOffset = image.Image.ColumnIndex - sc1;
+                cancellationToken.ThrowIfCancellationRequested();
+                int rowOffset = image.RowIndex - sr1;
+                int columnOffset = image.ColumnIndex - sc1;
                 int targetRow = destinationRow + (transpose ? columnOffset : rowOffset);
                 int targetColumn = destinationColumn + (transpose ? rowOffset : columnOffset);
-                if (move) image.Image.MoveTo(targetRow, targetColumn, image.OffsetXPixels, image.OffsetYPixels);
-                else AddImage(targetRow, targetColumn, image.Bytes, image.ContentType,
-                    transpose ? image.HeightPixels : image.WidthPixels,
-                    transpose ? image.WidthPixels : image.HeightPixels,
-                    image.OffsetXPixels,
-                    image.OffsetYPixels);
+                if (move) {
+                    image.Image.MoveTo(targetRow, targetColumn, image.OffsetXPixels, image.OffsetYPixels);
+                    continue;
+                }
+
+                ExcelImage copy;
+                if (image.HasTwoCellAnchor && image.ToRowIndex.HasValue && image.ToColumnIndex.HasValue) {
+                    int toRow = transpose
+                        ? targetRow + image.ToColumnIndex.Value - image.ColumnIndex
+                        : targetRow + image.ToRowIndex.Value - image.RowIndex;
+                    int toColumn = transpose
+                        ? targetColumn + image.ToRowIndex.Value - image.RowIndex
+                        : targetColumn + image.ToColumnIndex.Value - image.ColumnIndex;
+                    if (toRow > A1.MaxRows || toColumn > A1.MaxColumns) {
+                        throw new InvalidOperationException("Copied image anchor exceeds worksheet limits.");
+                    }
+                    copy = AddImageToRange(
+                        A1.CellReference(targetRow, targetColumn) + ":" + A1.CellReference(targetRow, targetColumn),
+                        image.Bytes,
+                        image.ContentType,
+                        transpose ? image.OffsetYPixels : image.OffsetXPixels,
+                        transpose ? image.OffsetXPixels : image.OffsetYPixels,
+                        name: image.Name,
+                        altText: image.Description,
+                        title: image.Title,
+                        lockAspectRatio: image.IsAspectRatioLocked,
+                        placement: image.Placement,
+                        rotationDegrees: image.RotationDegrees);
+                    copy.SetTwoCellEndingMarker(
+                        toRow,
+                        toColumn,
+                        transpose ? image.ToOffsetYPixels : image.ToOffsetXPixels,
+                        transpose ? image.ToOffsetXPixels : image.ToOffsetYPixels);
+                    copy.SetSize(
+                        transpose ? image.HeightPixels : image.WidthPixels,
+                        transpose ? image.WidthPixels : image.HeightPixels);
+                } else {
+                    copy = AddImage(
+                        targetRow,
+                        targetColumn,
+                        image.Bytes,
+                        image.ContentType,
+                        transpose ? image.HeightPixels : image.WidthPixels,
+                        transpose ? image.WidthPixels : image.HeightPixels,
+                        transpose ? image.OffsetYPixels : image.OffsetXPixels,
+                        transpose ? image.OffsetXPixels : image.OffsetYPixels,
+                        image.Name,
+                        image.Description,
+                        image.IsAspectRatioLocked);
+                    copy.Title = image.Title;
+                    copy.SetRotation(image.RotationDegrees);
+                }
+                copy.SetCropRatio(image.CropLeftRatio, image.CropTopRatio, image.CropRightRatio, image.CropBottomRatio);
+                copy.SetFlip(image.FlipHorizontal, image.FlipVertical);
             }
             _excelDocument.CleanupCalculationArtifacts(save: false, ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
             ResetMutationCaches();
@@ -258,10 +310,12 @@ namespace OfficeIMO.Excel {
 
         private string TranslateCopiedFormula(string formula, int sourceRow, int sourceColumn, int targetRow, int targetColumn, bool transpose) {
             return ExcelFormulaSyntaxTree.Parse(formula).Rewrite(reference => {
-                int MapRow(ExcelReferencePoint point) => point.RowAbsolute ? point.Row
-                    : transpose ? targetRow + point.Column - sourceColumn : targetRow + point.Row - sourceRow;
-                int MapColumn(ExcelReferencePoint point) => point.ColumnAbsolute ? point.Column
-                    : transpose ? targetColumn + point.Row - sourceRow : targetColumn + point.Column - sourceColumn;
+                int MapRow(ExcelReferencePoint point) => transpose
+                    ? point.ColumnAbsolute ? point.Column : targetRow + point.Column - sourceColumn
+                    : point.RowAbsolute ? point.Row : targetRow + point.Row - sourceRow;
+                int MapColumn(ExcelReferencePoint point) => transpose
+                    ? point.RowAbsolute ? point.Row : targetColumn + point.Row - sourceRow
+                    : point.ColumnAbsolute ? point.Column : targetColumn + point.Column - sourceColumn;
                 ExcelReferenceKind kind = transpose
                     ? reference.Kind == ExcelReferenceKind.WholeRow ? ExcelReferenceKind.WholeColumn
                         : reference.Kind == ExcelReferenceKind.WholeColumn ? ExcelReferenceKind.WholeRow
@@ -278,6 +332,64 @@ namespace OfficeIMO.Excel {
                     transpose ? reference.End.ColumnAbsolute : null,
                     transpose ? reference.End.RowAbsolute : null);
             });
+        }
+
+        private sealed class RangeTransferImageSnapshot {
+            internal RangeTransferImageSnapshot(ExcelImage image) {
+                Image = image;
+                Bytes = image.ToBytes();
+                ContentType = image.ContentType;
+                Name = image.Name;
+                Title = image.Title;
+                Description = image.Description;
+                IsAspectRatioLocked = image.IsAspectRatioLocked;
+                RowIndex = image.RowIndex;
+                ColumnIndex = image.ColumnIndex;
+                WidthPixels = image.WidthPixels;
+                HeightPixels = image.HeightPixels;
+                OffsetXPixels = image.OffsetXPixels;
+                OffsetYPixels = image.OffsetYPixels;
+                HasTwoCellAnchor = image.HasTwoCellAnchor;
+                ToRowIndex = image.ToRowIndex;
+                ToColumnIndex = image.ToColumnIndex;
+                ToOffsetXPixels = image.ToOffsetXPixels;
+                ToOffsetYPixels = image.ToOffsetYPixels;
+                Placement = image.Placement;
+                CropLeftRatio = image.CropLeftRatio;
+                CropTopRatio = image.CropTopRatio;
+                CropRightRatio = image.CropRightRatio;
+                CropBottomRatio = image.CropBottomRatio;
+                RotationDegrees = image.RotationDegrees;
+                FlipHorizontal = image.FlipHorizontal;
+                FlipVertical = image.FlipVertical;
+            }
+
+            internal ExcelImage Image { get; }
+            internal byte[] Bytes { get; }
+            internal string ContentType { get; }
+            internal string Name { get; }
+            internal string Title { get; }
+            internal string Description { get; }
+            internal bool IsAspectRatioLocked { get; }
+            internal int RowIndex { get; }
+            internal int ColumnIndex { get; }
+            internal int WidthPixels { get; }
+            internal int HeightPixels { get; }
+            internal int OffsetXPixels { get; }
+            internal int OffsetYPixels { get; }
+            internal bool HasTwoCellAnchor { get; }
+            internal int? ToRowIndex { get; }
+            internal int? ToColumnIndex { get; }
+            internal int ToOffsetXPixels { get; }
+            internal int ToOffsetYPixels { get; }
+            internal ExcelImagePlacement Placement { get; }
+            internal double CropLeftRatio { get; }
+            internal double CropTopRatio { get; }
+            internal double CropRightRatio { get; }
+            internal double CropBottomRatio { get; }
+            internal double RotationDegrees { get; }
+            internal bool FlipHorizontal { get; }
+            internal bool FlipVertical { get; }
         }
 
         private string TranslateMovedFormula(string formula, ExcelReference source, int destinationRow, int destinationColumn, bool transpose) {
