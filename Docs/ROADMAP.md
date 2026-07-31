@@ -93,4 +93,4 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 ## Completion rule
 
-Remove an item when its public API, compatibility boundary, tests, generated evidence, and user documentation agree. The changelog records the delivered version; this file does not retain completed milestones.
+Remove an item when its public API, compatibility boundary, tests, generated evidence, and user documentation agree. GitHub Releases records delivered history, while `MIGRATION.md` retains only upgrade actions; this file does not retain completed milestones.

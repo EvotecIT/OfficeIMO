@@ -349,27 +349,37 @@ public sealed class ReleasePackagingGuardrails {
             "index.md"));
         Assert.Contains($"`{openXmlVersion}`", aotGuide, StringComparison.Ordinal);
 
-        string changelog = File.ReadAllText(Path.Combine(repositoryRoot, "CHANGELOG.MD"));
-        Assert.Contains("SaveTablesAsExcel", changelog, StringComparison.Ordinal);
-        Assert.Contains("SaveAsPowerPoint", changelog, StringComparison.Ordinal);
-        Assert.Contains("ImportTablesToExcelDocument", changelog, StringComparison.Ordinal);
-        Assert.Contains("ToPowerPointPresentation", changelog, StringComparison.Ordinal);
-        Assert.Contains("`PdfWordReadOptions` with `PdfWordImportOptions`", changelog, StringComparison.Ordinal);
-        Assert.Contains("`PdfPowerPointTableImportOptions` with `PdfPowerPointImportOptions`", changelog, StringComparison.Ordinal);
-        Assert.Contains("`ImportTablesToPowerPointPresentation` with `ToPowerPointPresentation`", changelog, StringComparison.Ordinal);
-        Assert.DoesNotContain("SaveAs{Format}FromPdfTables", changelog, StringComparison.Ordinal);
-        Assert.DoesNotContain("To{Format}BytesFromPdfTables", changelog, StringComparison.Ordinal);
+        string migration = File.ReadAllText(Path.Combine(repositoryRoot, "MIGRATION.md"));
+        Assert.Contains("# Upgrading OfficeIMO", migration, StringComparison.Ordinal);
+        Assert.Contains("GitHub Releases", migration, StringComparison.Ordinal);
+        Assert.Contains("## OfficeIMO 3.0 to 3.1", migration, StringComparison.Ordinal);
+        Assert.Contains("## OfficeIMO 2.x to 3.0", migration, StringComparison.Ordinal);
+        Assert.Contains("## OfficeIMO 1.x to 2.0", migration, StringComparison.Ordinal);
+        Assert.Contains("SaveTablesAsExcel", migration, StringComparison.Ordinal);
+        Assert.Contains("SaveAsPowerPoint", migration, StringComparison.Ordinal);
+        Assert.Contains("ImportTablesToExcelDocument", migration, StringComparison.Ordinal);
+        Assert.Contains("ToPowerPointPresentation", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfWordReadOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfWordImportOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointTableImportOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointImportOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ImportTablesToPowerPointPresentation`", migration, StringComparison.Ordinal);
+        Assert.DoesNotContain("SaveAs{Format}FromPdfTables", migration, StringComparison.Ordinal);
+        Assert.DoesNotContain("To{Format}BytesFromPdfTables", migration, StringComparison.Ordinal);
 
         string documentationIndex = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "README.md"));
         Assert.Contains("# OfficeIMO documentation", documentationIndex, StringComparison.Ordinal);
         Assert.Contains("Use this index to find package guides", documentationIndex, StringComparison.Ordinal);
         Assert.Contains("Package READMEs are the best starting point", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("[Migration guide](../MIGRATION.md)", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("[GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases)", documentationIndex, StringComparison.Ordinal);
         Assert.Contains("These reports are generated from repository catalogs", documentationIndex, StringComparison.Ordinal);
         Assert.DoesNotContain("Documentation ownership rules", documentationIndex, StringComparison.Ordinal);
 
         string agentInstructions = File.ReadAllText(Path.Combine(repositoryRoot, "AGENTS.md"));
         Assert.Contains("## Documentation audiences", agentInstructions, StringComparison.Ordinal);
         Assert.Contains("root README and package READMEs are user-facing", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("`MIGRATION.md` is the user-facing upgrade contract", agentInstructions, StringComparison.Ordinal);
         Assert.Contains("Docs/README.md` is a navigation page", agentInstructions, StringComparison.Ordinal);
         Assert.Contains("Docs/ROADMAP.md` is the single product backlog", agentInstructions, StringComparison.Ordinal);
         Assert.Contains("Do not put agent workflow", agentInstructions, StringComparison.Ordinal);
@@ -390,7 +400,8 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
         Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
 
-        Assert.False(File.Exists(Path.Combine(repositoryRoot, "MIGRATION.md")));
+        Assert.True(File.Exists(Path.Combine(repositoryRoot, "MIGRATION.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "CHANGELOG.MD")));
         Assert.False(File.Exists(Path.Combine(repositoryRoot, "powerpoint.md")));
         Assert.False(File.Exists(Path.Combine(repositoryRoot, "OfficeIMO.Markup", "IMPLEMENTATION_PLAN.md")));
         Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-3.0-public-api-review.md")));

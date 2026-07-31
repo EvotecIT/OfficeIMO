@@ -306,8 +306,8 @@ pre code{background:none;padding:0;color:inherit}
 .pf-release-group-title{font-size:0.8rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--imo-text-secondary);margin-bottom:0.9rem}
 .pf-release-buttons-list{display:grid;gap:0.85rem}
 .pf-release-button--item{justify-content:flex-start;padding:1rem 1.1rem}
-.pf-release-button-content{display:flex;flex-direction:column;gap:0.35rem;align-items:flex-start}
-.pf-release-button-label{font-size:0.95rem;font-weight:700;color:var(--imo-text)}
+.pf-release-button-content{display:flex;flex-direction:column;gap:0.35rem;align-items:flex-start;min-width:0;width:100%}
+.pf-release-button-label{font-size:0.95rem;font-weight:700;color:var(--imo-text);overflow-wrap:anywhere}
 .pf-release-button-meta{font-size:0.78rem;color:var(--imo-text-muted);font-family:var(--imo-font-mono)}
 .pf-release-button-badges,.pf-release-asset-badges{display:flex;flex-wrap:wrap;gap:0.35rem}
 .pf-release-badge,.pf-release-asset-badge,.pf-release-chip{display:inline-flex;align-items:center;padding:0.15rem 0.5rem;border-radius:999px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.12);font-size:0.66rem;font-weight:700;color:var(--imo-accent)}

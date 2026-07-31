@@ -587,7 +587,7 @@
           { "Title": "License and AI use", "Url": "/licensing/" },
           { "Title": "Third-Party Dependencies", "Url": "/third-party/" },
           { "Title": "Downloads", "Url": "/downloads/" },
-          { "Title": "Changelog", "Url": "/changelog/" },
+          { "Title": "Releases", "Url": "/releases/" },
           { "Title": "Benchmarks", "Url": "/benchmarks/" },
           { "Title": "Compatibility", "Url": "/compatibility/" },
           { "Title": "Conversion guides", "Url": "/convert/guides/" },

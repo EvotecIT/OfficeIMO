@@ -3,6 +3,7 @@
 ## Documentation audiences
 
 - The root README and package READMEs are user-facing. They explain what the current package does, how to install it, and how to use its public API.
+- `MIGRATION.md` is the user-facing upgrade contract. Keep actionable old-to-new package, API, configuration, and behavior changes there; GitHub Releases owns release history.
 - `Docs/README.md` is a navigation page for readers and contributors. Keep it focused on finding the right guide, contract, evidence, or roadmap entry.
 - `Docs/ROADMAP.md` is the single product backlog. It contains open work, not completed milestones or implementation journals.
 - `AGENTS.md` owns repository-maintenance instructions for coding agents. Do not put agent workflow, cleanup policy, or documentation-governance rules into user-facing READMEs.
@@ -12,6 +13,7 @@
 
 - Document the current source and package contract. Do not add release-wait, preview-state, pull-request progress, or "after publication" language to current product docs.
 - Keep installation and public API examples in the README of the package that owns the API.
+- Keep release summaries out of the repository. Link GitHub Releases for history and preserve only required upgrade actions in `MIGRATION.md`.
 - Keep exact coverage and known limitations in the relevant support or capability matrix.
 - Move actionable product gaps to `Docs/ROADMAP.md`; do not create another backlog, readiness review, gap plan, or package roadmap.
 - Keep dated reports only when the date is part of reproducible evidence, such as a benchmark run.
