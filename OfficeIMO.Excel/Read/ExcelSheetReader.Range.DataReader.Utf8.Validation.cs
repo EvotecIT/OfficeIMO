@@ -15,14 +15,105 @@ namespace OfficeIMO.Excel {
                     publiclyVisible: false);
                 using XmlReader reader = OpenWorksheetXmlReader(stream);
                 int nodesUntilCancellationCheck = 1024;
+                int sheetDataDepth = -1;
+                int rowDepth = -1;
+                int cellDepth = -1;
+                int inlineStringDepth = -1;
+                bool indexedSheetDataCompleted = false;
                 ct.ThrowIfCancellationRequested();
                 while (reader.Read()) {
                     if (--nodesUntilCancellationCheck == 0) {
                         ct.ThrowIfCancellationRequested();
                         nodesUntilCancellationCheck = 1024;
                     }
+
+                    if (reader.NodeType == XmlNodeType.Element) {
+                        bool spreadsheetElement = IsSpreadsheetNamespace(reader.NamespaceURI);
+                        if (reader.LocalName == "sheetData") {
+                            if (indexedSheetDataCompleted) {
+                                continue;
+                            }
+                            if (!spreadsheetElement) {
+                                ThrowUnexpectedIndexedElementNamespace(reader.LocalName);
+                            }
+                            if (reader.IsEmptyElement) {
+                                indexedSheetDataCompleted = true;
+                            } else {
+                                sheetDataDepth = reader.Depth;
+                            }
+                            continue;
+                        }
+
+                        if (sheetDataDepth >= 0
+                            && reader.Depth == sheetDataDepth + 1
+                            && reader.LocalName == "row") {
+                            if (!spreadsheetElement) {
+                                ThrowUnexpectedIndexedElementNamespace(reader.LocalName);
+                            }
+                            rowDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+                            continue;
+                        }
+
+                        if (rowDepth >= 0
+                            && reader.Depth == rowDepth + 1
+                            && reader.LocalName == "c") {
+                            if (!spreadsheetElement) {
+                                ThrowUnexpectedIndexedElementNamespace(reader.LocalName);
+                            }
+                            cellDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+                            inlineStringDepth = -1;
+                            continue;
+                        }
+
+                        if (cellDepth >= 0 && reader.Depth == cellDepth + 1) {
+                            if (reader.LocalName == "v" || reader.LocalName == "f" || reader.LocalName == "is") {
+                                if (!spreadsheetElement) {
+                                    ThrowUnexpectedIndexedElementNamespace(reader.LocalName);
+                                }
+                                if (reader.LocalName == "is" && !reader.IsEmptyElement) {
+                                    inlineStringDepth = reader.Depth;
+                                }
+                            }
+                            continue;
+                        }
+
+                        if (inlineStringDepth >= 0
+                            && reader.Depth == inlineStringDepth + 1
+                            && reader.LocalName == "t"
+                            && !spreadsheetElement) {
+                            ThrowUnexpectedIndexedElementNamespace(reader.LocalName);
+                        }
+                        continue;
+                    }
+
+                    if (reader.NodeType != XmlNodeType.EndElement) {
+                        continue;
+                    }
+                    if (reader.Depth == inlineStringDepth && reader.LocalName == "is") {
+                        inlineStringDepth = -1;
+                    }
+                    if (reader.Depth == cellDepth && reader.LocalName == "c") {
+                        cellDepth = -1;
+                        inlineStringDepth = -1;
+                    }
+                    if (reader.Depth == rowDepth && reader.LocalName == "row") {
+                        rowDepth = -1;
+                    }
+                    if (reader.Depth == sheetDataDepth && reader.LocalName == "sheetData") {
+                        sheetDataDepth = -1;
+                        indexedSheetDataCompleted = true;
+                    }
                 }
                 ct.ThrowIfCancellationRequested();
+            }
+
+            private static bool IsSpreadsheetNamespace(string namespaceUri) =>
+                string.Equals(namespaceUri, SpreadsheetNamespace, StringComparison.Ordinal)
+                || string.Equals(namespaceUri, StrictSpreadsheetNamespace, StringComparison.Ordinal);
+
+            private void ThrowUnexpectedIndexedElementNamespace(string localName) {
+                throw new InvalidDataException(
+                    $"Worksheet '{_owner._sheetName}' element '{localName}' must use a SpreadsheetML namespace.");
             }
 
             private bool TryIndexCell(
@@ -102,10 +193,21 @@ namespace OfficeIMO.Excel {
             }
 
             private bool IsSharedFormulaTag(Utf8Tag tag) {
-                return LocalNameEquals(tag, "f")
-                    && TryGetAttribute(tag, "t", out bool hasType, out int typeStart, out int typeLength)
-                    && hasType
-                    && AsciiEqualsIgnoreCase(typeStart, typeLength, "shared");
+                if (!LocalNameEquals(tag, "f")
+                    || !TryGetAttribute(tag, "t", out bool hasType, out int typeStart, out int typeLength)
+                    || !hasType) {
+                    return false;
+                }
+
+                if (AsciiEqualsIgnoreCase(typeStart, typeLength, "shared")) {
+                    return true;
+                }
+
+                return ContainsByte(typeStart, typeStart + typeLength, (byte)'&')
+                    && string.Equals(
+                        DecodeXmlText(typeStart, typeLength),
+                        "shared",
+                        StringComparison.OrdinalIgnoreCase);
             }
 
             private void ValidateIndexedCell(
