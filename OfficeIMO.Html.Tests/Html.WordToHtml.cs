@@ -24,6 +24,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_ResultReportsFlattenedAndOmittedWordSemantics() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Tracked ").AddInsertedText("text", "Reviewer");
+            doc.AddParagraph("Comment target").AddComment("Reviewer", "R", "Review note");
+            doc.AddParagraph("Author: ").AddField(WordFieldType.Author);
+
+            HtmlTextConversionResult result = doc.ToHtmlResult();
+
+            Assert.True(result.Succeeded);
+            Assert.True(result.HasLoss);
+            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "TrackedRevisionsFlattened");
+            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "CommentsOmitted");
+            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "FieldInstructionsFlattened");
+        }
+
+        [Fact]
+        public void Test_WordToHtml_EnforcesOutputCharacterBudget() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Budgeted output");
+            var options = new WordToHtmlOptions { MaxOutputCharacters = 10 };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal(10, exception.Limit);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_EnforcesImageBudgetBeforeMaterializingImage() {
+            using var doc = WordDocument.Create();
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            var options = new WordToHtmlOptions { MaxEmbeddedImageBytes = 1 };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+
+            Assert.Equal("WordImageSizeLimitExceeded", exception.Code);
+            Assert.Equal(1, exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_HeadingsAndFormatting() {
             using var doc = WordDocument.Create();
             doc.BuiltinDocumentProperties.Title = "Test Document";

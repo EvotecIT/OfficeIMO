@@ -4,6 +4,9 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Collections.Generic;
+using System.IO.Compression;
+using System.Xml;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -13,6 +16,14 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Fact]
+        public void Test_DigitalSignature_PackageAndMacroProjectCapabilitiesAreExplicitlySeparate() {
+            Assert.True(WordSigningCapabilities.Package.IsSupported);
+            Assert.Equal(WordSigningCapabilityKind.OpcPackage, WordSigningCapabilities.Package.Kind);
+            Assert.False(WordSigningCapabilities.MacroProject.IsSupported);
+            Assert.Equal(WordSigningCapabilityKind.VbaMacroProject, WordSigningCapabilities.MacroProject.Kind);
+        }
+
         [Fact]
         public void Test_DigitalSignature_MissingPart_ReturnsNull() {
             string tempFile = Path.GetTempFileName();
@@ -75,20 +86,20 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("/word/document.xml", signedReference.TargetPartUri);
                 Assert.True(signedReference.TargetPartExists);
                 Assert.Contains("CN=OfficeIMO Test", signaturePart.X509SubjectNames);
-                Assert.Contains(signatures.UnsupportedDetails, detail => detail.Contains("metadata-only", System.StringComparison.OrdinalIgnoreCase));
+                Assert.Empty(signatures.UnsupportedDetails);
 
                 WordSignatureValidationReport validation = document.ValidateSignatures();
                 Assert.False(validation.IsStructurallyValid);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.PackageStructureStatus);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.XmlSignatureStatus);
-                Assert.Equal(WordSignatureValidationState.NotChecked, validation.CryptographicStatus);
-                Assert.Equal(WordSignatureValidationState.NotChecked, validation.CertificateChainStatus);
-                Assert.Equal(WordSignatureValidationState.NotChecked, validation.RevocationStatus);
+                Assert.Equal(WordSignatureValidationState.Unsupported, validation.CryptographicStatus);
+                Assert.Equal(WordSignatureValidationState.NotPresent, validation.CertificateChainStatus);
+                Assert.Equal(WordSignatureValidationState.NotPresent, validation.RevocationStatus);
                 Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.SignedPartCoverageStatus);
                 Assert.Equal(WordSignatureValidationState.Failed, validation.SignedPartDigestStatus);
                 Assert.Contains(validation.Findings, finding => finding.Contains("digest did not match", System.StringComparison.OrdinalIgnoreCase));
-                Assert.Contains(validation.Findings, finding => finding.Contains("Cryptographic signature validation is not performed", System.StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignerCertificateMissing");
                 Assert.Contains(validation.Findings, finding => finding.Contains("package-part references resolve", System.StringComparison.OrdinalIgnoreCase));
             }
         }
@@ -125,8 +136,8 @@ namespace OfficeIMO.Tests {
                     timestamp.Kind == "XAdES SigningTime" &&
                     timestamp.Value == xadesTimestampValue &&
                     timestamp.Format == null);
-                Assert.Equal(WordSignatureValidationState.NotChecked, validation.TimestampStatus);
-                Assert.Contains(validation.Findings, finding => finding.Contains("timestamp metadata was found", System.StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
+                Assert.Contains(validation.Diagnostics, finding => finding.Code == "ClaimedSigningTimeNotTrusted");
                 Assert.Contains(validation.SignatureInfo.Details, detail => detail.Contains("Signature timestamp", System.StringComparison.OrdinalIgnoreCase));
             }
         }
@@ -145,17 +156,21 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(signatures.SignatureParts.SelectMany(part => part.X509SubjectNames), subject =>
                     subject.Contains("OfficeIMO Fixture Package Signing", System.StringComparison.OrdinalIgnoreCase));
 
-                WordSignatureValidationReport validation = document.ValidateSignatures();
+                var validationOptions = new WordSignatureValidationOptions();
+                validationOptions.CertificateValidation.ChainEvaluator = static (_, _) => true;
+                WordSignatureValidationReport validation = document.ValidateSignatures(validationOptions);
 
-                Assert.True(validation.IsStructurallyValid);
+                Assert.True(validation.IsStructurallyValid, string.Join(System.Environment.NewLine, validation.Findings));
                 Assert.Equal(WordSignatureValidationState.Passed, validation.PackageStructureStatus);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.XmlSignatureStatus);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.SignedPartCoverageStatus);
                 Assert.NotEqual(WordSignatureValidationState.Failed, validation.SignedPartDigestStatus);
-                Assert.Equal(WordSignatureValidationState.NotChecked, validation.CryptographicStatus);
-                Assert.Equal(WordSignatureValidationState.NotChecked, validation.CertificateChainStatus);
+                Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+                Assert.Equal(WordSignatureValidationState.Failed, validation.CertificateChainStatus);
                 Assert.Equal(WordSignatureValidationState.NotChecked, validation.RevocationStatus);
-                Assert.Equal(WordSignatureValidationState.NotChecked, validation.TimestampStatus);
+                Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
+                Assert.False(validation.IsValidUnderPolicy);
+                Assert.Contains(validation.Diagnostics, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
                 Assert.Contains(validation.SignatureInfo.SignatureParts.SelectMany(part => part.Timestamps), timestamp =>
                     !string.IsNullOrWhiteSpace(timestamp.Value));
                 Assert.Contains(validation.SignatureInfo.SignatureParts.SelectMany(part => part.SignedReferences), reference =>
@@ -181,7 +196,8 @@ namespace OfficeIMO.Tests {
                 OfficePackageSignatureInfo signatures = OfficePackageSignatureInspector.Inspect(
                     package,
                     package.DigitalSignatureOriginPart,
-                    package.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null);
+                    package.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null,
+                    File.ReadAllBytes(filePath));
 
                 Assert.True(signatures.HasSignatures);
                 Assert.True(signatures.HasDigitalSignatureOriginPart);
@@ -193,7 +209,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(signedReference.HasDigestValue);
                 Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Failed, signedReference.DigestVerificationStatus);
                 Assert.Contains(signatures.Details, detail => detail.Contains("Signed reference", System.StringComparison.OrdinalIgnoreCase));
-                Assert.Contains(signatures.UnsupportedDetails, detail => detail.Contains("metadata-only", System.StringComparison.OrdinalIgnoreCase));
+                Assert.Empty(signatures.UnsupportedDetails);
             }
         }
 
@@ -240,6 +256,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_DigestValidationRejectsSignedContentTypeMismatch() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureContentTypeBinding.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Content type binding");
+                document.Save();
+            }
+
+            XNamespace ds = "http://www.w3.org/2000/09/xmldsig#";
+            using var archive = new OfficePackageSignatureArchive(File.ReadAllBytes(filePath));
+            var reference = new XElement(ds + "Reference",
+                new XAttribute("URI", "/word/document.xml?ContentType=application%2Fvnd.openxmlformats-officedocument.wordprocessingml.document.main%2Bxml"),
+                new XElement(ds + "DigestMethod", new XAttribute("Algorithm", "http://www.w3.org/2001/04/xmlenc#sha256")));
+            reference.Add(new XElement(ds + "DigestValue", archive.ComputeDigestValue(reference, 16 * 1024 * 1024)));
+            reference.SetAttributeValue("URI", "/word/document.xml?ContentType=application%2Foctet-stream");
+
+            OfficePackageDigestResult result = archive.VerifyReference(reference, 16 * 1024 * 1024);
+
+            Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Failed, result.Status);
+            Assert.Contains("content type", result.Detail, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_UnsupportedManifestReferenceCannotPassCoveragePolicy() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnsupportedManifestReference.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unsupported manifest reference");
+                document.Save();
+            }
+            string documentDigest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\">" +
+                "<SignedInfo><SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                "<Reference URI=\"#manifest\"><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue></Reference></SignedInfo>" +
+                "<Object><Manifest Id=\"manifest\">" +
+                "<Reference URI=\"/word/document.xml\"><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>" + documentDigest + "</DigestValue></Reference>" +
+                "<Reference URI=\"https://example.invalid/external\"><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue></Reference>" +
+                "</Manifest></Object></Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures();
+
+            Assert.Equal(WordSignatureValidationState.Unsupported, validation.SignedPartCoverageStatus);
+            Assert.Equal(WordSignatureValidationState.Unsupported, validation.SignedPartDigestStatus);
+            Assert.False(validation.IsValidUnderPolicy);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidateSignaturesLeavesTransformedDigestVerificationUnsupported() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTransformedDigestUnsupported.docx");
 
@@ -261,7 +325,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordSignatureValidationState.Unsupported, signedReference.DigestVerificationStatus);
                 Assert.Equal("http://www.w3.org/2000/09/xmldsig#enveloped-signature", Assert.Single(signedReference.TransformAlgorithms));
                 Assert.Equal(WordSignatureValidationState.Unsupported, validation.SignedPartDigestStatus);
-                Assert.Contains(validation.Findings, finding => finding.Contains("transforms", System.StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(validation.Findings, finding => finding.Contains("transform", System.StringComparison.OrdinalIgnoreCase));
             }
         }
 
@@ -395,7 +459,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordFeatureSupportLevel.Unsupported, signatures.SupportLevel);
                 Assert.Contains(signatures.Details, detail => detail.Contains("origin.sigs", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(signatures.Details, detail => detail.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase));
-                Assert.Contains(signatures.Details, detail => detail.Contains("not validated", System.StringComparison.OrdinalIgnoreCase));
+                Assert.Contains("validated", signatures.Note, System.StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("macro-project signing", signatures.Note, System.StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -507,9 +572,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Details, detail => detail.Contains("invalid character", System.StringComparison.OrdinalIgnoreCase));
         }
 
-#if NET472
         [Fact]
-        public void Test_DigitalSignature_SignPackageCreatesStructurallyReadableSignatureOnSupportedAdapter() {
+        public void Test_DigitalSignature_SignPackageCreatesCryptographicallyValidSignatureCrossPlatform() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSignedByAdapter.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -528,10 +592,11 @@ namespace OfficeIMO.Tests {
             Assert.True(result.SignedPartCount > 0);
             Assert.True(result.SignedRelationshipSelectorCount > 0);
             Assert.True(result.SignatureCount > 0);
-            Assert.Contains("package/services/digital-signature", result.SignaturePartUri, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Matches("^/_xmlsignatures/sig[0-9]*\\.xml$", result.SignaturePartUri!);
             Assert.NotNull(result.ValidationReport);
             Assert.True(result.ValidationReport!.IsStructurallyValid);
-            Assert.Equal(WordSignatureValidationState.NotChecked, result.ValidationReport.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.Passed, result.ValidationReport.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.Passed, result.ValidationReport.SignedPartDigestStatus);
 
             using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
                 Assert.NotNull(package.DigitalSignatureOriginPart);
@@ -539,17 +604,103 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
-                WordSignatureValidationReport validation = document.ValidateSignatures();
+                var validationOptions = new WordSignatureValidationOptions();
+                validationOptions.CertificateValidation.ChainEvaluator = static (_, _) => true;
+                WordSignatureValidationReport validation = document.ValidateSignatures(validationOptions);
 
                 Assert.True(validation.HasSignatures);
-                Assert.True(validation.IsStructurallyValid);
+                Assert.True(validation.IsStructurallyValid, string.Join(System.Environment.NewLine, validation.Findings));
                 Assert.Equal(WordSignatureValidationState.Passed, validation.PackageStructureStatus);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.XmlSignatureStatus);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.SignedPartCoverageStatus);
-                Assert.Equal(WordSignatureValidationState.NotChecked, validation.CertificateChainStatus);
+                Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+                Assert.Equal(WordSignatureValidationState.Passed, validation.CertificateChainStatus);
+                Assert.True(validation.IsValidUnderPolicy, string.Join(System.Environment.NewLine, validation.Findings));
                 Assert.True(validation.SignatureInfo.SignatureParts.Count > 0);
                 Assert.Contains(validation.SignatureInfo.SignatureParts.SelectMany(part => part.SignedReferences), reference => reference.HasDigestValue);
             }
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidatesEmbeddedRfc3161TimestampAuthorityToken() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTimestamped.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Timestamped OPC package signature");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer, new WordPackageSigningOptions {
+                SignatureId = "OfficeIMOTimestampedSignature"
+            });
+            AddRfc3161Timestamp(filePath, timestampCorrectSignatureValue: true);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            options.TimestampCertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            WordSignaturePartValidationResult signature = Assert.Single(validation.Signatures);
+            Assert.Equal(WordSignatureValidationState.Passed, signature.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.Passed, signature.TimestampStatus);
+            Assert.Equal(OfficeIMO.Security.SecurityValidationStatus.Valid, Assert.Single(signature.TimestampTokens).Status);
+            Assert.True(validation.IsValidUnderPolicy, string.Join(System.Environment.NewLine, validation.Findings));
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_RejectsTimestampWithMismatchedMessageImprint() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureBadTimestamp.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Mismatched RFC 3161 timestamp imprint");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer);
+            AddRfc3161Timestamp(filePath, timestampCorrectSignatureValue: false);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            options.TimestampCertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.Failed, validation.TimestampStatus);
+            Assert.False(validation.IsValidUnderPolicy);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "TimestampImprintMismatch");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_RejectsMalformedEmbeddedTimestampToken() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureMalformedTimestamp.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Malformed RFC 3161 timestamp token");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer);
+            AddRfc3161Timestamp(filePath, timestampCorrectSignatureValue: true, timestampTokenText: "not-valid-base64!");
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.Equal(WordSignatureValidationState.Failed, validation.TimestampStatus);
+            Assert.False(validation.IsValidUnderPolicy);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "TimestampMalformed");
         }
 
         [Fact]
@@ -630,6 +781,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(result.ValidationReport);
         }
 
+#if NET472
         [Fact]
         public void Test_DigitalSignature_SignPackageCanResolveCertificateFromStoreOnSupportedAdapter() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSignedByStoreCertificate.docx");
@@ -663,28 +815,6 @@ namespace OfficeIMO.Tests {
             } finally {
                 RemoveCertificateFromCurrentUserStore(certificate.Thumbprint);
             }
-        }
-#else
-        [Fact]
-        public void Test_DigitalSignature_TrySignPackageReportsUnsupportedAdapter() {
-            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnsupportedSigningAdapter.docx");
-
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Unsupported package signing adapter proof");
-                document.Save();
-            }
-
-            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, certificate);
-
-            Assert.False(result.IsSupported);
-            Assert.False(result.Succeeded);
-            Assert.Null(result.ValidationReport);
-            Assert.Contains(result.Details, detail => detail.Contains("PackageDigitalSignatureManager", System.StringComparison.OrdinalIgnoreCase));
-
-            WordPackageSigningException exception = Assert.Throws<WordPackageSigningException>(() => WordDocument.SignPackage(filePath, certificate));
-            Assert.False(exception.Result.IsSupported);
-            Assert.False(exception.Result.Succeeded);
         }
 #endif
 
@@ -818,6 +948,100 @@ namespace OfficeIMO.Tests {
                 DateTimeOffset.UtcNow.AddDays(1));
 
             return new X509Certificate2(certificate.Export(X509ContentType.Pfx), (string?)null, X509KeyStorageFlags.Exportable);
+        }
+
+        private static void AddRfc3161Timestamp(string filePath, bool timestampCorrectSignatureValue, string? timestampTokenText = null) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
+                entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
+                entry.FullName.EndsWith(".xml", System.StringComparison.OrdinalIgnoreCase) &&
+                !entry.FullName.Contains("_rels", System.StringComparison.OrdinalIgnoreCase));
+            var signatureXml = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            using (Stream source = signatureEntry.Open()) {
+                signatureXml.Load(source);
+            }
+
+            var namespaceManager = new XmlNamespaceManager(signatureXml.NameTable);
+            namespaceManager.AddNamespace("ds", "http://www.w3.org/2000/09/xmldsig#");
+            XmlElement signature = signatureXml.DocumentElement!;
+            XmlElement signatureValue = (XmlElement)signature.SelectSingleNode("ds:SignatureValue", namespaceManager)!;
+            byte[] timestampedValue = timestampCorrectSignatureValue
+                ? System.Convert.FromBase64String(signatureValue.InnerText)
+                : Encoding.UTF8.GetBytes("not the XML signature value");
+            byte[] timestampToken = CreateRfc3161TimestampToken(timestampedValue);
+
+            XmlElement dataObject = signatureXml.CreateElement("ds", "Object", "http://www.w3.org/2000/09/xmldsig#");
+            XmlElement qualifyingProperties = signatureXml.CreateElement("xades", "QualifyingProperties", "http://uri.etsi.org/01903/v1.3.2#");
+            qualifyingProperties.SetAttribute("Target", "#" + signature.GetAttribute("Id"));
+            XmlElement unsignedProperties = signatureXml.CreateElement("xades", "UnsignedProperties", qualifyingProperties.NamespaceURI);
+            XmlElement unsignedSignatureProperties = signatureXml.CreateElement("xades", "UnsignedSignatureProperties", qualifyingProperties.NamespaceURI);
+            XmlElement signatureTimeStamp = signatureXml.CreateElement("xades", "SignatureTimeStamp", qualifyingProperties.NamespaceURI);
+            XmlElement encapsulated = signatureXml.CreateElement("xades", "EncapsulatedTimeStamp", qualifyingProperties.NamespaceURI);
+            encapsulated.InnerText = timestampTokenText ?? System.Convert.ToBase64String(timestampToken);
+            signatureTimeStamp.AppendChild(encapsulated);
+            unsignedSignatureProperties.AppendChild(signatureTimeStamp);
+            unsignedProperties.AppendChild(unsignedSignatureProperties);
+            qualifyingProperties.AppendChild(unsignedProperties);
+            dataObject.AppendChild(qualifyingProperties);
+            signature.AppendChild(dataObject);
+
+            using Stream destination = signatureEntry.Open();
+            destination.SetLength(0);
+            signatureXml.Save(destination);
+        }
+
+        private static byte[] CreateRfc3161TimestampToken(byte[] timestampedData) {
+            using X509Certificate2 certificate = CreateTimestampCertificate();
+            using RSA rsa = certificate.GetRSAPrivateKey() ?? throw new System.InvalidOperationException();
+            Org.BouncyCastle.X509.X509Certificate bcCertificate =
+                Org.BouncyCastle.Security.DotNetUtilities.FromX509Certificate(certificate);
+            Org.BouncyCastle.Crypto.AsymmetricKeyParameter privateKey =
+                Org.BouncyCastle.Security.DotNetUtilities.GetRsaKeyPair(rsa).Private;
+            var signerFactory = new Org.BouncyCastle.Crypto.Operators.Asn1SignatureFactory("SHA256WITHRSA", privateKey);
+            Org.BouncyCastle.Cms.SignerInfoGenerator signer =
+                new Org.BouncyCastle.Cms.SignerInfoGeneratorBuilder().Build(signerFactory, bcCertificate);
+            var generator = new Org.BouncyCastle.Tsp.TimeStampTokenGenerator(
+                signer,
+                Org.BouncyCastle.Crypto.Operators.Asn1DigestFactory.Get("SHA256"),
+                new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.6.1.4.1.59069.1.1"),
+                isIssuerSerialIncluded: true);
+            generator.SetCertificates(new SingleCertificateStore(bcCertificate));
+            var requestGenerator = new Org.BouncyCastle.Tsp.TimeStampRequestGenerator();
+            requestGenerator.SetCertReq(true);
+            byte[] imprint = Org.BouncyCastle.Security.DigestUtilities.CalculateDigest("SHA256", timestampedData);
+            Org.BouncyCastle.Tsp.TimeStampRequest request = requestGenerator.Generate(
+                Org.BouncyCastle.Tsp.TspAlgorithms.Sha256,
+                imprint);
+            return generator.Generate(request, Org.BouncyCastle.Math.BigInteger.One, System.DateTime.UtcNow).GetEncoded();
+        }
+
+        private static X509Certificate2 CreateTimestampCertificate() {
+            using RSA rsa = RSA.Create(2048);
+            var request = new CertificateRequest(
+                "CN=OfficeIMO Word Test TSA",
+                rsa,
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1);
+            request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
+            request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
+                new OidCollection { new Oid("1.3.6.1.5.5.7.3.8") },
+                critical: true));
+            request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
+            return request.CreateSelfSigned(System.DateTimeOffset.UtcNow.AddMinutes(-5), System.DateTimeOffset.UtcNow.AddDays(1));
+        }
+
+        private sealed class SingleCertificateStore :
+            Org.BouncyCastle.Utilities.Collections.IStore<Org.BouncyCastle.X509.X509Certificate> {
+            private readonly Org.BouncyCastle.X509.X509Certificate _certificate;
+
+            internal SingleCertificateStore(Org.BouncyCastle.X509.X509Certificate certificate) {
+                _certificate = certificate;
+            }
+
+            public System.Collections.Generic.IEnumerable<Org.BouncyCastle.X509.X509Certificate> EnumerateMatches(
+                Org.BouncyCastle.Utilities.Collections.ISelector<Org.BouncyCastle.X509.X509Certificate> selector) {
+                if (selector == null || selector.Match(_certificate)) yield return _certificate;
+            }
         }
 
         private static void AddCertificateToCurrentUserStore(X509Certificate2 certificate) {

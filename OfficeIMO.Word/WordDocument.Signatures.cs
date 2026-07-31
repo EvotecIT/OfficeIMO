@@ -11,26 +11,84 @@ namespace OfficeIMO.Word {
             return WordSignatureInspector.Inspect(
                 _wordprocessingDocument,
                 _wordprocessingDocument.DigitalSignatureOriginPart,
-                ApplicationProperties.DigitalSignature != null);
+                ApplicationProperties.DigitalSignature != null,
+                _ownedPackageStream?.ToArray());
         }
 
         /// <summary>
-        /// Validates signature package structure and reports unsupported cryptographic validation boundaries.
+        /// Validates package structure, transform-aware OPC digests, XML signature math, signer trust,
+        /// revocation under the default no-network policy, and embedded RFC 3161 timestamp tokens.
         /// </summary>
         public WordSignatureValidationReport ValidateSignatures() {
-            return WordSignatureValidationReport.From(InspectSignatures());
+            return ValidateSignatures(new WordSignatureValidationOptions());
         }
 
         /// <summary>
-        /// Signs a saved DOCX package using the platform package-signing adapter and throws when signing cannot be completed and structurally verified.
+        /// Validates package structure, transform-aware OPC digests, XML signature math, signer trust,
+        /// revocation, and embedded RFC 3161 timestamp tokens under caller policy.
+        /// </summary>
+        /// <param name="options">Trust, revocation, timestamp, and resource policy.</param>
+        public WordSignatureValidationReport ValidateSignatures(WordSignatureValidationOptions options) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            OfficePackageSignatureValidator.ValidateOptions(options);
+            if (_ownedPackageStream != null && _ownedPackageStream.Length > options.MaxPackageBytes) {
+                WordSignatureInfo boundedInfo = WordSignatureInspector.Inspect(
+                    _wordprocessingDocument,
+                    _wordprocessingDocument.DigitalSignatureOriginPart,
+                    ApplicationProperties.DigitalSignature != null,
+                    packageBytes: null,
+                    maxPackageParts: options.MaxPackageParts,
+                    maxPartBytes: options.MaxPartBytes,
+                    maxSignatureBytes: options.MaxSignatureBytes);
+                return WordSignatureValidationReport.WithValidationFailure(
+                    WordSignatureValidationReport.From(boundedInfo),
+                    "PackageByteLimitExceeded",
+                    "The OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
+            }
+            byte[]? packageBytes = _ownedPackageStream?.ToArray();
+            WordSignatureInfo signatureInfo = WordSignatureInspector.Inspect(
+                _wordprocessingDocument,
+                _wordprocessingDocument.DigitalSignatureOriginPart,
+                ApplicationProperties.DigitalSignature != null,
+                packageBytes,
+                options.MaxPackageParts,
+                options.MaxPartBytes,
+                options.MaxSignatureBytes);
+            WordSignatureValidationReport structural = WordSignatureValidationReport.From(signatureInfo);
+            if (!signatureInfo.HasSignatures ||
+                packageBytes == null ||
+                _wordprocessingDocument.DigitalSignatureOriginPart == null) {
+                return structural;
+            }
+
+            try {
+                IReadOnlyList<WordSignaturePartValidationResult> signatures = OfficePackageSignatureValidator.Validate(
+                    _wordprocessingDocument.DigitalSignatureOriginPart,
+                    packageBytes,
+                    signatureInfo,
+                    options);
+                return WordSignatureValidationReport.WithCryptographicValidation(structural, signatures);
+            } catch (InvalidDataException exception) {
+                return WordSignatureValidationReport.WithValidationFailure(
+                    structural,
+                    "SignatureResourceLimitExceeded",
+                    exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Signs a saved DOCX package using the cross-platform OPC XML-signature engine and throws when signing cannot be completed and cryptographically verified.
         /// </summary>
         /// <param name="filePath">Path to the DOCX package to sign.</param>
         /// <param name="certificate">Certificate with a private key used for signing.</param>
         /// <param name="options">Optional package-signing settings.</param>
-        /// <returns>A signing result with structural validation readback.</returns>
+        /// <returns>A signing result with structural, cryptographic, digest, and certificate-policy validation readback.</returns>
         public static WordPackageSigningResult SignPackage(string filePath, X509Certificate2 certificate, WordPackageSigningOptions? options = null) {
             WordPackageSigningResult result = TrySignPackage(filePath, certificate, options);
-            if (!result.Succeeded || result.ValidationReport?.IsStructurallyValid != true) {
+            if (!result.Succeeded ||
+                result.ValidationReport?.IsStructurallyValid != true ||
+                result.ValidationReport.CryptographicStatus != WordSignatureValidationState.Passed ||
+                result.ValidationReport.SignedPartDigestStatus != WordSignatureValidationState.Passed) {
                 throw new WordPackageSigningException(result);
             }
 
@@ -38,20 +96,23 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Resolves a signing certificate by thumbprint from the certificate store, signs a saved DOCX package, and throws when signing cannot be completed and structurally verified.
+        /// Resolves a signing certificate by thumbprint from the certificate store, signs a saved DOCX package, and throws when signing cannot be completed and cryptographically verified.
         /// </summary>
         /// <param name="filePath">Path to the DOCX package to sign.</param>
         /// <param name="certificateThumbprint">Certificate thumbprint to locate.</param>
         /// <param name="certificateOptions">Optional certificate-store lookup settings.</param>
         /// <param name="signingOptions">Optional package-signing settings.</param>
-        /// <returns>A signing result with structural validation readback.</returns>
+        /// <returns>A signing result with structural, cryptographic, digest, and certificate-policy validation readback.</returns>
         public static WordPackageSigningResult SignPackage(
             string filePath,
             string certificateThumbprint,
             WordPackageCertificateStoreOptions? certificateOptions = null,
             WordPackageSigningOptions? signingOptions = null) {
             WordPackageSigningResult result = TrySignPackage(filePath, certificateThumbprint, certificateOptions, signingOptions);
-            if (!result.Succeeded || result.ValidationReport?.IsStructurallyValid != true) {
+            if (!result.Succeeded ||
+                result.ValidationReport?.IsStructurallyValid != true ||
+                result.ValidationReport.CryptographicStatus != WordSignatureValidationState.Passed ||
+                result.ValidationReport.SignedPartDigestStatus != WordSignatureValidationState.Passed) {
                 throw new WordPackageSigningException(result);
             }
 
@@ -64,7 +125,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Path to the DOCX package to sign.</param>
         /// <param name="certificate">Certificate with a private key used for signing.</param>
         /// <param name="options">Optional package-signing settings.</param>
-        /// <returns>A signing result with details and structural validation readback when available.</returns>
+        /// <returns>A signing result with details and validation readback when available.</returns>
         public static WordPackageSigningResult TrySignPackage(string filePath, X509Certificate2 certificate, WordPackageSigningOptions? options = null) {
             OfficePackageSigningResult packageResult = OfficePackageSignatureWriter.Sign(filePath, certificate, (options ?? new WordPackageSigningOptions()).ToPackageOptions());
             WordSignatureValidationReport? validationReport = null;
@@ -86,7 +147,7 @@ namespace OfficeIMO.Word {
         /// <param name="certificateThumbprint">Certificate thumbprint to locate.</param>
         /// <param name="certificateOptions">Optional certificate-store lookup settings.</param>
         /// <param name="signingOptions">Optional package-signing settings.</param>
-        /// <returns>A signing result with details and structural validation readback when available.</returns>
+        /// <returns>A signing result with details and validation readback when available.</returns>
         public static WordPackageSigningResult TrySignPackage(
             string filePath,
             string certificateThumbprint,

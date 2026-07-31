@@ -83,6 +83,7 @@ namespace OfficeIMO.Word {
             options ??= WordComparisonOptions.Default;
 
             WordComparisonResult result = new(sourceLabel, targetLabel);
+            AnalyzeKnownComparisonLimitations(source, target, result, options);
             var comparisonWorkBudget = new ComparisonWorkBudget(MaxComparisonTextWorkUnits);
             AnalyzeParagraphs(source, target, result, options, comparisonWorkBudget);
             if (options.CompareFields) {

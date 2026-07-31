@@ -19,8 +19,11 @@ namespace OfficeIMO.Word {
             AppendJsonProperty(builder, 1, "targetPath", result.TargetPath, comma: true);
             AppendJsonProperty(builder, 1, "hasChanges", result.HasChanges, comma: true);
             AppendJsonProperty(builder, 1, "findingCount", result.Findings.Count, comma: true);
+            AppendJsonProperty(builder, 1, "hasLimitations", result.HasLimitations, comma: true);
+            AppendJsonProperty(builder, 1, "limitationCount", result.Limitations.Count, comma: true);
             AppendJsonSummary(builder, result, comma: true);
-            AppendJsonFindings(builder, result, comma: false);
+            AppendJsonFindings(builder, result, comma: true);
+            AppendJsonLimitations(builder, result, comma: false);
             builder.Append('}');
             return builder.ToString();
         }
@@ -54,11 +57,15 @@ namespace OfficeIMO.Word {
             builder.Append("| Findings | ");
             builder.Append(result.Findings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
             builder.AppendLine(" |");
+            builder.Append("| Limitations | ");
+            builder.Append(result.Limitations.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            builder.AppendLine(" |");
             builder.AppendLine();
 
             AppendSummaryMarkdown(builder, "By Scope", result.Findings.GroupBy(finding => finding.Scope.ToString()).OrderBy(group => group.Key, StringComparer.Ordinal));
             AppendSummaryMarkdown(builder, "By Change", result.Findings.GroupBy(finding => finding.ChangeKind.ToString()).OrderBy(group => group.Key, StringComparer.Ordinal));
             AppendFindingsMarkdown(builder, result);
+            AppendLimitationsMarkdown(builder, result);
 
             return builder.ToString().TrimEnd();
         }
@@ -74,7 +81,9 @@ namespace OfficeIMO.Word {
             }
 
             if (result.Findings.Count == 0) {
-                return "No structural differences detected.";
+                return result.HasLimitations
+                    ? "No structural differences detected. " + result.Limitations.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " comparison limitation(s) reported."
+                    : "No structural differences detected.";
             }
 
             string count = result.Findings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -92,7 +101,54 @@ namespace OfficeIMO.Word {
                     .OrderBy(group => group.Key)
                     .Select(group => group.Key + "=" + group.Count().ToString(System.Globalization.CultureInfo.InvariantCulture)));
 
-            return count + " " + noun + " detected. Scopes: " + scopeSummary + ". Changes: " + changeSummary + ".";
+            string limitations = result.HasLimitations
+                ? " Limitations: " + result.Limitations.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."
+                : string.Empty;
+            return count + " " + noun + " detected. Scopes: " + scopeSummary + ". Changes: " + changeSummary + "." + limitations;
+        }
+
+        private static void AppendJsonLimitations(StringBuilder builder, WordComparisonResult result, bool comma) {
+            AppendIndent(builder, 1);
+            AppendJsonString(builder, "limitations");
+            builder.AppendLine(": [");
+            for (int i = 0; i < result.Limitations.Count; i++) {
+                WordComparisonLimitation limitation = result.Limitations[i];
+                AppendIndent(builder, 2);
+                builder.AppendLine("{");
+                AppendJsonProperty(builder, 3, "code", limitation.Code, comma: true);
+                AppendJsonProperty(builder, 3, "message", limitation.Message, comma: true);
+                AppendJsonProperty(builder, 3, "sourceContainsShape", limitation.SourceContainsShape, comma: true);
+                AppendJsonProperty(builder, 3, "targetContainsShape", limitation.TargetContainsShape, comma: false);
+                AppendIndent(builder, 2);
+                builder.Append('}');
+                builder.AppendLine(i == result.Limitations.Count - 1 ? string.Empty : ",");
+            }
+            AppendIndent(builder, 1);
+            builder.Append(']');
+            builder.AppendLine(comma ? "," : string.Empty);
+        }
+
+        private static void AppendLimitationsMarkdown(StringBuilder builder, WordComparisonResult result) {
+            builder.AppendLine();
+            builder.AppendLine("## Limitations");
+            builder.AppendLine();
+            if (result.Limitations.Count == 0) {
+                builder.AppendLine("_None._");
+                return;
+            }
+            builder.AppendLine("| Code | Source | Target | Detail |");
+            builder.AppendLine("| --- | --- | --- | --- |");
+            foreach (WordComparisonLimitation limitation in result.Limitations) {
+                builder.Append("| ");
+                builder.Append(EscapeMarkdownCell(limitation.Code));
+                builder.Append(" | ");
+                builder.Append(limitation.SourceContainsShape ? "yes" : "no");
+                builder.Append(" | ");
+                builder.Append(limitation.TargetContainsShape ? "yes" : "no");
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(limitation.Message));
+                builder.AppendLine(" |");
+            }
         }
 
         private static void AppendJsonSummary(StringBuilder builder, WordComparisonResult result, bool comma) {

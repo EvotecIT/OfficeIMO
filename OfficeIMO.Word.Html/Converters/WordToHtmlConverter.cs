@@ -1,8 +1,10 @@
 using AngleSharp.Dom;
+using AngleSharp.Html;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using M = DocumentFormat.OpenXml.Math;
@@ -15,7 +17,43 @@ namespace OfficeIMO.Word.Html {
         public string Convert(WordDocument document, WordToHtmlOptions options) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToHtmlOptions();
+            ExportInspection exportInspection = InspectExport(document, options);
+            ReportKnownExportLimitations(document, options, exportInspection);
             CancellationToken cancellationToken = CancellationToken.None;
+            long embeddedImageBytes = 0;
+
+            byte[] ReadEmbeddedImageBytes(WordImage image, string source) {
+                using Stream input = image.OpenRead();
+                if (input.CanSeek && input.Length > options.MaxEmbeddedImageBytes) {
+                    ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
+                }
+                if (input.CanSeek && input.Length > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes) {
+                    ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, input.Length), options.MaxTotalEmbeddedImageBytes);
+                }
+
+                int capacity = input.CanSeek && input.Length <= int.MaxValue ? (int)input.Length : 0;
+                using var output = new MemoryStream(capacity);
+                byte[] buffer = new byte[81920];
+                long imageBytes = 0;
+                int read;
+                while ((read = input.Read(buffer, 0, buffer.Length)) > 0) {
+                    long nextImageBytes = imageBytes + read;
+                    if (nextImageBytes > options.MaxEmbeddedImageBytes) {
+                        ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, nextImageBytes, options.MaxEmbeddedImageBytes);
+                    }
+                    if (nextImageBytes > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes) {
+                        ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, nextImageBytes), options.MaxTotalEmbeddedImageBytes);
+                    }
+                    output.Write(buffer, 0, read);
+                    imageBytes = nextImageBytes;
+                }
+
+                embeddedImageBytes += imageBytes;
+                byte[] bytes = output.ToArray();
+                return bytes;
+            }
+
+            long SaturatingAdd(long left, long right) => left > long.MaxValue - right ? long.MaxValue : left + right;
 
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
 
@@ -124,7 +162,7 @@ namespace OfficeIMO.Word.Html {
                         var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
                         if (ext == ".svg") {
                             if (options.EmbedImagesAsBase64) {
-                                var svgXml = Encoding.UTF8.GetString(imgObj.ToBytes());
+                                var svgXml = Encoding.UTF8.GetString(ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image.svg"));
                                 var parser = new HtmlParser();
                                 var fragment = parser.ParseFragment(svgXml, body);
                                 var svgElement = fragment.OfType<IElement>().FirstOrDefault();
@@ -158,7 +196,7 @@ namespace OfficeIMO.Word.Html {
                             } else if (!options.EmbedImagesAsBase64) {
                                 src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                             } else {
-                                var bytes = imgObj.ToBytes();
+                                var bytes = ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image");
                                 var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
                                 src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
                             }
@@ -516,6 +554,39 @@ namespace OfficeIMO.Word.Html {
                 return runs.Count > 0 && runs.All(r => r.Code);
             }
 
+            bool TryAppendPlainParagraph(IElement parent, WordParagraph para) {
+                Paragraph paragraph = para._paragraph;
+                if (paragraph.ParagraphProperties?.HasChildren == true) {
+                    return false;
+                }
+
+                StringBuilder? text = null;
+                foreach (var child in paragraph.ChildElements) {
+                    if (child is ParagraphProperties) {
+                        continue;
+                    }
+                    if (child is not Run run || run.RunProperties != null) {
+                        return false;
+                    }
+
+                    foreach (var runChild in run.ChildElements) {
+                        if (runChild is not Text wordText) {
+                            return false;
+                        }
+
+                        text ??= new StringBuilder();
+                        text.Append(wordText.Text);
+                    }
+                }
+
+                var element = htmlDoc.CreateElement("p");
+                if (text != null) {
+                    element.TextContent = text.ToString();
+                }
+                parent.AppendChild(element);
+                return true;
+            }
+
 
             void AppendParagraph(IElement parent, WordParagraph para, bool suppressStructuralBookmark = false) {
                 if (!suppressStructuralBookmark && para.IsBookmark && para.Bookmark != null) {
@@ -528,6 +599,10 @@ namespace OfficeIMO.Word.Html {
                         parent.AppendChild(structEl);
                         return;
                     }
+                }
+
+                if (TryAppendPlainParagraph(parent, para)) {
+                    return;
                 }
 
                 if (para.Borders.BottomStyle != null && string.IsNullOrWhiteSpace(para.Text)) {
@@ -1038,6 +1113,11 @@ namespace OfficeIMO.Word.Html {
                             }
                         }
                         processedParagraphs.Add(paragraph);
+                        if (TryAppendPlainParagraph(sectionParent, paragraph)) {
+                            CloseLists();
+                            activeDefinitionList = null;
+                            continue;
+                        }
                         if (IsCaptionParagraph(paragraph) && idx + 1 < elements.Count && elements[idx + 1] is WordTable) {
                             activeDefinitionList = null;
                             continue;
@@ -1136,7 +1216,11 @@ namespace OfficeIMO.Word.Html {
             AppendListDefinitions(htmlDoc, head, listDefinitions, cancellationToken);
             AppendStyleDefinitions(document, htmlDoc, head, paragraphStyles, runStyles, cancellationToken);
 
-            return htmlDoc.DocumentElement.OuterHtml;
+            using var outputWriter = new BoundedHtmlWriter(
+                options.MaxOutputCharacters,
+                actual => ThrowExportLimitExceeded(options, "WordHtmlOutputLimitExceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
+            htmlDoc.DocumentElement.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
+            return outputWriter.ToString();
         }
 
         private static bool SameParagraphElement(WordParagraph left, WordParagraph right) =>

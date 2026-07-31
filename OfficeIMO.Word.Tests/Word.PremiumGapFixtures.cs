@@ -90,14 +90,16 @@ namespace OfficeIMO.Tests {
             string repositoryRoot = LocateRepositoryRootForPremiumGapTests();
             string roadmapPath = Path.Combine(repositoryRoot, "Docs", "ROADMAP.md");
             string roadmap = File.ReadAllText(roadmapPath);
-            Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
-            Assert.Contains("officeimo.word-template-mail-merge-scenarios.md", roadmap, StringComparison.Ordinal);
-            Assert.Contains("Broaden imported review and redline corpus coverage", roadmap, StringComparison.Ordinal);
-            Assert.Contains("Extend structured comparison and redline generation", roadmap, StringComparison.Ordinal);
-            Assert.Contains("Complete field evaluation and refresh", roadmap, StringComparison.Ordinal);
-            Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
-            Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
-            Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
+            Assert.DoesNotContain("## Word", roadmap, StringComparison.Ordinal);
+
+            string compatibilityPath = Path.Combine(repositoryRoot, "OfficeIMO.Word", "COMPATIBILITY.md");
+            string compatibility = File.ReadAllText(compatibilityPath);
+            Assert.Contains("Cross-platform OPC XML-signature creation", compatibility, StringComparison.Ordinal);
+            Assert.Contains("relationship-transform", compatibility, StringComparison.Ordinal);
+            Assert.Contains("RFC 3161", compatibility, StringComparison.Ordinal);
+            Assert.Contains("VBA macro-project signing", compatibility, StringComparison.Ordinal);
+            Assert.Contains("stable limitation codes", compatibility, StringComparison.Ordinal);
+            Assert.Contains("WordPageNumberBasis.ExplicitBreakEstimate", compatibility, StringComparison.Ordinal);
 
             string fixtureManifestPath = Path.Combine(
                 repositoryRoot,

@@ -8,6 +8,30 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void LegacyDoc_WriteAssessment_UsesTheRealWriterWithoutCommittingAnArtifact() {
+            using (WordDocument supportedDocument = WordDocument.Create()) {
+                supportedDocument.AddParagraph("Assessment body");
+
+                LegacyDocWriteAssessment supported = supportedDocument.AssessLegacyDocWrite();
+
+                Assert.True(supported.IsSupported);
+                Assert.Equal("LegacyDocWriteSupported", supported.DiagnosticCode);
+                Assert.True(supported.EncodedByteCount > 0);
+                Assert.Same(supported, supported.EnsureSupported());
+            }
+
+            byte[] unsupportedBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Preserve-only body");
+            using WordDocument unsupportedDocument = WordDocument.Load(new MemoryStream(unsupportedBytes));
+
+            LegacyDocWriteAssessment unsupported = unsupportedDocument.AssessLegacyDocWrite();
+
+            Assert.False(unsupported.IsSupported);
+            Assert.Equal("LegacyDocWriteUnsupported", unsupported.DiagnosticCode);
+            Assert.Null(unsupported.EncodedByteCount);
+            Assert.Throws<NotSupportedException>(() => unsupported.EnsureSupported());
+        }
+
+        [Fact]
         public void LegacyDoc_Convert_DocxToDocAndBack_RoundTripsSupportedContent() {
             string docxPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
             string docPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");

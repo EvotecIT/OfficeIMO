@@ -213,7 +213,7 @@ namespace OfficeIMO.Word {
         /// <summary>Gets XML DSig transform algorithms declared on the reference.</summary>
         public IReadOnlyList<string> TransformAlgorithms { get; }
 
-        /// <summary>Gets bounded digest-verification status for simple package-part references.</summary>
+        /// <summary>Gets bounded digest-verification status after applying supported OPC transforms.</summary>
         public WordSignatureValidationState DigestVerificationStatus { get; }
 
         /// <summary>Gets a deterministic digest-verification detail or unsupported reason.</summary>
@@ -277,11 +277,22 @@ namespace OfficeIMO.Word {
         internal static WordSignatureInfo Inspect(
             WordprocessingDocument package,
             DigitalSignatureOriginPart? originPart,
-            bool hasApplicationSignatureMetadata) {
+            bool hasApplicationSignatureMetadata,
+            byte[]? packageBytes = null,
+            int maxPackageParts = 10000,
+            long maxPartBytes = 256L * 1024 * 1024,
+            long maxSignatureBytes = 16L * 1024 * 1024) {
             if (package == null) throw new ArgumentNullException(nameof(package));
 
             return WordSignatureInfo.FromPackageInfo(
-                OfficePackageSignatureInspector.Inspect(package, originPart, hasApplicationSignatureMetadata));
+                OfficePackageSignatureInspector.Inspect(
+                    package,
+                    originPart,
+                    hasApplicationSignatureMetadata,
+                    packageBytes,
+                    maxPackageParts,
+                    maxPartBytes,
+                    maxSignatureBytes));
         }
     }
 }

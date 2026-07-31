@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using System.Globalization;
 
 namespace OfficeIMO.Word {
     public static partial class WordMailMerge {
@@ -13,50 +14,83 @@ namespace OfficeIMO.Word {
             @"^\s*(?<field>NEXTIF|SKIPIF|NEXT|MERGEREC|MERGESEQ)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled,
             TimeSpan.FromMilliseconds(100));
+        private static readonly Regex MergeFieldTypePattern = new Regex(
+            @"^\s*MERGEFIELD(?:\s|$)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
 
         private static void ReplaceMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields) {
-            ReplaceSimpleMergeFields(root, values, removeFields);
-            ReplaceComplexMergeFields(root, values, removeFields);
+            ReplaceMergeFields(root, values, removeFields, null);
         }
-        private static void ReplaceSimpleMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields) {
+        private static void ReplaceMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
+            ReplaceSimpleMergeFields(root, values, removeFields, results);
+            ReplaceComplexMergeFields(root, values, removeFields, results);
+        }
+        private static void ReplaceSimpleMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
             foreach (var simpleField in root.Descendants<SimpleField>().ToList()) {
-                string? name = GetMergeFieldName(simpleField.Instruction?.Value);
-                if (name == null || !TryGetMergeValue(values, name, out string? value)) {
+                string instruction = simpleField.Instruction?.Value ?? string.Empty;
+                string? name = TryGetMergeFieldName(instruction);
+                if (name == null) {
+                    ReportMalformedMergeField(results, instruction, "A simple MERGEFIELD instruction could not be parsed as a named field.");
+                    continue;
+                }
+                if (!TryGetMergeValue(values, name, out string? value)) {
+                    AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.MissingValue, null, "Merge field '" + name + "' has no supplied value.");
+                    continue;
+                }
+                if (!TryFormatMergeValue(instruction, value, out string formattedValue, out string formatMessage)) {
+                    AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.UnsupportedFormatting, null, formatMessage);
                     continue;
                 }
 
                 if (removeFields) {
-                    var replacement = CreateReplacementRun(value, simpleField.Elements<Run>().FirstOrDefault());
+                    var replacement = CreateReplacementRun(formattedValue, simpleField.Elements<Run>().FirstOrDefault());
                     simpleField.InsertBeforeSelf(replacement);
                     simpleField.Remove();
                 } else {
-                    SetFieldResultText(simpleField.Elements<Run>(), value);
+                    SetFieldResultText(simpleField.Elements<Run>(), formattedValue);
                 }
+                AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
             }
         }
 
-        private static void ReplaceComplexMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields) {
+        private static void ReplaceComplexMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
             foreach (var paragraph in EnumerateParagraphs(root)) {
-                List<Run>? fieldRuns = null;
+                var activeFields = new List<ComplexFieldFrame>();
 
                 foreach (var run in paragraph.Elements<Run>().ToList()) {
                     var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-                        fieldRuns = new List<Run> { run };
+                        foreach (ComplexFieldFrame activeField in activeFields) {
+                            activeField.Runs.Add(run);
+                            activeField.HasNestedField = true;
+                        }
+                        activeFields.Add(new ComplexFieldFrame(run));
                         continue;
                     }
 
-                    if (fieldRuns == null) {
+                    if (activeFields.Count == 0) {
                         continue;
                     }
 
-                    fieldRuns.Add(run);
+                    foreach (ComplexFieldFrame activeField in activeFields) activeField.Runs.Add(run);
                     if (fieldChar?.FieldCharType?.Value != FieldCharValues.End) {
                         continue;
                     }
 
-                    ReplaceComplexFieldRuns(fieldRuns, values, removeFields);
-                    fieldRuns = null;
+                    ComplexFieldFrame completedField = activeFields[activeFields.Count - 1];
+                    activeFields.RemoveAt(activeFields.Count - 1);
+                    string instruction = ReadComplexFieldInstruction(completedField.Runs);
+                    if (completedField.HasNestedField && MergeFieldTypePattern.IsMatch(instruction)) {
+                        ReportMalformedMergeField(results, instruction, "A complex MERGEFIELD contains a nested field and cannot be processed deterministically.");
+                    } else {
+                        ReplaceComplexFieldRuns(completedField.Runs, values, removeFields, results);
+                    }
+                }
+
+                foreach (ComplexFieldFrame activeField in activeFields) {
+                    string instruction = ReadComplexFieldInstruction(activeField.Runs);
+                    ReportMalformedMergeField(results, instruction, "A complex MERGEFIELD is missing its closing field marker or a valid field name.");
                 }
             }
         }
@@ -103,12 +137,19 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void ReplaceComplexFieldRuns(IReadOnlyList<Run> fieldRuns, IDictionary<string, string> values, bool removeFields) {
-            string instruction = string.Concat(fieldRuns
-                .SelectMany(run => run.Elements<FieldCode>())
-                .Select(code => code.Text));
-            string? name = GetMergeFieldName(instruction);
-            if (name == null || !TryGetMergeValue(values, name, out string? value)) {
+        private static void ReplaceComplexFieldRuns(IReadOnlyList<Run> fieldRuns, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
+            string instruction = ReadComplexFieldInstruction(fieldRuns);
+            string? name = TryGetMergeFieldName(instruction);
+            if (name == null) {
+                ReportMalformedMergeField(results, instruction, "A complex MERGEFIELD instruction could not be parsed as a named field.");
+                return;
+            }
+            if (!TryGetMergeValue(values, name, out string? value)) {
+                AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.MissingValue, null, "Merge field '" + name + "' has no supplied value.");
+                return;
+            }
+            if (!TryFormatMergeValue(instruction, value, out string formattedValue, out string formatMessage)) {
+                AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.UnsupportedFormatting, null, formatMessage);
                 return;
             }
 
@@ -116,17 +157,79 @@ namespace OfficeIMO.Word {
                 Run? sourceRun = GetComplexFieldResultRuns(fieldRuns).FirstOrDefault()
                     ?? fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null)
                     ?? fieldRuns.FirstOrDefault();
-                var replacement = CreateReplacementRun(value, sourceRun);
+                var replacement = CreateReplacementRun(formattedValue, sourceRun);
                 fieldRuns[0].InsertBeforeSelf(replacement);
                 foreach (var run in fieldRuns) {
                     run.Remove();
                 }
 
+                AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
                 return;
             }
 
             var resultRuns = GetComplexFieldResultRuns(fieldRuns).ToList();
-            SetFieldResultText(resultRuns, value);
+            SetFieldResultText(resultRuns, formattedValue);
+            AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
+        }
+
+        private static bool TryFormatMergeValue(string instruction, string value, out string formattedValue, out string message) {
+            WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction);
+            if (parsed.Diagnostics.Count > 0) {
+                formattedValue = string.Empty;
+                message = "Merge field formatting is unsupported: " + string.Join(" ", parsed.Diagnostics);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)) {
+                if (!decimal.TryParse(value, NumberStyles.Number | NumberStyles.AllowCurrencySymbol, CultureInfo.InvariantCulture, out decimal number)) {
+                    formattedValue = string.Empty;
+                    message = "Merge field value '" + value + "' is not an invariant number required by numeric picture '" + parsed.NumericPictureSwitch + "'.";
+                    return false;
+                }
+                if (!WordFieldUpdater.TryFormatFormulaValue(number, parsed.NumericPictureSwitch, out formattedValue, out string? diagnostic)) {
+                    message = diagnostic ?? "Merge field numeric picture is outside the deterministic formatting profile.";
+                    return false;
+                }
+            } else if (parsed.Switches.Any(fieldSwitch => fieldSwitch.TrimStart().StartsWith(@"\@", StringComparison.Ordinal))) {
+                if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind, out DateTime dateTime)) {
+                    formattedValue = string.Empty;
+                    message = "Merge field value '" + value + "' is not an invariant date/time required by the date picture switch.";
+                    return false;
+                }
+                if (!WordFieldUpdater.TryFormatDateTime(dateTime, parsed, out formattedValue, out message)) return false;
+            } else {
+                formattedValue = value;
+            }
+
+            if (!WordFieldUpdater.TryApplyReferenceTextFormat(parsed.FormatSwitches, formattedValue, out string textFormatted, out string? unsupportedFormat)) {
+                message = "Merge field text format '" + unsupportedFormat + "' is outside the deterministic formatting profile.";
+                return false;
+            }
+            formattedValue = textFormatted;
+            message = string.Empty;
+            return true;
+        }
+
+        private static void AddMergeResult(List<WordMailMergeFieldResult>? results, string name, string instruction, WordMailMergeFieldStatus status, string? value, string message) {
+            results?.Add(new WordMailMergeFieldResult(name, NormalizeFieldInstructionForMessage(instruction), status, value, message));
+        }
+
+        private static string ReadComplexFieldInstruction(IEnumerable<Run> fieldRuns) => string.Concat(fieldRuns
+            .SelectMany(run => run.Elements<FieldCode>())
+            .Select(code => code.Text));
+
+        private static void ReportMalformedMergeField(List<WordMailMergeFieldResult>? results, string instruction, string message) {
+            if (!MergeFieldTypePattern.IsMatch(instruction)) return;
+            AddMergeResult(results, string.Empty, instruction, WordMailMergeFieldStatus.MalformedField, null, message);
+        }
+
+        private sealed class ComplexFieldFrame {
+            internal ComplexFieldFrame(Run beginRun) {
+                Runs = new List<Run> { beginRun };
+            }
+
+            internal List<Run> Runs { get; }
+            internal bool HasNestedField { get; set; }
         }
 
         private static IEnumerable<Run> GetComplexFieldResultRuns(IReadOnlyList<Run> fieldRuns) {

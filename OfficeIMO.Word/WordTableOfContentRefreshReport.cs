@@ -31,6 +31,7 @@ namespace OfficeIMO.Word {
             Entries = entries.ToArray();
             SkippedHeadingCount = skippedHeadingCount;
             PageNumberMode = pageNumberMode;
+            PageNumberBasis = WordPageNumberBasis.ExplicitBreakEstimate;
         }
 
         /// <summary>Gets generated entries in document order.</summary>
@@ -41,6 +42,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets a short description of how page numbers were calculated.</summary>
         public string PageNumberMode { get; }
+
+        /// <summary>Gets the stable page-number evidence basis.</summary>
+        public WordPageNumberBasis PageNumberBasis { get; }
 
         /// <summary>Gets the number of generated entries.</summary>
         public int EntryCount => Entries.Count;

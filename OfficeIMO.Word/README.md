@@ -43,6 +43,7 @@ document.Save();
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
 - Applies optional shared package-security policy before parsing Open XML or compound DOC files, and preflights read, edit, template, render, and save capabilities.
 - Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
+- Creates and validates cross-platform OPC XML package signatures with caller-controlled certificate-chain, revocation, timestamp-authority, and resource policy; VBA project signing remains a separate explicit unsupported capability.
 - Exports estimated document page ranges as dependency-free PNG or SVG previews through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
@@ -131,6 +132,33 @@ var totalField = new WordFieldBuilder(WordFieldType.MergeField)
 merge.AddField(totalField);
 ```
 
+For a strict merge, use the structured result rather than assuming every field was bound:
+
+```csharp
+WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+    document,
+    new Dictionary<string, string> {
+        ["CustomerName"] = "Ada Lovelace",
+        ["OrderTotal"] = "1234.5"
+    });
+
+report.EnsureComplete();
+```
+
+The report distinguishes merged fields, missing values, and unsupported formatting. `ExecuteBatchWithReport(...)` retains the same evidence for every output record.
+
+### OPC package signatures
+
+```csharp
+WordDocument.SignPackage("report.docx", "CERTIFICATE-THUMBPRINT");
+
+using WordDocument signed = WordDocument.Load("report.docx");
+WordSignatureValidationReport validation = signed.ValidateSignatures(
+    new WordSignatureValidationOptions());
+```
+
+`WordSigningCapabilities.Package.IsSupported` describes OPC package signing. `WordSigningCapabilities.MacroProject.IsSupported` is `false`: signing the package does not sign VBA code.
+
 ### Content controls
 
 ```csharp
@@ -152,6 +180,11 @@ using OfficeIMO.Word.LegacyDoc;
 
 using WordDocument document = WordDocument.Load("legacy-input.doc");
 document.Save("converted-output.docx");
+
+LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+if (assessment.IsSupported) {
+    document.Save("legacy-output.doc");
+}
 
 WordDocument.Convert("legacy-input.doc", "converted-output.docx");
 WordDocument.Convert("openxml-input.docx", "legacy-output.doc");

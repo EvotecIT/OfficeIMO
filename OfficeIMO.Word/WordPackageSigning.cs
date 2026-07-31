@@ -2,6 +2,45 @@ using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word {
+    /// <summary>Identifies a distinct Word signing surface.</summary>
+    public enum WordSigningCapabilityKind {
+        /// <summary>OPC XML signature over package parts and relationships.</summary>
+        OpcPackage,
+        /// <summary>VBA project signature embedded in a macro-enabled package.</summary>
+        VbaMacroProject
+    }
+
+    /// <summary>Describes availability of one signing surface without conflating package and VBA signatures.</summary>
+    public sealed class WordSigningCapability {
+        internal WordSigningCapability(WordSigningCapabilityKind kind, bool isSupported, string message) {
+            Kind = kind;
+            IsSupported = isSupported;
+            Message = message;
+        }
+
+        /// <summary>Gets the signing surface.</summary>
+        public WordSigningCapabilityKind Kind { get; }
+        /// <summary>Gets whether OfficeIMO can create this signature type.</summary>
+        public bool IsSupported { get; }
+        /// <summary>Gets the precise capability boundary.</summary>
+        public string Message { get; }
+    }
+
+    /// <summary>Exposes package and macro-project signing as separate capabilities.</summary>
+    public static class WordSigningCapabilities {
+        /// <summary>Cross-platform OPC package-signature creation and validation.</summary>
+        public static WordSigningCapability Package { get; } = new WordSigningCapability(
+            WordSigningCapabilityKind.OpcPackage,
+            true,
+            "Cross-platform OPC XML package signing and validation are supported.");
+
+        /// <summary>VBA project signing capability, which is independent of OPC package signing.</summary>
+        public static WordSigningCapability MacroProject { get; } = new WordSigningCapability(
+            WordSigningCapabilityKind.VbaMacroProject,
+            false,
+            "VBA macro-project signature creation is not supported; preserving an existing macro project does not sign it.");
+    }
+
     /// <summary>
     /// Options for resolving a signing certificate from the local certificate store.
     /// </summary>
@@ -28,7 +67,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>
-    /// Options for signing a DOCX package through the platform package-signing adapter.
+    /// Options for signing a DOCX package through the cross-platform OPC XML-signature engine.
     /// </summary>
     public sealed class WordPackageSigningOptions {
         /// <summary>
@@ -61,13 +100,36 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? SignatureId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the claimed OPC signing time. Current UTC time is used when omitted.
+        /// This is signed metadata, not an RFC 3161 timestamp-authority token.
+        /// </summary>
+        public DateTimeOffset? SigningTime { get; set; }
+
+        /// <summary>Gets or sets optional intermediate or root certificates embedded with the signer certificate.</summary>
+        public IReadOnlyCollection<X509Certificate2>? AdditionalCertificates { get; set; }
+
+        /// <summary>Gets or sets the maximum number of ZIP entries accepted while signing. Defaults to 10,000.</summary>
+        public int MaxPackageParts { get; set; } = 10000;
+
+        /// <summary>Gets or sets the maximum encoded package bytes accepted while signing. Defaults to 512 MiB.</summary>
+        public long MaxPackageBytes { get; set; } = 512L * 1024 * 1024;
+
+        /// <summary>Gets or sets the maximum uncompressed bytes read from one signed part. Defaults to 256 MiB.</summary>
+        public long MaxPartBytes { get; set; } = 256L * 1024 * 1024;
+
         internal OfficePackageSigningOptions ToPackageOptions() {
             return new OfficePackageSigningOptions {
                 PartUris = PartUris,
                 IncludePackageRelationships = IncludePackageRelationships,
                 IncludePartRelationships = IncludePartRelationships,
                 HashAlgorithm = HashAlgorithm,
-                SignatureId = SignatureId
+                SignatureId = SignatureId,
+                SigningTime = SigningTime,
+                AdditionalCertificates = AdditionalCertificates,
+                MaxPackageParts = MaxPackageParts,
+                MaxPackageBytes = MaxPackageBytes,
+                MaxPartBytes = MaxPartBytes
             };
         }
     }
@@ -80,7 +142,7 @@ namespace OfficeIMO.Word {
             OfficePackageSigningResult packageResult,
             WordSignatureValidationReport? validationReport) {
             var details = new List<string>(packageResult.Details);
-            if (validationReport != null && !validationReport.IsStructurallyValid) {
+            if (validationReport != null && !validationReport.IsValidUnderPolicy) {
                 details.AddRange(validationReport.Findings);
             }
 
@@ -116,7 +178,7 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the generated signature part URI when signing succeeded.</summary>
         public string? SignaturePartUri { get; }
 
-        /// <summary>Gets structural validation readback for the signed package when signing succeeded.</summary>
+        /// <summary>Gets cryptographic, digest, certificate, revocation, and timestamp validation readback for the signed package when signing succeeded.</summary>
         public WordSignatureValidationReport? ValidationReport { get; }
 
         /// <summary>Gets deterministic signing details or failure reasons.</summary>

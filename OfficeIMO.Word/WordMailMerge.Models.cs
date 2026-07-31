@@ -3,6 +3,106 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace OfficeIMO.Word {
+    /// <summary>Outcome for one MERGEFIELD occurrence processed by OfficeIMO.</summary>
+    public enum WordMailMergeFieldStatus {
+        /// <summary>The supplied value was formatted and written.</summary>
+        Merged,
+        /// <summary>No supplied value matched the field name.</summary>
+        MissingValue,
+        /// <summary>The field requested formatting outside the deterministic OfficeIMO profile.</summary>
+        UnsupportedFormatting,
+        /// <summary>The instruction declared MERGEFIELD but could not be parsed as a named field.</summary>
+        MalformedField
+    }
+
+    /// <summary>Structured result for one MERGEFIELD occurrence.</summary>
+    public sealed class WordMailMergeFieldResult {
+        internal WordMailMergeFieldResult(string name, string instruction, WordMailMergeFieldStatus status, string? value, string message) {
+            Name = name;
+            Instruction = instruction;
+            Status = status;
+            Value = value;
+            Message = message;
+        }
+
+        /// <summary>Gets the merge-field name.</summary>
+        public string Name { get; }
+        /// <summary>Gets the original field instruction.</summary>
+        public string Instruction { get; }
+        /// <summary>Gets the merge outcome.</summary>
+        public WordMailMergeFieldStatus Status { get; }
+        /// <summary>Gets the formatted value when one was written.</summary>
+        public string? Value { get; }
+        /// <summary>Gets a stable human-readable diagnostic.</summary>
+        public string Message { get; }
+    }
+
+    /// <summary>Summarizes a MERGEFIELD execution pass across body, headers, footers, notes, tables, content controls, and text boxes.</summary>
+    public sealed class WordMailMergeExecutionReport {
+        internal WordMailMergeExecutionReport(IReadOnlyList<WordMailMergeFieldResult> fields) {
+            Fields = fields.ToArray();
+        }
+
+        /// <summary>Gets all field results in deterministic document-root order.</summary>
+        public IReadOnlyList<WordMailMergeFieldResult> Fields { get; }
+        /// <summary>Gets the number of merged fields.</summary>
+        public int MergedCount => Fields.Count(item => item.Status == WordMailMergeFieldStatus.Merged);
+        /// <summary>Gets unique missing value names.</summary>
+        public IReadOnlyList<string> MissingValueNames => Fields
+            .Where(item => item.Status == WordMailMergeFieldStatus.MissingValue)
+            .Select(item => item.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        /// <summary>Gets whether every discovered MERGEFIELD was merged.</summary>
+        public bool IsComplete => Fields.All(item => item.Status == WordMailMergeFieldStatus.Merged);
+
+        /// <summary>Throws with field diagnostics when the merge was incomplete; otherwise returns this report.</summary>
+        public WordMailMergeExecutionReport EnsureComplete() {
+            if (!IsComplete) {
+                throw new InvalidOperationException(string.Join(Environment.NewLine,
+                    Fields.Where(item => item.Status != WordMailMergeFieldStatus.Merged).Select(item => item.Message)));
+            }
+            return this;
+        }
+    }
+
+    /// <summary>Outcome for one record emitted by a batch mail merge.</summary>
+    public sealed class WordMailMergeBatchItemResult {
+        internal WordMailMergeBatchItemResult(int recordIndex, string outputPath, WordMailMergeExecutionReport execution) {
+            RecordIndex = recordIndex;
+            OutputPath = outputPath;
+            Execution = execution;
+        }
+
+        /// <summary>Gets the zero-based source record index.</summary>
+        public int RecordIndex { get; }
+        /// <summary>Gets the committed output path.</summary>
+        public string OutputPath { get; }
+        /// <summary>Gets per-field formatting and missing-value diagnostics.</summary>
+        public WordMailMergeExecutionReport Execution { get; }
+    }
+
+    /// <summary>Summarizes a batch mail-merge operation in record order.</summary>
+    public sealed class WordMailMergeBatchResult {
+        internal WordMailMergeBatchResult(IReadOnlyList<WordMailMergeBatchItemResult> items) {
+            Items = items.ToArray();
+        }
+
+        /// <summary>Gets all committed outputs and their field reports.</summary>
+        public IReadOnlyList<WordMailMergeBatchItemResult> Items { get; }
+        /// <summary>Gets committed output paths in record order.</summary>
+        public IReadOnlyList<string> OutputPaths => Items.Select(item => item.OutputPath).ToArray();
+        /// <summary>Gets whether every output merged every discovered field.</summary>
+        public bool IsComplete => Items.All(item => item.Execution.IsComplete);
+
+        /// <summary>Throws when any record has missing values, malformed fields, or unsupported formatting.</summary>
+        public WordMailMergeBatchResult EnsureComplete() {
+            foreach (WordMailMergeBatchItemResult item in Items) item.Execution.EnsureComplete();
+            return this;
+        }
+    }
+
     /// <summary>
     /// Describes a mail-merge template validation issue.
     /// </summary>

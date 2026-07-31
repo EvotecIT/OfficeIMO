@@ -811,7 +811,7 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static bool TryFormatDateTime(DateTime source, WordFieldInventory.ParsedFieldInstruction parsed, out string value, out string message) {
+        internal static bool TryFormatDateTime(DateTime source, WordFieldInventory.ParsedFieldInstruction parsed, out string value, out string message) {
             string? customFormat = GetDateTimeFormatSwitch(parsed.Switches);
             if (string.IsNullOrWhiteSpace(customFormat)) {
                 value = source.ToString(DefaultDateTimeFormat, CultureInfo.InvariantCulture);
@@ -1243,7 +1243,8 @@ namespace OfficeIMO.Word {
                     fieldType,
                     status,
                     resultText,
-                    message);
+                    message,
+                    IsLocked);
             }
 
             internal static MutableFieldCandidate ForComplex(WordFieldInventory.FieldRoot root, ComplexFieldBuilder builder) {

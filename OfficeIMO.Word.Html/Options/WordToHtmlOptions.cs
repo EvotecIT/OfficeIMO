@@ -3,6 +3,18 @@ namespace OfficeIMO.Word.Html {
     /// Options controlling Word to HTML conversion.
     /// </summary>
     public class WordToHtmlOptions {
+        /// <summary>Maximum Open XML elements inspected during export. Defaults to 1,000,000.</summary>
+        public long MaxDocumentElements { get; set; } = 1_000_000;
+
+        /// <summary>Maximum bytes embedded for one image. Defaults to 64 MiB.</summary>
+        public long MaxEmbeddedImageBytes { get; set; } = 64L * 1024 * 1024;
+
+        /// <summary>Maximum aggregate image bytes embedded into one HTML result. Defaults to 256 MiB.</summary>
+        public long MaxTotalEmbeddedImageBytes { get; set; } = 256L * 1024 * 1024;
+
+        /// <summary>Maximum generated HTML characters. Defaults to 64 million.</summary>
+        public long MaxOutputCharacters { get; set; } = 64_000_000;
+
         /// <summary>
         /// Maximum nested table depth exported from a Word document. The default is 128.
         /// </summary>
@@ -130,5 +142,7 @@ namespace OfficeIMO.Word.Html {
         /// Default is false to preserve legacy behavior.
         /// </summary>
         public bool IncludeDefaultCss { get; set; } = false;
+
+        internal OfficeIMO.Html.HtmlDiagnosticReport ConversionReport { get; } = new OfficeIMO.Html.HtmlDiagnosticReport();
     }
 }

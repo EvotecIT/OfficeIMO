@@ -10,6 +10,33 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void Test_MailMerge_BatchReportKeepsPerRecordMissingValueDiagnostics() {
+            string templatePath = Path.Combine(_directoryWithFiles, "MailMergeBatchReportTemplate.docx");
+            using (WordDocument template = WordDocument.Create(templatePath)) {
+                template.AddParagraph("Name: ").AddField(WordFieldType.MergeField, parameters: new List<string> { "Name" });
+                template.AddParagraph("City: ").AddField(WordFieldType.MergeField, parameters: new List<string> { "City" });
+                template.Save();
+            }
+
+            var records = new[] {
+                (IDictionary<string, string>)new Dictionary<string, string> { ["Name"] = "Ada", ["City"] = "London" },
+                new Dictionary<string, string> { ["Name"] = "Grace" }
+            };
+
+            WordMailMergeBatchResult result = WordMailMerge.ExecuteBatchWithReport(
+                templatePath,
+                records,
+                (index, _) => Path.Combine(_directoryWithFiles, $"MailMergeBatchReport-{index}.docx"));
+
+            Assert.Equal(2, result.Items.Count);
+            Assert.True(result.Items[0].Execution.IsComplete);
+            Assert.False(result.Items[1].Execution.IsComplete);
+            Assert.Equal(new[] { "City" }, result.Items[1].Execution.MissingValueNames);
+            Assert.False(result.IsComplete);
+            Assert.Throws<InvalidOperationException>(() => result.EnsureComplete());
+        }
+
+        [Fact]
         public void Test_MailMerge_ComplexSplitRunFieldsPreserveResultFormattingWhenKeepingFields() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeFormattingSplitComplexFields.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -154,6 +181,80 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Northwind Traders", text.Text);
             Assert.NotNull(run.RunProperties?.Bold);
             Assert.Equal("7030A0", run.RunProperties!.Color!.Val!.Value.ToUpperInvariant());
+        }
+
+        [Fact]
+        public void Test_MailMerge_ExecutionReportFormatsSupportedPicturesAndReportsMissingValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "MailMergeExecutionReport.docx");
+            using WordDocument document = WordDocument.Create(filePath);
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(
+                new Paragraph(new SimpleField(new Run(new Text("name"))) { Instruction = @" MERGEFIELD Name \* Upper " }),
+                new Paragraph(new SimpleField(new Run(new Text("amount"))) { Instruction = " MERGEFIELD Amount \\# \"#,##0.00\" " }),
+                new Paragraph(new SimpleField(new Run(new Text("date"))) { Instruction = " MERGEFIELD DueDate \\@ \"yyyy-MM-dd\" " }),
+                new Paragraph(new SimpleField(new Run(new Text("missing"))) { Instruction = " MERGEFIELD Missing " }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> {
+                    ["Name"] = "Northwind traders",
+                    ["Amount"] = "1234.5",
+                    ["DueDate"] = "2026-07-31T12:30:00Z"
+                });
+
+            Assert.Equal(3, report.MergedCount);
+            Assert.False(report.IsComplete);
+            Assert.Equal("Missing", Assert.Single(report.MissingValueNames));
+            Assert.Contains(report.Fields, result => result.Name == "Name" && result.Value == "NORTHWIND TRADERS");
+            Assert.Contains(report.Fields, result => result.Name == "Amount" && result.Value == "1,234.50");
+            Assert.Contains(report.Fields, result => result.Name == "DueDate" && result.Value == "2026-07-31");
+            Assert.Throws<System.InvalidOperationException>(() => report.EnsureComplete());
+            Assert.Contains("NORTHWIND TRADERS", body.InnerText, System.StringComparison.Ordinal);
+            Assert.Contains("1,234.50", body.InnerText, System.StringComparison.Ordinal);
+            Assert.Contains("2026-07-31", body.InnerText, System.StringComparison.Ordinal);
+            Assert.Contains("missing", body.InnerText, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_MailMerge_ExecutionReportIncludesMalformedSimpleAndComplexFields() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(
+                new Paragraph(new SimpleField(new Run(new Text("malformed"))) { Instruction = " MERGEFIELD " }),
+                new Paragraph(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" MERGEFIELD "))));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string>());
+
+            Assert.False(report.IsComplete);
+            Assert.Equal(2, report.Fields.Count(result => result.Status == WordMailMergeFieldStatus.MalformedField));
+            Assert.Throws<System.InvalidOperationException>(() => report.EnsureComplete());
+        }
+
+        [Fact]
+        public void Test_MailMerge_ExecutionReportDoesNotLoseOuterMergeFieldWhenFieldsAreNested() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Outer ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Inner ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("inner")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Outer"] = "outer value", ["Inner"] = "inner value" });
+
+            Assert.False(report.IsComplete);
+            Assert.Contains(report.Fields, result => result.Status == WordMailMergeFieldStatus.MalformedField);
+            Assert.Contains(report.Fields, result => result.Name == "Inner" && result.Status == WordMailMergeFieldStatus.Merged);
         }
 
         private static SimpleField CreateSimpleMergeFieldForFormattingTest(string name, RunProperties runProperties) {

@@ -162,6 +162,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsStableEffectiveFormattingAndMoveLimitations() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_limitations_source.docx");
+            CreateImportedMoveAndFormattingRevisionDocument(sourcePath, "Limit source", "Reviewer");
+            SetFirstRunThemeColor(sourcePath, ThemeColorValues.Accent1);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_limitations_target.docx");
+            CreateImportedMoveAndFormattingRevisionDocument(targetPath, "Limit target", "Reviewer");
+            SetFirstRunThemeColor(targetPath, ThemeColorValues.Accent2);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.True(result.HasLimitations);
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "MoveSemantics.RevisionMetadataOnly" &&
+                limitation.Message.Contains("insert/delete", StringComparison.Ordinal));
+
+            using System.Text.Json.JsonDocument report = System.Text.Json.JsonDocument.Parse(result.ToJson());
+            Assert.True(report.RootElement.GetProperty("hasLimitations").GetBoolean());
+            Assert.Equal(result.Limitations.Count, report.RootElement.GetProperty("limitationCount").GetInt32());
+            Assert.Contains("## Limitations", result.ToMarkdown(), StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void CompareStructureOptionsCanDisableImageFindings() {
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -358,6 +385,16 @@ namespace OfficeIMO.Tests {
             inserted.Id = revisionId;
             inserted.Date = revisionDate;
             mainPart.Document.Save();
+        }
+
+        private static void SetFirstRunThemeColor(string path, ThemeColorValues themeColor) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Run run = wordDocument.MainDocumentPart!.Document.Body!.Descendants<Run>().First();
+            run.RunProperties ??= new RunProperties();
+            run.RunProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color {
+                ThemeColor = themeColor
+            };
+            wordDocument.MainDocumentPart.Document.Save();
         }
     }
 }

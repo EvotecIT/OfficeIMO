@@ -54,6 +54,7 @@ namespace OfficeIMO.Word {
             Entries = entries.ToArray();
             SkippedEntryCount = skippedEntryCount;
             PageNumberMode = pageNumberMode;
+            PageNumberBasis = WordPageNumberBasis.ExplicitBreakEstimate;
             ColumnCount = columnCount;
         }
 
@@ -65,6 +66,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets a short description of how page numbers were calculated.</summary>
         public string PageNumberMode { get; }
+
+        /// <summary>Gets the stable page-number evidence basis.</summary>
+        public WordPageNumberBasis PageNumberBasis { get; }
 
         /// <summary>Gets the bounded column count requested by an imported <c>INDEX \c</c> switch, when present.</summary>
         public int? ColumnCount { get; }

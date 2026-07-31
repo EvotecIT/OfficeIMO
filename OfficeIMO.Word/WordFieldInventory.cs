@@ -252,7 +252,8 @@ namespace OfficeIMO.Word {
                 detectedFieldType != WordFieldType.Section &&
                 detectedFieldType != WordFieldType.SectionPages &&
                 detectedFieldType != WordFieldType.PageRef &&
-                detectedFieldType != WordFieldType.Quote) {
+                detectedFieldType != WordFieldType.Quote &&
+                detectedFieldType != WordFieldType.MergeField) {
                 return true;
             }
 

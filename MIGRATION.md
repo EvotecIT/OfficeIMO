@@ -181,6 +181,16 @@ Template ownership and inspection names are also explicit:
 
 Replace `PowerPointChartData`, `PowerPointScatterChartData`, their series types, and chart-family-specific add methods with shared `OfficeIMO.Drawing.OfficeChartData` plus `AddChart`, `AddChartCm`, `AddChartInches`, or `AddChartPoints`.
 
+### Word signing, merge, fields, and conversion evidence
+
+Word 3.1 separates OPC package signatures from VBA project signatures. Use `WordSigningCapabilities.Package` and `WordSigningCapabilities.MacroProject` before presenting a signing workflow. `WordDocument.SignPackage(...)` now creates OPC XML signatures on every supported .NET platform; `ValidateSignatures(WordSignatureValidationOptions)` applies transform-aware digest, certificate-chain, revocation, and RFC 3161 timestamp policy. This does not create a VBA macro-project signature.
+
+Existing mail-merge convenience methods remain available. Use `ExecuteWithReport(...)` or `ExecuteBatchWithReport(...)` when missing values or unsupported text, numeric, and date picture switches must be gated with `EnsureComplete()`. Field update results now carry stable `DiagnosticCode` and `EvaluationBasis` values, and TOC/index/caption-list refresh reports expose their explicit-break page-number basis.
+
+Structured comparison reports now include stable `Limitations` entries for effective formatting and move semantics that require behavior OfficeIMO does not infer. Word-to-HTML callers that require fidelity evidence should use `ToHtmlResult()` and inspect `Report` or call `RequireNoLoss()`; configure the new document, embedded-image, aggregate-image, and output-character budgets for untrusted or service workloads.
+
+Before selecting `.doc` output, call `AssessLegacyDocWrite()` when the application needs a non-throwing capability gate. It executes the same bounded native encoder used by `Save` and `ToBytes` without committing a destination.
+
 ### Names and behavior
 
 | OfficeIMO 3.0 | OfficeIMO 3.1 |

@@ -18,6 +18,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_ExposesStableDiagnosticCodesAndEvaluationBasis() {
+            using WordDocument document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Creator = "Ada";
+            document.AddParagraph("Author: ").AddField(WordFieldType.Author);
+            document.AddParagraph("Page: ").AddField(WordFieldType.Page);
+            document.AddParagraph("List: ").AddField(WordFieldType.ListNum);
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+            WordFieldUpdateResult author = Assert.Single(report.Results, result => result.FieldType == WordFieldType.Author);
+            Assert.Equal("FieldUpdatedInvariant", author.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.InvariantDocumentModel, author.EvaluationBasis);
+
+            WordFieldUpdateResult page = Assert.Single(report.Results, result => result.FieldType == WordFieldType.Page);
+            Assert.Equal("FieldUpdatedFromExplicitBreaks", page.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.ExplicitBreakEstimate, page.EvaluationBasis);
+
+            WordFieldUpdateResult list = Assert.Single(report.Results, result => result.FieldType == WordFieldType.ListNum);
+            Assert.Equal("FieldEvaluationUnsupported", list.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, list.EvaluationBasis);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesMetadataCustomPropertiesAndFileName() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.Metadata.docx");
 
