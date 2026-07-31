@@ -1,14 +1,19 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class LegacyBiffWorkbookParser {
         internal static LegacyXlsWorkbook Parse(byte[] workbookStream, LegacyXlsImportOptions options) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             var workbook = new LegacyXlsWorkbook {
                 PreserveExternalWorkbookLinks = options.PreserveExternalWorkbookLinks
             };
             var decodedImageBudget = new LegacyXlsDecodedImageBudget(options.MaxDecodedImageBytes);
-            IReadOnlyList<BiffRecord> records = ReadWorkbookGlobalRecords(workbookStream, workbook.MutableDiagnostics);
+            IReadOnlyList<BiffRecord> records = ReadWorkbookGlobalRecords(
+                workbookStream,
+                workbook.MutableDiagnostics,
+                options.CancellationToken);
             var sharedStrings = new List<BiffStringReader.BiffStringValue>();
             var numberFormatsById = new Dictionary<ushort, string>();
             var externSheets = new List<BiffExternSheetReference>();
@@ -41,7 +46,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return workbook;
                 }
 
-                records = ReadWorkbookGlobalRecords(workbookStream, workbook.MutableDiagnostics);
+                records = ReadWorkbookGlobalRecords(
+                    workbookStream,
+                    workbook.MutableDiagnostics,
+                    options.CancellationToken);
                 decryptedFilePass = true;
             }
 
@@ -49,6 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             PopulateDefinedNameTable(records, definedNameTable);
 
             for (int i = 0; i < records.Count; i++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 BiffRecord record = records[i];
                 if (record.Type == (ushort)BiffRecordType.BoundSheet8) {
                     LegacyXlsWorksheet? sheet = TryReadBoundSheet(record, workbookGlobalsBiffVersion, workbook.MutableDiagnostics);
@@ -251,6 +260,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 decodedImageBudget);
 
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 LegacyBiffWorksheetParser.Parse(workbookStream, workbookGlobalsBiffVersion, workbook, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableDrawingRecords, workbook.MutableExternalQueryConnections, workbook.DifferentialFormats, workbook.MutableCalculationSettings, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics, options, decodedImageBudget);
             }
 
@@ -396,10 +406,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return payloads;
         }
 
-        private static IReadOnlyList<BiffRecord> ReadWorkbookGlobalRecords(byte[] workbookStream, List<LegacyXlsImportDiagnostic> diagnostics) {
+        private static IReadOnlyList<BiffRecord> ReadWorkbookGlobalRecords(
+            byte[] workbookStream,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            CancellationToken cancellationToken) {
             var records = new List<BiffRecord>();
             int offset = 0;
             while (offset < workbookStream.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (offset + 4 > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,

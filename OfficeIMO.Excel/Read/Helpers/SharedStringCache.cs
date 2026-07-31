@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel {
         private readonly int _maxSharedStringItems;
         private readonly int _maxSharedStringItemCharacters;
         private readonly long _maxSharedStringCharacters;
+        private readonly CancellationToken _cancellationToken;
         private readonly Lazy<List<string>> _items;
         private List<string>? _loadedItems;
         private readonly object _containsCacheLock = new object();
@@ -26,6 +27,7 @@ namespace OfficeIMO.Excel {
             _maxSharedStringItems = options.MaxSharedStringItems;
             _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
             _maxSharedStringCharacters = options.MaxSharedStringCharacters;
+            _cancellationToken = options.CancellationToken;
             _items = new Lazy<List<string>>(LoadItems, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
@@ -34,6 +36,7 @@ namespace OfficeIMO.Excel {
         }
 
         private List<string> LoadItems() {
+            _cancellationToken.ThrowIfCancellationRequested();
             SharedStringTablePart? part = GetSharedStringTablePart();
             if (part == null) return new List<string>();
             if (_preferDom && part.SharedStringTable != null) {
@@ -54,6 +57,7 @@ namespace OfficeIMO.Excel {
             var list = new List<string>(GetBoundedCapacity(table.UniqueCount?.Value, table.Count?.Value));
             long totalCharacters = 0;
             foreach (var item in table.Elements<SharedStringItem>()) {
+                CheckCancellation(list.Count);
                 EnsureCanAddSharedString(list);
                 string value;
                 if (item.Text?.Text != null) {
@@ -82,7 +86,9 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = part.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, SharedStringXmlReaderSettings);
+                int nodesRead = 0;
                 while (reader.Read()) {
+                    CheckCancellation(nodesRead++);
                     if (reader.NodeType != XmlNodeType.Element) {
                         continue;
                     }
@@ -102,7 +108,10 @@ namespace OfficeIMO.Excel {
 
                     if (reader.LocalName == "si") {
                         EnsureCanAddSharedString(items);
-                        string value = ReadSharedStringItemXml(reader, _maxSharedStringItemCharacters);
+                        string value = ReadSharedStringItemXml(
+                            reader,
+                            _maxSharedStringItemCharacters,
+                            _cancellationToken);
                         ValidateSharedStringText(value, ref totalCharacters);
                         items.Add(value);
                     }
@@ -134,7 +143,10 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static string ReadSharedStringItemXml(XmlReader reader, int maxItemCharacters) {
+        private static string ReadSharedStringItemXml(
+            XmlReader reader,
+            int maxItemCharacters,
+            CancellationToken cancellationToken) {
             if (reader.IsEmptyElement) {
                 return string.Empty;
             }
@@ -145,6 +157,7 @@ namespace OfficeIMO.Excel {
             int phoneticRunDepth = -1;
 
             bool hasNode = reader.Read();
+            int nodesRead = 0;
             if (hasNode && reader.NodeType == XmlNodeType.Element && reader.LocalName == "t") {
                 first = reader.ReadElementContentAsString();
                 EnsureItemCharacterBudget(0, first.Length, maxItemCharacters);
@@ -156,6 +169,9 @@ namespace OfficeIMO.Excel {
             }
 
             while (hasNode) {
+                if ((nodesRead++ & 255) == 0) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "si") {
                     break;
                 }
@@ -201,6 +217,12 @@ namespace OfficeIMO.Excel {
             }
 
             return builder?.ToString() ?? first ?? string.Empty;
+        }
+
+        private void CheckCancellation(int iteration) {
+            if ((iteration & 1023) == 0) {
+                _cancellationToken.ThrowIfCancellationRequested();
+            }
         }
 
         internal static string GetRunText(OpenXmlElement parent) {

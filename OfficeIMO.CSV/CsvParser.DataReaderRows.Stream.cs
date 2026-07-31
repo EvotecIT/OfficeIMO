@@ -1,0 +1,389 @@
+#nullable enable
+
+#if NET8_0_OR_GREATER
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace OfficeIMO.CSV;
+
+internal static partial class CsvParser
+{
+    /// <summary>
+    /// Pull-based row source over the existing bounded streaming parser. Field spans point at
+    /// the reusable line buffer and are materialized only when a caller requests a string.
+    /// </summary>
+    internal sealed class CsvStreamDataReaderRowSource : ICsvDataReaderTextRowSource
+    {
+        private readonly TextReader _reader;
+        private readonly CsvLineReader _lineReader;
+        private readonly CsvLoadOptions _options;
+        private readonly char _delimiter;
+        private readonly bool _trim;
+        private readonly bool _strictQuotes;
+        private readonly bool _allowEmpty;
+        private readonly Queue<CsvLine> _pendingLines = new();
+        private readonly List<string> _quotedFields = new(32);
+        private CsvDataReaderStreamRowVisitor _visitor;
+        private int _lineNumber = 1;
+        private int _emittedRecordCount;
+        private bool _disposed;
+
+        internal CsvStreamDataReaderRowSource(TextReader reader, CsvLoadOptions options)
+        {
+            _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+            _options = options ?? throw new ArgumentNullException(nameof(options));
+            _delimiter = GetDelimiterChar(options);
+            _trim = options.TrimWhitespace;
+            _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
+            _allowEmpty = options.AllowEmptyLines;
+            _lineReader = new CsvLineReader(reader, options.CancellationToken);
+            _visitor = new CsvDataReaderStreamRowVisitor(_lineReader.Buffer);
+        }
+
+        internal int FieldCount => _visitor.FieldCount;
+
+        internal void SetSourceColumnCount(int sourceColumnCount) =>
+            _visitor.SetSourceColumnCount(sourceColumnCount);
+
+        public bool Read()
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _visitor.Reset();
+            while (true)
+            {
+                ThrowIfCancellationRequested(_options);
+                string? fastLine = null;
+                string lineSeparator;
+                CsvLineReadResult readResult;
+                if (_pendingLines.Count == 0)
+                {
+                    readResult = _lineReader.ReadUnquotedFieldSpansOrLine(
+                        _delimiter,
+                        _trim,
+                        _options.CommentCharacter,
+                        _allowEmpty,
+                        emitFields: true,
+                        recordIndex: _emittedRecordCount,
+                        projectedFieldVisitor: null,
+                        ref _visitor,
+                        out int fieldCount,
+                        out bool isEmptyRecord,
+                        out fastLine,
+                        out lineSeparator);
+
+                    if (readResult == CsvLineReadResult.EndOfReader)
+                    {
+                        return false;
+                    }
+
+                    if (readResult == CsvLineReadResult.UnquotedRecord)
+                    {
+                        _lineNumber++;
+                        if (fieldCount == 0 || (!_allowEmpty && isEmptyRecord))
+                        {
+                            continue;
+                        }
+
+                        _emittedRecordCount++;
+                        ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                        _visitor.Complete(fieldCount, _options.ColumnCountMismatchPolicy);
+                        return true;
+                    }
+                }
+                else
+                {
+                    lineSeparator = string.Empty;
+                    readResult = CsvLineReadResult.Line;
+                }
+
+                string? line = _pendingLines.Count > 0
+                    ? ReadLineWithSeparator(_lineReader, _pendingLines, out lineSeparator)
+                    : fastLine;
+                if (line is null)
+                {
+                    return false;
+                }
+
+                bool startsWithCommentCharacter = IsRawCommentLine(line, _options);
+                if (TrySkipCommentRecordBeforeParsing(
+                        _lineReader,
+                        _pendingLines,
+                        startsWithCommentCharacter,
+                        line,
+                        lineSeparator,
+                        _options,
+                        _emittedRecordCount,
+                        ref _lineNumber))
+                {
+                    _lineNumber++;
+                    continue;
+                }
+
+                if (line.IndexOf('"') < 0 && TrySplitUnquotedRecord(line, _delimiter, _trim, out string[] fields))
+                {
+                    _lineNumber++;
+                    if (ShouldSkipCommentRecord(startsWithCommentCharacter, line, _options, _emittedRecordCount)
+                        || !ShouldEmitRecord(fields, _allowEmpty))
+                    {
+                        continue;
+                    }
+
+                    VisitParsedFields(fields, _emittedRecordCount, null, ref _visitor);
+                    _emittedRecordCount++;
+                    ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                    _visitor.Complete(fields.Length, _options.ColumnCountMismatchPolicy);
+                    return true;
+                }
+
+                try
+                {
+                    if (!TryParseQuotedRecordContinuations(
+                            _lineReader,
+                            _pendingLines,
+                            line,
+                            lineSeparator,
+                            _delimiter,
+                            _trim,
+                            _strictQuotes,
+                            _quotedFields,
+                            ref _lineNumber)
+                        && !TryParseQuotedRecord(
+                            line,
+                            _delimiter,
+                            _trim,
+                            _strictQuotes,
+                            _lineNumber,
+                            _quotedFields))
+                    {
+                        throw new CsvParseException("Unterminated quoted field.", _lineNumber);
+                    }
+                }
+                catch (CsvParseException exception) when (HandleParseError(_options, exception, _lineNumber))
+                {
+                    _lineNumber++;
+                    continue;
+                }
+
+                _lineNumber++;
+                if (ShouldSkipCommentRecord(startsWithCommentCharacter, line, _options, _emittedRecordCount)
+                    || !ShouldEmitRecord(_quotedFields, _allowEmpty))
+                {
+                    continue;
+                }
+
+                VisitParsedFields(_quotedFields, _emittedRecordCount, null, ref _visitor);
+                _emittedRecordCount++;
+                ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                _visitor.Complete(_quotedFields.Count, _options.ColumnCountMismatchPolicy);
+                return true;
+            }
+        }
+
+        public ReadOnlySpan<char> GetSpan(int ordinal) => _visitor.GetSpan(ordinal);
+
+        public string GetString(int ordinal) => _visitor.GetString(ordinal);
+
+        public bool IsNull(int ordinal, string? nullValue) =>
+            nullValue is not null
+            && !_visitor.IsMissing(ordinal)
+            && GetSpan(ordinal).SequenceEqual(nullValue.AsSpan());
+
+        public int CopyStringValues(object[] values, int count, string? nullValue)
+        {
+            int valueCount = Math.Min(count, _visitor.SourceColumnCount);
+            for (int index = 0; index < valueCount; index++)
+            {
+                values[index] = nullValue is not null && IsNull(index, nullValue)
+                    ? DBNull.Value
+                    : GetString(index);
+            }
+
+            for (int index = valueCount; index < count; index++)
+            {
+                values[index] = DBNull.Value;
+            }
+
+            return count;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _lineReader.Dispose();
+            _reader.Dispose();
+        }
+    }
+
+    private struct CsvDataReaderStreamRowVisitor : ICsvFieldSpanVisitor
+    {
+        private readonly char[] _buffer;
+        private int[] _starts;
+        private int[] _lengths;
+        private string?[] _materialized;
+        private bool _nextVisitIsUnescapedScratch;
+
+        internal CsvDataReaderStreamRowVisitor(char[] buffer)
+        {
+            _buffer = buffer;
+            _starts = new int[32];
+            _lengths = new int[32];
+            _materialized = new string?[32];
+            _nextVisitIsUnescapedScratch = false;
+            FieldCount = 0;
+            SourceColumnCount = 0;
+        }
+
+        internal int FieldCount { get; private set; }
+
+        internal int SourceColumnCount { get; private set; }
+
+        internal void SetSourceColumnCount(int sourceColumnCount)
+        {
+            if (sourceColumnCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sourceColumnCount));
+            }
+
+            EnsureCapacity(sourceColumnCount);
+            SourceColumnCount = sourceColumnCount;
+        }
+
+        internal void Reset()
+        {
+            _nextVisitIsUnescapedScratch = false;
+            FieldCount = 0;
+        }
+
+        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
+        {
+            EnsureCapacity(fieldIndex + 1);
+            FieldCount = Math.Max(FieldCount, fieldIndex + 1);
+            _lengths[fieldIndex] = value.Length;
+            if (_nextVisitIsUnescapedScratch)
+            {
+                _starts[fieldIndex] = -1;
+                _materialized[fieldIndex] = value.Length == 0 ? string.Empty : value.ToString();
+                _nextVisitIsUnescapedScratch = false;
+                return;
+            }
+
+            ref char bufferStart = ref MemoryMarshal.GetArrayDataReference(_buffer);
+            ref char valueStart = ref MemoryMarshal.GetReference(value);
+            nint byteOffset = Unsafe.ByteOffset(ref bufferStart, ref valueStart);
+            _starts[fieldIndex] = checked((int)(byteOffset / sizeof(char)));
+            _materialized[fieldIndex] = null;
+        }
+
+        public bool TryVisitEscapedField(
+            int recordIndex,
+            int fieldIndex,
+            ReadOnlySpan<char> escapedValue,
+            int unescapedLength)
+        {
+            _nextVisitIsUnescapedScratch = true;
+            return false;
+        }
+
+        public void VisitFieldValue(int recordIndex, int fieldIndex, string value)
+        {
+            EnsureCapacity(fieldIndex + 1);
+            FieldCount = Math.Max(FieldCount, fieldIndex + 1);
+            _starts[fieldIndex] = -1;
+            _lengths[fieldIndex] = value.Length;
+            _materialized[fieldIndex] = value;
+            _nextVisitIsUnescapedScratch = false;
+        }
+
+        internal void Complete(int fieldCount, CsvColumnCountMismatchPolicy mismatchPolicy)
+        {
+            EnsureCapacity(fieldCount);
+            FieldCount = fieldCount;
+            if (SourceColumnCount > 0
+                && mismatchPolicy == CsvColumnCountMismatchPolicy.Strict
+                && fieldCount != SourceColumnCount)
+            {
+                throw new CsvException(
+                    $"Row contains {fieldCount} values but header defines {SourceColumnCount} columns.");
+            }
+
+            int expectedCount = SourceColumnCount > 0 ? SourceColumnCount : fieldCount;
+            for (int index = fieldCount; index < expectedCount; index++)
+            {
+                _starts[index] = -1;
+                _lengths[index] = -1;
+                _materialized[index] = null;
+            }
+        }
+
+        internal ReadOnlySpan<char> GetSpan(int ordinal)
+        {
+            ValidateOrdinal(ordinal);
+            if (_lengths[ordinal] <= 0)
+            {
+                return ReadOnlySpan<char>.Empty;
+            }
+
+            string? materialized = _materialized[ordinal];
+            return materialized is null
+                ? _buffer.AsSpan(_starts[ordinal], _lengths[ordinal])
+                : materialized.AsSpan();
+        }
+
+        internal string GetString(int ordinal)
+        {
+            ValidateOrdinal(ordinal);
+            if (_lengths[ordinal] <= 0)
+            {
+                return string.Empty;
+            }
+
+            string? materialized = _materialized[ordinal];
+            if (materialized is null)
+            {
+                materialized = new string(_buffer, _starts[ordinal], _lengths[ordinal]);
+                _materialized[ordinal] = materialized;
+            }
+
+            return materialized;
+        }
+
+        internal bool IsMissing(int ordinal)
+        {
+            ValidateOrdinal(ordinal);
+            return _lengths[ordinal] < 0;
+        }
+
+        private void ValidateOrdinal(int ordinal)
+        {
+            int maximum = SourceColumnCount > 0 ? SourceColumnCount : FieldCount;
+            if ((uint)ordinal >= (uint)maximum)
+            {
+                throw new IndexOutOfRangeException();
+            }
+        }
+
+        private void EnsureCapacity(int count)
+        {
+            if (count <= _starts.Length)
+            {
+                return;
+            }
+
+            int capacity = _starts.Length;
+            while (capacity < count)
+            {
+                capacity = checked(capacity * 2);
+            }
+
+            Array.Resize(ref _starts, capacity);
+            Array.Resize(ref _lengths, capacity);
+            Array.Resize(ref _materialized, capacity);
+        }
+    }
+}
+#endif

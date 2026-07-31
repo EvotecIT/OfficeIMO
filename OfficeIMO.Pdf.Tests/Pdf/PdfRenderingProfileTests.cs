@@ -780,6 +780,63 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RangeScopedPlannerKeepsLeadingWhitespaceOutsideAuthoredFontSegment()
+    {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont(' ', 'A'),
+                OfficeFontStyle.Regular,
+                onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped-leading-whitespace", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Scoped",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfEmbeddedFontFallbackSet planner = Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks);
+        PdfTextFallbackPlan plan = planner.PlanText(" \u0301A");
+
+        Assert.True(plan.IsFullyCovered);
+        PdfTextFallbackSegment segment = Assert.Single(plan.Segments);
+        Assert.Equal(2, segment.StartIndex);
+        Assert.Equal("A", segment.Text);
+        var styleTemplate = new TextRun(
+            string.Empty,
+            bold: true,
+            underline: true,
+            color: PdfColor.FromRgb(10, 20, 30),
+            italic: true,
+            strike: true,
+            fontSize: 13,
+            font: PdfStandardFont.Courier,
+            baseline: PdfTextBaseline.Superscript,
+            backgroundColor: PdfColor.FromRgb(40, 50, 60),
+            fontFamily: "Scoped");
+        IReadOnlyList<TextRun> runs = plan.ToNamedTextRuns(
+            planner.FontFamilyNames,
+            styleTemplate);
+        Assert.Equal(" \u0301", runs[0].Text);
+        Assert.True(runs[0].Bold);
+        Assert.True(runs[0].Underline);
+        Assert.Equal(styleTemplate.Color, runs[0].Color);
+        Assert.True(runs[0].Italic);
+        Assert.True(runs[0].Strike);
+        Assert.Equal(13, runs[0].FontSize);
+        Assert.Equal(PdfStandardFont.Courier, runs[0].Font);
+        Assert.Equal(PdfTextBaseline.Superscript, runs[0].Baseline);
+        Assert.Equal(styleTemplate.BackgroundColor, runs[0].BackgroundColor);
+        Assert.Null(runs[0].FontFamily);
+        Assert.Equal("A", runs[1].Text);
+        Assert.Equal(planner.FontFamilyNames[segment.FontIndex], runs[1].FontFamily);
+    }
+
+    [Fact]
     public void EncodingPreflightResetsRangeScopedWhitespaceContextAtTextBoundaries() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')

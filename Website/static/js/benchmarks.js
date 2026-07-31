@@ -247,3 +247,250 @@
 
   apply();
 }());
+
+(function () {
+  var root = document.querySelector('[data-library-comparison-benchmarks]');
+  if (!root || !window.fetch) return;
+
+  var state = root.querySelector('[data-library-comparison-state]');
+  var table = root.querySelector('[data-library-comparison-table]');
+  var rows = root.querySelector('[data-library-comparison-rows]');
+  var meta = root.querySelector('[data-library-comparison-meta]');
+  var workloadButtons = root.querySelectorAll('[data-library-comparison-workload]');
+  var platformButtons = root.querySelectorAll('[data-library-comparison-platform]');
+  var modeButtons = root.querySelectorAll('[data-library-comparison-mode]');
+  var selectedComparison = queryValue(
+    'benchmark-workload',
+    root.getAttribute('data-comparison-id'));
+  var catalog;
+  var activeRequestId = 0;
+
+  function queryValue(name, fallback) {
+    try {
+      return new URL(window.location.href).searchParams.get(name) || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  var selectedPlatform = queryValue('benchmark-os', 'windows').toLowerCase();
+  var selectedMode = queryValue('benchmark-mode', 'full').toLowerCase();
+
+  function setQuery() {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('benchmark-workload', selectedComparison);
+      url.searchParams.set('benchmark-os', selectedPlatform);
+      url.searchParams.set('benchmark-mode', selectedMode);
+      window.history.replaceState(null, '', url.toString());
+    } catch (_) {
+      // The selector still works in hosts without the URL API.
+    }
+  }
+
+  function activateButtons() {
+    Array.prototype.forEach.call(workloadButtons, function (button) {
+      var active = button.getAttribute('data-library-comparison-workload') === selectedComparison;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(platformButtons, function (button) {
+      var active = button.getAttribute('data-library-comparison-platform') === selectedPlatform;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      var availability = catalog && catalog.availability
+        ? catalog.availability.find(function (item) {
+          return item.comparisonId === selectedComparison &&
+            item.runMode === selectedMode &&
+            item.platform === button.getAttribute('data-library-comparison-platform');
+        })
+        : null;
+      button.classList.toggle('missing', !!availability && !availability.available);
+    });
+    Array.prototype.forEach.call(modeButtons, function (button) {
+      var active = button.getAttribute('data-library-comparison-mode') === selectedMode;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  function formatDuration(value) {
+    if (typeof value !== 'number') return '—';
+    if (value >= 1000) return (value / 1000).toFixed(2) + ' s';
+    return value.toFixed(value >= 100 ? 1 : 2) + ' ms';
+  }
+
+  function formatBytes(value) {
+    if (typeof value !== 'number') return '—';
+    if (value >= 1024 * 1024) return (value / (1024 * 1024)).toFixed(2) + ' MB';
+    if (value >= 1024) return (value / 1024).toFixed(1) + ' KB';
+    return Math.round(value) + ' B';
+  }
+
+  function platformLabel(value) {
+    var labels = {
+      windows: 'Windows',
+      linux: 'Linux',
+      macos: 'macOS'
+    };
+    return labels[value] || value;
+  }
+
+  function metric(row, name) {
+    if (!row || !row.metrics) return null;
+    if (typeof row.metrics[name] === 'number') return row.metrics[name];
+    var key = Object.keys(row.metrics).find(function (candidate) {
+      return candidate.toLowerCase() === name.toLowerCase();
+    });
+    return key ? row.metrics[key] : null;
+  }
+
+  function workloadName() {
+    var names = {
+      'markpflug-65k-csv-decoded-net10.0': 'CSV · decoded strings',
+      'markpflug-65k-xlsx-typed-net10.0': 'XLSX · typed values',
+      'markpflug-65k-xlsb-typed-net10.0': 'XLSB · typed values'
+    };
+    return names[selectedComparison] || selectedComparison || 'Library comparison';
+  }
+
+  function compatibilityValue(entry, name) {
+    var compatibility = entry && entry.compatibility;
+    if (!compatibility) return null;
+    var key = Object.keys(compatibility).find(function (candidate) {
+      return candidate.toLowerCase() === name.toLowerCase();
+    });
+    return key ? compatibility[key] : null;
+  }
+
+  function renderResult(entry, result, requestId) {
+    if (requestId !== activeRequestId) return;
+    var summaries = result.summary || [];
+    var groups = {};
+    summaries.forEach(function (row) {
+      var workload = workloadName();
+      if (!groups[workload]) groups[workload] = [];
+      groups[workload].push(row);
+    });
+
+    rows.innerHTML = '';
+    Object.keys(groups).forEach(function (workload) {
+      var group = groups[workload];
+      var fastest = Math.min.apply(null, group.map(function (row) {
+        return typeof row.medianMs === 'number' ? row.medianMs : Number.POSITIVE_INFINITY;
+      }));
+      group.sort(function (left, right) {
+        var leftMedian = typeof left.medianMs === 'number' ? left.medianMs : Number.POSITIVE_INFINITY;
+        var rightMedian = typeof right.medianMs === 'number' ? right.medianMs : Number.POSITIVE_INFINITY;
+        return leftMedian - rightMedian || String(left.scenario).localeCompare(String(right.scenario));
+      });
+      group.forEach(function (row, index) {
+        var median = row.medianMs;
+        var ratio = typeof median === 'number' && isFinite(fastest) && fastest > 0 ? median / fastest : null;
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + (index === 0 ? workload : '') + '</td>' +
+          '<td><strong>' + String(row.scenario || 'Unknown') + '</strong></td>' +
+          '<td>' + formatDuration(median) + '</td>' +
+          '<td>' + formatBytes(metric(row, 'Allocated')) + '</td>' +
+          '<td>' + (ratio === null ? '—' : ratio.toFixed(2) + 'x') + '</td>';
+        if (ratio !== null && ratio <= 1.0005) tr.classList.add('imo-library-comparison-fastest');
+        rows.appendChild(tr);
+      });
+    });
+
+    meta.innerHTML = '';
+    var sourceCommit = compatibilityValue(entry, 'gitSha');
+    [
+      workloadName(),
+      platformLabel(selectedPlatform),
+      selectedMode,
+      entry.environment && entry.environment.processorName,
+      entry.environment && entry.environment.runtimeVersion,
+      entry.generatedUtc && new Date(entry.generatedUtc).toLocaleString(),
+      sourceCommit && 'source ' + sourceCommit.substring(0, 12)
+    ].filter(Boolean).forEach(function (value) {
+      var span = document.createElement('span');
+      span.textContent = value;
+      meta.appendChild(span);
+    });
+
+    state.hidden = true;
+    table.hidden = false;
+  }
+
+  function renderSelection() {
+    var requestId = ++activeRequestId;
+    activateButtons();
+    setQuery();
+    table.hidden = true;
+    meta.innerHTML = '';
+    var entry = (catalog.entries || []).find(function (candidate) {
+      return candidate.comparisonId === selectedComparison &&
+        candidate.platform === selectedPlatform &&
+        candidate.runMode === selectedMode &&
+        (selectedMode !== 'full' || candidate.publish === true);
+    });
+    if (!entry) {
+      state.hidden = false;
+      state.className = 'imo-library-comparison-state missing';
+      state.textContent = 'No ' + selectedMode + ' evidence has been published for ' + platformLabel(selectedPlatform) + ' yet.';
+      return;
+    }
+    if (entry.comparable === false) {
+      state.hidden = false;
+      state.className = 'imo-library-comparison-state incompatible';
+      state.textContent = 'This lane is not directly comparable: ' + (entry.compatibilityIssues || []).join(' ');
+      return;
+    }
+
+    state.hidden = false;
+    state.className = 'imo-library-comparison-state';
+    state.textContent = 'Loading ' + platformLabel(selectedPlatform) + ' ' + selectedMode + ' results…';
+    fetch(entry.resultPath, { credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function (result) { renderResult(entry, result, requestId); })
+      .catch(function (error) {
+        if (requestId !== activeRequestId) return;
+        state.hidden = false;
+        state.className = 'imo-library-comparison-state incompatible';
+        state.textContent = 'Benchmark evidence could not be loaded: ' + error.message;
+      });
+  }
+
+  Array.prototype.forEach.call(workloadButtons, function (button) {
+    button.addEventListener('click', function () {
+      selectedComparison = button.getAttribute('data-library-comparison-workload');
+      renderSelection();
+    });
+  });
+  Array.prototype.forEach.call(platformButtons, function (button) {
+    button.addEventListener('click', function () {
+      selectedPlatform = button.getAttribute('data-library-comparison-platform');
+      renderSelection();
+    });
+  });
+  Array.prototype.forEach.call(modeButtons, function (button) {
+    button.addEventListener('click', function () {
+      selectedMode = button.getAttribute('data-library-comparison-mode');
+      renderSelection();
+    });
+  });
+
+  fetch(root.getAttribute('data-index-url'), { credentials: 'same-origin' })
+    .then(function (response) {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    })
+    .then(function (value) {
+      catalog = value;
+      renderSelection();
+    })
+    .catch(function (error) {
+      state.className = 'imo-library-comparison-state incompatible';
+      state.textContent = 'Benchmark catalog could not be loaded: ' + error.message;
+    });
+}());

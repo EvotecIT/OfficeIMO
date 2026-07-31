@@ -9,5 +9,5 @@ namespace OfficeIMO.CSV;
 /// <param name="recordIndex">Zero-based emitted record index after skipped records and comments.</param>
 /// <param name="fieldIndex">Zero-based field index inside the current record.</param>
 /// <param name="value">Field value. The span is only valid for the duration of the callback.</param>
-public delegate void CsvFieldSpanAction(int recordIndex, int fieldIndex, ReadOnlySpan<char> value);
+internal delegate void CsvFieldSpanAction(int recordIndex, int fieldIndex, ReadOnlySpan<char> value);
 #endif

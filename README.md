@@ -12,9 +12,9 @@ OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing,
 
 This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
-The current source and packaging line is `3.0.x`. Applications should upgrade OfficeIMO packages together: 3.0 tightens public boundaries, makes table-only PDF recovery explicit, and aligns the complete release set on one version. See the [OfficeIMO migration guide](MIGRATION.md#migrating-from-officeimo-2x-to-30).
+The current source and packaging line is `3.1.x`. Applications should upgrade OfficeIMO packages together: 3.1 completes the public API cleanup, keeps CSV and Excel package-owned, and aligns the complete release set on one version. See the [OfficeIMO migration guide](MIGRATION.md#migrating-from-officeimo-30-to-31).
 
-NuGet publication is a separate release step. The repository, project files, and locally packed artifacts target `3.0.3`; a package ID is installable from NuGet.org only after that exact artifact has been published there. Until then, use the clean local feed produced by the release build or remain on the current public stable version.
+NuGet publication is a separate release step. The repository, project files, and locally packed artifacts target `3.1.0`; a package ID is installable from NuGet.org only after that exact artifact has been published there. Until then, use the clean local feed produced by the release build or remain on the current public stable version.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
@@ -546,7 +546,7 @@ _Dependency footprint:_ Excel, Excel OpenDocument, PDF, and native OpenDocument 
 - [x] Visual-page reconstruction by default, with explicit editable-table mode
 - [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
 
-_Dependency footprint:_ PowerPoint, PowerPoint OpenDocument, PDF, and native OpenDocument only; no Word or Excel stack. The 4.0 package graph has no all-formats umbrella or bridge-specific Core package.
+_Dependency footprint:_ PowerPoint, PowerPoint OpenDocument, PDF, and native OpenDocument only; no Word or Excel stack. The 3.1 package graph has no all-formats umbrella or bridge-specific Core package.
 
 #### [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 
@@ -1004,38 +1004,38 @@ Fixed-layout PDF import is necessarily semantic rather than visually lossless. R
 
 ## Install
 
-Install only the native packages and adapters an application needs. The commands below deliberately request `3.0.3`; they work against NuGet.org after each package ID is published, or against the clean local feed produced by `Build/Build-Project.ps1` before publication.
+Install only the native packages and adapters an application needs. The commands below deliberately request `3.1.0`; they work against NuGet.org after each package ID is published, or against the clean local feed produced by `Build/Build-Project.ps1` before publication.
 
 ```powershell
-dotnet add package OfficeIMO.Word --version 3.0.3
-dotnet add package OfficeIMO.Word.Pdf --version 3.0.3
+dotnet add package OfficeIMO.Word --version 3.1.0
+dotnet add package OfficeIMO.Word.Pdf --version 3.1.0
 
-dotnet add package OfficeIMO.Excel --version 3.0.3
-dotnet add package OfficeIMO.Excel.Html --version 3.0.3
-dotnet add package OfficeIMO.Excel.Pdf --version 3.0.3
+dotnet add package OfficeIMO.Excel --version 3.1.0
+dotnet add package OfficeIMO.Excel.Html --version 3.1.0
+dotnet add package OfficeIMO.Excel.Pdf --version 3.1.0
 
-dotnet add package OfficeIMO.Epub --version 3.0.3
-dotnet add package OfficeIMO.Epub.Image --version 3.0.3
+dotnet add package OfficeIMO.Epub --version 3.1.0
+dotnet add package OfficeIMO.Epub.Image --version 3.1.0
 
-dotnet add package OfficeIMO.Adf --version 3.0.3
-dotnet add package OfficeIMO.Confluence --version 3.0.3
+dotnet add package OfficeIMO.Adf --version 3.1.0
+dotnet add package OfficeIMO.Confluence --version 3.1.0
 
-dotnet add package OfficeIMO.Reader.Pdf --version 3.0.3
+dotnet add package OfficeIMO.Reader.Pdf --version 3.1.0
 
 # Add every Reader adapter only when a broad ingestion host genuinely needs all formats.
-dotnet add package OfficeIMO.Reader.All --version 3.0.3
+dotnet add package OfficeIMO.Reader.All --version 3.1.0
 
-dotnet add package OfficeIMO.OneNote --version 3.0.3
-dotnet add package OfficeIMO.OneNote.Markdown --version 3.0.3
-dotnet add package OfficeIMO.OneNote.Html --version 3.0.3
-dotnet add package OfficeIMO.OneNote.Pdf --version 3.0.3
-dotnet add package OfficeIMO.Reader.OneNote --version 3.0.3
+dotnet add package OfficeIMO.OneNote --version 3.1.0
+dotnet add package OfficeIMO.OneNote.Markdown --version 3.1.0
+dotnet add package OfficeIMO.OneNote.Html --version 3.1.0
+dotnet add package OfficeIMO.OneNote.Pdf --version 3.1.0
+dotnet add package OfficeIMO.Reader.OneNote --version 3.1.0
 
 # Install the unified command surface for HTML, Reader, Markup, agent, and MCP workflows.
-dotnet tool install --global OfficeIMO.Tool --version 3.0.3
+dotnet tool install --global OfficeIMO.Tool --version 3.1.0
 ```
 
-All coordinated source packages use the same `3.0.x` compatibility line. Avoid mixing OfficeIMO `2.x` and `3.x` packages in one application.
+All coordinated source packages use the same `3.1.x` compatibility line. Avoid mixing OfficeIMO `2.x`, `3.0`, and `3.1` packages in one application.
 
 ## Common workflows
 

@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Streaming APIs for large ranges.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private const int BufferedRangeStreamRowLimit = 4_096;
         private const int OrderedBufferedRangeStreamCellLimit = 1_000_000;
 

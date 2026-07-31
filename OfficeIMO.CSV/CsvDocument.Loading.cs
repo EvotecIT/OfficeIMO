@@ -25,7 +25,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="rowAction">Action receiving the header and current row values.</param>
     /// <param name="options">Optional load settings.</param>
-    public static void ReadRows(string path, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
+    internal static void ReadRows(string path, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -50,7 +50,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="rowAction">Action receiving the header and current row values. Row values must not be captured after the callback returns.</param>
     /// <param name="options">Optional load settings.</param>
-    public static void ReadRowsReusable(string path, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
+    internal static void ReadRowsReusable(string path, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -75,7 +75,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="rowAction">Action receiving the header and current row values.</param>
     /// <param name="options">Optional load settings.</param>
-    public static void ReadRows(TextReader reader, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
+    internal static void ReadRows(TextReader reader, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
     {
         if (reader == null)
         {
@@ -157,7 +157,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="rowAction">Action receiving the header and current row values. Row values must not be captured after the callback returns.</param>
     /// <param name="options">Optional load settings.</param>
-    public static void ReadRowsReusable(TextReader reader, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
+    internal static void ReadRowsReusable(TextReader reader, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
     {
         if (reader == null)
         {
@@ -281,7 +281,10 @@ public sealed partial class CsvDocument
 
         options = options?.Clone() ?? new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        byte[] snapshot = OfficeStreamReader.ReadAllBytes(stream, options.MaxInputBytes);
+        byte[] snapshot = OfficeStreamReader.ReadAllBytes(
+            stream,
+            options.CancellationToken,
+            options.MaxInputBytes);
         return LoadInternal(
             () => CsvFile.OpenTextReader(
                 new MemoryStream(snapshot, writable: false),

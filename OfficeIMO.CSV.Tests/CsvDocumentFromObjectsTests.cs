@@ -632,7 +632,7 @@ public class CsvDocumentFromObjectsTests
                 .AddRow("Alpha", 1)
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
 
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<InvalidDataException>(() =>
                 CsvDocument.Load(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
         }
         finally

@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private bool CanUseSequentialRangeFastPath(string operationName, int workload, OfficeIMO.Excel.ExecutionMode? mode) {
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;

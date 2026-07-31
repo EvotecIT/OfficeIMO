@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Data-reader projections for <see cref="ExcelSheetReader"/> ranges.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private sealed class ExcelXmlRangeDataReader : DbDataReader {
             private const string IsReadOnlyColumn = "IsReadOnly";
             private const string IsRowVersionColumn = "IsRowVersion";
@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel {
             private readonly Stream _stream = Stream.Null;
             private readonly XmlReader _reader = null!;
             private readonly ExcelUtf8RangeRowSource? _utf8Source;
+            private readonly int _utf8SourceOrdinalOffset;
             private readonly int _firstRow;
             private readonly int _lastRow;
             private readonly int _firstColumn;
@@ -31,6 +32,7 @@ namespace OfficeIMO.Excel {
             private readonly int _fieldCount;
             private readonly long _maximumBufferedCells;
             private readonly CancellationToken _ct;
+            private readonly CultureInfo _culture;
             private readonly string[] _columnNames;
             private readonly Type[] _columnTypes;
             private readonly object?[] _currentValues;
@@ -40,6 +42,7 @@ namespace OfficeIMO.Excel {
             private readonly DateTime[] _currentDateTimeValues;
             private readonly bool[] _currentBooleanValues;
             private readonly object?[] _blankRow;
+            private readonly bool _hasRows;
             private Dictionary<int, object?[]>? _bufferedRows;
             private Dictionary<string, int>? _ordinals;
             private object?[]? _currentRow;
@@ -65,7 +68,9 @@ namespace OfficeIMO.Excel {
                 int fieldCount,
                 bool headersInFirstRow,
                 ExcelReadOptions options,
-                CancellationToken ct) {
+                CancellationToken ct,
+                ExcelUtf8RangeRowSource? preindexedUtf8Source = null,
+                int utf8SourceFirstColumn = 0) {
                 _owner = owner;
                 _firstRow = firstRow;
                 _lastRow = lastRow;
@@ -74,6 +79,7 @@ namespace OfficeIMO.Excel {
                 _fieldCount = fieldCount;
                 _maximumBufferedCells = options.MaxDataReaderBufferedCells;
                 _ct = ct;
+                _culture = options.Culture;
                 _nextLogicalRow = firstRow;
                 _currentValues = new object?[fieldCount];
                 _currentValueLoaded = new bool[fieldCount];
@@ -83,7 +89,10 @@ namespace OfficeIMO.Excel {
                 _currentBooleanValues = new bool[fieldCount];
                 _blankRow = new object?[fieldCount];
 
-                if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
+                if (preindexedUtf8Source != null) {
+                    _utf8Source = preindexedUtf8Source;
+                    _utf8SourceOrdinalOffset = firstColumn - utf8SourceFirstColumn;
+                } else if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
                     _utf8Source = utf8Source;
                 } else {
                     _stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
@@ -103,6 +112,7 @@ namespace OfficeIMO.Excel {
                     ? ExcelHeaderNameHelper.BuildUniqueHeaders(fieldCount, c => GetHeaderText(headerValues, c), options.NormalizeHeaders)
                     : CreateGeneratedColumnNames(fieldCount);
                 _columnTypes = CreateObjectColumnTypes(fieldCount);
+                _hasRows = _nextLogicalRow <= _lastRow;
                 _currentRow = null;
             }
 
@@ -119,7 +129,7 @@ namespace OfficeIMO.Excel {
             public override int FieldCount => _fieldCount;
 
             /// <inheritdoc />
-            public override bool HasRows => !_closed && _nextLogicalRow <= _lastRow;
+            public override bool HasRows => !_closed && _hasRows;
 
             /// <inheritdoc />
             public override bool IsClosed => _closed;
@@ -136,22 +146,22 @@ namespace OfficeIMO.Excel {
                 }
 
                 object value = GetNonDbNullValue(ordinal);
-                return value is bool boolean ? boolean : Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+                return value is bool boolean ? boolean : Convert.ToBoolean(value, _culture);
             }
 
             /// <inheritdoc />
-            public override byte GetByte(int ordinal) => Convert.ToByte(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override byte GetByte(int ordinal) => Convert.ToByte(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) =>
                 throw new NotSupportedException("Excel range fields are exposed as scalar values.");
 
             /// <inheritdoc />
-            public override char GetChar(int ordinal) => Convert.ToChar(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override char GetChar(int ordinal) => Convert.ToChar(GetNonDbNullValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) {
-                string value = Convert.ToString(GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty;
+                string value = Convert.ToString(GetValue(ordinal), _culture) ?? string.Empty;
                 if (buffer == null) {
                     return value.Length;
                 }
@@ -182,22 +192,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 object value = GetNonDbNullValue(ordinal);
-                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, CultureInfo.InvariantCulture);
+                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, _culture);
             }
 
             /// <inheritdoc />
-            public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override double GetDouble(int ordinal) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Double);
-                if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double) {
-                    return _currentDoubleValues[ordinal];
-                }
-
-                object value = GetNonDbNullValue(ordinal);
-                return value is double number ? number : Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                object value = GetNumericValue(ordinal);
+                return value is double number ? number : Convert.ToDouble(value, _culture);
             }
 
             /// <inheritdoc />
@@ -206,28 +210,25 @@ namespace OfficeIMO.Excel {
             public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
 
             /// <inheritdoc />
-            public override float GetFloat(int ordinal) => Convert.ToSingle(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override float GetFloat(int ordinal) => Convert.ToSingle(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
-            public override Guid GetGuid(int ordinal) => (Guid)GetNonDbNullValue(ordinal);
-
-            /// <inheritdoc />
-            public override short GetInt16(int ordinal) => Convert.ToInt16(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
-
-            /// <inheritdoc />
-            public override int GetInt32(int ordinal) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Int32);
-                if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double) {
-                    return ConvertDataReaderInt32(_currentDoubleValues[ordinal]);
-                }
-
+            public override Guid GetGuid(int ordinal) {
                 object value = GetNonDbNullValue(ordinal);
-                return ConvertDataReaderInt32(value);
+                return value is Guid guid ? guid : Guid.Parse(Convert.ToString(value, _culture)!);
             }
 
             /// <inheritdoc />
-            public override long GetInt64(int ordinal) => Convert.ToInt64(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override short GetInt16(int ordinal) => Convert.ToInt16(GetNumericValue(ordinal), _culture);
+
+            /// <inheritdoc />
+            public override int GetInt32(int ordinal) {
+                object value = GetNumericValue(ordinal);
+                return ConvertDataReaderInt32(value, _culture);
+            }
+
+            /// <inheritdoc />
+            public override long GetInt64(int ordinal) => Convert.ToInt64(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override string GetName(int ordinal) => _columnNames[ordinal];
@@ -245,7 +246,7 @@ namespace OfficeIMO.Excel {
             /// <inheritdoc />
             public override string GetString(int ordinal) {
                 object value = GetNonDbNullValue(ordinal);
-                return value is string text ? text : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+                return value is string text ? text : Convert.ToString(value, _culture) ?? string.Empty;
             }
 
             /// <inheritdoc />
@@ -522,15 +523,16 @@ namespace OfficeIMO.Excel {
 
                 if (_utf8Source != null) {
                     _utf8Source.ReadValue(
-                        ordinal,
+                        ordinal + _utf8SourceOrdinalOffset,
                         targetKind,
                         out _currentPrimitiveKinds[ordinal],
                         out _currentDoubleValues[ordinal],
                         out _currentDateTimeValues[ordinal],
                         out _currentBooleanValues[ordinal],
                         out _,
+                        out bool deferObjectMaterialization,
                         out _currentValues[ordinal]);
-                    _currentValueLoaded[ordinal] = true;
+                    _currentValueLoaded[ordinal] = !deferObjectMaterialization;
                     return;
                 }
 
@@ -742,17 +744,27 @@ namespace OfficeIMO.Excel {
                 return value;
             }
 
+            private object GetNumericValue(int ordinal) {
+                EnsureOpenRow();
+                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Numeric);
+                if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double) {
+                    return _currentDoubleValues[ordinal];
+                }
+
+                return GetNonDbNullValue(ordinal);
+            }
+
             private object? MaterializeCurrentValue(int ordinal) {
                 if (!IsCurrentStreamingRow || _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.None) {
                     return _currentRow![ordinal];
                 }
 
-                object value = _currentPrimitiveKinds[ordinal] switch {
+                object value = _currentValues[ordinal] ?? (_currentPrimitiveKinds[ordinal] switch {
                     XmlDataReaderPrimitiveKind.Double => _currentDoubleValues[ordinal],
                     XmlDataReaderPrimitiveKind.DateTime => _currentDateTimeValues[ordinal],
                     XmlDataReaderPrimitiveKind.Boolean => BoxBoolean(_currentBooleanValues[ordinal]),
                     _ => _currentRow![ordinal]!
-                };
+                });
                 _currentValues[ordinal] = value;
                 _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.None;
                 return value;

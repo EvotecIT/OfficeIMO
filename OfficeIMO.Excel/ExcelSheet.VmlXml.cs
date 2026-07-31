@@ -1,6 +1,7 @@
 using System.IO;
 using System.Xml;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -24,6 +25,37 @@ namespace OfficeIMO.Excel {
 
             using XmlReader reader = XmlReader.Create(stream, VmlXmlReaderSettings);
             return XDocument.Load(reader, LoadOptions.None);
+        }
+
+        /// <summary>
+        /// Charges every VML element to the structural-mutation scan budget before
+        /// the VML tree is materialized.
+        /// </summary>
+        private static void ConsumeVmlElementsForMutationPlan(
+            VmlDrawingPart part,
+            MutationPlanScanBudget budget) {
+            try {
+                using Stream stream = part.GetStream();
+                if (stream.Length == 0) {
+                    return;
+                }
+                if (stream.CanSeek && stream.Length > MaxVmlXmlPartBytes) {
+                    throw new InvalidDataException(
+                        $"Excel VML XML part exceeds {MaxVmlXmlPartBytes} bytes.");
+                }
+
+                using XmlReader reader = XmlReader.Create(stream, VmlXmlReaderSettings);
+                while (reader.Read()) {
+                    if (reader.NodeType == XmlNodeType.Element) {
+                        budget.Consume();
+                    }
+                }
+            } catch (InvalidOperationException) {
+                throw;
+            } catch (Exception exception) {
+                System.Diagnostics.Debug.WriteLine(
+                    $"Failed to pre-scan VML drawing part stream: {exception}");
+            }
         }
     }
 }

@@ -32,6 +32,25 @@ function Format-Ratio([object] $Value, [bool] $IsOfficeImo) {
     return [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, '{0:0.00}x OfficeIMO', $number)
 }
 
+function Get-FastestFirstRows([object[]] $Rows) {
+    $sorted = [System.Collections.Generic.List[object]]::new()
+    foreach ($row in $Rows) {
+        $sorted.Add($row)
+    }
+    $sorted.Sort([System.Comparison[object]] {
+        param([object] $Left, [object] $Right)
+
+        $timeOrder = ([double] $Left.actual).CompareTo([double] $Right.actual)
+        if ($timeOrder -ne 0) {
+            return $timeOrder
+        }
+        return [System.StringComparer]::Ordinal.Compare(
+            [string] $Left.engine,
+            [string] $Right.engine)
+    })
+    return $sorted.ToArray()
+}
+
 function Get-SnapshotLabel([object] $Document) {
     $first = @($Document.comparison)[0]
     if ($first -and $first.variables -and $first.variables.Snapshot) {
@@ -76,7 +95,7 @@ function Add-ComparisonFamily(
     $Lines.Add('<div class="imo-benchmark-highlight-grid">')
 
     foreach ($scenario in $scenarioOrder) {
-        $rows = @($scenarioRows[$scenario])
+        $rows = @(Get-FastestFirstRows -Rows @($scenarioRows[$scenario]))
         $operation = [string] $rows[0].operation
         $contract = if ($rows[0].variables -and $rows[0].variables.Contract) { [string] $rows[0].variables.Contract } else { $operation }
         $Lines.Add('<article class="imo-benchmark-highlight">')

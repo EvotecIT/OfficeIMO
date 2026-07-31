@@ -22,4 +22,8 @@
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
+  </ItemGroup>
+
 </Project>

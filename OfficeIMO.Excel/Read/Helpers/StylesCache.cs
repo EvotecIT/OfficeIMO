@@ -38,6 +38,8 @@ namespace OfficeIMO.Excel {
 
         public bool HasDateStyles { get; private set; }
 
+        public int CellFormatCount => _dateStyleIndexes.Length;
+
         public static StylesCache Build(SpreadsheetDocument doc) {
             var cache = new StylesCache();
             var sp = doc.WorkbookPart!.WorkbookStylesPart;

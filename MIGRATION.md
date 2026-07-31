@@ -14,6 +14,73 @@ Do not mix package compatibility lines in one dependency graph. Adapter packages
 
 ## Migrating from OfficeIMO 3.0 to 3.1
 
+### CSV and Excel tabular reads
+
+CSV and Excel remain separate packages with format-specific dependencies. OfficeIMO 3.1 does not add an umbrella tabular package or a second shared reader façade. Instead, both package owners follow the same discoverable convention:
+
+| Intent | CSV | Excel |
+| --- | --- | --- |
+| Stream from a path or stream | `CsvDocument.OpenDataReader(...)` | `ExcelDocument.OpenDataReader(...)` |
+| Read an already-open document | `csv.CreateDataReader(...)` | `workbook.CreateDataReader(...)` |
+| Load an editable document model | `CsvDocument.Load(...)` | `ExcelDocument.Load(...)` |
+
+The streaming entry points return `DbDataReader`. Excel exposes worksheets as ordered results through `NextResult()`. Options stay with their format: use `CsvLoadOptions` and `CsvDataReaderOptions` for CSV, and `ExcelReadOptions` for Excel.
+
+`CsvDocument.OpenDataReader(...)` streams by default when `loadOptions` is omitted. When passing
+`CsvLoadOptions` to configure delimiter, culture, or another parser setting, also set
+`Mode = CsvLoadMode.Stream`; `CsvLoadOptions.Mode` otherwise retains its `InMemory` default.
+Set `Mode = CsvLoadMode.InMemory` when the caller intentionally needs a materialized CSV document
+behind the reader.
+
+Excel keeps format-specific safety limits on `ExcelReadOptions`. For XLSB, `MaxXlsbCells` limits
+the aggregate cells accepted from the workbook while `MaxDataReaderBufferedCells` limits the cells
+buffered by an individual reader operation. Raise either limit explicitly only for trusted,
+intentionally larger workbooks.
+
+```csharp
+using System.Data.Common;
+using OfficeIMO.CSV;
+
+using DbDataReader csv = CsvDocument.OpenDataReader(
+    "input.csv",
+    readerOptions: new CsvDataReaderOptions { InferSchema = true });
+
+while (csv.Read()) {
+    Console.WriteLine(csv.GetValue(0));
+}
+```
+
+```csharp
+using System.Data.Common;
+using OfficeIMO.Excel;
+
+using DbDataReader workbook = ExcelDocument.OpenDataReader("input.xlsx");
+do {
+    while (workbook.Read()) {
+        Console.WriteLine(workbook.GetValue(0));
+    }
+} while (workbook.NextResult());
+```
+
+The 3.1 cleanup removes public backend-specific reader and parser roots. Migrate callers as follows:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `CsvDocument.CreateDataReader(pathOrStream, ...)` | `CsvDocument.OpenDataReader(pathOrStream, ...)` |
+| Public `CsvDataReader` construction or return types | `DbDataReader` from `CsvDocument.OpenDataReader(...)` or `csv.CreateDataReader(...)` |
+| `CsvDocument.ReadFieldSpans*`, `CsvDocument.ReadRowFieldSpans*`, `CsvFieldSpanAction`, `ICsvFieldSpanVisitor`, `ICsvProjectedFieldSpanVisitor`, and `ICsvRowFieldSpanVisitor` | `CsvDocument.OpenDataReader(...)` for streaming, or `CsvDocument.Load(...)` / `Parse(...)` for a materialized document |
+| `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenDataReader(...)` |
+| `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenDataReader(...)` for streaming, or `ExcelDocument.Load(...)` for the editable workbook model |
+| Concrete Excel reader return types | `DbDataReader` |
+
+This is the intentional final breaking cleanup of the CSV and Excel reader roots. Future reader improvements belong behind the owning package's `OpenDataReader` / `CreateDataReader` methods as overloads and format-specific options, rather than as new parallel public entry points.
+
+### New optional 3.1 capabilities
+
+The shared `OfficeRenderingProfile` and Excel structural row mutation plans are additive. Existing callers do not need to migrate to them. Use rendering profiles when several conversion packages must share one quality policy, and use `PlanInsertRows(...)` / `PlanDeleteRows(...)` when an application needs to inspect an Excel row mutation before applying it.
+
+### PDF conversion APIs
+
 OfficeIMO 3.1 gives each optional PDF adapter one discoverable surface in both directions. Open a PDF once with `PdfDocument.Open(...)`, then call the destination-shaped method supplied by the package you installed.
 
 ```csharp

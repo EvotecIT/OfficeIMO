@@ -7,7 +7,9 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.LegacyXls.Projection;
 using System.Globalization;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -1889,6 +1891,83 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(legacy.Diagnostics, item => item.Code == "XLS-COMPOUND-SIGNATURE");
             Assert.Empty(legacy.Worksheets);
+        }
+
+        [Fact]
+        public void LegacyFormulaProjectionValidationObservesCancellationAfterParsing() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4FormulaWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
+                new MemoryStream(compound));
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() => {
+                ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
+                    result.Workbook,
+                    new ExcelReadOptions {
+                        UseCachedFormulaResult = false,
+                        CancellationToken = cancellation.Token
+                    });
+            });
+        }
+
+        [Fact]
+        public void LegacyFormulaProjectionValidationIgnoresUnselectedSheets() {
+            var workbook = new LegacyXlsWorkbook();
+            var selected = new LegacyXlsWorksheet("Selected", 0, 0, 0);
+            selected.AddCell(new LegacyXlsCell(
+                1,
+                1,
+                LegacyXlsCellValueKind.Number,
+                1D,
+                0));
+            var unselected = new LegacyXlsWorksheet("Unselected", 0, 0, 0);
+            unselected.AddCell(new LegacyXlsCell(
+                1,
+                1,
+                LegacyXlsCellValueKind.Number,
+                1D,
+                0,
+                isFormula: true,
+                formulaText: null));
+            workbook.MutableWorksheets.Add(selected);
+            workbook.MutableWorksheets.Add(unselected);
+
+            ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
+                workbook,
+                new ExcelReadOptions {
+                    SheetName = "selected",
+                    UseCachedFormulaResult = false
+                });
+
+            Assert.Throws<NotSupportedException>(() =>
+                ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
+                    workbook,
+                    new ExcelReadOptions {
+                        SheetName = "unselected",
+                        UseCachedFormulaResult = false
+                    }));
+        }
+
+        [Fact]
+        public void LegacyMetadataProjectionObservesCancellationInsideDefinedNameTraversal() {
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableDefinedNames.Add(new LegacyXlsDefinedName(
+                "Data",
+                "Sheet1!$A$1",
+                localSheetIndex: null,
+                hidden: false,
+                builtIn: false));
+            using ExcelDocument document = ExcelDocument.Create();
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() =>
+                LegacyXlsWorkbookProjector.ProjectDefinedNames(
+                    workbook,
+                    document,
+                    cancellation.Token));
         }
 
         private static partial class LegacyXlsTestWorkbookBuilder {

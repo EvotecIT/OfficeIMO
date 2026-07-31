@@ -1,12 +1,11 @@
 using System;
-using System.Data;
 using System.IO;
 using OfficeIMO.Excel;
 
 namespace OfficeIMO.Examples.Excel
 {
     /// <summary>
-    /// Demonstrates using read presets and static helpers for easy reading.
+    /// Demonstrates the canonical OfficeIMO.Excel data reader.
     /// </summary>
     internal static class ReadPresetsAndHelpers
     {
@@ -34,14 +33,14 @@ namespace OfficeIMO.Examples.Excel
                 sheet.CellValue(1, 4, "Qty");
                 sheet.CellValue(1, 5, "Note");
 
-                sheet.CellValue(2, 1, "Yes");
-                sheet.CellValue(2, 2, "$999.95");
+                sheet.CellValue(2, 1, true);
+                sheet.CellValue(2, 2, 999.95m);
                 sheet.CellValue(2, 3, DateTime.Today);
                 sheet.CellValue(2, 4, 2);
                 sheet.CellValue(2, 5, "Preset demo");
 
-                sheet.CellValue(3, 1, "No");
-                sheet.CellValue(3, 2, "1 234,56 €");
+                sheet.CellValue(3, 1, false);
+                sheet.CellValue(3, 2, 1234.56m);
                 sheet.CellValue(3, 3, DateTime.Today.AddDays(-2));
                 sheet.CellValue(3, 4, 5);
                 sheet.CellValue(3, 5, "Helpers demo");
@@ -50,29 +49,20 @@ namespace OfficeIMO.Examples.Excel
                 if (openExcel) doc.OpenInApplication();
             }
 
-            // 2) Use presets with the standard reader
-            var simple = ExcelReadPresets.Simple();
-            using (var rdr = ExcelDocumentReader.Open(filePath, simple))
-            {
-                var sheet = rdr.GetSheet("Data");
-                var items = sheet.ReadObjects<SimpleSale>("A1:E3");
-                foreach (var x in items)
-                {
-                    Console.WriteLine($"Simple preset → Active={x.Active}, Amount={x.Amount}, Date={x.Date:d}, Qty={x.Qty}, Note={x.Note}");
-                }
+            // 2) One reader shape, automatic used range, and typed getters.
+            using var reader = ExcelDocument.OpenDataReader(filePath, new ExcelReadOptions {
+                NumericAsDecimal = true
+            });
+            while (reader.Read()) {
+                var item = new SimpleSale {
+                    Active = reader.GetBoolean(reader.GetOrdinal("Active")),
+                    Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
+                    Date = reader.GetDateTime(reader.GetOrdinal("Date")),
+                    Qty = reader.GetInt32(reader.GetOrdinal("Qty")),
+                    Note = reader.GetString(reader.GetOrdinal("Note"))
+                };
+                Console.WriteLine($"Active={item.Active}, Amount={item.Amount}, Date={item.Date:d}, Qty={item.Qty}, Note={item.Note}");
             }
-
-            // 3) Use static helpers for one-liners
-            var aggressive = ExcelReadPresets.Aggressive();
-            DataTable dt = ExcelRead.ReadRangeAsDataTable(filePath, "Data", "A1:E3", headersInFirstRow: true, options: ExcelReadPresets.None());
-            Console.WriteLine($"Helpers ReadTable (None preset): rows={dt.Rows.Count}, cols={dt.Columns.Count}");
-
-            var list = ExcelRead.ReadRangeObjectsAs<SimpleSale>(filePath, "Data", "A1:E3", options: aggressive);
-            Console.WriteLine($"Helpers ReadObjects (Aggressive preset): count={list.Count}");
-
-            var amounts = ExcelRead.ReadColumnAs<decimal>(filePath, "Data", "B2:B3", options: ExcelReadPresets.Simple());
-            foreach (var a in amounts)
-                Console.WriteLine($"Helpers ReadColumnAs<decimal>: {a}");
         }
     }
 }

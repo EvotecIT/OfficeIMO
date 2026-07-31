@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 value = integerValue;
             } else {
                 ulong doubleBits = ((ulong)(rawValue & 0xfffffffc)) << 32;
-                value = BitConverter.ToDouble(BitConverter.GetBytes(doubleBits), 0);
+                value = BitConverter.Int64BitsToDouble(unchecked((long)doubleBits));
             }
 
             return divideBy100 ? value / 100d : value;

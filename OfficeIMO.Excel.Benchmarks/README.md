@@ -38,6 +38,29 @@ Each scenario runs only libraries with a directly comparable public API. Legacy
 EPPlus runs in a separate process. NPOI comparisons are available through the
 opt-in [NPOI runner](../OfficeIMO.Excel.Benchmarks.NPOI/README.md).
 
+The hash-pinned Mark Pflug 65K-record read comparisons are available as focused
+BenchmarkDotNet classes:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsxBenchmarks*"
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsbBenchmarks*"
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*XlsbOfficeIMOPipelineBenchmarks*"
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-officeimo 100
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-sylvan 100
+```
+
+The XLSX lane includes OfficeIMO, Sylvan.Data.Excel, ExcelDataReader,
+ClosedXML, EPPlus, and MiniExcel. The XLSB lane includes only the compatible
+readers: OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader. Every implementation
+reads the same fourteen typed columns and must produce the same row count, cell
+count, and deterministic payload observation before a measurement is accepted.
+Write-focused libraries such as LargeXlsx and SpreadCheetah remain in the write
+suites and are not applicable to these read lanes. Every library is a peer in
+the matrix; no implementation is framed as an opponent or universal baseline.
+The OfficeIMO-only XLSB pipeline diagnostic is not part of that library matrix;
+it isolates public multi-sheet dispatch from the underlying worksheet reader
+when profiling a demonstrated OfficeIMO bottleneck.
+
 The suite keeps materially different contracts in separate lanes. Compact
 writers omit explicit cell references for forward-only throughput, while the
 normal OfficeIMO writer preserves the editable worksheet model. Shared-string
@@ -91,13 +114,16 @@ Compare the fastest package-native write paths:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-write-25000.json --rows 25000 --scenario write-datareader-compact-package,write-typed-rows-compact-package --skip-legacy-epplus --warmup 20 --iterations 31
 ```
 
-## Current generated headline comparison
+## Historical generated workstation snapshot
 
-The package README uses this same PSPublishModule-managed snapshot. It combines
-raw data paths with feature-bearing workbook work and only compares libraries
-that expose a directly comparable public API. Lower is faster; results vary by
-machine, runtime, package version, workload, warm-up, and options.
-Treat differences below 5% as ties rather than ranking claims.
+The package README uses this same PSPublishModule-managed snapshot. It is
+retained for reproducibility, not as the current cross-platform product
+ranking. The rows combine raw data paths with feature-bearing workbook work and
+only compare libraries that expose a directly comparable public API. Lower is
+faster within a row only; do not combine rows into one library ranking. Results
+vary by machine, runtime, package version, workload, warm-up, and options.
+Treat differences below 5% as ties. Use the hash-pinned CSV/XLSX/XLSB website
+matrix for current platform-separated evidence.
 
 <!-- officeimo-excel-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | OfficeIMO.Excel | ClosedXML | EPPlus | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |

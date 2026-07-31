@@ -137,6 +137,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_UsedRangeHonorsBufferedCellBudgetBeforeIndexedAllocation() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(
+                       memory,
+                       new ExcelCreateOptions {
+                           PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                       })) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Header");
+                sheet.CellValue(1_000, 1_000, "Tail");
+            }
+
+            using var reader = ExcelDocumentReader.Open(
+                memory.ToArray(),
+                new ExcelReadOptions { MaxDataReaderBufferedCells = 10_000 });
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                reader.GetSheet("Data").ReadUsedRangeAsDataReader());
+
+            Assert.Contains(
+                nameof(ExcelReadOptions.MaxDataReaderBufferedCells),
+                exception.Message,
+                StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataReader_WithoutHeadersPreservesBlankRowsInsideRange() {
             using var memory = new MemoryStream();
 
@@ -301,6 +327,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(7d, values[0]);
             Assert.Equal(expectedDate, values[1]);
             Assert.Equal(true, values[2]);
+            Assert.False(dataReader.Read());
+        }
+
+        [Fact]
+        public void Reader_ReadUsedRangeAsDataReader_TypedNumericAccessPreservesCanonicalDates() {
+            var expectedDate = new DateTime(2026, 7, 29);
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "DateAsDouble");
+                sheet.CellValue(1, 2, "DateAsInt32");
+                sheet.CellValue(2, 1, expectedDate);
+                sheet.CellValue(2, 2, expectedDate);
+            }
+
+            using var reader = ExcelDocumentReader.Open(
+                memory.ToArray(),
+                new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+            using var dataReader = reader.GetSheet("Data").ReadUsedRangeAsDataReader();
+
+            Assert.True(dataReader.Read());
+            Assert.True(dataReader.GetDouble(0) > 0);
+            Assert.True(dataReader.GetInt32(1) > 0);
+            Assert.Equal(expectedDate, Assert.IsType<DateTime>(dataReader.GetValue(0)));
+            Assert.Equal(expectedDate, Assert.IsType<DateTime>(dataReader.GetValue(1)));
             Assert.False(dataReader.Read());
         }
 

@@ -63,20 +63,14 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void ExcelRemoteLoadsAreAsyncOnly() {
+    public void ExcelDocumentRemoteLoadsAreAsyncOnly() {
         MethodInfo[] documentMethods = typeof(ExcelDocument).GetMethods(
-            BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
-        MethodInfo[] readerMethods = typeof(ExcelDocumentReader).GetMethods(
             BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
 
         Assert.Contains(documentMethods, static method =>
             method.Name == "LoadAsync" && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Uri));
         Assert.DoesNotContain(documentMethods, static method =>
             method.Name == "Load" && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Uri));
-        Assert.Contains(readerMethods, static method =>
-            method.Name == "OpenAsync" && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Uri));
-        Assert.DoesNotContain(readerMethods, static method =>
-            method.Name == "Open" && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Uri));
     }
 
     [Fact]

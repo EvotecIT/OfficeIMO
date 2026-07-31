@@ -15,9 +15,22 @@ This guide describes the current safe path for large workbook generation, readin
 
 | Workload | Preferred API | Notes |
 | --- | --- | --- |
-| Bounded range reads | `ReadRange(...)`, `Rows(...)`, or typed `RowsAs<T>(...)` | Best when callers need materialized data for a known range. |
-| Very large reads | `ReadRangeStream(...)`, `RowsAsStream<T>(...)`, or `ReadObjectsStream<T>(...)` | Streams rows while keeping workbook state bounded. Prefer these when only one pass over the data is needed. |
-| Unknown workbook intake | `InspectFeatures()`, `InspectFormulas()`, and targeted read options | Treat preserve-only and unsupported findings as a preflight signal before edit-heavy flows. |
+| Forward-only Excel reads | `ExcelDocument.OpenDataReader(...)` | The package-owned `DbDataReader` contract covers XLSX, XLSM, XLSB, and BIFF8 XLS and discovers used ranges automatically. |
+| Forward-only CSV reads | `CsvDocument.OpenDataReader(...)` | The parallel API remains in `OfficeIMO.CSV`, with CSV-specific delimiter, encoding, compression, and schema options. |
+| Multiple worksheets | `DbDataReader.NextResult()` | Results stay in workbook order. Set `ExcelReadOptions.SheetName` when only one worksheet should be opened. |
+| Unknown workbook edit intake | `ExcelDocument.Load(...)`, `InspectFeatures()`, and `InspectFormulas()` | Use the editable document model only when the workbook will be inspected, mutated, converted, or saved again. Treat preserve-only and unsupported findings as a preflight signal. |
+
+Example:
+
+```csharp
+using OfficeIMO.Excel;
+
+using var reader = ExcelDocument.OpenDataReader("sales.xlsx");
+int revenue = reader.GetOrdinal("Revenue");
+while (reader.Read()) {
+    Console.WriteLine(reader.GetDecimal(revenue));
+}
+```
 
 ## Preflight Before Editing Existing Workbooks
 
@@ -74,6 +87,20 @@ Use the comparison summary for public-facing numbers only when the run records:
 - raw samples, mean, median, and allocation data
 - package-size and package-part metrics when save behavior matters
 - machine and runtime information from the artifact manifest
+
+The CSV and Excel benchmark projects own their respective library comparisons:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks -- --filter "*CsvBenchmarks*"
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks -- comparison-suite --out-dir .\artifacts\excel --row-set 2500,25000
+```
+
+The suites compare OfficeIMO with the libraries that support each equivalent
+workload, including Sep, Sylvan, CsvHelper, Dataplat/dbatools, LumenWorks,
+ClosedXML, EPPlus, MiniExcel, LargeXlsx, SpreadCheetah, ExcelDataReader, and
+opt-in NPOI. No library is treated as an opponent or universal baseline.
+Windows, Linux, and macOS remain separate evidence lanes; never average them or
+substitute one platform when another platform is missing.
 
 ## Current Boundaries
 

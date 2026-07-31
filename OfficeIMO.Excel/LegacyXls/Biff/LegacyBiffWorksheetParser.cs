@@ -47,6 +47,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var chartMetadataState = new BiffChartMetadataReaderState();
             var pivotTableMetadataState = new BiffPivotTableMetadataReaderState();
             while (offset < workbookStream.Length) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 if (offset + 4 > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,

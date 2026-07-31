@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// UTF-8 streaming range helpers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private bool TryCreateRangeStreamUtf8(
             int firstRow,
             int firstColumn,
@@ -43,6 +43,7 @@ namespace OfficeIMO.Excel {
                             source.ReadValue(
                                 columnOffset,
                                 XmlDataReaderTargetKind.None,
+                                out _,
                                 out _,
                                 out _,
                                 out _,

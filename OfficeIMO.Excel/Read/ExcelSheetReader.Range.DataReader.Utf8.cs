@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource : IDisposable {
             private const int InitialBufferSize = 64 * 1024;
             private const int MaximumBufferSize = 64 * 1024 * 1024;
@@ -33,6 +33,10 @@ namespace OfficeIMO.Excel {
             private int _rowCount;
             private int _rowCursor;
             private int _currentRowOffset = -1;
+            private int _minimumCellRow = int.MaxValue;
+            private int _maximumCellRow;
+            private int _minimumCellColumn = int.MaxValue;
+            private int _maximumCellColumn;
             private int _lastDateStyleIndex = -1;
             private bool _lastDateStyleResult;
             private bool _cellsFitWithinRange = true;
@@ -128,6 +132,18 @@ namespace OfficeIMO.Excel {
 
             internal bool CellsFitWithinRange => _cellsFitWithinRange;
 
+            internal bool TryGetUsedBounds(
+                out int firstRow,
+                out int firstColumn,
+                out int lastRow,
+                out int lastColumn) {
+                firstRow = _minimumCellRow;
+                firstColumn = _minimumCellColumn;
+                lastRow = _maximumCellRow;
+                lastColumn = _maximumCellColumn;
+                return lastRow > 0 && lastColumn > 0;
+            }
+
             internal void ReadValue(
                 int ordinal,
                 XmlDataReaderTargetKind targetKind,
@@ -136,6 +152,7 @@ namespace OfficeIMO.Excel {
                 out DateTime dateTimeValue,
                 out bool booleanValue,
                 out bool isFormulaText,
+                out bool deferObjectMaterialization,
                 out object? objectValue) {
                 EnsureNotDisposed();
                 primitiveKind = XmlDataReaderPrimitiveKind.None;
@@ -143,6 +160,7 @@ namespace OfficeIMO.Excel {
                 dateTimeValue = default;
                 booleanValue = false;
                 isFormulaText = false;
+                deferObjectMaterialization = false;
                 objectValue = null;
 
                 int cellIndex = _currentRowOffset + ordinal;
@@ -205,6 +223,9 @@ namespace OfficeIMO.Excel {
                         objectValue = DecodeString(start, length);
                         return;
                     case Utf8CellKind.Number:
+                        deferObjectMaterialization =
+                            targetKind == XmlDataReaderTargetKind.Numeric
+                            && IsDateStyle(_styleIndexes![cellIndex]);
                         ReadNumberValue(cellIndex, value, targetKind, out primitiveKind, out doubleValue, out dateTimeValue, out objectValue);
                         return;
                     default:
@@ -328,7 +349,7 @@ namespace OfficeIMO.Excel {
                         InitializeMetadataRow(rowOffset);
                     }
 
-                    if (!tag.IsEmpty && !TryIndexRow(ref position, rowOffset, includeRow)) {
+                    if (!tag.IsEmpty && !TryIndexRow(ref position, rowIndex, rowOffset, includeRow)) {
                         return false;
                     }
 
@@ -342,7 +363,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            private bool TryIndexRow(ref int position, int rowOffset, bool rowWithinRange) {
+            private bool TryIndexRow(
+                ref int position,
+                int rowIndex,
+                int rowOffset,
+                bool rowWithinRange) {
                 int nextColumn = 1;
                 int previousColumn = 0;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
@@ -360,6 +385,10 @@ namespace OfficeIMO.Excel {
                     }
 
                     previousColumn = columnIndex;
+                    if (rowIndex < _minimumCellRow) _minimumCellRow = rowIndex;
+                    if (rowIndex > _maximumCellRow) _maximumCellRow = rowIndex;
+                    if (columnIndex < _minimumCellColumn) _minimumCellColumn = columnIndex;
+                    if (columnIndex > _maximumCellColumn) _maximumCellColumn = columnIndex;
                     int ordinal = columnIndex - _firstColumn;
                     if (!rowWithinRange || (uint)ordinal >= (uint)_fieldCount) {
                         _cellsFitWithinRange = false;
@@ -500,10 +529,7 @@ namespace OfficeIMO.Excel {
                 dateTimeValue = default;
                 objectValue = null;
                 ReadOnlySpan<byte> trimmed = TrimAsciiWhitespace(value);
-                bool dateStyle = (targetKind == XmlDataReaderTargetKind.None
-                        || targetKind == XmlDataReaderTargetKind.DateTime
-                        || targetKind == XmlDataReaderTargetKind.String)
-                    && IsDateStyle(_styleIndexes![ordinal]);
+                bool dateStyle = IsDateStyle(_styleIndexes![ordinal]);
                 if (targetKind == XmlDataReaderTargetKind.String) {
                     if (dateStyle && TryParseDouble(trimmed, out double serialDate)) {
                         objectValue = _owner.FromExcelSerialDate(serialDate).ToString(_options.Culture);
@@ -515,7 +541,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryParseDouble(trimmed, out double number)) {
-                    if (dateStyle) {
+                    if (dateStyle
+                        && targetKind != XmlDataReaderTargetKind.Numeric) {
                         DateTime date = _owner.FromExcelSerialDate(number);
                         if (targetKind == XmlDataReaderTargetKind.DateTime) {
                             primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
@@ -527,22 +554,23 @@ namespace OfficeIMO.Excel {
                         return;
                     }
 
-                    if (!_options.NumericAsDecimal) {
-                        if (targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) {
-                            primitiveKind = XmlDataReaderPrimitiveKind.Double;
-                            doubleValue = number;
-                        } else {
-                            objectValue = number;
-                        }
-
+                    if (targetKind == XmlDataReaderTargetKind.Numeric) {
+                        primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                        doubleValue = number;
                         return;
                     }
-                }
 
-                if (_options.NumericAsDecimal
-                    && Utf8Parser.TryParse(trimmed, out decimal decimalNumber, out int decimalConsumed)
-                    && decimalConsumed == trimmed.Length) {
-                    objectValue = decimalNumber;
+                    if (!_options.NumericAsDecimal) {
+                        objectValue = number;
+                        return;
+                    }
+
+                    if (TryConvertExcelNumberToDecimal(number, out decimal decimalNumber)) {
+                        objectValue = decimalNumber;
+                        return;
+                    }
+
+                    objectValue = number;
                     return;
                 }
 
@@ -572,7 +600,9 @@ namespace OfficeIMO.Excel {
                 bool parsedNumber = double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, _options.Culture, out double number)
                     || TryParseInvariantDoubleFast(value, out number)
                     || double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number);
-                if (parsedNumber && dateStyle) {
+                if (parsedNumber
+                    && dateStyle
+                    && targetKind != XmlDataReaderTargetKind.Numeric) {
                     DateTime date = _owner.FromExcelSerialDate(number);
                     if (targetKind == XmlDataReaderTargetKind.DateTime) {
                         primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
@@ -584,19 +614,22 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (!_options.NumericAsDecimal && parsedNumber) {
-                    if (targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) {
-                        primitiveKind = XmlDataReaderPrimitiveKind.Double;
-                        doubleValue = number;
-                    } else {
-                        objectValue = number;
-                    }
-
+                if (parsedNumber
+                    && targetKind == XmlDataReaderTargetKind.Numeric) {
+                    primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                    doubleValue = number;
                     return;
                 }
 
-                if (_options.NumericAsDecimal && TryParseRawDecimal(value, _options.Culture, out decimal decimalNumber)) {
-                    objectValue = decimalNumber;
+                if (!_options.NumericAsDecimal && parsedNumber) {
+                    objectValue = number;
+                    return;
+                }
+
+                if (_options.NumericAsDecimal && parsedNumber) {
+                    objectValue = TryConvertExcelNumberToDecimal(number, out decimal decimalNumber)
+                        ? decimalNumber
+                        : number;
                     return;
                 }
 

@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         internal void PreserveDeferredDataSetFastSaveModelAndClearCandidate() {
@@ -24,7 +26,8 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
-        private void MaterializeDirectDataSetFastSaveModelIfNeeded() {
+        private void MaterializeDirectDataSetFastSaveModelIfNeeded(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var model = _materializedDirectDataSetFastSaveModel;
             if (model == null || _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet) {
                 return;
@@ -32,7 +35,10 @@ namespace OfficeIMO.Excel {
 
             _materializingDeferredDataSetImport = true;
             try {
-                MaterializeDirectDataSetModel(model, preserveExistingWorksheetStructure: true);
+                MaterializeDirectDataSetModel(
+                    model,
+                    preserveExistingWorksheetStructure: true,
+                    cancellationToken);
                 _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = true;
             } finally {
                 _materializingDeferredDataSetImport = false;

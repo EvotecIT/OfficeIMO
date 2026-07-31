@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel;
 /// <summary>
 /// A chunk of Excel content extracted for ingestion (RAG/search/summarization).
 /// </summary>
-public sealed class ExcelExtractChunk {
+internal sealed class ExcelExtractChunk {
     /// <summary>
     /// Stable, ASCII-only identifier (producer-defined).
     /// </summary>
@@ -41,7 +41,7 @@ public sealed class ExcelExtractChunk {
 /// <summary>
 /// Generic Excel extraction location metadata.
 /// </summary>
-public sealed class ExcelExtractLocation {
+internal sealed class ExcelExtractLocation {
     /// <summary>
     /// Optional source path (for example file path) used for citations.
     /// </summary>
@@ -66,7 +66,7 @@ public sealed class ExcelExtractLocation {
 /// <summary>
 /// Minimal table model for ingestion (columns + rows of strings).
 /// </summary>
-public sealed class ExcelExtractTable {
+internal sealed class ExcelExtractTable {
     /// <summary>
     /// Optional table title/label.
     /// </summary>
@@ -96,7 +96,7 @@ public sealed class ExcelExtractTable {
 /// <summary>
 /// Chunking options for Excel extraction.
 /// </summary>
-public sealed class ExcelExtractChunkingOptions {
+internal sealed class ExcelExtractChunkingOptions {
     /// <summary>
     /// Maximum characters per emitted chunk (best-effort).
     /// </summary>

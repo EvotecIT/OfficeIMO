@@ -6,7 +6,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Receives CSV fields as transient spans during a single-pass read.
 /// </summary>
-public interface ICsvFieldSpanVisitor
+internal interface ICsvFieldSpanVisitor
 {
     /// <summary>
     /// Visits one parsed field. The span is valid only for the duration of the call.
@@ -44,7 +44,7 @@ public interface ICsvFieldSpanVisitor
 /// <summary>
 /// Optional extension for field-span visitors that only consume selected fields.
 /// </summary>
-public interface ICsvProjectedFieldSpanVisitor : ICsvFieldSpanVisitor
+internal interface ICsvProjectedFieldSpanVisitor : ICsvFieldSpanVisitor
 {
     /// <summary>
     /// Indicates whether the visitor wants to receive a parsed field. The parser still validates record structure and field counts.
@@ -57,7 +57,7 @@ public interface ICsvProjectedFieldSpanVisitor : ICsvFieldSpanVisitor
 
 internal static class CsvFieldSpanProjection
 {
-    public static bool ShouldVisitField(ICsvProjectedFieldSpanVisitor? projectedVisitor, int recordIndex, int fieldIndex)
+    internal static bool ShouldVisitField(ICsvProjectedFieldSpanVisitor? projectedVisitor, int recordIndex, int fieldIndex)
     {
         return projectedVisitor is null || projectedVisitor.ShouldVisitField(recordIndex, fieldIndex);
     }

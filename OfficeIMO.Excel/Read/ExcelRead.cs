@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     /// These helpers open the workbook read‑only, materialize the requested result, and then dispose it.
     /// Use these when you prefer brevity over streaming/iterator patterns.
     /// </summary>
-    public static class ExcelRead {
+    internal static class ExcelRead {
         // -------- Instance-friendly overloads (avoid reopening files) --------
 
         /// <summary>

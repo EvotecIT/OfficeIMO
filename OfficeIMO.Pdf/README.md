@@ -675,7 +675,7 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 | [OfficeIMO.OpenDocument.Ods.Pdf](../OfficeIMO.OpenDocument.Ods.Pdf/README.md) | Provides direct ODS and PDF façades without Word or PowerPoint dependencies. |
 | [OfficeIMO.OpenDocument.Odp.Pdf](../OfficeIMO.OpenDocument.Odp.Pdf/README.md) | Provides direct ODP and PDF façades without Word or Excel dependencies. |
 
-The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records direct, composed, and planned routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. The [3.x to 4.0 migration section](../MIGRATION.md#migrating-from-officeimo-3x-to-40) documents the unified reverse API, fidelity modes, and remaining roadmap gaps. `OfficeIMO.Reader.Pdf` can project any normalized `OfficeDocumentReadResult` through one explicit PDF policy and merged evidence contract. Email, EPUB, and Visio are intentionally not advertised as direct conversion until their route-specific artifact gates are proven.
+The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records direct, composed, and planned routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. The [3.0 to 3.1 migration section](../MIGRATION.md#migrating-from-officeimo-30-to-31) documents the unified reverse API, fidelity modes, and remaining roadmap gaps. `OfficeIMO.Reader.Pdf` can project any normalized `OfficeDocumentReadResult` through one explicit PDF policy and merged evidence contract. Email, EPUB, and Visio are intentionally not advertised as direct conversion until their route-specific artifact gates are proven.
 
 ## Boundaries
 

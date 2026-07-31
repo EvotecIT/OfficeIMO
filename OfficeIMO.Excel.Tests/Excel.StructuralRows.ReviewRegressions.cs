@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -168,6 +169,46 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A3", hyperlink.Reference!.Value);
             Assert.Equal("Data!A2", hyperlink.Location!.Value);
             Assert.Equal("External", sheet.CellAt(3, 1).GetValue<string>());
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanBoundsLazyWorksheetCharacterScan() {
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.MutationCharacterBudget.{Guid.NewGuid():N}.xlsx");
+            try {
+                using (var source = ExcelDocument.Create(path)) {
+                    source.AddWorksheet("Target").CellValue(1, 1, "Value");
+                    ExcelSheet unrelated = source.AddWorksheet("Unrelated");
+                    unrelated.CellValue(1, 1, "placeholder");
+                    Cell cell = Assert.Single(
+                        unrelated.WorksheetPart.Worksheet.Descendants<Cell>());
+                    cell.DataType = CellValues.InlineString;
+                    cell.CellValue = null;
+                    cell.InlineString = new InlineString(new Text(new string('x', 4096)));
+                    source.Save();
+                }
+
+                using var document = ExcelDocument.Load(path);
+                Sheet unrelatedSheet = document.WorkbookRoot.Sheets!
+                    .Elements<Sheet>()
+                    .Single(sheet => sheet.Name?.Value == "Unrelated");
+                WorksheetPart unrelatedPart = (WorksheetPart)document.WorkbookPartRoot
+                    .GetPartById(unrelatedSheet.Id!);
+                Assert.False(unrelatedPart.IsRootElementLoaded);
+
+                Assert.Throws<XmlException>(() =>
+                    document["Target"].PlanInsertRows(
+                        1,
+                        options: new ExcelMutationPlanOptions {
+                            MaximumScannedElements = 100,
+                            MaximumScannedCharacters = 1024
+                        }));
+
+                Assert.False(unrelatedPart.IsRootElementLoaded);
+            } finally {
+                File.Delete(path);
+            }
         }
     }
 }

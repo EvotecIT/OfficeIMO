@@ -687,6 +687,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_WorkbookReader_RejectsDuplicateCellColumnsWithinRow() {
+            byte[] package = File.ReadAllBytes(GetGeometryExcelGeneratedXlsbFixturePath());
+            IReadOnlyList<(XlsbRecord Record, (int Row, int Column)? Cell)> worksheetRecords =
+                ReadWorksheetRecords(package, "xl/worksheets/sheet1.bin");
+            (XlsbRecord Record, (int Row, int Column)? Cell)[] rowCells = worksheetRecords
+                .Where(static item => item.Cell.HasValue)
+                .GroupBy(static item => item.Cell!.Value.Row)
+                .Select(static group => group.Take(2).ToArray())
+                .First(static cells => cells.Length == 2);
+            byte[] duplicateColumn = (byte[])rowCells[1].Record.Data.Clone();
+            WriteXlsbTestUInt32(
+                duplicateColumn,
+                0,
+                checked((uint)rowCells[0].Cell!.Value.Column - 1U));
+            byte[] malformed = ReplaceWorksheetRecords(
+                package,
+                worksheetRecords.Select(static item => item.Record).ToArray(),
+                rowCells[1].Record,
+                duplicateColumn);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(new MemoryStream(malformed, writable: false)));
+
+            Assert.Contains("duplicated", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Xlsb_MergeCollection_EnforcesConfiguredLimitBeforeExpansion() {
             byte[] package = File.ReadAllBytes(GetGeometryExcelGeneratedXlsbFixturePath());
             byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");

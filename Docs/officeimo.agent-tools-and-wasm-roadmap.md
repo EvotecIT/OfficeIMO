@@ -55,7 +55,7 @@ Commands:
 
 ```powershell
 officeimo mcp serve --stdio
-dotnet dnx OfficeIMO.Tool@3.0.3 mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.1.0 mcp serve --stdio
 ```
 
 Tools:
@@ -123,7 +123,7 @@ The first public implementation should support drag/drop DOCX, XLSX, and PPTX in
 - Current implementation: `officeimo agent` and `officeimo mcp serve --stdio` share one compact service.
 - Current implementation: inspect, search, fetch, convert, and filtered capability discovery are available.
 - Current implementation: the plugin includes `.mcp.json` and document/mailbox operator skills.
-- Release requirement: publish `OfficeIMO.Tool` 3.0.3 so `dotnet dnx` can resolve the plugin command without a source checkout.
+- Release requirement: publish `OfficeIMO.Tool` 3.1.0 so `dotnet dnx` can resolve the plugin command without a source checkout.
 
 ### Phase 4 - PSWritePDF Retirement
 

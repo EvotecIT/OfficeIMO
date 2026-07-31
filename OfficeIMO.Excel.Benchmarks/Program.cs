@@ -1,7 +1,46 @@
 using OfficeIMO.Excel.Benchmarks;
+using OfficeIMO.Benchmarks;
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Exporters.Json;
 using BenchmarkDotNet.Running;
 using System.Globalization;
 using System.Text.Json;
+
+bool profileOfficeIMOXlsb = args.Length > 0 &&
+    string.Equals(args[0], "--profile-markpflug65k-xlsb-officeimo", StringComparison.OrdinalIgnoreCase);
+bool profileSylvanXlsb = args.Length > 0 &&
+    string.Equals(args[0], "--profile-markpflug65k-xlsb-sylvan", StringComparison.OrdinalIgnoreCase);
+
+if (profileOfficeIMOXlsb || profileSylvanXlsb) {
+    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
+        ? parsedIterations
+        : 100;
+    if (iterations <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(iterations));
+    }
+
+    MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);
+    var benchmark = new MarkPflug65KXlsbBenchmarks();
+    Func<ExcelReadObservation> run = profileOfficeIMOXlsb
+        ? benchmark.OfficeIMO
+        : benchmark.Sylvan;
+    string implementation = profileOfficeIMOXlsb ? "OfficeIMO" : "Sylvan";
+    for (int index = 0; index < 3; index++) {
+        run();
+    }
+
+    ExcelReadObservation observation = default;
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    for (int index = 0; index < iterations; index++) {
+        observation = run();
+    }
+    stopwatch.Stop();
+
+    Console.WriteLine(
+        $"Profiled {implementation} XLSB {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
+        $"({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration): {observation}.");
+    return;
+}
 
 if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?")) {
     WriteUsage();
@@ -279,7 +318,8 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
     return;
 }
 
-BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+var benchmarkConfig = DefaultConfig.Instance.AddExporter(JsonExporter.Full);
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, benchmarkConfig);
 
 static void WriteUsage() {
     Console.WriteLine("OfficeIMO.Excel benchmark helpers");

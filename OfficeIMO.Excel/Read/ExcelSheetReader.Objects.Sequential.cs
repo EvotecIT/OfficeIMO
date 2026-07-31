@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Object-mapping readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private IEnumerable<T> ReadObjectsStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
             int r1,

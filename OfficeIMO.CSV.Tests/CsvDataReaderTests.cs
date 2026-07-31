@@ -137,6 +137,30 @@ public class CsvDataReaderTests
         Assert.Throws<InvalidOperationException>(() => reader.GetString(0));
         Assert.True(reader.Read());
         Assert.Equal("Alpha", reader.GetString(0));
+        Assert.False(reader.Read());
+        Assert.True(reader.HasRows);
+    }
+
+    [Fact]
+    public void TypedGetter_UsesCustomConverterAndNullTokenSemantics()
+    {
+        var schema = new CsvSchemaBuilder()
+            .Column("Score").AsInt32().ConvertUsing(value => Convert.ToInt32(value) + 40)
+            .Column("Optional").AsInt32()
+            .Done()
+            .Build();
+        var doc = CsvDocument.Parse(
+            "Score,Optional\n2,NULL\n",
+            new CsvLoadOptions {
+                Mode = CsvLoadMode.Stream,
+                NullValue = "NULL"
+            });
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { Schema = schema });
+
+        Assert.True(reader.Read());
+        Assert.Equal(42, reader.GetInt32(0));
+        Assert.True(reader.IsDBNull(1));
+        Assert.Throws<InvalidCastException>(() => reader.GetInt32(1));
     }
 
     [Fact]
@@ -165,7 +189,7 @@ public class CsvDataReaderTests
 
         try
         {
-            using (var reader = CsvDocument.CreateDataReader(path))
+            using (var reader = CsvDocument.OpenDataReader(path))
             {
                 using var schema = reader.GetSchemaTable();
                 Assert.Equal(2, reader.FieldCount);
@@ -193,7 +217,7 @@ public class CsvDataReaderTests
             CsvDocument.Parse("Id,Name\n1,Alice\n2,Bob\n")
                 .Save(path, new CsvSaveOptions { CompressionType = CsvCompressionType.GZip });
 
-            using (var reader = CsvDocument.CreateDataReader(
+            using (var reader = CsvDocument.OpenDataReader(
                        path,
                        new CsvLoadOptions { Mode = CsvLoadMode.Stream, CompressionType = CsvCompressionType.GZip },
                        new CsvDataReaderOptions { InferSchema = true }))
@@ -382,7 +406,7 @@ public class CsvDataReaderTests
         try
         {
             File.WriteAllText(path, "Id,Amount,Active\n-2147483648,-12.50,1\n");
-            using var reader = CsvDocument.CreateDataReader(
+            using var reader = CsvDocument.OpenDataReader(
                 path,
                 new CsvLoadOptions { Mode = CsvLoadMode.Stream },
                 new CsvDataReaderOptions { Schema = schema });
@@ -422,7 +446,7 @@ public class CsvDataReaderTests
                 .AddRow(2, "Bob", 13.75m, new DateTime(2026, 1, 3, 4, 5, 6))
                 .Save(path, new CsvSaveOptions { CompressionType = CsvCompressionType.GZip });
 
-            using var reader = CsvDocument.CreateDataReader(
+            using var reader = CsvDocument.OpenDataReader(
                 path,
                 new CsvLoadOptions
                 {
@@ -481,6 +505,23 @@ public class CsvDataReaderTests
         Assert.True(reader.Read());
         var buffer = new char[4];
         Assert.Equal(0, reader.GetChars(0, 99, buffer, 0, buffer.Length));
+    }
+
+    [Fact]
+    public void GetChar_ReturnsExplicitCharacterSchemaValue()
+    {
+        var schema = new CsvSchemaBuilder()
+            .Column("Code").AsType(typeof(char))
+            .Done()
+            .Build();
+        var document = CsvDocument.Parse("Code\nX\n");
+
+        using var reader = document.CreateDataReader(
+            new CsvDataReaderOptions { Schema = schema });
+
+        Assert.Equal(typeof(char), reader.GetFieldType(0));
+        Assert.True(reader.Read());
+        Assert.Equal('X', reader.GetChar(0));
     }
 
     [Fact]

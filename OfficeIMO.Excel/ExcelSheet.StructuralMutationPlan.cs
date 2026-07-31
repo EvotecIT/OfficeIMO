@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -56,7 +57,9 @@ namespace OfficeIMO.Excel {
             int firstRow,
             int count,
             ExcelMutationPlanOptions effective) {
-            var budget = new MutationPlanScanBudget(effective.MaximumScannedElements);
+            var budget = new MutationPlanScanBudget(
+                effective.MaximumScannedElements,
+                effective.MaximumScannedCharacters);
             var impacts = new List<ExcelMutationImpact>();
             int lastRow = firstRow + count - 1;
             int cells = 0;
@@ -109,19 +112,20 @@ namespace OfficeIMO.Excel {
                 }
                 sheetIndex++;
                 if (sheetElement.Id?.Value is not string relationshipId
-                    || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart
-                    || worksheetPart.Worksheet == null) {
+                    || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) {
                     continue;
                 }
 
                 bool rewriteUnqualified = ReferenceEquals(worksheetPart, _worksheetPart)
                     || string.Equals(sheetElement.Name?.Value, Name, StringComparison.OrdinalIgnoreCase);
-                var worksheetElements = new List<OpenXmlElement>();
+                List<OpenXmlElement>? worksheetElements =
+                    LoadWorksheetElementsWithinBudget(worksheetPart, budget);
+                if (worksheetElements == null) {
+                    continue;
+                }
                 var anchoredMetadataFormulaTexts =
                     new Dictionary<OpenXmlElement, List<string?>>();
-                foreach (OpenXmlElement element in worksheetPart.Worksheet.Descendants()) {
-                    budget.Consume();
-                    worksheetElements.Add(element);
+                foreach (OpenXmlElement element in worksheetElements) {
                     AddAnchoredMetadataFormulaText(
                         anchoredMetadataFormulaTexts,
                         element);
@@ -1053,6 +1057,51 @@ namespace OfficeIMO.Excel {
             || element is Formula2
             || string.Equals(element.LocalName, "f", StringComparison.Ordinal);
 
+        private static List<OpenXmlElement>? LoadWorksheetElementsWithinBudget(
+            WorksheetPart worksheetPart,
+            MutationPlanScanBudget budget) {
+            if (worksheetPart.IsRootElementLoaded) {
+                Worksheet? loadedWorksheet = worksheetPart.Worksheet;
+                if (loadedWorksheet == null) {
+                    return null;
+                }
+
+                var loadedElements = new List<OpenXmlElement>();
+                foreach (OpenXmlElement element in loadedWorksheet.Descendants()) {
+                    budget.Consume();
+                    loadedElements.Add(element);
+                }
+                return loadedElements;
+            }
+
+            using (Stream stream = worksheetPart.GetStream(FileMode.Open, FileAccess.Read))
+            using (XmlReader reader = XmlReader.Create(
+                stream,
+                new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    XmlResolver = null,
+                    IgnoreComments = true,
+                    IgnoreProcessingInstructions = true,
+                    MaxCharactersInDocument = budget.MaximumCharacters
+                })) {
+                bool rootSeen = false;
+                while (reader.Read()) {
+                    if (reader.NodeType != XmlNodeType.Element) {
+                        continue;
+                    }
+                    if (!rootSeen) {
+                        rootSeen = true;
+                        continue;
+                    }
+
+                    budget.Consume();
+                }
+            }
+
+            Worksheet? worksheet = worksheetPart.Worksheet;
+            return worksheet?.Descendants().ToList();
+        }
+
         private static int CountBounded<T>(
             IEnumerable<T> items,
             MutationPlanScanBudget budget) {
@@ -1077,11 +1126,14 @@ namespace OfficeIMO.Excel {
         private sealed class MutationPlanScanBudget {
             private readonly int _maximum;
 
-            internal MutationPlanScanBudget(int maximum) {
+            internal MutationPlanScanBudget(int maximum, long maximumCharacters) {
                 _maximum = maximum;
+                MaximumCharacters = maximumCharacters;
             }
 
             internal int Scanned { get; private set; }
+
+            internal long MaximumCharacters { get; }
 
             internal void Consume() {
                 if (Scanned >= _maximum) {

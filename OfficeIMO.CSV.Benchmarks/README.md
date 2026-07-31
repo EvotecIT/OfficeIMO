@@ -2,14 +2,18 @@
 
 This project compares raw .NET CSV paths without PowerShell object overhead. Use it beside the PSWriteOffice benchmark scoreboard, not as a replacement for it.
 
-## Current generated headline comparison
+## Historical generated workstation snapshot
 
-This compact table is selected from the same BenchmarkDotNet artifacts used by
-the detailed investigations below and is refreshed through PSPublishModule.
-Lower is faster; local results vary by machine, runtime, data, and options.
-Treat differences below 5% as ties rather than ranking claims. The current
+This single-workstation table is retained so the older focused investigations
+remain reproducible. It is not the current cross-platform product ranking.
+Lower is faster within a row only; the rows use different contracts and cannot
+be combined into one library ranking. Treat differences below 5% as ties. The
 snapshot uses three warmups, nine measured iterations, means, and semantic
 preflight validation of every typed or prepared value.
+
+Use the hash-pinned library-comparison suite and website matrix below for
+current evidence. They keep CSV, XLSX, and XLSB workloads separate and expose
+Windows, Linux, and macOS results independently.
 
 <!-- officeimo-csv-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
@@ -87,15 +91,29 @@ For a dbatools.library-shaped CSV reader pass:
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvDbatoolsLibraryParityBenchmarks*" --job short --warmupCount 1 --iterationCount 3
 ```
 
+For the hash-pinned Mark Pflug 65K-record decoded-string comparison:
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*MarkPflug65KCsvBenchmarks*"
+```
+
+This lane compares OfficeIMO, Sep, Sylvan, CsvHelper, Dataplat/dbatools, and
+LumenWorks. Every implementation decodes every field into a string and must
+match the same row count, cell count, and payload observation before the run is
+accepted. Every library is a peer in the matrix; no implementation is framed as
+an opponent or universal baseline. Results are interpreted per workload and
+platform; `Build/Run-LibraryComparisonBenchmarks.ps1` keeps Windows, Linux, and
+macOS evidence separate.
+
 `CsvDbatoolsLibraryParityBenchmarks` mirrors the published dbatools.library CSV benchmark layout from [dataplat/dbatools.library `benchmarks/CsvBenchmarks`](https://github.com/dataplat/dbatools.library/tree/main/benchmarks/CsvBenchmarks), specifically `CsvReaderBenchmarks.Benchmarks.cs` and `QuickTest.cs`: small, medium, large, wide, quoted, modern medium/large, all-values, and quick-test-style single-column/all-column read lanes. It keeps OfficeIMO in the same file-path reader shape beside Dataplat.Dbatools.Csv, LumenWorks, Sep, Sylvan, and CsvHelper so the raw parser comparison is apples-to-apples. Each parity lane validates the expected row count and deterministic field-length checksum for its input file, so a lane cannot win by silently under-reading or skipping field materialization. The broader `CsvBenchmarks` and `CsvWideBenchmarks` lanes still touch every field and return checksums for stricter payload validation.
 
 Parity check: the class includes all 20 upstream `CsvReaderBenchmarks` methods by benchmark description plus all 10 QuickTest read lanes, then adds matching OfficeIMO lanes beside them. The extra `OfficeIMO-DataReader-QuickTest-GetValues` lane keeps the SQL/bulk-copy-shaped `DbDataReader.GetValues` path visible at the same 100k-row QuickTest size. Dataplat remains the BenchmarkDotNet baseline in this parity class to preserve the upstream comparison frame. `TypeConverterBenchmarks` is intentionally out of scope here because it measures dbatools vector conversion rather than CSV parser throughput, not CSV reader throughput.
 
 CsvHelper, Sylvan.Data.Csv, Dataplat.Dbatools.Csv, LumenWorksCsvReader2, and Sep are benchmark-only dependencies in this project. They should not be added to `OfficeIMO.CSV` unless a future design decision intentionally changes the runtime dependency model.
 
-The generated headline above is the current snapshot. The dated sections below
-record earlier focused investigations and their reproduction commands; do not
-combine their numbers into a current ranking.
+The generated table above and the dated sections below record earlier focused
+investigations and their reproduction commands. Do not combine their numbers
+into a current ranking.
 
 ## Dated dbatools.library parity snapshot (2026-07-09)
 
@@ -131,7 +149,7 @@ The span-reader result is the fastest raw parser shape. The streaming DataReader
 
 ## Dated typed DataReader snapshot (2026-07-09)
 
-Archived local short-job runs using the 25,000-row, 40-column wide payload. Every lane traverses every value. The file lane includes file decoding and uses the public `CsvDocument.CreateDataReader(path, ...)` API used by PSWriteOffice and DbaClientX.
+Archived local short-job runs using the 25,000-row, 40-column wide payload. Every lane traverses every value. The file lane includes file decoding and uses the public `CsvDocument.OpenDataReader(path, ...)` API used by PSWriteOffice and DbaClientX.
 
 ```powershell
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*DataReader*Schema*" --job short --warmupCount 5 --iterationCount 10

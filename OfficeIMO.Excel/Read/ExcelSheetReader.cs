@@ -11,7 +11,11 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Reader for a single worksheet. Offers enumeration and conversion helpers.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
+        private const string SpreadsheetNamespace =
+            "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        private const string StrictSpreadsheetNamespace =
+            "http://purl.oclc.org/ooxml/spreadsheetml/main";
         private readonly string _sheetName;
         private readonly WorksheetPart _wsPart;
         private readonly SharedStringCache _sst;
@@ -59,6 +63,161 @@ namespace OfficeIMO.Excel {
         /// Worksheet name.
         /// </summary>
         public string Name => _sheetName;
+
+        internal void ValidateDataReaderProjection(CancellationToken ct) {
+            if (_canStreamWorksheetPart) {
+                try {
+                    using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    if (TryPrepareWorksheetStream(stream)) {
+                        ValidateDataReaderProjectionXml(stream, ct);
+                        return;
+                    }
+                } catch (XmlException) {
+                } catch (IOException) {
+                } catch (UnauthorizedAccessException) {
+                } catch (ObjectDisposedException) {
+                }
+            }
+
+            ct.ThrowIfCancellationRequested();
+            Worksheet worksheet = _wsPart.Worksheet
+                ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
+            foreach (Cell cell in worksheet.Descendants<Cell>()) {
+                ct.ThrowIfCancellationRequested();
+                string reference = cell.CellReference?.Value ?? "(unknown cell)";
+                if (cell.StyleIndex?.Value is uint styleIndex) {
+                    ValidateCellStyleReference(styleIndex, reference);
+                }
+                if (cell.DataType?.Value == CellValues.SharedString) {
+                    ValidateSharedStringReference(cell.CellValue?.Text, reference);
+                }
+
+                CellFormula? formula = cell.CellFormula;
+                if (formula?.FormulaType?.Value != CellFormulaValues.Shared
+                    || !string.IsNullOrWhiteSpace(formula?.Text)) {
+                    continue;
+                }
+                if (_opt.UseCachedFormulaResult && cell.CellValue is not null) {
+                    continue;
+                }
+
+                throw new NotSupportedException(
+                    $"Data-reader projection cannot safely expand the shared-formula follower " +
+                    $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
+                    "shared-formula text is required.");
+            }
+        }
+
+        private void ValidateDataReaderProjectionXml(
+            Stream stream,
+            CancellationToken ct) {
+            using var reader = OpenWorksheetXmlReader(stream);
+            while (reader.Read()) {
+                ct.ThrowIfCancellationRequested();
+                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                    continue;
+                }
+
+                string reference = reader.GetAttribute("r") ?? "(unknown cell)";
+                string? styleIndex = reader.GetAttribute("s");
+                if (styleIndex != null) {
+                    ValidateCellStyleReference(styleIndex, reference);
+                }
+                bool sharedStringCell = string.Equals(
+                    reader.GetAttribute("t"),
+                    "s",
+                    StringComparison.Ordinal);
+                bool sharedFollower = false;
+                bool hasCachedValue = false;
+                string? sharedStringReference = null;
+                using XmlReader cellReader = reader.ReadSubtree();
+                while (cellReader.Read()) {
+                    ct.ThrowIfCancellationRequested();
+                    if (cellReader.NodeType != XmlNodeType.Element
+                        || cellReader.Depth != 1
+                        || (!string.Equals(
+                                cellReader.NamespaceURI,
+                                SpreadsheetNamespace,
+                                StringComparison.Ordinal)
+                            && !string.Equals(
+                                cellReader.NamespaceURI,
+                                StrictSpreadsheetNamespace,
+                                StringComparison.Ordinal))) {
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "v") {
+                        hasCachedValue = true;
+                        if (sharedStringCell) {
+                            sharedStringReference = cellReader.ReadElementContentAsString();
+                        }
+                        continue;
+                    }
+
+                    if (cellReader.LocalName != "f"
+                        || !string.Equals(
+                            cellReader.GetAttribute("t"),
+                            "shared",
+                            StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    bool isFollower = cellReader.IsEmptyElement;
+                    if (!isFollower) {
+                        using XmlReader formulaReader = cellReader.ReadSubtree();
+                        if (formulaReader.Read()) {
+                            isFollower = string.IsNullOrWhiteSpace(
+                                formulaReader.ReadElementContentAsString());
+                        }
+                    }
+                    sharedFollower |= isFollower;
+                }
+
+                if (sharedStringCell) {
+                    ValidateSharedStringReference(sharedStringReference, reference);
+                }
+
+                if (!sharedFollower
+                    || (_opt.UseCachedFormulaResult && hasCachedValue)) {
+                    continue;
+                }
+
+                throw new NotSupportedException(
+                    $"Data-reader projection cannot safely expand the shared-formula follower " +
+                    $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
+                    "shared-formula text is required.");
+            }
+        }
+
+        private void ValidateCellStyleReference(string rawIndex, string reference) {
+            if (TryParseUInt(rawIndex, out uint styleIndex)) {
+                ValidateCellStyleReference(styleIndex, reference);
+                return;
+            }
+
+            throw new InvalidDataException(
+                $"Worksheet '{_sheetName}' cell {reference} contains an invalid cell style index.");
+        }
+
+        private void ValidateCellStyleReference(uint styleIndex, string reference) {
+            if (styleIndex < (uint)Styles.CellFormatCount) {
+                return;
+            }
+
+            throw new InvalidDataException(
+                $"Worksheet '{_sheetName}' cell {reference} references a missing cell style.");
+        }
+
+        private void ValidateSharedStringReference(string? rawIndex, string reference) {
+            var items = _sharedStringItems ??= _sst.GetItems();
+            if (TryParseSharedStringIndex(rawIndex, out int index)
+                && (uint)index < (uint)items.Count) {
+                return;
+            }
+
+            throw new InvalidDataException(
+                $"Worksheet '{_sheetName}' cell {reference} references a missing shared string.");
+        }
 
         /// <summary>
         /// Enumerates non-empty cells as (Row, Column, Value). Values are typed when possible.
@@ -521,7 +680,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (_opt.NumericAsDecimal) {
-                if (TryParseRawDecimal(rawText, out var dec)) {
+                if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec)) {
                     value = dec;
                     return true;
                 }
@@ -785,6 +944,29 @@ namespace OfficeIMO.Excel {
                 || decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
         }
 
+        private static bool TryParseExcelNumberAsDecimal(string rawText, CultureInfo culture, out decimal value) {
+            value = 0m;
+            bool parsed = TryParseInvariantDoubleFast(rawText, out double number)
+                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number)
+                || (culture != CultureInfo.InvariantCulture
+                    && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out number));
+            return parsed && TryConvertExcelNumberToDecimal(number, out value);
+        }
+
+        private static bool TryConvertExcelNumberToDecimal(double number, out decimal value) {
+            value = 0m;
+            if (double.IsNaN(number) || double.IsInfinity(number)) {
+                return false;
+            }
+
+            try {
+                value = (decimal)number;
+                return true;
+            } catch (OverflowException) {
+                return false;
+            }
+        }
+
         private static bool TryParseInvariantDecimalFast(string rawText, out decimal value) {
             value = 0m;
             if (string.IsNullOrEmpty(rawText)) {
@@ -871,7 +1053,7 @@ namespace OfficeIMO.Excel {
                         return FromExcelSerialDate(oa);
                 }
                 if (_opt.NumericAsDecimal) {
-                    if (TryParseRawDecimal(rawText, out var dec))
+                    if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec))
                         return dec;
                     if (TryParseRawDouble(rawText, out var dbl))
                         return dbl;
@@ -904,7 +1086,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_opt.NumericAsDecimal) {
-                    if (TryParseRawDecimal(rawText, out var dec2))
+                    if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec2))
                         return dec2;
                     if (TryParseRawDouble(rawText, out var dbl2))
                         return dbl2;

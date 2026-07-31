@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
     /// Controls legacy binary Excel import behavior.
@@ -26,6 +28,8 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// Optional password used to decrypt password-to-open encrypted legacy XLS workbooks.
         /// </summary>
         public string? Password { get; set; }
+
+        internal CancellationToken CancellationToken { get; set; }
 
         internal void Validate() {
             if (MaxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));

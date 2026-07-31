@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Object-mapping readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private object? TryChangeType<TTarget>(object value, TypedPropertyBinding<TTarget> binding, CultureInfo culture) {
             if (value == null) return null;
 
@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (ReturnBindingConversion(TryConvertNumericTextForBinding(rawText, binding, out converted), binding, converted)) {
+            if (ReturnBindingConversion(TryConvertNumericTextForBinding(rawText, binding, true, out converted), binding, converted)) {
                 return true;
             }
 
@@ -234,7 +234,7 @@ namespace OfficeIMO.Excel {
                 return TryConvertStringForBinding(raw.RawText, binding, out converted);
             }
 
-            return TryConvertNumericTextForBinding(raw.RawText, binding, out converted);
+            return TryConvertNumericTextForBinding(raw.RawText, binding, true, out converted);
         }
 
         private bool TryConvertRawCellForBinding<TTarget>(
@@ -389,7 +389,7 @@ namespace OfficeIMO.Excel {
                 return TrySetRawCellForBindingFallback(raw, binding, target);
             }
 
-            if (TrySetNumericTextBinding(raw.RawText, binding, target)) {
+            if (TrySetNumericTextBinding(raw.RawText, binding, target, true)) {
                 return true;
             }
 
@@ -440,13 +440,14 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            return TrySetNumericTextBinding(text, binding, target);
+            return TrySetNumericTextBinding(text, binding, target, false);
         }
 
         private bool TrySetNumericTextBinding<TTarget>(
             string rawText,
             TypedPropertyBinding<TTarget> binding,
-            TTarget target) {
+            TTarget target,
+            bool excelNumericCell) {
             switch (binding.BindingKind) {
                 case TypedBindingKind.Int32: {
                     if (binding.SetInt32 == null) {
@@ -508,7 +509,9 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    if (TryParseRawDecimal(rawText, out decimal decimalValue)) {
+                    if ((excelNumericCell
+                            ? TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out decimal decimalValue)
+                            : TryParseRawDecimal(rawText, out decimalValue))) {
                         binding.SetDecimal(target, decimalValue);
                         return true;
                     }
@@ -585,6 +588,7 @@ namespace OfficeIMO.Excel {
         private bool TryConvertNumericTextForBinding<TTarget>(
             string rawText,
             TypedPropertyBinding<TTarget> binding,
+            bool excelNumericCell,
             out object? converted) {
             converted = null;
             Type destinationType = binding.DestinationType;
@@ -633,7 +637,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (destinationType == typeof(decimal)) {
-                if (TryParseRawDecimal(rawText, out decimal decimalValue)) {
+                if ((excelNumericCell
+                        ? TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out decimal decimalValue)
+                        : TryParseRawDecimal(rawText, out decimalValue))) {
                     converted = decimalValue;
                     return true;
                 }
@@ -689,7 +695,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            return TryConvertNumericTextForBinding(text, binding, out converted);
+            return TryConvertNumericTextForBinding(text, binding, false, out converted);
         }
 
         private static bool TryConvertBooleanForBinding<TTarget>(

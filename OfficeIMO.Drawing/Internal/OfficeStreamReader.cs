@@ -79,6 +79,37 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static byte[] ReadToEnd(Stream source, CancellationToken cancellationToken, long? maxBytes) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (source.CanSeek) {
+                long remaining = source.Length - source.Position;
+                EnsureWithinLimit(remaining, maxBytes);
+                if (remaining > int.MaxValue) {
+                    throw new InvalidDataException($"Stream length {remaining} exceeds the supported in-memory size.");
+                }
+
+                if (remaining >= BufferSize) {
+                    byte[] result = new byte[checked((int)remaining)];
+                    int offset = 0;
+                    while (offset < result.Length) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        int exactRead = source.Read(result, offset, result.Length - offset);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (exactRead == 0) {
+                            if (offset == 0) {
+                                return Array.Empty<byte>();
+                            }
+
+                            Array.Resize(ref result, offset);
+                            return result;
+                        }
+
+                        offset += exactRead;
+                    }
+
+                    return result;
+                }
+            }
+
             using var output = new MemoryStream();
             var buffer = new byte[BufferSize];
             long total = 0;
@@ -86,6 +117,7 @@ namespace OfficeIMO.Drawing.Internal {
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
                 read = source.Read(buffer, 0, buffer.Length);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (read == 0) break;
                 total = checked(total + read);
                 EnsureWithinLimit(total, maxBytes);

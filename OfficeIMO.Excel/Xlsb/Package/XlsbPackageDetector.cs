@@ -14,10 +14,24 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         internal static bool TryFindWorkbookPart(byte[] packageBytes, out string? workbookPartName) {
             if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
 
-            workbookPartName = null;
             try {
                 using var packageStream = new MemoryStream(packageBytes, writable: false);
                 using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
+                return TryFindWorkbookPart(archive, out workbookPartName);
+            } catch (InvalidDataException) {
+                workbookPartName = null;
+                return false;
+            } catch (XmlException) {
+                workbookPartName = null;
+                return false;
+            }
+        }
+
+        internal static bool TryFindWorkbookPart(ZipArchive archive, out string? workbookPartName) {
+            if (archive == null) throw new ArgumentNullException(nameof(archive));
+
+            workbookPartName = null;
+            try {
                 ZipArchiveEntry? relationshipsEntry = FindEntry(archive, "_rels/.rels");
                 if (relationshipsEntry == null || relationshipsEntry.Length > MaxRootRelationshipsBytes) {
                     return false;
@@ -41,8 +55,10 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 workbookPartName = workbookEntry.FullName;
                 return true;
             } catch (InvalidDataException) {
+                workbookPartName = null;
                 return false;
             } catch (XmlException) {
+                workbookPartName = null;
                 return false;
             }
         }

@@ -379,8 +379,10 @@ namespace OfficeIMO.Excel.Xlsb {
             XlsbImportOptions options,
             XlsbWorkbook workbook,
             XlsbRecordReadBudget recordBudget) {
-            XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(item =>
-                !item.IsExternal && item.Type.EndsWith(StylesRelationshipSuffix, StringComparison.Ordinal));
+            XlsbPackageRelationship? relationship = XlsbPackagePartReader.GetOptionalSingletonRelationship(
+                relationships,
+                StylesRelationshipSuffix,
+                "styles");
             if (relationship == null) return null;
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
@@ -395,8 +397,10 @@ namespace OfficeIMO.Excel.Xlsb {
             XlsbImportOptions options,
             XlsbWorkbook workbook,
             XlsbRecordReadBudget recordBudget) {
-            XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(item =>
-                !item.IsExternal && item.Type.EndsWith(SharedStringsRelationshipSuffix, StringComparison.Ordinal));
+            XlsbPackageRelationship? relationship = XlsbPackagePartReader.GetOptionalSingletonRelationship(
+                relationships,
+                SharedStringsRelationshipSuffix,
+                "shared-string");
             if (relationship == null) return Array.Empty<string>();
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
@@ -461,6 +465,7 @@ namespace OfficeIMO.Excel.Xlsb {
 
             XlsbRowInfo? currentRow = null;
             int previousRow = -1;
+            int previousCellColumn = -1;
             int previousColumnEnd = -1;
             bool inSheetData = false;
             bool inColumnInfos = false;
@@ -552,6 +557,7 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The XLSB row record at offset {record.Offset} is duplicated or out of order.");
                         }
                         previousRow = currentRow.Row - 1;
+                        previousCellColumn = -1;
                         totalRowDefinitions = checked(totalRowDefinitions + 1);
                         if (totalRowDefinitions > options.MaxRowDefinitions) {
                             throw new InvalidDataException(
@@ -719,6 +725,11 @@ namespace OfficeIMO.Excel.Xlsb {
                         if (!currentRow.ContainsZeroBasedColumn(cell.Column - 1)) {
                             throw new InvalidDataException($"The XLSB cell at row {cell.Row}, column {cell.Column} is not covered by its BrtRowHdr column spans.");
                         }
+                        if (cell.Column - 1 <= previousCellColumn) {
+                            throw new InvalidDataException(
+                                $"The XLSB cell record at offset {record.Offset} is duplicated or out of order within its row.");
+                        }
+                        previousCellColumn = cell.Column - 1;
                         worksheet.AddCell(cell);
                         break;
                     default:

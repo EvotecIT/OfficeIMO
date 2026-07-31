@@ -229,22 +229,32 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
         }
 
         private static XlsbFill ReadFill(XlsbRecord record) {
-            var cursor = new XlsbBinaryCursor(record.Data);
-            var fill = new XlsbFill {
-                Pattern = cursor.ReadUInt32(),
-                Foreground = ReadColor(cursor),
-                Background = ReadColor(cursor),
-                GradientType = cursor.ReadInt32()
-            };
-            cursor.Skip(8 * 5);
-            fill.GradientStopCount = cursor.ReadUInt32();
-            if (fill.GradientStopCount > MaxStyleItems) {
-                throw new InvalidDataException($"The XLSB fill record at offset {record.Offset} declares too many gradient stops.");
+            try {
+                var cursor = new XlsbBinaryCursor(record.Data);
+                var fill = new XlsbFill {
+                    Pattern = cursor.ReadUInt32(),
+                    Foreground = ReadColor(cursor),
+                    Background = ReadColor(cursor),
+                    GradientType = cursor.ReadInt32()
+                };
+                cursor.Skip(8 * 5);
+                fill.GradientStopCount = cursor.ReadUInt32();
+                if (fill.GradientStopCount > MaxStyleItems) {
+                    throw new InvalidDataException($"The XLSB fill record at offset {record.Offset} declares too many gradient stops.");
+                }
+                for (uint index = 0; index < fill.GradientStopCount; index++) {
+                    cursor.ReadDouble();
+                    ReadColor(cursor);
+                }
+                if (cursor.Remaining != 0) {
+                    throw new InvalidDataException($"The XLSB fill record at offset {record.Offset} has unexpected trailing data.");
+                }
+                return fill;
+            } catch (EndOfStreamException exception) {
+                throw new InvalidDataException(
+                    $"The BrtFill record at offset {record.Offset} is truncated.",
+                    exception);
             }
-            if (fill.GradientStopCount == 0 && cursor.Remaining != 0) {
-                throw new InvalidDataException($"The XLSB fill record at offset {record.Offset} has unexpected trailing data.");
-            }
-            return fill;
         }
 
         private static XlsbBorder ReadBorder(XlsbRecord record) {
@@ -331,6 +341,11 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
                     || format.FillId >= stylesheet.Fills.Count
                     || format.BorderId >= stylesheet.Borders.Count) {
                     throw new InvalidDataException($"The XLSB styles part '{partName}' contains a cell format with an out-of-range font, fill, or border reference.");
+                }
+                if (format.NumberFormatId >= ExcelBuiltInNumberFormats.FirstCustomId
+                    && !stylesheet.NumberFormats.ContainsKey(format.NumberFormatId)) {
+                    throw new InvalidDataException(
+                        $"The XLSB styles part '{partName}' contains a cell format that references missing custom number format {format.NumberFormatId}.");
                 }
             }
 

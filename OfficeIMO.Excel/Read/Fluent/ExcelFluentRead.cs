@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Entry point for fluent read pipelines.
     /// </summary>
-    public sealed class ExcelFluentReadWorkbook {
+    internal sealed class ExcelFluentReadWorkbook {
         private readonly ExcelDocument _doc;
         private readonly ExcelReadOptions _options;
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent sheet scope.
     /// </summary>
-    public sealed class ExcelFluentReadSheet {
+    internal sealed class ExcelFluentReadSheet {
         private readonly ExcelDocument _doc;
         private readonly string _sheetName;
         private readonly ExcelReadOptions _options;
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent range scope and materializers.
     /// </summary>
-    public sealed class ExcelFluentReadRange {
+    internal sealed class ExcelFluentReadRange {
         private readonly ExcelDocument _doc;
         private readonly string _sheetName;
         private readonly string _a1;

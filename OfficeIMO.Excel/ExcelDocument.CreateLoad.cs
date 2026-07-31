@@ -253,7 +253,12 @@ namespace OfficeIMO.Excel {
 
             ExcelFileFormat detectedFormat = ExcelDocumentLoadRouting.DetectFormat(bytes, filePath);
             if (detectedFormat == ExcelFileFormat.Xls) {
-                return LoadLegacyXlsFromNormalFlow(bytes, readOnly, saveOnDispose, filePath);
+                return LoadLegacyXlsFromNormalFlow(
+                    bytes,
+                    readOnly,
+                    saveOnDispose,
+                    filePath,
+                    CreateLegacyImportOptions(options));
             }
 
             if (detectedFormat == ExcelFileFormat.Xlsb) {
@@ -338,6 +343,15 @@ namespace OfficeIMO.Excel {
             return configured.HasValue ? Math.Min(configured.Value, packageLimit) : packageLimit;
         }
 
+        private static LegacyXlsImportOptions CreateLegacyImportOptions(ExcelLoadOptions options) {
+            long? limit = ResolveInputLimit(options);
+            return new LegacyXlsImportOptions {
+                MaxInputBytes = !limit.HasValue || limit.Value > int.MaxValue
+                    ? int.MaxValue
+                    : checked((int)limit.Value)
+            };
+        }
+
         private static void DisposeStream(Stream? stream) {
             if (stream == null) {
                 return;
@@ -350,25 +364,34 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static ExcelDocument LoadLegacyXlsFromNormalFlow(
+        internal static ExcelDocument LoadLegacyXlsFromNormalFlow(
             byte[] bytes,
             bool readOnly,
             bool saveOnDispose,
             string? filePath,
-            LegacyXlsImportOptions? importOptions = null) {
+            LegacyXlsImportOptions? importOptions = null,
+            Action<LegacyXlsWorkbook>? beforeProjection = null) {
             if (!readOnly && saveOnDispose) {
                 throw new NotSupportedException("SaveOnDispose is not supported when loading legacy binary .xls files. Save to a new .xlsx path instead.");
             }
 
-            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, importOptions ?? new LegacyXlsImportOptions());
+            LegacyXlsImportOptions effectiveOptions = importOptions ?? new LegacyXlsImportOptions();
+            effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, effectiveOptions);
+            effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             LegacyXlsImportDiagnostic[] errors = workbook.Diagnostics
                 .Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error)
                 .ToArray();
             if (errors.Length > 0) {
                 throw new InvalidDataException("Legacy XLS import failed: " + FormatLegacyXlsDiagnostics(errors));
             }
+            beforeProjection?.Invoke(workbook);
 
-            return ProjectLoadedLegacyXlsWorkbook(workbook, filePath, readOnly);
+            return ProjectLoadedLegacyXlsWorkbook(
+                workbook,
+                filePath,
+                readOnly,
+                effectiveOptions.CancellationToken);
         }
 
         private static string FormatLegacyXlsDiagnostics(IEnumerable<LegacyXlsImportDiagnostic> diagnostics) {

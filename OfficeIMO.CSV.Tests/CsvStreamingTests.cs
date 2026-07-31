@@ -67,7 +67,7 @@ public class CsvStreamingTests
                 .AddRow(1, "Alice")
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
                 CsvDocument.LoadAsync(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
         }
         finally
@@ -85,28 +85,28 @@ public class CsvStreamingTests
             File.WriteAllText(path, "Id,Name\n1,Alice\n", Encoding.UTF8);
             var options = new CsvLoadOptions { MaxInputBytes = 8 };
 
-            Assert.Throws<InvalidOperationException>(() => CsvDocument.Load(path, options));
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<InvalidDataException>(() => CsvDocument.Load(path, options));
+            Assert.Throws<InvalidDataException>(() =>
                 CsvDocument.ReadRows(path, (_, _) => { }, options));
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<InvalidDataException>(() =>
             {
-                using var reader = CsvDocument.CreateDataReader(
+                using var reader = CsvDocument.OpenDataReader(
                     path,
                     options,
                     new CsvDataReaderOptions { InferSchema = true });
                 reader.Read();
             });
 #if NET8_0_OR_GREATER
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<InvalidDataException>(() =>
             {
                 var visitor = new CapturingRowFieldSpanVisitor(new List<string>());
                 CsvDocument.ReadRowFieldSpans(path, ref visitor, options);
             });
 #endif
-            await Assert.ThrowsAsync<InvalidOperationException>(() => CsvDocument.LoadAsync(path, options));
+            await Assert.ThrowsAsync<InvalidDataException>(() => CsvDocument.LoadAsync(path, options));
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                CsvDocument.CreateDataReader(
+                CsvDocument.OpenDataReader(
                     path,
                     new CsvLoadOptions { Mode = CsvLoadMode.Stream, MaxInputBytes = 0 },
                     new CsvDataReaderOptions { InferSchema = true }));

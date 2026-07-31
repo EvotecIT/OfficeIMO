@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Used-range read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         /// <summary>
         /// Reads the worksheet used range into a dense two-dimensional array of typed values.
         /// Table-backed worksheets are discovered and materialized in one worksheet pass.

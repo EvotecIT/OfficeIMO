@@ -1,6 +1,7 @@
 using System;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -43,6 +44,54 @@ public sealed class DrawingRenderingProfileTests {
         Assert.Equal("pl", options.TextShapingLanguage);
         Assert.Same(codec, options.ImageCodec);
         Assert.True(options.Policy.RequireNoOmissions);
+    }
+
+    [Fact]
+    public void OverlayPreservesCallerOwnedFacesAndAddsNonConflictingProfileFaces() {
+        byte[] callerFace = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] profileCollision = ManagedTextShapingTestAssets.CreateFont('B');
+        byte[] profileAddition = ManagedTextShapingTestAssets.CreateFont('C');
+        var options = new OfficeImageExportOptions {
+            Fonts = new OfficeFontFaceCollection()
+                .Add("Shared", callerFace)
+        };
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", profileCollision)
+            .Add("Added", profileAddition);
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("overlay", profileFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(2, options.Fonts.Faces.Count);
+        Assert.Equal(callerFace, Assert.Single(options.Fonts.Faces, face => face.FamilyName == "Shared").Data);
+        Assert.Equal(profileAddition, Assert.Single(options.Fonts.Faces, face => face.FamilyName == "Added").Data);
+    }
+
+    [Fact]
+    public void OverlayKeepsCallerFaceAheadOfProfileRangeVariantForSameFamilyAndStyle() {
+        byte[] callerFace = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] profileRangeFace = ManagedTextShapingTestAssets.CreateFont('A');
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var options = new OfficeImageExportOptions {
+            Fonts = new OfficeFontFaceCollection()
+                .Add("Shared", callerFace)
+        };
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", profileRangeFace, OfficeFontStyle.Regular, onlyA);
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("overlay-range", profileFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(2, options.Fonts.Faces.Count);
+        Assert.Equal(profileRangeFace, options.Fonts.Faces[0].Data);
+        Assert.Equal(callerFace, options.Fonts.Faces[1].Data);
+        OfficeFontFallbackRun run = Assert.Single(
+            options.Fonts.PlanFallbackRuns("A", "Shared", OfficeFontStyle.Regular));
+        Assert.Equal("Shared", run.FamilyName);
     }
 
     [Fact]

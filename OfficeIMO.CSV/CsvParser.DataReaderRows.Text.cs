@@ -9,7 +9,7 @@ namespace OfficeIMO.CSV;
 internal static partial class CsvParser
 {
 #if NET8_0_OR_GREATER
-    internal sealed class CsvTextDataReaderRowSource : IDisposable
+    internal sealed class CsvTextDataReaderRowSource : ICsvDataReaderTextRowSource
     {
         private readonly string _text;
         private readonly CsvLoadOptions _options;

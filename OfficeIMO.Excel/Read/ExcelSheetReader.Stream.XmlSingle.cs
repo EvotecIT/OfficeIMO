@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Streaming APIs for large ranges.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private static bool ShouldUseOrderedBufferedXmlStream(int estimatedRows, int firstColumn, int lastColumn) {
             int width = lastColumn - firstColumn + 1;
             return width > 0

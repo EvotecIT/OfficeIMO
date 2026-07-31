@@ -11,11 +11,10 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private enum XmlDataReaderTargetKind : byte {
             None,
-            Int32,
-            Double,
+            Numeric,
             DateTime,
             Boolean,
             String
@@ -165,7 +164,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericAsDecimal
-                && TryParseRawDecimal(rawText, culture, out decimal decimalNumber)) {
+                && TryParseExcelNumberAsDecimal(rawText, culture, out decimal decimalNumber)) {
                 return decimalNumber;
             }
 
@@ -222,7 +221,7 @@ namespace OfficeIMO.Excel {
                             }
 
                             if (numericAsDecimal
-                                && TryParseRawDecimal(rawText, culture, out decimal decimalNumber)) {
+                                && TryParseExcelNumberAsDecimal(rawText, culture, out decimal decimalNumber)) {
                                 return decimalNumber;
                             }
 
@@ -276,7 +275,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericAsDecimal
-                && TryParseRawDecimal(rawText, culture, out decimal rawDecimalNumber)) {
+                && TryParseExcelNumberAsDecimal(rawText, culture, out decimal rawDecimalNumber)) {
                 return rawDecimalNumber;
             }
 
@@ -306,10 +305,10 @@ namespace OfficeIMO.Excel {
             }
 
             XmlCellKind cellKind = ParseXmlCellKind(cellType);
-            if ((cellKind == XmlCellKind.Default || cellKind == XmlCellKind.Number)
-                && !_opt.NumericAsDecimal) {
+            if (cellKind == XmlCellKind.Default || cellKind == XmlCellKind.Number) {
                 bool useDateStyle = _opt.TreatDatesUsingNumberFormat && IsDateStyleAttribute(cellReader.GetAttribute("s"));
-                if ((targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) && !useDateStyle) {
+                if (targetKind == XmlDataReaderTargetKind.Numeric
+                    && (useDateStyle || !_opt.NumericAsDecimal)) {
                     return TryReadXmlNumericPrimitiveForDataReader(
                         cellReader,
                         asDate: false,
@@ -549,7 +548,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericAsDecimal
-                && TryParseRawDecimal(rawText, culture, out decimal decimalNumber)) {
+                && TryParseExcelNumberAsDecimal(rawText, culture, out decimal decimalNumber)) {
                 value = decimalNumber;
                 return true;
             }

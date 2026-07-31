@@ -9,7 +9,7 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="path">Source CSV path.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static IEnumerable<string[]> ReadRecords(string path, CsvLoadOptions? options = null)
+    internal static IEnumerable<string[]> ReadRecords(string path, CsvLoadOptions? options = null)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -28,7 +28,7 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="reader">Source text reader.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static IEnumerable<string[]> ReadRecords(TextReader reader, CsvLoadOptions? options = null)
+    internal static IEnumerable<string[]> ReadRecords(TextReader reader, CsvLoadOptions? options = null)
     {
         if (reader == null)
         {
@@ -52,7 +52,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="recordAction">Action receiving the current record values. Record values must not be captured after the callback returns.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadRecordsReusable(string path, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
+    internal static void ReadRecordsReusable(string path, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -77,7 +77,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="recordAction">Action receiving the current record values. Record values must not be captured after the callback returns.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadRecordsReusable(TextReader reader, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
+    internal static void ReadRecordsReusable(TextReader reader, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
     {
         if (reader == null)
         {

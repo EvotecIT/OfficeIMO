@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Streaming APIs for large ranges.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private IEnumerable<RangeChunk> ReadRangeStreamXmlFast(int r1, int c1, int r2, int c2, int chunkRows, CancellationToken ct) {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);

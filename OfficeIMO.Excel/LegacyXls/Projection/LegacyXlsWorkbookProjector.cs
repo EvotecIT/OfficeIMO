@@ -4,66 +4,103 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Projection {
     internal static partial class LegacyXlsWorkbookProjector {
         private const string ExternalLinkPathRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath";
 
-        internal static ExcelDocument ToExcelDocument(LegacyXlsWorkbook workbook) {
+        internal static ExcelDocument ToExcelDocument(
+            LegacyXlsWorkbook workbook,
+            CancellationToken cancellationToken) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            cancellationToken.ThrowIfCancellationRequested();
 
             ExcelDocument document = ExcelDocument.Create();
-            if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
-                document.AddWorksheet("Sheet1");
-            }
-
-            foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook)) {
-                if (sheetEntry.Worksheet != null) {
-                    ExcelSheet sheet = document.AddWorksheet(sheetEntry.Worksheet.Name);
-                    ProjectWorksheet(workbook, sheetEntry.Worksheet, sheet);
-                } else if (sheetEntry.ChartSheet != null) {
-                    ProjectChartSheet(sheetEntry.ChartSheet, document);
+            try {
+                if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
+                    document.AddWorksheet("Sheet1");
                 }
+
+                foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook, cancellationToken)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (sheetEntry.Worksheet != null) {
+                        ExcelSheet sheet = document.AddWorksheet(sheetEntry.Worksheet.Name);
+                        ProjectWorksheet(workbook, sheetEntry.Worksheet, sheet, cancellationToken);
+                    } else if (sheetEntry.ChartSheet != null) {
+                        ProjectChartSheet(sheetEntry.ChartSheet, document);
+                    }
+                }
+
+                ProjectWorkbookMetadata(workbook, document, cancellationToken);
+
+                cancellationToken.ThrowIfCancellationRequested();
+                if (workbook.Protection?.IsProtected == true || workbook.WindowsLocked.HasValue) {
+                    document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
+                        ProtectStructure = workbook.Protection?.IsProtected == true,
+                        ProtectWindows = workbook.WindowsLocked == true,
+                        LegacyPasswordHash = workbook.Protection?.LegacyPasswordHash
+                    });
+                } else if (!string.IsNullOrWhiteSpace(workbook.Protection?.LegacyPasswordHash)) {
+                    WorkbookProtection protection = GetOrCreateWorkbookProtection(document);
+                    protection.WorkbookPassword = workbook.Protection!.LegacyPasswordHash;
+                }
+
+                ProjectWorkbookRevisionProtection(workbook, document);
+                cancellationToken.ThrowIfCancellationRequested();
+                return document;
+            } catch {
+                document.Dispose();
+                throw;
             }
-
-            ProjectDefinedNames(workbook, document);
-            ProjectAutoFilters(workbook, document);
-            ProjectExternalReferences(workbook, document);
-            ProjectExternalQueryConnections(workbook, document);
-            ProjectDocumentProperties(workbook, document);
-            ProjectWorkbookOptions(workbook, document);
-            ProjectCodeNames(workbook, document);
-            ProjectSheetTabIds(workbook, document);
-            ProjectCalculationSettings(workbook, document);
-            ProjectWorkbookWindow(workbook, document);
-            ProjectWriteReservation(workbook, document);
-            ProjectTableStyles(workbook, document);
-            ProjectCellStyles(workbook, document);
-            ProjectWorkbookTheme(workbook, document);
-
-            if (workbook.Protection?.IsProtected == true || workbook.WindowsLocked.HasValue) {
-                document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
-                    ProtectStructure = workbook.Protection?.IsProtected == true,
-                    ProtectWindows = workbook.WindowsLocked == true,
-                    LegacyPasswordHash = workbook.Protection?.LegacyPasswordHash
-                });
-            } else if (!string.IsNullOrWhiteSpace(workbook.Protection?.LegacyPasswordHash)) {
-                WorkbookProtection protection = GetOrCreateWorkbookProtection(document);
-                protection.WorkbookPassword = workbook.Protection!.LegacyPasswordHash;
-            }
-
-            ProjectWorkbookRevisionProtection(workbook, document);
-
-            return document;
         }
 
-        private static IReadOnlyList<LegacyXlsSheetProjectionEntry> EnumerateSheetsInWorkbookOrder(LegacyXlsWorkbook workbook) {
+        private static void ProjectWorkbookMetadata(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectDefinedNames(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectAutoFilters(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectExternalReferences(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectExternalQueryConnections(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectDocumentProperties(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectWorkbookOptions(workbook, document);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectCodeNames(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectSheetTabIds(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectCalculationSettings(workbook, document);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectWorkbookWindow(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectWriteReservation(workbook, document);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectTableStyles(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectCellStyles(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectWorkbookTheme(workbook, document, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        private static IReadOnlyList<LegacyXlsSheetProjectionEntry> EnumerateSheetsInWorkbookOrder(
+            LegacyXlsWorkbook workbook,
+            CancellationToken cancellationToken) {
             var sheets = new List<LegacyXlsSheetProjectionEntry>(workbook.Worksheets.Count + workbook.ChartSheets.Count);
             foreach (LegacyXlsWorksheet worksheet in workbook.Worksheets) {
+                cancellationToken.ThrowIfCancellationRequested();
                 sheets.Add(new LegacyXlsSheetProjectionEntry(worksheet.StreamOffset, worksheet, null));
             }
 
             foreach (LegacyXlsChartSheet chartSheet in workbook.ChartSheets) {
+                cancellationToken.ThrowIfCancellationRequested();
                 sheets.Add(new LegacyXlsSheetProjectionEntry(chartSheet.StreamOffset, null, chartSheet));
             }
 
@@ -85,8 +122,12 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             internal LegacyXlsChartSheet? ChartSheet { get; }
         }
 
-        private static void ProjectWorkbookTheme(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectWorkbookTheme(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             foreach (LegacyXlsThemeRecord themeRecord in workbook.ThemeRecords.Reverse()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (LegacyXlsThemePackageReader.TryExtractThemeXml(themeRecord, out string? themeXml)
                     && !string.IsNullOrWhiteSpace(themeXml)) {
                     document.SetWorkbookThemeXml(themeXml!);
@@ -94,12 +135,18 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
             }
 
-            if (workbook.ThemeRecords.Any(themeRecord => themeRecord.IsDefaultThemeMarker)) {
+            if (workbook.ThemeRecords.Any(themeRecord => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return themeRecord.IsDefaultThemeMarker;
+            })) {
                 document.EnsureWorkbookThemeAndStyles();
             }
         }
 
-        private static void ProjectTableStyles(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectTableStyles(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             LegacyXlsTableStyleCollection? collection = workbook.TableStyleCollections.LastOrDefault();
             bool hasCustomStyles = workbook.TableStyles.Count > 0;
             bool hasDefaultStyleNames = collection != null
@@ -124,7 +171,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             tableStyles.RemoveAllChildren<DocumentFormat.OpenXml.Spreadsheet.TableStyle>();
             foreach (LegacyXlsTableStyle legacyStyle in workbook.TableStyles) {
-                DocumentFormat.OpenXml.Spreadsheet.TableStyle? tableStyle = ProjectTableStyle(legacyStyle);
+                cancellationToken.ThrowIfCancellationRequested();
+                DocumentFormat.OpenXml.Spreadsheet.TableStyle? tableStyle = ProjectTableStyle(legacyStyle, cancellationToken);
                 if (tableStyle != null) {
                     tableStyles.Append(tableStyle);
                 }
@@ -134,7 +182,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             stylesheet.Save();
         }
 
-        private static DocumentFormat.OpenXml.Spreadsheet.TableStyle? ProjectTableStyle(LegacyXlsTableStyle legacyStyle) {
+        private static DocumentFormat.OpenXml.Spreadsheet.TableStyle? ProjectTableStyle(
+            LegacyXlsTableStyle legacyStyle,
+            CancellationToken cancellationToken) {
             if (string.IsNullOrWhiteSpace(legacyStyle.Name)) {
                 return null;
             }
@@ -146,6 +196,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             };
 
             foreach (LegacyXlsTableStyleElement legacyElement in legacyStyle.Elements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!TryMapTableStyleElementType(legacyElement.ElementType, out TableStyleValues elementType)) {
                     return null;
                 }
@@ -338,13 +389,17 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static void ProjectCodeNames(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectCodeNames(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             if (!string.IsNullOrWhiteSpace(workbook.CodeName)) {
                 WorkbookProperties properties = GetOrCreateWorkbookProperties(document);
                 properties.CodeName = workbook.CodeName;
             }
 
             for (int i = 0; i < workbook.Worksheets.Count && i < document.Sheets.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string? codeName = workbook.Worksheets[i].CodeName;
                 if (string.IsNullOrWhiteSpace(codeName)) {
                     continue;
@@ -391,10 +446,21 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static void ProjectSheetTabIds(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectSheetTabIds(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             IReadOnlyList<ushort>? tabIds = workbook.SheetTabIds?.TabIds;
-            if (tabIds == null || tabIds.Count != workbook.Worksheets.Count || tabIds.Any(id => id == 0) || tabIds.Distinct().Count() != tabIds.Count) {
+            if (tabIds == null || tabIds.Count != workbook.Worksheets.Count) {
                 return;
+            }
+
+            var uniqueTabIds = new HashSet<ushort>();
+            foreach (ushort tabId in tabIds) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (tabId == 0 || !uniqueTabIds.Add(tabId)) {
+                    return;
+                }
             }
 
             Sheet[] sheets = document.WorkbookRoot.Sheets?.Elements<Sheet>().ToArray() ?? Array.Empty<Sheet>();
@@ -403,6 +469,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             for (int i = 0; i < sheets.Length; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 sheets[i].SheetId = tabIds[i];
             }
         }
@@ -453,7 +520,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static void ProjectWorkbookWindow(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectWorkbookWindow(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             if (workbook.Windows.Count == 0) {
                 return;
             }
@@ -469,6 +539,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             BookViews workbookViews = GetOrCreateWorkbookViews(document);
             workbookViews.RemoveAllChildren<WorkbookView>();
             foreach (LegacyXlsWorkbookWindow legacyWindow in workbook.Windows) {
+                cancellationToken.ThrowIfCancellationRequested();
                 WorkbookView workbookView = workbookViews.AppendChild(new WorkbookView());
                 ProjectWorkbookWindowView(workbook, legacyWindow, workbookView);
             }
@@ -611,7 +682,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 : VisibilityValues.Visible;
         }
 
-        private static void ProjectDocumentProperties(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectDocumentProperties(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             LegacyXlsDocumentProperties? properties = workbook.DocumentProperties;
             if (properties == null || !properties.HasAnyProperties) {
                 return;
@@ -640,6 +714,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             foreach (KeyValuePair<string, LegacyXlsDocumentPropertyValue> property in properties.CustomProperties) {
+                cancellationToken.ThrowIfCancellationRequested();
                 document.SetCustomDocumentProperty(property.Key, ToExcelCustomProperty(property.Value));
             }
         }
@@ -655,9 +730,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             };
         }
 
-        private static void ProjectWorksheet(LegacyXlsWorkbook workbook, LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
+        private static void ProjectWorksheet(
+            LegacyXlsWorkbook workbook,
+            LegacyXlsWorksheet legacySheet,
+            ExcelSheet sheet,
+            CancellationToken cancellationToken) {
             sheet.Batch(currentSheet => {
                 foreach (LegacyXlsCell cell in legacySheet.Cells) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsCellFormat? format = workbook.GetEffectiveCellFormat(cell.StyleIndex);
                     if (cell.Kind == LegacyXlsCellValueKind.Blank) {
                         ApplyCellFormat(currentSheet, workbook, cell, format);
@@ -685,6 +765,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 foreach (LegacyXlsArrayFormulaRecord arrayFormula in legacySheet.ArrayFormulaRecords) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsCell? formulaCell = legacySheet.Cells.FirstOrDefault(cell =>
                         cell.Row == arrayFormula.FirstRow
                         && cell.Column == arrayFormula.FirstColumn
@@ -701,12 +782,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 foreach (LegacyXlsColumnLayout column in legacySheet.Columns) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsCellFormat? columnFormat = workbook.GetEffectiveCellFormat(column.StyleIndex);
                     uint? projectedColumnStyleIndex = columnFormat != null
                         ? currentSheet.GetOrCreateLegacyCellFormatStyleIndex(workbook, columnFormat)
                         : null;
 
                     for (int columnIndex = column.StartColumn; columnIndex <= column.EndColumn; columnIndex++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (column.Width > 0) {
                             currentSheet.SetColumnWidth(columnIndex, column.Width);
                         }
@@ -730,6 +813,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 foreach (LegacyXlsRowLayout row in legacySheet.Rows) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (row.CustomHeight && row.Height > 0) {
                         currentSheet.SetRowHeight(row.Row, row.Height);
                     }
@@ -754,6 +838,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 foreach (LegacyXlsMergedRange mergedRange in legacySheet.MergedRanges) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     currentSheet.MergeRange(ToA1Range(mergedRange));
                 }
 
@@ -849,12 +934,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 foreach (LegacyXlsSelection selection in legacySheet.Selections) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     ProjectSelection(currentSheet, selection, legacySheet.FreezePane != null || legacySheet.SplitPane != null);
                 }
 
                 ProjectSortSettings(currentSheet, legacySheet.SortSettings);
 
                 foreach (LegacyXlsHyperlink hyperlink in legacySheet.Hyperlinks) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string reference = ToA1Range(hyperlink);
                     if (!string.IsNullOrWhiteSpace(hyperlink.DisplayText)) {
                         currentSheet.CellValue(hyperlink.StartRow, hyperlink.StartColumn, hyperlink.DisplayText!);
@@ -868,17 +955,21 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 foreach (LegacyXlsDataValidation validation in legacySheet.DataValidations) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsDataValidationProjector.Project(workbook, currentSheet, validation);
                 }
 
                 foreach (LegacyXlsConditionalFormatting conditionalFormatting in legacySheet.ConditionalFormattings) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsConditionalFormattingProjector.Project(currentSheet, conditionalFormatting);
                 }
             });
 
+            cancellationToken.ThrowIfCancellationRequested();
             ProjectTableDefinitions(workbook, legacySheet, sheet);
 
             foreach (LegacyXlsComment comment in legacySheet.Comments) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ExcelCommentAnchor? anchor = ToCommentAnchor(comment.Anchor);
                 if (TryCreateCommentRichTextRuns(workbook, comment, out IReadOnlyList<ExcelRichTextRun> richTextRuns)) {
                     sheet.SetLegacyCommentRichText(comment.Row, comment.Column, richTextRuns, comment.Author, comment.Visible, anchor);
@@ -920,6 +1011,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             ProjectDataConsolidation(workbook, legacySheet, sheet);
             ProjectScenarios(legacySheet, sheet);
             ProjectPageBreaks(legacySheet, sheet);
+            cancellationToken.ThrowIfCancellationRequested();
             ProjectWorksheetImages(workbook, legacySheet, sheet);
             ProjectHeaderFooterImages(workbook, legacySheet, sheet);
 
@@ -930,7 +1022,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static bool ShouldProjectFormula(LegacyXlsWorkbook workbook, string formulaText) =>
+        internal static bool ShouldProjectFormula(LegacyXlsWorkbook workbook, string formulaText) =>
             workbook.PreserveExternalWorkbookLinks || !ReferencesExternalWorkbook(workbook, formulaText);
 
         private static bool ReferencesExternalWorkbook(LegacyXlsWorkbook workbook, string formulaText) =>
@@ -1574,9 +1666,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     anchor.EndDy);
         }
 
-        private static void ProjectDefinedNames(LegacyXlsWorkbook workbook, ExcelDocument document) {
-            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex = CreateWorksheetIndexByProjectedSheetIndex(workbook);
+        internal static void ProjectDefinedNames(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
+            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex =
+                CreateWorksheetIndexByProjectedSheetIndex(workbook, cancellationToken);
             foreach (LegacyXlsDefinedName definedName in workbook.DefinedNames) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!workbook.PreserveExternalWorkbookLinks && ReferencesExternalWorkbook(workbook, definedName.Reference)) {
                     continue;
                 }
@@ -1638,16 +1735,27 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             definedNames.Append(openXmlName);
         }
 
-        private static void ProjectAutoFilters(LegacyXlsWorkbook workbook, ExcelDocument document) {
-            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex = CreateWorksheetIndexByProjectedSheetIndex(workbook);
+        private static void ProjectAutoFilters(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
+            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex =
+                CreateWorksheetIndexByProjectedSheetIndex(workbook, cancellationToken);
             for (int i = 0; i < workbook.Worksheets.Count && i < document.Sheets.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 LegacyXlsWorksheet legacySheet = workbook.Worksheets[i];
                 if (legacySheet.AutoFilterCriteria.Count == 0) {
                     continue;
                 }
 
                 ExcelSheet sheet = document.Sheets[i];
-                if (!TryGetAutoFilterRange(workbook, sheet, i, worksheetIndexByProjectedSheetIndex, out string autoFilterRange)) {
+                if (!TryGetAutoFilterRange(
+                    workbook,
+                    sheet,
+                    i,
+                    worksheetIndexByProjectedSheetIndex,
+                    cancellationToken,
+                    out string autoFilterRange)) {
                     continue;
                 }
 
@@ -1660,9 +1768,11 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             ExcelSheet sheet,
             int worksheetIndex,
             IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex,
+            CancellationToken cancellationToken,
             out string autoFilterRange) {
             autoFilterRange = string.Empty;
             foreach (LegacyXlsDefinedName definedName in workbook.DefinedNames) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (definedName.LocalSheetIndex.HasValue
                     && worksheetIndexByProjectedSheetIndex.TryGetValue(definedName.LocalSheetIndex.Value, out int scopedWorksheetIndex)
                     && scopedWorksheetIndex == worksheetIndex
@@ -1675,11 +1785,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             return false;
         }
 
-        private static IReadOnlyDictionary<int, int> CreateWorksheetIndexByProjectedSheetIndex(LegacyXlsWorkbook workbook) {
+        private static IReadOnlyDictionary<int, int> CreateWorksheetIndexByProjectedSheetIndex(
+            LegacyXlsWorkbook workbook,
+            CancellationToken cancellationToken) {
             var result = new Dictionary<int, int>();
             int projectedSheetIndex = 0;
             int worksheetIndex = 0;
-            foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook)) {
+            foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook, cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (sheetEntry.Worksheet != null) {
                     result[projectedSheetIndex] = worksheetIndex++;
                 }
@@ -1690,7 +1803,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             return result;
         }
 
-        private static void ProjectExternalReferences(LegacyXlsWorkbook workbook, ExcelDocument document) {
+        private static void ProjectExternalReferences(
+            LegacyXlsWorkbook workbook,
+            ExcelDocument document,
+            CancellationToken cancellationToken) {
             if (!workbook.PreserveExternalWorkbookLinks) {
                 return;
             }
@@ -1699,6 +1815,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             Workbook workbookRoot = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is null.");
 
             foreach (LegacyXlsExternalReference reference in workbook.ExternalReferences) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (reference.Kind != LegacyXlsExternalReferenceKind.ExternalWorkbook
                     || string.IsNullOrWhiteSpace(reference.Target)) {
                     continue;
@@ -1717,10 +1834,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 if (reference.SheetNames.Count > 0) {
                     externalBook.SheetNames = new SheetNames(reference.SheetNames
                         .Where(sheetName => !string.IsNullOrWhiteSpace(sheetName))
-                        .Select(sheetName => new SheetName { Val = sheetName }));
+                        .Select(sheetName => {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            return new SheetName { Val = sheetName };
+                        }));
                 }
 
-                ExternalDefinedNames? externalDefinedNames = CreateExternalDefinedNames(reference);
+                ExternalDefinedNames? externalDefinedNames =
+                    CreateExternalDefinedNames(reference, cancellationToken);
                 if (externalDefinedNames != null) {
                     externalBook.ExternalDefinedNames = externalDefinedNames;
                 }
@@ -1759,10 +1880,13 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             return externalReferences;
         }
 
-        private static ExternalDefinedNames? CreateExternalDefinedNames(LegacyXlsExternalReference reference) {
+        private static ExternalDefinedNames? CreateExternalDefinedNames(
+            LegacyXlsExternalReference reference,
+            CancellationToken cancellationToken) {
             List<ExternalDefinedName> names = reference.ExternalNames
                 .Where(name => !string.IsNullOrWhiteSpace(name.Name))
                 .Select(name => {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var projectedName = new ExternalDefinedName {
                         Name = name.Name
                     };

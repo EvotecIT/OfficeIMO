@@ -552,7 +552,7 @@ public class CsvWideBenchmarks
     [Benchmark]
     public int OfficeIMO_ReadFileDataReaderExplicitSchema()
     {
-        using var csv = CsvDocument.CreateDataReader(
+        using var csv = CsvDocument.OpenDataReader(
             _csvPath,
             new CsvLoadOptions { Mode = CsvLoadMode.Stream },
             new CsvDataReaderOptions { Schema = _wideSchema });

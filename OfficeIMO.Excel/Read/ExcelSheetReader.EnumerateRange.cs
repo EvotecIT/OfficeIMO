@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Range enumeration for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private const int CompletedEnumerateRangeOutsideRowProbeLimit = 16;
 
         /// <summary>

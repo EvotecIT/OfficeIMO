@@ -34,15 +34,33 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         internal static bool TryRead(byte[] bytes, out OfficeCompoundFile? compoundFile, out string? error) {
-            return TryRead(bytes, OfficeCompoundReadOptions.Default, out compoundFile, out error);
+            return TryRead(bytes, OfficeCompoundReadOptions.Default, CancellationToken.None, out compoundFile, out error);
+        }
+
+        internal static bool TryRead(
+            byte[] bytes,
+            CancellationToken cancellationToken,
+            out OfficeCompoundFile? compoundFile,
+            out string? error) {
+            return TryRead(bytes, OfficeCompoundReadOptions.Default, cancellationToken, out compoundFile, out error);
         }
 
         internal static bool TryRead(byte[] bytes, OfficeCompoundReadOptions options,
             out OfficeCompoundFile? compoundFile, out string? error) {
+            return TryRead(bytes, options, CancellationToken.None, out compoundFile, out error);
+        }
+
+        private static bool TryRead(
+            byte[] bytes,
+            OfficeCompoundReadOptions options,
+            CancellationToken cancellationToken,
+            out OfficeCompoundFile? compoundFile,
+            out string? error) {
             compoundFile = null;
             error = null;
 
             try {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (bytes == null || bytes.Length < HeaderSize || !HasSignature(bytes)) {
                     error = "The file does not start with the OLE compound document signature.";
                     return false;
@@ -84,25 +102,30 @@ namespace OfficeIMO.Drawing.Internal {
                     throw new InvalidDataException("Compound file allocation table counts exceed the file size.");
                 }
 
-                List<uint> fatSectorIds = ReadDifat(bytes, sectorSize, firstDifat, difatSectorCount, fatSectorCount);
-                uint[] fat = ReadFat(bytes, sectorSize, fatSectorIds);
+                List<uint> fatSectorIds = ReadDifat(bytes, sectorSize, firstDifat, difatSectorCount, fatSectorCount, cancellationToken);
+                uint[] fat = ReadFat(bytes, sectorSize, fatSectorIds, cancellationToken);
                 long maximumDirectoryBytes = checked((long)options.MaxDirectoryEntries * DirectoryEntrySize);
                 byte[] directoryBytes = ReadRegularStream(bytes, sectorSize, fat, directoryStart, long.MaxValue,
-                    maximumDirectoryBytes);
-                List<DirectoryEntry> entries = ReadDirectoryEntries(directoryBytes, majorVersion, options.MaxDirectoryEntries);
+                    maximumDirectoryBytes, cancellationToken);
+                List<DirectoryEntry> entries = ReadDirectoryEntries(
+                    directoryBytes,
+                    majorVersion,
+                    options.MaxDirectoryEntries,
+                    cancellationToken);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
                 if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > int.MaxValue) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured bounds.");
                 }
 
-                IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries);
+                IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries, cancellationToken);
                 DirectoryEntry[] streamEntries = entries.Where(entry => entry.ObjectType == 2).ToArray();
                 if (streamEntries.Length > options.MaxStreamCount) {
                     throw new InvalidDataException($"Compound file stream count {streamEntries.Length} exceeds {options.MaxStreamCount}.");
                 }
                 long totalStreamBytes = 0;
                 foreach (DirectoryEntry entry in streamEntries) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
                         ? entryPath
                         : entry.Name;
@@ -118,25 +141,32 @@ namespace OfficeIMO.Drawing.Internal {
 
                 byte[] miniStream = root == null || root.StartSector == EndOfChain
                     ? Array.Empty<byte>()
-                    : ReadRegularStream(bytes, sectorSize, fat, root.StartSector, root.Size);
+                    : ReadRegularStream(bytes, sectorSize, fat, root.StartSector, root.Size, cancellationToken: cancellationToken);
                 uint[] miniFat = miniFatStart == EndOfChain || miniFatSectorCount == 0
                     ? Array.Empty<uint>()
-                    : BytesToUInt32Array(ReadRegularStream(bytes, sectorSize, fat, miniFatStart, (long)miniFatSectorCount * sectorSize));
+                    : BytesToUInt32Array(ReadRegularStream(
+                        bytes,
+                        sectorSize,
+                        fat,
+                        miniFatStart,
+                        (long)miniFatSectorCount * sectorSize,
+                        cancellationToken: cancellationToken));
 
                 foreach (DirectoryEntry entry in streamEntries) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
                         ? entryPath
                         : entry.Name;
                     byte[] data = entry.Size < miniCutoff
-                        ? ReadMiniStream(miniStream, miniFat, entry.StartSector, entry.Size)
-                        : ReadRegularStream(bytes, sectorSize, fat, entry.StartSector, entry.Size);
+                        ? ReadMiniStream(miniStream, miniFat, entry.StartSector, entry.Size, cancellationToken)
+                        : ReadRegularStream(bytes, sectorSize, fat, entry.StartSector, entry.Size, cancellationToken: cancellationToken);
                     streams[path] = data;
                     if (string.Equals(path, entry.Name, StringComparison.OrdinalIgnoreCase)) {
                         streams[entry.Name] = data;
                     }
                 }
 
-                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries),
+                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries, cancellationToken),
                     CreateCompoundEntry(root!, "Root Entry"));
                 return true;
             } catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is InvalidDataException || ex is OverflowException || ex is IndexOutOfRangeException) {
@@ -154,7 +184,13 @@ namespace OfficeIMO.Drawing.Internal {
             return true;
         }
 
-        private static List<uint> ReadDifat(byte[] bytes, int sectorSize, uint firstDifat, int difatSectorCount, int fatSectorCount) {
+        private static List<uint> ReadDifat(
+            byte[] bytes,
+            int sectorSize,
+            uint firstDifat,
+            int difatSectorCount,
+            int fatSectorCount,
+            CancellationToken cancellationToken) {
             var result = new List<uint>(fatSectorCount);
             var visitedFatSectors = new HashSet<uint>();
             for (int i = 0; i < 109 && result.Count < fatSectorCount; i++) {
@@ -167,6 +203,7 @@ namespace OfficeIMO.Drawing.Internal {
             var visitedDifatSectors = new HashSet<uint>();
             int entriesPerSector = sectorSize / 4 - 1;
             for (int d = 0; d < difatSectorCount && next != EndOfChain && result.Count < fatSectorCount; d++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!visitedDifatSectors.Add(next)) throw new InvalidDataException("Cyclic DIFAT sector chain.");
                 int offset = SectorOffset(next, sectorSize);
                 for (int i = 0; i < entriesPerSector && result.Count < fatSectorCount; i++) {
@@ -183,9 +220,14 @@ namespace OfficeIMO.Drawing.Internal {
             return result;
         }
 
-        private static uint[] ReadFat(byte[] bytes, int sectorSize, List<uint> fatSectorIds) {
+        private static uint[] ReadFat(
+            byte[] bytes,
+            int sectorSize,
+            List<uint> fatSectorIds,
+            CancellationToken cancellationToken) {
             var entries = new List<uint>(fatSectorIds.Count * (sectorSize / 4));
             foreach (uint sector in fatSectorIds) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int offset = SectorOffset(sector, sectorSize);
                 for (int i = 0; i < sectorSize / 4; i++) {
                     entries.Add(ReadUInt32(bytes, offset + i * 4));
@@ -196,7 +238,8 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static byte[] ReadRegularStream(byte[] bytes, int sectorSize, uint[] fat, uint startSector, long size,
-            long maximumBytes = long.MaxValue) {
+            long maximumBytes = long.MaxValue,
+            CancellationToken cancellationToken = default) {
             if (size == 0) return Array.Empty<byte>();
             if (startSector == EndOfChain) {
                 if (size == long.MaxValue) return Array.Empty<byte>();
@@ -207,6 +250,7 @@ namespace OfficeIMO.Drawing.Internal {
             uint sector = startSector;
             var visited = new HashSet<uint>();
             while (sector != EndOfChain && sector != FreeSect) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (sector >= fat.Length || !visited.Add(sector)) {
                     throw new InvalidDataException("Invalid compound file sector chain.");
                 }
@@ -237,7 +281,12 @@ namespace OfficeIMO.Drawing.Internal {
             return data;
         }
 
-        private static byte[] ReadMiniStream(byte[] miniStream, uint[] miniFat, uint startSector, long size) {
+        private static byte[] ReadMiniStream(
+            byte[] miniStream,
+            uint[] miniFat,
+            uint startSector,
+            long size,
+            CancellationToken cancellationToken) {
             if (size == 0) return Array.Empty<byte>();
             if (startSector == EndOfChain) throw new InvalidDataException("A non-empty mini stream has no sector chain.");
 
@@ -245,6 +294,7 @@ namespace OfficeIMO.Drawing.Internal {
             uint sector = startSector;
             var visited = new HashSet<uint>();
             while (sector != EndOfChain && sector != FreeSect) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (sector >= miniFat.Length || !visited.Add(sector)) {
                     throw new InvalidDataException("Invalid compound file mini sector chain.");
                 }

@@ -1,0 +1,67 @@
+<section class="imo-benchmark-dashboard imo-library-comparison-benchmarks"
+         data-library-comparison-benchmarks
+         data-comparison-id="markpflug-65k-csv-decoded-net10.0"
+         data-index-url="/data/benchmarks/library-comparisons/index.json">
+  <div class="imo-benchmark-hero">
+    <div class="imo-benchmark-hero__copy">
+      <p class="imo-benchmark-eyebrow">Multi-library read evidence</p>
+      <h2>Pinned 65K-record .NET 10 comparisons</h2>
+      <p>
+        Each compatible library reads the same hash-verified CSV, XLSX, or XLSB fixture and
+        produces the same validated observation. Results stay separated by workload, operating
+        system, and run mode.
+      </p>
+    </div>
+  </div>
+
+  <div class="imo-library-comparison-controls" aria-label="Benchmark evidence selector">
+    <div>
+      <span class="imo-library-comparison-label">Workload</span>
+      <div class="imo-library-comparison-buttons" data-library-comparison-workloads>
+        <button type="button" data-library-comparison-workload="markpflug-65k-csv-decoded-net10.0">CSV decoded strings</button>
+        <button type="button" data-library-comparison-workload="markpflug-65k-xlsx-typed-net10.0">XLSX typed</button>
+        <button type="button" data-library-comparison-workload="markpflug-65k-xlsb-typed-net10.0">XLSB typed</button>
+      </div>
+    </div>
+    <div>
+      <span class="imo-library-comparison-label">Operating system</span>
+      <div class="imo-library-comparison-buttons" data-library-comparison-platforms>
+        <button type="button" data-library-comparison-platform="windows">Windows</button>
+        <button type="button" data-library-comparison-platform="linux">Linux</button>
+        <button type="button" data-library-comparison-platform="macos">macOS</button>
+      </div>
+    </div>
+    <div>
+      <span class="imo-library-comparison-label">Evidence</span>
+      <div class="imo-library-comparison-buttons" data-library-comparison-modes>
+        <button type="button" data-library-comparison-mode="full">Full</button>
+        <button type="button" data-library-comparison-mode="quick">Quick</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="imo-benchmark-meta" data-library-comparison-meta></div>
+  <div class="imo-library-comparison-state" data-library-comparison-state aria-live="polite">
+    Loading benchmark evidence…
+  </div>
+  <div class="imo-benchmark-table-wrap" data-library-comparison-table hidden>
+    <table class="imo-benchmark-table imo-library-comparison-table">
+      <thead>
+        <tr>
+          <th>Workload</th>
+          <th>Library</th>
+          <th>Median</th>
+          <th>Allocated</th>
+          <th>vs fastest</th>
+        </tr>
+      </thead>
+      <tbody data-library-comparison-rows></tbody>
+    </table>
+  </div>
+  <p class="imo-library-comparison-methodology">
+    Full results support public comparisons. Quick results are diagnostic only. Every library is
+    a peer in the matrix; no implementation is framed as an opponent or universal baseline.
+    Unsupported workload lanes are not applicable, missing platform evidence remains visible,
+    and incompatible evidence is never combined.
+  </p>
+</section>

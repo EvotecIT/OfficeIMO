@@ -6,7 +6,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Receives header-aware CSV data rows as transient field spans during a single-pass read.
 /// </summary>
-public interface ICsvRowFieldSpanVisitor
+internal interface ICsvRowFieldSpanVisitor
 {
     /// <summary>
     /// Starts a data row. The header has already been discovered, normalized, and validated.

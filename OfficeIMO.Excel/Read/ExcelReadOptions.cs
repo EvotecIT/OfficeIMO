@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -9,6 +10,36 @@ namespace OfficeIMO.Excel {
         private int _maxSharedStringItemCharacters = 32_767;
         private long _maxSharedStringCharacters = 64L * 1024L * 1024L;
         private long _maxInputBytes = 512L * 1024L * 1024L;
+        private int _schemaSampleRows = 1_024;
+        private int _maxXlsbCells = 4_000_000;
+
+        /// <summary>
+        /// Gets or sets the worksheet exposed by <see cref="ExcelDocument.OpenDataReader(string, ExcelReadOptions?)"/>.
+        /// When omitted, worksheets are exposed in workbook order through
+        /// <see cref="System.Data.Common.DbDataReader.NextResult"/>.
+        /// </summary>
+        public string? SheetName { get; set; }
+
+        /// <summary>Gets or sets whether the first row supplies column names.</summary>
+        public bool HasHeaderRow { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether the data-reader schema is inferred from worksheet values.
+        /// Native cell values are preserved regardless of this setting.
+        /// </summary>
+        public bool InferSchema { get; set; }
+
+        /// <summary>Gets or sets the maximum rows sampled when schema inference is enabled.</summary>
+        public int SchemaSampleRows {
+            get => _schemaSampleRows;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Schema sample rows must be greater than zero.");
+                }
+
+                _schemaSampleRows = value;
+            }
+        }
 
         /// <summary>Maximum workbook bytes buffered by <see cref="ExcelDocumentReader"/>. Default: 512 MiB.</summary>
         public long MaxInputBytes {
@@ -33,6 +64,21 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Maximum cells materialized by a data-reader chunk or schema sample.</summary>
         public long MaxDataReaderBufferedCells { get; set; } = 1_000_000L;
+
+        /// <summary>
+        /// Maximum populated cell records accepted across one XLSB workbook. Default: 4,000,000.
+        /// This is an aggregate safety limit, independent of per-chunk data-reader buffering.
+        /// </summary>
+        public int MaxXlsbCells {
+            get => _maxXlsbCells;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "XLSB cell limit must be greater than zero.");
+                }
+
+                _maxXlsbCells = value;
+            }
+        }
 
         /// <summary>Maximum cells materialized by one dense range read. Default: 1,000,000.</summary>
         public long MaxRangeCells { get; set; } = 1_000_000L;
@@ -60,6 +106,11 @@ namespace OfficeIMO.Excel {
         /// Culture used when parsing numbers and dates stored as strings.
         /// </summary>
         public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
+
+        /// <summary>
+        /// Cancellation observed while opening and streaming workbook data.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; }
 
         /// <summary>
         /// When true, matrix/range readers fill unspecified cells with nulls.

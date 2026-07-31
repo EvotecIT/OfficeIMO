@@ -101,15 +101,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private ExcelSheet? MaterializePendingDirectCellValueSheetIfNeeded() {
+        private ExcelSheet? MaterializePendingDirectCellValueSheetIfNeeded(CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             var sheet = _pendingDirectCellValueSheet;
             if (sheet == null) {
                 return null;
             }
 
-            _pendingDirectCellValueSheet = null;
-            _pendingDirectCellValueRequiresSavePreflight = false;
-            sheet.MaterializePendingDirectCellValues();
+            sheet.MaterializePendingDirectCellValues(ct);
             return sheet;
         }
 
@@ -124,27 +123,38 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal void MaterializeDeferredDataSetImport() {
+        internal void MaterializeDeferredDataSetImport() =>
+            MaterializeDeferredDataSetImport(CancellationToken.None);
+
+        internal void MaterializeDeferredDataSetImport(CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
             if (_materializingDeferredDataSetImport) {
                 return;
             }
 
-            MaterializePendingDirectCellValueSheetIfNeeded();
+            MaterializePendingDirectCellValueSheetIfNeeded(ct);
+            ct.ThrowIfCancellationRequested();
 
             var candidate = _directDataSetSaveCandidate;
             if (candidate == null || !candidate.IsDeferred) {
                 if (_materializedDirectDataSetFastSaveModelPreservationDepth == 0) {
-                    MaterializeDirectDataSetFastSaveModelIfNeeded();
+                    MaterializeDirectDataSetFastSaveModelIfNeeded(ct);
                 }
                 return;
             }
 
             _directDataSetSaveCandidate = null;
-            candidate.Dispose();
-
             _materializingDeferredDataSetImport = true;
             try {
-                MaterializeDirectDataSetModel(candidate.Model);
+                MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
+                candidate.Dispose();
+            } catch {
+                if (_directDataSetSaveCandidate == null) {
+                    _directDataSetSaveCandidate = candidate;
+                } else {
+                    candidate.Dispose();
+                }
+                throw;
             } finally {
                 _materializingDeferredDataSetImport = false;
             }
@@ -175,8 +185,16 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
-        private void MaterializeDirectDataSetModel(DirectDataSetWorkbookModel model, bool preserveExistingWorksheetStructure = false) {
+        private void MaterializeDirectDataSetModel(
+            DirectDataSetWorkbookModel model,
+            bool preserveExistingWorksheetStructure = false,
+            CancellationToken cancellationToken = default) {
+            bool canCancel = cancellationToken.CanBeCanceled;
             foreach (var sheetModel in model.Sheets) {
+                if (canCancel) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
                     ?? AddWorksheet(sheetModel.SheetName, SheetNameValidationMode.Strict);
                 if (sheetModel.Range.Length == 0) {
@@ -216,7 +234,8 @@ namespace OfficeIMO.Excel {
                     if (hasExistingTablePart) {
                         tableRange = sheet.TryInsertTabularRowSourceForDeferredMaterialization(
                             sheetModel.Table,
-                            includeHeaders: sheetModel.IncludeHeaders)
+                            includeHeaders: sheetModel.IncludeHeaders,
+                            ct: cancellationToken)
                             ? sheetModel.Range
                             : string.Empty;
                     } else {
@@ -225,7 +244,8 @@ namespace OfficeIMO.Excel {
                             includeHeaders: sheetModel.IncludeHeaders,
                             tableName: sheetModel.TableName,
                             style: sheetModel.TableStyle,
-                            includeAutoFilter: sheetModel.IncludeAutoFilter);
+                            includeAutoFilter: sheetModel.IncludeAutoFilter,
+                            ct: cancellationToken);
                     }
 
                     if (tableRange.Length == 0) {
@@ -234,7 +254,8 @@ namespace OfficeIMO.Excel {
                             includeHeaders: sheetModel.IncludeHeaders,
                             tableName: sheetModel.TableName,
                             style: sheetModel.TableStyle,
-                            includeAutoFilter: sheetModel.IncludeAutoFilter);
+                            includeAutoFilter: sheetModel.IncludeAutoFilter,
+                            ct: cancellationToken);
                     }
 
                     if (tableRange.Length > 0) {
@@ -249,25 +270,40 @@ namespace OfficeIMO.Excel {
                 } else {
                     if (!sheet.TryInsertTabularRowSourceForDeferredMaterialization(
                         sheetModel.Table,
-                        includeHeaders: sheetModel.IncludeHeaders)) {
+                        includeHeaders: sheetModel.IncludeHeaders,
+                        ct: cancellationToken)) {
                         sheet.InsertDataTable(
                             sheetModel.Table.ToDataTable(),
-                            includeHeaders: sheetModel.IncludeHeaders);
+                            includeHeaders: sheetModel.IncludeHeaders,
+                            ct: cancellationToken);
                     }
+                }
+
+                if (canCancel) {
+                    cancellationToken.ThrowIfCancellationRequested();
                 }
 
                 if (sheetModel.ColumnWidths is { Length: > 0 } columnWidths) {
                     sheet.ApplyAutoFitColumnWidthsForDeferredMaterialization(columnWidths);
                 } else if (sheetModel.AutoFitColumns && sheetModel.Table.ColumnCount > 0) {
-                    sheet.AutoFitColumnsFor(Enumerable.Range(1, sheetModel.Table.ColumnCount));
+                    sheet.AutoFitColumnsFor(
+                        Enumerable.Range(1, sheetModel.Table.ColumnCount),
+                        ct: cancellationToken);
                 }
 
-                ApplyDirectMaterializedColumnNumberFormats(sheet, sheetModel);
-                ApplyCapturedDirectWorksheetMetadata(sheet.WorksheetPart.Worksheet!, preservedMetadata, DateSystem);
+                ApplyDirectMaterializedColumnNumberFormats(sheet, sheetModel, cancellationToken);
+                ApplyCapturedDirectWorksheetMetadata(
+                    sheet.WorksheetPart.Worksheet!,
+                    preservedMetadata,
+                    DateSystem,
+                    cancellationToken);
             }
         }
 
-        private static void ApplyDirectMaterializedColumnNumberFormats(ExcelSheet sheet, DirectDataSetSheetModel sheetModel) {
+        private static void ApplyDirectMaterializedColumnNumberFormats(
+            ExcelSheet sheet,
+            DirectDataSetSheetModel sheetModel,
+            CancellationToken cancellationToken) {
             var formats = sheetModel.ColumnNumberFormats;
             if (formats == null || formats.Count == 0 || sheetModel.Table.RowCount == 0) {
                 return;
@@ -275,7 +311,12 @@ namespace OfficeIMO.Excel {
 
             int startRow = sheetModel.IncludeHeaders ? 2 : 1;
             int endRow = startRow + sheetModel.Table.RowCount - 1;
+            bool canCancel = cancellationToken.CanBeCanceled;
             for (int i = 0; i < formats.Count && i < sheetModel.Table.ColumnCount; i++) {
+                if (canCancel) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
                 string? numberFormat = formats[i];
                 if (string.IsNullOrWhiteSpace(numberFormat)) {
                     continue;
@@ -288,7 +329,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyCapturedDirectWorksheetMetadata(Worksheet worksheet, DirectWorksheetMetadata? metadata, ExcelDateSystem dateSystem) {
+        private static void ApplyCapturedDirectWorksheetMetadata(
+            Worksheet worksheet,
+            DirectWorksheetMetadata? metadata,
+            ExcelDateSystem dateSystem,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (metadata == null || metadata.IsEmpty) {
                 return;
             }
@@ -314,6 +360,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (var conditionalFormattingXml in metadata.ConditionalFormattingXml) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting>()
                     .Any(existing => string.Equals(existing.OuterXml, conditionalFormattingXml, StringComparison.Ordinal))) {
                     continue;
@@ -327,6 +374,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (var xml in metadata.PostDataValidationXml) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var element = CreatePostDataValidationElement(xml);
                 if (element != null) {
                     InsertWorksheetMetadataElement(worksheet, element, typeof(TableParts));
@@ -337,16 +385,25 @@ namespace OfficeIMO.Excel {
                 InsertWorksheetMetadataElement(worksheet, CreateElementWithAttributes<DocumentFormat.OpenXml.Spreadsheet.Drawing>(metadata.DrawingXml!), typeof(TableParts));
             }
 
-            ApplyCapturedDirectOverlayCells(worksheet, metadata.OverlayCells, dateSystem);
+            ApplyCapturedDirectOverlayCells(
+                worksheet,
+                metadata.OverlayCells,
+                dateSystem,
+                cancellationToken);
         }
 
-        private static void ApplyCapturedDirectOverlayCells(Worksheet worksheet, IReadOnlyList<DirectOverlayCell> overlayCells, ExcelDateSystem dateSystem) {
+        private static void ApplyCapturedDirectOverlayCells(
+            Worksheet worksheet,
+            IReadOnlyList<DirectOverlayCell> overlayCells,
+            ExcelDateSystem dateSystem,
+            CancellationToken cancellationToken) {
             if (overlayCells.Count == 0) {
                 return;
             }
 
             SheetData sheetData = worksheet.GetFirstChild<SheetData>() ?? worksheet.AppendChild(new SheetData());
             foreach (var overlayCell in overlayCells.OrderBy(static cell => cell.Row).ThenBy(static cell => cell.Column)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (overlayCell.IsDeleted) {
                     continue;
                 }

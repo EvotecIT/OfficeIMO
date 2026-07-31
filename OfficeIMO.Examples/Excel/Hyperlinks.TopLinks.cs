@@ -42,16 +42,14 @@ namespace OfficeIMO.Examples.Excel {
             var rows = links.Select(l => new { l.Title, l.Url }).ToList();
             var a1 = s.TableFrom(rows, title: null, configure: o => { o.HeaderCase = HeaderCase.Title; }, visuals: v => v.FreezeHeaderRow = true);
 
-            // Convert Title cells to clickable hyperlinks using formulas (keeps Url visible for auditing)
-            try {
-                foreach (var row in s.Sheet.RowsObjects(a1)) {
-                    var titleCell = row.CellByHeader("Title");
-                    var urlCell = row.CellByHeader("Url");
-                    string urlRef = IndexToCol(urlCell.ColumnIndex) + titleCell.RowIndex.ToString();
-                    string safeTitle = (row.GetOrDefault<string>("Title", string.Empty) ?? string.Empty).Replace("\"", "\"\"");
-                    row.SetFormula("Title", $"=HYPERLINK({urlRef},\"{safeTitle}\")");
-                }
-            } catch { }
+            // Convert Title cells to clickable hyperlinks through the editable worksheet surface.
+            var (headerRow, titleColumn, lastRow, _) = A1.ParseRange(a1);
+            int urlColumn = titleColumn + 1;
+            for (int rowIndex = headerRow + 1; rowIndex <= lastRow; rowIndex++) {
+                string safeTitle = links[rowIndex - headerRow - 1].Title.Replace("\"", "\"\"");
+                string urlRef = IndexToCol(urlColumn) + rowIndex.ToString();
+                s.Sheet.CellFormula(rowIndex, titleColumn, $"HYPERLINK({urlRef},\"{safeTitle}\")");
+            }
 
             s.Finish(autoFitColumns: false);
 
