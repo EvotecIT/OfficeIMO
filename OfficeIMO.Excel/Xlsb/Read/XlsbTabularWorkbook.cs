@@ -291,9 +291,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private IReadOnlyList<string> ReadSharedStrings(
             string workbookPartName,
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships) {
-            XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(candidate =>
-                !candidate.IsExternal
-                && candidate.Type.EndsWith(SharedStringsRelationshipSuffix, StringComparison.Ordinal));
+            XlsbPackageRelationship? relationship = GetOptionalSingletonRelationship(
+                relationships,
+                SharedStringsRelationshipSuffix,
+                "shared-string");
             if (relationship == null) {
                 return Array.Empty<string>();
             }
@@ -372,9 +373,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private bool[] ReadDateStyles(
             string workbookPartName,
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships) {
-            XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(candidate =>
-                !candidate.IsExternal
-                && candidate.Type.EndsWith(StylesRelationshipSuffix, StringComparison.Ordinal));
+            XlsbPackageRelationship? relationship = GetOptionalSingletonRelationship(
+                relationships,
+                StylesRelationshipSuffix,
+                "styles");
             if (relationship == null) {
                 return new[] { false };
             }
@@ -621,6 +623,28 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     || (customFormats.TryGetValue(format.NumberFormatId, out string? code)
                         && ExcelNumberFormatClassifier.LooksLikeDateFormat(code)))
                 .ToArray();
+        }
+
+        private static XlsbPackageRelationship? GetOptionalSingletonRelationship(
+            IReadOnlyDictionary<string, XlsbPackageRelationship> relationships,
+            string relationshipTypeSuffix,
+            string relationshipName) {
+            XlsbPackageRelationship? match = null;
+            foreach (XlsbPackageRelationship candidate in relationships.Values) {
+                if (candidate.IsExternal
+                    || !candidate.Type.EndsWith(relationshipTypeSuffix, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                if (match != null) {
+                    throw new InvalidDataException(
+                        $"The XLSB workbook contains multiple internal {relationshipName} relationships.");
+                }
+
+                match = candidate;
+            }
+
+            return match;
         }
 
         private static bool IsSupportedStyleCollectionBegin(int recordType) =>

@@ -226,7 +226,14 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
-            foreach (var chunk in ReadRangeStream(a1Range, chunkRows, OfficeIMO.Excel.ExecutionMode.Sequential, ct)) {
+            foreach (var chunk in ReadUnsortedDomRangeStreamForDataReader(
+                         sheetData,
+                         r1,
+                         c1,
+                         r2,
+                         c2,
+                         chunkRows,
+                         ct)) {
                 yield return chunk;
             }
         }
@@ -303,6 +310,45 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private IEnumerable<RangeChunk> ReadUnsortedDomRangeStreamForDataReader(
+            SheetData sheetData,
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int chunkRows,
+            CancellationToken ct) {
+            var windows = new SortedDictionary<int, List<Row>>();
+            foreach (Row row in sheetData.Elements<Row>()) {
+                ct.ThrowIfCancellationRequested();
+                int rowIndex = checked((int)row.RowIndex!.Value);
+                if (rowIndex < r1 || rowIndex > r2) {
+                    continue;
+                }
+
+                int windowIndex = (rowIndex - r1) / chunkRows;
+                if (!windows.TryGetValue(windowIndex, out List<Row>? rows)) {
+                    rows = new List<Row>();
+                    windows.Add(windowIndex, rows);
+                }
+
+                rows.Add(row);
+            }
+
+            foreach (KeyValuePair<int, List<Row>> window in windows) {
+                ct.ThrowIfCancellationRequested();
+                yield return ConvertSortedDomChunk(
+                    window.Value,
+                    window.Key,
+                    r1,
+                    c1,
+                    r2,
+                    c2,
+                    chunkRows,
+                    ct);
+            }
+        }
+
         private RangeChunk ConvertSortedDomChunk(
             IReadOnlyList<Row> rows,
             int windowIndex,
@@ -342,13 +388,57 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (TryConvertCell(cell, out object? value)) {
+                    if (TryConvertCellForDataReader(cell, out object? value)) {
                         values[rowOffset][column - c1] = value ?? values[rowOffset][column - c1];
                     }
                 }
             }
 
             return new RangeChunk(startRow, height, c1, width, values);
+        }
+
+        private bool TryConvertCellForDataReader(Cell cell, out object? value) {
+            CellValues? typeHint = cell.DataType?.Value;
+            string? rawText = ExtractRawText(cell);
+            uint? styleIndex = cell.StyleIndex?.Value;
+            bool canPreserveDateSerial =
+                _opt.CellValueConverter == null
+                && _opt.TreatDatesUsingNumberFormat
+                && styleIndex is not null
+                && rawText != null
+                && typeHint != CellValues.SharedString
+                && typeHint != CellValues.Boolean
+                && typeHint != CellValues.String
+                && typeHint != CellValues.InlineString
+                && typeHint != CellValues.Date
+                && (cell.CellFormula == null || _opt.UseCachedFormulaResult);
+            if (canPreserveDateSerial
+                && Styles.IsDateLike(styleIndex!.Value)
+                && (TryParseInvariantDoubleFast(rawText, out double serial)
+                    || double.TryParse(
+                        rawText,
+                        NumberStyles.Float | NumberStyles.AllowThousands,
+                        CultureInfo.InvariantCulture,
+                        out serial))) {
+                value = new ExcelDataReaderDateSerial(serial, _dateSystem);
+                return true;
+            }
+
+            return TryConvertCell(cell, out value);
+        }
+
+        private sealed class ExcelDataReaderDateSerial {
+            internal ExcelDataReaderDateSerial(double serial, ExcelDateSystem dateSystem) {
+                Serial = serial;
+                DateSystem = dateSystem;
+            }
+
+            internal double Serial { get; }
+
+            private ExcelDateSystem DateSystem { get; }
+
+            internal DateTime Materialize() =>
+                ExcelDateSystemConverter.FromSerial(Serial, DateSystem);
         }
 
         private sealed class ExcelRangeDataReader : DbDataReader {
@@ -440,7 +530,8 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
-            public override byte GetByte(int ordinal) => Convert.ToByte(GetNonDbNullValue(ordinal), _culture);
+            public override byte GetByte(int ordinal) =>
+                Convert.ToByte(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
 
             /// <inheritdoc />
             public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) =>
@@ -480,11 +571,12 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
-            public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetNonDbNullValue(ordinal), _culture);
+            public override decimal GetDecimal(int ordinal) =>
+                Convert.ToDecimal(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
 
             /// <inheritdoc />
             public override double GetDouble(int ordinal) {
-                object value = GetNonDbNullValue(ordinal);
+                object value = GetNonDbNullValue(ordinal, preserveDateSerial: true);
                 return value is double number ? number : Convert.ToDouble(value, _culture);
             }
 
@@ -494,7 +586,8 @@ namespace OfficeIMO.Excel {
             public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
 
             /// <inheritdoc />
-            public override float GetFloat(int ordinal) => Convert.ToSingle(GetNonDbNullValue(ordinal), _culture);
+            public override float GetFloat(int ordinal) =>
+                Convert.ToSingle(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
 
             /// <inheritdoc />
             public override Guid GetGuid(int ordinal) {
@@ -503,16 +596,18 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
-            public override short GetInt16(int ordinal) => Convert.ToInt16(GetNonDbNullValue(ordinal), _culture);
+            public override short GetInt16(int ordinal) =>
+                Convert.ToInt16(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
 
             /// <inheritdoc />
             public override int GetInt32(int ordinal) {
-                object value = GetNonDbNullValue(ordinal);
+                object value = GetNonDbNullValue(ordinal, preserveDateSerial: true);
                 return ConvertDataReaderInt32(value, _culture);
             }
 
             /// <inheritdoc />
-            public override long GetInt64(int ordinal) => Convert.ToInt64(GetNonDbNullValue(ordinal), _culture);
+            public override long GetInt64(int ordinal) =>
+                Convert.ToInt64(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
 
             /// <inheritdoc />
             public override string GetName(int ordinal) => _columnNames[ordinal];
@@ -537,13 +632,18 @@ namespace OfficeIMO.Excel {
             public override object GetValue(int ordinal) {
                 EnsureOpenRow();
                 object? value = _currentRow![ordinal];
-                return ToDataReaderValue(value);
+                return ToDataReaderValue(MaterializeDataReaderValue(value));
             }
 
             /// <inheritdoc />
             public override int GetValues(object[] values) {
                 EnsureOpenRow();
-                return CopyDataReaderValues(_currentRow!, _fieldCount, values);
+                int count = Math.Min(values.Length, _fieldCount);
+                for (int i = 0; i < count; i++) {
+                    values[i] = ToDataReaderValue(MaterializeDataReaderValue(_currentRow![i]));
+                }
+
+                return count;
             }
 
             /// <inheritdoc />
@@ -696,11 +796,15 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private object GetNonDbNullValue(int ordinal) {
+            private object GetNonDbNullValue(int ordinal, bool preserveDateSerial = false) {
                 EnsureOpenRow();
                 object? value = _currentRow![ordinal];
                 if (value == null || value == DBNull.Value) {
                     throw new InvalidCastException($"Column '{GetName(ordinal)}' contains DBNull.");
+                }
+
+                if (value is ExcelDataReaderDateSerial dateSerial) {
+                    return preserveDateSerial ? dateSerial.Serial : dateSerial.Materialize();
                 }
 
                 return value;
@@ -742,7 +846,10 @@ namespace OfficeIMO.Excel {
                 for (int c = 0; c < fieldCount; c++) {
                     Type? inferred = null;
                     for (int r = 0; r < rows.Count; r++) {
-                        inferred = MergeDataTableColumnType(inferred, rows[r][c]);
+                        object? value = rows[r][c] is ExcelDataReaderDateSerial
+                            ? DateTime.MinValue
+                            : rows[r][c];
+                        inferred = MergeDataTableColumnType(inferred, value);
                     }
 
                     types[c] = inferred ?? typeof(object);
@@ -750,6 +857,9 @@ namespace OfficeIMO.Excel {
 
                 return types;
             }
+
+            private static object? MaterializeDataReaderValue(object? value) =>
+                value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
 
             private static object?[] NormalizeRow(object?[] source, int fieldCount) {
                 if (source.Length == fieldCount) {

@@ -1,4 +1,6 @@
 using System.Data.Common;
+using System.Text;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Xlsb.Biff12;
@@ -211,6 +213,49 @@ public partial class Excel {
         Assert.Equal(int.MaxValue, reader.GetInt32(1));
     }
 
+    [Fact]
+    public void CreateDataReader_NumericGettersPreserveWrappedDocumentDateSerials() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Valid");
+        sheet.CellValue(1, 2, "OutOfRange");
+        sheet.CellValue(2, 1, 45351D);
+        sheet.CellValue(2, 2, 1E100);
+        sheet.CellAt(2, 1).SetNumberFormat("yyyy-mm-dd");
+        sheet.CellAt(2, 2).SetNumberFormat("yyyy-mm-dd");
+
+        using DbDataReader reader = document.CreateDataReader(
+            new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+
+        Assert.True(reader.Read());
+        Assert.Equal(45351D, reader.GetDouble(0));
+        Assert.Equal(new DateTime(2024, 2, 29), Assert.IsType<DateTime>(reader.GetValue(0)));
+        Assert.Equal(1E100, reader.GetDouble(1));
+    }
+
+    [Theory]
+    [InlineData("sharedStrings", "shared-string")]
+    [InlineData("styles", "styles")]
+    public void OpenDataReader_XlsbRejectsDuplicateSingletonWorkbookRelationships(
+        string relationshipSuffix,
+        string expectedMessage) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.DuplicateWorkbookRelationship.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("styles-dates-formulas.xlsb"), path);
+        try {
+            DuplicateXlsbWorkbookRelationship(path, relationshipSuffix);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("multiple internal", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static void ReplaceXlsbTextCellWithSharedStringIndex(
         string path,
         string entryName,
@@ -275,5 +320,29 @@ public partial class Excel {
         }
 
         ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
+    private static void DuplicateXlsbWorkbookRelationship(
+        string path,
+        string relationshipSuffix) {
+        const string entryName = "xl/_rels/workbook.bin.rels";
+        XDocument relationships = XDocument.Parse(
+            Encoding.UTF8.GetString(ReadZipEntry(path, entryName)));
+        XNamespace packageRelationships =
+            "http://schemas.openxmlformats.org/package/2006/relationships";
+        XElement source = Assert.Single(
+            relationships.Descendants(packageRelationships + "Relationship"),
+            element =>
+                ((string?)element.Attribute("Type"))?.EndsWith(
+                    "/" + relationshipSuffix,
+                    StringComparison.Ordinal) == true);
+        var duplicate = new XElement(source);
+        duplicate.SetAttributeValue("Id", "rIdDuplicateSingleton");
+        source.AddAfterSelf(duplicate);
+
+        ReplaceZipEntry(
+            path,
+            entryName,
+            Encoding.UTF8.GetBytes(relationships.ToString(SaveOptions.DisableFormatting)));
     }
 }
