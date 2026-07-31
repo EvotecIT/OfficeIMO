@@ -19,12 +19,12 @@ namespace OfficeIMO.Word {
 
     internal static class WordFieldEvaluationContracts {
         internal static WordFieldEvaluationBasis GetBasis(WordFieldType? fieldType, WordFieldUpdateStatus status) {
-            if (fieldType is WordFieldType.TOC or WordFieldType.Index) {
-                return WordFieldEvaluationBasis.ExternalLayoutRequired;
-            }
-
             if (status != WordFieldUpdateStatus.Updated) {
                 return WordFieldEvaluationBasis.NotEvaluated;
+            }
+
+            if (fieldType is WordFieldType.TOC or WordFieldType.Index) {
+                return WordFieldEvaluationBasis.ExternalLayoutRequired;
             }
 
             return fieldType is WordFieldType.Page or WordFieldType.PageRef or WordFieldType.NumPages or WordFieldType.SectionPages

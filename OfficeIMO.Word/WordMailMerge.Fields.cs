@@ -48,7 +48,10 @@ namespace OfficeIMO.Word {
                     simpleField.InsertBeforeSelf(replacement);
                     simpleField.Remove();
                 } else {
-                    SetFieldResultText(simpleField.Elements<Run>(), formattedValue);
+                    List<Run> resultRuns = simpleField.Elements<Run>().ToList();
+                    if (!SetFieldResultText(resultRuns, formattedValue)) {
+                        simpleField.Append(CreateReplacementRun(formattedValue, sourceRun: null));
+                    }
                 }
                 AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
             }
@@ -168,7 +171,11 @@ namespace OfficeIMO.Word {
             }
 
             var resultRuns = GetComplexFieldResultRuns(fieldRuns).ToList();
-            SetFieldResultText(resultRuns, formattedValue);
+            if (!SetFieldResultText(resultRuns, formattedValue)) {
+                Run endRun = fieldRuns[fieldRuns.Count - 1];
+                Run? sourceRun = fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null);
+                endRun.InsertBeforeSelf(CreateReplacementRun(formattedValue, sourceRun));
+            }
             AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
         }
 
@@ -252,13 +259,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void SetFieldResultText(IEnumerable<Run> runs, string value) {
-            var textElements = runs
+        private static bool SetFieldResultText(IEnumerable<Run> runs, string value) {
+            List<Run> resultRuns = runs.ToList();
+            var textElements = resultRuns
                 .SelectMany(run => run.Elements<Text>())
                 .ToList();
 
             if (textElements.Count == 0) {
-                return;
+                if (resultRuns.Count == 0) return false;
+                resultRuns[0].Append(new Text(value) { Space = SpaceProcessingModeValues.Preserve });
+                return true;
             }
 
             textElements[0].Text = value;
@@ -266,6 +276,7 @@ namespace OfficeIMO.Word {
             for (int i = 1; i < textElements.Count; i++) {
                 textElements[i].Text = string.Empty;
             }
+            return true;
         }
 
         private static Run CreateReplacementRun(string value, Run? sourceRun) {

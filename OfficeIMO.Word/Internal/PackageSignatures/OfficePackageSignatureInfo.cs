@@ -358,7 +358,7 @@ namespace OfficeIMO.Word {
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
                     .ToList();
-            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Xml.XmlException || ex is InvalidOperationException) {
+            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Xml.XmlException || ex is InvalidOperationException || ex is InvalidDataException) {
                 parseError = ex.Message;
                 unsupportedDetails.Add("Unable to parse XML signature part " + signaturePart.Uri + ": " + ex.Message);
             }

@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html;
 using System.IO;
 using System.Text;
@@ -13,14 +15,11 @@ namespace OfficeIMO.Word.Html {
             long elements = 0;
             bool hasFields = false;
             bool hasRevisions = false;
+            bool hasComments = false;
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
             if (mainPart != null) {
-                foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
-                    elements++;
-                    if (elements > options.MaxDocumentElements) {
-                        ThrowExportLimitExceeded(options, "WordElementLimitExceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
-                    }
-                    foreach (DocumentFormat.OpenXml.OpenXmlElement element in root.Root.Descendants()) {
+                foreach ((OpenXmlElement Root, string PartUri) root in EnumerateExportRoots(mainPart)) {
+                    foreach (OpenXmlElement element in EnumerateRootAndDescendants(root.Root)) {
                         elements++;
                         if (elements > options.MaxDocumentElements) {
                             ThrowExportLimitExceeded(options, "WordElementLimitExceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
@@ -31,11 +30,49 @@ namespace OfficeIMO.Word.Html {
                         if (!hasRevisions && IsRevisionElement(element.LocalName)) {
                             hasRevisions = true;
                         }
+                        if (!hasComments && element is DocumentFormat.OpenXml.Wordprocessing.Comment) {
+                            hasComments = true;
+                        }
                     }
                 }
             }
-            bool hasComments = mainPart?.WordprocessingCommentsPart?.Comments?.Elements<DocumentFormat.OpenXml.Wordprocessing.Comment>().Any() == true;
             return new ExportInspection(hasFields, hasRevisions, hasComments);
+        }
+
+        private static IEnumerable<OpenXmlElement> EnumerateRootAndDescendants(OpenXmlElement root) {
+            yield return root;
+            foreach (OpenXmlElement descendant in root.Descendants()) yield return descendant;
+        }
+
+        private static IEnumerable<(OpenXmlElement Root, string PartUri)> EnumerateExportRoots(MainDocumentPart mainPart) {
+            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
+                yield return (root.Root, root.PartUri);
+            }
+
+            if (mainPart.WordprocessingCommentsPart?.Comments is OpenXmlElement comments) {
+                yield return (comments, mainPart.WordprocessingCommentsPart.Uri.ToString());
+            }
+            if (mainPart.StyleDefinitionsPart?.Styles is OpenXmlElement styles) {
+                yield return (styles, mainPart.StyleDefinitionsPart.Uri.ToString());
+            }
+            if (mainPart.StylesWithEffectsPart?.Styles is OpenXmlElement stylesWithEffects) {
+                yield return (stylesWithEffects, mainPart.StylesWithEffectsPart.Uri.ToString());
+            }
+            if (mainPart.NumberingDefinitionsPart?.Numbering is OpenXmlElement numbering) {
+                yield return (numbering, mainPart.NumberingDefinitionsPart.Uri.ToString());
+            }
+            if (mainPart.ThemePart?.Theme is OpenXmlElement theme) {
+                yield return (theme, mainPart.ThemePart.Uri.ToString());
+            }
+            if (mainPart.FontTablePart?.Fonts is OpenXmlElement fonts) {
+                yield return (fonts, mainPart.FontTablePart.Uri.ToString());
+            }
+            if (mainPart.DocumentSettingsPart?.Settings is OpenXmlElement settings) {
+                yield return (settings, mainPart.DocumentSettingsPart.Uri.ToString());
+            }
+            if (mainPart.WebSettingsPart?.WebSettings is OpenXmlElement webSettings) {
+                yield return (webSettings, mainPart.WebSettingsPart.Uri.ToString());
+            }
         }
 
         private static void ReportKnownExportLimitations(WordDocument document, WordToHtmlOptions options, ExportInspection inspection) {

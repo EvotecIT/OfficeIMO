@@ -81,6 +81,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_KeepingFieldsCreatesMissingSimpleAndComplexResultRuns() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(
+                new Paragraph(new SimpleField { Instruction = " MERGEFIELD SimpleName " }),
+                new Paragraph(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" MERGEFIELD ComplexName ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> {
+                    ["SimpleName"] = "Simple value",
+                    ["ComplexName"] = "Complex value"
+                },
+                removeFields: false);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal(2, report.MergedCount);
+            Assert.Contains("Simple value", body.InnerText);
+            Assert.Contains("Complex value", body.InnerText);
+            Assert.Contains("MERGEFIELD SimpleName", body.InnerXml);
+            Assert.Contains("MERGEFIELD ComplexName", body.InnerXml);
+        }
+
+        [Fact]
         public void Test_MailMerge_NestedRegionsPreserveTableCellFieldFormatting() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeFormattingNestedRegionsTableCells.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

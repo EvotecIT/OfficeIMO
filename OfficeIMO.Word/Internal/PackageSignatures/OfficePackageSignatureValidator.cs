@@ -139,6 +139,18 @@ namespace OfficeIMO.Word {
                     certificateValidation,
                     timestampResults.ToArray(),
                     findings.ToArray());
+            } catch (InvalidDataException exception) {
+                findings.Add(Finding("SignatureResourceLimitExceeded", WordSignatureValidationState.Failed,
+                    "The XML signature exceeds the configured validation resource limits: " + exception.Message, signaturePartInfo.Uri));
+                return new WordSignaturePartValidationResult(
+                    signaturePartInfo,
+                    WordSignatureValidationState.Failed,
+                    WordSignatureValidationState.NotChecked,
+                    WordSignatureValidationState.NotChecked,
+                    WordSignatureValidationState.NotChecked,
+                    null,
+                    timestampResults.ToArray(),
+                    findings.ToArray());
             } catch (Exception exception) when (IsValidationException(exception)) {
                 findings.Add(Finding("SignatureValidationFailed", WordSignatureValidationState.Failed,
                     "The XML signature could not be validated: " + exception.Message, signaturePartInfo.Uri));
@@ -219,15 +231,19 @@ namespace OfficeIMO.Word {
             List<WordSignatureValidationFinding> findings) {
             var result = new List<X509Certificate2>();
             XmlNodeList embedded = signatureXml.GetElementsByTagName("X509Certificate", SignedXml.XmlDsigNamespaceUrl);
+            if (embedded.Count > maxCertificates) {
+                throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
+            }
             foreach (XmlElement element in embedded.OfType<XmlElement>()) {
-                if (result.Count >= maxCertificates) throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
-                TryAddCertificate(element.InnerText, "embedded X509Certificate", result, findings, signaturePart.Uri.ToString());
+                TryAddCertificate(element.InnerText, "embedded X509Certificate", maxCertificateBytes, result, findings, signaturePart.Uri.ToString());
             }
 
+            int declaredCertificateCount = embedded.Count;
             foreach (IdPartPair relationship in signaturePart.Parts) {
                 OpenXmlPart relatedPart = relationship.OpenXmlPart;
                 if (!IsCertificatePart(relatedPart)) continue;
-                if (result.Count >= maxCertificates) throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
+                declaredCertificateCount++;
+                if (declaredCertificateCount > maxCertificates) throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
                 try {
                     using Stream stream = relatedPart.GetStream(FileMode.Open, FileAccess.Read);
                     if (stream.CanSeek && stream.Length > maxCertificateBytes) {
@@ -248,11 +264,23 @@ namespace OfficeIMO.Word {
         private static void TryAddCertificate(
             string encoded,
             string source,
+            long maxCertificateBytes,
             List<X509Certificate2> certificates,
             List<WordSignatureValidationFinding> findings,
             string signaturePartUri) {
             try {
-                certificates.Add(LoadCertificate(Convert.FromBase64String(encoded)));
+                long maxEncodedCharacters = maxCertificateBytes > (long.MaxValue / 4L) * 3L
+                    ? long.MaxValue
+                    : ((maxCertificateBytes + 2L) / 3L) * 4L;
+                if (encoded.Length > maxEncodedCharacters) {
+                    throw new InvalidDataException("The " + source + " value exceeds the " + maxCertificateBytes + " byte limit.");
+                }
+
+                byte[] certificateBytes = Convert.FromBase64String(encoded);
+                if (certificateBytes.LongLength > maxCertificateBytes) {
+                    throw new InvalidDataException("The " + source + " value exceeds the " + maxCertificateBytes + " byte limit.");
+                }
+                certificates.Add(LoadCertificate(certificateBytes));
             } catch (Exception exception) when (exception is FormatException or CryptographicException) {
                 findings.Add(Finding("CertificateMalformed", WordSignatureValidationState.Failed,
                     "The " + source + " value could not be decoded: " + exception.Message,

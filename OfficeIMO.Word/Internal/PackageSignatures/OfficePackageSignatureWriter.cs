@@ -87,6 +87,7 @@ namespace OfficeIMO.Word {
             string stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
             try {
                 File.Copy(fullPath, stagingPath, overwrite: false);
+                PrepareDigitalSignatureMetadata(stagingPath);
                 byte[] packageBytes = File.ReadAllBytes(stagingPath);
                 SigningPayload payload = CreateSignature(packageBytes, certificate, signingKey, options);
                 SignaturePartWriteResult write = AddSignaturePart(stagingPath, payload.SignatureXml);
@@ -113,6 +114,14 @@ namespace OfficeIMO.Word {
             } finally {
                 if (!string.IsNullOrWhiteSpace(stagingPath)) OfficeFileCommit.DeleteIfExists(stagingPath);
             }
+        }
+
+        private static void PrepareDigitalSignatureMetadata(string packagePath) {
+            using WordprocessingDocument package = WordprocessingDocument.Open(packagePath, true);
+            ExtendedFilePropertiesPart appPart = package.ExtendedFilePropertiesPart ?? package.AddExtendedFilePropertiesPart();
+            appPart.Properties ??= new Properties();
+            appPart.Properties.DigitalSignature ??= new DigitalSignature();
+            appPart.Properties.Save();
         }
 
         private static SigningPayload CreateSignature(
@@ -224,11 +233,6 @@ namespace OfficeIMO.Word {
                 DigitalSignatureOriginPart origin = package.DigitalSignatureOriginPart ?? package.AddDigitalSignatureOriginPart();
                 XmlSignaturePart signaturePart = origin.AddNewPart<XmlSignaturePart>();
                 using (var stream = new MemoryStream(signatureXml, writable: false)) signaturePart.FeedData(stream);
-
-                ExtendedFilePropertiesPart appPart = package.ExtendedFilePropertiesPart ?? package.AddExtendedFilePropertiesPart();
-                appPart.Properties ??= new Properties();
-                appPart.Properties.DigitalSignature = new DigitalSignature();
-                appPart.Properties.Save();
                 generatedUri = signaturePart.Uri.ToString();
                 signatureCount = origin.XmlSignatureParts.Count();
             }

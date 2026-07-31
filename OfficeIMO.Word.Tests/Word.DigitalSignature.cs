@@ -406,6 +406,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_ValidateSignaturesReportsOversizedSignatureWithoutThrowing() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureOversized.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Oversized signature resource limit");
+                document.Save();
+            }
+            AddDigitalSignatureMetadata(filePath, Encoding.UTF8.GetBytes("<Signature>" + new string('x', 2048) + "</Signature>"));
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions { MaxSignatureBytes = 256 });
+
+            Assert.False(validation.IsValidUnderPolicy);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidationCountsDeclaredEmbeddedCertificates() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCertificateCount.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Certificate count resource limit");
+                document.Save();
+            }
+            AddDigitalSignatureMetadata(filePath, CreateSignatureXmlWithCertificates("!", "!"));
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions { MaxCertificates = 1 });
+
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidationBoundsEmbeddedCertificateBeforeDecoding() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCertificateBytes.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Certificate byte resource limit");
+                document.Save();
+            }
+            AddDigitalSignatureMetadata(filePath, CreateSignatureXmlWithCertificates(new string('A', 256)));
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions { MaxCertificateBytes = 16 });
+
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidateSignaturesReportsApplicationMetadataWithoutOriginAsUnsupported() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureApplicationOnly.docx");
 
@@ -456,7 +502,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureFinding signatures = Assert.Single(document.InspectFeatures().FindFeatures("Digital signatures"));
 
-                Assert.Equal(WordFeatureSupportLevel.Unsupported, signatures.SupportLevel);
+                Assert.Equal(WordFeatureSupportLevel.PartiallyEditable, signatures.SupportLevel);
                 Assert.Contains(signatures.Details, detail => detail.Contains("origin.sigs", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(signatures.Details, detail => detail.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains("validated", signatures.Note, System.StringComparison.OrdinalIgnoreCase);
@@ -579,6 +625,10 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Package signing adapter proof");
                 document.Save();
+            }
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                package.ExtendedFilePropertiesPart?.Properties?.DigitalSignature?.Remove();
+                package.ExtendedFilePropertiesPart?.Properties?.Save();
             }
 
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
@@ -867,6 +917,15 @@ namespace OfficeIMO.Tests {
                 "<KeyInfo><X509Data><X509SubjectName>CN=OfficeIMO Test</X509SubjectName></X509Data></KeyInfo>" +
                 CreateSignatureTimestampXml(includeOpcSignatureTime, opcSignatureTimeValue, includeXadesSigningTime, xadesSigningTimeValue) +
                 "</Signature>");
+        }
+
+        private static byte[] CreateSignatureXmlWithCertificates(params string[] certificates) {
+            return Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\">" +
+                "<SignedInfo><SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" /></SignedInfo>" +
+                "<KeyInfo><X509Data>" +
+                string.Concat(certificates.Select(certificate => "<X509Certificate>" + certificate + "</X509Certificate>")) +
+                "</X509Data></KeyInfo><SignatureValue>AA==</SignatureValue></Signature>");
         }
 
         private static string CreateSignatureTimestampXml(

@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
@@ -62,6 +63,29 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("WordImageSizeLimitExceeded", exception.Code);
             Assert.Equal(1, exception.Limit);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_DocumentElementBudgetIncludesCommentsPart() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Small visible body");
+            MainDocumentPart mainPart = doc._wordprocessingDocument.MainDocumentPart!;
+            WordprocessingCommentsPart commentsPart = mainPart.WordprocessingCommentsPart
+                ?? mainPart.AddNewPart<WordprocessingCommentsPart>();
+            commentsPart.Comments = new Comments();
+            for (int i = 0; i < 32; i++) {
+                commentsPart.Comments.Append(new Comment(
+                    new Paragraph(new Run(new Text("Budget comment " + i)))) {
+                    Id = i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Author = "Reviewer"
+                });
+            }
+            var options = new WordToHtmlOptions { MaxDocumentElements = 100 };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+
+            Assert.Equal("WordElementLimitExceeded", exception.Code);
+            Assert.Contains("comments.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

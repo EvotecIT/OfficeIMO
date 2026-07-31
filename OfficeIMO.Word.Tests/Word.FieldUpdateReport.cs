@@ -41,6 +41,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_ClassifiesFailedLayoutFieldsAsNotEvaluated() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("stale"))) {
+                Instruction = " TOC ",
+                FieldLock = true
+            });
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("stale"))) {
+                Instruction = " INDEX ",
+                FieldLock = true
+            });
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+            Assert.All(report.Results, result => {
+                Assert.Equal(WordFieldUpdateStatus.Skipped, result.Status);
+                Assert.Equal("FieldLocked", result.DiagnosticCode);
+                Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, result.EvaluationBasis);
+            });
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesMetadataCustomPropertiesAndFileName() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.Metadata.docx");
 

@@ -475,7 +475,7 @@ namespace OfficeIMO.Word {
             Add(features, "Compatibility", "Custom XML parts", WordFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
                 customXmlDetails);
-            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.Unsupported, signatureValidation.SignatureInfo.FindingCount, null,
+            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.PartiallyEditable, signatureValidation.SignatureInfo.FindingCount, null,
                 "OPC package signatures can be inspected, validated, and created cross-platform; mutating a signed document still requires an explicit signature-invalidation policy, and VBA macro-project signing is a separate unsupported capability.",
                 signatureValidation.SignatureInfo.Details.Concat(signatureValidation.Findings).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
 
