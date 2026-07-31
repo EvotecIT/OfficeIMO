@@ -62,6 +62,13 @@ $rowCount = @($data.rows).Count
 $summaryCount = @($data.summary).Count
 $matrixRowCount = @($data.matrix.rows).Count
 
+if ($data.schemaVersion -ne 2 -or
+    $data.platform -ne 'unrecorded' -or
+    $data.runMode -ne 'quick' -or
+    $data.publish) {
+    throw 'Legacy Excel matrix data does not explicitly preserve its unrecorded OS and quick, non-publishable run mode.'
+}
+
 if ($rowCount -lt 1) {
     throw "Benchmark data JSON does not contain measurement rows."
 }
@@ -111,12 +118,12 @@ foreach ($entry in @($comparisonCatalog.entries)) {
     }
 }
 
-$comparisonIds = @(
+$readComparisonIds = @(
     'markpflug-65k-csv-decoded-net10.0',
     'markpflug-65k-xlsx-typed-net10.0',
     'markpflug-65k-xlsb-typed-net10.0'
 )
-foreach ($comparisonId in $comparisonIds) {
+foreach ($comparisonId in $readComparisonIds) {
     $windowsModes = @(
         $comparisonCatalog.entries |
             Where-Object {
@@ -131,6 +138,20 @@ foreach ($comparisonId in $comparisonIds) {
     }
 }
 
+
+$csvWriteComparisonId = 'csv-25k-datareader-write-net10.0'
+$csvWriteEntries = @($comparisonCatalog.entries | Where-Object { $_.comparisonId -eq $csvWriteComparisonId })
+if ($csvWriteEntries.Count -lt 1 -or
+    -not @($csvWriteEntries | Where-Object { $_.runMode -eq 'quick' }) -or
+    -not @($comparisonCatalog.availability | Where-Object {
+            $_.comparisonId -eq $csvWriteComparisonId -and
+            $_.runMode -eq 'quick' -and
+            $_.platform -eq 'macos' -and
+            $_.available
+        })) {
+    throw 'Validated CSV IDataReader write evidence is missing from the platform-aware catalog.'
+}
+
 $pageHtml = Get-Content -LiteralPath $pagePath -Raw -Encoding UTF8
 if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-benchmark-matrix') {
     throw "Benchmark page did not render the generated data dashboard."
@@ -138,6 +159,7 @@ if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-be
 
 if ($pageHtml -notmatch 'data-library-comparison-benchmarks' -or
     $pageHtml -notmatch 'data-comparison-id="markpflug-65k-csv-decoded-net10\.0"' -or
+    $pageHtml -notmatch 'data-library-comparison-workload="csv-25k-datareader-write-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsx-typed-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsb-typed-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-platform="windows"' -or
@@ -151,6 +173,9 @@ if ($pageHtml -notmatch 'data-library-comparison-benchmarks' -or
 if ($pageHtml -notmatch 'data-benchmark-family="excel"' -or
     $pageHtml -notmatch 'data-benchmark-family="csv"' -or
     $pageHtml -notmatch 'id="excel-matrix"' -or
+    $pageHtml -notmatch 'id="historical-benchmark-evidence"' -or
+    $pageHtml -notmatch 'OS not recorded' -or
+    $pageHtml -notmatch 'Run mode not recorded' -or
     $pageHtml -notmatch 'Coverage boundary' -or
     $pageHtml -notmatch 'Word and PowerPoint' -or
     $pageHtml -notmatch '/docs/capabilities/benchmarks/') {
@@ -161,7 +186,16 @@ if ($pageHtml -match 'github\.com/EvotecIT/OfficeIMO/(?:blob|tree)/main') {
     throw "Benchmark page contains a public evidence link to the nonexistent OfficeIMO 'main' branch."
 }
 
-if ($pageHtml -notmatch 'data-benchmark-sort="scenario"' -or $pageHtml -notmatch 'data-benchmark-filter="search"' -or $pageHtml -notmatch 'data-benchmark-reset' -or $pageHtml -notmatch 'data-benchmark-sort-mode' -or $pageHtml -notmatch '/js/benchmarks.js') {
+if ($pageHtml -notmatch 'data-benchmark-sort="scenario"' -or
+    $pageHtml -notmatch 'data-benchmark-filter="search"' -or
+    $pageHtml -notmatch 'data-benchmark-filter="platform"' -or
+    $pageHtml -notmatch 'data-benchmark-filter="runMode"' -or
+    $pageHtml -notmatch 'data-platform="unrecorded"' -or
+    $pageHtml -notmatch 'data-run-mode="quick"' -or
+    $pageHtml -notmatch 'data-benchmark-empty' -or
+    $pageHtml -notmatch 'data-benchmark-reset' -or
+    $pageHtml -notmatch 'data-benchmark-sort-mode' -or
+    $pageHtml -notmatch '/js/benchmarks.js') {
     throw "Benchmark page did not render matrix sorting and filtering controls."
 }
 
@@ -173,6 +207,12 @@ if ($scriptText -notmatch 'OfficeImoBenchmarkMatrix' -or $scriptText -notmatch '
 if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'benchmark-os' -or
     $scriptText -notmatch 'benchmark-mode' -or
+    $scriptText -notmatch "queryValue\('benchmark-os'\)" -or
+    $scriptText -notmatch "queryValue\('benchmark-mode'\)" -or
+    $scriptText -notmatch "filterValue\('platform'\)" -or
+    $scriptText -notmatch "filterValue\('runMode'\)" -or
+    $scriptText -notmatch "row\.getAttribute\('data-platform'\)" -or
+    $scriptText -notmatch "row\.getAttribute\('data-run-mode'\)" -or
     $scriptText -notmatch 'candidate\.comparisonId === selectedComparison' -or
     $scriptText -notmatch 'item\.comparisonId === selectedComparison' -or
     $scriptText -notmatch 'item\.runMode === selectedMode' -or
@@ -184,6 +224,9 @@ if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'compatibilityIssues' -or
     $scriptText -notmatch "macos:\s*'macOS'" -or
     $scriptText -notmatch 'workloadName\(\)' -or
+    $scriptText -notmatch 'comparisonGroupName\(row\)' -or
+    $scriptText -notmatch "\['namespace', 'type', 'fullname'\]" -or
+    $scriptText -notmatch 'csv-25k-datareader-write-net10\.0' -or
     $scriptText -match "scenario === 'OfficeIMO'" -or
     $pageHtml -notmatch 'Quick results are diagnostic only') {
     throw 'Library comparison selector does not preserve shareable state, reject stale responses, and enforce evidence safety labels.'

@@ -3,7 +3,7 @@ param(
     [string] $RunMode = 'quick',
     [ValidateSet('net8.0', 'net10.0')]
     [string] $Framework = 'net10.0',
-    [ValidateSet('all', 'csv', 'xlsx', 'xlsb')]
+    [ValidateSet('all', 'csv', 'csvwrite', 'xlsx', 'xlsb')]
     [string] $Workload = 'all',
     [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
@@ -50,6 +50,13 @@ $definitions = [ordered]@{
         ComparisonId = "markpflug-65k-csv-decoded-$Framework"
         Suite = 'OfficeIMO.CSV.MarkPflug65K'
         ExpectedScenarios = @('OfficeIMO', 'Sep', 'Sylvan', 'CsvHelper', 'DataplatDbatools', 'LumenWorks')
+    }
+    csvwrite = [pscustomobject]@{
+        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
+        Filter = '*CsvDataReaderWriteBenchmarks*'
+        ComparisonId = "csv-25k-datareader-write-$Framework"
+        Suite = 'OfficeIMO.CSV.DataReaderWrite25K'
+        ExpectedScenarios = @('OfficeIMO_WriteDataReader', 'Sylvan_WriteDataReader')
     }
     xlsx = [pscustomobject]@{
         Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'

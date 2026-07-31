@@ -11,7 +11,16 @@
   var sortMetric = root.querySelector('[data-benchmark-sort-mode]');
   var reset = root.querySelector('[data-benchmark-reset]');
   var count = root.querySelector('[data-benchmark-count]');
+  var empty = root.querySelector('[data-benchmark-empty]');
   var sortState = { key: 'original', direction: 'none', type: 'number' };
+
+  function queryValue(name) {
+    try {
+      return new URL(window.location.href).searchParams.get(name) || '';
+    } catch (_) {
+      return '';
+    }
+  }
 
   rows.forEach(function (row) {
     row._libraryCells = {};
@@ -130,11 +139,15 @@
     var workload = filterValue('workload');
     var category = filterValue('category');
     var library = filterValue('library');
+    var platform = filterValue('platform');
+    var runMode = filterValue('runMode');
 
     if (search && row._filterText.indexOf(search) === -1) return false;
     if (rowCount && row.getAttribute('data-row-count') !== rowCount) return false;
     if (workload && row.getAttribute('data-workload') !== workload) return false;
     if (category && row.getAttribute('data-category') !== category) return false;
+    if (platform && row.getAttribute('data-platform') !== platform) return false;
+    if (runMode && row.getAttribute('data-run-mode') !== runMode) return false;
     if (library) {
       var cell = row._libraryCells[library];
       if (!cell || cell.querySelector('.imo-benchmark-missing')) return false;
@@ -168,6 +181,7 @@
     });
     rows.sort(compareRows).forEach(function (row) { tbody.appendChild(row); });
     if (count) count.textContent = 'Showing ' + visible + ' of ' + rows.length + ' rows';
+    if (empty) empty.hidden = visible !== 0;
   }
 
   function sortBy(key, direction) {
@@ -244,6 +258,13 @@
     },
     sortBy: sortBy
   };
+
+  var requestedPlatform = queryValue('benchmark-os');
+  var requestedMode = queryValue('benchmark-mode');
+  var platformFilter = root.querySelector('[data-benchmark-filter="platform"]');
+  var modeFilter = root.querySelector('[data-benchmark-filter="runMode"]');
+  if (platformFilter && requestedPlatform) platformFilter.value = requestedPlatform;
+  if (modeFilter && requestedMode) modeFilter.value = requestedMode;
 
   apply();
 }());
@@ -348,6 +369,7 @@
   function workloadName() {
     var names = {
       'markpflug-65k-csv-decoded-net10.0': 'CSV · decoded strings',
+      'csv-25k-datareader-write-net10.0': 'CSV · IDataReader write',
       'markpflug-65k-xlsx-typed-net10.0': 'XLSX · typed values',
       'markpflug-65k-xlsb-typed-net10.0': 'XLSB · typed values'
     };
@@ -363,12 +385,22 @@
     return key ? compatibility[key] : null;
   }
 
+  function comparisonGroupName(row) {
+    var variables = row && row.variables ? row.variables : {};
+    var dimensions = Object.keys(variables).filter(function (key) {
+      return ['namespace', 'type', 'fullname'].indexOf(key.toLowerCase()) === -1;
+    }).sort().map(function (key) {
+      return key + ' ' + variables[key];
+    });
+    return [workloadName()].concat(dimensions).join(' · ');
+  }
+
   function renderResult(entry, result, requestId) {
     if (requestId !== activeRequestId) return;
     var summaries = result.summary || [];
     var groups = {};
     summaries.forEach(function (row) {
-      var workload = workloadName();
+      var workload = comparisonGroupName(row);
       if (!groups[workload]) groups[workload] = [];
       groups[workload].push(row);
     });

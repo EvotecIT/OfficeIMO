@@ -10,6 +10,8 @@ param(
     [string] $MatrixPartialPath = ".\Website\themes\officeimo\partials\generated\benchmarks-excel.html",
     [ValidateSet("quick", "full")]
     [string] $RunMode = "quick",
+    [ValidateSet("unrecorded", "windows", "linux", "macos")]
+    [string] $Platform = "unrecorded",
     [switch] $Publish,
     [switch] $NoPublish
 )
@@ -64,6 +66,15 @@ function Format-Ratio([Nullable[double]] $Value) {
 function Encode-Html([object] $Value) {
     if ($null -eq $Value) { return "" }
     return [System.Net.WebUtility]::HtmlEncode([string] $Value)
+}
+
+function Get-PlatformLabel([string] $Value) {
+    switch ($Value) {
+        "windows" { return "Windows" }
+        "linux" { return "Linux" }
+        "macos" { return "macOS" }
+        default { return "OS not recorded" }
+    }
 }
 
 function Format-MatrixRatio([Nullable[double]] $Value) {
@@ -491,16 +502,17 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     $meta = $Document.meta
     $source = $Document.source
 
-    $lines.Add('<section class="imo-benchmark-dashboard" data-excel-benchmarks>')
+    $lines.Add('<section class="imo-benchmark-dashboard" id="excel-matrix" data-excel-benchmarks>')
     $lines.Add('<div class="imo-benchmark-hero">')
     $lines.Add('<div class="imo-benchmark-hero__copy">')
     $lines.Add('<p class="imo-benchmark-eyebrow">Excel engineering detail</p>')
-    $lines.Add('<h2>Full comparison matrix</h2>')
-    $lines.Add('<p>Each row is a scenario group. Library cells show mean time, relative time versus the fastest library in that row, and allocation or package size when available.</p>')
+    $lines.Add('<h2>Legacy full comparison matrix</h2>')
+    $lines.Add('<p>Each row is a scenario group from one historical evidence set. OS and run-mode filters use recorded provenance; selecting an unavailable dimension returns no rows instead of silently showing another machine.</p>')
     $lines.Add('</div>')
     $lines.Add('</div>')
     $lines.Add('<div class="imo-benchmark-meta" data-benchmark-meta>')
     $lines.Add('<span>Generated ' + (Encode-Html $Document.generatedUtc) + '</span>')
+    $lines.Add('<span>' + (Encode-Html (Get-PlatformLabel $Document.platform)) + '</span>')
     $lines.Add('<span>' + (Encode-Html $Document.runMode) + '</span>')
     $publishText = if ($Document.publish) { 'publishable' } else { 'local quick' }
     $lines.Add('<span>' + (Encode-Html $publishText) + '</span>')
@@ -534,6 +546,8 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
         $lines.Add('<option value="' + (Encode-Html $rowCount) + '">' + (Encode-Html $rowCount) + '</option>')
     }
     $lines.Add('</select></label>')
+    $lines.Add('<label><span>Operating system</span><select data-benchmark-filter="platform"><option value="">All systems</option><option value="windows">Windows</option><option value="linux">Linux</option><option value="macos">macOS</option><option value="unrecorded">Not recorded</option></select></label>')
+    $lines.Add('<label><span>Evidence</span><select data-benchmark-filter="runMode"><option value="">All modes</option><option value="full">Full</option><option value="quick">Quick</option></select></label>')
     $lines.Add('<label><span>Workload</span><select data-benchmark-filter="workload"><option value="">All workloads</option>')
     foreach ($workload in (@($matrix.rows | ForEach-Object { $_.workload } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) | Sort-Object -Unique)) {
         $lines.Add('<option value="' + (Encode-Html $workload) + '">' + (Encode-Html $workload) + '</option>')
@@ -566,7 +580,7 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     $lines.Add('<tbody data-benchmark-matrix>')
     $rowIndex = 0
     foreach ($row in $matrix.rows) {
-        $lines.Add('<tr data-benchmark-row data-original-index="' + (Encode-Html $rowIndex) + '" data-row-count="' + (Encode-Html $row.rowCount) + '" data-workload="' + (Encode-Html $row.workload) + '" data-category="' + (Encode-Html $row.category) + '" data-scenario="' + (Encode-Html $row.scenario) + '" data-fastest-library="' + (Encode-Html $row.fastestLibrary) + '" data-fastest-ms="' + (Encode-Html (Format-SortNumber $row.fastestMeanMilliseconds)) + '">')
+        $lines.Add('<tr data-benchmark-row data-original-index="' + (Encode-Html $rowIndex) + '" data-platform="' + (Encode-Html $Document.platform) + '" data-run-mode="' + (Encode-Html $Document.runMode) + '" data-row-count="' + (Encode-Html $row.rowCount) + '" data-workload="' + (Encode-Html $row.workload) + '" data-category="' + (Encode-Html $row.category) + '" data-scenario="' + (Encode-Html $row.scenario) + '" data-fastest-library="' + (Encode-Html $row.fastestLibrary) + '" data-fastest-ms="' + (Encode-Html (Format-SortNumber $row.fastestMeanMilliseconds)) + '">')
         $scenarioMeta = ([string] $row.rowCount) + ' rows - ' + ([string] $row.workload) + ' - ' + ([string] $row.category) + ' - ' + ([string] $row.artifactKind)
         $lines.Add('<td class="imo-benchmark-scenario" data-label="Scenario"><strong>' + (Encode-Html $row.scenario) + '</strong><small>' + (Encode-Html $scenarioMeta) + '</small></td>')
         $lines.Add('<td class="imo-benchmark-fastest" data-label="Fastest"><strong>' + (Encode-Html $row.fastestLibrary) + '</strong><small>' + (Encode-Html $row.fastestMeanText) + '</small></td>')
@@ -602,6 +616,7 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     $lines.Add('</table>')
     $lines.Add('</div>')
     $lines.Add('<p class="imo-benchmark-count" data-benchmark-count>Showing ' + (Encode-Html @($matrix.rows).Count) + ' of ' + (Encode-Html @($matrix.rows).Count) + ' rows</p>')
+    $lines.Add('<p class="imo-library-comparison-state missing" data-benchmark-empty hidden>No matrix rows match the selected operating system and evidence mode.</p>')
     $lines.Add('</section>')
     $lines.Add('</section>')
 
@@ -659,8 +674,9 @@ $metrics = [ordered]@{
 }
 
 $document = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     generatedUtc = Get-LatestEvidenceTimestamp -Manifest $manifest -Summary $summaryInput -Profiles $allPackageProfiles
+    platform = $Platform
     runMode = $RunMode
     publish = $publishValue
     framework = Get-PublicRuntimeLabel $(if ($manifest) { $manifest.Framework } else { $summaryInput.Framework })
@@ -695,6 +711,7 @@ $document = [ordered]@{
 $summaryDocument = [ordered]@{
     schemaVersion = $document.schemaVersion
     generatedUtc = $document.generatedUtc
+    platform = $document.platform
     runMode = $document.runMode
     publish = $document.publish
     framework = $document.framework
@@ -712,6 +729,7 @@ $indexDocument = [ordered]@{
     entries = @(
         [ordered]@{
             generatedUtc = $document.generatedUtc
+            platform = $document.platform
             runMode = $document.runMode
             publish = $document.publish
             framework = $document.framework
