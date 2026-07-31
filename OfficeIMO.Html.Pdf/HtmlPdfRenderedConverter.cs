@@ -123,9 +123,17 @@ internal static partial class HtmlPdfRenderedConverter {
             StringComparer.OrdinalIgnoreCase);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None &&
-            options.ResourcePolicy.AllowSystemFontEmbedding &&
-            options.ResourcePolicy.AllowDocumentFontEmbedding) {
-            RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots, cancellationToken);
+            options.ResourcePolicy.AllowSystemFontEmbedding) {
+            if (options.ResourcePolicy.AllowDocumentFontEmbedding) {
+                RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots, cancellationToken);
+            } else if (options.FontFamily == null) {
+                RegisterLibrarySelectedDefaultSystemFontFamily(
+                    pdf,
+                    rendered,
+                    activeWebFontFamilies,
+                    reservedFontSlots,
+                    cancellationToken);
+            }
         }
         ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);
         foreach (PdfCore.PdfStandardFont slot in webFonts.Slots.Values) {

@@ -1437,6 +1437,40 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void OverlayPromotesSameNamedCompatibilityFallbacksToDistinctFamilies() {
+        byte[] sharedData = ManagedTextShapingTestAssets.CreateFont('A', 'B');
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var onlyB = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('B', 'B')
+        });
+        var options = new PdfOptions()
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+                new[] {
+                    new PdfEmbeddedFontFallbackCandidate("Shared", sharedData, onlyA),
+                    new PdfEmbeddedFontFallbackCandidate("Shared", sharedData, onlyB)
+                },
+                new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman }));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Profile", ManagedTextShapingTestAssets.CreateFont('C'));
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("same-name-slot-fallbacks", fonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        PdfEmbeddedFontFallbackSet promoted = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.EmbeddedFontFallbacks);
+        Assert.True(promoted.UsesNamedFontFamilies);
+        Assert.Equal(2, promoted.Candidates.Count);
+        Assert.False(string.Equals(
+            promoted.Candidates[0].FontName,
+            promoted.Candidates[1].FontName,
+            StringComparison.OrdinalIgnoreCase));
+        Assert.True(promoted.PlanText("AB").IsFullyCovered);
+    }
+
+    [Fact]
     public void EncodingPreflightUsesRangeScopedAuthoredFamilyPlanner() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')

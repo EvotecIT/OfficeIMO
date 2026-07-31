@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
             ExcelMutationPlanOptions effective = (options ?? new ExcelMutationPlanOptions()).CloneAndValidate();
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
+                EnsureMutationPlanPartsFitWithinBudget(effective);
                 ExcelRowMutationPlan plan = BuildRowMutationPlan(
                     ExcelRowMutationKind.Insert,
                     firstRow,
@@ -42,6 +43,7 @@ namespace OfficeIMO.Excel {
             ExcelMutationPlanOptions effective = (options ?? new ExcelMutationPlanOptions()).CloneAndValidate();
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
+                EnsureMutationPlanPartsFitWithinBudget(effective);
                 ExcelRowMutationPlan plan = BuildRowMutationPlan(
                     ExcelRowMutationKind.Delete,
                     firstRow,
@@ -434,8 +436,16 @@ namespace OfficeIMO.Excel {
 
             foreach (PivotTablePart pivotPart in _worksheetPart.PivotTableParts) {
                 budget.Consume();
+                PivotTableDefinition? definition = pivotPart.PivotTableDefinition;
+                if (definition == null) {
+                    continue;
+                }
+                budget.Consume();
+                foreach (OpenXmlElement _ in definition.Descendants()) {
+                    budget.Consume();
+                }
                 if (ReferenceListChangesForPlan(
-                        pivotPart.PivotTableDefinition?.Location?.Reference?.Value,
+                        definition.Location?.Reference?.Value,
                         kind,
                         firstRow,
                         lastRow,
@@ -1125,10 +1135,12 @@ namespace OfficeIMO.Excel {
 
         private sealed class MutationPlanScanBudget {
             private readonly int _maximum;
+            private long _remainingXmlBytes;
 
             internal MutationPlanScanBudget(int maximum, long maximumCharacters) {
                 _maximum = maximum;
                 MaximumCharacters = maximumCharacters;
+                _remainingXmlBytes = maximumCharacters;
             }
 
             internal int Scanned { get; private set; }
@@ -1143,6 +1155,26 @@ namespace OfficeIMO.Excel {
                 }
 
                 Scanned++;
+            }
+
+            internal int GetBudgetedReadSize(int requestedBytes) {
+                if (requestedBytes < 0) {
+                    throw new ArgumentOutOfRangeException(nameof(requestedBytes));
+                }
+                long probeLimit = _remainingXmlBytes == long.MaxValue
+                    ? long.MaxValue
+                    : _remainingXmlBytes + 1L;
+                long probeSize = Math.Min(requestedBytes, probeLimit);
+                return checked((int)probeSize);
+            }
+
+            internal void ConsumeXmlBytes(int count) {
+                if (count > _remainingXmlBytes) {
+                    throw new InvalidOperationException(
+                        $"Excel mutation impact analysis exceeded its limit of {MaximumCharacters} decompressed XML bytes. " +
+                        "Increase ExcelMutationPlanOptions.MaximumScannedCharacters explicitly for this workbook.");
+                }
+                _remainingXmlBytes -= count;
             }
         }
     }

@@ -408,7 +408,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(summary.HasResourceResolver);
         Assert.True(summary.AllowSystemFontEmbedding);
-        Assert.True(summary.AllowDocumentFontEmbedding);
+        Assert.False(summary.AllowDocumentFontEmbedding);
         Assert.False(summary.AllowLocalFileAccess);
         Assert.False(summary.AllowRemoteResourceResolution);
         Assert.True(summary.AllowDataUris);
@@ -432,7 +432,6 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlPdfSaveOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault()
         };
-        options.ResourcePolicy.AllowDocumentFontEmbedding = false;
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument
             .Parse("<p style=\"font-family:'" + installedFamily + "'\">Document font boundary</p>")
@@ -1532,7 +1531,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(report.Fonts, font =>
             font.HasEmbeddedFontFile
-            && font.BaseFont?.Contains("Arial", StringComparison.OrdinalIgnoreCase) == true);
+            && font.BaseFont?.Contains("CallerUnicode", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     [Fact]

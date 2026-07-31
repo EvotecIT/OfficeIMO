@@ -607,14 +607,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 budget.Consume();
-                List<Threaded.ThreadedComment> allComments = root
-                    .Elements<Threaded.ThreadedComment>()
-                    .ToList();
+                var allComments = new List<Threaded.ThreadedComment>();
                 var removedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var childrenByParentId =
                     new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                foreach (Threaded.ThreadedComment comment in allComments) {
+                foreach (Threaded.ThreadedComment comment in
+                    root.Elements<Threaded.ThreadedComment>()) {
                     budget.Consume();
+                    allComments.Add(comment);
                     if (comment.Id?.Value is string commentId
                         && comment.ParentId?.Value is string parentId) {
                         if (!childrenByParentId.TryGetValue(

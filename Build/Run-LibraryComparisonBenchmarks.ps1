@@ -30,6 +30,8 @@ if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
 }
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+$OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
+    $OutputRoot)
 $platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
         [System.Runtime.InteropServices.OSPlatform]::Windows)) {
     'windows'
@@ -212,11 +214,6 @@ if (($measurements.Count -ne $selected.Count) -or
 
 if ($catalogEligible) {
     foreach ($measurement in $measurements) {
-        if (-not $Publish) {
-            Write-BenchmarkEvidenceResult `
-                -Path $measurement.EvidenceLocation.Path `
-                -InputObject $measurement.Result
-        }
         Update-BenchmarkEvidenceCatalog `
             -InputObject $measurement.Result `
             -Path $catalogPath `

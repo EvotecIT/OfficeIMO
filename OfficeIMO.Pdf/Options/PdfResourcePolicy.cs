@@ -6,12 +6,12 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfResourcePolicy {
     /// <summary>
-    /// Creates the balanced document-conversion default. Installed fonts and bounded in-source resources are allowed
-    /// for Unicode fidelity, while arbitrary local-file and remote-resource reads remain disabled.
+    /// Creates the balanced document-conversion default. Library-selected installed fonts and bounded in-source
+    /// resources are allowed for Unicode fidelity, while document-selected host fonts, arbitrary local files,
+    /// and remote resources remain disabled.
     /// </summary>
     public static PdfResourcePolicy CreateDefault() => new PdfResourcePolicy {
         AllowSystemFontEmbedding = true,
-        AllowDocumentFontEmbedding = true,
         AllowDataUris = true,
         AllowEmbeddedPackageResources = true
     };
@@ -43,7 +43,8 @@ public sealed class PdfResourcePolicy {
 
     /// <summary>
     /// When true, Office converters may use font family names from the source document to locate and embed installed
-    /// system fonts. Enabled by the balanced document-conversion default and disabled by the portable deterministic policy.
+    /// system fonts. Disabled by default; enable it explicitly only for trusted documents or use
+    /// <see cref="CreateTrustedHost"/>.
     /// </summary>
     public bool AllowDocumentFontEmbedding { get; set; }
 
