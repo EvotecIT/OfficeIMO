@@ -4,7 +4,7 @@
     {
       "generatedUtc": "2026-05-31T18:44:43.8878299+00:00",
       "platform": "unrecorded",
-      "runMode": "quick",
+      "runMode": "unrecorded",
       "publish": false,
       "framework": ".NET 8",
       "summaryPath": ".\\Website\\data\\benchmarks-excel-summary.json",

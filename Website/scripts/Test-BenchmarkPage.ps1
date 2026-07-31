@@ -15,6 +15,7 @@ $scriptPath = Join-Path $resolvedSiteRoot 'js\benchmarks.js'
 $comparisonCatalogPath = Join-Path $resolvedSiteRoot 'data\benchmarks\library-comparisons\index.json'
 $stylePath = Join-Path $PSScriptRoot '..\themes\officeimo\assets\app.css'
 $evidenceHelperPath = Join-Path $PSScriptRoot '..\..\Build\BenchmarkEvidence.ps1'
+$comparisonRunnerPath = Join-Path $PSScriptRoot '..\..\Build\Run-LibraryComparisonBenchmarks.ps1'
 
 . $evidenceHelperPath
 
@@ -36,6 +37,10 @@ if (-not (Test-Path -LiteralPath $comparisonCatalogPath -PathType Leaf)) {
 
 if (-not (Test-Path -LiteralPath $stylePath -PathType Leaf)) {
     throw "Benchmark layout styles were not found at '$stylePath'."
+}
+
+if (-not (Test-Path -LiteralPath $comparisonRunnerPath -PathType Leaf)) {
+    throw "Library comparison runner was not found at '$comparisonRunnerPath'."
 }
 
 $contractEvidenceRoot = Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO-evidence-contract'
@@ -64,9 +69,15 @@ $matrixRowCount = @($data.matrix.rows).Count
 
 if ($data.schemaVersion -ne 2 -or
     $data.platform -ne 'unrecorded' -or
-    $data.runMode -ne 'quick' -or
+    $data.runMode -ne 'unrecorded' -or
     $data.publish) {
-    throw 'Legacy Excel matrix data does not explicitly preserve its unrecorded OS and quick, non-publishable run mode.'
+    throw 'Legacy Excel matrix data does not explicitly preserve its unrecorded OS and run mode.'
+}
+
+$comparisonRunnerText = Get-Content -LiteralPath $comparisonRunnerPath -Raw -Encoding UTF8
+if ($comparisonRunnerText -notmatch 'if \(\$catalogEligible -and \$gitDirty\)' -or
+    $comparisonRunnerText -notmatch 'Cataloged benchmark evidence requires a clean Git worktree') {
+    throw 'Catalog-eligible benchmark runs do not enforce source-commit provenance from a clean worktree.'
 }
 
 if ($rowCount -lt 1) {
@@ -207,7 +218,7 @@ if ($pageHtml -notmatch 'data-benchmark-sort="scenario"' -or
     $pageHtml -notmatch 'data-benchmark-filter="platform"' -or
     $pageHtml -notmatch 'data-benchmark-filter="runMode"' -or
     $pageHtml -notmatch 'data-platform="unrecorded"' -or
-    $pageHtml -notmatch 'data-run-mode="quick"' -or
+    $pageHtml -notmatch 'data-run-mode="unrecorded"' -or
     $pageHtml -notmatch 'data-benchmark-empty' -or
     $pageHtml -notmatch 'data-benchmark-reset' -or
     $pageHtml -notmatch 'data-benchmark-sort-mode' -or

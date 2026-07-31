@@ -98,8 +98,8 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gitSha)) {
     throw 'Unable to resolve the OfficeIMO source commit for benchmark provenance.'
 }
 $gitDirty = @(& git -C $repositoryRoot status --porcelain --untracked-files=normal).Count -gt 0
-if ($Publish -and $gitDirty) {
-    throw 'Publishable benchmark evidence requires a clean Git worktree so the recorded source commit identifies the measured code exactly.'
+if ($catalogEligible -and $gitDirty) {
+    throw 'Cataloged benchmark evidence requires a clean Git worktree so the recorded source commit identifies the measured code exactly.'
 }
 
 $measurements = [System.Collections.Generic.List[object]]::new()

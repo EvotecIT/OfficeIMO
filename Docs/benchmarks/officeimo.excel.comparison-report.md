@@ -1,7 +1,7 @@
 # OfficeIMO.Excel Benchmark Report
 
 Generated: 2026-05-31T18:44:43.8878299+00:00
-Run mode: quick
+Run mode: unrecorded
 Publish: False
 Runtime family: .NET 8
 

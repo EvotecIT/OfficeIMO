@@ -484,7 +484,7 @@
         "-PackageProfilePath",
         ".\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-10k-current.json;.\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-300k-current.json",
         "-RunMode",
-        "quick",
+        "unrecorded",
         "-Platform",
         "unrecorded"
       ],

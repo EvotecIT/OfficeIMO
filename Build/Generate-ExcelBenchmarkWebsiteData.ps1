@@ -8,8 +8,8 @@ param(
     [string] $StaticDataDirectory = ".\Website\static\data",
     [string] $MarkdownPath = ".\Docs\benchmarks\officeimo.excel.comparison-report.md",
     [string] $MatrixPartialPath = ".\Website\themes\officeimo\partials\generated\benchmarks-excel.html",
-    [ValidateSet("quick", "full")]
-    [string] $RunMode = "quick",
+    [ValidateSet("unrecorded", "quick", "full")]
+    [string] $RunMode = "unrecorded",
     [ValidateSet("unrecorded", "windows", "linux", "macos")]
     [string] $Platform = "unrecorded",
     [switch] $Publish,
@@ -513,8 +513,15 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     $lines.Add('<div class="imo-benchmark-meta" data-benchmark-meta>')
     $lines.Add('<span>Generated ' + (Encode-Html $Document.generatedUtc) + '</span>')
     $lines.Add('<span>' + (Encode-Html (Get-PlatformLabel $Document.platform)) + '</span>')
-    $lines.Add('<span>' + (Encode-Html $Document.runMode) + '</span>')
-    $publishText = if ($Document.publish) { 'publishable' } else { 'local quick' }
+    $runModeText = if ($Document.runMode -eq 'unrecorded') { 'run mode not recorded' } else { $Document.runMode }
+    $lines.Add('<span>' + (Encode-Html $runModeText) + '</span>')
+    $publishText = if ($Document.publish) {
+        'publishable'
+    } elseif ($Document.runMode -eq 'quick') {
+        'diagnostic only'
+    } else {
+        'historical provenance incomplete'
+    }
     $lines.Add('<span>' + (Encode-Html $publishText) + '</span>')
     $lines.Add('<span>' + (Encode-Html $Document.framework) + '</span>')
     if ($meta -and $meta.dotnetSdk) {
@@ -547,7 +554,7 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     }
     $lines.Add('</select></label>')
     $lines.Add('<label><span>Operating system</span><select data-benchmark-filter="platform"><option value="">All systems</option><option value="windows">Windows</option><option value="linux">Linux</option><option value="macos">macOS</option><option value="unrecorded">Not recorded</option></select></label>')
-    $lines.Add('<label><span>Evidence</span><select data-benchmark-filter="runMode"><option value="">All modes</option><option value="full">Full</option><option value="quick">Quick</option></select></label>')
+    $lines.Add('<label><span>Evidence</span><select data-benchmark-filter="runMode"><option value="">All modes</option><option value="full">Full</option><option value="quick">Quick</option><option value="unrecorded">Not recorded</option></select></label>')
     $lines.Add('<label><span>Workload</span><select data-benchmark-filter="workload"><option value="">All workloads</option>')
     foreach ($workload in (@($matrix.rows | ForEach-Object { $_.workload } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) | Sort-Object -Unique)) {
         $lines.Add('<option value="' + (Encode-Html $workload) + '">' + (Encode-Html $workload) + '</option>')
