@@ -1913,6 +1913,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyFormulaProjectionValidationIgnoresUnselectedSheets() {
+            var workbook = new LegacyXlsWorkbook();
+            var selected = new LegacyXlsWorksheet("Selected", 0, 0, 0);
+            selected.AddCell(new LegacyXlsCell(
+                1,
+                1,
+                LegacyXlsCellValueKind.Number,
+                1D,
+                0));
+            var unselected = new LegacyXlsWorksheet("Unselected", 0, 0, 0);
+            unselected.AddCell(new LegacyXlsCell(
+                1,
+                1,
+                LegacyXlsCellValueKind.Number,
+                1D,
+                0,
+                isFormula: true,
+                formulaText: null));
+            workbook.MutableWorksheets.Add(selected);
+            workbook.MutableWorksheets.Add(unselected);
+
+            ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
+                workbook,
+                new ExcelReadOptions {
+                    SheetName = "selected",
+                    UseCachedFormulaResult = false
+                });
+
+            Assert.Throws<NotSupportedException>(() =>
+                ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
+                    workbook,
+                    new ExcelReadOptions {
+                        SheetName = "unselected",
+                        UseCachedFormulaResult = false
+                    }));
+        }
+
+        [Fact]
         public void LegacyMetadataProjectionObservesCancellationInsideDefinedNameTraversal() {
             var workbook = new LegacyXlsWorkbook();
             workbook.MutableDefinedNames.Add(new LegacyXlsDefinedName(

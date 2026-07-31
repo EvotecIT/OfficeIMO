@@ -205,8 +205,8 @@ namespace OfficeIMO.Excel {
 
         private static XmlDataReaderTargetKind GetUtf8TargetKind(TypedBindingKind bindingKind) =>
             bindingKind switch {
-                TypedBindingKind.Int32 => XmlDataReaderTargetKind.Int32,
-                TypedBindingKind.Double => XmlDataReaderTargetKind.Double,
+                TypedBindingKind.Int32 => XmlDataReaderTargetKind.Numeric,
+                TypedBindingKind.Double => XmlDataReaderTargetKind.Numeric,
                 TypedBindingKind.Boolean => XmlDataReaderTargetKind.Boolean,
                 TypedBindingKind.DateTime => XmlDataReaderTargetKind.DateTime,
                 TypedBindingKind.String => XmlDataReaderTargetKind.String,

@@ -198,17 +198,23 @@ public sealed class PdfTextFallbackPlan {
     }
 
     private static void AddLayoutControlRuns(List<TextRun> runs, string text, TextRun? styleTemplate) {
-        for (int i = 0; i < text.Length; i++) {
+        for (int i = 0; i < text.Length;) {
             char ch = text[i];
             if (ch == '\n' || ch == '\r') {
                 runs.Add(TextRun.LineBreak());
                 if (ch == '\r' && i + 1 < text.Length && text[i + 1] == '\n') {
                     i++;
                 }
+                i++;
             } else if (ch == '\t') {
                 runs.Add(TextRun.Tab());
+                i++;
             } else if (!char.IsControl(ch)) {
-                runs.Add(CreateStyledLayoutRun(ch.ToString(), styleTemplate));
+                string textElement = System.Globalization.StringInfo.GetNextTextElement(text, i);
+                runs.Add(CreateStyledLayoutRun(textElement, styleTemplate));
+                i += textElement.Length;
+            } else {
+                i++;
             }
         }
     }

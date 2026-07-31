@@ -800,11 +800,11 @@ public sealed class PdfRenderingProfileTests {
             italic: false,
             out PdfEmbeddedFontFallbackSet? fallbacks));
         PdfEmbeddedFontFallbackSet planner = Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks);
-        PdfTextFallbackPlan plan = planner.PlanText(" A");
+        PdfTextFallbackPlan plan = planner.PlanText(" \u0301A");
 
         Assert.True(plan.IsFullyCovered);
         PdfTextFallbackSegment segment = Assert.Single(plan.Segments);
-        Assert.Equal(1, segment.StartIndex);
+        Assert.Equal(2, segment.StartIndex);
         Assert.Equal("A", segment.Text);
         var styleTemplate = new TextRun(
             string.Empty,
@@ -821,7 +821,7 @@ public sealed class PdfRenderingProfileTests {
         IReadOnlyList<TextRun> runs = plan.ToNamedTextRuns(
             planner.FontFamilyNames,
             styleTemplate);
-        Assert.Equal(" ", runs[0].Text);
+        Assert.Equal(" \u0301", runs[0].Text);
         Assert.True(runs[0].Bold);
         Assert.True(runs[0].Underline);
         Assert.Equal(styleTemplate.Color, runs[0].Color);

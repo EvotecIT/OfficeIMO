@@ -193,12 +193,20 @@ public partial class Excel {
                 PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             })) {
             ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "AsDouble");
-            sheet.CellValue(1, 2, "AsInt32");
-            sheet.CellValue(2, 1, 1E100);
-            sheet.CellValue(2, 2, int.MaxValue);
-            sheet.CellAt(2, 1).SetNumberFormat("yyyy-mm-dd");
-            sheet.CellAt(2, 2).SetNumberFormat("yyyy-mm-dd");
+            string[] headers = {
+                "AsByte",
+                "AsDecimal",
+                "AsDouble",
+                "AsFloat",
+                "AsInt16",
+                "AsInt32",
+                "AsInt64"
+            };
+            for (int column = 1; column <= headers.Length; column++) {
+                sheet.CellValue(1, column, headers[column - 1]);
+                sheet.CellValue(2, column, column == 3 ? 1E100 : 42D);
+                sheet.CellAt(2, column).SetNumberFormat("yyyy-mm-dd");
+            }
         }
 
         using ExcelDocumentReader owner = ExcelDocumentReader.Open(
@@ -212,8 +220,13 @@ public partial class Excel {
             .ReadUsedRangeAsDataReader(schemaSampleRows: 0);
 
         Assert.True(reader.Read());
-        Assert.Equal(1E100, reader.GetDouble(0));
-        Assert.Equal(int.MaxValue, reader.GetInt32(1));
+        Assert.Equal((byte)42, reader.GetByte(0));
+        Assert.Equal(42M, reader.GetDecimal(1));
+        Assert.Equal(1E100, reader.GetDouble(2));
+        Assert.Equal(42F, reader.GetFloat(3));
+        Assert.Equal((short)42, reader.GetInt16(4));
+        Assert.Equal(42, reader.GetInt32(5));
+        Assert.Equal(42L, reader.GetInt64(6));
     }
 
     [Fact]

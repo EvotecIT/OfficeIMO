@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
-            public override byte GetByte(int ordinal) => Convert.ToByte(GetNonDbNullValue(ordinal), _culture);
+            public override byte GetByte(int ordinal) => Convert.ToByte(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) =>
@@ -196,17 +196,11 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
-            public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetNonDbNullValue(ordinal), _culture);
+            public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override double GetDouble(int ordinal) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Double);
-                if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double) {
-                    return _currentDoubleValues[ordinal];
-                }
-
-                object value = GetNonDbNullValue(ordinal);
+                object value = GetNumericValue(ordinal);
                 return value is double number ? number : Convert.ToDouble(value, _culture);
             }
 
@@ -216,7 +210,7 @@ namespace OfficeIMO.Excel {
             public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
 
             /// <inheritdoc />
-            public override float GetFloat(int ordinal) => Convert.ToSingle(GetNonDbNullValue(ordinal), _culture);
+            public override float GetFloat(int ordinal) => Convert.ToSingle(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override Guid GetGuid(int ordinal) {
@@ -225,22 +219,16 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
-            public override short GetInt16(int ordinal) => Convert.ToInt16(GetNonDbNullValue(ordinal), _culture);
+            public override short GetInt16(int ordinal) => Convert.ToInt16(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override int GetInt32(int ordinal) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Int32);
-                if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double) {
-                    return ConvertDataReaderInt32(_currentDoubleValues[ordinal]);
-                }
-
-                object value = GetNonDbNullValue(ordinal);
+                object value = GetNumericValue(ordinal);
                 return ConvertDataReaderInt32(value, _culture);
             }
 
             /// <inheritdoc />
-            public override long GetInt64(int ordinal) => Convert.ToInt64(GetNonDbNullValue(ordinal), _culture);
+            public override long GetInt64(int ordinal) => Convert.ToInt64(GetNumericValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override string GetName(int ordinal) => _columnNames[ordinal];
@@ -754,6 +742,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 return value;
+            }
+
+            private object GetNumericValue(int ordinal) {
+                EnsureOpenRow();
+                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Numeric);
+                if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double) {
+                    return _currentDoubleValues[ordinal];
+                }
+
+                return GetNonDbNullValue(ordinal);
             }
 
             private object? MaterializeCurrentValue(int ordinal) {

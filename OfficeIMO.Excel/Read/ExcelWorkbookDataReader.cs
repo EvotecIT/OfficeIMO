@@ -97,6 +97,15 @@ namespace OfficeIMO.Excel {
 
             options.CancellationToken.ThrowIfCancellationRequested();
             foreach (LegacyXlsWorksheet worksheet in workbook.Worksheets) {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                if (!string.IsNullOrWhiteSpace(options.SheetName)
+                    && !string.Equals(
+                        worksheet.Name,
+                        options.SheetName,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
                 foreach (LegacyXlsCell cell in worksheet.Cells) {
                     options.CancellationToken.ThrowIfCancellationRequested();
                     if (!cell.IsFormula

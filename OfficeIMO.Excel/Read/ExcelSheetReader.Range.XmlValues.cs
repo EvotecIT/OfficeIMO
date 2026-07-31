@@ -14,8 +14,7 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private enum XmlDataReaderTargetKind : byte {
             None,
-            Int32,
-            Double,
+            Numeric,
             DateTime,
             Boolean,
             String
@@ -306,10 +305,10 @@ namespace OfficeIMO.Excel {
             }
 
             XmlCellKind cellKind = ParseXmlCellKind(cellType);
-            if ((cellKind == XmlCellKind.Default || cellKind == XmlCellKind.Number)
-                && !_opt.NumericAsDecimal) {
+            if (cellKind == XmlCellKind.Default || cellKind == XmlCellKind.Number) {
                 bool useDateStyle = _opt.TreatDatesUsingNumberFormat && IsDateStyleAttribute(cellReader.GetAttribute("s"));
-                if ((targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) && !useDateStyle) {
+                if (targetKind == XmlDataReaderTargetKind.Numeric
+                    && (useDateStyle || !_opt.NumericAsDecimal)) {
                     return TryReadXmlNumericPrimitiveForDataReader(
                         cellReader,
                         asDate: false,
