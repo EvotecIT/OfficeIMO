@@ -17,6 +17,7 @@
 - Keep dated reports only when the date is part of reproducible evidence, such as a benchmark run.
 - Update generated documents through their source catalogs, manifests, tests, or generators.
 - Before removing a stale review or planning document, move current behavior to its public owner and open work to `Docs/ROADMAP.md`.
+- Keep user-facing install commands on the latest version actually published to NuGet. The current published version is guarded by `CurrentPublishedPackageVersion` in `OfficeIMO.Shared.Tests/ReleasePackagingGuardrails.cs`; update that value and the install docs together after publication.
 
 ## Benchmark boundaries
 

@@ -2,6 +2,8 @@
 title: Google Workspace package ownership
 description: "Choose the OfficeIMO Google Workspace packages and use explicit fidelity, import, replacement, and synchronization contracts."
 order: 90
+aliases:
+  - /docs/google-workspace/migration/
 ---
 
 OfficeIMO separates transport, Drive operations, authentication, synchronization, and document-format mapping so applications depend only on the capabilities they use.

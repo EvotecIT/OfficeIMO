@@ -6,6 +6,8 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class ReleasePackagingGuardrails {
+    private const string CurrentPublishedPackageVersion = "3.0.3";
+
     [Fact]
     public void CodexMarketplace_LocalPluginSourcesResolveFromRepositoryRoot() {
         string repositoryRoot = GetRepositoryRoot();
@@ -59,7 +61,6 @@ public sealed class ReleasePackagingGuardrails {
     [Fact]
     public void ReadmeInventory_MatchesReleaseMapAndLinkedProjectCatalog() {
         string repositoryRoot = GetRepositoryRoot();
-        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string readme = File.ReadAllText(Path.Combine(repositoryRoot, "README.md"));
         using JsonDocument buildDocument = JsonDocument.Parse(
             File.ReadAllText(Path.Combine(repositoryRoot, "Build", "project.build.json")));
@@ -99,13 +100,13 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("| Conversion and cloud bridge packages | 31 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Unified Reader packages | 27 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Markdown renderer and OfficeIMO Markup surfaces | 10 |", readme, StringComparison.Ordinal);
-        Assert.Contains("The current source and package line is `3.1.x`", readme, StringComparison.Ordinal);
-        Assert.Contains("Keep OfficeIMO package references on the same coordinated version", readme, StringComparison.Ordinal);
+        Assert.Contains("The current source line is `3.1.x`; the latest NuGet release is `3.0.3`", readme, StringComparison.Ordinal);
+        Assert.Contains("Keep OfficeIMO package references in one application on the same published version", readme, StringComparison.Ordinal);
         AssertDotNetInstallCommands(
             readme,
             releasePackageIds,
             expectedCount: 17,
-            expectedVersion: coordinatedVersion,
+            expectedVersion: CurrentPublishedPackageVersion,
             toolPackageIds: ["OfficeIMO.Tool"]);
     }
 
@@ -243,7 +244,6 @@ public sealed class ReleasePackagingGuardrails {
     [Fact]
     public void PublicReleaseDocs_UseCurrentPackageVersionsAndDocumentationOwners() {
         string repositoryRoot = GetRepositoryRoot();
-        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string installation = File.ReadAllText(Path.Combine(
             repositoryRoot,
             "Website",
@@ -270,16 +270,16 @@ public sealed class ReleasePackagingGuardrails {
             Assert.True(
                 packageProjects.TryGetValue(packageId, out PackageProject? project),
                 "Installation guide references an unknown package: " + packageId);
-            Assert.Equal(project!.Version, match.Groups["version"].Value);
+            Assert.Equal(CurrentPublishedPackageVersion, match.Groups["version"].Value);
         });
-        Assert.Contains("The current OfficeIMO package line is `3.1.0`", installation, StringComparison.Ordinal);
+        Assert.Contains("The current NuGet package line is `3.0.3`", installation, StringComparison.Ordinal);
         Assert.Contains("keep coordinated OfficeIMO package references on the same version", installation, StringComparison.Ordinal);
         HashSet<string> releasePackageIds = packageProjects.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         string[] installationCommandIds = AssertDotNetInstallCommands(
             installation,
             releasePackageIds,
             expectedCount: 9,
-            expectedVersion: coordinatedVersion);
+            expectedVersion: CurrentPublishedPackageVersion);
         string[] packageReferenceIds = documentedPackages
             .Cast<Match>()
             .Select(static match => match.Groups["id"].Value)
@@ -292,7 +292,7 @@ public sealed class ReleasePackagingGuardrails {
             installation,
             releasePackageIds,
             expectedCount: 4,
-            expectedVersion: coordinatedVersion);
+            expectedVersion: CurrentPublishedPackageVersion);
 
         string openXmlVersion = ReadPackageReferenceVersion(
             repositoryRoot,

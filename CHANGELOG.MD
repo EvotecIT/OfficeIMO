@@ -9,6 +9,7 @@
 * Give general PDF reverse conversions destination-shaped APIs while retaining explicit feature names for narrow recovery: PowerPoint uses `ToPowerPointPresentation` / `SaveAsPowerPoint`, while Excel table recovery remains `ImportTablesToExcelDocument` / `SaveTablesAsExcel`.
 * Enable installed and document font embedding in the balanced PDF resource policy, preserve detected PDF text-run color/size/emphasis in semantic Word and RTF imports, and enable Word-to-HTML run color/highlight fidelity by default.
 * Use `Worksheet` consistently across the Excel API and remove the duplicate `WorkSheet`-cased method family; align RTF-to-HTML memory output with `ToHtmlStream()`.
+* Replace the `OfficeIMO.Reader.Tool` 3.0.0 package and `officeimo-reader` executable with the unified `OfficeIMO.Tool` package and `officeimo reader` command area.
 * Rename `WordHelpers.ConvertDotXtoDocX(...)` to `ConvertDotxToDocx(...)`, make its package rewrite stream expandable on .NET Framework, and prioritize real symbol fonts before Arial in automatic PDF fallbacks.
 * Serialize Excel floating-point cells, dates, formula and chart caches, pivot values and filters, validations, custom properties, conditional formatting, dimensions, filters, and streaming-writer values with one invariant round-trip formatter on every target framework.
 

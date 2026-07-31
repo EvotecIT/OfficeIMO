@@ -57,7 +57,7 @@ officeimo mcp serve --stdio
 Or run a specific package version without a permanent install:
 
 ```powershell
-dotnet dnx OfficeIMO.Tool@3.1.0 mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.0.3 mcp serve --stdio
 ```
 
 The server exposes:
