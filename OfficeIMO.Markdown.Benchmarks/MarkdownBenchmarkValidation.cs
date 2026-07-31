@@ -25,7 +25,7 @@ internal static class MarkdownBenchmarkValidation {
             $"Markdig: '{GetDifferenceWindow(markdigHtml, difference)}'.");
     }
 
-    private static string NormalizeHtml(string html) {
+    internal static string NormalizeHtml(string html) {
         string normalized = html.Replace("\r\n", "\n", StringComparison.Ordinal)
             .Replace('\r', '\n')
             .Trim();
