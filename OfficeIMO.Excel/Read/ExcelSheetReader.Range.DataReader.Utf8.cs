@@ -101,9 +101,16 @@ namespace OfficeIMO.Excel {
                         firstColumn,
                         fieldCount);
                     buffer = null;
-                    if (!candidate.TryIndexRows(firstRow, lastRow)) {
+                    try {
+                        if (!candidate.TryIndexRows(firstRow, lastRow)) {
+                            candidate.Dispose();
+                            return false;
+                        }
+
+                        candidate.ValidateBufferedWorksheetXml(ct);
+                    } catch {
                         candidate.Dispose();
-                        return false;
+                        throw;
                     }
 
                     source = candidate;
@@ -402,59 +409,30 @@ namespace OfficeIMO.Excel {
                         _styleIndexes![cellIndex] = styleIndex;
                     }
 
-                    if (!tag.IsEmpty && !TryIndexCell(ref position, cellIndex, kind)) {
-                        return false;
-                    }
-                }
-
-                return false;
-            }
-
-            private bool TryIndexCell(ref int position, int cellIndex, Utf8CellKind kind) {
-                while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
-                    if (tag.IsEnd && LocalNameEquals(tag, "c")) {
-                        return true;
-                    }
-
-                    if (!tag.IsEnd && kind == Utf8CellKind.InlineString && LocalNameEquals(tag, "is")) {
-                        return TryIndexSimpleInlineStringCell(ref position, tag, cellIndex);
-                    }
-
-                    if (tag.IsEnd || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
+                    bool sharedFormulaFollower = false;
+                    bool hasCachedValue = false;
+                    int valueStart = -1;
+                    int valueLength = -1;
+                    if (!tag.IsEmpty && !TryIndexCell(
+                            ref position,
+                            cellIndex,
+                            kind,
+                            out sharedFormulaFollower,
+                            out hasCachedValue,
+                            out valueStart,
+                            out valueLength)) {
                         return false;
                     }
 
-                    if (tag.IsEmpty) {
-                        if (cellIndex >= 0) {
-                            if (LocalNameEquals(tag, "v")) {
-                                _valueStarts![cellIndex] = tag.End;
-                                _valueLengths![cellIndex] = 0;
-                            } else {
-                                _formulaStarts![cellIndex] = tag.End;
-                                _formulaLengths![cellIndex] = 0;
-                            }
-                        }
-                        continue;
-                    }
-
-                    if (!TryReadNextTag(ref position, _length, out Utf8Tag endTag)
-                        || !endTag.IsEnd
-                        || !LocalNamesEqual(tag, endTag)
-                        || ContainsByte(tag.End + 1, endTag.Start, (byte)'<')) {
-                        return false;
-                    }
-
-                    if (cellIndex >= 0) {
-                        int contentStart = tag.End + 1;
-                        int contentLength = Math.Max(0, endTag.Start - contentStart);
-                        if (LocalNameEquals(tag, "v")) {
-                            _valueStarts![cellIndex] = contentStart;
-                            _valueLengths![cellIndex] = contentLength;
-                        } else {
-                            _formulaStarts![cellIndex] = contentStart;
-                            _formulaLengths![cellIndex] = contentLength;
-                        }
-                    }
+                    ValidateIndexedCell(
+                        rowIndex,
+                        columnIndex,
+                        kind,
+                        styleIndex,
+                        sharedFormulaFollower,
+                        hasCachedValue,
+                        valueStart,
+                        valueLength);
                 }
 
                 return false;

@@ -1,5 +1,6 @@
 using System.Data.Common;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -9,6 +10,70 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
+    [Fact]
+    public void OpenDataReader_RejectsMalformedWorksheetXmlAfterSheetData() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.MalformedWorksheetTail.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Ready");
+                document.Save();
+            }
+
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            int worksheetEnd = worksheetXml.LastIndexOf("</", StringComparison.Ordinal);
+            Assert.True(worksheetEnd >= 0);
+            worksheetXml = worksheetXml.Insert(worksheetEnd, "<broken>");
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(worksheetXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_RejectsNestedMarkupInSharedStringValue() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.NestedSharedStringValue.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Ready");
+                document.Save();
+            }
+
+            const string entryName = "xl/worksheets/sheet1.xml";
+            XDocument worksheet = XDocument.Parse(
+                Encoding.UTF8.GetString(ReadZipEntry(path, entryName)));
+            XNamespace spreadsheet = worksheet.Root!.Name.Namespace;
+            XElement cell = Assert.Single(
+                worksheet.Descendants(spreadsheet + "c"),
+                element => string.Equals(
+                    (string?)element.Attribute("r"),
+                    "A2",
+                    StringComparison.Ordinal));
+            XElement value = Assert.IsType<XElement>(cell.Element(spreadsheet + "v"));
+            value.Add(new XElement(spreadsheet + "ext"));
+            ReplaceZipEntry(
+                path,
+                entryName,
+                Encoding.UTF8.GetBytes(worksheet.ToString(SaveOptions.DisableFormatting)));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+            Assert.Contains("only text", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

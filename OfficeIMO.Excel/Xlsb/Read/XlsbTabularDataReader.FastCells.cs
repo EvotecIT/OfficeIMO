@@ -3,17 +3,9 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
         private void StoreCellFast(XlsbRecordSlice record) {
-            EnsureFormulaModeSupported(record.Type);
             var cursor = record.CreateCursor();
             int column = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
-            if (column < 0 || column >= A1.MaxColumns) {
-                throw new InvalidDataException(
-                    $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
-            }
-            ValidateCellColumnOrder(column, record);
-            ValidateCellCoveredByCurrentRow(column, record);
-            ValidateStyleIndex(styleIndex, record);
 
             int ordinal = column - _firstColumn;
             if (ordinal < 0 || ordinal >= FieldCount) {
@@ -45,11 +37,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     break;
                 case BrtCellIsst: {
                     uint sharedStringIndex = cursor.ReadUInt32();
-                    if (sharedStringIndex >= _sharedStrings.Count) {
-                        throw new InvalidDataException(
-                            $"The XLSB cell refers to missing shared string {sharedStringIndex}.");
-                    }
-
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
                     _strings[ordinal] = _sharedStrings[checked((int)sharedStringIndex)];
                     break;
@@ -62,21 +49,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 case BrtFmlaString:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
                     _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
-                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaNum:
                     StoreNumber(ordinal, cursor.ReadDouble(), styleIndex);
-                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaBool:
                     _kinds[ordinal] = XlsbTabularValueKind.Boolean;
                     _booleans[ordinal] = cursor.ReadByte() != 0;
-                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaError:
                     _kinds[ordinal] = XlsbTabularValueKind.Error;
                     _strings[ordinal] = BiffErrorValue.ToText(cursor.ReadByte());
-                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 default:
                     throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
@@ -89,14 +72,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 && _dateStyles[styleIndex];
             _kinds[ordinal] = isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number;
             _numbers[ordinal] = number;
-        }
-
-        private void ValidateStyleIndex(uint styleIndex, XlsbRecordSlice record) {
-            if (styleIndex >= _dateStyles.Length) {
-                throw new InvalidDataException(
-                    $"The XLSB cell record at offset {record.RecordOffset} refers to missing cell format " +
-                    $"{styleIndex}; the styles part exposes {_dateStyles.Length} format(s).");
-            }
         }
 
         private static void ValidateFormulaPayloadTail(

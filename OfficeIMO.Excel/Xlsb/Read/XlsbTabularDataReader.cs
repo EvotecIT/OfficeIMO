@@ -1,7 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Projection;
 using OfficeIMO.Excel.Xlsb.Biff12;
-using OfficeIMO.Excel.Xlsb.Package;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data.Common;
 using System.Globalization;
@@ -56,9 +55,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private int _pendingRowIndex;
         private int _nextLogicalRowIndex;
         private int _recordsSinceCancellationCheck;
-        private readonly int[] _currentRowSpanBounds = new int[32];
-        private int _currentRowSpanCount;
-        private int _previousCellColumn = -1;
 
         internal XlsbTabularDataReader(
             Stream worksheetPart,
@@ -107,6 +103,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw;
             }
 
+            // Discovery validates the complete immutable worksheet before the reader is exposed.
+            // The delivery pass can therefore decode it without repeating those same checks.
             var records = new XlsbStreamRecordSliceReader(
                 worksheetPart ?? throw new ArgumentNullException(nameof(worksheetPart)),
                 limits.MaxRecordBytes,
@@ -353,10 +351,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     }
                     inSheetData = true;
                 } else if (inSheetData && record.Type == BrtRowHdr) {
-                    int rowIndex = ValidateRowHeader(
-                        record,
-                        _currentRowSpanBounds,
-                        out _currentRowSpanCount);
+                    int rowIndex = ReadValidatedRowIndex(record);
                     if (rowIndex == firstDataRow) {
                         _pendingRowIndex = rowIndex;
                         _hasPendingRow = true;
@@ -445,17 +440,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private DecodedCell DecodeCell(XlsbRecordSlice record) {
-            EnsureFormulaModeSupported(record.Type);
             var cursor = record.CreateCursor();
             int column = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
-            if (column < 0 || column >= A1.MaxColumns) {
-                throw new InvalidDataException(
-                    $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
-            }
-            ValidateCellColumnOrder(column, record);
-            ValidateCellCoveredByCurrentRow(column, record);
-            ValidateStyleIndex(styleIndex, record);
 
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && styleIndex < _dateStyles.Length
@@ -488,11 +475,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     break;
                 case BrtCellIsst: {
                     uint sharedStringIndex = cursor.ReadUInt32();
-                    if (sharedStringIndex >= _sharedStrings.Count) {
-                        throw new InvalidDataException(
-                            $"The XLSB cell refers to missing shared string {sharedStringIndex}.");
-                    }
-
                     cell = new DecodedCell(column, XlsbTabularValueKind.Text) {
                         Text = _sharedStrings[checked((int)sharedStringIndex)],
                         RawText = sharedStringIndex.ToString(CultureInfo.InvariantCulture)
@@ -509,23 +491,19 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     cell = new DecodedCell(column, XlsbTabularValueKind.Text) {
                         Text = cursor.ReadWideString(_limits.MaxStringCharacters)
                     };
-                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaNum:
                     cell = NumericCell(column, cursor.ReadDouble(), isDate);
-                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaBool:
                     cell = new DecodedCell(column, XlsbTabularValueKind.Boolean) {
                         Boolean = cursor.ReadByte() != 0
                     };
-                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 case BrtFmlaError:
                     cell = new DecodedCell(column, XlsbTabularValueKind.Error) {
                         Text = BiffErrorValue.ToText(cursor.ReadByte())
                     };
-                    ValidateFormulaPayloadTail(record, ref cursor);
                     break;
                 default:
                     throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
@@ -629,10 +607,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private static bool IsFormulaRecord(int recordType) =>
             recordType is >= BrtFmlaString and <= BrtFmlaError;
 
-        private void EnsureFormulaModeSupported(int recordType) {
-            EnsureFormulaModeSupported(recordType, _options.UseCachedFormulaResult);
-        }
-
         private static void EnsureFormulaModeSupported(
             int recordType,
             bool useCachedFormulaResult) {
@@ -643,30 +617,18 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private bool TrySetPendingRow(XlsbRecordSlice record) {
-            int rowIndex = ValidateRowHeader(
-                record,
-                _currentRowSpanBounds,
-                out _currentRowSpanCount);
+            int rowIndex = ReadValidatedRowIndex(record);
             if (rowIndex > _lastDataRow) {
                 return false;
             }
 
             _pendingRowIndex = rowIndex;
             _hasPendingRow = true;
-            _previousCellColumn = -1;
             return true;
         }
 
-        private void ValidateCellColumnOrder(
-            int column,
-            XlsbRecordSlice record) {
-            if (column <= _previousCellColumn) {
-                throw new InvalidDataException(
-                    $"The XLSB cell record at offset {record.RecordOffset} is duplicated or out of order within its row.");
-            }
-
-            _previousCellColumn = column;
-        }
+        private static int ReadValidatedRowIndex(XlsbRecordSlice record) =>
+            checked((int)record.CreateCursor().ReadUInt32());
 
         private void CheckCancellation() {
             if (!_cancellationToken.CanBeCanceled) {
@@ -733,21 +695,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             return checked((int)rowIndex);
-        }
-
-        private void ValidateCellCoveredByCurrentRow(
-            int column,
-            XlsbRecordSlice record) {
-            for (int index = 0; index < _currentRowSpanCount; index++) {
-                int offset = index * 2;
-                if (_currentRowSpanBounds[offset] <= column
-                    && column <= _currentRowSpanBounds[offset + 1]) {
-                    return;
-                }
-            }
-
-            throw new InvalidDataException(
-                $"The XLSB cell record at offset {record.RecordOffset} for column {column} is not covered by its BrtRowHdr column spans.");
         }
 
         private static long CopySegment<T>(

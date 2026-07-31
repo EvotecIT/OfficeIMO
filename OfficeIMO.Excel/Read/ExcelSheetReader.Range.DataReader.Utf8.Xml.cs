@@ -194,8 +194,10 @@ namespace OfficeIMO.Excel {
                         hasType = true;
                         typeStart = valueStart;
                         typeLength = valueLength;
-                    } else if (AsciiEquals(attributeStart, attributeEnd - attributeStart, "s")
-                        && TryParseNonNegativeInt(_buffer!, valueStart, valueLength, out int parsedStyle)) {
+                    } else if (AsciiEquals(attributeStart, attributeEnd - attributeStart, "s")) {
+                        if (!TryParseNonNegativeInt(_buffer!, valueStart, valueLength, out int parsedStyle)) {
+                            return false;
+                        }
                         styleIndex = parsedStyle;
                     }
 
