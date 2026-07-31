@@ -67,7 +67,7 @@ internal static partial class CsvParser
         var lineNumber = 1;
         var emittedRecordCount = 0;
         var stringCache = CreateStringCache(options);
-        using var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader, options.CancellationToken);
 
         while (lineReader.ReadLine(out var lineSeparator) is { } line)
         {

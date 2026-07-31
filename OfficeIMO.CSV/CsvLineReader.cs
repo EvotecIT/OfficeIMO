@@ -2,6 +2,7 @@
 
 using System.Buffers;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
@@ -14,15 +15,17 @@ internal sealed partial class CsvLineReader : IDisposable
 #endif
     private readonly TextReader _reader;
     private readonly char[] _buffer;
+    private readonly CancellationToken _cancellationToken;
     private int _position;
     private int _length;
     private bool _endOfReader;
 
     internal char[] Buffer => _buffer;
 
-    public CsvLineReader(TextReader reader)
+    public CsvLineReader(TextReader reader, CancellationToken cancellationToken)
     {
         _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+        _cancellationToken = cancellationToken;
         _buffer = ArrayPool<char>.Shared.Rent(DefaultBufferSize);
     }
 
@@ -813,6 +816,7 @@ internal sealed partial class CsvLineReader : IDisposable
 
     private bool EnsureBuffered()
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (_position < _length)
         {
             return true;
@@ -824,6 +828,7 @@ internal sealed partial class CsvLineReader : IDisposable
         }
 
         _length = _reader.Read(_buffer, 0, _buffer.Length);
+        _cancellationToken.ThrowIfCancellationRequested();
         _position = 0;
         if (_length > 0)
         {
@@ -837,6 +842,7 @@ internal sealed partial class CsvLineReader : IDisposable
 #if NET8_0_OR_GREATER
     private bool TryExtendCurrentSegment()
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         var remaining = _length - _position;
         if (_position == 0 || remaining >= _buffer.Length)
         {
@@ -851,6 +857,7 @@ internal sealed partial class CsvLineReader : IDisposable
         _position = 0;
         _length = remaining;
         var read = _reader.Read(_buffer, remaining, _buffer.Length - remaining);
+        _cancellationToken.ThrowIfCancellationRequested();
         if (read == 0)
         {
             _endOfReader = true;

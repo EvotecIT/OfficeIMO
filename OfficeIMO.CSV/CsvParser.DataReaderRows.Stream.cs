@@ -36,7 +36,7 @@ internal static partial class CsvParser
             _trim = options.TrimWhitespace;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
             _allowEmpty = options.AllowEmptyLines;
-            _lineReader = new CsvLineReader(reader);
+            _lineReader = new CsvLineReader(reader, options.CancellationToken);
             _visitor = new CsvDataReaderStreamRowVisitor(_lineReader.Buffer);
         }
 

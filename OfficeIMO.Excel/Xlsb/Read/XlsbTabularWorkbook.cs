@@ -386,6 +386,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             var dateStyles = new List<bool>();
             var cellStyleFormats = new List<XlsbTabularCellFormatReference>();
             var cellFormats = new List<XlsbTabularCellFormatReference>();
+            var seenCollectionBegins = new HashSet<int>();
             int activeCollectionEnd = 0;
             int declaredCollectionCount = 0;
             int actualCollectionCount = 0;
@@ -401,6 +402,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 if (endedStyleSheet) {
                     throw new InvalidDataException(
                         $"The XLSB styles part '{partName}' contains records after BrtEndStyleSheet.");
+                }
+                if (IsSupportedStyleCollectionBegin(record.Type)
+                    && !seenCollectionBegins.Add(record.Type)) {
+                    throw new InvalidDataException(
+                        $"The XLSB styles part '{partName}' contains more than one {GetStyleCollectionName(record.Type)} collection.");
                 }
 
                 switch (record.Type) {
@@ -580,8 +586,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         actualCollectionCount++;
                         break;
                     case BrtFont when activeCollectionEnd == BrtEndFonts:
+                        ValidateFontPayload(record);
+                        actualCollectionCount++;
+                        break;
                     case BrtFill when activeCollectionEnd == BrtEndFills:
+                        ValidateFillPayload(record);
+                        actualCollectionCount++;
+                        break;
                     case BrtBorder when activeCollectionEnd == BrtEndBorders:
+                        ValidateBorderPayload(record);
                         actualCollectionCount++;
                         break;
                 }
@@ -608,6 +621,95 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 borderCount);
 
             return dateStyles.ToArray();
+        }
+
+        private static bool IsSupportedStyleCollectionBegin(int recordType) =>
+            recordType == BrtBeginFmts
+            || recordType == BrtBeginFonts
+            || recordType == BrtBeginFills
+            || recordType == BrtBeginBorders
+            || recordType == BrtBeginCellStyleXfs
+            || recordType == BrtBeginCellXfs;
+
+        private static string GetStyleCollectionName(int recordType) {
+            switch (recordType) {
+                case BrtBeginFmts:
+                    return "number-format";
+                case BrtBeginFonts:
+                    return "font";
+                case BrtBeginFills:
+                    return "fill";
+                case BrtBeginBorders:
+                    return "border";
+                case BrtBeginCellStyleXfs:
+                    return "cell-style-format";
+                case BrtBeginCellXfs:
+                    return "cell-format";
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(recordType));
+            }
+        }
+
+        private void ValidateFontPayload(XlsbRecordSlice record) {
+            try {
+                var cursor = record.CreateCursor();
+                cursor.Skip(12);
+                cursor.Skip(8);
+                cursor.ReadByte();
+                string name = cursor.ReadWideString(Math.Min(_limits.MaxStringCharacters, 31));
+                if (cursor.Remaining != 0 || name.Length == 0) {
+                    throw new InvalidDataException(
+                        $"The BrtFont record at offset {record.RecordOffset} is malformed.");
+                }
+            } catch (EndOfStreamException exception) {
+                throw new InvalidDataException(
+                    $"The BrtFont record at offset {record.RecordOffset} is truncated.",
+                    exception);
+            }
+        }
+
+        private static void ValidateFillPayload(XlsbRecordSlice record) {
+            try {
+                var cursor = record.CreateCursor();
+                cursor.ReadUInt32();
+                cursor.Skip(8);
+                cursor.Skip(8);
+                cursor.ReadInt32();
+                cursor.Skip(8 * 5);
+                uint gradientStopCount = cursor.ReadUInt32();
+                if (gradientStopCount > MaxStyleItems) {
+                    throw new InvalidDataException(
+                        $"The BrtFill record at offset {record.RecordOffset} declares too many gradient stops.");
+                }
+                if (gradientStopCount == 0 && cursor.Remaining != 0) {
+                    throw new InvalidDataException(
+                        $"The BrtFill record at offset {record.RecordOffset} has unexpected trailing data.");
+                }
+            } catch (EndOfStreamException exception) {
+                throw new InvalidDataException(
+                    $"The BrtFill record at offset {record.RecordOffset} is truncated.",
+                    exception);
+            }
+        }
+
+        private static void ValidateBorderPayload(XlsbRecordSlice record) {
+            try {
+                var cursor = record.CreateCursor();
+                cursor.ReadByte();
+                for (int side = 0; side < 5; side++) {
+                    cursor.ReadByte();
+                    cursor.Skip(1);
+                    cursor.Skip(8);
+                }
+                if (cursor.Remaining != 0) {
+                    throw new InvalidDataException(
+                        $"The BrtBorder record at offset {record.RecordOffset} has unexpected trailing data.");
+                }
+            } catch (EndOfStreamException exception) {
+                throw new InvalidDataException(
+                    $"The BrtBorder record at offset {record.RecordOffset} is truncated.",
+                    exception);
+            }
         }
 
         private static XlsbTabularCellFormatReference ReadCellFormatReference(
@@ -738,8 +840,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     throw new InvalidDataException(
                         $"The XLSB worksheet '{bundle.Name}' references missing relationship '{bundle.RelationshipId}'.");
                 }
-                if (relationship.IsExternal
-                    || !relationship.Type.EndsWith(WorksheetRelationshipSuffix, StringComparison.Ordinal)) {
+                if (relationship.IsExternal) {
+                    throw new InvalidDataException(
+                        $"The XLSB worksheet '{bundle.Name}' references external relationship '{bundle.RelationshipId}'.");
+                }
+                if (!relationship.Type.EndsWith(WorksheetRelationshipSuffix, StringComparison.Ordinal)) {
                     continue;
                 }
                 if (!worksheetNames.Add(bundle.Name)) {

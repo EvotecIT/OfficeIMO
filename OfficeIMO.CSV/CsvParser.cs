@@ -190,7 +190,7 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
         var stringCache = CreateStringCache(options);
-        using var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader, options.CancellationToken);
 
         while (ReadLineWithSeparator(lineReader, pendingLines, out var lineSeparator) is { } line)
         {
@@ -277,7 +277,7 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
         var stringCache = CreateStringCache(options);
-        using var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader, options.CancellationToken);
 
         while (ReadLineWithSeparator(lineReader, pendingLines, out var lineSeparator) is { } line)
         {
@@ -355,7 +355,7 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
         var stringCache = CreateStringCache(options);
-        using var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader, options.CancellationToken);
 
         while (pendingLines.Count > 0 || true)
         {
@@ -477,7 +477,7 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
         var stringCache = CreateStringCache(options);
-        using var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader, options.CancellationToken);
 
         while (pendingLines.Count > 0 || true)
         {
@@ -601,7 +601,7 @@ internal static partial class CsvParser
         var reusableQuotedRecord = new List<string>(64);
         var pendingLines = new Queue<CsvLine>();
         var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
-        using var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader, options.CancellationToken);
 
         while (pendingLines.Count > 0 || true)
         {

@@ -134,6 +134,27 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
+    public void OpenDataReader_ObservesCancellationWhileScanningLargeRecord() {
+        using var cancellation = new CancellationTokenSource();
+        byte[] bytes = Encoding.UTF8.GetBytes(
+            "Value\n" + new string('x', 600_000) + "\n");
+        using var stream = new CancelingSeekableReadStream(
+            bytes,
+            cancellation,
+            cancelOnReadCount: 2);
+        using DbDataReader reader = CsvDocument.OpenDataReader(
+            stream,
+            new CsvLoadOptions {
+                Mode = CsvLoadMode.Stream,
+                CancellationToken = cancellation.Token
+            });
+
+        Assert.False(cancellation.IsCancellationRequested);
+        Assert.Throws<OperationCanceledException>(() => reader.Read());
+        Assert.Equal(2, stream.ReadCount);
+    }
+
+    [Fact]
     public void OpenDataReader_NonSeekableFallbackObservesCancellationWhileBuffering() {
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelingNonSeekableReadStream(
@@ -319,6 +340,59 @@ public sealed class CsvDataReaderApiTests {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class CancelingSeekableReadStream : Stream {
+        private readonly MemoryStream _stream;
+        private readonly CancellationTokenSource _cancellation;
+        private readonly int _cancelOnReadCount;
+
+        internal CancelingSeekableReadStream(
+            byte[] bytes,
+            CancellationTokenSource cancellation,
+            int cancelOnReadCount) {
+            _stream = new MemoryStream(bytes, writable: false);
+            _cancellation = cancellation;
+            _cancelOnReadCount = cancelOnReadCount;
+        }
+
+        internal int ReadCount { get; private set; }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => _stream.Length;
+        public override long Position {
+            get => _stream.Position;
+            set => _stream.Position = value;
+        }
+
+        public override void Flush() {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            ReadCount++;
+            int copied = _stream.Read(buffer, offset, count);
+            if (ReadCount == _cancelOnReadCount) {
+                _cancellation.Cancel();
+            }
+
+            return copied;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) =>
+            _stream.Seek(offset, origin);
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                _stream.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 
     private sealed class CancelingTextReader : TextReader {

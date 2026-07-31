@@ -2,6 +2,8 @@ using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Read;
 using System.Data.Common;
 using System.IO.Compression;
+using System.Text;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;
@@ -304,6 +306,128 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_XlsbRejectsMissingWorksheetDimension() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.MissingDimension.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            RemoveFirstXlsbRecord(
+                path,
+                "xl/worksheets/sheet1.bin",
+                recordType: 148);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("required BrtWsDim", exception.Message, StringComparison.Ordinal);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbRejectsRowHeaderOutsideSheetData() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.RowOutsideSheetData.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            InsertFirstXlsbRecordBefore(
+                path,
+                "xl/worksheets/sheet1.bin",
+                sourceRecordType: 0,
+                targetRecordType: 145);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("row or cell record", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("outside", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(43, "BrtFont")]
+    [InlineData(45, "BrtFill")]
+    [InlineData(46, "BrtBorder")]
+    public void OpenDataReader_XlsbRejectsTruncatedMandatoryStylePayload(
+        int recordType,
+        string expectedRecordName) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.TruncatedMandatoryStyle.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            ReplaceFirstXlsbRecordPayload(
+                path,
+                "xl/styles.bin",
+                recordType,
+                data => data.Take(1).ToArray());
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains(expectedRecordName, exception.Message, StringComparison.Ordinal);
+            Assert.Contains("truncated", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(603, 604, "fill")]
+    [InlineData(611, 612, "font")]
+    [InlineData(613, 614, "border")]
+    [InlineData(615, 616, "number-format")]
+    [InlineData(617, 618, "cell-format")]
+    [InlineData(626, 627, "cell-style-format")]
+    public void OpenDataReader_XlsbRejectsDuplicateStyleCollection(
+        int beginRecordType,
+        int endRecordType,
+        string expectedCollectionName) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.DuplicateStyleCollection.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("styles-dates-formulas.xlsb"), path);
+        try {
+            DuplicateFirstXlsbCollection(
+                path,
+                "xl/styles.bin",
+                beginRecordType,
+                endRecordType);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("more than one", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(expectedCollectionName, exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbRejectsExternalWorksheetRelationship() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.ExternalWorksheetRelationship.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            MakeFirstWorksheetRelationshipExternal(path);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("external relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_XlsbNextResultRejectsTruncatedCellPayloadDuringDiscovery() {
         string path = Path.Combine(
             Path.GetTempPath(),
@@ -461,6 +585,28 @@ public partial class Excel {
             target.PayloadOffset,
             bytes.Length - target.PayloadOffset - target.Size);
         ReplaceZipEntry(path, entryName, mutated);
+    }
+
+    private static void RemoveFirstXlsbRecord(
+        string path,
+        string entryName,
+        int recordType) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+        using var output = new MemoryStream();
+        bool removed = false;
+        foreach (XlsbRecord record in records) {
+            if (!removed && record.Type == recordType) {
+                removed = true;
+                continue;
+            }
+
+            XlsbRecordWriter.Write(output, record.Type, record.Data);
+        }
+
+        Assert.True(removed);
+        ReplaceZipEntry(path, entryName, output.ToArray());
     }
 
     private static void EmptyXlsbStyleCollection(
@@ -679,6 +825,85 @@ public partial class Excel {
         }
 
         Assert.True(duplicated);
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
+    private static void InsertFirstXlsbRecordBefore(
+        string path,
+        string entryName,
+        int sourceRecordType,
+        int targetRecordType) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+        XlsbRecord source = Assert.Single(
+            records.Where(record => record.Type == sourceRecordType).Take(1));
+        using var output = new MemoryStream();
+        bool inserted = false;
+        foreach (XlsbRecord record in records) {
+            if (!inserted && record.Type == targetRecordType) {
+                XlsbRecordWriter.Write(output, source.Type, source.Data);
+                inserted = true;
+            }
+
+            XlsbRecordWriter.Write(output, record.Type, record.Data);
+        }
+
+        Assert.True(inserted);
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
+    private static void DuplicateFirstXlsbCollection(
+        string path,
+        string entryName,
+        int beginRecordType,
+        int endRecordType) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+        int beginIndex = records.ToList().FindIndex(record => record.Type == beginRecordType);
+        Assert.True(beginIndex >= 0);
+        int endIndex = records.ToList().FindIndex(
+            beginIndex,
+            record => record.Type == endRecordType);
+        Assert.True(endIndex >= beginIndex);
+
+        using var output = new MemoryStream();
+        for (int index = 0; index < records.Count; index++) {
+            XlsbRecord record = records[index];
+            XlsbRecordWriter.Write(output, record.Type, record.Data);
+            if (index != endIndex) {
+                continue;
+            }
+
+            for (int duplicateIndex = beginIndex; duplicateIndex <= endIndex; duplicateIndex++) {
+                XlsbRecord duplicate = records[duplicateIndex];
+                XlsbRecordWriter.Write(output, duplicate.Type, duplicate.Data);
+            }
+        }
+
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
+    private static void MakeFirstWorksheetRelationshipExternal(string path) {
+        const string entryName = "xl/_rels/workbook.bin.rels";
+        byte[] bytes = ReadZipEntry(path, entryName);
+        XDocument document;
+        using (var input = new MemoryStream(bytes, writable: false)) {
+            document = XDocument.Load(input);
+        }
+
+        XNamespace relationshipsNamespace =
+            "http://schemas.openxmlformats.org/package/2006/relationships";
+        XElement relationship = document
+            .Descendants(relationshipsNamespace + "Relationship")
+            .First(element => ((string?)element.Attribute("Type"))
+                ?.EndsWith("/worksheet", StringComparison.Ordinal) == true);
+        relationship.SetAttributeValue("Target", "https://example.invalid/sheet1.bin");
+        relationship.SetAttributeValue("TargetMode", "External");
+
+        using var output = new MemoryStream();
+        document.Save(output);
         ReplaceZipEntry(path, entryName, output.ToArray());
     }
 

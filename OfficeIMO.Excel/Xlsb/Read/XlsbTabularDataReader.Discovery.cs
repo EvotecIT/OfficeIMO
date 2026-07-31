@@ -35,6 +35,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 bool inSheetData = false;
                 bool sawBeginSheetData = false;
                 bool sawEndSheetData = false;
+                bool sawDimension = false;
                 int firstRecordType = -1;
                 int lastRecordType = -1;
                 int recordsSinceCancellationCheck = 0;
@@ -51,10 +52,28 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         cancellationToken.ThrowIfCancellationRequested();
                     }
 
+                    if (record.Type == BrtWsDim) {
+                        if (sawDimension) {
+                            throw new InvalidDataException(
+                                "The XLSB worksheet contains more than one BrtWsDim record.");
+                        }
+                        if (sawBeginSheetData) {
+                            throw new InvalidDataException(
+                                "The XLSB worksheet contains a misplaced BrtWsDim record.");
+                        }
+
+                        ReadWorksheetDimension(record, out _, out _);
+                        sawDimension = true;
+                        continue;
+                    }
                     if (record.Type == BrtBeginSheetData) {
                         if (sawBeginSheetData) {
                             throw new InvalidDataException(
                                 "The XLSB worksheet contains duplicate or nested BrtBeginSheetData records.");
+                        }
+                        if (!sawDimension) {
+                            throw new InvalidDataException(
+                                "The XLSB worksheet is missing the required BrtWsDim record before BrtBeginSheetData.");
                         }
 
                         sawBeginSheetData = true;
@@ -73,9 +92,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         continue;
                     }
                     if (!inSheetData) {
-                        if (IsCellRecord(record.Type)) {
+                        if (record.Type == BrtRowHdr || IsCellRecord(record.Type)) {
                             throw new InvalidDataException(
-                                $"The XLSB cell record at offset {record.RecordOffset} appears outside BrtBeginSheetData/BrtEndSheetData.");
+                                $"The XLSB row or cell record at offset {record.RecordOffset} appears outside BrtBeginSheetData/BrtEndSheetData.");
                         }
 
                         continue;
@@ -144,6 +163,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     throw new InvalidDataException(
                         "The XLSB worksheet is missing its outer BrtBeginSheet/BrtEndSheet boundaries.");
                 }
+                if (!sawDimension) {
+                    throw new InvalidDataException(
+                        "The XLSB worksheet is missing the required BrtWsDim record.");
+                }
                 if (!sawBeginSheetData) {
                     throw new InvalidDataException(
                         "The XLSB worksheet does not contain the required BrtBeginSheetData record.");
@@ -155,6 +178,32 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             } finally {
                 worksheetPart.Position = startPosition;
             }
+        }
+
+        private static void ReadWorksheetDimension(
+            XlsbRecordSlice record,
+            out int firstColumn,
+            out int lastColumn) {
+            if (record.Size != 16) {
+                throw new InvalidDataException(
+                    $"The BrtWsDim record at offset {record.RecordOffset} has invalid payload length {record.Size}.");
+            }
+
+            var cursor = record.CreateCursor();
+            uint firstRow = cursor.ReadUInt32();
+            uint lastRow = cursor.ReadUInt32();
+            uint firstColumnValue = cursor.ReadUInt32();
+            uint lastColumnValue = cursor.ReadUInt32();
+            if (firstRow > lastRow
+                || lastRow >= A1.MaxRows
+                || firstColumnValue > lastColumnValue
+                || lastColumnValue >= A1.MaxColumns) {
+                throw new InvalidDataException(
+                    $"The BrtWsDim record at offset {record.RecordOffset} contains an invalid worksheet range.");
+            }
+
+            firstColumn = checked((int)firstColumnValue);
+            lastColumn = checked((int)lastColumnValue);
         }
 
         private static int ValidateCellPayloadStructure(
