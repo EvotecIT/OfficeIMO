@@ -57,7 +57,9 @@ namespace OfficeIMO.Excel {
             int firstRow,
             int count,
             ExcelMutationPlanOptions effective) {
-            var budget = new MutationPlanScanBudget(effective.MaximumScannedElements);
+            var budget = new MutationPlanScanBudget(
+                effective.MaximumScannedElements,
+                effective.MaximumScannedCharacters);
             var impacts = new List<ExcelMutationImpact>();
             int lastRow = firstRow + count - 1;
             int cells = 0;
@@ -1079,7 +1081,8 @@ namespace OfficeIMO.Excel {
                     DtdProcessing = DtdProcessing.Prohibit,
                     XmlResolver = null,
                     IgnoreComments = true,
-                    IgnoreProcessingInstructions = true
+                    IgnoreProcessingInstructions = true,
+                    MaxCharactersInDocument = budget.MaximumCharacters
                 })) {
                 bool rootSeen = false;
                 while (reader.Read()) {
@@ -1123,11 +1126,14 @@ namespace OfficeIMO.Excel {
         private sealed class MutationPlanScanBudget {
             private readonly int _maximum;
 
-            internal MutationPlanScanBudget(int maximum) {
+            internal MutationPlanScanBudget(int maximum, long maximumCharacters) {
                 _maximum = maximum;
+                MaximumCharacters = maximumCharacters;
             }
 
             internal int Scanned { get; private set; }
+
+            internal long MaximumCharacters { get; }
 
             internal void Consume() {
                 if (Scanned >= _maximum) {

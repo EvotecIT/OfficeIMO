@@ -556,14 +556,15 @@ namespace OfficeIMO.Excel {
                         return;
                     }
 
-                    if (!_options.NumericAsDecimal) {
-                        if (targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) {
-                            primitiveKind = XmlDataReaderPrimitiveKind.Double;
-                            doubleValue = number;
-                        } else {
-                            objectValue = number;
-                        }
+                    if (targetKind == XmlDataReaderTargetKind.Int32
+                        || targetKind == XmlDataReaderTargetKind.Double) {
+                        primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                        doubleValue = number;
+                        return;
+                    }
 
+                    if (!_options.NumericAsDecimal) {
+                        objectValue = number;
                         return;
                     }
 
@@ -617,14 +618,16 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (!_options.NumericAsDecimal && parsedNumber) {
-                    if (targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) {
-                        primitiveKind = XmlDataReaderPrimitiveKind.Double;
-                        doubleValue = number;
-                    } else {
-                        objectValue = number;
-                    }
+                if (parsedNumber
+                    && (targetKind == XmlDataReaderTargetKind.Int32
+                        || targetKind == XmlDataReaderTargetKind.Double)) {
+                    primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                    doubleValue = number;
+                    return;
+                }
 
+                if (!_options.NumericAsDecimal && parsedNumber) {
+                    objectValue = number;
                     return;
                 }
 

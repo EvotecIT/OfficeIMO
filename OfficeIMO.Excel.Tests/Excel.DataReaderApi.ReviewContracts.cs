@@ -203,7 +203,10 @@ public partial class Excel {
 
         using ExcelDocumentReader owner = ExcelDocumentReader.Open(
             memory.ToArray(),
-            new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+            new ExcelReadOptions {
+                TreatDatesUsingNumberFormat = true,
+                NumericAsDecimal = true
+            });
         using var reader = owner
             .GetSheet("Data")
             .ReadUsedRangeAsDataReader(schemaSampleRows: 0);

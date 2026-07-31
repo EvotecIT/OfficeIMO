@@ -21,15 +21,27 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public int MaximumScannedElements { get; set; } = 250_000;
 
+        /// <summary>
+        /// Maximum XML characters read while pre-scanning one lazily loaded worksheet.
+        /// This bounds decompressed worksheet text before its Open XML DOM is materialized.
+        /// </summary>
+        public long MaximumScannedCharacters { get; set; } = 64_000_000;
+
         internal ExcelMutationPlanOptions CloneAndValidate() {
             if (MaximumScannedElements < 1) {
                 throw new ArgumentOutOfRangeException(
                     nameof(MaximumScannedElements),
                     "The mutation-plan element budget must be positive.");
             }
+            if (MaximumScannedCharacters < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(MaximumScannedCharacters),
+                    "The mutation-plan character budget must be positive.");
+            }
 
             return new ExcelMutationPlanOptions {
-                MaximumScannedElements = MaximumScannedElements
+                MaximumScannedElements = MaximumScannedElements,
+                MaximumScannedCharacters = MaximumScannedCharacters
             };
         }
     }
