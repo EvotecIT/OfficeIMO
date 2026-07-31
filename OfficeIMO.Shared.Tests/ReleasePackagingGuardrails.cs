@@ -354,6 +354,9 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("SaveAsPowerPoint", changelog, StringComparison.Ordinal);
         Assert.Contains("ImportTablesToExcelDocument", changelog, StringComparison.Ordinal);
         Assert.Contains("ToPowerPointPresentation", changelog, StringComparison.Ordinal);
+        Assert.Contains("`PdfWordReadOptions` with `PdfWordImportOptions`", changelog, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointTableImportOptions` with `PdfPowerPointImportOptions`", changelog, StringComparison.Ordinal);
+        Assert.Contains("`ImportTablesToPowerPointPresentation` with `ToPowerPointPresentation`", changelog, StringComparison.Ordinal);
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", changelog, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", changelog, StringComparison.Ordinal);
 
@@ -383,6 +386,9 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("## Reader and document intelligence", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Email, stores, and cloud adapters", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Browser and agent surfaces", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
+        Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
+        Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
 
         Assert.False(File.Exists(Path.Combine(repositoryRoot, "MIGRATION.md")));
         Assert.False(File.Exists(Path.Combine(repositoryRoot, "powerpoint.md")));

@@ -95,6 +95,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Broaden imported review and redline corpus coverage", roadmap, StringComparison.Ordinal);
             Assert.Contains("Extend structured comparison and redline generation", roadmap, StringComparison.Ordinal);
             Assert.Contains("Complete field evaluation and refresh", roadmap, StringComparison.Ordinal);
+            Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
+            Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
+            Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
 
             string fixtureManifestPath = Path.Combine(
                 repositoryRoot,

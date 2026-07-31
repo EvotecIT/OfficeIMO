@@ -21,6 +21,7 @@ public class MarkdownParseBenchmarks {
         _commonMarkOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
         _portableOptions = MarkdownReaderOptions.CreatePortableProfile();
         _markdown = MarkdownBenchmarkCorpus.Get(CorpusName);
+        MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(CorpusName, _markdown, _commonMarkOptions);
     }
 
     [Benchmark(Baseline = true)]
@@ -64,6 +65,7 @@ public class MarkdownHtmlBenchmarks {
         _commonMarkOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
         _portableOptions = MarkdownReaderOptions.CreatePortableProfile();
         _markdown = MarkdownBenchmarkCorpus.Get(CorpusName);
+        MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(CorpusName, _markdown, _commonMarkOptions);
     }
 
     [Benchmark(Baseline = true)]

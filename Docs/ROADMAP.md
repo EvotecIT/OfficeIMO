@@ -15,6 +15,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 ## Word
 
+- [ ] Complete XML-signature validation, including transform-aware OPC digests, certificate-chain trust, revocation, and timestamp-authority validation; add cross-platform package signing and keep macro-project signing as a separate explicit capability.
 - [ ] Broaden imported review and redline corpus coverage, including bounded nested tables, notes, headers, footers, text boxes, and content-control shapes.
 - [ ] Extend structured comparison and redline generation one explicit document shape at a time, with stable reports for unsupported effective-formatting and move semantics.
 - [ ] Complete field evaluation and refresh for the supported TOC, index, caption, list, and cross-reference profiles; keep locale-sensitive and layout-dependent limits explicit.
