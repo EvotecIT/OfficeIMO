@@ -35,7 +35,7 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
         byte[] trueTypeFont,
         OfficeFontUnicodeRangeSet unicodeRanges,
         OfficeFontStyle style,
-        string? selectionFamilyName = null) {
+        string? plannerFamilyName = null) {
         Guard.NotNullOrWhiteSpace(fontName, nameof(fontName));
         Guard.NotNull(trueTypeFont, nameof(trueTypeFont));
         Guard.NotNull(unicodeRanges, nameof(unicodeRanges));
@@ -44,9 +44,9 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
         }
 
         FontName = fontName;
-        SelectionFamilyName = string.IsNullOrWhiteSpace(selectionFamilyName)
+        PlannerFamilyName = string.IsNullOrWhiteSpace(plannerFamilyName)
             ? fontName
-            : selectionFamilyName!.Trim();
+            : plannerFamilyName!.Trim();
         _fontData = trueTypeFont.ToArray();
         UnicodeRanges = unicodeRanges;
         Style = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
@@ -60,7 +60,7 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
 
     internal OfficeFontStyle Style { get; }
 
-    internal string SelectionFamilyName { get; }
+    internal string PlannerFamilyName { get; }
 
     internal byte[] DataSnapshot => _fontData;
 }

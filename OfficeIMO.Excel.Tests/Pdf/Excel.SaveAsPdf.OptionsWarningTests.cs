@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Drawing;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
@@ -18,6 +19,18 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Rejects_Invalid_Options() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelPdfSaveOptions { HeaderRowCount = -1 });
         Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelPdfSaveOptions { MaxRowsPerSheet = 0 });
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelShapingOnlyProfileAllowsWorkbookFontDiscoveryUntilCallerConfiguresFonts() {
+        var options = new ExcelPdfSaveOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
+
+        Assert.False(options.HasExplicitPdfFontConfiguration);
+
+        options.PdfOptions!.DefaultFontSize = 13;
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
     }
 
     [Fact]

@@ -8,11 +8,14 @@ namespace OfficeIMO.Excel.Pdf {
     public sealed class ExcelPdfSaveOptions {
         private int _headerRowCount = 1;
         private int? _maxRowsPerSheet;
-        private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         private PdfCore.PdfOptions? _pdfOptions;
         private bool _pdfOptionsCreatedByRenderingProfile;
         private long? _fontlessRenderingProfileFontConfigurationState;
-        private long? _renderingProfilePageSizeAssignmentVersion;
+        private long? _fontlessRenderingProfileFontAssignmentVersion;
+        private long? _renderingProfileOwnedFontConfigurationState;
+        private long? _renderingProfileOwnedFontAssignmentVersion;
+        private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+        private long? _renderingProfilePageSizeConfigurationState;
 
         /// <summary>
         /// Warnings populated when workbook content cannot be mapped faithfully.
@@ -35,21 +38,27 @@ namespace OfficeIMO.Excel.Pdf {
                 _pdfOptions = value;
                 _pdfOptionsCreatedByRenderingProfile = false;
                 _fontlessRenderingProfileFontConfigurationState = null;
-                _renderingProfilePageSizeAssignmentVersion = null;
+                _fontlessRenderingProfileFontAssignmentVersion = null;
+                _renderingProfileOwnedFontConfigurationState = null;
+                _renderingProfileOwnedFontAssignmentVersion = null;
+                _renderingProfilePageSizeConfigurationState = null;
             }
         }
-
-        internal bool HasExplicitPdfPageSizeConfiguration =>
-            _pdfOptions != null
-            && (!_renderingProfilePageSizeAssignmentVersion.HasValue
-                || _pdfOptions.PageSizeAssignmentVersion
-                    != _renderingProfilePageSizeAssignmentVersion.Value);
 
         internal bool HasExplicitPdfFontConfiguration =>
             _pdfOptions != null
             && (!_fontlessRenderingProfileFontConfigurationState.HasValue
                 || _pdfOptions.FontConfigurationState
-                    != _fontlessRenderingProfileFontConfigurationState.Value);
+                    != _fontlessRenderingProfileFontConfigurationState.Value
+                || !_fontlessRenderingProfileFontAssignmentVersion.HasValue
+                || _pdfOptions.FontConfigurationAssignmentVersion
+                    != _fontlessRenderingProfileFontAssignmentVersion.Value);
+
+        internal bool HasExplicitPdfPageSizeConfiguration =>
+            _pdfOptions != null
+            && (!_renderingProfilePageSizeConfigurationState.HasValue
+                || _pdfOptions.PageSizeConfigurationState
+                    != _renderingProfilePageSizeConfigurationState.Value);
 
         /// <summary>
         /// Optional workbook default font family used by the first-party PDF engine.
@@ -242,14 +251,18 @@ namespace OfficeIMO.Excel.Pdf {
             bool createdPdfOptions = _pdfOptions == null;
             bool profileOwnsCurrentFontConfiguration =
                 _pdfOptions != null
-                && _fontlessRenderingProfileFontConfigurationState.HasValue
+                && _renderingProfileOwnedFontConfigurationState.HasValue
                 && _pdfOptions.FontConfigurationState
-                    == _fontlessRenderingProfileFontConfigurationState.Value;
+                    == _renderingProfileOwnedFontConfigurationState.Value
+                && _renderingProfileOwnedFontAssignmentVersion.HasValue
+                && _pdfOptions.FontConfigurationAssignmentVersion
+                    == _renderingProfileOwnedFontAssignmentVersion.Value;
             bool profileOwnsCurrentPageSize =
                 createdPdfOptions
-                || (_renderingProfilePageSizeAssignmentVersion.HasValue
-                    && _pdfOptions!.PageSizeAssignmentVersion
-                        == _renderingProfilePageSizeAssignmentVersion.Value);
+                || (_pdfOptions != null
+                    && _renderingProfilePageSizeConfigurationState.HasValue
+                    && _pdfOptions.PageSizeConfigurationState
+                        == _renderingProfilePageSizeConfigurationState.Value);
             PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
             target.UseRenderingProfile(profile, mode);
             if (createdPdfOptions) {
@@ -257,22 +270,36 @@ namespace OfficeIMO.Excel.Pdf {
                 _pdfOptionsCreatedByRenderingProfile = true;
             }
             if (profileOwnsCurrentPageSize) {
-                _renderingProfilePageSizeAssignmentVersion =
-                    target.PageSizeAssignmentVersion;
+                _renderingProfilePageSizeConfigurationState =
+                    target.PageSizeConfigurationState;
             } else {
-                _renderingProfilePageSizeAssignmentVersion = null;
+                _renderingProfilePageSizeConfigurationState = null;
             }
             if (profile.Fonts.Faces.Count > 0) {
                 _fontlessRenderingProfileFontConfigurationState = null;
+                _fontlessRenderingProfileFontAssignmentVersion = null;
             } else if (_pdfOptionsCreatedByRenderingProfile
                 && (createdPdfOptions
-                    || mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
-                    || profileOwnsCurrentFontConfiguration)) {
+                    || (profileOwnsCurrentFontConfiguration
+                        && (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                            || _fontlessRenderingProfileFontConfigurationState.HasValue)))) {
                 _fontlessRenderingProfileFontConfigurationState =
                     target.FontConfigurationState;
+                _fontlessRenderingProfileFontAssignmentVersion =
+                    target.FontConfigurationAssignmentVersion;
             } else {
                 _fontlessRenderingProfileFontConfigurationState = null;
+                _fontlessRenderingProfileFontAssignmentVersion = null;
             }
+            _renderingProfileOwnedFontConfigurationState =
+                _pdfOptionsCreatedByRenderingProfile
+                && (createdPdfOptions || profileOwnsCurrentFontConfiguration)
+                    ? target.FontConfigurationState
+                    : null;
+            _renderingProfileOwnedFontAssignmentVersion =
+                _renderingProfileOwnedFontConfigurationState.HasValue
+                    ? target.FontConfigurationAssignmentVersion
+                    : null;
             return this;
         }
 

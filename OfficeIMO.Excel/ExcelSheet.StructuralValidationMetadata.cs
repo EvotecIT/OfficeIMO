@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel {
             DataValidations? validations = WorksheetRoot.GetFirstChild<DataValidations>();
             if (validations != null) {
                 uint count = 0;
+                bool removedAny = false;
                 foreach (DataValidation validation in validations.Elements<DataValidation>().ToList()) {
                     if (validation.SequenceOfReferences?.InnerText is not string references
                         || !TryGetReferenceListAnchorRow(references, out int oldAnchorRow)) {
@@ -24,6 +25,7 @@ namespace OfficeIMO.Excel {
                         out List<string> remapped)) {
                         if (remapped.Count == 0) {
                             validation.Remove();
+                            removedAny = true;
                             continue;
                         }
 
@@ -58,10 +60,12 @@ namespace OfficeIMO.Excel {
                     count++;
                 }
 
-                if (count == 0U) {
-                    validations.Remove();
-                } else {
-                    validations.Count = count;
+                if (removedAny) {
+                    if (count == 0U) {
+                        validations.Remove();
+                    } else {
+                        validations.Count = count;
+                    }
                 }
             }
 
@@ -74,6 +78,7 @@ namespace OfficeIMO.Excel {
             int? lastDeletedRow) {
             foreach (X14.DataValidations validations in WorksheetRoot.Descendants<X14.DataValidations>().ToList()) {
                 uint count = 0;
+                bool removedAny = false;
                 foreach (X14.DataValidation validation in validations.Elements<X14.DataValidation>().ToList()) {
                     if (validation.ReferenceSequence?.Text is not string references
                         || !TryGetReferenceListAnchorRow(references, out int oldAnchorRow)) {
@@ -90,6 +95,7 @@ namespace OfficeIMO.Excel {
                         out List<string> remapped)) {
                         if (remapped.Count == 0) {
                             validation.Remove();
+                            removedAny = true;
                             continue;
                         }
 
@@ -124,9 +130,11 @@ namespace OfficeIMO.Excel {
                     count++;
                 }
 
-                validations.Count = count;
-                if (count == 0U) {
-                    validations.Remove();
+                if (removedAny) {
+                    validations.Count = count;
+                    if (count == 0U) {
+                        validations.Remove();
+                    }
                 }
             }
         }

@@ -3,16 +3,16 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfOptions {
     private double _pageWidth = 612;
     private double _pageHeight = 792;
-    private long _pageSizeAssignmentVersion;
+    private long _pageSizeConfigurationVersion;
+
+    internal long PageSizeConfigurationState => _pageSizeConfigurationVersion;
 
     /// <summary>Page width in points (1 pt = 1/72 in). Default is 612 (Letter 8.5in).</summary>
     public double PageWidth {
         get => _pageWidth;
         set {
             _pageWidth = value;
-            unchecked {
-                _pageSizeAssignmentVersion++;
-            }
+            _pageSizeConfigurationVersion++;
         }
     }
     /// <summary>Page height in points. Default is 792 (Letter 11in).</summary>
@@ -20,9 +20,7 @@ public sealed partial class PdfOptions {
         get => _pageHeight;
         set {
             _pageHeight = value;
-            unchecked {
-                _pageSizeAssignmentVersion++;
-            }
+            _pageSizeConfigurationVersion++;
         }
     }
     /// <summary>Page size in points.</summary>
@@ -33,12 +31,9 @@ public sealed partial class PdfOptions {
             Guard.Positive(value.Height, nameof(PageSize));
             _pageWidth = value.Width;
             _pageHeight = value.Height;
-            unchecked {
-                _pageSizeAssignmentVersion++;
-            }
+            _pageSizeConfigurationVersion++;
         }
     }
-    internal long PageSizeAssignmentVersion => _pageSizeAssignmentVersion;
     /// <summary>Page orientation inferred from the current page size.</summary>
     public PdfPageOrientation PageOrientation => PageWidth > PageHeight ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
     /// <summary>Left margin in points. Default 72 (1 inch).</summary>

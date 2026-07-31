@@ -154,7 +154,15 @@ namespace OfficeIMO.Excel {
             => !_materializingDeferredDataSetImport
                && _directDataSetSaveCandidate?.IsDeferred == true;
 
+        internal bool HasUnmaterializedDirectDataSetRows
+            => HasDeferredDirectDataSetImport
+               || (!_materializingDeferredDataSetImport
+                   && _materializedDirectDataSetFastSaveModel != null
+                   && !_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet);
+
         internal bool HasPendingDirectCellValues => _pendingDirectCellValueSheet != null;
+
+        internal ExcelSheet? PendingDirectCellValueSheet => _pendingDirectCellValueSheet;
 
         internal void RefreshDeferredDirectDataSetDateSystem(ExcelDateSystem dateSystem) {
             var candidate = _directDataSetSaveCandidate;

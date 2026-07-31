@@ -146,7 +146,15 @@ namespace OfficeIMO.Excel {
         /// <param name="excelDocument">Parent document.</param>
         /// <param name="spreadSheetDocument">Open XML spreadsheet document.</param>
         /// <param name="sheet">Underlying sheet element.</param>
-        public ExcelSheet(ExcelDocument excelDocument, SpreadsheetDocument spreadSheetDocument, Sheet sheet) {
+        public ExcelSheet(ExcelDocument excelDocument, SpreadsheetDocument spreadSheetDocument, Sheet sheet)
+            : this(excelDocument, spreadSheetDocument, sheet, registerSheetWrapper: true) {
+        }
+
+        internal ExcelSheet(
+            ExcelDocument excelDocument,
+            SpreadsheetDocument spreadSheetDocument,
+            Sheet sheet,
+            bool registerSheetWrapper) {
             _excelDocument = excelDocument;
             _sheet = sheet;
             _spreadSheetDocument = spreadSheetDocument;
@@ -156,7 +164,9 @@ namespace OfficeIMO.Excel {
             _hasWorksheetMutations = excelDocument.IsPackageDirty && _worksheetPart.IsRootElementLoaded;
             _requiresSavePreparation = _hasWorksheetMutations;
             _id = sheet.SheetId!;
-            excelDocument.RegisterSheetWrapper(this);
+            if (registerSheetWrapper) {
+                excelDocument.RegisterSheetWrapper(this);
+            }
             Interlocked.Increment(ref _instancesCreated);
         }
 
@@ -733,7 +743,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (_excelDocument.HasDeferredDirectDataSetImport || _excelDocument.HasPendingDirectCellValues) {
+            if (_excelDocument.HasUnmaterializedDirectDataSetRows
+                || _excelDocument.HasPendingDirectCellValues) {
                 _excelDocument.MaterializeDeferredDataSetImport();
             }
         }

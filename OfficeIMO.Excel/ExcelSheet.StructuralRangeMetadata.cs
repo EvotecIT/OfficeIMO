@@ -125,6 +125,7 @@ namespace OfficeIMO.Excel {
             var removedScenarioIndices = new HashSet<int>();
             for (int scenarioIndex = 0; scenarioIndex < originalScenarios.Count; scenarioIndex++) {
                 Scenario scenario = originalScenarios[scenarioIndex];
+                bool inputsChanged = false;
                 foreach (InputCells input in scenario.Elements<InputCells>().ToList()) {
                     if (input.CellReference?.Value is not string reference
                         || !TryRemapShiftedReferenceListRows(
@@ -136,6 +137,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
+                    inputsChanged = true;
                     if (remappedInputs.Count == 0) {
                         input.Remove();
                     } else {
@@ -147,7 +149,7 @@ namespace OfficeIMO.Excel {
                 if (inputCount == 0U) {
                     scenario.Remove();
                     removedScenarioIndices.Add(scenarioIndex);
-                } else {
+                } else if (inputsChanged) {
                     scenario.Count = inputCount;
                 }
             }
@@ -325,6 +327,7 @@ namespace OfficeIMO.Excel {
             int firstAffectedRow,
             int rowDelta,
             int? lastDeletedRow) {
+            var affectedContainers = new HashSet<OpenXmlElement>();
             foreach (OpenXmlElement tag in WorksheetRoot.Descendants()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))
                 .ToList()) {
@@ -341,6 +344,13 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (tag.Parent is OpenXmlElement container
+                    && string.Equals(
+                        container.LocalName,
+                        "cellSmartTags",
+                        StringComparison.OrdinalIgnoreCase)) {
+                    affectedContainers.Add(container);
+                }
                 if (remapped.Count == 0) {
                     tag.Remove();
                 } else {
@@ -352,9 +362,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (OpenXmlElement container in WorksheetRoot.Descendants()
-                .Where(element => string.Equals(element.LocalName, "cellSmartTags", StringComparison.OrdinalIgnoreCase))
-                .ToList()) {
+            foreach (OpenXmlElement container in affectedContainers) {
                 uint count = (uint)container.ChildElements.Count(child =>
                     string.Equals(child.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase));
                 if (count == 0U) {

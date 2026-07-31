@@ -376,7 +376,7 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void RangeScopedProfileFamilyIsReservedFromAdapterSystemFontDiscovery() {
+    public void RegisteringNamedFamilyReplacesReservedRangeScopedPlanner() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')
         });
@@ -396,7 +396,7 @@ public sealed class PdfRenderingProfileTests {
             "Arial",
             ManagedTextShapingTestAssets.CreateFont('B')));
 
-        Assert.True(options.HasRenderingProfileFamilyPlanner("Arial"));
+        Assert.False(options.HasRenderingProfileFamilyPlanner("Arial"));
         Assert.True(options.ShouldPreferSelectedCallerFamily("Arial"));
     }
 
@@ -1178,6 +1178,43 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RangeScopedFallbackFacesUseAuthoredFamilyForStyleSelection() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Bold,
+                onlyA)
+            .AddFallbackFamily("Fallback");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("range-styled-fallback", fonts));
+
+        PdfEmbeddedFontFallbackSet regularPlanner = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                bold: false,
+                italic: false));
+        PdfEmbeddedFontFallbackSet boldPlanner = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                bold: true,
+                italic: false));
+
+        Assert.Equal(
+            fonts.Faces[0].ResourceFamilyName,
+            Assert.Single(regularPlanner.PlanText("A").Segments).FontName);
+        Assert.Equal(
+            fonts.Faces[1].ResourceFamilyName,
+            Assert.Single(boldPlanner.PlanText("A").Segments).FontName);
+    }
+
+    [Fact]
     public void DeclaredFallbackPlannerPreservesFamilyPriorityBeforeStyle() {
         var fonts = new OfficeFontFaceCollection()
             .Add("First", ManagedTextShapingTestAssets.CreateFont('A'))
@@ -1362,6 +1399,31 @@ public sealed class PdfRenderingProfileTests {
                 options,
                 PdfStandardFont.Helvetica,
                 "profile preflight");
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
+    public void EncodingPreflightFallsBackWhenProfilePlannerIsIncomplete() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .AddFallbackFamily("Scoped");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("incomplete-preflight", fonts));
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
+            PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+                new[] { TextRun.Normal("B") },
+                options,
+                PdfStandardFont.Helvetica,
+                "profile fallback preflight");
 
         Assert.Empty(diagnostics);
     }
@@ -1770,6 +1832,37 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RegisteringAuthoredFamilyReleasesScopedProfileResources() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .AddFallbackFamily("Scoped");
+        string resourceFamilyName = fonts.Faces[0].ResourceFamilyName;
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped", fonts));
+        Assert.True(options.HasNamedFontFamily(resourceFamilyName));
+
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+            "Scoped",
+            ManagedTextShapingTestAssets.CreateFont('B')));
+
+        Assert.True(options.HasNamedFontFamily("Scoped"));
+        Assert.False(options.HasNamedFontFamily(resourceFamilyName));
+        Assert.False(options.TryGetRenderingProfileFamilyFallbacks(
+            "Scoped",
+            out _));
+        Assert.Null(options.GetEffectiveRenderingProfileDeclaredFallbacks(
+            bold: false,
+            italic: false));
+    }
+
+    [Fact]
     public void SharedRenderingProfileFlowsThroughFirstPartyOfficePdfAdapters() {
         var profile = new OfficeRenderingProfile(
             "managed-polish",
@@ -1797,6 +1890,18 @@ public sealed class PdfRenderingProfileTests {
         Assert.True(explicitlyConfiguredWord
             .CloneForConversion()
             .HasExplicitPdfFontConfiguration);
+
+        var explicitlyConfiguredExcel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions {
+            PdfOptions = new PdfOptions()
+        }.UseRenderingProfile(profile);
+        Assert.True(ReadExplicitPdfFontConfiguration(explicitlyConfiguredExcel));
+
+        var explicitlyConfiguredPowerPoint =
+            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions {
+                PdfOptions = new PdfOptions()
+            }.UseRenderingProfile(profile);
+        Assert.True(
+            explicitlyConfiguredPowerPoint.HasExplicitPdfFontConfiguration);
 
         word.PdfOptions!.DefaultFontSize = 17D;
         Assert.True(word.HasExplicitPdfFontConfiguration);
@@ -1839,6 +1944,26 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RepeatedExcelFontlessReplacementPreservesCallerAssignment() {
+        var fontless = new OfficeRenderingProfile("shaping-only");
+        var options = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+            .UseRenderingProfile(fontless);
+        options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
+
+        options.UseRenderingProfile(
+            fontless,
+            OfficeRenderingProfileApplyMode.Replace);
+
+        System.Reflection.PropertyInfo state = typeof(OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions)
+            .GetProperty(
+                "HasExplicitPdfFontConfiguration",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic)!;
+        Assert.True(Assert.IsType<bool>(state.GetValue(options)));
+        Assert.Equal(PdfStandardFont.Courier, options.PdfOptions.DefaultFont);
+    }
+
+    [Fact]
     public void WordShapingOnlyProfileTreatsEqualFontSizeAssignmentAsExplicit() {
         var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
@@ -1877,6 +2002,82 @@ public sealed class PdfRenderingProfileTests {
         UglyToad.PdfPig.Content.Page explicitPage = explicitPdf.GetPage(1);
         Assert.InRange((double)explicitPage.Width, 299.9D, 300.1D);
         Assert.InRange((double)explicitPage.Height, 399.9D, 400.1D);
+    }
+
+    [Fact]
+    public void FontlessReplacementRestoresOfficeAdapterFontDiscovery() {
+        static bool HasExplicitFontConfiguration(object options) =>
+            (bool)(options.GetType().GetProperty(
+                    "HasExplicitPdfFontConfiguration",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.GetValue(options)
+                ?? throw new InvalidOperationException(
+                    "The PDF adapter font-configuration state was not found."));
+
+        var configuredFonts = new OfficeFontFaceCollection()
+            .Add("Configured", ManagedTextShapingTestAssets.CreateFont('A'));
+        var configured = new OfficeRenderingProfile("configured", configuredFonts);
+        var fontless = new OfficeRenderingProfile("fontless");
+
+        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(configured)
+            .UseRenderingProfile(fontless);
+        var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+            .UseRenderingProfile(configured)
+            .UseRenderingProfile(fontless);
+        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(configured)
+            .UseRenderingProfile(fontless);
+
+        Assert.False(HasExplicitFontConfiguration(word));
+        Assert.False(HasExplicitFontConfiguration(excel));
+        Assert.False(HasExplicitFontConfiguration(powerPoint));
+    }
+
+    [Fact]
+    public void ClearingPdfFontsRestoresOfficeAdapterFontDiscovery() {
+        static bool HasExplicitFontConfiguration(object options) =>
+            (bool)(options.GetType().GetProperty(
+                    "HasExplicitPdfFontConfiguration",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.GetValue(options)
+                ?? throw new InvalidOperationException(
+                    "The PDF adapter font-configuration state was not found."));
+
+        var fontless = new OfficeRenderingProfile("fontless");
+        var adapters = new object[] {
+            new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseRenderingProfile(fontless),
+            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseRenderingProfile(fontless),
+            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions().UseRenderingProfile(fontless)
+        };
+
+        foreach (object adapter in adapters) {
+            PdfOptions pdfOptions = adapter switch {
+                OfficeIMO.Word.Pdf.WordPdfSaveOptions word => word.PdfOptions!,
+                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel => excel.PdfOptions!,
+                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                    powerPoint.PdfOptions!,
+                _ => throw new InvalidOperationException("Unknown PDF adapter.")
+            };
+
+            pdfOptions.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                "Temporary Named",
+                ManagedTextShapingTestAssets.CreateFont('A')));
+            Assert.True(HasExplicitFontConfiguration(adapter));
+            pdfOptions.ClearNamedFontFamilies();
+            Assert.False(HasExplicitFontConfiguration(adapter));
+
+            pdfOptions.RegisterFontFamily(
+                PdfStandardFont.Helvetica,
+                new PdfEmbeddedFontFamily(
+                    "Temporary Standard",
+                    ManagedTextShapingTestAssets.CreateFont('B')));
+            Assert.True(HasExplicitFontConfiguration(adapter));
+            pdfOptions.ClearEmbeddedStandardFonts();
+            Assert.False(HasExplicitFontConfiguration(adapter));
+        }
     }
 
     [Fact]
@@ -2008,6 +2209,30 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void FreshFontlessOverlayDoesNotBecomeExplicitFontConfiguration() {
+        var profile = new OfficeRenderingProfile("fontless-overlay");
+        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(profile, OfficeRenderingProfileApplyMode.Overlay);
+        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(profile, OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.False(word.HasExplicitPdfFontConfiguration);
+        Assert.False(powerPoint.HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
+    public void EqualDefaultFontSizeAssignmentAfterFontlessProfileIsExplicit() {
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
+
+        Assert.False(options.HasExplicitPdfFontConfiguration);
+        options.PdfOptions!.DefaultFontSize = options.PdfOptions.DefaultFontSize;
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
     public void WordFontProfileRemainsExplicitFontConfiguration() {
         var profile = new OfficeRenderingProfile(
             "word-font-profile",
@@ -2019,6 +2244,103 @@ public sealed class PdfRenderingProfileTests {
         Assert.True(options.HasExplicitPdfFontConfiguration);
         Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
     }
+
+    [Fact]
+    public void FontlessOverlayPreservesDirectCallerFontConfiguration() {
+        var fontless = new OfficeRenderingProfile("fontless-overlay");
+        var adapters = new object[] {
+            new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+                .UseRenderingProfile(fontless),
+            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+                .UseRenderingProfile(fontless),
+            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+                .UseRenderingProfile(fontless)
+        };
+
+        foreach (object adapter in adapters) {
+            PdfOptions pdfOptions = adapter switch {
+                OfficeIMO.Word.Pdf.WordPdfSaveOptions word =>
+                    word.PdfOptions!,
+                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel =>
+                    excel.PdfOptions!,
+                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                    powerPoint.PdfOptions!,
+                _ => throw new InvalidOperationException()
+            };
+            pdfOptions.DefaultFont = PdfStandardFont.Courier;
+            switch (adapter) {
+                case OfficeIMO.Word.Pdf.WordPdfSaveOptions word:
+                    word.UseRenderingProfile(
+                        fontless,
+                        OfficeRenderingProfileApplyMode.Overlay);
+                    break;
+                case OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel:
+                    excel.UseRenderingProfile(
+                        fontless,
+                        OfficeRenderingProfileApplyMode.Overlay);
+                    break;
+                case OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint:
+                    powerPoint.UseRenderingProfile(
+                        fontless,
+                        OfficeRenderingProfileApplyMode.Overlay);
+                    break;
+            }
+
+            Assert.True(ReadExplicitPdfFontConfiguration(adapter));
+            Assert.Equal(PdfStandardFont.Courier, pdfOptions.DefaultFont);
+        }
+    }
+
+    [Fact]
+    public void RejectedProfileDoesNotCreateAdapterPdfOptions() {
+        var fonts = new OfficeFontFaceCollection();
+        for (int index = 0; index <= PdfOptions.MaximumNamedFontFamilies; index++) {
+            fonts.Add(
+                "Family" + index.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                ManagedTextShapingTestAssets.CreateFont('A'));
+        }
+        var oversized = new OfficeRenderingProfile("oversized", fonts);
+        var adapters = new object[] {
+            new OfficeIMO.Word.Pdf.WordPdfSaveOptions(),
+            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions(),
+            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        };
+
+        foreach (object adapter in adapters) {
+            Assert.Throws<InvalidOperationException>(() => {
+                switch (adapter) {
+                    case OfficeIMO.Word.Pdf.WordPdfSaveOptions word:
+                        word.UseRenderingProfile(oversized);
+                        break;
+                    case OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel:
+                        excel.UseRenderingProfile(oversized);
+                        break;
+                    case OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint:
+                        powerPoint.UseRenderingProfile(oversized);
+                        break;
+                }
+            });
+            Assert.Null(adapter switch {
+                OfficeIMO.Word.Pdf.WordPdfSaveOptions word =>
+                    word.PdfOptions,
+                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel =>
+                    excel.PdfOptions,
+                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                    powerPoint.PdfOptions,
+                _ => throw new InvalidOperationException()
+            });
+        }
+    }
+
+    private static bool ReadExplicitPdfFontConfiguration(object options) =>
+        (bool)(options.GetType().GetProperty(
+                "HasExplicitPdfFontConfiguration",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic)
+            ?.GetValue(options)
+            ?? throw new InvalidOperationException(
+                "The PDF adapter font-configuration state was not found."));
 
     [Fact]
     public void WordFontProfileRemainsExplicitAfterFontlessOverlay() {
@@ -2074,7 +2396,7 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void WordCallerFontMutationIsClearedByShapingOnlyProfileReplacement() {
+    public void WordCallerFontMutationSurvivesShapingOnlyProfileReplacement() {
         var fontProfile = new OfficeRenderingProfile(
             "word-font-profile",
             new OfficeFontFaceCollection()
@@ -2087,13 +2409,29 @@ public sealed class PdfRenderingProfileTests {
             new OfficeRenderingProfile("shaping-only"),
             OfficeRenderingProfileApplyMode.Replace);
 
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-        Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
         Assert.Empty(options.PdfOptions!.NamedFontFamilies);
     }
 
     [Fact]
-    public void PowerPointCallerFontMutationIsClearedByShapingOnlyProfileReplacement() {
+    public void RepeatedWordFontlessReplacementPreservesCallerAssignment() {
+        var fontless = new OfficeRenderingProfile("shaping-only");
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(fontless);
+        options.PdfOptions!.DefaultFontSize = 13;
+
+        options.UseRenderingProfile(
+            fontless,
+            OfficeRenderingProfileApplyMode.Replace);
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
+    }
+
+    [Fact]
+    public void PowerPointCallerFontMutationSurvivesShapingOnlyProfileReplacement() {
         var fontProfile = new OfficeRenderingProfile(
             "powerpoint-font-profile",
             new OfficeFontFaceCollection()
@@ -2106,9 +2444,95 @@ public sealed class PdfRenderingProfileTests {
             new OfficeRenderingProfile("shaping-only"),
             OfficeRenderingProfileApplyMode.Replace);
 
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-        Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
         Assert.Empty(options.PdfOptions!.NamedFontFamilies);
+        Assert.Equal(PdfStandardFont.Courier, options.PdfOptions.DefaultFont);
+    }
+
+    [Fact]
+    public void RepeatedPowerPointFontlessReplacementPreservesCallerAssignment() {
+        var fontless = new OfficeRenderingProfile("shaping-only");
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(fontless);
+        options.PdfOptions!.DefaultFontSize = 13;
+
+        options.UseRenderingProfile(
+            fontless,
+            OfficeRenderingProfileApplyMode.Replace);
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
+    }
+
+    [Fact]
+    public void CallerFallbackCanReplaceFullProfileOwnedScopedFamily() {
+        byte[] profileData = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] callerData = ManagedTextShapingTestAssets.CreateFont('B');
+        var fonts = new OfficeFontFaceCollection();
+        for (int index = 0; index < PdfOptions.MaximumNamedFontFamilies; index++) {
+            fonts.Add(
+                "Scoped",
+                profileData,
+                OfficeFontStyle.Regular,
+                new OfficeFontUnicodeRangeSet(new[] {
+                    new OfficeFontUnicodeRange(index + 1, index + 1)
+                }));
+        }
+        fonts.AddFallbackFamily("Scoped");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile(
+                "full-scoped-profile",
+                fonts));
+
+        options.RegisterEmbeddedFontFallbacks(
+            new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate("Scoped", callerData)
+            }));
+
+        PdfEmbeddedFontFallbackCandidate active = Assert.Single(
+            options.EmbeddedFontFallbacks!.Candidates);
+        Assert.Equal("Scoped", active.FontName);
+        PdfEmbeddedFontFamily family = Assert.Single(options.NamedFontFamilies).Value;
+        Assert.Equal("Scoped", family.FamilyName);
+        Assert.Equal(callerData, family.Regular);
+    }
+
+    [Fact]
+    public void WordFontProfilePreservesDocumentDefaultFontSize() {
+        using var stream = new MemoryStream();
+        using OfficeIMO.Word.WordDocument document =
+            OfficeIMO.Word.WordDocument.Create(stream);
+        document.Settings.FontSize = 18;
+        document.AddParagraph("A");
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile(
+                "word-font-profile",
+                new OfficeFontFaceCollection()
+                    .Add(
+                        "Profile",
+                        ManagedTextShapingTestAssets.CreateFont('A'))));
+
+        byte[] pdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(
+            document,
+            options);
+
+        Assert.False(options.HasExplicitPdfDefaultFontSizeConfiguration);
+        Assert.False(
+            options.CloneForConversion()
+                .HasExplicitPdfDefaultFontSizeConfiguration);
+        using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        double pointSize = Assert.Single(
+            parsed.GetPage(1).Letters,
+            letter => letter.Value == "A").PointSize;
+        Assert.InRange(pointSize, 17.9D, 18.1D);
+
+        options.PdfOptions!.DefaultFontSize = 13D;
+        Assert.True(options.HasExplicitPdfDefaultFontSizeConfiguration);
+        Assert.True(
+            options.CloneForConversion()
+                .HasExplicitPdfDefaultFontSizeConfiguration);
     }
 
     private sealed class DecliningTextShapingProvider : IOfficeTextShapingProvider {

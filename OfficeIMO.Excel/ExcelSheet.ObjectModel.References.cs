@@ -356,96 +356,32 @@ namespace OfficeIMO.Excel {
         /// quotes and double quotes that occur inside single-quoted sheet qualifiers.
         /// </summary>
         internal static string RewriteFormulaReferencesOutsideStrings(string formula, Func<string, string> rewriteSegment) {
-            var builder = new StringBuilder(formula.Length);
-            int index = 0;
-            while (index < formula.Length) {
-                int segmentStart = index;
-                bool insideSingleQuotedQualifier = false;
-                while (index < formula.Length) {
-                    char character = formula[index];
-                    if (character == '\'') {
-                        if (insideSingleQuotedQualifier
-                            && index + 1 < formula.Length
-                            && formula[index + 1] == '\'') {
-                            index += 2;
-                            continue;
-                        }
-
-                        insideSingleQuotedQualifier = !insideSingleQuotedQualifier;
-                        index++;
-                        continue;
-                    }
-
-                    if (character == '"' && !insideSingleQuotedQualifier) {
-                        break;
-                    }
-
-                    index++;
-                }
-
-                if (index >= formula.Length) {
-                    builder.Append(rewriteSegment(formula.Substring(segmentStart)));
-                    break;
-                }
-
-                if (index > segmentStart) {
-                    builder.Append(rewriteSegment(formula.Substring(segmentStart, index - segmentStart)));
-                }
-
-                int literalStart = index;
-                index++;
-                while (index < formula.Length) {
-                    if (formula[index] == '"') {
-                        if (index + 1 < formula.Length && formula[index + 1] == '"') {
-                            index += 2;
-                            continue;
-                        }
-
-                        index++;
-                        break;
-                    }
-
-                    index++;
-                }
-
-                builder.Append(formula, literalStart, index - literalStart);
-            }
-
-            return builder.ToString();
+            return ExcelFormulaReferenceRewriter.RewriteOutsideStrings(formula, rewriteSegment);
         }
 
         private string ReplaceFormulaReferences(string segment, MatchEvaluator evaluator) {
-            return Regex.Replace(
+            return ExcelFormulaReferenceRewriter.CellReferenceRegex.Replace(
                 segment,
-                @"(?<![\p{L}\p{N}_\.\]:!\\])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<colAbs>\$?)(?<col>[A-Za-z]{1,3})(?<rowAbs>\$?)(?<row>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
                 match => IsInsideFormulaStructuredReference(segment, match.Index)
                     || IsFormulaFunctionReferenceToken(segment, match)
                     ? match.Value
-                    : evaluator(match),
-                RegexOptions.CultureInvariant,
-                TimeSpan.FromMilliseconds(200));
+                    : evaluator(match));
         }
 
         private string ReplaceFormulaRanges(string segment, MatchEvaluator evaluator) {
-            return Regex.Replace(
+            return ExcelFormulaReferenceRewriter.RangeReferenceRegex.Replace(
                 segment,
-                @"(?<![\p{L}\p{N}_\.\]:!\\])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<startColAbs>\$?)(?<startCol>[A-Za-z]{1,3})(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<endColAbs>\$?)(?<endCol>[A-Za-z]{1,3})(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
                 match => IsInsideFormulaStructuredReference(segment, match.Index)
                     ? match.Value
-                    : evaluator(match),
-                RegexOptions.CultureInvariant,
-                TimeSpan.FromMilliseconds(200));
+                    : evaluator(match));
         }
 
         private string ReplaceFormulaRowRanges(string segment, MatchEvaluator evaluator) {
-            return Regex.Replace(
+            return ExcelFormulaReferenceRewriter.RowRangeReferenceRegex.Replace(
                 segment,
-                @"(?<![\p{L}\p{N}_\.\]:!\\])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
                 match => IsInsideFormulaStructuredReference(segment, match.Index)
                     ? match.Value
-                    : evaluator(match),
-                RegexOptions.CultureInvariant,
-                TimeSpan.FromMilliseconds(200));
+                    : evaluator(match));
         }
 
         private bool IsFormulaFunctionReferenceToken(string formula, Match match) {

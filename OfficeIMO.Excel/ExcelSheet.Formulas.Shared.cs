@@ -1,14 +1,10 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static readonly Regex SharedFormulaReferenceRegex = new Regex(
-            @"(?<![A-Za-z0-9_\.\\])(?<qualifier>(?:'(?:[^']|'')+'|\[[^\]]+\][A-Za-z0-9_\. ]+|[A-Za-z_][A-Za-z0-9_\. ]*:[A-Za-z_][A-Za-z0-9_\. ]*|[A-Za-z_][A-Za-z0-9_\. ]*)!)?(?:(?<cellStartColumnAbsolute>\$?)(?<cellStartColumn>[A-Za-z]{1,3})(?<cellStartRowAbsolute>\$?)(?<cellStartRow>\d{1,7})(?::(?<cellEndColumnAbsolute>\$?)(?<cellEndColumn>[A-Za-z]{1,3})(?<cellEndRowAbsolute>\$?)(?<cellEndRow>\d{1,7}))?(?<cellSpill>#)?|(?<wholeStartColumnAbsolute>\$?)(?<wholeStartColumn>[A-Za-z]{1,3}):(?<wholeEndColumnAbsolute>\$?)(?<wholeEndColumn>[A-Za-z]{1,3})|(?<wholeStartRowAbsolute>\$?)(?<wholeStartRow>\d{1,7}):(?<wholeEndRowAbsolute>\$?)(?<wholeEndRow>\d{1,7}))(?![A-Za-z0-9_\.]|\()",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled,
-            FormulaRegexTimeout);
-
         private sealed class SharedFormulaDefinition {
             internal SharedFormulaDefinition(int row, int column, string formula, string? reference) {
                 Row = row;
@@ -24,10 +20,12 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyDictionary<uint, SharedFormulaDefinition> BuildSharedFormulaDefinitions(
-            IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null) {
+            IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null,
+            IEnumerable<Cell>? cells = null) {
             effectiveCoordinates ??= BuildEffectiveCellCoordinates();
+            cells ??= WorksheetRoot.Descendants<Cell>();
             var definitions = new Dictionary<uint, SharedFormulaDefinition>();
-            foreach (Cell cell in WorksheetRoot.Descendants<Cell>()) {
+            foreach (Cell cell in cells) {
                 CellFormula? cellFormula = cell.CellFormula;
                 if (cellFormula?.FormulaType?.Value != CellFormulaValues.Shared
                     || cellFormula.SharedIndex?.Value is not uint sharedIndex
@@ -158,7 +156,11 @@ namespace OfficeIMO.Excel {
 
                 ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     ? this
-                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                    : new ExcelSheet(
+                        _excelDocument,
+                        _spreadSheetDocument,
+                        sheetElement,
+                        registerSheetWrapper: false);
                 sheet.MaterializeSharedFormulasForStructuralEdit();
             }
         }
@@ -172,7 +174,11 @@ namespace OfficeIMO.Excel {
 
                 ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     ? this
-                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                    : new ExcelSheet(
+                        _excelDocument,
+                        _spreadSheetDocument,
+                        sheetElement,
+                        registerSheetWrapper: false);
                 sheet.ResolveSharedFormulaTextsForStructuralValidation();
             }
         }
@@ -214,14 +220,22 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private IReadOnlyDictionary<Cell, (int Row, int Column)> BuildEffectiveCellCoordinates() {
+        private IReadOnlyDictionary<Cell, (int Row, int Column)> BuildEffectiveCellCoordinates(
+            IEnumerable<Row>? rows = null,
+            IEnumerable<Cell>? cells = null) {
             var coordinates = new Dictionary<Cell, (int Row, int Column)>();
             uint previousRow = 0U;
-            foreach (Row row in WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>()
-                ?? Enumerable.Empty<Row>()) {
+            rows ??= WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>()
+                ?? Enumerable.Empty<Row>();
+            ILookup<OpenXmlElement?, Cell>? cellsByRow =
+                cells?.ToLookup(cell => cell.Parent);
+            foreach (Row row in rows) {
                 uint effectiveRow = GetEffectiveRowIndex(row, previousRow);
                 int previousColumn = 0;
-                foreach (Cell cell in row.Elements<Cell>()) {
+                IEnumerable<Cell> rowCells = cellsByRow == null
+                    ? row.Elements<Cell>()
+                    : cellsByRow[row];
+                foreach (Cell cell in rowCells) {
                     int effectiveColumn = previousColumn + 1;
                     if (A1.TryParseCellReferenceFast(
                         cell.CellReference?.Value,
@@ -267,7 +281,7 @@ namespace OfficeIMO.Excel {
             }
 
             return RewriteFormulaReferencesOutsideStrings(formula, segment =>
-                SharedFormulaReferenceRegex.Replace(segment, match =>
+                ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Replace(segment, match =>
                     IsInsideFormulaStructuredReference(segment, match.Index)
                         || IsSharedFormulaFunctionToken(segment, match)
                         ? match.Value
@@ -330,7 +344,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                Match reference = SharedFormulaReferenceRegex.Match(formula, cursor);
+                Match reference = ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Match(formula, cursor);
                 if (!reference.Success || reference.Index != cursor) {
                     return false;
                 }
@@ -467,7 +481,7 @@ namespace OfficeIMO.Excel {
 
         private static string MaskFormulaNonLocalReferenceSegments(string formula) {
             char[] masked = formula.ToCharArray();
-            foreach (Match match in SharedFormulaReferenceRegex.Matches(formula)) {
+            foreach (Match match in ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Matches(formula)) {
                 string qualifier = match.Groups["qualifier"].Value;
                 if (qualifier.IndexOf('[') < 0 && qualifier.IndexOf(']') < 0 && qualifier.IndexOf(':') < 0) {
                     continue;

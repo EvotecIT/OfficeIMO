@@ -22,8 +22,7 @@ public static partial class PowerPointPdfConverterExtensions {
             pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
         }
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);
-        bool preserveConfiguredFontSlots =
-            options.HasExplicitPdfFontConfiguration;
+        bool preserveConfiguredFontSlots = options.HasExplicitPdfFontConfiguration;
         if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
             TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.ResourcePolicy.AllowSystemFontEmbedding)) {
             preserveConfiguredFontSlots = true;
