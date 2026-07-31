@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         private static void EnsureMutationPlanPartXmlFitsWithinBudget(
             OpenXmlPart part,
             MutationPlanScanBudget budget) {
-            if (!part.IsRootElementLoaded && IsXmlContentType(part.ContentType)) {
+            if (!part.IsRootElementLoaded && IsXmlPart(part)) {
                 using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
                 if (!stream.CanSeek || stream.Length > 0L) {
                     using var boundedStream = new MutationPlanBudgetedReadStream(
@@ -94,13 +94,6 @@ namespace OfficeIMO.Excel {
                 return read;
             }
 
-            public override int Read(Span<byte> buffer) {
-                int read = _inner.Read(
-                    buffer[.._budget.GetBudgetedReadSize(buffer.Length)]);
-                _budget.ConsumeXmlBytes(read);
-                return read;
-            }
-
             public override int ReadByte() {
                 int value = _inner.ReadByte();
                 if (value >= 0) {
@@ -118,6 +111,9 @@ namespace OfficeIMO.Excel {
             public override void Write(byte[] buffer, int offset, int count) =>
                 throw new NotSupportedException();
         }
+
+        private static bool IsXmlPart(OpenXmlPart part) =>
+            part is VmlDrawingPart || IsXmlContentType(part.ContentType);
 
         private static bool IsXmlContentType(string contentType) =>
             contentType.EndsWith("+xml", StringComparison.OrdinalIgnoreCase)
