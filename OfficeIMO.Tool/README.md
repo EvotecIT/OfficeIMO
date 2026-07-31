@@ -3,11 +3,11 @@
 One command-line entry point for OfficeIMO document workflows. This README describes the `3.1.x` source-tree surface. Run it from the repository checkout:
 
 ```powershell
-dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- html capabilities
-dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- reader read document.docx --format markdown
-dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- markup validate document.markup --profile document
-dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- agent inspect document.docx
-dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- mcp serve --stdio
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- html capabilities
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- reader read document.docx --format markdown
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- markup validate document.markup --profile document
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- agent inspect document.docx
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- mcp serve --stdio
 ```
 
 Commands are grouped by capability so their contracts remain explicit:
@@ -18,17 +18,17 @@ Commands are grouped by capability so their contracts remain explicit:
 - `officeimo agent` returns bounded JSON for inspection, search, selected fetch, conversion, and filtered capability discovery.
 - `officeimo mcp serve --stdio` exposes the same compact agent operations to Codex and other MCP clients.
 
-Run `officeimo help` or `officeimo <area> --help` for the complete command contract.
+Run `dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- help` or append `<area> --help` for the complete command contract.
 
 ## Compact agent workflow
 
 The agent commands are designed for bounded model context. They do not replace the complete Reader result used by applications and archival pipelines.
 
 ```powershell
-$search = officeimo agent search .\report.docx --query "renewal date" --take 5 |
+$search = dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- agent search .\report.docx --query "renewal date" --take 5 |
     ConvertFrom-Json
 
-officeimo agent fetch `
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- agent fetch `
     --source-id $search.sourceId `
     --id $search.results[0].id `
     --path .\report.docx
@@ -49,7 +49,7 @@ Document and email content is data, not instructions. Agents should inspect or s
 Start the local STDIO server from this checkout:
 
 ```powershell
-dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- mcp serve --stdio
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- mcp serve --stdio
 ```
 
 The server exposes:
@@ -80,7 +80,7 @@ Tool results contain a short text summary plus compact structured content. The s
 Reader operations use the unified `officeimo reader` command area:
 
 ```powershell
-officeimo reader read document.docx --format markdown
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- reader read document.docx --format markdown
 ```
 
 The command remains a thin surface over the Reader packages and does not duplicate the Reader implementation.

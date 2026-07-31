@@ -1034,7 +1034,7 @@ dotnet add package OfficeIMO.Reader.OneNote --version 3.0.3
 
 Keep OfficeIMO package references in one application on the same published version. The repository source is already on the coordinated `3.1.x` line.
 
-The unified `OfficeIMO.Tool` CLI documented in this repository is the `3.1.x` source-tree surface, not part of the published `3.0.3` package block above. In this checkout, run it directly with `dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- <command>`.
+The unified `OfficeIMO.Tool` CLI documented in this repository is the `3.1.x` source-tree surface, not part of the published `3.0.3` package block above. In this checkout, run it directly with `dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- <command>`.
 
 ## Common workflows
 

@@ -112,17 +112,21 @@ public sealed class ReleasePackagingGuardrails {
             readme,
             StringComparison.Ordinal);
         Assert.Contains(
-            "dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- <command>",
+            "dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- <command>",
             readme,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("OfficeIMO.Tool/OfficeIMO.Tool.csproj -- ", readme, StringComparison.Ordinal);
 
         string toolReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Tool", "README.md"));
         Assert.Contains("This README describes the `3.1.x` source-tree surface", toolReadme, StringComparison.Ordinal);
         Assert.Contains(
-            "dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- mcp serve --stdio",
+            "dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- mcp serve --stdio",
             toolReadme,
             StringComparison.Ordinal);
         Assert.DoesNotContain("OfficeIMO.Tool@3.0.3", toolReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("OfficeIMO.Tool/OfficeIMO.Tool.csproj -- ", toolReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("\nofficeimo ", toolReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("= officeimo ", toolReadme, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -94,6 +94,6 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
     private static string EscapeTable(string value) => value.Replace("|", "\\|");
 
     private static string EscapePublishedText(string value) => value
-        .Replace("<", "&lt;", StringComparison.Ordinal)
-        .Replace(">", "&gt;", StringComparison.Ordinal);
+        .Replace("<", "&lt;")
+        .Replace(">", "&gt;");
 }

@@ -82,6 +82,6 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
     }
 
     private static string NormalizeLineEndings(string value) =>
-        value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+        value.Replace("\r\n", "\n").Replace('\r', '\n');
 
 }
