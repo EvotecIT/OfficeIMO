@@ -370,6 +370,10 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("PowerPointCompositionOptions.FromBrief(brief)", migration, StringComparison.Ordinal);
         Assert.Contains("`InspectPreflight()`", migration, StringComparison.Ordinal);
         Assert.Contains("`OfficeIMO.Drawing.OfficeChartData`", migration, StringComparison.Ordinal);
+        Assert.Contains("`WithDpi(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ForHighResolution(...)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeImageExportFileConflictPolicy.FailIfExists`", migration, StringComparison.Ordinal);
+        Assert.Contains("`Replace` or `CreateUnique`", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", migration, StringComparison.Ordinal);
 
@@ -389,6 +393,15 @@ public sealed class ReleasePackagingGuardrails {
             .Distinct(StringComparer.Ordinal)
             .Count();
         Assert.Equal(151, documentedFormulaFunctions);
+
+        string releasesPage = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Website",
+            "content",
+            "pages",
+            "releases.md"));
+        Assert.Contains("  - /changelog/", releasesPage, StringComparison.Ordinal);
+        Assert.Contains("  - /docs/workflows/release-previews/", releasesPage, StringComparison.Ordinal);
 
         string documentationIndex = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "README.md"));
         Assert.Contains("# OfficeIMO documentation", documentationIndex, StringComparison.Ordinal);

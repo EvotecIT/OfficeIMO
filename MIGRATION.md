@@ -214,7 +214,14 @@ Reusable options contain configuration only. Read diagnostics from the operation
 | `ToRtfMemoryStream()` | `ToRtfStream()` |
 | `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |
 
-Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`. Use `AtDpi(...)` for physical output density, `ForPrint(...)` for the print profile, and an explicit file-conflict policy when replacement or unique naming is required.
+Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`. Replace the removed scale presets as follows:
+
+| Removed member | Replacement |
+| --- | --- |
+| `WithDpi(...)` | `AtDpi(...)` for physical output density |
+| `ForHighResolution(...)` | `ForPrint(...)` for the print profile |
+
+Image file saves now default to `OfficeImageExportFileConflictPolicy.FailIfExists`. A repeated write to the same path therefore throws unless the caller explicitly selects `Replace` or `CreateUnique` with `OnFileConflict(...)`.
 
 PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches. Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
 

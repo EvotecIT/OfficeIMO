@@ -4,6 +4,7 @@ description: "Review OfficeIMO release history, download coordinated artifacts, 
 layout: page
 aliases:
   - /changelog/
+  - /docs/workflows/release-previews/
 ---
 
 OfficeIMO release notes are generated from GitHub Releases so this page stays in sync without maintaining separate release history.
