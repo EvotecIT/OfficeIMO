@@ -172,6 +172,8 @@ The PowerPoint names broaden again in 3.1 because the default route changes from
 | `LegacyXlsLoadResult.ImportReport` or `CreateAdvancedImportReport()` | `LegacyXlsLoadResult.CreateImportReport()` |
 | `OfficeIMO.Epub.Html` | `OfficeIMO.Epub.Image` |
 
+Detailed `LegacyXlsImportReport` record-family counters such as `CommentsByObjectType` and `DataValidationsByType` are internal diagnostics rather than public application contracts. Use the stable summary counts, `HasImportErrors`, `HasUnsupportedFeatures`, and the public `Diagnostics`, `UnsupportedFeatures`, `PreservedFeatures`, `UnsupportedSheets`, and `CompoundFeatures` collections. Exhaustive parser telemetry is not exposed as public API.
+
 The `OfficeIMO.Drawing` target-framework compatibility type `System.Runtime.CompilerServices.IsExternalInit` is internal in 3.0. Remove any application reference to that shim; normal record and `init` usage remains supported.
 
 ## OfficeIMO 1.x to 2.0
@@ -183,14 +185,15 @@ OfficeIMO 2.0 established the shared lifecycle and result vocabulary used by the
 | Intent | Current API |
 | --- | --- |
 | Save to an associated destination | `Save()` / `SaveAsync()` |
-| Save and associate a path or stream | `Save(pathOrStream)` / `SaveAsync(pathOrStream)` |
+| Save and associate a path | `Save(path)` / `SaveAsync(path)` |
+| Write once to a caller-owned stream | `Save(stream)` / `SaveAsync(stream)` |
 | Write a copy without changing the destination | `SaveCopy(...)` / `SaveCopyAsync(...)` |
 | Produce bytes | `ToBytes()` |
 | Produce a new stream positioned at zero | `ToStream()` |
 | Return another format | `To{Format}()` / `To{Format}Result()` |
 | Write another format | `SaveAs{Format}()` / `SaveAs{Format}Async()` |
 
-Caller-owned streams remain open. Seekable inputs are read from the beginning and restored to their original position; non-seekable inputs are read forward from their current position. A retained mutable destination must be writable and seekable.
+Saving to a caller-owned stream is a one-time write and does not replace the document's associated path or source stream. A later parameterless `Save()` therefore uses the existing association, or throws when the document has none. Caller-owned streams remain open. Seekable inputs are read from the beginning and restored to their original position; non-seekable inputs are read forward from their current position. A retained mutable destination must be writable and seekable.
 
 `Async` now identifies real asynchronous I/O or resource resolution. Use synchronous methods for pure parsing, model projection, byte generation, and in-memory formatting. Removed fake-async wrappers should not be recreated in application compatibility layers.
 

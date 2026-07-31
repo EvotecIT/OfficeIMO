@@ -404,6 +404,14 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`PdfPowerPointConversionReport.TableEntries`", migration, StringComparison.Ordinal);
         Assert.Contains("`RtfDocument.ReadAsync(string)`", migration, StringComparison.Ordinal);
         Assert.Contains("`RtfDocument.LoadAsync(byte[])`", migration, StringComparison.Ordinal);
+        Assert.Contains("Save and associate a path", migration, StringComparison.Ordinal);
+        Assert.Contains("Write once to a caller-owned stream", migration, StringComparison.Ordinal);
+        Assert.Contains("does not replace the document's associated path or source stream", migration, StringComparison.Ordinal);
+        Assert.Contains("`CommentsByObjectType`", migration, StringComparison.Ordinal);
+        Assert.Contains("`DataValidationsByType`", migration, StringComparison.Ordinal);
+        Assert.Contains("`HasImportErrors`", migration, StringComparison.Ordinal);
+        Assert.Contains("`HasUnsupportedFeatures`", migration, StringComparison.Ordinal);
+        Assert.Contains("public `Diagnostics`, `UnsupportedFeatures`, `PreservedFeatures`, `UnsupportedSheets`, and `CompoundFeatures` collections", migration, StringComparison.Ordinal);
         string[] retainedLegacyMigrationNames = {
             "`SheetComposer.DefinitionList(...)`",
             "`PowerPointUnits.Cm/Mm/Inches/Points(...)`",
@@ -430,6 +438,19 @@ public sealed class ReleasePackagingGuardrails {
         }
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", migration, StringComparison.Ordinal);
+
+        string rootReadme = File.ReadAllText(Path.Combine(repositoryRoot, "README.md"));
+        Assert.Contains("Save and associate a path", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("Write once to a caller-owned stream", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("does not replace the document's associated path or source stream", rootReadme, StringComparison.Ordinal);
+        Assert.DoesNotContain("Save and associate a path or stream", rootReadme, StringComparison.Ordinal);
+
+        string visioReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Visio", "README.md"));
+        Assert.Contains("### Loaded-diagram compatibility boundary", visioReadme, StringComparison.Ordinal);
+        Assert.Contains("advanced nested and container behavior", visioReadme, StringComparison.Ordinal);
+        Assert.Contains("richer threaded comment and author workflows", visioReadme, StringComparison.Ordinal);
+        Assert.Contains("broader whole-diagram relayout and polish", visioReadme, StringComparison.Ordinal);
+        Assert.Contains("rather than a complete typed object model", visioReadme, StringComparison.Ordinal);
 
         string excelCompatibility = File.ReadAllText(Path.Combine(
             repositoryRoot,

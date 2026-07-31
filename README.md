@@ -1170,14 +1170,15 @@ OfficeIMO uses one vocabulary across mutable document packages:
 | Intent | API |
 | --- | --- |
 | Save to the associated destination | `Save()` / `SaveAsync()` |
-| Save and associate a path or stream | `Save(pathOrStream)` / `SaveAsync(pathOrStream)` |
+| Save and associate a path | `Save(path)` / `SaveAsync(path)` |
+| Write once to a caller-owned stream | `Save(stream)` / `SaveAsync(stream)` |
 | Write a copy without changing the associated destination | `SaveCopy(path)` / `SaveCopyAsync(path)` |
 | Produce bytes without changing document state | `ToBytes()` |
 | Produce a new stream positioned at the beginning | `ToStream()` |
 | Convert in memory | `To{Format}()` or `To{Format}Result()` |
 | Write another format | `SaveAs{Format}()` / `SaveAs{Format}Async()` |
 
-Caller-owned streams stay open. Seekable input streams are restored to their original position. Pure in-memory conversions remain synchronous; async APIs are used for real I/O and remote-resource resolution.
+Saving to a caller-owned stream does not replace the document's associated path or source stream. A later parameterless `Save()` uses the existing association, or throws when the document has none. Caller-owned streams stay open. Seekable input streams are restored to their original position. Pure in-memory conversions remain synchronous; async APIs are used for real I/O and remote-resource resolution.
 
 ## Target frameworks and platform support
 
