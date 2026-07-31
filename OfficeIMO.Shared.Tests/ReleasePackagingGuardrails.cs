@@ -380,6 +380,30 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`ResourcePolicy.AllowLocalFileAccess`", migration, StringComparison.Ordinal);
         Assert.Contains("Markdown `IncludeDataUriImages`", migration, StringComparison.Ordinal);
         Assert.Contains("`ResourcePolicy.AllowDataUris`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeDocumentReadResultSchema.Version`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeDocumentReadResultSchema.CurrentVersion`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ApplyWordLikeTheme()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ApplyDefaultTheme()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`UseFrontMatterVisualTheme`", migration, StringComparison.Ordinal);
+        Assert.Contains("`UseFrontMatterTheme`", migration, StringComparison.Ordinal);
+        Assert.Contains("`SaveResult` / `SaveResultAsync`", migration, StringComparison.Ordinal);
+        Assert.Contains("`Save` / `SaveAsync` returning `OdfSaveResult`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ToBytesResult`", migration, StringComparison.Ordinal);
+        Assert.Contains("`Serialize` returning `OdfSaveResult`", migration, StringComparison.Ordinal);
+        Assert.Contains("Word `IncludePageNumbers`", migration, StringComparison.Ordinal);
+        Assert.Contains("Excel `IncludeSheetHeadings`", migration, StringComparison.Ordinal);
+        Assert.Contains("`SourceConversionReports`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OdfConversionReport.Mappings`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ODF_*`", migration, StringComparison.Ordinal);
+        Assert.Contains("`CsvDataReaderOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`MaxXlsbCells`", migration, StringComparison.Ordinal);
+        Assert.Contains("`MaxDataReaderBufferedCells`", migration, StringComparison.Ordinal);
+        Assert.Contains("`CsvFieldSpanAction`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ICsvProjectedFieldSpanVisitor`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfWordImportOptions.CreateTablesOnly()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointConversionReport.TableEntries`", migration, StringComparison.Ordinal);
+        Assert.Contains("`RtfDocument.ReadAsync(string)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`RtfDocument.LoadAsync(byte[])`", migration, StringComparison.Ordinal);
         string[] retainedLegacyMigrationNames = {
             "`SheetComposer.DefinitionList(...)`",
             "`PowerPointUnits.Cm/Mm/Inches/Points(...)`",
@@ -393,6 +417,8 @@ public sealed class ReleasePackagingGuardrails {
             "`OutlookContact.Email1Address`",
             "phone compatibility properties",
             "`TrackComments`",
+            "`ImageShapeStyleHelper`",
+            "`HorizontalAlignmentHelper`",
             "`AsciiDocPdfSaveOptions.PdfOptions`",
             "`LatexPdfSaveOptions.PdfOptions`",
             "`OneNotePdfSaveOptions.PdfOptions`",
@@ -413,8 +439,10 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`FORECAST.LINEAR`", excelCompatibility, StringComparison.Ordinal);
         Assert.Contains("`WORKDAY.INTL`", excelCompatibility, StringComparison.Ordinal);
         Assert.Contains("Custom application functions", excelCompatibility, StringComparison.Ordinal);
+        int formulaEvaluatorIndex = excelCompatibility.IndexOf("## Formula evaluator", StringComparison.Ordinal);
+        Assert.True(formulaEvaluatorIndex >= 0);
         int documentedFormulaFunctions = Regex.Matches(
-                excelCompatibility[excelCompatibility.IndexOf("## Formula evaluator", StringComparison.Ordinal)..],
+                excelCompatibility.Substring(formulaEvaluatorIndex),
                 @"`([A-Z][A-Z0-9]*(?:\.[A-Z]+)?)`")
             .Cast<Match>()
             .Select(static match => match.Groups[1].Value)
@@ -430,6 +458,7 @@ public sealed class ReleasePackagingGuardrails {
             "releases.md"));
         Assert.Contains("  - /changelog/", releasesPage, StringComparison.Ordinal);
         Assert.Contains("  - /docs/workflows/release-previews/", releasesPage, StringComparison.Ordinal);
+        Assert.Contains("title: \"Releases and Downloads\"", releasesPage, StringComparison.Ordinal);
 
         string documentationIndex = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "README.md"));
         Assert.Contains("# OfficeIMO documentation", documentationIndex, StringComparison.Ordinal);
@@ -463,6 +492,25 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
         Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
         Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Add Visio and portable-document adapters", roadmap, StringComparison.Ordinal);
+
+        string wordCompatibility = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "OfficeIMO.Word",
+            "COMPATIBILITY.md"));
+        Assert.Contains("## Field evaluator", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`CREATEDATE`, `SAVEDATE`, `PRINTDATE`", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`SECTION` / `SECTIONPAGES`", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`SUM`, `AVERAGE`, `MIN`, `MAX`, `PRODUCT`, `COUNT`", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`DEFINED`", wordCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`ABOVE`, `BELOW`, `LEFT`, and `RIGHT`", wordCompatibility, StringComparison.Ordinal);
+
+        string excelRemoteLoading = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Docs",
+            "officeimo.excel.remote-loading.md"));
+        Assert.Contains("workbook.CreateDataReader()", excelRemoteLoading, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExcelDocumentReader", excelRemoteLoading, StringComparison.Ordinal);
 
         Assert.True(File.Exists(Path.Combine(repositoryRoot, "MIGRATION.md")));
         Assert.False(File.Exists(Path.Combine(repositoryRoot, "CHANGELOG.MD")));

@@ -73,7 +73,6 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Deepen PDF logical-model projection, structured tables, assets, visual extraction, hierarchical chunks, and format-specific provenance.
 - [ ] Add processor-pipeline and structured-extraction capabilities only when they remain deterministic, bounded, and format-neutral.
 - [ ] Keep OCR and other heavy/platform-specific providers optional; define their input, timeout, cancellation, and diagnostic contracts at the Core boundary.
-- [ ] Add Visio and portable-document adapters through the owning format packages rather than adding format logic to Reader Core.
 
 ## Email, stores, and cloud adapters
 

@@ -27,6 +27,8 @@ The repository source is on the coordinated `3.1.x` line; the latest NuGet relea
 
 There is no replacement umbrella OpenDocument PDF package. The focused packages keep Word, Excel, and PowerPoint dependencies out of applications that do not use those routes.
 
+OpenDocument forward PDF results expose the typed OpenDocument projection report in `SourceConversionReports` and PDF-layout warnings in `Report`; `ConversionReports` presents both stages in order. Read OpenDocument mappings from `OdfConversionReport.Mappings` instead of looking for the removed synthetic `ODF_*` PDF warnings. Use `HasLoss` or `RequireNoLoss()` for the end-to-end fidelity gate. AsciiDoc, LaTeX, and semantic OneNote PDF routes use the same ordered source-stage and PDF-stage model.
+
 ### CSV and Excel tabular reads
 
 CSV and Excel retain separate document models and use the same entry-point grammar:
@@ -43,12 +45,14 @@ Replace the removed public reader roots as follows:
 | --- | --- |
 | `CsvDocument.CreateDataReader(pathOrStream, ...)` | `CsvDocument.OpenDataReader(pathOrStream, ...)` |
 | Public `CsvDataReader` construction or return types | `DbDataReader` returned by `CsvDocument.OpenDataReader(...)` or `csv.CreateDataReader(...)` |
-| `CsvDocument.ReadFieldSpans*`, `CsvDocument.ReadRowFieldSpans*`, and public field-span visitor types | `CsvDocument.OpenDataReader(...)` for streaming, or `Load(...)` / `Parse(...)` for a materialized document |
+| `CsvDocument.ReadFieldSpans*`, `CsvDocument.ReadRowFieldSpans*`, `CsvFieldSpanAction`, `ICsvFieldSpanVisitor`, `ICsvProjectedFieldSpanVisitor`, and `ICsvRowFieldSpanVisitor` | `CsvDocument.OpenDataReader(...)` for streaming, or `Load(...)` / `Parse(...)` for a materialized document |
 | `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenDataReader(...)` |
 | `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenDataReader(...)` for streaming, or `ExcelDocument.Load(...)` for editing |
 | Concrete Excel reader return types | `DbDataReader` |
 
 When configuring a streaming CSV read with `CsvLoadOptions`, set `Mode = CsvLoadMode.Stream`; the options object otherwise retains its in-memory default. Excel exposes worksheets as ordered `DbDataReader` results through `NextResult()`.
+
+CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
 ### PDF conversion and import
 
@@ -67,6 +71,8 @@ The 3.1 PDF adapters use destination-shaped names for general conversion and exp
 Excel remains explicitly table-shaped because its PDF adapter recovers detected tables rather than arbitrary page content. Keep using `PdfExcelTableImportOptions`, `PdfExcelTableImportReport`, `PdfExcelTableImportResult`, `ImportTablesToExcelDocument`, and `SaveTablesAsExcel`.
 
 PowerPoint behavior broadens in 3.1: an opened `PdfDocument` creates one rendered page per slide by default. Use `PdfPowerPointImportOptions.CreateEditableTables()` when editable table recovery is the intended result. The visual route does not claim that arbitrary PDF text, vectors, groups, clipping, forms, or annotations become editable PowerPoint objects.
+
+Use `PdfWordImportOptions.CreateTablesOnly()` for narrow Word table recovery. PowerPoint table details remain available through `PdfPowerPointConversionReport.TableEntries` when the editable-table profile is selected.
 
 The common conversion grammar is:
 
@@ -130,6 +136,7 @@ Review these behavioral changes during the upgrade:
 
 - PDF adapters use `PdfResourcePolicy.CreateDefault()` for balanced fidelity. Use `CreatePortableDeterministic()` when conversion must not inspect installed fonts or external resources.
 - OpenDocument, AsciiDoc, LaTeX, and semantic OneNote PDF routes return their source-stage mappings separately from PDF layout warnings. Use `HasLoss` or `RequireNoLoss()` for the end-to-end gate.
+- Word-to-HTML emits detected run colors and highlights by default. Set `IncludeRunColorStyles` or `IncludeRunHighlightStyles` to `false` only for deliberately style-reduced HTML.
 - Excel and CSV numeric, date, formula-cache, and typed writer values use invariant round-trip formatting on every platform.
 - Backend-specific CSV and Excel parser types are no longer public extension points.
 
@@ -159,6 +166,8 @@ The PowerPoint names broaden again in 3.1 because the default route changes from
 | `new WordHelpers()` | Remove the instance; supported `WordHelpers` members are static |
 | `WordHelpers.GetNextSdtId(...)` | Remove the call; content-control APIs allocate IDs |
 | `InlineRunHelper.AddInlineRuns(...)` | Use the owning converter or explicit paragraph APIs |
+| `ImageShapeStyleHelper` | Use the owning image-shape APIs |
+| `HorizontalAlignmentHelper` | Use the public alignment properties on the owning paragraph, table, cell, or image API |
 | `LegacyXlsLoadResult.Workbook` | `LegacyXlsLoadResult.AdvancedWorkbook` |
 | `LegacyXlsLoadResult.ImportReport` or `CreateAdvancedImportReport()` | `LegacyXlsLoadResult.CreateImportReport()` |
 | `OfficeIMO.Epub.Html` | `OfficeIMO.Epub.Image` |
@@ -185,12 +194,24 @@ Caller-owned streams remain open. Seekable inputs are read from the beginning an
 
 `Async` now identifies real asynchronous I/O or resource resolution. Use synchronous methods for pure parsing, model projection, byte generation, and in-memory formatting. Removed fake-async wrappers should not be recreated in application compatibility layers.
 
+Removed fake-async methods include in-memory Markdown, HTML, and RTF conversions, byte-returning conversion wrappers, `RtfDocument.ReadAsync(string)`, and `RtfDocument.LoadAsync(byte[])`. Use the synchronous conversion, or use `LoadAsync`, `SaveAsync`, and `SaveAs{Format}Async` only when the source, destination, or resource resolution performs real asynchronous I/O.
+
 Reusable options contain configuration only. Read diagnostics from the operation result:
 
 - `Value` contains the converted model or encoded output.
 - `Report` contains diagnostics and fidelity evidence.
 - `HasLoss` reports simplification or omission.
 - `RequireValue()` and `RequireNoLoss()` provide fail-fast gates.
+
+OpenDocument save methods now return `OdfSaveResult` directly. Replace the discarded-result aliases as follows:
+
+| Removed member | Replacement |
+| --- | --- |
+| `SaveResult` / `SaveResultAsync` | `Save` / `SaveAsync` returning `OdfSaveResult` |
+| `ToBytesResult` | `Serialize` returning `OdfSaveResult` |
+| `SaveFlatXmlResult` | `SaveFlatXml` returning `OdfSaveResult` |
+
+Reusable conversion options no longer retain operation state in members such as `LastSaveReport`, `LastSaveDiagnostics`, `ConversionReport`, or `Warnings`. Read that evidence from the returned result.
 
 ### Common member replacements
 
@@ -205,6 +226,7 @@ Reusable options contain configuration only. Read diagnostics from the operation
 | `ExcelDocument.CreateTableOfContents(...)` | `AddTableOfContents(...)` |
 | `ExcelSheet.SetCellValues(...)` | `CellValues(...)` |
 | `ExcelSheet.CellValuesParallel(...)` | `CellValues(..., ExecutionMode.Parallel)` |
+| `OfficeDocumentReadResultSchema.Version` | `OfficeDocumentReadResultSchema.CurrentVersion` |
 | `SheetComposer.DefinitionList(...)` | `SheetComposer.PropertiesGrid(...)` |
 | `PowerPointUnits.Cm/Mm/Inches/Points(...)` | `FromCentimeters/FromMillimeters/FromInches/FromPoints(...)` |
 | `VisioDocument.UseMastersFromTemplate(...)` | `LearnMastersFromVsdx(...)` |
@@ -215,6 +237,9 @@ Reusable options contain configuration only. Read diagnostics from the operation
 | `FootnoteDefinitionBlock.Blocks` | `ChildBlocks` |
 | tuple-based `DefinitionListBlock.Items` | typed `Groups`, `Entries`, and `AddEntry(...)` |
 | `MarkdownDoc.SaveHtml(...)` | `SaveAsHtml(...)` |
+| Markdown `VisualTheme` | `Theme` with a shared `MarkdownVisualTheme` |
+| `ApplyWordLikeTheme()` | `ApplyDefaultTheme()` |
+| `UseFrontMatterVisualTheme` | `UseFrontMatterTheme` |
 | `OutlookContact.Email1Address` | `OutlookContact.Email1.Address` |
 | phone compatibility properties | `OutlookContact.Phones` |
 | `TrackComments` | No replacement; use `TrackChanges` or `Settings.TrackRevisions` for revision tracking. |
@@ -229,7 +254,11 @@ Reusable options contain configuration only. Read diagnostics from the operation
 | `ToRtfMemoryStream()` | `ToRtfStream()` |
 | `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWord()` / `SaveAsRtf()` on `PdfDocument` |
 | `SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveAsExcel()` / `SaveAsWordDocument()` / `SaveAsPowerPoint()` |
+| `ToPngResult` / `ToSvgResult` and plural result aliases | `ExportImage()` / `ExportImages()` returning `OfficeImageExportResult` values |
+| `PdfImageExportOptions.MaxPages` | `MaximumOutputCount` or `ToImages().WithMaximumPages(...)` |
 | `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |
+
+Format-spelling aliases such as `SaveToPdf`, `SaveAsBytesToPdf`, and generic `WriteToBytes` were removed. Use `SaveAsPdf(...)` for a destination and `ToPdf()` or `ToBytes()` for an in-memory result. Ambiguous `SaveImage` / `SaveAsImage` names were replaced by explicit encodings such as `SaveAsPng(...)`, or by `SaveAsImages(...)` for multi-page and multi-sheet output.
 
 Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`. Replace the removed scale presets as follows:
 
@@ -240,6 +269,20 @@ Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `
 
 Image file saves now default to `OfficeImageExportFileConflictPolicy.FailIfExists`. A repeated write to the same path therefore throws unless the caller explicitly selects `Replace` or `CreateUnique` with `OnFileConflict(...)`.
 
+Raster exports share a 50-million-output-pixel default. The default overflow policy reduces scale before allocating the pixel buffer and reports `IMAGE_RASTER_SCALE_REDUCED`; set `RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw` to receive an `OfficeImageExportLimitException` instead.
+
+Image decode and font-fallback diagnostics moved to the shared Drawing result:
+
+| Removed diagnostic | Replacement |
+| --- | --- |
+| `ExcelImageRasterFormatUnsupported`, `ExcelImageSvgFormatUnsupported`, `ExcelImagePngDecodeUnavailable`, `ExcelHeaderFooterImageUnsupported` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `unsupported-word-image-raster` / `unsupported-word-image-svg` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `unsupported-powerpoint-image-raster` / `unsupported-powerpoint-image-svg` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `HtmlRenderRasterDecoderUnavailable` | `IMAGE_SOURCE_DECODE_FALLBACK` on the final image export result |
+| `ExcelCellFontFamilyFallback`, `ExcelChartFontFamilyFallback`, `ExcelHeaderFooterFontFamilyFallback` | `IMAGE_FONT_SUBSTITUTED` |
+
+`IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` records that a caller-supplied `ImageCodec` handled the source.
+
 PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches. Replace the removed switches as follows:
 
 | Removed member | Replacement |
@@ -249,6 +292,8 @@ PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches.
 | Markdown `IncludeDataUriImages` | `IncludeImages` plus `ResourcePolicy.AllowDataUris` |
 
 Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
+
+Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNotePdfSaveOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
 
 ## Upgrade checklist
 

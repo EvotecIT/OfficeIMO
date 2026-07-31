@@ -1,5 +1,5 @@
 ---
-title: "Releases"
+title: "Releases and Downloads"
 description: "Review OfficeIMO release history, download coordinated artifacts, and open the actionable migration guide for breaking package or API changes."
 layout: page
 aliases:

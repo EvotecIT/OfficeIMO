@@ -29,6 +29,23 @@ The detailed legacy contract is documented in [DOC/DOCX compatibility](../Docs/o
 | Protection and encryption | Broad | Document protection, encrypted OOXML workflows, package security, and active/external-content policy are available with typed findings |
 | Feature inspection and preflight | Supported | `InspectFeatures()`, capability preflight, `Can`, `EnsureCan`, diagnostics, repair hints, and preservation reports route reads, edits, templates, rendering, and save workflows explicitly |
 
+## Field evaluator
+
+`WordDocument.UpdateFieldsAndGetReport()` refreshes the deterministic subset below and reports each field as updated, skipped, unsupported, or malformed. Unsupported fields and switches are preserved rather than silently rewritten.
+
+| Family | Evaluated subset and boundary |
+| --- | --- |
+| Metadata and properties | File name; custom and built-in document properties; document variables; `REVNUM`; bounded `INFO` aliases; `NUMWORDS`, `NUMCHARS`, and saved-package `FILESIZE` |
+| Dates and time | Current `DATE` / `TIME` plus property-backed `CREATEDATE`, `SAVEDATE`, `PRINTDATE`; invariant custom `\@` patterns are supported, while broader locale-dependent Word date grammar remains outside the deterministic subset |
+| Page and section values | Body `PAGE` / `NUMPAGES` and `SECTION` / `SECTIONPAGES` using OfficeIMO section order and explicit page-break estimates; related-part fields that need Word layout are skipped with diagnostics |
+| Literal and reference fields | Literal `QUOTE`; `REF` bookmark text and supported numbered-paragraph references; body `PAGEREF` estimates; generated-caption `SEQ` with next, reset, repeat-current, heading reset, and supported number formats |
+| General and numeric switches | Text casing `\* Upper`, `\* Lower`, `\* FirstCap`, and `\* Caps`; Arabic, Roman/roman, Ordinal, Alphabetical/ALPHABETICAL, non-negative Hex, CardText, OrdText, and DollarText; bounded numeric picture switches and literal text sections |
+| Formula functions | `SUM`, `AVERAGE`, `MIN`, `MAX`, `PRODUCT`, `COUNT`, `IF`, `AND`, `OR`, `NOT`, `TRUE`, `FALSE`, `MOD`, `SIGN`, `ABS`, `INT`, `DEFINED`, and `ROUND`; comma and semicolon separators, percent literals/results, comparisons, and short-circuit logical branches are supported |
+| Table formulas | Plain numeric and percent-valued cells with `ABOVE`, `BELOW`, `LEFT`, and `RIGHT`, explicit A1 and `RnCn` cells, and rectangular ranges in regular tables; simple horizontal spans, vertical-merge continuations, and `gridBefore` offsets are normalized |
+| Nested complex fields | Deterministic nested result fields and deterministic nested formula inputs refresh within bounded containing-field shapes; fields whose containing result was replaced are skipped to avoid corrupting that result |
+
+TOC, caption-list, and index refresh have their own explicit methods and diagnostics. Locale-dependent layout, broader complex table geometry, unsaved `FILESIZE`, broader `QUOTE` container behavior, and unsupported nested instruction shapes remain preserved and diagnosed.
+
 ## Conversion and rendering
 
 - [Word/HTML support](../Docs/officeimo.word-html-support-matrix.md) states the bidirectional HTML contract.
