@@ -144,5 +144,38 @@ namespace OfficeIMO.Word.Html {
         public bool IncludeDefaultCss { get; set; } = false;
 
         internal OfficeIMO.Html.HtmlDiagnosticReport ConversionReport { get; } = new OfficeIMO.Html.HtmlDiagnosticReport();
+
+        internal WordToHtmlOptions CloneForConversion() {
+            var clone = new WordToHtmlOptions {
+                MaxDocumentElements = MaxDocumentElements,
+                MaxEmbeddedImageBytes = MaxEmbeddedImageBytes,
+                MaxTotalEmbeddedImageBytes = MaxTotalEmbeddedImageBytes,
+                MaxOutputCharacters = MaxOutputCharacters,
+                MaxTableNestingDepth = MaxTableNestingDepth,
+                MaxListNestingDepth = MaxListNestingDepth,
+                FontFamily = FontFamily,
+                IncludeFontStyles = IncludeFontStyles,
+                IncludeListStyles = IncludeListStyles,
+                IncludeListDefinitions = IncludeListDefinitions,
+                IncludeParagraphClasses = IncludeParagraphClasses,
+                IncludeRunClasses = IncludeRunClasses,
+                IncludeRunColorStyles = IncludeRunColorStyles,
+                IncludeRunHighlightStyles = IncludeRunHighlightStyles,
+                IncludeParagraphSpacingStyles = IncludeParagraphSpacingStyles,
+                IncludeParagraphIndentationStyles = IncludeParagraphIndentationStyles,
+                ExportFootnotes = ExportFootnotes,
+                ExportEndnotes = ExportEndnotes,
+                ExportComments = ExportComments,
+                ExportHeadersAndFooters = ExportHeadersAndFooters,
+                IncludeCustomProperties = IncludeCustomProperties,
+                IncludeSectionMetadata = IncludeSectionMetadata,
+                IncludeTableColumnGroups = IncludeTableColumnGroups,
+                EmbedImagesAsBase64 = EmbedImagesAsBase64,
+                IncludeDefaultCss = IncludeDefaultCss
+            };
+            clone.AdditionalMetaTags.AddRange(AdditionalMetaTags);
+            clone.AdditionalLinkTags.AddRange(AdditionalLinkTags);
+            return clone;
+        }
     }
 }

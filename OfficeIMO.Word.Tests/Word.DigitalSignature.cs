@@ -443,6 +443,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_ValidationRejectsSignatureCountBeforeParsingParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCount.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signature count resource limit");
+                document.Save();
+            }
+            AddDigitalSignatureMetadata(filePath, Encoding.UTF8.GetBytes("not xml"), signatureCount: 2);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions { MaxSignatureParts = 1 });
+
+            Assert.False(validation.IsValidUnderPolicy);
+            Assert.Empty(validation.SignatureInfo.SignatureParts);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.DoesNotContain(validation.Findings, finding => finding.Contains("could not be parsed", System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidationCountsDeclaredEmbeddedCertificates() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCertificateCount.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -1026,11 +1044,12 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static void AddDigitalSignatureMetadata(string filePath, byte[] signatureBytes) {
+        private static void AddDigitalSignatureMetadata(string filePath, byte[] signatureBytes, int signatureCount = 1) {
             using WordprocessingDocument package = WordprocessingDocument.Open(filePath, true);
             package.AddDigitalSignatureOriginPart();
-            XmlSignaturePart signaturePart = package.DigitalSignatureOriginPart!.AddNewPart<XmlSignaturePart>();
-            using (var stream = new MemoryStream(signatureBytes)) {
+            for (int i = 0; i < signatureCount; i++) {
+                XmlSignaturePart signaturePart = package.DigitalSignatureOriginPart!.AddNewPart<XmlSignaturePart>();
+                using var stream = new MemoryStream(signatureBytes);
                 signaturePart.FeedData(stream);
             }
 

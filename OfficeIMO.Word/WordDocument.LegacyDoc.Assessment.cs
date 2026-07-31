@@ -33,6 +33,20 @@ namespace OfficeIMO.Word {
         /// This allocates the candidate DOC bytes so the assessment cannot drift from the writer used by <see cref="Save(Stream, WordFileFormat, WordSaveOptions?)"/>.
         /// </summary>
         public LegacyDocWriteAssessment AssessLegacyDocWrite(WordSaveOptions? options = null) {
+            if (AccessMode == OfficeIMO.Drawing.DocumentAccessMode.ReadOnly) {
+                if (_ownedPackageStream == null) {
+                    return new LegacyDocWriteAssessment(
+                        false,
+                        null,
+                        "LegacyDocWriteAssessmentUnavailable",
+                        "The read-only document does not expose package bytes that can be assessed through a writable clone.");
+                }
+
+                using var cloneStream = new MemoryStream(_ownedPackageStream.ToArray(), writable: false);
+                using WordDocument writableClone = Load(cloneStream);
+                return writableClone.AssessLegacyDocWrite(options);
+            }
+
             try {
                 byte[] bytes = ToBytes(WordFileFormat.Doc, options);
                 return new LegacyDocWriteAssessment(

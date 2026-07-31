@@ -8,11 +8,12 @@ namespace OfficeIMO.Word {
         /// Inspects package-level digital-signature metadata without validating cryptographic trust.
         /// </summary>
         public WordSignatureInfo InspectSignatures() {
+            var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
             return WordSignatureInspector.Inspect(
                 _wordprocessingDocument,
-                _wordprocessingDocument.DigitalSignatureOriginPart,
+                originPart,
                 ApplicationProperties.DigitalSignature != null,
-                _ownedPackageStream?.ToArray());
+                originPart == null ? null : _ownedPackageStream?.ToArray());
         }
 
         /// <summary>
@@ -31,11 +32,27 @@ namespace OfficeIMO.Word {
         public WordSignatureValidationReport ValidateSignatures(WordSignatureValidationOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             OfficePackageSignatureValidator.ValidateOptions(options);
+            var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
+            bool hasApplicationSignatureMetadata = ApplicationProperties.DigitalSignature != null;
+            if (originPart != null && originPart.XmlSignatureParts.Skip(options.MaxSignatureParts).Any()) {
+                var boundedInfo = new WordSignatureInfo(
+                    hasDigitalSignatureOriginPart: true,
+                    originPart.Uri.ToString(),
+                    originRelationshipId: null,
+                    hasApplicationSignatureMetadata,
+                    Array.Empty<WordSignaturePartInfo>(),
+                    Array.Empty<string>(),
+                    new[] { "Digital-signature inspection stopped before parsing because the signature-part count exceeded policy." });
+                return WordSignatureValidationReport.WithValidationFailure(
+                    WordSignatureValidationReport.From(boundedInfo),
+                    "SignatureResourceLimitExceeded",
+                    "The package contains more than " + options.MaxSignatureParts + " XML signature parts.");
+            }
             if (_ownedPackageStream != null && _ownedPackageStream.Length > options.MaxPackageBytes) {
                 WordSignatureInfo boundedInfo = WordSignatureInspector.Inspect(
                     _wordprocessingDocument,
-                    _wordprocessingDocument.DigitalSignatureOriginPart,
-                    ApplicationProperties.DigitalSignature != null,
+                    originPart,
+                    hasApplicationSignatureMetadata,
                     packageBytes: null,
                     maxPackageParts: options.MaxPackageParts,
                     maxPartBytes: options.MaxPartBytes,
@@ -48,8 +65,8 @@ namespace OfficeIMO.Word {
             byte[]? packageBytes = _ownedPackageStream?.ToArray();
             WordSignatureInfo signatureInfo = WordSignatureInspector.Inspect(
                 _wordprocessingDocument,
-                _wordprocessingDocument.DigitalSignatureOriginPart,
-                ApplicationProperties.DigitalSignature != null,
+                originPart,
+                hasApplicationSignatureMetadata,
                 packageBytes,
                 options.MaxPackageParts,
                 options.MaxPartBytes,
@@ -57,13 +74,13 @@ namespace OfficeIMO.Word {
             WordSignatureValidationReport structural = WordSignatureValidationReport.From(signatureInfo);
             if (!signatureInfo.HasSignatures ||
                 packageBytes == null ||
-                _wordprocessingDocument.DigitalSignatureOriginPart == null) {
+                originPart == null) {
                 return structural;
             }
 
             try {
                 IReadOnlyList<WordSignaturePartValidationResult> signatures = OfficePackageSignatureValidator.Validate(
-                    _wordprocessingDocument.DigitalSignatureOriginPart,
+                    originPart,
                     packageBytes,
                     signatureInfo,
                     options);

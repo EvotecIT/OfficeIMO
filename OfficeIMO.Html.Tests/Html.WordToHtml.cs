@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -40,6 +41,26 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "TrackedRevisionsFlattened");
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "CommentsOmitted");
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "FieldInstructionsFlattened");
+        }
+
+        [Fact]
+        public async Task Test_WordToHtml_ReusedOptionsKeepConcurrentDiagnosticsIsolated() {
+            using var documentWithHeader = WordDocument.Create();
+            documentWithHeader.AddParagraph("Header document body");
+            documentWithHeader.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Omitted header");
+            using var plainDocument = WordDocument.Create();
+            plainDocument.AddParagraph("Plain document body");
+            var options = new WordToHtmlOptions();
+
+            for (int i = 0; i < 20; i++) {
+                Task<HtmlTextConversionResult> withHeader = Task.Run(() => documentWithHeader.ToHtmlResult(options));
+                Task<HtmlTextConversionResult> plain = Task.Run(() => plainDocument.ToHtmlResult(options));
+                HtmlTextConversionResult[] results = await Task.WhenAll(withHeader, plain);
+
+                Assert.Contains(results[0].Report.Diagnostics, diagnostic => diagnostic.Code == "HeadersFootersOmitted");
+                Assert.DoesNotContain(results[1].Report.Diagnostics, diagnostic => diagnostic.Code == "HeadersFootersOmitted");
+                Assert.False(results[1].HasLoss);
+            }
         }
 
         [Fact]

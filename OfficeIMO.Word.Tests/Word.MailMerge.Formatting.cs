@@ -288,6 +288,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_UnsupportedSwitchLeavesFieldInPlaceAndReportsIt() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(new SimpleField(new Run(new Text("placeholder"))) {
+                Instruction = " MERGEFIELD Name \\b \"Dear \" "
+            }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" });
+
+            WordMailMergeFieldResult result = Assert.Single(report.Fields);
+            Assert.Equal(WordMailMergeFieldStatus.UnsupportedFormatting, result.Status);
+            Assert.Contains("\\b", result.Message, System.StringComparison.Ordinal);
+            Assert.Single(body.Descendants<SimpleField>());
+            Assert.Contains("placeholder", body.InnerText, System.StringComparison.Ordinal);
+            Assert.DoesNotContain("Ada", body.InnerText, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_MailMerge_ExecutionReportPreservesSimpleAndComplexOccurrenceOrder() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD First ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("first placeholder")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new Text(" / ")),
+                new SimpleField(new Run(new Text("second placeholder"))) { Instruction = " MERGEFIELD Second " }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["First"] = "one", ["Second"] = "two" },
+                removeFields: false);
+
+            Assert.Equal(new[] { "First", "Second" }, report.Fields.Select(result => result.Name));
+            Assert.Equal(2, report.MergedCount);
+        }
+
+        [Fact]
         public void Test_MailMerge_ExecutionReportDoesNotLoseOuterMergeFieldWhenFieldsAreNested() {
             using WordDocument document = WordDocument.Create();
             Body body = document._document.MainDocumentPart!.Document.Body!;

@@ -51,8 +51,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>Converts the document to HTML with the shared structured result contract.</summary>
         public static HtmlTextConversionResult ToHtmlResult(this WordDocument document, WordToHtmlOptions? options = null) {
             if (document == null) throw new System.ArgumentNullException(nameof(document));
-            WordToHtmlOptions resolved = options ?? new WordToHtmlOptions();
-            resolved.ConversionReport.Clear();
+            WordToHtmlOptions resolved = (options ?? new WordToHtmlOptions()).CloneForConversion();
             var converter = new WordToHtmlConverter();
             string html = converter.Convert(document, resolved);
             return new HtmlTextConversionResult(html, resolved.ConversionReport);

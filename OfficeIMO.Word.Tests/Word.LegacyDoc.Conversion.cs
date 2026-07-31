@@ -32,6 +32,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_WriteAssessment_AssessesReadOnlyDocumentsThroughAWritableClone() {
+            string path = Path.Combine(_directoryWithFiles, "LegacyDocReadOnlyAssessment.docx");
+            using (WordDocument created = WordDocument.Create(path)) {
+                created.AddParagraph("Read-only assessment body");
+                created.Save();
+            }
+
+            using WordDocument readOnly = WordDocument.Load(path, new WordLoadOptions {
+                AccessMode = DocumentAccessMode.ReadOnly
+            });
+
+            LegacyDocWriteAssessment assessment = readOnly.AssessLegacyDocWrite();
+
+            Assert.True(assessment.IsSupported);
+            Assert.Equal("LegacyDocWriteSupported", assessment.DiagnosticCode);
+            Assert.True(assessment.EncodedByteCount > 0);
+        }
+
+        [Fact]
         public void LegacyDoc_Convert_DocxToDocAndBack_RoundTripsSupportedContent() {
             string docxPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
             string docPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");

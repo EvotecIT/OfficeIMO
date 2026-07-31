@@ -23,41 +23,54 @@ namespace OfficeIMO.Word {
             ReplaceMergeFields(root, values, removeFields, null);
         }
         private static void ReplaceMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
-            ReplaceSimpleMergeFields(root, values, removeFields, results);
-            ReplaceComplexMergeFields(root, values, removeFields, results);
-        }
-        private static void ReplaceSimpleMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
-            foreach (var simpleField in root.Descendants<SimpleField>().ToList()) {
-                string instruction = simpleField.Instruction?.Value ?? string.Empty;
-                string? name = TryGetMergeFieldName(instruction);
-                if (name == null) {
-                    ReportMalformedMergeField(results, instruction, "A simple MERGEFIELD instruction could not be parsed as a named field.");
-                    continue;
-                }
-                if (!TryGetMergeValue(values, name, out string? value)) {
-                    AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.MissingValue, null, "Merge field '" + name + "' has no supplied value.");
-                    continue;
-                }
-                if (!TryFormatMergeValue(instruction, value, out string formattedValue, out string formatMessage)) {
-                    AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.UnsupportedFormatting, null, formatMessage);
-                    continue;
-                }
-
-                if (removeFields) {
-                    var replacement = CreateReplacementRun(formattedValue, simpleField.Elements<Run>().FirstOrDefault());
-                    simpleField.InsertBeforeSelf(replacement);
-                    simpleField.Remove();
+            foreach (MergeFieldOccurrence occurrence in DiscoverMergeFieldOccurrences(root).OrderBy(item => item.Order)) {
+                if (occurrence.SimpleField != null) {
+                    ReplaceSimpleMergeField(occurrence.SimpleField, values, removeFields, results);
+                } else if (occurrence.MalformedMessage != null) {
+                    ReportMalformedMergeField(results, ReadComplexFieldInstruction(occurrence.ComplexRuns!), occurrence.MalformedMessage);
                 } else {
-                    List<Run> resultRuns = simpleField.Elements<Run>().ToList();
-                    if (!SetFieldResultText(resultRuns, formattedValue)) {
-                        simpleField.Append(CreateReplacementRun(formattedValue, sourceRun: null));
-                    }
+                    ReplaceComplexFieldRuns(occurrence.ComplexRuns!, values, removeFields, results);
                 }
-                AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
             }
         }
 
-        private static void ReplaceComplexMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
+        private static void ReplaceSimpleMergeField(SimpleField simpleField, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
+            string instruction = simpleField.Instruction?.Value ?? string.Empty;
+            string? name = TryGetMergeFieldName(instruction);
+            if (name == null) {
+                ReportMalformedMergeField(results, instruction, "A simple MERGEFIELD instruction could not be parsed as a named field.");
+                return;
+            }
+            if (!TryGetMergeValue(values, name, out string? value)) {
+                AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.MissingValue, null, "Merge field '" + name + "' has no supplied value.");
+                return;
+            }
+            if (!TryFormatMergeValue(instruction, value, out string formattedValue, out string formatMessage)) {
+                AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.UnsupportedFormatting, null, formatMessage);
+                return;
+            }
+
+            if (removeFields) {
+                var replacement = CreateReplacementRun(formattedValue, simpleField.Elements<Run>().FirstOrDefault());
+                simpleField.InsertBeforeSelf(replacement);
+                simpleField.Remove();
+            } else {
+                List<Run> resultRuns = simpleField.Elements<Run>().ToList();
+                if (!SetFieldResultText(resultRuns, formattedValue)) {
+                    simpleField.Append(CreateReplacementRun(formattedValue, sourceRun: null));
+                }
+            }
+            AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
+        }
+
+        private static IEnumerable<MergeFieldOccurrence> DiscoverMergeFieldOccurrences(OpenXmlElement root) {
+            var orderByElement = root.Descendants()
+                .Select((element, index) => new { element, index })
+                .ToDictionary(item => item.element, item => item.index);
+            var occurrences = root.Descendants<SimpleField>()
+                .Select(simpleField => MergeFieldOccurrence.ForSimple(orderByElement[simpleField], simpleField))
+                .ToList();
+
             foreach (var paragraph in EnumerateParagraphs(root)) {
                 var activeFields = new List<ComplexFieldFrame>();
 
@@ -68,7 +81,7 @@ namespace OfficeIMO.Word {
                             activeField.Runs.Add(run);
                             activeField.HasNestedField = true;
                         }
-                        activeFields.Add(new ComplexFieldFrame(run));
+                        activeFields.Add(new ComplexFieldFrame(run, orderByElement[run]));
                         continue;
                     }
 
@@ -85,17 +98,24 @@ namespace OfficeIMO.Word {
                     activeFields.RemoveAt(activeFields.Count - 1);
                     string instruction = ReadComplexFieldInstruction(completedField.Runs);
                     if (completedField.HasNestedField && MergeFieldTypePattern.IsMatch(instruction)) {
-                        ReportMalformedMergeField(results, instruction, "A complex MERGEFIELD contains a nested field and cannot be processed deterministically.");
+                        occurrences.Add(MergeFieldOccurrence.ForComplex(
+                            completedField.Order,
+                            completedField.Runs,
+                            "A complex MERGEFIELD contains a nested field and cannot be processed deterministically."));
                     } else {
-                        ReplaceComplexFieldRuns(completedField.Runs, values, removeFields, results);
+                        occurrences.Add(MergeFieldOccurrence.ForComplex(completedField.Order, completedField.Runs));
                     }
                 }
 
                 foreach (ComplexFieldFrame activeField in activeFields) {
-                    string instruction = ReadComplexFieldInstruction(activeField.Runs);
-                    ReportMalformedMergeField(results, instruction, "A complex MERGEFIELD is missing its closing field marker or a valid field name.");
+                    occurrences.Add(MergeFieldOccurrence.ForComplex(
+                        activeField.Order,
+                        activeField.Runs,
+                        "A complex MERGEFIELD is missing its closing field marker or a valid field name."));
                 }
             }
+
+            return occurrences;
         }
 
         private static IEnumerable<Paragraph> EnumerateParagraphs(OpenXmlElement root) {
@@ -187,6 +207,18 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
+            string? unsupportedSwitch = parsed.Switches.FirstOrDefault(fieldSwitch => {
+                string trimmed = fieldSwitch.TrimStart();
+                return !trimmed.StartsWith(@"\#", StringComparison.Ordinal) &&
+                       !trimmed.StartsWith(@"\@", StringComparison.Ordinal) &&
+                       !trimmed.StartsWith(@"\*", StringComparison.Ordinal);
+            });
+            if (unsupportedSwitch != null) {
+                formattedValue = string.Empty;
+                message = "Merge field switch '" + unsupportedSwitch.Trim() + "' is outside the deterministic formatting profile.";
+                return false;
+            }
+
             if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)) {
                 if (!decimal.TryParse(value, NumberStyles.Number | NumberStyles.AllowCurrencySymbol, CultureInfo.InvariantCulture, out decimal number)) {
                     formattedValue = string.Empty;
@@ -231,12 +263,34 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ComplexFieldFrame {
-            internal ComplexFieldFrame(Run beginRun) {
+            internal ComplexFieldFrame(Run beginRun, int order) {
                 Runs = new List<Run> { beginRun };
+                Order = order;
             }
 
             internal List<Run> Runs { get; }
+            internal int Order { get; }
             internal bool HasNestedField { get; set; }
+        }
+
+        private sealed class MergeFieldOccurrence {
+            private MergeFieldOccurrence(int order, SimpleField? simpleField, IReadOnlyList<Run>? complexRuns, string? malformedMessage) {
+                Order = order;
+                SimpleField = simpleField;
+                ComplexRuns = complexRuns;
+                MalformedMessage = malformedMessage;
+            }
+
+            internal int Order { get; }
+            internal SimpleField? SimpleField { get; }
+            internal IReadOnlyList<Run>? ComplexRuns { get; }
+            internal string? MalformedMessage { get; }
+
+            internal static MergeFieldOccurrence ForSimple(int order, SimpleField simpleField) =>
+                new MergeFieldOccurrence(order, simpleField, null, null);
+
+            internal static MergeFieldOccurrence ForComplex(int order, IReadOnlyList<Run> runs, string? malformedMessage = null) =>
+                new MergeFieldOccurrence(order, null, runs, malformedMessage);
         }
 
         private static IEnumerable<Run> GetComplexFieldResultRuns(IReadOnlyList<Run> fieldRuns) {
