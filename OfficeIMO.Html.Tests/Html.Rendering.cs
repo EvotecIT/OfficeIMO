@@ -1531,7 +1531,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(report.Fonts, font =>
             font.HasEmbeddedFontFile
-            && font.BaseFont?.Contains("Arial", StringComparison.OrdinalIgnoreCase) == true);
+            && font.BaseFont?.Contains("CallerUnicode", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     [Fact]

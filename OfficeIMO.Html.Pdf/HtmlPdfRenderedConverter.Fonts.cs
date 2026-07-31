@@ -103,6 +103,45 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
+    private static void RegisterLibrarySelectedDefaultSystemFontFamily(
+        PdfCore.PdfDocument pdf,
+        HtmlRenderDocument rendered,
+        ISet<string> activeWebFontFamilies,
+        ISet<PdfCore.PdfStandardFont> reservedFontSlots,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (pdf.Options.HasEmbeddedStandardFontFamily(PdfCore.PdfStandardFont.Helvetica)) {
+            return;
+        }
+
+        List<HtmlRenderText> textRuns = EnumerateVisuals(
+                rendered.Pages.SelectMany(page => page.Visuals))
+            .OfType<HtmlRenderText>()
+            .Where(text => !EnumerateFamilies(text.Font.FamilyName).Any(activeWebFontFamilies.Contains))
+            .ToList();
+        if (textRuns.Count == 0) {
+            return;
+        }
+
+        foreach (string familyName in PdfCore.PdfOptions.DefaultDocumentFontFamilyFallback.Split(
+                     new[] { ',', ';' },
+                     StringSplitOptions.RemoveEmptyEntries)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem(
+                    familyName.Trim(),
+                    out PdfCore.PdfEmbeddedFontFamily? family)
+                || family == null) {
+                continue;
+            }
+
+            pdf.Options.RegisterFontFamily(
+                PdfCore.PdfStandardFont.Helvetica,
+                CreateCoverageSafeFontFamily(family, textRuns));
+            reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
+            return;
+        }
+    }
+
     private static PdfCore.PdfEmbeddedFontFamily CreateCoverageSafeFontFamily(
         PdfCore.PdfEmbeddedFontFamily family,
         IEnumerable<HtmlRenderText> textRuns) {

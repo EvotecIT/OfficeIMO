@@ -33,12 +33,14 @@ public class RtfPdfConverterTests {
         PdfCore.PdfDocument portable = document.ToPdfDocument(new RtfPdfSaveOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
-        PdfCore.PdfDocument balanced = document.ToPdfDocument();
+        PdfCore.PdfDocument trusted = document.ToPdfDocument(new RtfPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+        });
 
         Assert.Empty(portable.Options.EmbeddedFonts);
-        Assert.NotEmpty(balanced.Options.EmbeddedFonts);
+        Assert.NotEmpty(trusted.Options.EmbeddedFonts);
         Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Open(portable.ToBytes()).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Open(balanced.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Open(trusted.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -100,7 +102,8 @@ public class RtfPdfConverterTests {
         };
 
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
-            PdfOptions = callerPdfOptions
+            PdfOptions = callerPdfOptions,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         });
 
         Assert.False(callerPdfOptions.HasExplicitDefaultFont);
