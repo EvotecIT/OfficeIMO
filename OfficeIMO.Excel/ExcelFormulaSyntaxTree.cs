@@ -1,0 +1,256 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text;
+
+namespace OfficeIMO.Excel {
+    /// <summary>Base node in a parsed Excel formula reference tree.</summary>
+    public abstract class ExcelFormulaSyntaxNode {
+        private protected ExcelFormulaSyntaxNode(string text) { Text = text; }
+
+        /// <summary>Exact authored text represented by this node.</summary>
+        public string Text { get; }
+    }
+
+    /// <summary>Formula text that is neither a reference nor a string literal.</summary>
+    public sealed class ExcelFormulaTextSyntax : ExcelFormulaSyntaxNode {
+        internal ExcelFormulaTextSyntax(string text) : base(text) { }
+    }
+
+    /// <summary>Quoted Excel formula string literal, including authored quotes.</summary>
+    public sealed class ExcelFormulaStringSyntax : ExcelFormulaSyntaxNode {
+        internal ExcelFormulaStringSyntax(string text) : base(text) { }
+    }
+
+    /// <summary>Parsed cell, range, row, or column reference in a formula.</summary>
+    public sealed class ExcelFormulaReferenceSyntax : ExcelFormulaSyntaxNode {
+        internal ExcelFormulaReferenceSyntax(string text, ExcelReference reference) : base(text) { Reference = reference; }
+
+        /// <summary>Format-neutral parsed reference.</summary>
+        public ExcelReference Reference { get; }
+    }
+
+    /// <summary>Parsed workbook- or worksheet-defined name in a formula.</summary>
+    public sealed class ExcelFormulaNameSyntax : ExcelFormulaSyntaxNode {
+        internal ExcelFormulaNameSyntax(string text, string name) : base(text) { Name = name; }
+
+        /// <summary>Authored name, including a worksheet qualifier when present.</summary>
+        public string Name { get; }
+    }
+
+    /// <summary>Parsed Excel table structured reference.</summary>
+    public sealed class ExcelFormulaStructuredReferenceSyntax : ExcelFormulaSyntaxNode {
+        internal ExcelFormulaStructuredReferenceSyntax(string text, string? tableName, string selector) : base(text) {
+            TableName = tableName;
+            Selector = selector;
+        }
+
+        /// <summary>Table name, or null for a row-context reference such as <c>[@Amount]</c>.</summary>
+        public string? TableName { get; }
+
+        /// <summary>Authored bracket selector, including its outer brackets.</summary>
+        public string Selector { get; }
+    }
+
+    /// <summary>
+    /// Immutable syntax tree for reference-bearing Excel formula text. It preserves all non-reference
+    /// tokens verbatim and provides the common rewriter used by public conversion and search APIs.
+    /// </summary>
+    public sealed class ExcelFormulaSyntaxTree {
+        private readonly IReadOnlyList<ExcelFormulaSyntaxNode> _nodes;
+
+        private ExcelFormulaSyntaxTree(string text, IReadOnlyList<ExcelFormulaSyntaxNode> nodes) {
+            Text = text;
+            _nodes = nodes;
+        }
+
+        /// <summary>Exact authored formula text.</summary>
+        public string Text { get; }
+
+        /// <summary>Ordered syntax nodes preserving the authored formula.</summary>
+        public IReadOnlyList<ExcelFormulaSyntaxNode> Nodes => _nodes;
+
+        /// <summary>Parses A1 formula references while preserving all other tokens verbatim.</summary>
+        public static ExcelFormulaSyntaxTree Parse(string formula) {
+            if (formula == null) throw new ArgumentNullException(nameof(formula));
+            var nodes = new List<ExcelFormulaSyntaxNode>();
+            int cursor = 0;
+            int textStart = 0;
+            while (cursor < formula.Length) {
+                if (formula[cursor] == '"') {
+                    AddText(nodes, formula, textStart, cursor - textStart);
+                    int literalStart = cursor++;
+                    while (cursor < formula.Length) {
+                        if (formula[cursor] != '"') { cursor++; continue; }
+                        if (cursor + 1 < formula.Length && formula[cursor + 1] == '"') { cursor += 2; continue; }
+                        cursor++;
+                        break;
+                    }
+                    nodes.Add(new ExcelFormulaStringSyntax(formula.Substring(literalStart, cursor - literalStart)));
+                    textStart = cursor;
+                    continue;
+                }
+
+                System.Text.RegularExpressions.Match match =
+                    ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Match(formula, cursor);
+                if (match.Success && match.Index == cursor
+                    && ExcelReference.TryParse(TrimSpill(match.Value), out ExcelReference? reference)) {
+                    AddText(nodes, formula, textStart, cursor - textStart);
+                    nodes.Add(new ExcelFormulaReferenceSyntax(match.Value, reference!));
+                    cursor += match.Length;
+                    textStart = cursor;
+                    continue;
+                }
+
+                if (TryReadStructuredReference(formula, cursor, out int structuredLength, out string? tableName, out string selector)) {
+                    AddText(nodes, formula, textStart, cursor - textStart);
+                    string text = formula.Substring(cursor, structuredLength);
+                    nodes.Add(new ExcelFormulaStructuredReferenceSyntax(text, tableName, selector));
+                    cursor += structuredLength;
+                    textStart = cursor;
+                    continue;
+                }
+
+                if (TryReadName(formula, cursor, out int nameLength)) {
+                    AddText(nodes, formula, textStart, cursor - textStart);
+                    string name = formula.Substring(cursor, nameLength);
+                    nodes.Add(new ExcelFormulaNameSyntax(name, name));
+                    cursor += nameLength;
+                    textStart = cursor;
+                    continue;
+                }
+                cursor++;
+            }
+            AddText(nodes, formula, textStart, formula.Length - textStart);
+            return new ExcelFormulaSyntaxTree(formula, new ReadOnlyCollection<ExcelFormulaSyntaxNode>(nodes));
+        }
+
+        /// <summary>Rewrites reference nodes once while preserving literals and all other syntax.</summary>
+        public string Rewrite(Func<ExcelReference, ExcelReference?> rewriter, ExcelReferenceStyle outputStyle = ExcelReferenceStyle.A1, int anchorRow = 1, int anchorColumn = 1) {
+            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            var builder = new StringBuilder(Text.Length);
+            foreach (ExcelFormulaSyntaxNode node in _nodes) {
+                if (node is not ExcelFormulaReferenceSyntax referenceNode) {
+                    builder.Append(node.Text);
+                    continue;
+                }
+                ExcelReference? rewritten = rewriter(referenceNode.Reference);
+                if (rewritten == null) {
+                    builder.Append("#REF!");
+                    continue;
+                }
+                builder.Append(rewritten.ToString(outputStyle, anchorRow, anchorColumn));
+                if (referenceNode.Text.EndsWith("#", StringComparison.Ordinal)) builder.Append('#');
+            }
+            return builder.ToString();
+        }
+
+        /// <summary>Converts every parsed reference to A1 or R1C1 notation.</summary>
+        public string ConvertReferences(ExcelReferenceStyle outputStyle, int anchorRow = 1, int anchorColumn = 1) =>
+            Rewrite(reference => reference, outputStyle, anchorRow, anchorColumn);
+
+        /// <summary>Rewrites defined-name nodes while preserving all other formula syntax.</summary>
+        public string RewriteNames(Func<string, string?> rewriter) {
+            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            var builder = new StringBuilder(Text.Length);
+            foreach (ExcelFormulaSyntaxNode node in _nodes) {
+                if (node is ExcelFormulaNameSyntax name) builder.Append(rewriter(name.Name) ?? "#REF!");
+                else builder.Append(node.Text);
+            }
+            return builder.ToString();
+        }
+
+        /// <summary>Rewrites structured table-reference nodes while preserving all other formula syntax.</summary>
+        public string RewriteStructuredReferences(Func<string?, string, string?> rewriter) {
+            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            var builder = new StringBuilder(Text.Length);
+            foreach (ExcelFormulaSyntaxNode node in _nodes) {
+                if (node is ExcelFormulaStructuredReferenceSyntax structured) {
+                    builder.Append(rewriter(structured.TableName, structured.Selector) ?? "#REF!");
+                } else {
+                    builder.Append(node.Text);
+                }
+            }
+            return builder.ToString();
+        }
+
+        /// <summary>Rewrites table identifiers in structured and bare table-reference nodes.</summary>
+        public string RewriteTableNames(Func<string, string?> rewriter) {
+            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            var builder = new StringBuilder(Text.Length);
+            foreach (ExcelFormulaSyntaxNode node in _nodes) {
+                if (node is ExcelFormulaStructuredReferenceSyntax structured && structured.TableName != null) {
+                    builder.Append(rewriter(structured.TableName) ?? "#REF!").Append(structured.Selector);
+                } else if (node is ExcelFormulaNameSyntax name) {
+                    builder.Append(rewriter(name.Name) ?? "#REF!");
+                } else {
+                    builder.Append(node.Text);
+                }
+            }
+            return builder.ToString();
+        }
+
+        private static string TrimSpill(string value) => value.EndsWith("#", StringComparison.Ordinal) ? value.Substring(0, value.Length - 1) : value;
+
+        private static bool TryReadStructuredReference(
+            string formula,
+            int start,
+            out int length,
+            out string? tableName,
+            out string selector) {
+            length = 0;
+            tableName = null;
+            selector = string.Empty;
+            int bracketStart = start;
+            if (formula[start] != '[') {
+                if (!IsNameStart(formula[start])) return false;
+                int nameEnd = start + 1;
+                while (nameEnd < formula.Length && IsNamePart(formula[nameEnd])) nameEnd++;
+                if (nameEnd >= formula.Length || formula[nameEnd] != '[') return false;
+                tableName = formula.Substring(start, nameEnd - start);
+                bracketStart = nameEnd;
+            }
+
+            int depth = 0;
+            for (int index = bracketStart; index < formula.Length; index++) {
+                if (formula[index] == '[') depth++;
+                else if (formula[index] == ']') {
+                    depth--;
+                    if (depth == 0) {
+                        length = index - start + 1;
+                        selector = formula.Substring(bracketStart, index - bracketStart + 1);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static bool TryReadName(string formula, int start, out int length) {
+            length = 0;
+            if (!IsNameStart(formula[start])
+                || (start > 0 && IsNamePart(formula[start - 1]))) return false;
+            int index = start + 1;
+            while (index < formula.Length && IsNamePart(formula[index])) index++;
+            int lookahead = index;
+            while (lookahead < formula.Length && char.IsWhiteSpace(formula[lookahead])) lookahead++;
+            if (lookahead < formula.Length && formula[lookahead] == '(') return false;
+            string candidate = formula.Substring(start, index - start);
+            if (string.Equals(candidate, "TRUE", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(candidate, "FALSE", StringComparison.OrdinalIgnoreCase)) return false;
+            length = index - start;
+            return true;
+        }
+
+        private static bool IsNameStart(char value) =>
+            value == '_' || value == '\\' || char.IsLetter(value);
+
+        private static bool IsNamePart(char value) =>
+            IsNameStart(value) || char.IsDigit(value) || value == '.';
+
+        private static void AddText(List<ExcelFormulaSyntaxNode> nodes, string formula, int start, int length) {
+            if (length > 0) nodes.Add(new ExcelFormulaTextSyntax(formula.Substring(start, length)));
+        }
+    }
+}

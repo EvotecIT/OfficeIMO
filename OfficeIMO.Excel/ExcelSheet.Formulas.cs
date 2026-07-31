@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -48,11 +49,6 @@ namespace OfficeIMO.Excel {
 
         private static readonly Regex AnyFunctionFormulaRegex = new Regex(
             @"^\s*=?\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\((.*)\)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled,
-            FormulaRegexTimeout);
-
-        private static readonly Regex FormulaReferenceRegex = new Regex(
-            @"(?<![A-Za-z0-9_\.])(?<reference>(?:(?:'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_ .]*)!)?(?:\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?|\$?[A-Z]{1,3}:\$?[A-Z]{1,3}|\$?\d+:\$?\d+))(?![A-Za-z0-9_\.])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled,
             FormulaRegexTimeout);
 
@@ -318,6 +314,7 @@ namespace OfficeIMO.Excel {
                     this,
                     formulaCells,
                     sharedFormulaDefinitions);
+                Metadata? metadata = _excelDocument.WorkbookPartRoot.CellMetadataPart?.Metadata;
                 var previousCache = _formulaEvaluationCache;
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
@@ -349,6 +346,7 @@ namespace OfficeIMO.Excel {
                             cell.CellReference?.Value,
                             dependencies,
                             dependencyInspectionContext);
+                        ExcelFormulaArrayInfo? arrayInfo = CreateFormulaArrayInfo(cell, metadata);
                         formulas.Add(new ExcelFormulaCellInfo(
                             Name,
                             cell.CellReference?.Value ?? string.Empty,
@@ -358,7 +356,8 @@ namespace OfficeIMO.Excel {
                             supported,
                             supported ? null : GetUnsupportedFormulaReason(formula),
                             dependencies,
-                            dependencyIssues));
+                            dependencyIssues,
+                            arrayInfo));
                     }
                 } finally {
                     _formulaEvaluationCache = previousCache;
@@ -372,6 +371,60 @@ namespace OfficeIMO.Excel {
 
                 return formulas;
             });
+        }
+
+        private static ExcelFormulaArrayInfo? CreateFormulaArrayInfo(
+            Cell cell,
+            Metadata? metadata) {
+            CellFormula? formula = cell.CellFormula;
+            if (formula?.FormulaType?.Value != CellFormulaValues.Array
+                || string.IsNullOrWhiteSpace(formula.Reference?.Value)) {
+                return null;
+            }
+
+            uint? metadataIndex = null;
+            foreach (var attribute in cell.GetAttributes()) {
+                if (string.Equals(attribute.LocalName, "cm", StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(attribute.Value, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed)) {
+                    metadataIndex = parsed;
+                    break;
+                }
+            }
+
+            bool dynamic = false;
+            bool collapsed = false;
+            if (metadataIndex is uint oneBasedMetadataIndex && oneBasedMetadataIndex > 0) {
+                MetadataBlock? cellBlock = metadata?.GetFirstChild<CellMetadata>()?
+                    .Elements<MetadataBlock>()
+                    .ElementAtOrDefault(checked((int)oneBasedMetadataIndex - 1));
+                MetadataType[] types = metadata?.GetFirstChild<MetadataTypes>()?
+                    .Elements<MetadataType>()
+                    .ToArray() ?? Array.Empty<MetadataType>();
+                foreach (MetadataRecord record in cellBlock?.Elements<MetadataRecord>() ?? Enumerable.Empty<MetadataRecord>()) {
+                    uint oneBasedTypeIndex = record.TypeIndex?.Value ?? 0U;
+                    if (oneBasedTypeIndex == 0 || oneBasedTypeIndex > types.Length) continue;
+                    string? typeName = types[oneBasedTypeIndex - 1].Name?.Value;
+                    if (!string.Equals(typeName, "XLDAPR", StringComparison.OrdinalIgnoreCase)) continue;
+                    uint valueIndex = record.Val?.Value ?? uint.MaxValue;
+                    FutureMetadata? future = metadata?.Elements<FutureMetadata>()
+                        .FirstOrDefault(item => string.Equals(item.Name?.Value, typeName, StringComparison.OrdinalIgnoreCase));
+                    FutureMetadataBlock? futureBlock = future?.Elements<FutureMetadataBlock>()
+                        .ElementAtOrDefault(valueIndex > int.MaxValue ? -1 : (int)valueIndex);
+                    OpenXmlElement? properties = futureBlock?.Descendants()
+                        .FirstOrDefault(item => string.Equals(item.LocalName, "dynamicArrayProperties", StringComparison.OrdinalIgnoreCase));
+                    if (properties == null) continue;
+                    string? dynamicValue = properties.GetAttributes()
+                        .FirstOrDefault(item => string.Equals(item.LocalName, "fDynamic", StringComparison.OrdinalIgnoreCase)).Value;
+                    dynamic = !string.Equals(dynamicValue, "0", StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(dynamicValue, "false", StringComparison.OrdinalIgnoreCase);
+                    string? collapsedValue = properties.GetAttributes()
+                        .FirstOrDefault(item => string.Equals(item.LocalName, "fCollapsed", StringComparison.OrdinalIgnoreCase)).Value;
+                    collapsed = dynamic && (string.Equals(collapsedValue, "1", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(collapsedValue, "true", StringComparison.OrdinalIgnoreCase));
+                    break;
+                }
+            }
+            return new ExcelFormulaArrayInfo(formula.Reference!.Value!, dynamic, collapsed, metadataIndex);
         }
 
         /// <summary>

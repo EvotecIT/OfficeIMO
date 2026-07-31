@@ -669,7 +669,8 @@ namespace OfficeIMO.Excel {
                 firstRow,
                 count,
                 budget.Scanned,
-                impacts);
+                impacts,
+                effective);
         }
 
         private void EnsureMutationPlanCanInspectWithoutMaterializing() {

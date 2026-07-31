@@ -336,6 +336,9 @@ namespace OfficeIMO.Excel {
             var previousPackageStream = _packageStream;
             bool keepPackageStream = _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose;
             bool previousDocumentDisposed = false;
+            bool reuseOwnedFileBackedStream = reusablePackageStream == null
+                && _usesFileBackedPackage
+                && _ownedOpenStream != null;
 
             Stream mem;
             if (reusablePackageStream != null) {
@@ -352,6 +355,16 @@ namespace OfficeIMO.Excel {
                 reusablePackageStream.Flush();
                 reusablePackageStream.Position = 0;
                 mem = reusablePackageStream;
+            } else if (reuseOwnedFileBackedStream) {
+                // Keep an explicitly file-backed edit session file-backed after save. The finalized
+                // package bytes are bounded by ExcelSaveOptions before this point and are not retained.
+                try { previousDocument.Dispose(); } catch { }
+                previousDocumentDisposed = true;
+                PrepareDestinationStreamForWrite(_ownedOpenStream!);
+                _ownedOpenStream!.Write(packageBytes, 0, packageBytes.Length);
+                _ownedOpenStream.Flush();
+                _ownedOpenStream.Position = 0;
+                mem = _ownedOpenStream;
             } else {
                 mem = keepPackageStream
                     ? new NonDisposingMemoryStream(packageBytes.Length + 8192)
@@ -371,7 +384,7 @@ namespace OfficeIMO.Excel {
             _sheetCacheDirty = true;
             _packageStream = keepPackageStream ? mem : null;
             ReinitializePackageBoundHelpers();
-            MarkPackageClean(packageBytes, simplePackageContentKnown);
+            MarkPackageClean(reuseOwnedFileBackedStream ? null : packageBytes, simplePackageContentKnown);
 
             if (previousPackageStream != null && !ReferenceEquals(previousPackageStream, mem)) {
                 DisposeStream(previousPackageStream);

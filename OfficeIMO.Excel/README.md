@@ -165,24 +165,30 @@ document["Sales"].AppendDataTableToTable(rows, "SalesTable");
 document.Save();
 ```
 
-### Insert and delete worksheet rows
+### Plan and apply structural edits
 
 ```csharp
 using var document = ExcelDocument.Load("report.xlsx");
 var sheet = document["Data"];
 
-// Insert two blank rows immediately before row 5.
-sheet.InsertRows(firstRow: 5, count: 2);
+var plan = sheet.PlanInsertColumns(firstColumn: 2, count: 2);
+Console.WriteLine($"{plan.AffectedCells} cells; {plan.Impacts.Count} impact groups");
+ExcelMutationResult result = plan.Apply();
 
-// Delete row 12 and shift following rows up.
-sheet.DeleteRows(firstRow: 12);
+sheet.InsertRowsTransactional(firstRow: 5, count: 2);
+sheet.Range("A2:C20").CopyTo("E2");
+sheet.Range("E2:G20").MoveTo("I2");
+sheet.Range("A2:C20").TransposeTo("M2");
 
 document.Save();
 ```
 
-Structural row edits update workbook-owned formulas and names, tables and
-filters, validations, conditional formatting, merges, links, comments,
-drawings, charts, sparklines, pivot sources, and print-related row metadata.
+Transactional row, column, and cell-shift edits update workbook-owned formulas
+and names, tables and filters, validations, conditional formatting, merges,
+links, comments, drawings, charts, sparklines, pivot sources, print definitions,
+allowed-edit ranges, and ignored-error regions. Copy, move, and transpose use the
+same bounded dry-run and diagnostic contract. Existing direct row and column
+methods remain available for callers that have already performed their own gate.
 Formula results are marked dirty and the workbook requests recalculation on
 open. Shared formulas are materialized into equivalent normal formulas before
 the edit so that each member can be rewritten independently.
@@ -190,7 +196,41 @@ the edit so that each member can be rewritten independently.
 The operation rejects edits that would cross an array-formula boundary or
 PivotTable output, remove a table header or totals row, or move a dependent
 reference beyond Excel's row limit. Remove, move, or resize that owned structure
-first. Column and cell-shift mutations remain separate roadmap work.
+first. Configure scan, affected-cell, rollback-snapshot, and diagnostic budgets
+through `ExcelMutationPlanOptions`.
+
+### Reference-aware formulas and native cell images
+
+`ExcelReference` parses and converts A1 and R1C1 cells, ranges, whole rows, and
+whole columns and provides intersection, union, subtraction, containment, and
+offset operations. `ExcelFormulaSyntaxTree` is the shared lossless rewriter used
+for formulas, defined names, structured table references, chart formulas, pivot
+sources, print definitions, and structural edits. `SearchFormulas` searches by
+text, function, or intersecting parsed reference; formula inspection reports
+authored, cached, evaluated, dirty, deferred, unsupported, and dynamic-array
+state explicitly.
+
+Use `SetInCellImage`, `GetInCellImages`, and `RemoveInCellImage` for native rich-
+value images. Their metadata follows cell sorting, filtering, sizing, copying,
+moving, and structural edits; they are distinct from floating drawing images.
+
+### File-backed editing for large workbooks
+
+```csharp
+using var document = ExcelDocument.OpenFileBacked(
+    "large-report.xlsx",
+    new ExcelLoadOptions { MaxInputBytes = 2L * 1024 * 1024 * 1024 },
+    cancellationToken);
+
+document["Data"].CellValue(2, 2, "Updated");
+document.Save();
+```
+
+`OpenFileBacked` stages the editable Open XML package in an owner-only temporary
+file, copies with fixed memory and deterministic cancellation, and honors load
+and Open XML part limits. The normal `Load`, direct writer, streaming reader,
+and unchanged-package fast paths are unchanged. XLS and XLSB projection continue
+to use `Load`.
 
 ### Validation lists and typed reads
 
@@ -305,7 +345,7 @@ chart.SetPivotSource("SalesPivot");
 document.Save();
 ```
 
-Pivot support is useful but still marked partial in the compatibility matrix. It covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, guarded source updates, and readback. Slicer and timeline pivot/field bindings can be validated and persisted as OfficeIMO-owned metadata without pretending to be native Excel cache parts; native cache structures and UI shapes remain open work.
+Pivot support covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, shared-cache-aware source updates, refresh-on-open, and readback. Slicer and timeline pivot/field bindings can be validated and persisted as OfficeIMO-owned metadata without pretending to be native Excel UI shapes. Native imported cache parts, ChartEx parts, connection/query metadata, and their relationships are preserved and reported when OfficeIMO does not own their complete authoring model.
 
 ### Formula inspection and calculation policy
 

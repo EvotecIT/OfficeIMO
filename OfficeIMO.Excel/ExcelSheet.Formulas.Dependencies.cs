@@ -199,15 +199,15 @@ namespace OfficeIMO.Excel {
             int? sourceColumn) {
             string localReferenceFormula = MaskFormulaNonLocalReferenceSegments(valueDependencyFormula);
             string directReferenceFormula = MaskFormulaStructuredReferenceSegments(localReferenceFormula);
-            List<FormulaDependencyReferenceMatch> dependencyMatches = FormulaReferenceRegex.Matches(directReferenceFormula)
+            List<FormulaDependencyReferenceMatch> dependencyMatches = ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
                     .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
                     .Where(match => !IsFormulaDependencyFunctionToken(searchableFormula, match))
-                    .Where(match => !string.IsNullOrWhiteSpace(match.Groups["reference"].Value))
+                    .Where(match => !string.IsNullOrWhiteSpace(match.Value))
                     .Select(match => new FormulaDependencyReferenceMatch(
                         match.Index,
                         match.Length,
-                        match.Groups["reference"].Value))
+                        match.Value))
                     .ToList();
             IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(searchableFormula);
             foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(valueDependencyFormula)) {

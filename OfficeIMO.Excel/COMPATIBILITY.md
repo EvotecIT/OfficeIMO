@@ -1,6 +1,6 @@
 # OfficeIMO.Excel compatibility
 
-This matrix describes the current workbook contract. “Partial” means useful behavior exists with an explicit preservation, mutation, rendering, or interoperability boundary. Open Excel work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
+This matrix describes the current workbook contract. “Partial” means useful behavior exists with an explicit preservation, mutation, rendering, or interoperability boundary.
 
 ## Formats
 
@@ -18,13 +18,13 @@ The detailed legacy contracts are documented in [XLS/XLSX compatibility](../Docs
 | --- | --- | --- |
 | Create/load/save | Supported | File, byte, and caller-owned stream workflows share deterministic lifecycle behavior; remote HTTPS loading uses explicit limits and detached save semantics |
 | Typed reads | Supported | Rows, streaming rows, objects, dictionaries, `DataTable`, and range projections with deterministic header matching and ambiguity diagnostics |
-| Large-workbook generation | Supported for documented shapes | Direct data paths, automatic eligible package writers, deferred AutoFit saves, streaming reads, budgets, and cancellation are described in the [large-workbook guide](../Docs/officeimo.excel.large-workbook-guidance.md) |
-| Structural edits | Partial | Row insertion/deletion rewrites workbook-owned references and rejects array/pivot/table ownership conflicts; column/cell shifts, copy/move/transpose, and the general reference rewriter remain open |
-| Tables, names, filters, validation, and formatting | Broad | Common authoring, readback, mutation, and preservation paths are supported; advanced filter state, range algebra, reusable style models, and complete edit/remove lifecycles remain bounded |
+| Large-workbook generation and editing | Supported for documented shapes | Direct data paths, automatic eligible package writers, deferred AutoFit saves, streaming reads, file-backed Open XML editing, budgets, and cancellation are described in the [large-workbook guide](../Docs/officeimo.excel.large-workbook-guidance.md) |
+| Structural edits | Supported with ownership guards | Transactional row, column, and cell shifts plus copy, move, and transpose expose bounded dry-runs, rollback, and package diagnostics; unsafe array, pivot, table, and worksheet-boundary conflicts fail before commit |
+| Tables, names, filters, validation, and formatting | Broad | Table schema/resize, AutoFilter state and criteria, reference-aware names, range algebra, named styles, conditional formatting, views, print state, allowed-edit regions, ignored errors, and sparkline lifecycles have public read/mutate/remove paths |
 | Charts | Broad authoring, partial imported mutation | Common, 3-D, radar, stock, surface, combo, dashboard, and compatible modern-chart recipes are available; native ChartEx and complete imported-chart mutation are not claimed |
-| Pivot tables | Partial | Worksheet-source pivots cover common fields, layouts, values, grouping, filters, calculated fields, styles, and source refresh; native slicer/timeline UI structures, query-backed sources, and advanced shared-cache lifecycle remain bounded |
-| Formulas | Partial | Authoring, inspection, dependency graphs, custom application functions, and a documented reporting-oriented evaluator are available; unsupported formulas remain intact and can be delegated to Excel through recalculation settings |
-| Templates | Broad | Typed marker binding, repeating/optional rows and sheets, Custom XML/content-control mapping, images, diagnostics, and preservation-aware relationship cloning are available; complex imported relationship graphs remain capability-diagnosed |
+| Pivot tables | Broad, with native UI preservation boundaries | Worksheet-source pivots cover common fields, layouts, values, grouping, filters, calculated fields, styles, shared-cache-aware source updates, and refresh metadata; native slicer/timeline UI authoring and query execution are not claimed |
+| Formulas | Broad authoring/inspection, bounded evaluation | One syntax tree owns A1/R1C1 conversion and reference rewriting across formula-bearing structures; inspection distinguishes authored, cached, evaluated, dirty, deferred, unsupported, and dynamic-array state; unsupported calculations remain intact for Excel |
+| Templates | Broad | Typed marker binding, repeating/optional rows and sheets, Custom XML/content-control mapping, floating and native in-cell images, diagnostics, and preservation-aware relationship cloning are available; unowned imported relationship graphs remain capability-diagnosed |
 | Comments and collaboration | Partial | Legacy comments and common threaded-comment read/update/resolve/remove workflows are supported; complete collaboration authoring semantics are not claimed |
 | Macros and embedded payloads | Inspect/preserve/manage | VBA, package, OLE, and ActiveX payloads can be inventoried, hashed, extracted, attached/replaced/removed through bounded package operations; OfficeIMO does not execute VBA or provide a full OLE/ActiveX editor |
 | Protection and encryption | Broad | OOXML password encryption plus supported legacy password import are separate from worksheet/workbook protection; permission fidelity remains format-specific |
@@ -58,7 +58,7 @@ PDF output uses the Excel print model and the shared PDF/Drawing owners. Route e
 
 `ExcelLoadOptions.PackageSecurity` applies shared limits and policy to Open XML, XLSB, and compound XLS inputs before parsing. Secure defaults retain compatible active content within structural limits; untrusted defaults reject active and external content. Typed findings identify the rejecting rule and part.
 
-Unknown or preservation-sensitive content is inspected before mutation. A successful save is not treated as evidence that every feature remained editable.
+Unknown or preservation-sensitive content is inspected before mutation. Relationship-backed drawings, workbook structures, charts, modern-chart parts, pivot/query metadata, and template bindings are retained through load/clone/edit/save paths covered by the package-preservation corpus. A successful save is not treated as evidence that every feature became editable.
 
 ## Performance evidence
 

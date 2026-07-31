@@ -183,13 +183,12 @@ namespace OfficeIMO.Excel {
 
                 cell ??= GetCell(targetRow, column);
                 cell.RemoveAllChildren();
-                cell.CellFormula = null;
-                cell.CellValue = null;
-                cell.DataType = null;
-                cell.StyleIndex = null;
-
-                cell.DataType = source.DataType;
-                cell.StyleIndex = source.StyleIndex;
+                List<OpenXmlAttribute> sourceAttributes = source.GetAttributes()
+                    .Where(attribute => !(attribute.LocalName == "r" && attribute.NamespaceUri.Length == 0))
+                    .ToList();
+                cell.ClearAllAttributes();
+                cell.SetAttributes(sourceAttributes);
+                cell.CellReference = A1.CellReference(targetRow, column);
                 if (source.CellFormula != null) {
                     var formula = (CellFormula)source.CellFormula.CloneNode(true);
                     if (!string.IsNullOrEmpty(formula.Text)) {

@@ -52,6 +52,22 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>Plans and transactionally inserts rows with bounded rollback and post-edit diagnostics.</summary>
+        public ExcelMutationResult InsertRowsTransactional(
+            int firstRow,
+            int count = 1,
+            ExcelMutationPlanOptions? options = null,
+            System.Threading.CancellationToken cancellationToken = default) =>
+            PlanInsertRows(firstRow, count, options).ApplyWithDiagnostics(cancellationToken);
+
+        /// <summary>Plans and transactionally deletes rows with bounded rollback and post-edit diagnostics.</summary>
+        public ExcelMutationResult DeleteRowsTransactional(
+            int firstRow,
+            int count = 1,
+            ExcelMutationPlanOptions? options = null,
+            System.Threading.CancellationToken cancellationToken = default) =>
+            PlanDeleteRows(firstRow, count, options).ApplyWithDiagnostics(cancellationToken);
+
         internal void ApplyStructuralRowMutationPlan(
             ExcelRowMutationKind kind,
             int firstRow,
