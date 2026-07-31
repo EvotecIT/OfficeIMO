@@ -374,6 +374,34 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`ForHighResolution(...)`", migration, StringComparison.Ordinal);
         Assert.Contains("`OfficeImageExportFileConflictPolicy.FailIfExists`", migration, StringComparison.Ordinal);
         Assert.Contains("`Replace` or `CreateUnique`", migration, StringComparison.Ordinal);
+        Assert.Contains("`AllowSystemFontEmbedding`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ResourcePolicy.AllowSystemFontEmbedding`", migration, StringComparison.Ordinal);
+        Assert.Contains("Markdown `IncludeLocalImages`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ResourcePolicy.AllowLocalFileAccess`", migration, StringComparison.Ordinal);
+        Assert.Contains("Markdown `IncludeDataUriImages`", migration, StringComparison.Ordinal);
+        Assert.Contains("`ResourcePolicy.AllowDataUris`", migration, StringComparison.Ordinal);
+        string[] retainedLegacyMigrationNames = {
+            "`SheetComposer.DefinitionList(...)`",
+            "`PowerPointUnits.Cm/Mm/Inches/Points(...)`",
+            "`VisioDocument.UseMastersFromTemplate(...)`",
+            "`OrderedListBlock.ListItems` / `UnorderedListBlock.ListItems`",
+            "`ListItem.Children`",
+            "`QuoteBlock.Children` / `DetailsBlock.Children`",
+            "`TableCell.Blocks` / `DefinitionListDefinition.Blocks`",
+            "`FootnoteDefinitionBlock.Blocks`",
+            "tuple-based `DefinitionListBlock.Items`",
+            "`OutlookContact.Email1Address`",
+            "phone compatibility properties",
+            "`TrackComments`",
+            "`AsciiDocPdfSaveOptions.PdfOptions`",
+            "`LatexPdfSaveOptions.PdfOptions`",
+            "`OneNotePdfSaveOptions.PdfOptions`",
+            "`SavePdfAsWord()` / `SavePdfAsRtf()`",
+            "`SavePdfTablesAsExcel/Word/PowerPoint()`"
+        };
+        foreach (string legacyName in retainedLegacyMigrationNames) {
+            Assert.Contains(legacyName, migration, StringComparison.Ordinal);
+        }
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", migration, StringComparison.Ordinal);
 

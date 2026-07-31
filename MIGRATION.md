@@ -205,13 +205,30 @@ Reusable options contain configuration only. Read diagnostics from the operation
 | `ExcelDocument.CreateTableOfContents(...)` | `AddTableOfContents(...)` |
 | `ExcelSheet.SetCellValues(...)` | `CellValues(...)` |
 | `ExcelSheet.CellValuesParallel(...)` | `CellValues(..., ExecutionMode.Parallel)` |
+| `SheetComposer.DefinitionList(...)` | `SheetComposer.PropertiesGrid(...)` |
+| `PowerPointUnits.Cm/Mm/Inches/Points(...)` | `FromCentimeters/FromMillimeters/FromInches/FromPoints(...)` |
+| `VisioDocument.UseMastersFromTemplate(...)` | `LearnMastersFromVsdx(...)` |
+| `OrderedListBlock.ListItems` / `UnorderedListBlock.ListItems` | `Items` |
+| `ListItem.Children` | `NestedBlocks` |
+| `QuoteBlock.Children` / `DetailsBlock.Children` | `ChildBlocks` |
+| `TableCell.Blocks` / `DefinitionListDefinition.Blocks` | `ChildBlocks` |
+| `FootnoteDefinitionBlock.Blocks` | `ChildBlocks` |
+| tuple-based `DefinitionListBlock.Items` | typed `Groups`, `Entries`, and `AddEntry(...)` |
 | `MarkdownDoc.SaveHtml(...)` | `SaveAsHtml(...)` |
+| `OutlookContact.Email1Address` | `OutlookContact.Email1.Address` |
+| phone compatibility properties | `OutlookContact.Phones` |
+| `TrackComments` | No replacement; use `TrackChanges` or `Settings.TrackRevisions` for revision tracking. |
 | `ToPdfResult()` | `ToPdfDocumentResult()` |
 | `HtmlPdfSaveOptions.DocumentOptions` | `HtmlPdfSaveOptions.PdfOptions` |
+| `AsciiDocPdfSaveOptions.PdfOptions` | `AsciiDocPdfSaveOptions.MarkdownOptions` |
+| `LatexPdfSaveOptions.PdfOptions` | `LatexPdfSaveOptions.MarkdownOptions` |
+| `OneNotePdfSaveOptions.PdfOptions` | `OneNotePdfSaveOptions.MarkdownOptions` |
 | PDF `ToWordResult()` | `ToWordDocumentResult()` |
 | `PdfSaveResult.ConversionWarnings` | `Warnings` and `Report` |
 | `RtfDocument.ToMemoryStream()` | `ToStream()` |
 | `ToRtfMemoryStream()` | `ToRtfStream()` |
+| `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWord()` / `SaveAsRtf()` on `PdfDocument` |
+| `SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveAsExcel()` / `SaveAsWordDocument()` / `SaveAsPowerPoint()` |
 | `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |
 
 Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`. Replace the removed scale presets as follows:
@@ -223,7 +240,15 @@ Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `
 
 Image file saves now default to `OfficeImageExportFileConflictPolicy.FailIfExists`. A repeated write to the same path therefore throws unless the caller explicitly selects `Replace` or `CreateUnique` with `OnFileConflict(...)`.
 
-PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches. Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
+PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches. Replace the removed switches as follows:
+
+| Removed member | Replacement |
+| --- | --- |
+| `AllowSystemFontEmbedding` | `ResourcePolicy.AllowSystemFontEmbedding` or `PdfResourcePolicy.CreateTrustedHost()` |
+| Markdown `IncludeLocalImages` | `IncludeImages` plus `ResourcePolicy.AllowLocalFileAccess` |
+| Markdown `IncludeDataUriImages` | `IncludeImages` plus `ResourcePolicy.AllowDataUris` |
+
+Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
 
 ## Upgrade checklist
 
