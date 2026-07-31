@@ -293,6 +293,32 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_SaveTablesAsExcel_DoesNotInferRatiosAsDates() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Ratio", "Label" },
+                new[] { "1/2", "Half" },
+                new[] { "3/4", "Three quarters" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 120, 160 }
+            })
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportReport report = LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions { AutoFitColumns = false });
+
+        PdfExcelTableImportEntry entry = Assert.Single(report.Entries);
+        Assert.Equal(PdfExcelTableColumnKind.Text, entry.ColumnKinds[0]);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal("1/2", values[1, 0]);
+        Assert.Equal("3/4", values[2, 0]);
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsExcel_KeepsPositionedCellRecoveryBoundedAndTableOnly() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 640,

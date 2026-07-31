@@ -52,6 +52,7 @@ internal static partial class PdfPageImageRenderer {
                 results.Add(result);
             }
 
+            execution.ThrowIfCancellationRequested();
             return results.AsReadOnly();
         } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
             throw execution.CreateTimeoutException(exception);

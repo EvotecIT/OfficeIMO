@@ -473,6 +473,21 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public async Task BatchRenderTimeoutIsCheckedAfterCancellationUnawareDelegatesReturn() {
+        var timeout = TimeSpan.FromTicks(1);
+        var builder = new UncooperativeTimeoutImageExportBatchBuilder(new TestImageExportOptions())
+            .WithRenderTimeout(timeout);
+
+        OfficeImageExportTimeoutException synchronous = Assert.Throws<OfficeImageExportTimeoutException>(
+            () => builder.Export());
+        OfficeImageExportTimeoutException asynchronous = await Assert.ThrowsAsync<OfficeImageExportTimeoutException>(
+            () => builder.ExportAsync());
+
+        Assert.Equal(timeout, synchronous.Timeout);
+        Assert.Equal(timeout, asynchronous.Timeout);
+    }
+
+    [Fact]
     public void CallerCancellationTakesPrecedenceOverRenderTimeout() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

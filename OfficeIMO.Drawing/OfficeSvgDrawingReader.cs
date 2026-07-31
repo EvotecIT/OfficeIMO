@@ -210,14 +210,35 @@ public static partial class OfficeSvgDrawingReader {
             if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             return;
         }
-        if (name == "use") {
-            AddReferencedElement(element, drawing, style, paintServers, references, transform, viewX, viewY,
-                maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
-                ref visited, ref pathCommands, ref unsupported);
-            return;
-        }
-        if (name == "text") {
-            AddText(element, drawing, style, paintServers, transform, viewX, viewY, ref unsupported);
+        if (name is "use" or "text") {
+            bool hasEffects = TryResolveSvgEffects(
+                element,
+                drawing.Width,
+                drawing.Height,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref unsupported,
+                out OfficeBlendMode blendMode,
+                out OfficeDrawingSoftMask? softMask);
+            OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+            if (name == "use") {
+                AddReferencedElement(element, target, style, paintServers, references, transform, viewX, viewY,
+                    maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                    ref visited, ref pathCommands, ref unsupported);
+            } else {
+                AddText(element, target, style, paintServers, transform, viewX, viewY, ref unsupported);
+            }
+            if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             return;
         }
 

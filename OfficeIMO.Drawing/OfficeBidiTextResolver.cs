@@ -8,10 +8,11 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>One logical text run with an explicit resolved paint direction.</summary>
 public sealed class OfficeBidiTextRun {
-    internal OfficeBidiTextRun(string text, OfficeTextDirection direction, int embeddingLevel) {
+    internal OfficeBidiTextRun(string text, OfficeTextDirection direction, int embeddingLevel, int logicalOrder) {
         Text = text;
         Direction = direction;
         EmbeddingLevel = embeddingLevel;
+        LogicalOrder = logicalOrder;
     }
 
     /// <summary>Text with Unicode bidi formatting controls removed.</summary>
@@ -19,6 +20,9 @@ public sealed class OfficeBidiTextRun {
 
     /// <summary>Resolved direction for this run.</summary>
     public OfficeTextDirection Direction { get; }
+
+    /// <summary>Zero-based run order in the logical source text.</summary>
+    public int LogicalOrder { get; }
 
     internal int EmbeddingLevel { get; }
 }
@@ -76,6 +80,30 @@ public static class OfficeBidiTextResolver {
         }
         Flush(runs, value, lastDirection, lastLevel);
         return runs.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Resolves directional runs in visual placement order while retaining logical text order inside each run.
+    /// </summary>
+    public static IReadOnlyList<OfficeBidiTextRun> ResolveVisualRuns(
+        string? text,
+        OfficeTextDirection baseDirection = OfficeTextDirection.Auto) {
+        return ResolveVisualRuns(text, baseDirection, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Resolves directional runs in visual placement order while retaining logical text order inside each run.
+    /// </summary>
+    public static IReadOnlyList<OfficeBidiTextRun> ResolveVisualRuns(
+        string? text,
+        OfficeTextDirection baseDirection,
+        CancellationToken cancellationToken) {
+        IReadOnlyList<OfficeBidiTextRun> runs = ResolveRuns(text, baseDirection, cancellationToken);
+        var visualRuns = runs
+            .Select(static run => new VisualElement<OfficeBidiTextRun>(run, run.EmbeddingLevel))
+            .ToList();
+        ReorderByEmbeddingLevel(visualRuns, cancellationToken);
+        return visualRuns.Select(static run => run.Value).ToArray();
     }
 
     /// <summary>Returns paint-order text after applying bounded embeddings, overrides, and isolates.</summary>
@@ -283,7 +311,7 @@ public static class OfficeBidiTextResolver {
 
     private static void Flush(List<OfficeBidiTextRun> runs, StringBuilder value, OfficeTextDirection direction, int level) {
         if (value.Length == 0) return;
-        runs.Add(new OfficeBidiTextRun(value.ToString(), direction, level));
+        runs.Add(new OfficeBidiTextRun(value.ToString(), direction, level, runs.Count));
         value.Clear();
     }
 

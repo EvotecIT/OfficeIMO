@@ -4313,6 +4313,16 @@ public partial class DrawingTests {
         }
     }
 
+    private sealed class UncooperativeTimeoutImageExportBatchBuilder : OfficeImageExportBatchBuilder<UncooperativeTimeoutImageExportBatchBuilder, TestImageExportOptions> {
+        internal UncooperativeTimeoutImageExportBatchBuilder(TestImageExportOptions options)
+            : base(
+                options,
+                static (_, _) => Array.Empty<OfficeImageExportResult>(),
+                static (_, _, _, _) => { },
+                static (_, _, _, _) => Task.CompletedTask) {
+        }
+    }
+
     private static IReadOnlyList<OfficeImageExportResult> CreateTestBatchResults(
         OfficeImageExportFormat format,
         TestImageExportOptions current,

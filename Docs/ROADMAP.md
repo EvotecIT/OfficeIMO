@@ -46,7 +46,15 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Keep generated Visio galleries structurally validated and visually reviewed across representative diagram families.
 - [ ] Harden optional desktop-reference validation without making Microsoft Office or Visio a runtime dependency.
 
-## Image-export evidence
+## PDF, HTML, and image rendering
+
+- [ ] Expand arbitrary-producer PDF rendering for Type 3/CFF fonts, ICC and currently unsupported color spaces, advanced patterns, and incomplete optional-content cases while keeping every fallback diagnosed and bounded.
+- [ ] Deepen PDF annotation, form, tagged-structure, searchable-text, outline, metadata, encryption-profile, signature-validation, redaction-verification, and source-conversion evidence against cross-producer fixtures.
+- [ ] Complete the remaining HTML cascade, shaping, bidi, inline-layout, intrinsic-sizing, table, flex, grid, multicolumn, pagination, page-master, fragmentation, and advanced SVG cases recorded as partial in the support matrix.
+- [ ] Expand hostile-input, fuzz, aggregate-budget, timeout, cancellation, deterministic-output, and approved visual-baseline coverage across PDF, HTML, SVG, and raster paths at representative sizes, DPI values, fonts, and platforms.
+- [ ] Keep `OfficeIMO.Drawing` as the reusable owner for codecs, placement, text layout, shapes, paths, colors, gradients, clipping, effects, and batch-export policy while format adapters remain thin.
+
+### Image-export evidence
 
 - [ ] Extend `OfficeIMO.Drawing` with reusable bounded codec, geometry, text-shaping, image, chart, streaming, cancellation, budget, and diagnostic contracts needed by more than one document package.
 - [ ] Burn down `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Word` visual-fidelity gaps with focused fixtures for worksheet objects and styling, slide inheritance and grouped content, and estimated Word pagination, overflow, and fallback reporting.

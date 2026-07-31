@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace OfficeIMO.Drawing;
@@ -7,6 +8,7 @@ namespace OfficeIMO.Drawing;
 internal sealed class OfficeImageExportExecutionScope : IDisposable {
     private readonly CancellationToken _callerCancellationToken;
     private readonly TimeSpan _timeout;
+    private readonly Stopwatch? _timer;
     private readonly CancellationTokenSource? _timeoutCancellation;
     private readonly CancellationTokenSource? _linkedCancellation;
 
@@ -18,6 +20,7 @@ internal sealed class OfficeImageExportExecutionScope : IDisposable {
             return;
         }
 
+        _timer = Stopwatch.StartNew();
         _timeoutCancellation = new CancellationTokenSource();
         _timeoutCancellation.CancelAfter(timeout);
         _linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
@@ -32,6 +35,14 @@ internal sealed class OfficeImageExportExecutionScope : IDisposable {
         TimeSpan timeout,
         CancellationToken callerCancellationToken) =>
         new OfficeImageExportExecutionScope(timeout, callerCancellationToken);
+
+    internal void ThrowIfCancellationRequested() {
+        _callerCancellationToken.ThrowIfCancellationRequested();
+        if (_timer != null && _timer.Elapsed >= _timeout) {
+            throw new OfficeImageExportTimeoutException(_timeout);
+        }
+        Token.ThrowIfCancellationRequested();
+    }
 
     internal bool IsTimeoutCancellation(OperationCanceledException exception) =>
         _timeoutCancellation != null &&

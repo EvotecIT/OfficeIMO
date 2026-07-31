@@ -325,8 +325,24 @@ namespace OfficeIMO.Excel.Pdf {
             string name = columnName.Trim().ToLowerInvariant();
             string[] hints = { "date", "time", "due", "created", "updated", "modified", "issued", "expiry", "expires", "start", "end" };
             if (hints.Any(name.Contains)) return true;
-            return values.All(static value => value.IndexOf('-') >= 0 || value.IndexOf('/') >= 0 || value.IndexOf(':') >= 0);
+            return values.All(static value => DateTime.TryParseExact(
+                value.Trim(),
+                UnambiguousDateTimeFormats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces,
+                out _));
         }
+
+        private static readonly string[] UnambiguousDateTimeFormats = {
+            "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd",
+            "yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm", "yyyy/MM/dd HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK",
+            "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "MM-dd-yyyy", "dd.MM.yyyy",
+            "dd/MM/yyyy HH:mm", "MM/dd/yyyy HH:mm",
+            "dd-MM-yyyy HH:mm", "MM-dd-yyyy HH:mm", "dd.MM.yyyy HH:mm"
+        };
 
         private static string GetUniqueColumnName(string? value, int index, ISet<string> usedColumns) {
             string baseName = string.IsNullOrWhiteSpace(value)

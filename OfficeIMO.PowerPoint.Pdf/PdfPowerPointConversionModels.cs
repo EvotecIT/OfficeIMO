@@ -140,7 +140,9 @@ public sealed class PdfPowerPointConversionReport {
         TableEntries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
         SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
-        Warnings = CreateProjectionWarnings(SourceScope, contentRetainedVisually: true);
+        Warnings = CreateProjectionWarnings(
+            SourceScope,
+            contentRetainedVisually: VisualPages.Count > 0 && VisualPages.All(static page => page.Succeeded));
     }
 
     /// <summary>Gets the conversion strategy used for this operation.</summary>
@@ -160,7 +162,10 @@ public sealed class PdfPowerPointConversionReport {
 
     /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
     public bool HasOmittedPageContent =>
-        Mode == PdfPowerPointImportMode.EditableTables && SourceScope?.HasOmittedPageContent == true;
+        SourceScope?.HasOmittedPageContent == true &&
+        (Mode == PdfPowerPointImportMode.EditableTables ||
+         Mode == PdfPowerPointImportMode.HybridVisualAndEditableTables &&
+         VisualPages.Any(static page => !page.Succeeded));
 
     /// <summary>Gets whether source content exists outside editable table overlays, even when retained in the hybrid visual layer.</summary>
     public bool HasNonEditablePageContent => SourceScope?.HasOmittedPageContent == true;

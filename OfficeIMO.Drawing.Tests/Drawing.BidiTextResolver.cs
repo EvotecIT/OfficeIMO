@@ -42,6 +42,20 @@ public partial class Drawing {
     }
 
     [Fact]
+    public void BidiTextResolver_ExposesVisualRunOrderWithoutReversingRunText() {
+        string logical = "A\u2067שלום abc\u2069B";
+
+        IReadOnlyList<OfficeBidiTextRun> runs = OfficeBidiTextResolver.ResolveVisualRuns(
+            logical,
+            OfficeTextDirection.LeftToRight);
+
+        int latinIndex = runs.ToList().FindIndex(static run => run.Text.Contains("abc", StringComparison.Ordinal));
+        int hebrewIndex = runs.ToList().FindIndex(static run => run.Text.Contains("שלום", StringComparison.Ordinal));
+        Assert.True(latinIndex >= 0 && hebrewIndex >= 0 && latinIndex < hebrewIndex);
+        Assert.Contains(runs, static run => run.Text.Contains("שלום", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void BidiTextResolver_OverflowControlsCannotPopAnAcceptedEmbedding() {
         string logical = "A\u202B" + new string('\u202A', 200) + new string('\u202C', 200) + "שלום\u202CB";
 

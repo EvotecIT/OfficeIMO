@@ -275,11 +275,12 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
 
             if (_exportEach != null) {
                 _exportEach(_format, effective, Accept, execution.Token);
+                execution.ThrowIfCancellationRequested();
                 return;
             }
 
             foreach (OfficeImageExportResult result in _export(_format, effective)) Accept(result);
-            execution.Token.ThrowIfCancellationRequested();
+            execution.ThrowIfCancellationRequested();
         } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
             throw execution.CreateTimeoutException(exception);
         }
@@ -315,6 +316,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         try {
             if (_exportEachAsync != null) {
                 await _exportEachAsync(_format, effective, AcceptAsync, operationCancellationToken).ConfigureAwait(false);
+                execution.ThrowIfCancellationRequested();
                 return;
             }
 
@@ -322,6 +324,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
                 IReadOnlyList<OfficeImageExportResult> asyncResults =
                     await _exportAsync(_format, effective, operationCancellationToken).ConfigureAwait(false);
                 foreach (OfficeImageExportResult result in asyncResults) await AcceptAsync(result, operationCancellationToken).ConfigureAwait(false);
+                execution.ThrowIfCancellationRequested();
                 return;
             }
 
@@ -348,13 +351,14 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
                     linkedCancellation.Cancel();
                     await producer.ConfigureAwait(false);
                 }
+                execution.ThrowIfCancellationRequested();
                 return;
             }
 
             foreach (OfficeImageExportResult result in _export(_format, effective)) {
                 await AcceptAsync(result, operationCancellationToken).ConfigureAwait(false);
             }
-            operationCancellationToken.ThrowIfCancellationRequested();
+            execution.ThrowIfCancellationRequested();
         } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
             throw execution.CreateTimeoutException(exception);
         }

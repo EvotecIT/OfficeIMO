@@ -1662,6 +1662,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_PositionsNestedLtrIsolateRunBeforeItsHebrewRun() {
+        const string html = "<p style='margin:0;width:240px'>A\u2067שלום abc\u2069B</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "Aשלום abcB");
+        HtmlRenderText latin = Assert.Single(group.Visuals.OfType<HtmlRenderText>(), run => run.Text.Contains("abc", StringComparison.Ordinal));
+        IReadOnlyList<HtmlRenderText> hebrew = group.Visuals
+            .OfType<HtmlRenderText>()
+            .Where(run => run.Text.Length == 1 && "שלום".Contains(run.Text, StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal("Aשלום abcB", group.Text);
+        Assert.Equal(4, hebrew.Count);
+        Assert.True(latin.X < hebrew.Min(static run => run.X));
+    }
+
+    [Fact]
     public void HtmlRenderer_ResolvesLogicalTextAlignmentAgainstElementDirection() {
         const string html = "<div style='width:160px'><p id='start' dir='rtl' style='margin:0'>Start</p><p id='end' dir='rtl' style='margin:0;text-align:end'>End</p><p id='left' dir='rtl' style='margin:0;text-align:left'>Left</p></div>";
 

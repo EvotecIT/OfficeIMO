@@ -225,6 +225,12 @@ public class PowerPointPdfTableImportTests {
 
         Assert.False(Assert.Single(result.Report.VisualPages).Succeeded);
         Assert.Single(result.Report.TableEntries);
+        Assert.True(result.Report.HasOmittedPageContent);
+        Assert.Contains(
+            result.Warnings,
+            warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
+                       warning.Details.TryGetValue("Disposition", out string? disposition) &&
+                       disposition == "Omitted");
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
         using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
