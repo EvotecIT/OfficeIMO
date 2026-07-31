@@ -80,6 +80,26 @@ if ($comparisonRunnerText -notmatch 'if \(\$catalogEligible -and \$gitDirty\)' -
     throw 'Catalog-eligible benchmark runs do not enforce source-commit provenance from a clean worktree.'
 }
 
+$caseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
+    Scenario = 'OfficeIMO_WriteDataReader'
+    Variables = [ordered]@{
+        RowCount = '25000&Shape=Mixed'
+        Namespace = 'OfficeIMO.CSV.Benchmarks'
+        Type = 'CsvDataReaderWriteBenchmarks'
+        FullName = 'ignored'
+    }
+})
+if ($caseIdentity -ne 'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed' -or
+    $comparisonRunnerText -notmatch 'OfficeIMO_WriteDataReader\|RowCount=25000&Shape=Mixed' -or
+    $comparisonRunnerText -notmatch 'OfficeIMO_WriteDataReader\|RowCount=25000&Shape=Quoted' -or
+    $comparisonRunnerText -notmatch 'OfficeIMO_WriteDataReader\|RowCount=25000&Shape=Multiline' -or
+    $comparisonRunnerText -notmatch 'Sylvan_WriteDataReader\|RowCount=25000&Shape=Mixed' -or
+    $comparisonRunnerText -notmatch 'Sylvan_WriteDataReader\|RowCount=25000&Shape=Quoted' -or
+    $comparisonRunnerText -notmatch 'Sylvan_WriteDataReader\|RowCount=25000&Shape=Multiline' -or
+    $comparisonRunnerText -notmatch 'Get-BenchmarkEvidenceCaseIdentity') {
+    throw 'Parameterized CSV write evidence does not require every scenario and shape combination.'
+}
+
 if ($rowCount -lt 1) {
     throw "Benchmark data JSON does not contain measurement rows."
 }

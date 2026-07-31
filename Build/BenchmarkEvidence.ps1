@@ -26,6 +26,39 @@ function Get-BenchmarkEvidenceLocation {
     }
 }
 
+function Get-BenchmarkEvidenceCaseIdentity {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object] $Row
+    )
+
+    $scenario = [string] $Row.Scenario
+    if ([string]::IsNullOrWhiteSpace($scenario)) {
+        throw 'Benchmark evidence rows require a scenario identity.'
+    }
+
+    $ignoredVariables = @('namespace', 'type', 'fullname')
+    $variableParts = @(
+        if ($null -ne $Row.Variables) {
+            $Row.Variables.GetEnumerator() |
+                Where-Object {
+                    ([string] $_.Key).ToLowerInvariant() -notin $ignoredVariables
+                } |
+                Sort-Object { [string] $_.Key } |
+                ForEach-Object {
+                    '{0}={1}' -f ([string] $_.Key), ([string] $_.Value)
+                }
+        }
+    )
+
+    if ($variableParts.Count -eq 0) {
+        return $scenario
+    }
+
+    return '{0}|{1}' -f $scenario, ($variableParts -join '&')
+}
+
 function Write-BenchmarkEvidenceResult {
     [CmdletBinding()]
     param(

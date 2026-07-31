@@ -49,35 +49,47 @@ $definitions = [ordered]@{
         Filter = '*MarkPflug65KCsvBenchmarks*'
         ComparisonId = "markpflug-65k-csv-decoded-$Framework"
         Suite = 'OfficeIMO.CSV.MarkPflug65K'
-        ExpectedScenarios = @('OfficeIMO', 'Sep', 'Sylvan', 'CsvHelper', 'DataplatDbatools', 'LumenWorks')
+        ExpectedCases = @('OfficeIMO', 'Sep', 'Sylvan', 'CsvHelper', 'DataplatDbatools', 'LumenWorks')
     }
     csvwrite = [pscustomobject]@{
         Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
         Filter = '*CsvDataReaderWriteBenchmarks*'
         ComparisonId = "csv-25k-datareader-write-$Framework"
         Suite = 'OfficeIMO.CSV.DataReaderWrite25K'
-        ExpectedScenarios = @('OfficeIMO_WriteDataReader', 'Sylvan_WriteDataReader')
+        ExpectedCases = @(
+            'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed'
+            'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Quoted'
+            'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Multiline'
+            'Sylvan_WriteDataReader|RowCount=25000&Shape=Mixed'
+            'Sylvan_WriteDataReader|RowCount=25000&Shape=Quoted'
+            'Sylvan_WriteDataReader|RowCount=25000&Shape=Multiline'
+        )
     }
     xlsx = [pscustomobject]@{
         Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
         Filter = '*MarkPflug65KXlsxBenchmarks*'
         ComparisonId = "markpflug-65k-xlsx-typed-$Framework"
         Suite = 'OfficeIMO.Excel.Xlsx.MarkPflug65K'
-        ExpectedScenarios = @('OfficeIMO', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel')
+        ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel')
     }
     xlsxwrite = [pscustomobject]@{
         Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
         Filter = '*ExcelDataReaderWriteBenchmarks*'
         ComparisonId = "xlsx-25k-datareader-write-$Framework"
         Suite = 'OfficeIMO.Excel.DataReaderWrite25K'
-        ExpectedScenarios = @('OfficeIMO', 'SpreadCheetah', 'Sylvan', 'LargeXlsx')
+        ExpectedCases = @(
+            'OfficeIMO|RowCount=25000'
+            'SpreadCheetah|RowCount=25000'
+            'Sylvan|RowCount=25000'
+            'LargeXlsx|RowCount=25000'
+        )
     }
     xlsb = [pscustomobject]@{
         Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
         Filter = '*MarkPflug65KXlsbBenchmarks*'
         ComparisonId = "markpflug-65k-xlsb-typed-$Framework"
         Suite = 'OfficeIMO.Excel.Xlsb.MarkPflug65K'
-        ExpectedScenarios = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
+        ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
     }
 }
 
@@ -146,31 +158,31 @@ foreach ($name in $selected) {
         Out-Null
 
     $result = Import-BenchmarkResult -Path $artifactsPath -Suite $definition.Suite
-    $successfulScenarios = @(
+    $successfulCases = @(
         $result.Summary |
             Where-Object {
                 $_.Status -in @('Success', 'Succeeded') -and
                 $_.SampleCount -gt 0 -and
                 $null -ne $_.MedianMs
             } |
-            ForEach-Object Scenario |
+            ForEach-Object { Get-BenchmarkEvidenceCaseIdentity -Row $_ } |
             Sort-Object -Unique
     )
-    $missingScenarios = @(
-        $definition.ExpectedScenarios |
-            Where-Object { $_ -notin $successfulScenarios }
+    $missingCases = @(
+        $definition.ExpectedCases |
+            Where-Object { $_ -notin $successfulCases }
     )
-    $unexpectedScenarios = @(
-        $successfulScenarios |
-            Where-Object { $_ -notin $definition.ExpectedScenarios }
+    $unexpectedCases = @(
+        $successfulCases |
+            Where-Object { $_ -notin $definition.ExpectedCases }
     )
-    if ($missingScenarios.Count -gt 0 -or $unexpectedScenarios.Count -gt 0) {
+    if ($missingCases.Count -gt 0 -or $unexpectedCases.Count -gt 0) {
         $details = @()
-        if ($missingScenarios.Count -gt 0) {
-            $details += "missing successful scenarios: $($missingScenarios -join ', ')"
+        if ($missingCases.Count -gt 0) {
+            $details += "missing successful cases: $($missingCases -join ', ')"
         }
-        if ($unexpectedScenarios.Count -gt 0) {
-            $details += "unexpected scenarios: $($unexpectedScenarios -join ', ')"
+        if ($unexpectedCases.Count -gt 0) {
+            $details += "unexpected cases: $($unexpectedCases -join ', ')"
         }
         throw "$name benchmark evidence is incomplete ($($details -join '; '))."
     }
