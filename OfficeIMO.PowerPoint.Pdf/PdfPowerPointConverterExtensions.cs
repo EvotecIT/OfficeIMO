@@ -277,57 +277,71 @@ public static partial class PowerPointPdfConverterExtensions {
 
         for (int pageIndex = 0; pageIndex < rendered.Count; pageIndex++) {
             PdfCore.PdfPageRenderResult render = rendered[pageIndex];
-            PptCore.PowerPointSlide slide = presentation.AddSlide();
-            AddVisualPage(presentation, slide, render);
-            visualEntries.Add(new PdfPowerPointVisualPageEntry(render, pageIndex));
-            if (pageIndex >= logical.Pages.Count) continue;
-
-            PdfCore.PdfLogicalPage page = logical.Pages[pageIndex];
-            IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables = PdfCore.PdfLogicalTableAnalysis.ExtractTables(page, options.MaxRows);
+            PdfCore.PdfLogicalPage? page = pageIndex < logical.Pages.Count ? logical.Pages[pageIndex] : null;
+            IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables = page == null
+                ? Array.Empty<PdfCore.PdfLogicalTableExtraction>()
+                : PdfCore.PdfLogicalTableAnalysis.ExtractTables(page, options.MaxRows);
+            bool addedTableSlide = false;
             for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
                 PdfCore.PdfLogicalTableExtraction extraction = tables[tableIndex];
                 PdfCore.PdfLogicalTableData data = extraction.Data;
-                bool headerRowIncluded = options.IncludeColumnHeaderRows && HasHeaderRow(data);
-                int rowCount = data.Rows.Count + (headerRowIncluded ? 1 : 0);
-                if (rowCount <= 0 || data.Columns.Count <= 0) continue;
+                if (data.Columns.Count <= 0) continue;
+                List<TableSegment> segments = BuildTableSegments(data, options);
+                for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
+                    TableSegment segment = segments[segmentIndex];
+                    bool headerRowIncluded = options.IncludeColumnHeaderRows
+                        && HasHeaderRow(data)
+                        && segment.RowStartIndex == 0;
+                    int rowCount = segment.RowCount + (headerRowIncluded ? 1 : 0);
+                    if (rowCount <= 0 || segment.ColumnCount <= 0) continue;
 
-                (long left, long top, long width, long height) = GetHybridTableBounds(
-                    page,
-                    extraction.Table,
-                    presentation.SlideSize.WidthPoints,
-                    presentation.SlideSize.HeightPoints,
-                    rowCount);
-                PptCore.PowerPointTable table = slide.AddTable(
-                    rowCount,
-                    data.Columns.Count,
-                    options.TableStyle,
-                    left,
-                    top,
-                    width,
-                    height);
-                PopulateTable(
-                    table,
-                    extraction.Table,
-                    data,
-                    new TableSegment(0, data.Rows.Count, 0, data.Columns.Count),
-                    headerRowIncluded,
-                    options);
-                tableEntries.Add(new PdfPowerPointTableImportEntry(
-                    extraction.PageIndex,
-                    extraction.PageNumber,
-                    extraction.TableIndex,
-                    extraction.DetectionKind,
-                    pageIndex,
-                    0,
-                    1,
-                    0,
-                    0,
-                    data.Columns.Count,
-                    data.Columns.Count,
-                    data.Rows.Count,
-                    data.TotalRowCount,
-                    data.Truncated,
-                    headerRowIncluded));
+                    int slideIndex = presentation.Slides.Count;
+                    PptCore.PowerPointSlide slide = presentation.AddSlide();
+                    AddVisualPage(presentation, slide, render);
+                    visualEntries.Add(new PdfPowerPointVisualPageEntry(render, slideIndex));
+                    (long left, long top, long width, long height) = GetHybridTableBounds(
+                        render,
+                        page!,
+                        extraction.Table,
+                        data,
+                        segment,
+                        headerRowIncluded,
+                        presentation.SlideSize.WidthPoints,
+                        presentation.SlideSize.HeightPoints);
+                    PptCore.PowerPointTable table = slide.AddTable(
+                        rowCount,
+                        segment.ColumnCount,
+                        options.TableStyle,
+                        left,
+                        top,
+                        width,
+                        height);
+                    PopulateTable(table, extraction.Table, data, segment, headerRowIncluded, options);
+                    tableEntries.Add(new PdfPowerPointTableImportEntry(
+                        extraction.PageIndex,
+                        extraction.PageNumber,
+                        extraction.TableIndex,
+                        extraction.DetectionKind,
+                        slideIndex,
+                        segmentIndex,
+                        segments.Count,
+                        segment.RowStartIndex,
+                        segment.ColumnStartIndex,
+                        data.Columns.Count,
+                        segment.ColumnCount,
+                        segment.RowCount,
+                        data.TotalRowCount,
+                        data.Truncated,
+                        headerRowIncluded));
+                    addedTableSlide = true;
+                }
+            }
+
+            if (!addedTableSlide) {
+                int slideIndex = presentation.Slides.Count;
+                PptCore.PowerPointSlide slide = presentation.AddSlide();
+                AddVisualPage(presentation, slide, render);
+                visualEntries.Add(new PdfPowerPointVisualPageEntry(render, slideIndex));
             }
         }
 
@@ -382,15 +396,12 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfPageRenderResult page) {
         byte[]? bytes = page.Bytes;
         if (bytes != null && page.Width > 0 && page.Height > 0) {
-            double slideWidth = presentation.SlideSize.WidthPoints;
-            double slideHeight = presentation.SlideSize.HeightPoints;
-            double scale = Math.Min(slideWidth / page.Width, slideHeight / page.Height);
-            double width = page.Width * scale;
-            double height = page.Height * scale;
-            double left = (slideWidth - width) / 2D;
-            double top = (slideHeight - height) / 2D;
+            VisualPagePlacement placement = GetVisualPagePlacement(
+                page,
+                presentation.SlideSize.WidthPoints,
+                presentation.SlideSize.HeightPoints);
             using var image = new MemoryStream(bytes, writable: false);
-            slide.AddPicturePoints(image, PptCore.ImagePartType.Png, left, top, width, height);
+            slide.AddPicturePoints(image, PptCore.ImagePartType.Png, placement.Left, placement.Top, placement.Width, placement.Height);
         } else {
             slide.AddTitle("PDF page " + page.PageNumber.ToString(CultureInfo.InvariantCulture));
             slide.AddTextBox("This page could not be rendered by the managed PDF renderer.");
@@ -398,24 +409,54 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static (long Left, long Top, long Width, long Height) GetHybridTableBounds(
+        PdfCore.PdfPageRenderResult render,
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalTable table,
+        PdfCore.PdfLogicalTableData data,
+        TableSegment segment,
+        bool headerRowIncluded,
         double slideWidthPoints,
-        double slideHeightPoints,
-        int rowCount) {
+        double slideHeightPoints) {
         const double emusPerPoint = 12700D;
-        double leftPoints = table.Columns.Count == 0 ? 0D : table.Columns.Min(static column => column.From);
-        double rightPoints = table.Columns.Count == 0 ? page.Width : table.Columns.Max(static column => column.To);
-        double topPoints = Math.Max(0D, page.Height - table.YTop);
-        double widthPoints = Math.Max(24D, rightPoints - leftPoints);
-        double heightPoints = Math.Max(rowCount * 14D, table.YTop - table.YBottom + 10D);
-        double xScale = slideWidthPoints / Math.Max(1D, page.Width);
-        double yScale = slideHeightPoints / Math.Max(1D, page.Height);
+        VisualPagePlacement placement = GetVisualPagePlacement(render, slideWidthPoints, slideHeightPoints);
+        int firstColumn = Math.Min(segment.ColumnStartIndex, Math.Max(0, table.Columns.Count - 1));
+        int lastColumn = Math.Min(table.Columns.Count, segment.ColumnStartIndex + segment.ColumnCount) - 1;
+        double leftPoints = table.Columns.Count == 0 ? 0D : table.Columns[firstColumn].From;
+        double rightPoints = lastColumn < firstColumn ? page.Width : table.Columns[lastColumn].To;
+
+        int sourceRowCount = Math.Max(1, table.Rows.Count);
+        double sourceRowHeight = Math.Max(0D, table.YTop - table.YBottom) / sourceRowCount;
+        bool sourceHeaderIncluded = headerRowIncluded && data.Structure.HasHeaderRow;
+        int sourceRowStart = sourceHeaderIncluded
+            ? 0
+            : Math.Min(sourceRowCount - 1, data.Structure.BodyStartRowIndex + segment.RowStartIndex);
+        int sourceRows = Math.Max(1, segment.RowCount + (sourceHeaderIncluded ? 1 : 0));
+        double sourceTop = table.YTop - sourceRowStart * sourceRowHeight;
+        double sourceBottom = Math.Max(table.YBottom, sourceTop - sourceRows * sourceRowHeight);
+        double topPoints = Math.Max(0D, page.Height - sourceTop);
+        double widthPoints = Math.Max(1D, rightPoints - leftPoints);
+        double heightPoints = Math.Max(1D, sourceTop - sourceBottom);
+        double xScale = placement.Width / Math.Max(1D, page.Width);
+        double yScale = placement.Height / Math.Max(1D, page.Height);
         return (
-            (long)Math.Round(leftPoints * xScale * emusPerPoint),
-            (long)Math.Round(topPoints * yScale * emusPerPoint),
-            (long)Math.Round(Math.Min(slideWidthPoints, widthPoints * xScale) * emusPerPoint),
-            (long)Math.Round(Math.Min(slideHeightPoints, heightPoints * yScale) * emusPerPoint));
+            (long)Math.Round((placement.Left + leftPoints * xScale) * emusPerPoint),
+            (long)Math.Round((placement.Top + topPoints * yScale) * emusPerPoint),
+            (long)Math.Round(Math.Min(placement.Width, widthPoints * xScale) * emusPerPoint),
+            (long)Math.Round(Math.Min(placement.Height, heightPoints * yScale) * emusPerPoint));
+    }
+
+    private static VisualPagePlacement GetVisualPagePlacement(
+        PdfCore.PdfPageRenderResult page,
+        double slideWidthPoints,
+        double slideHeightPoints) {
+        double scale = Math.Min(slideWidthPoints / Math.Max(1D, page.Width), slideHeightPoints / Math.Max(1D, page.Height));
+        double width = page.Width * scale;
+        double height = page.Height * scale;
+        return new VisualPagePlacement(
+            (slideWidthPoints - width) / 2D,
+            (slideHeightPoints - height) / 2D,
+            width,
+            height);
     }
 
     private static void AddEmptyPresentationSlide(PptCore.PowerPointPresentation presentation, PdfPowerPointImportOptions options) {
@@ -575,6 +616,20 @@ public static partial class PowerPointPdfConverterExtensions {
         public int StartIndex { get; }
 
         public int Count { get; }
+    }
+
+    private readonly struct VisualPagePlacement {
+        internal VisualPagePlacement(double left, double top, double width, double height) {
+            Left = left;
+            Top = top;
+            Width = width;
+            Height = height;
+        }
+
+        internal double Left { get; }
+        internal double Top { get; }
+        internal double Width { get; }
+        internal double Height { get; }
     }
 
     private readonly struct TableSegment {

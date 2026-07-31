@@ -84,7 +84,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlImages_SvgMasksAndBlendModesUseSharedDrawingEffectsWithoutFallbackDiagnostics() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><defs>"
-            + "<mask id='half' maskContentUnits='userSpaceOnUse' style='mask-type:luminance'><rect width='5' height='4' fill='white'/></mask>"
+            + "<mask id='half' maskUnits='userSpaceOnUse' maskContentUnits='userSpaceOnUse' style='mask-type:luminance'><rect width='5' height='4' fill='white'/></mask>"
             + "</defs><rect width='10' height='4' fill='blue'/><g mask='url(#half)' style='mix-blend-mode:multiply'>"
             + "<rect width='10' height='4' fill='red'/></g></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));

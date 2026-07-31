@@ -8,9 +8,10 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>One logical text run with an explicit resolved paint direction.</summary>
 public sealed class OfficeBidiTextRun {
-    internal OfficeBidiTextRun(string text, OfficeTextDirection direction) {
+    internal OfficeBidiTextRun(string text, OfficeTextDirection direction, int embeddingLevel) {
         Text = text;
         Direction = direction;
+        EmbeddingLevel = embeddingLevel;
     }
 
     /// <summary>Text with Unicode bidi formatting controls removed.</summary>
@@ -18,6 +19,8 @@ public sealed class OfficeBidiTextRun {
 
     /// <summary>Resolved direction for this run.</summary>
     public OfficeTextDirection Direction { get; }
+
+    internal int EmbeddingLevel { get; }
 }
 
 /// <summary>
@@ -44,15 +47,18 @@ public static class OfficeBidiTextResolver {
         var runs = new List<OfficeBidiTextRun>();
         var value = new StringBuilder();
         var states = new Stack<DirectionalState>();
-        states.Push(new DirectionalState(resolvedBase, false, false));
+        states.Push(new DirectionalState(resolvedBase, false, false, resolvedBase == OfficeTextDirection.RightToLeft ? 1 : 0));
+        var overflow = new BidiOverflowState();
         OfficeTextDirection lastDirection = resolvedBase;
+        int lastLevel = states.Peek().Level;
         IReadOnlyList<string> elements = OfficeTextElements.Split(text);
         for (int index = 0; index < elements.Count; index++) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             string element = elements[index];
             if (element.Length == 1 && OfficeTextElements.ContainsBidiControl(element)) {
-                Flush(runs, value, lastDirection);
-                TryApplyControl(elements, ref index, element[0], states, ref lastDirection);
+                Flush(runs, value, lastDirection, lastLevel);
+                TryApplyControl(elements, ref index, element[0], states, ref overflow, ref lastDirection);
+                lastLevel = ResolveLevel(states.Peek().Level, lastDirection);
                 continue;
             }
 
@@ -60,11 +66,15 @@ public static class OfficeBidiTextResolver {
             OfficeTextDirection direction = state.Override
                 ? state.Direction
                 : ResolveElementDirection(element, state.Direction, lastDirection);
-            if (value.Length > 0 && direction != lastDirection) Flush(runs, value, lastDirection);
+            int level = ResolveLevel(state.Level, direction);
+            if (value.Length > 0 && (direction != lastDirection || level != lastLevel)) {
+                Flush(runs, value, lastDirection, lastLevel);
+            }
             value.Append(element);
             lastDirection = direction;
+            lastLevel = level;
         }
-        Flush(runs, value, lastDirection);
+        Flush(runs, value, lastDirection, lastLevel);
         return runs.AsReadOnly();
     }
 
@@ -82,20 +92,16 @@ public static class OfficeBidiTextResolver {
         CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(text)) return text ?? string.Empty;
         IReadOnlyList<OfficeBidiTextRun> runs = ResolveRuns(text, baseDirection, cancellationToken);
-        OfficeTextDirection resolvedBase = ResolveBaseDirection(text!, baseDirection);
-        IEnumerable<OfficeBidiTextRun> paintRuns = resolvedBase == OfficeTextDirection.RightToLeft
-            ? runs.Reverse()
-            : runs;
-        var visual = new StringBuilder(text!.Length);
-        foreach (OfficeBidiTextRun run in paintRuns) {
+        var visualElements = new List<VisualElement<string>>();
+        foreach (OfficeBidiTextRun run in runs) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (run.Direction == OfficeTextDirection.RightToLeft) {
-                IReadOnlyList<string> elements = OfficeTextElements.Split(run.Text);
-                for (int index = elements.Count - 1; index >= 0; index--) visual.Append(elements[index]);
-            } else {
-                visual.Append(run.Text);
+            foreach (string element in OfficeTextElements.Split(run.Text)) {
+                visualElements.Add(new VisualElement<string>(element, run.EmbeddingLevel));
             }
         }
+        ReorderByEmbeddingLevel(visualElements, cancellationToken);
+        var visual = new StringBuilder(text!.Length);
+        foreach (VisualElement<string> element in visualElements) visual.Append(element.Value);
         return visual.ToString();
     }
 
@@ -105,20 +111,19 @@ public static class OfficeBidiTextResolver {
         OfficeTextDirection baseDirection,
         CancellationToken cancellationToken) {
         IReadOnlyList<OfficeBidiTextRun> runs = ResolveRuns(directionalText, baseDirection, cancellationToken);
-        var groups = new List<IReadOnlyList<T>>(runs.Count);
+        var visualElements = new List<VisualElement<T>>(visibleElements.Count);
         int elementIndex = 0;
         foreach (OfficeBidiTextRun run in runs) {
             cancellationToken.ThrowIfCancellationRequested();
             int count = OfficeTextElements.Split(run.Text).Count;
             if (count > visibleElements.Count - elementIndex) return Array.Empty<T>();
-            var group = new List<T>(count);
-            for (int index = 0; index < count; index++) group.Add(visibleElements[elementIndex++]);
-            if (run.Direction == OfficeTextDirection.RightToLeft) group.Reverse();
-            groups.Add(group);
+            for (int index = 0; index < count; index++) {
+                visualElements.Add(new VisualElement<T>(visibleElements[elementIndex++], run.EmbeddingLevel));
+            }
         }
         if (elementIndex != visibleElements.Count) return Array.Empty<T>();
-        if (ResolveBaseDirection(directionalText, baseDirection) == OfficeTextDirection.RightToLeft) groups.Reverse();
-        return groups.SelectMany(static group => group).ToArray();
+        ReorderByEmbeddingLevel(visualElements, cancellationToken);
+        return visualElements.Select(static element => element.Value).ToArray();
     }
 
     private static bool TryApplyControl(
@@ -126,6 +131,7 @@ public static class OfficeBidiTextResolver {
         ref int index,
         char control,
         Stack<DirectionalState> states,
+        ref BidiOverflowState overflow,
         ref OfficeTextDirection lastDirection) {
         switch (control) {
             case '\u061C':
@@ -135,23 +141,33 @@ public static class OfficeBidiTextResolver {
             case '\u200E':
                 lastDirection = OfficeTextDirection.LeftToRight;
                 return true;
-            case '\u202A': Push(states, OfficeTextDirection.LeftToRight, false, false); return true;
-            case '\u202B': Push(states, OfficeTextDirection.RightToLeft, false, false); return true;
-            case '\u202D': Push(states, OfficeTextDirection.LeftToRight, true, false); return true;
-            case '\u202E': Push(states, OfficeTextDirection.RightToLeft, true, false); return true;
+            case '\u202A': Push(states, OfficeTextDirection.LeftToRight, false, false, ref overflow); return true;
+            case '\u202B': Push(states, OfficeTextDirection.RightToLeft, false, false, ref overflow); return true;
+            case '\u202D': Push(states, OfficeTextDirection.LeftToRight, true, false, ref overflow); return true;
+            case '\u202E': Push(states, OfficeTextDirection.RightToLeft, true, false, ref overflow); return true;
             case '\u202C':
-                if (states.Count > 1 && !states.Peek().Isolate) states.Pop();
+                if (overflow.OverflowEmbeddingCount > 0) {
+                    overflow.OverflowEmbeddingCount--;
+                } else if (overflow.OverflowIsolateCount == 0 && states.Count > 1 && !states.Peek().Isolate) {
+                    states.Pop();
+                }
                 lastDirection = states.Peek().Direction;
                 return true;
-            case '\u2066': Push(states, OfficeTextDirection.LeftToRight, false, true); return true;
-            case '\u2067': Push(states, OfficeTextDirection.RightToLeft, false, true); return true;
+            case '\u2066': Push(states, OfficeTextDirection.LeftToRight, false, true, ref overflow); return true;
+            case '\u2067': Push(states, OfficeTextDirection.RightToLeft, false, true, ref overflow); return true;
             case '\u2068':
-                Push(states, ResolveFirstStrongIsolateDirection(elements, index + 1, states.Peek().Direction), false, true);
+                Push(states, ResolveFirstStrongIsolateDirection(elements, index + 1, states.Peek().Direction), false, true, ref overflow);
                 return true;
             case '\u2069':
-                while (states.Count > 1) {
-                    DirectionalState state = states.Pop();
-                    if (state.Isolate) break;
+                if (overflow.OverflowIsolateCount > 0) {
+                    overflow.OverflowIsolateCount--;
+                } else if (overflow.ValidIsolateCount > 0) {
+                    overflow.OverflowEmbeddingCount = 0;
+                    while (states.Count > 1) {
+                        DirectionalState state = states.Pop();
+                        if (state.Isolate) break;
+                    }
+                    overflow.ValidIsolateCount--;
                 }
                 lastDirection = states.Peek().Direction;
                 return true;
@@ -160,8 +176,59 @@ public static class OfficeBidiTextResolver {
         }
     }
 
-    private static void Push(Stack<DirectionalState> states, OfficeTextDirection direction, bool @override, bool isolate) {
-        if (states.Count < MaximumEmbeddingDepth) states.Push(new DirectionalState(direction, @override, isolate));
+    private static void Push(
+        Stack<DirectionalState> states,
+        OfficeTextDirection direction,
+        bool @override,
+        bool isolate,
+        ref BidiOverflowState overflow) {
+        int level = NextEmbeddingLevel(states.Peek().Level, direction);
+        bool overflowed = level > MaximumEmbeddingDepth
+            || overflow.OverflowIsolateCount > 0
+            || (!isolate && overflow.OverflowEmbeddingCount > 0);
+        if (overflowed) {
+            if (isolate) overflow.OverflowIsolateCount++;
+            else if (overflow.OverflowIsolateCount == 0) overflow.OverflowEmbeddingCount++;
+            return;
+        }
+
+        states.Push(new DirectionalState(direction, @override, isolate, level));
+        if (isolate) overflow.ValidIsolateCount++;
+    }
+
+    private static int NextEmbeddingLevel(int currentLevel, OfficeTextDirection direction) {
+        int next = currentLevel + 1;
+        bool requiresOdd = direction == OfficeTextDirection.RightToLeft;
+        if (((next & 1) == 1) != requiresOdd) next++;
+        return next;
+    }
+
+    private static int ResolveLevel(int embeddingLevel, OfficeTextDirection direction) {
+        bool requiresOdd = direction == OfficeTextDirection.RightToLeft;
+        return ((embeddingLevel & 1) == 1) == requiresOdd ? embeddingLevel : embeddingLevel + 1;
+    }
+
+    private static void ReorderByEmbeddingLevel<T>(List<VisualElement<T>> elements, CancellationToken cancellationToken) {
+        if (elements.Count == 0) return;
+        int maximumLevel = elements.Max(static element => element.Level);
+        int minimumOddLevel = elements
+            .Where(static element => (element.Level & 1) == 1)
+            .Select(static element => element.Level)
+            .DefaultIfEmpty(int.MaxValue)
+            .Min();
+        if (minimumOddLevel == int.MaxValue) return;
+
+        for (int level = maximumLevel; level >= minimumOddLevel; level--) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int start = 0;
+            while (start < elements.Count) {
+                while (start < elements.Count && elements[start].Level < level) start++;
+                int end = start;
+                while (end < elements.Count && elements[end].Level >= level) end++;
+                if (end > start) elements.Reverse(start, end - start);
+                start = end;
+            }
+        }
     }
 
     private static OfficeTextDirection ResolveFirstStrongIsolateDirection(
@@ -214,20 +281,38 @@ public static class OfficeBidiTextResolver {
         return direction == OfficeTextDirection.Auto ? OfficeTextDirection.LeftToRight : direction;
     }
 
-    private static void Flush(List<OfficeBidiTextRun> runs, StringBuilder value, OfficeTextDirection direction) {
+    private static void Flush(List<OfficeBidiTextRun> runs, StringBuilder value, OfficeTextDirection direction, int level) {
         if (value.Length == 0) return;
-        runs.Add(new OfficeBidiTextRun(value.ToString(), direction));
+        runs.Add(new OfficeBidiTextRun(value.ToString(), direction, level));
         value.Clear();
     }
 
     private readonly struct DirectionalState {
-        internal DirectionalState(OfficeTextDirection direction, bool @override, bool isolate) {
+        internal DirectionalState(OfficeTextDirection direction, bool @override, bool isolate, int level) {
             Direction = direction;
             Override = @override;
             Isolate = isolate;
+            Level = level;
         }
         internal OfficeTextDirection Direction { get; }
         internal bool Override { get; }
         internal bool Isolate { get; }
+        internal int Level { get; }
+    }
+
+    private struct BidiOverflowState {
+        internal int OverflowEmbeddingCount;
+        internal int OverflowIsolateCount;
+        internal int ValidIsolateCount;
+    }
+
+    private readonly struct VisualElement<T> {
+        internal VisualElement(T value, int level) {
+            Value = value;
+            Level = level;
+        }
+
+        internal T Value { get; }
+        internal int Level { get; }
     }
 }

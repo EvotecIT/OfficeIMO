@@ -13,14 +13,29 @@ internal static partial class PdfPageImageRenderer {
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
+        return RenderPages(() => pdf, selection, options, readOptions, cancellationToken);
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfPageRenderResult> RenderPagesCore(
+        Func<byte[]> getPdf,
+        Func<int, int[]> resolvePages,
+        PdfPageRenderOptions? options,
+        PdfReadOptions? readOptions,
+        CancellationToken cancellationToken) {
         PdfPageRenderOptions effectiveOptions = options ?? new PdfPageRenderOptions();
         effectiveOptions.Validate();
         using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
             effectiveOptions.RenderTimeout,
             cancellationToken);
         try {
+            execution.Token.ThrowIfCancellationRequested();
+            byte[] pdf = getPdf();
+            Guard.NotNull(pdf, nameof(pdf));
+            execution.Token.ThrowIfCancellationRequested();
             PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
-            int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection)) ?? Enumerable.Range(1, document.Pages.Count).ToArray();
+            execution.Token.ThrowIfCancellationRequested();
+            int[] pages = resolvePages(document.Pages.Count);
+            execution.Token.ThrowIfCancellationRequested();
             if (pages.Length > effectiveOptions.MaxPages) {
                 throw new PdfReadLimitException(PdfReadLimitKind.RenderPages, effectiveOptions.MaxPages, pages.Length, "PDF render page count exceeded the configured limit.");
             }
@@ -51,9 +66,7 @@ internal static partial class PdfPageImageRenderer {
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
-        Guard.NotNull(pageRanges, nameof(pageRanges));
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
-        return RenderPages(pdf, PdfPageSelector.Parse(pageRanges).ResolveSelection(document.Pages.Count), options, readOptions, cancellationToken);
+        return RenderPages(() => pdf, pageRanges, options, readOptions, cancellationToken);
     }
 
     /// <summary>Renders pages resolved by a document-relative selector.</summary>
@@ -64,9 +77,54 @@ internal static partial class PdfPageImageRenderer {
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
+        return RenderPages(() => pdf, selector, options, readOptions, cancellationToken);
+    }
+
+    internal static IReadOnlyList<PdfPageRenderResult> RenderPages(
+        Func<byte[]> getPdf,
+        PdfPageSelection? selection,
+        PdfPageRenderOptions? options,
+        PdfReadOptions? readOptions,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(getPdf, nameof(getPdf));
+        return RenderPagesCore(
+            getPdf,
+            pageCount => selection?.ToPageNumbers(pageCount, nameof(selection)) ?? Enumerable.Range(1, pageCount).ToArray(),
+            options,
+            readOptions,
+            cancellationToken);
+    }
+
+    internal static IReadOnlyList<PdfPageRenderResult> RenderPages(
+        Func<byte[]> getPdf,
+        string pageRanges,
+        PdfPageRenderOptions? options,
+        PdfReadOptions? readOptions,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(getPdf, nameof(getPdf));
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        return RenderPagesCore(
+            getPdf,
+            pageCount => PdfPageSelector.Parse(pageRanges).ResolveSelection(pageCount).ToPageNumbers(pageCount, nameof(pageRanges)),
+            options,
+            readOptions,
+            cancellationToken);
+    }
+
+    internal static IReadOnlyList<PdfPageRenderResult> RenderPages(
+        Func<byte[]> getPdf,
+        PdfPageSelector selector,
+        PdfPageRenderOptions? options,
+        PdfReadOptions? readOptions,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(getPdf, nameof(getPdf));
         Guard.NotNull(selector, nameof(selector));
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
-        return RenderPages(pdf, selector.ResolveSelection(document.Pages.Count), options, readOptions, cancellationToken);
+        return RenderPagesCore(
+            getPdf,
+            pageCount => selector.ResolveSelection(pageCount).ToPageNumbers(pageCount, nameof(selector)),
+            options,
+            readOptions,
+            cancellationToken);
     }
 
     private static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken) {

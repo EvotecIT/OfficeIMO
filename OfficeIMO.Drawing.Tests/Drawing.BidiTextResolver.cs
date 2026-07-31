@@ -33,6 +33,24 @@ public partial class Drawing {
     }
 
     [Fact]
+    public void BidiTextResolver_PreservesNestedIsolateEmbeddingLevels() {
+        string logical = "A\u2067שלום abc\u2069B";
+
+        string visual = OfficeBidiTextResolver.ToVisualOrder(logical, OfficeTextDirection.LeftToRight);
+
+        Assert.Equal("Aabc םולשB", visual);
+    }
+
+    [Fact]
+    public void BidiTextResolver_OverflowControlsCannotPopAnAcceptedEmbedding() {
+        string logical = "A\u202B" + new string('\u202A', 200) + new string('\u202C', 200) + "שלום\u202CB";
+
+        string visual = OfficeBidiTextResolver.ToVisualOrder(logical, OfficeTextDirection.LeftToRight);
+
+        Assert.Equal("AםולשB", visual);
+    }
+
+    [Fact]
     public void BidiTextResolver_HonorsCancellationDuringBoundedResolution() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
