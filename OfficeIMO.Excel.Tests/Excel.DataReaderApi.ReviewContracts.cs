@@ -154,8 +154,7 @@ public partial class Excel {
             Assert.Contains("t=\"shared\"", worksheetXml, StringComparison.Ordinal);
             worksheetXml = worksheetXml.Replace(
                 "t=\"shared\"",
-                "t=\"sh&#x61;red\"",
-                StringComparison.Ordinal);
+                "t=\"sh&#x61;red\"");
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(worksheetXml));
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
