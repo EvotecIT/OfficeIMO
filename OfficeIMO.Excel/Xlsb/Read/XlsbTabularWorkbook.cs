@@ -391,6 +391,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             bool beganStyleSheet = false;
             bool endedStyleSheet = false;
             bool sawCellFormats = false;
+            bool hasFills = false;
+            bool hasFonts = false;
+            bool hasBorders = false;
+            bool hasCellStyleFormats = false;
             while (records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (endedStyleSheet) {
@@ -476,6 +480,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             ref activeCollectionName,
                             declaredCollectionCount,
                             actualCollectionCount);
+                        hasFills |= actualCollectionCount > 0;
                         break;
                     case BrtBeginFonts:
                         BeginStyleCollection(
@@ -497,6 +502,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             ref activeCollectionName,
                             declaredCollectionCount,
                             actualCollectionCount);
+                        hasFonts |= actualCollectionCount > 0;
                         break;
                     case BrtBeginBorders:
                         BeginStyleCollection(
@@ -518,6 +524,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             ref activeCollectionName,
                             declaredCollectionCount,
                             actualCollectionCount);
+                        hasBorders |= actualCollectionCount > 0;
                         break;
                     case BrtBeginCellStyleXfs:
                         BeginStyleCollection(
@@ -539,6 +546,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             ref activeCollectionName,
                             declaredCollectionCount,
                             actualCollectionCount);
+                        hasCellStyleFormats |= actualCollectionCount > 0;
                         break;
                     case BrtFmt when activeCollectionEnd == BrtEndFmts: {
                         var cursor = record.CreateCursor();
@@ -588,6 +596,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (!sawCellFormats || dateStyles.Count == 0) {
                 throw new InvalidDataException(
                     $"The XLSB styles part '{partName}' is missing the required non-empty cell-format collection.");
+            }
+            if (!hasFonts || !hasFills || !hasBorders || !hasCellStyleFormats) {
+                throw new InvalidDataException(
+                    $"The XLSB styles part '{partName}' is missing one or more required formatting collections.");
             }
 
             return dateStyles.ToArray();

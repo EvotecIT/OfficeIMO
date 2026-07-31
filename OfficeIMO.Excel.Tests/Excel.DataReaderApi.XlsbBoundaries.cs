@@ -164,6 +164,31 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData(611, 43, 612)]
+    [InlineData(603, 45, 604)]
+    [InlineData(613, 46, 614)]
+    [InlineData(626, 47, 627)]
+    public void OpenDataReader_XlsbRejectsEmptyMandatoryStyleCollection(
+        int beginRecordType,
+        int itemRecordType,
+        int endRecordType) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.EmptyMandatoryStyleCollection.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            EmptyXlsbStyleCollection(path, beginRecordType, itemRecordType, endRecordType);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains("required formatting collections", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void OpenDataReader_XlsbRejectsCellOutsideRowHeaderSpans() {
         string path = Path.Combine(

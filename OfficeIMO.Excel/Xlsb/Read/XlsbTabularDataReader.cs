@@ -793,9 +793,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         : typeof(double),
                 XlsbTabularValueKind.Boolean => typeof(bool),
                 XlsbTabularValueKind.Date => typeof(DateTime),
-                XlsbTabularValueKind.Custom => _customValues[ordinal]?.GetType() ?? typeof(object),
+                XlsbTabularValueKind.Custom => IsMissingCustomValue(_customValues[ordinal])
+                    ? typeof(object)
+                    : _customValues[ordinal]!.GetType(),
                 _ => typeof(object)
             };
+
+        private static bool IsMissingCustomValue(object? value) =>
+            value == null || ReferenceEquals(value, DBNull.Value);
 
         private object GetNumericValue(double number) {
             if (_options.NumericAsDecimal && TryConvertExcelNumberToDecimal(number, out decimal value)) {

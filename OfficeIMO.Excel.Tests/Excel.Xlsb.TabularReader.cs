@@ -670,6 +670,33 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_ConverterDbNullMatchesReaderAndSchemaNullContract() {
+        using var worksheetPart = CreateTabularWorksheet(
+            (0, 0U),
+            (1, 1U));
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "missing", "value" },
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10),
+            new ExcelReadOptions {
+                InferSchema = true,
+                CellValueConverter = static context =>
+                    context.RawText == "0"
+                        ? new ExcelCellValue(DBNull.Value)
+                        : new ExcelCellValue(42)
+            });
+
+        Assert.Equal(typeof(int), reader.GetFieldType(0));
+        Assert.True(reader.Read());
+        Assert.Equal(DBNull.Value, reader.GetValue(0));
+        Assert.True(reader.IsDBNull(0));
+        Assert.True(reader.Read());
+        Assert.Equal(42, reader.GetInt32(0));
+        Assert.False(reader.IsDBNull(0));
+    }
+
+    [Fact]
     public void ExcelDocumentReader_DisposesOpenedDocumentWhenInitializationFails() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.ReaderDispose.{Guid.NewGuid():N}.xlsx");
         try {

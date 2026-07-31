@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] == XlsbTabularValueKind.Empty
                    || _kinds[ordinal] == XlsbTabularValueKind.Custom
-                   && _customValues[ordinal] == null;
+                   && IsMissingCustomValue(_customValues[ordinal]);
         }
 
         public override string GetString(int ordinal) {

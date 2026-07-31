@@ -42,7 +42,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     (string?[])_strings.Clone(),
                     (object?[])_customValues.Clone()));
                 for (int ordinal = 0; ordinal < FieldCount; ordinal++) {
-                    if (mixed[ordinal] || _kinds[ordinal] == XlsbTabularValueKind.Empty) {
+                    if (mixed[ordinal]
+                        || _kinds[ordinal] == XlsbTabularValueKind.Empty
+                        || _kinds[ordinal] == XlsbTabularValueKind.Custom
+                        && IsMissingCustomValue(_customValues[ordinal])) {
                         continue;
                     }
 
