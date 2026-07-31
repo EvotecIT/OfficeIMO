@@ -189,6 +189,43 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData(626, 0, 0, "parent cell-style reference")]
+    [InlineData(617, 0, ushort.MaxValue, "parent cell-style reference")]
+    [InlineData(617, 4, ushort.MaxValue, "font, fill, or border reference")]
+    [InlineData(617, 6, ushort.MaxValue, "font, fill, or border reference")]
+    [InlineData(617, 8, ushort.MaxValue, "font, fill, or border reference")]
+    public void OpenDataReader_XlsbRejectsInvalidCellFormatReference(
+        int collectionBeginType,
+        int fieldOffset,
+        int value,
+        string expectedMessage) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.InvalidCellFormatReference.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            ReplaceFirstXlsbRecordPayloadAfter(
+                path,
+                "xl/styles.bin",
+                collectionBeginType,
+                recordType: 47,
+                data => {
+                    byte[] replacement = data.ToArray();
+                    replacement[fieldOffset] = (byte)value;
+                    replacement[fieldOffset + 1] = (byte)(value >> 8);
+                    return replacement;
+                });
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => ExcelDocument.OpenDataReader(path));
+
+            Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void OpenDataReader_XlsbRejectsCellOutsideRowHeaderSpans() {
         string path = Path.Combine(
@@ -294,6 +331,40 @@ public partial class Excel {
 
             Assert.Contains("cell record", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("truncated", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(reader.IsClosed);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbNextResultRejectsDuplicateRowHeaderDuringDiscovery() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.DuplicateSkippedSheetRow.{Guid.NewGuid():N}.xlsb");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet first = document.AddWorksheet("First");
+                first.CellValue(1, 1, "Value");
+                first.CellValue(2, 1, "Ready");
+                ExcelSheet second = document.AddWorksheet("Second");
+                second.CellValue(1, 1, "Value");
+                second.CellValue(2, 1, "Never delivered");
+                File.WriteAllBytes(path, document.ToBytes(ExcelFileFormat.Xlsb));
+            }
+            DuplicateFirstXlsbRecord(
+                path,
+                "xl/worksheets/sheet2.bin",
+                recordType: 0);
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            Assert.True(reader.Read());
+            Assert.Equal("Ready", reader.GetString(0));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => reader.NextResult());
+
+            Assert.Contains("non-increasing row index", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.True(reader.IsClosed);
         } finally {
             File.Delete(path);

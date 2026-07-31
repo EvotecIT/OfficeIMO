@@ -384,17 +384,18 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
             var customFormats = new Dictionary<ushort, string>();
             var dateStyles = new List<bool>();
+            var cellStyleFormats = new List<XlsbTabularCellFormatReference>();
+            var cellFormats = new List<XlsbTabularCellFormatReference>();
             int activeCollectionEnd = 0;
             int declaredCollectionCount = 0;
             int actualCollectionCount = 0;
+            int fontCount = 0;
+            int fillCount = 0;
+            int borderCount = 0;
             string? activeCollectionName = null;
             bool beganStyleSheet = false;
             bool endedStyleSheet = false;
             bool sawCellFormats = false;
-            bool hasFills = false;
-            bool hasFonts = false;
-            bool hasBorders = false;
-            bool hasCellStyleFormats = false;
             while (records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (endedStyleSheet) {
@@ -480,7 +481,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             ref activeCollectionName,
                             declaredCollectionCount,
                             actualCollectionCount);
-                        hasFills |= actualCollectionCount > 0;
+                        fillCount = checked(fillCount + actualCollectionCount);
                         break;
                     case BrtBeginFonts:
                         BeginStyleCollection(
@@ -502,7 +503,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             ref activeCollectionName,
                             declaredCollectionCount,
                             actualCollectionCount);
-                        hasFonts |= actualCollectionCount > 0;
+                        fontCount = checked(fontCount + actualCollectionCount);
                         break;
                     case BrtBeginBorders:
                         BeginStyleCollection(
@@ -524,7 +525,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             ref activeCollectionName,
                             declaredCollectionCount,
                             actualCollectionCount);
-                        hasBorders |= actualCollectionCount > 0;
+                        borderCount = checked(borderCount + actualCollectionCount);
                         break;
                     case BrtBeginCellStyleXfs:
                         BeginStyleCollection(
@@ -546,7 +547,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             ref activeCollectionName,
                             declaredCollectionCount,
                             actualCollectionCount);
-                        hasCellStyleFormats |= actualCollectionCount > 0;
                         break;
                     case BrtFmt when activeCollectionEnd == BrtEndFmts: {
                         var cursor = record.CreateCursor();
@@ -566,24 +566,22 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         break;
                     }
                     case BrtXf when activeCollectionEnd == BrtEndCellXfs: {
-                        if (record.Size != 16) {
-                            throw new InvalidDataException(
-                                $"The BrtXf record at offset {record.RecordOffset} has invalid payload length {record.Size}.");
-                        }
-                        var cursor = record.CreateCursor();
-                        cursor.ReadUInt16();
-                        ushort numberFormatId = cursor.ReadUInt16();
-                        bool isDate = ExcelBuiltInNumberFormats.IsDate(numberFormatId)
-                            || (customFormats.TryGetValue(numberFormatId, out string? code)
+                        XlsbTabularCellFormatReference format = ReadCellFormatReference(record);
+                        bool isDate = ExcelBuiltInNumberFormats.IsDate(format.NumberFormatId)
+                            || (customFormats.TryGetValue(format.NumberFormatId, out string? code)
                                 && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
+                        cellFormats.Add(format);
                         dateStyles.Add(isDate);
                         actualCollectionCount++;
                         break;
                     }
+                    case BrtXf when activeCollectionEnd == BrtEndCellStyleXfs:
+                        cellStyleFormats.Add(ReadCellFormatReference(record));
+                        actualCollectionCount++;
+                        break;
                     case BrtFont when activeCollectionEnd == BrtEndFonts:
                     case BrtFill when activeCollectionEnd == BrtEndFills:
                     case BrtBorder when activeCollectionEnd == BrtEndBorders:
-                    case BrtXf when activeCollectionEnd == BrtEndCellStyleXfs:
                         actualCollectionCount++;
                         break;
                 }
@@ -597,12 +595,83 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB styles part '{partName}' is missing the required non-empty cell-format collection.");
             }
-            if (!hasFonts || !hasFills || !hasBorders || !hasCellStyleFormats) {
+            if (fontCount == 0 || fillCount == 0 || borderCount == 0 || cellStyleFormats.Count == 0) {
                 throw new InvalidDataException(
                     $"The XLSB styles part '{partName}' is missing one or more required formatting collections.");
             }
+            ValidateCellFormatReferences(
+                partName,
+                cellStyleFormats,
+                cellFormats,
+                fontCount,
+                fillCount,
+                borderCount);
 
             return dateStyles.ToArray();
+        }
+
+        private static XlsbTabularCellFormatReference ReadCellFormatReference(
+            XlsbRecordSlice record) {
+            if (record.Size != 16) {
+                throw new InvalidDataException(
+                    $"The BrtXf record at offset {record.RecordOffset} has invalid payload length {record.Size}.");
+            }
+
+            var cursor = record.CreateCursor();
+            return new XlsbTabularCellFormatReference(
+                cursor.ReadUInt16(),
+                cursor.ReadUInt16(),
+                cursor.ReadUInt16(),
+                cursor.ReadUInt16(),
+                cursor.ReadUInt16());
+        }
+
+        private static void ValidateCellFormatReferences(
+            string partName,
+            IReadOnlyList<XlsbTabularCellFormatReference> cellStyleFormats,
+            IReadOnlyList<XlsbTabularCellFormatReference> cellFormats,
+            int fontCount,
+            int fillCount,
+            int borderCount) {
+            foreach (XlsbTabularCellFormatReference format in cellStyleFormats.Concat(cellFormats)) {
+                if (format.FontId >= fontCount
+                    || format.FillId >= fillCount
+                    || format.BorderId >= borderCount) {
+                    throw new InvalidDataException(
+                        $"The XLSB styles part '{partName}' contains a cell format with an out-of-range font, fill, or border reference.");
+                }
+            }
+
+            if (cellStyleFormats.Any(format => format.ParentFormatId != ushort.MaxValue)
+                || cellFormats.Any(format => format.ParentFormatId >= cellStyleFormats.Count)) {
+                throw new InvalidDataException(
+                    $"The XLSB styles part '{partName}' contains an invalid parent cell-style reference.");
+            }
+        }
+
+        private readonly struct XlsbTabularCellFormatReference {
+            internal XlsbTabularCellFormatReference(
+                ushort parentFormatId,
+                ushort numberFormatId,
+                ushort fontId,
+                ushort fillId,
+                ushort borderId) {
+                ParentFormatId = parentFormatId;
+                NumberFormatId = numberFormatId;
+                FontId = fontId;
+                FillId = fillId;
+                BorderId = borderId;
+            }
+
+            internal ushort ParentFormatId { get; }
+
+            internal ushort NumberFormatId { get; }
+
+            internal ushort FontId { get; }
+
+            internal ushort FillId { get; }
+
+            internal ushort BorderId { get; }
         }
 
         private static void BeginStyleCollection(

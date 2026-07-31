@@ -108,8 +108,6 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            _pendingDirectCellValueSheet = null;
-            _pendingDirectCellValueRequiresSavePreflight = false;
             sheet.MaterializePendingDirectCellValues(ct);
             return sheet;
         }
@@ -145,14 +143,17 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            _directDataSetSaveCandidate = null;
-            candidate.Dispose();
-
-            _materializingDeferredDataSetImport = true;
-            try {
-                MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
-            } finally {
-                _materializingDeferredDataSetImport = false;
+            using (PreserveDirectDataSetSaveCandidateDuringDirtyMarks()) {
+                _materializingDeferredDataSetImport = true;
+                try {
+                    MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
+                    if (ReferenceEquals(_directDataSetSaveCandidate, candidate)) {
+                        _directDataSetSaveCandidate = null;
+                        candidate.Dispose();
+                    }
+                } finally {
+                    _materializingDeferredDataSetImport = false;
+                }
             }
         }
 

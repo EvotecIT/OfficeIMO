@@ -325,14 +325,15 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            _pendingCellValueDirectSaveBuffer = null;
-            _excelDocument.ClearPendingDirectCellValueSheet(this);
-
             _materializingPendingCellValueDirectSaveBuffer = true;
             try {
                 foreach (var cell in buffer.EnumerateWrittenCells()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
+                }
+                if (ReferenceEquals(_pendingCellValueDirectSaveBuffer, buffer)) {
+                    _pendingCellValueDirectSaveBuffer = null;
+                    _excelDocument.ClearPendingDirectCellValueSheet(this);
                 }
             } finally {
                 _materializingPendingCellValueDirectSaveBuffer = false;

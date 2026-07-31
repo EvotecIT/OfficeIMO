@@ -748,7 +748,43 @@ public partial class Excel {
         Assert.Throws<OperationCanceledException>(() =>
             document.CreateDataReader(
                 new ExcelReadOptions { CancellationToken = cancellation.Token }));
+        Assert.True(document.HasDeferredDirectDataSetImport);
+
+        using DbDataReader reader = document.CreateDataReader();
+        int rowCount = 0;
+        while (reader.Read()) {
+            Assert.Equal(rowCount, reader.GetInt32(0));
+            Assert.Equal(rowCount + 7, reader.GetInt32(7));
+            rowCount++;
+        }
+
+        Assert.Equal(50_000, rowCount);
         Assert.False(document.HasDeferredDirectDataSetImport);
+    }
+
+    [Fact]
+    public void PendingDirectCellValueMaterializationCanResumeAfterCancellation() {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        for (int row = 1; row <= 50_000; row++) {
+            sheet.CellValue(row, 1, row);
+        }
+        Assert.True(document.HasPendingDirectCellValues);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(5));
+
+        Assert.Throws<OperationCanceledException>(() =>
+            sheet.MaterializePendingDirectCellValues(cancellation.Token));
+        Assert.True(document.HasPendingDirectCellValues);
+
+        sheet.MaterializePendingDirectCellValues();
+
+        Assert.False(document.HasPendingDirectCellValues);
+        Assert.True(sheet.TryGetCellText(1, 1, out string first));
+        Assert.Equal("1", first);
+        Assert.True(sheet.TryGetCellText(50_000, 1, out string last));
+        Assert.Equal("50000", last);
     }
 
     [Fact]

@@ -80,10 +80,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         continue;
                     }
                     if (record.Type == BrtRowHdr) {
-                        currentRow = ValidateRowHeader(
+                        int nextRow = ValidateRowHeader(
                             record,
                             currentRowSpanBounds,
                             out currentRowSpanCount);
+                        if (currentRow >= 0 && nextRow <= currentRow) {
+                            throw new InvalidDataException(
+                                $"The XLSB worksheet contains non-increasing row index {nextRow} after header row {currentRow}.");
+                        }
+
+                        currentRow = nextRow;
                         previousCellColumn = -1;
                         continue;
                     }
