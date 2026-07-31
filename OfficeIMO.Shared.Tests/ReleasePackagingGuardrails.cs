@@ -549,7 +549,17 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
         Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
         Assert.Contains("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
+        Assert.Contains("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
+        Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Publish the browser conversion playground", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Add Visio and portable-document adapters", roadmap, StringComparison.Ordinal);
+
+        string markdownRoundtripDesign = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Docs",
+            "officeimo.markdown.lossless-roundtrip-design.md"));
+        Assert.Contains("MarkdownParseResult parsed = MarkdownReader.ParseWithSyntaxTree(", markdownRoundtripDesign, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkdownParseResult parsed = MarkdownReader.Parse(", markdownRoundtripDesign, StringComparison.Ordinal);
 
         string legacyXlsCompatibility = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.excel.legacy-xls-compatibility.md"));
         string legacyDocCompatibility = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.word.legacy-doc-compatibility.md"));

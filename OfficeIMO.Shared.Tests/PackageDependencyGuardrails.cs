@@ -174,29 +174,38 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void ImageExportGapManifest_StaysFirstPartyAndActionable() {
+    public void ImageExportCapabilityManifest_StaysFirstPartyAndPlanningFree() {
         string manifestPath = GetRepositoryPath("Docs/officeimo.image-export-gap-manifest.json");
         Assert.True(File.Exists(manifestPath), "Image export gap manifest is missing: " + manifestPath);
 
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
         JsonElement root = document.RootElement;
 
+        Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("first-party-only", root.GetProperty("runtimeDependencyPolicy").GetString());
         JsonElement workstreams = root.GetProperty("workstreams");
-        Assert.True(workstreams.GetArrayLength() >= 5, "Image export goal should track the main document and QA workstreams.");
+        Assert.True(workstreams.GetArrayLength() >= 5, "Image export evidence should cover the main document and QA owners.");
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        string roadmap = File.ReadAllText(GetRepositoryPath("Docs/ROADMAP.md"));
+        Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
 
         foreach (JsonElement workstream in workstreams.EnumerateArray()) {
             string id = workstream.GetProperty("id").GetString() ?? string.Empty;
             string owner = workstream.GetProperty("owner").GetString() ?? string.Empty;
             string policy = workstream.GetProperty("runtimeDependencyPolicy").GetString() ?? string.Empty;
-            string status = workstream.GetProperty("status").GetString() ?? string.Empty;
-            JsonElement nextSlices = workstream.GetProperty("nextSlices");
+            string currentContract = workstream.GetProperty("currentContract").GetString() ?? string.Empty;
+            string boundary = workstream.GetProperty("boundary").GetString() ?? string.Empty;
 
             Assert.False(string.IsNullOrWhiteSpace(id), "Every image export workstream needs an id.");
+            Assert.True(ids.Add(id), "Image export evidence ids must be unique: " + id);
             Assert.StartsWith("OfficeIMO.", owner, StringComparison.Ordinal);
             Assert.Equal("first-party-only", policy);
-            Assert.Contains(status, new[] { "active", "planned" });
-            Assert.True(nextSlices.GetArrayLength() > 0, "Workstream '" + id + "' needs at least one next slice.");
+            Assert.False(string.IsNullOrWhiteSpace(currentContract), "Workstream '" + id + "' needs a current contract.");
+            Assert.False(string.IsNullOrWhiteSpace(boundary), "Workstream '" + id + "' needs a current boundary.");
+            Assert.False(workstream.TryGetProperty("status", out _), "Planning status belongs in Docs/ROADMAP.md, not the capability manifest.");
+            Assert.False(workstream.TryGetProperty("nextSlices", out _), "Open slices belong in Docs/ROADMAP.md, not the capability manifest.");
+            Assert.Contains("`" + owner + "`", roadmap, StringComparison.Ordinal);
         }
     }
 

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "runtimeDependencyPolicy": "first-party-only",
   "allowedRuntimeRenderingOwners": [
     "OfficeIMO.Drawing",
@@ -16,112 +16,64 @@
       "id": "drawing-engine",
       "owner": "OfficeIMO.Drawing",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Own shared encoding, density metadata, paths, fonts, policies, save behavior, production batch controls, raster safety, image projection, chart primitives, diagnostics, and visual-quality helpers.",
-      "nextSlices": [
-        "Promote reusable geometry, text, image, and chart behavior from document adapters when more than one package needs it.",
-        "Keep classic Deflate/PackBits TIFF and OfficeIMO literal-lossless WebP decoding bounded, fail-closed, and explicit about unsupported variants such as LZW/JPEG TIFF, tiled/planar TIFF, and general WebP.",
-        "Keep the managed core-Arabic and bidirectional fallback diagnosed as an approximation; use IOfficeTextShapingProvider for full OpenType shaping.",
-        "Keep rendering diagnostics reusable without knowing document-specific source semantics.",
-        "Keep streaming, cancellation, progress, conflict, and aggregate-budget behavior consistent across every existing family."
-      ]
+      "currentContract": "Own shared encoding, density metadata, paths, fonts, policies, save behavior, production batch controls, raster safety, image projection, chart primitives, diagnostics, and visual-quality helpers.",
+      "boundary": "Document packages retain source semantics; bounded codec variants and managed text-shaping approximations remain diagnosed explicitly."
     },
     {
       "id": "excel-premium-fidelity",
       "owner": "OfficeIMO.Excel",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Move Excel PNG/SVG export from strong foundation to production-grade visual fidelity while keeping source semantics in Excel and reusable rendering in Drawing.",
-      "nextSlices": [
-        "Burn down tracked visual-fidelity manifest items for comment bodies, conditional icons, pattern fills, rich text, sparklines, stacked text, and shape text.",
-        "Improve chart, image, object, and page-slicing parity through focused diagnostics and baselines.",
-        "Keep Excel PDF planning and Excel image snapshots aligned where they describe the same worksheet semantics."
-      ]
+      "currentContract": "Export worksheet content to PNG and SVG through Excel-owned layout semantics and Drawing-owned rendering primitives.",
+      "boundary": "Complex comments, conditional icons, pattern fills, rich text, sparklines, stacked text, shape text, charts, images, objects, and page slicing have explicit fidelity diagnostics and evidence limits."
     },
     {
       "id": "powerpoint-real-world-baselines",
       "owner": "OfficeIMO.PowerPoint",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Keep fixed-size slide export, including binary PowerPoint import, protected by authored and external-reference visual evidence.",
-      "nextSlices": [
-        "Expand approved PNG/SVG fixture gates beyond the dashboard and process-diagram baselines.",
-        "Expand placeholder, master/layout inheritance, grouped object, connector, chart, and table-style fidelity in focused slices.",
-        "Promote reusable fixed-layout primitives to Drawing instead of duplicating them in the slide renderer."
-      ]
+      "currentContract": "Export fixed-size authored and imported slides through the native presentation renderer with PNG and SVG evidence.",
+      "boundary": "Placeholder and master inheritance, grouped objects, connectors, charts, tables, and unsupported content retain explicit fidelity boundaries."
     },
     {
       "id": "word-pagination",
       "owner": "OfficeIMO.Word",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Harden Word's estimated multi-page image export while keeping the distinction from Microsoft Word application-owned pagination explicit.",
-      "nextSlices": [
-        "Expand representative page-range fixtures for paragraphs, tables, headers, footers, and floating objects.",
-        "Make overflow, fallback, and estimated-pagination diagnostics stable public contracts.",
-        "Keep Word-owned wrapping, sections, fields, and object anchoring separate from Drawing-owned pixels and vector primitives."
-      ]
+      "currentContract": "Export estimated multi-page Word layouts while keeping Word-owned wrapping, sections, fields, and object anchoring separate from Drawing-owned pixels and vectors.",
+      "boundary": "The renderer does not claim Microsoft Word application pagination; overflow, fallback, and estimated-pagination behavior is diagnosed."
     },
     {
       "id": "html-format-conformance",
       "owner": "OfficeIMO.Html",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Keep continuous and paged HTML, email, and EPUB image output format-correct, resource-aware, bounded, and aligned with the shared five-format API.",
-      "nextSlices": [
-        "Add representative continuous and paged visual galleries with embedded, data-URI, and policy-resolved images.",
-        "Keep resource-aware asynchronous rendering wired through the shared fluent builder contract.",
-        "Keep HTML layout semantics in Html and reusable raster/SVG encoding in Drawing."
-      ]
+      "currentContract": "Render continuous and paged HTML, email, and EPUB output through the shared five-format image API with bounded resource policies.",
+      "boundary": "HTML owns layout and resource semantics while Drawing owns reusable raster and SVG encoding."
     },
     {
       "id": "onenote-visual-baselines",
       "owner": "OfficeIMO.OneNote",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Expand representative OneNote image-export evidence across pages, sections, notebooks, ink, math, images, and selection.",
-      "nextSlices": [
-        "Add reviewable real-world page galleries without committing heavy transient comparison artifacts.",
-        "Keep bounded raster diagnostics and naming behavior on the shared converter contract.",
-        "Keep OneNote package semantics separate from Drawing-owned pixels, vectors, and encoders."
-      ]
+      "currentContract": "Export OneNote pages, sections, notebooks, ink, math, images, and selections through the shared converter result contract.",
+      "boundary": "OneNote retains package semantics while Drawing owns pixels, vectors, encoders, bounded raster diagnostics, and naming behavior."
     },
     {
       "id": "visio-five-format-export",
       "owner": "OfficeIMO.Visio",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Keep Visio page and document batch export consistent across PNG, JPEG, TIFF, SVG, and WebP while preserving the native Visio geometry renderer.",
-      "nextSlices": [
-        "Expand loaded-document baselines for stencil artwork, connectors, text, themes, and unsupported-shape diagnostics.",
-        "Keep raster allocation bounded before supersampled working surfaces are created.",
-        "Route reusable encoding and result contracts through Drawing without duplicating Visio geometry."
-      ]
+      "currentContract": "Export Visio pages and document batches to PNG, JPEG, TIFF, SVG, and WebP through native Visio geometry and shared encoding contracts.",
+      "boundary": "Loaded stencil artwork, connectors, text, themes, unsupported shapes, and supersampled raster allocation retain explicit evidence and budget limits."
     },
     {
       "id": "pdf-page-image",
       "owner": "OfficeIMO.Pdf",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Extend first-party PDF page-to-Drawing coverage while keeping five-format image export, selection, safety, and diagnostics on shared contracts.",
-      "nextSlices": [
-        "Burn down the generated PDF render capability manifest with focused operator, font, image, transparency, form, and annotation fixtures.",
-        "Extend synthesized annotation image coverage only through the shared annotation appearance builder, while retaining approximation diagnostics for missing authored appearance streams.",
-        "Keep OfficeIMO-generated PDFs as the strong contract while expanding conservative arbitrary-producer coverage.",
-        "Route paged source adapters through PdfDocumentConversionResult so source conversion warnings remain attached to image results."
-      ]
+      "currentContract": "Render OfficeIMO-generated PDF pages through first-party PDF-to-Drawing operators with shared format, selection, safety, and diagnostic contracts.",
+      "boundary": "Arbitrary-producer operators, fonts, images, transparency, forms, annotations, and missing authored appearance streams are supported conservatively and diagnosed."
     },
     {
       "id": "visual-qa",
       "owner": "OfficeIMO.Shared.Tests",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "active",
-      "goal": "Keep visual proof shared and reviewable without making external comparison tools part of product rendering.",
-      "nextSlices": [
-        "Use Drawing-backed PNG decode/encode/diff helpers with changed-area, MAE, RMSE, and luminance bounds for approved baselines.",
-        "Keep optional desktop, Poppler, or other comparison tools out of product packages and clearly scoped to tests/manual review.",
-        "Require renderable/nonblank proof and stable diagnostics for every premium rendering slice."
-      ]
+      "currentContract": "Provide Drawing-backed PNG decode, encode, and difference evidence with changed-area, MAE, RMSE, luminance, renderability, and nonblank checks.",
+      "boundary": "Desktop applications, Poppler, and other reference tools are optional test or manual-review dependencies and never product rendering dependencies."
     }
   ]
 }

@@ -64,7 +64,7 @@ Use source edits for focused text/token changes when retaining author spelling m
 For a focused source edit:
 
 ```csharp
-MarkdownParseResult parsed = MarkdownReader.Parse(
+MarkdownParseResult parsed = MarkdownReader.ParseWithSyntaxTree(
     source,
     new MarkdownReaderOptions { PreserveTrivia = true });
 

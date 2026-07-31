@@ -32,6 +32,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Complete A1/R1C1 conversion and explicit authored, cached, evaluated, dirty, deferred, and unsupported formula states, including dynamic-array metadata and high-value function clusters.
 - [ ] Deepen pivot, slicer, timeline, modern-chart, query-backed source, and shared-cache workflows.
 - [ ] Add native in-cell images and preserve their behavior through sorting, filtering, resizing, copying, and structural edits.
+- [ ] Preserve additional relationship-backed drawings, workbook-level structures, charts, and template bindings when loading, cloning, editing, and saving complex imported workbooks.
 - [ ] Add a memory-bounded edit path for large existing workbooks with configurable budgets and deterministic cancellation.
 - [ ] Keep XLSX/XLSB/CSV performance evidence competitive on macOS, Linux, and Windows without platform-specific claims unsupported by the cross-platform matrix.
 
@@ -56,6 +57,14 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Add hostile-input, fuzz, aggregate resource-budget, timeout, cancellation, and deterministic-output coverage across HTML, PDF, SVG, and raster paths.
 - [ ] Expand approved visual baselines for paged and continuous output at representative sizes, DPI values, fonts, and platforms.
 - [ ] Keep `OfficeIMO.Drawing` as the single reusable owner for codecs, placement, text layout, shapes, paths, colors, gradients, clipping, and batch export policy.
+
+### Image-export evidence
+
+- [ ] Extend `OfficeIMO.Drawing` with reusable bounded codec, geometry, text-shaping, image, chart, streaming, cancellation, budget, and diagnostic contracts needed by more than one document package.
+- [ ] Burn down `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Word` visual-fidelity gaps with focused fixtures for worksheet objects and styling, slide inheritance and grouped content, and estimated Word pagination, overflow, and fallback reporting.
+- [ ] Expand `OfficeIMO.Html`, `OfficeIMO.OneNote`, and `OfficeIMO.Visio` visual galleries across continuous and paged resources, real-world notebook content, and loaded diagrams while keeping allocation bounded before large working surfaces are created.
+- [ ] Expand `OfficeIMO.Pdf` rendering evidence for operators, fonts, images, transparency, forms, annotations, and conservative arbitrary-producer coverage while retaining source-conversion warnings.
+- [ ] Keep shared visual QA in `OfficeIMO.Shared.Tests`: approved PNG difference metrics, renderable/nonblank proof, stable diagnostics, and optional external reference tools that never become product dependencies.
 
 ## Markdown and text formats
 
@@ -86,7 +95,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 ## Browser and agent surfaces
 
-- [ ] Publish the browser conversion playground as a static WebAssembly application with explicit supported inputs, memory limits, bundle/startup budgets, font diagnostics, and local-only file handling.
+- [ ] Establish measurable browser-converter bundle, startup, and memory budgets and close the remaining Unicode font-packaging diagnostics while retaining local-only processing and documented input limits.
 - [ ] Keep the OfficeIMO CLI and STDIO MCP server bounded, query-first for stores, rooted to explicit file-system access, and backed by the same public OfficeIMO APIs.
 - [ ] Share one conversion capability model across documentation, MCP discovery, and the browser UI.
 - [ ] Keep agent skills and PowerShell commands as thin workflow surfaces over the owning packages.
