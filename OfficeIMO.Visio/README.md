@@ -214,12 +214,12 @@ IReadOnlyList<OfficeImageExportResult> pages = document
     .Save("pipeline-pages");
 ```
 
-## Boundaries
+## Related packages and limits
 
-- `OfficeIMO.Visio` should generate and edit real `.vsdx` packages; optional desktop Visio validation belongs in examples, proof tooling, or tests.
-- External stencil/package support should keep licensing and package structure explicit.
-- Open Visio product work belongs in the repository [roadmap](../Docs/ROADMAP.md); this README owns the current public API and its boundaries.
-- PowerShell wrappers belong in [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
+- `OfficeIMO.Visio` generates and edits `.vsdx` packages without requiring desktop Visio at runtime.
+- External stencil packages retain their package and licensing requirements.
+- Use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for PowerShell workflows.
+- Open Visio product work is listed in the repository [roadmap](../Docs/ROADMAP.md).
 
 ## Deeper docs
 

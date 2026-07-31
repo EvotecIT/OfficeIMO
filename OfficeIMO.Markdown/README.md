@@ -152,12 +152,12 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 | [OfficeIMO.Word.Markdown](../OfficeIMO.Word.Markdown/README.md) | Word to/from Markdown conversion. |
 | [OfficeIMO.Markup](../OfficeIMO.Markup/README.md) | Markdown-inspired semantic authoring for OfficeIMO document outputs. |
 
-## Boundaries
+## Related packages
 
-- `OfficeIMO.Markdown` owns the Markdown model, parser, writer, and HTML renderer.
-- PDF output belongs in `OfficeIMO.Markdown.Pdf`.
-- HTML ingestion belongs in `OfficeIMO.Markdown.Html`.
-- Host shell behavior belongs in `OfficeIMO.MarkdownRenderer` and host-specific plug-ins.
+- `OfficeIMO.Markdown` provides the Markdown model, parser, writer, and HTML renderer.
+- Use `OfficeIMO.Markdown.Pdf` for PDF output.
+- Use `OfficeIMO.Markdown.Html` for HTML ingestion.
+- Use `OfficeIMO.MarkdownRenderer` and its host-specific plug-ins for application shells.
 
 ## Deeper docs
 

@@ -283,11 +283,10 @@ The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` o
 | [OfficeIMO.Word.Pdf](../OfficeIMO.Word.Pdf/README.md) | Word to PDF export through `OfficeIMO.Pdf`. |
 | [OfficeIMO.Word.GoogleDocs](../OfficeIMO.Word.GoogleDocs/README.md) | Planning and exporting Word content to Google Docs. |
 
-## Boundaries
+## Related packages
 
-- PowerShell examples and cmdlets belong in [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice), not this package README.
-- Long capability inventories and roadmap notes belong in focused docs under `Docs/`.
-- PDF layout behavior belongs in `OfficeIMO.Word.Pdf` and `OfficeIMO.Pdf`.
+- Use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for PowerShell examples and cmdlets.
+- Use `OfficeIMO.Word.Pdf` for Word-to-PDF conversion and `OfficeIMO.Pdf` for direct PDF layout and manipulation.
 
 ## Targets and license
 

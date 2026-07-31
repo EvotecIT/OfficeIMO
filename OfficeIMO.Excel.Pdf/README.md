@@ -137,14 +137,11 @@ report.RequireNoLoss(); // checks table-row truncation, not unrelated page conte
 - Source-faithful zero-options output: worksheet-name headings are opt-in through `IncludeSheetHeadings`.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
-## Boundaries
+## Current limits
 
-- Workbook reading stays in `OfficeIMO.Excel`.
-- PDF layout and writing stay in `OfficeIMO.Pdf`.
-- This package should remain a translation adapter, not a second PDF engine.
+- Workbook content is read through `OfficeIMO.Excel`; layout and PDF writing use `OfficeIMO.Pdf`.
 - PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables.
 - The current reverse route recovers detected tables and structured values; arbitrary PDF page art is reported rather than presented as an editable workbook. Open recovery work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
-- Fidelity gaps should be documented as warnings or deeper current-state notes, not hidden in marketing text.
 
 ## Related packages
 

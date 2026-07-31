@@ -30,7 +30,7 @@ Windows, Linux, and macOS results independently.
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter *Csv*Benchmarks*
 ```
 
-Refresh the compact package-README comparison locally with one command:
+Refresh the compact benchmark comparison with one command:
 
 ```powershell
 .\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run Csv
@@ -38,8 +38,7 @@ Refresh the compact package-README comparison locally with one command:
 
 The script runs only the focused equivalent lanes, calls PSPublishModule's
 `Import-BenchmarkResult` and `Update-BenchmarkDocument`, and replaces the
-marker-delimited tables. It is a deliberate local maintainer command; benchmark
-execution is not scheduled in CI.
+marker-delimited table. Benchmark execution is local and is not scheduled in CI.
 
 For a write-focused competitor pass:
 
@@ -108,8 +107,6 @@ macOS evidence separate.
 `CsvDbatoolsLibraryParityBenchmarks` mirrors the published dbatools.library CSV benchmark layout from [dataplat/dbatools.library `benchmarks/CsvBenchmarks`](https://github.com/dataplat/dbatools.library/tree/main/benchmarks/CsvBenchmarks), specifically `CsvReaderBenchmarks.Benchmarks.cs` and `QuickTest.cs`: small, medium, large, wide, quoted, modern medium/large, all-values, and quick-test-style single-column/all-column read lanes. It keeps OfficeIMO in the same file-path reader shape beside Dataplat.Dbatools.Csv, LumenWorks, Sep, Sylvan, and CsvHelper so the raw parser comparison is apples-to-apples. Each parity lane validates the expected row count and deterministic field-length checksum for its input file, so a lane cannot win by silently under-reading or skipping field materialization. The broader `CsvBenchmarks` and `CsvWideBenchmarks` lanes still touch every field and return checksums for stricter payload validation.
 
 Parity check: the class includes all 20 upstream `CsvReaderBenchmarks` methods by benchmark description plus all 10 QuickTest read lanes, then adds matching OfficeIMO lanes beside them. The extra `OfficeIMO-DataReader-QuickTest-GetValues` lane keeps the SQL/bulk-copy-shaped `DbDataReader.GetValues` path visible at the same 100k-row QuickTest size. Dataplat remains the BenchmarkDotNet baseline in this parity class to preserve the upstream comparison frame. `TypeConverterBenchmarks` is intentionally out of scope here because it measures dbatools vector conversion rather than CSV parser throughput, not CSV reader throughput.
-
-CsvHelper, Sylvan.Data.Csv, Dataplat.Dbatools.Csv, LumenWorksCsvReader2, and Sep are benchmark-only dependencies in this project. They are not runtime dependencies of `OfficeIMO.CSV`; any change to that dependency model requires an explicit product decision.
 
 The generated table above and the dated sections below record earlier focused
 investigations and their reproduction commands. Do not combine their numbers

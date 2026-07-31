@@ -67,7 +67,7 @@ foreach (var diagnostic in result.TransformDiagnostics) {
 
 - Generic Markdown rendering stays in `OfficeIMO.MarkdownRenderer`.
 - IntelligenceX-specific transcript behavior belongs here.
-- Host application UI and storage behavior should stay in the IntelligenceX app, not this package.
+- Host application UI and storage are outside this package and remain part of the IntelligenceX application.
 
 ## Targets and license
 

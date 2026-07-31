@@ -27,7 +27,7 @@ AsciiDocProcessingResult processed = AsciiDocProcessor.Process(
     });
 ```
 
-## Boundaries
+## Current limits
 
 - The native parser and writer do not use external packages or executables.
 - Parsing never reads includes or executes registered directives. Only the explicit processor can do so, under caller-supplied policy and hard limits.

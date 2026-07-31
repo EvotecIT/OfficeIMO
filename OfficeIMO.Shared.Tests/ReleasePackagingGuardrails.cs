@@ -241,7 +241,7 @@ public sealed class ReleasePackagingGuardrails {
     }
 
     [Fact]
-    public void PublicReleaseDocs_UseCurrentPackageVersionsDependenciesAndMigrationNames() {
+    public void PublicReleaseDocs_UseCurrentPackageVersionsAndDocumentationOwners() {
         string repositoryRoot = GetRepositoryRoot();
         string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string installation = File.ReadAllText(Path.Combine(
@@ -359,10 +359,19 @@ public sealed class ReleasePackagingGuardrails {
 
         string documentationIndex = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "README.md"));
         Assert.Contains("# OfficeIMO documentation", documentationIndex, StringComparison.Ordinal);
-        Assert.Contains("Package READMEs explain the public API", documentationIndex, StringComparison.Ordinal);
-        Assert.Contains("[ROADMAP.md](ROADMAP.md) owns open product work", documentationIndex, StringComparison.Ordinal);
-        Assert.Contains("Generated files state their source", documentationIndex, StringComparison.Ordinal);
-        Assert.Contains("do not create another backlog", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("Use this index to find package guides", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("Package READMEs are the best starting point", documentationIndex, StringComparison.Ordinal);
+        Assert.Contains("These reports are generated from repository catalogs", documentationIndex, StringComparison.Ordinal);
+        Assert.DoesNotContain("Documentation ownership rules", documentationIndex, StringComparison.Ordinal);
+
+        string agentInstructions = File.ReadAllText(Path.Combine(repositoryRoot, "AGENTS.md"));
+        Assert.Contains("## Documentation audiences", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("root README and package READMEs are user-facing", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("Docs/README.md` is a navigation page", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("Docs/ROADMAP.md` is the single product backlog", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("Do not put agent workflow", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("## Documentation maintenance", agentInstructions, StringComparison.Ordinal);
+        Assert.Contains("Do not add release-wait", agentInstructions, StringComparison.Ordinal);
 
         string roadmap = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "ROADMAP.md"));
         Assert.Contains("# OfficeIMO roadmap", roadmap, StringComparison.Ordinal);

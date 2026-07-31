@@ -35,10 +35,6 @@ Benchmark classes currently cover:
 - document normalization transform cost, including syntax-tree diagnostics
 - HTML-to-Markdown conversion cost across OfficeIMO output profiles and the current ReverseMarkdown benchmark-only baseline
 
-## Boundaries
+## Interpretation
 
-- Benchmark scenarios belong here.
-- Runtime Markdown behavior belongs in `OfficeIMO.Markdown`.
-- Renderer host behavior belongs in `OfficeIMO.MarkdownRenderer`.
-- ReverseMarkdown is a benchmark-only comparison package in this project and must not become a runtime dependency.
-- Release decisions should use benchmark evidence together with correctness tests and representative document fixtures.
+Use benchmark results together with correctness tests and representative document fixtures. Timing alone does not establish syntax coverage, output fidelity, or safe handling of untrusted input.

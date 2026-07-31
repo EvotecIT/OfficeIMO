@@ -156,15 +156,12 @@ foreach (var table in report.TableEntries) {
 Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageContent}");
 ```
 
-## Boundaries
+## Current limits
 
-- Presentation modeling stays in `OfficeIMO.PowerPoint`.
-- PDF layout and writing stay in `OfficeIMO.Pdf`.
-- This package should remain a thin adapter over shared PDF primitives.
+- Presentation content comes from `OfficeIMO.PowerPoint`; layout and PDF writing use `OfficeIMO.Pdf`.
 - Opened-PDF import defaults to `PdfPowerPointImportMode.VisualPages`. Managed-renderer capability diagnostics report page failures or simplifications.
 - `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
 - The current route does not claim arbitrary vectors, groups, forms, annotations, or animations as editable slide objects. Open hybrid visual/editable and bounded text/image reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
-- Complex slide fidelity gaps should be reported through warnings and deeper docs rather than broad README claims.
 
 ## Related packages
 

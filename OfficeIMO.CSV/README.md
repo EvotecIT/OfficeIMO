@@ -371,13 +371,13 @@ string normalized = document.ToString(new CsvSaveOptions {
 });
 ```
 
-## Boundaries
+## Current limits and related packages
 
-- This package owns CSV parsing, writing, transforms, and validation.
+- `OfficeIMO.CSV` provides CSV parsing, writing, transforms, and validation.
 - `DelimiterText` supports explicit multi-character delimiters. Delimiter auto-detection is still character-candidate based.
-- Parallel CSV-to-database import is intentionally outside this package; database bulk copy and provider behavior belong in DbaClientX or the consuming data-access layer.
-- Reader integration belongs in `OfficeIMO.Reader.Csv`.
-- Excel workbook behavior belongs in `OfficeIMO.Excel`.
+- Database bulk copy and provider behavior are available through DbaClientX or the consuming data-access layer rather than this package.
+- Use `OfficeIMO.Reader.Csv` for unified Reader integration.
+- Use `OfficeIMO.Excel` for workbook behavior.
 
 ## Targets and license
 

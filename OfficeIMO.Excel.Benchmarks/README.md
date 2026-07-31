@@ -93,8 +93,7 @@ comparison and refresh its generated table locally with:
 
 The script selects documented equivalent workloads, emits PSPublishModule's
 comparison schema, and calls `Update-BenchmarkDocument` for the
-marker-delimited blocks. It runs only when a maintainer invokes it locally;
-benchmark execution is not scheduled in CI.
+marker-delimited block. Benchmark execution is local and is not scheduled in CI.
 
 Focus the package-copy workbook merge scenario:
 
@@ -116,10 +115,10 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 
 ## Historical generated workstation snapshot
 
-The package README uses this same PSPublishModule-managed snapshot. It is
-retained for reproducibility, not as the current cross-platform product
-ranking. The rows combine raw data paths with feature-bearing workbook work and
-only compare libraries that expose a directly comparable public API. Lower is
+This PSPublishModule-managed snapshot is retained for reproducibility, not as
+the current cross-platform product ranking. The rows combine raw data paths
+with feature-bearing workbook work and only compare libraries that expose a
+directly comparable public API. Lower is
 faster within a row only; do not combine rows into one library ranking. Results
 vary by machine, runtime, package version, workload, warm-up, and options.
 Treat differences below 5% as ties. Use the hash-pinned CSV/XLSX/XLSB website
