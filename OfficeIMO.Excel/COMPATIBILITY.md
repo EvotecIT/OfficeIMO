@@ -30,6 +30,24 @@ The detailed legacy contracts are documented in [XLS/XLSX compatibility](../Docs
 | Protection and encryption | Broad | OOXML password encryption plus supported legacy password import are separate from worksheet/workbook protection; permission fidelity remains format-specific |
 | Feature inspection and preflight | Supported | `InspectFeatures()`, `Can`, `EnsureCan`, capability diagnostics, repair hints, and preservation reports route reads, calculation, edits, templates, rendering, and save workflows explicitly |
 
+## Formula evaluator
+
+`ExcelDocument.Calculate()` and `RecalculateSupportedFormulas()` evaluate the reporting-oriented subset below and write cached results. This is not a complete Excel calculation engine: unsupported formulas remain in the workbook and can be delegated to Excel through recalculation settings. Custom application functions can be registered through `ExcelCalculationOptions`.
+
+| Family | Built-in functions |
+| --- | --- |
+| Aggregation | `SUM`, `AVERAGE`, `AVERAGEA`, `MIN`, `MINA`, `MAX`, `MAXA`, `COUNT`, `COUNTA`, `COUNTBLANK`, `SUBTOTAL`, `PRODUCT` |
+| Conditional aggregation | `COUNTIF`, `SUMIF`, `AVERAGEIF`, `COUNTIFS`, `SUMIFS`, `AVERAGEIFS`, `MINIFS`, `MAXIFS` |
+| Statistics and reporting | `MEDIAN`, `LARGE`, `SMALL`, `MODE.SNGL`, `MODE`, `GEOMEAN`, `HARMEAN`, `AVEDEV`, `DEVSQ`, `SUMXMY2`, `SUMX2MY2`, `SUMX2PY2`, `SUMSQ`, `SUMPRODUCT`, `STDEV.S`, `STDEV.P`, `VAR.S`, `VAR.P`, `PERCENTILE.INC`, `PERCENTILE.EXC`, `QUARTILE.INC`, `QUARTILE.EXC`, `PERCENTRANK.INC`, `PERCENTRANK.EXC`, `RANK.EQ`, `RANK.AVG`, `COVAR`, `COVARIANCE.P`, `COVARIANCE.S`, `CORREL`, `SLOPE`, `INTERCEPT`, `RSQ`, `FORECAST.LINEAR` |
+| Financial | `PMT`, `PV`, `FV`, `NPER`, `NPV` |
+| Lookup and reference | `VLOOKUP`, `HLOOKUP`, `XLOOKUP`, `INDEX`, `MATCH`, `XMATCH`, `ROW`, `COLUMN`, `ROWS`, `COLUMNS` |
+| Mathematics | `ABS`, `SIGN`, `ROUND`, `ROUNDUP`, `ROUNDDOWN`, `MROUND`, `TRUNC`, `INT`, `CEILING.MATH`, `FLOOR.MATH`, `CEILING`, `FLOOR`, `POWER`, `SQRT`, `LN`, `LOG10`, `EXP`, `PI`, `RADIANS`, `DEGREES`, `MOD` |
+| Date and time | `DATE`, `TIME`, `DATEVALUE`, `TIMEVALUE`, `TODAY`, `NOW`, `YEAR`, `MONTH`, `DAY`, `HOUR`, `MINUTE`, `SECOND`, `DATEDIF`, `YEARFRAC`, `EDATE`, `EOMONTH`, `DAYS`, `DAYS360`, `WEEKDAY`, `WEEKNUM`, `ISOWEEKNUM`, `NETWORKDAYS`, `WORKDAY`, `WORKDAY.INTL` |
+| Logical and information | `IF`, `IFS`, `SWITCH`, `CHOOSE`, `ISBLANK`, `ISNUMBER`, `ISTEXT`, `ISERROR`, `ISERR`, `ISNA`, `ISFORMULA`, `AND`, `OR`, `NOT`, `IFERROR`, `IFNA` |
+| Text | `CONCAT`, `CONCATENATE`, `TEXT`, `TEXTJOIN`, `TEXTBEFORE`, `TEXTAFTER`, `FORMULATEXT`, `LEFT`, `RIGHT`, `MID`, `LEN`, `TRIM`, `UPPER`, `LOWER`, `PROPER`, `SUBSTITUTE`, `FIND`, `SEARCH`, `VALUE`, `EXACT`, `REPT` |
+
+The evaluator also handles supported arithmetic and comparison expressions, same-sheet dependencies, numeric cross-sheet references, named ranges, simple structured references, dependency-depth guards, and circular/self-reference diagnostics. Function-specific argument shapes remain bounded by focused tests; a recognized name does not imply every Excel overload, array behavior, spill behavior, or coercion rule.
+
 ## Image and PDF export
 
 Range, worksheet, and workbook export uses shared `OfficeIMO.Drawing` primitives for PNG, JPEG, TIFF, WebP, and SVG output. The Excel adapter owns worksheet geometry, print areas, page breaks, headers/footers, cells, comments, images, charts, shapes, conditional formatting, and sparklines. Unsupported or approximate layout remains in export diagnostics; OfficeIMO does not claim to reproduce the Microsoft Excel layout engine.

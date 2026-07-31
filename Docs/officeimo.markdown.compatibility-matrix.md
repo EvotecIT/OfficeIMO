@@ -22,6 +22,54 @@ Open Markdown work is tracked in the repository [roadmap](ROADMAP.md).
 | Engine ownership | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, source edits, and HTML projection |
 | Host rendering | `OfficeIMO.MarkdownRenderer` owns the WebView/browser shell and incremental host updates |
 
+## Extension-family inventory
+
+This is the published routing inventory for optional and profile-specific extension families represented in the compatibility test corpus. It is not a competitive scorecard: each row states whether the behavior belongs in the core parser, an opt-in extension, renderer/host policy, or an intentional/deferred boundary. The inventory test verifies every reflected row against this table so per-family coverage cannot disappear during documentation consolidation.
+
+| Metric | Count |
+| --- | ---: |
+| Extension-family rows | 33 |
+| Covered | 13 |
+| Partial | 8 |
+| Intentional | 3 |
+| Gap | 9 |
+
+| Extension family | Status | Current route |
+| --- | --- | --- |
+| Abbreviations | `Covered` | Core parser, opt-in |
+| Advanced extension bundle | `Intentional` | Intentional bundle guard |
+| Alert blocks | `Covered` | Core parser plus renderer policy |
+| Auto identifiers | `Covered` | Core renderer option |
+| Extended autolinks | `Covered` | Core parser, profile-gated |
+| Bootstrap renderer helpers | `Intentional` | Renderer theme policy |
+| CJK-friendly emphasis | `Covered` | Core delimiter parser option |
+| Citations | `Gap` | Optional parser extension, deferred |
+| Custom containers | `Partial` | Core extension seam plus optional built-in parser |
+| Definition lists | `Covered` | Core parser, opt-in/profile-gated |
+| Diagrams | `Partial` | Renderer/host policy over semantic fences |
+| Emoji and smiley | `Gap` | Optional inline transform |
+| Emphasis extras | `Covered` | Core inline parser, profile-gated |
+| Figures | `Partial` | Core image AST plus optional parser syntax |
+| Footers | `Gap` | Deferred document semantics |
+| Footnotes | `Covered` | Core parser, GFM profile |
+| Generic attributes | `Partial` | Core AST/source architecture |
+| Globalization | `Gap` | Deferred compatibility option |
+| Grid tables | `Gap` | Optional block parser extension |
+| Jira links | `Gap` | Optional link inline extension |
+| List extras | `Partial` | Core parser, opt-in |
+| Mathematics | `Partial` | Optional parser plus renderer/host policy |
+| Media links | `Partial` | Renderer/host policy with optional link parser |
+| Non-ASCII no-escape rendering | `Covered` | Renderer escaping policy |
+| Pipe tables | `Covered` | Core parser, GFM profile |
+| Pragma lines | `Gap` | Deferred metadata parser |
+| Precise source location | `Partial` | Cross-cutting core source architecture |
+| Referral links | `Gap` | Renderer policy |
+| Self pipeline | `Intentional` | Intentional composition difference |
+| SmartyPants | `Gap` | Optional inline transform |
+| Soft line break as hard line break | `Covered` | Core parser option |
+| Task lists | `Covered` | Core parser, GFM profile |
+| YAML front matter | `Covered` | Core parser, OfficeIMO profile |
+
 ## Standards profiles
 
 | Capability | CommonMark profile | GFM profile | OfficeIMO profile | Status and boundary |

@@ -364,8 +364,31 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`PdfPowerPointTableImportOptions`", migration, StringComparison.Ordinal);
         Assert.Contains("`PdfPowerPointImportOptions`", migration, StringComparison.Ordinal);
         Assert.Contains("`ImportTablesToPowerPointPresentation`", migration, StringComparison.Ordinal);
+        Assert.Contains("### PowerPoint lifecycle, composition, and inspection", migration, StringComparison.Ordinal);
+        Assert.Contains("`OpenRead(path)`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PowerPointTemplate.Inspect(path)`", migration, StringComparison.Ordinal);
+        Assert.Contains("PowerPointCompositionOptions.FromBrief(brief)", migration, StringComparison.Ordinal);
+        Assert.Contains("`InspectPreflight()`", migration, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.Drawing.OfficeChartData`", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", migration, StringComparison.Ordinal);
+
+        string excelCompatibility = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "OfficeIMO.Excel",
+            "COMPATIBILITY.md"));
+        Assert.Contains("## Formula evaluator", excelCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`FORECAST.LINEAR`", excelCompatibility, StringComparison.Ordinal);
+        Assert.Contains("`WORKDAY.INTL`", excelCompatibility, StringComparison.Ordinal);
+        Assert.Contains("Custom application functions", excelCompatibility, StringComparison.Ordinal);
+        int documentedFormulaFunctions = Regex.Matches(
+                excelCompatibility[excelCompatibility.IndexOf("## Formula evaluator", StringComparison.Ordinal)..],
+                @"`([A-Z][A-Z0-9]*(?:\.[A-Z]+)?)`")
+            .Cast<Match>()
+            .Select(static match => match.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        Assert.Equal(151, documentedFormulaFunctions);
 
         string documentationIndex = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "README.md"));
         Assert.Contains("# OfficeIMO documentation", documentationIndex, StringComparison.Ordinal);

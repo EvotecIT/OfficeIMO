@@ -80,6 +80,42 @@ The common conversion grammar is:
 | Configure forward PDF output | `{Source}PdfSaveOptions` | `WordPdfSaveOptions` |
 | Configure reconstruction from PDF | `Pdf{Target}ImportOptions` | `PdfWordImportOptions` |
 
+### PowerPoint lifecycle, composition, and inspection
+
+PowerPoint 3.1 uses the concrete `PowerPointPresentation`, `PowerPointSlide`, and shape types as the editing model. Semantic deck plans, template helpers, and format adapters remain optional workflows over that model.
+
+Replace lifecycle calls as follows:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `Open(path)` | `Load(path)` |
+| `OpenRead(path)` | `Load(path, new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })` |
+| `Open(stream, readOnly: true, autoSave: false)` | `Load(stream, new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })` |
+| `Create(stream, autoSave: false)` | `Create(stream)` |
+| Implicit save on dispose | Set `PersistenceMode = DocumentPersistenceMode.SaveOnDispose`, or call `Save()` explicitly |
+
+The designer and deck-composer entry points now route through one plan and one composition call:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `presentation.UseDesigner(...).AddSlides(plan)` | `presentation.Compose(plan, PowerPointCompositionOptions.FromBrief(brief))` |
+| `presentation.AddDesignerProcessSlide(...)` | `plan.AddProcess(...)`, then `presentation.Compose(...)` |
+| `deck.AddSlidesWithContinuation(plan)` | Set `options.ExpandContinuations = true` (the default), then call `Compose(...)` |
+| `deck.AddSlidesWithReport(plan)` | Read the `PowerPointCompositionResult` returned by `presentation.Compose(...)` |
+
+Template ownership and inspection names are also explicit:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `PowerPointPresentation.InspectTemplate(path)` | `PowerPointTemplate.Inspect(path)` |
+| `PowerPointPresentation.CreateFromTemplate(...)` | `PowerPointTemplate.CreatePresentation(...)` |
+| `presentation.UseTemplateDesigner(...)` | Set `PowerPointCompositionOptions.TemplateLayouts`, then call `Compose(...)` |
+| `Preflight()` | `InspectPreflight()` |
+| `CreateVisualProofReport()` | `InspectVisuals()` |
+| `SaveWithPreflight()` | Call `InspectPreflight()`, apply the required gate, then call `Save()` |
+
+Replace `PowerPointChartData`, `PowerPointScatterChartData`, their series types, and chart-family-specific add methods with shared `OfficeIMO.Drawing.OfficeChartData` plus `AddChart`, `AddChartCm`, `AddChartInches`, or `AddChartPoints`.
+
 ### Names and behavior
 
 | OfficeIMO 3.0 | OfficeIMO 3.1 |
