@@ -15,25 +15,32 @@ internal static partial class PdfPageImageRenderer {
         Guard.NotNull(pdf, nameof(pdf));
         PdfPageRenderOptions effectiveOptions = options ?? new PdfPageRenderOptions();
         effectiveOptions.Validate();
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
-        int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection)) ?? Enumerable.Range(1, document.Pages.Count).ToArray();
-        if (pages.Length > effectiveOptions.MaxPages) {
-            throw new PdfReadLimitException(PdfReadLimitKind.RenderPages, effectiveOptions.MaxPages, pages.Length, "PDF render page count exceeded the configured limit.");
-        }
-
-        var results = new List<PdfPageRenderResult>(pages.Length);
-        long totalOutputBytes = 0;
-        for (int i = 0; i < pages.Length; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, cancellationToken);
-            totalOutputBytes = checked(totalOutputBytes + result.OutputByteLength);
-            if (totalOutputBytes > effectiveOptions.MaxTotalOutputBytes) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effectiveOptions.MaxTotalOutputBytes, totalOutputBytes);
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            effectiveOptions.RenderTimeout,
+            cancellationToken);
+        try {
+            PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+            int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection)) ?? Enumerable.Range(1, document.Pages.Count).ToArray();
+            if (pages.Length > effectiveOptions.MaxPages) {
+                throw new PdfReadLimitException(PdfReadLimitKind.RenderPages, effectiveOptions.MaxPages, pages.Length, "PDF render page count exceeded the configured limit.");
             }
-            results.Add(result);
-        }
 
-        return results.AsReadOnly();
+            var results = new List<PdfPageRenderResult>(pages.Length);
+            long totalOutputBytes = 0;
+            for (int i = 0; i < pages.Length; i++) {
+                execution.Token.ThrowIfCancellationRequested();
+                PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, execution.Token);
+                totalOutputBytes = checked(totalOutputBytes + result.OutputByteLength);
+                if (totalOutputBytes > effectiveOptions.MaxTotalOutputBytes) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effectiveOptions.MaxTotalOutputBytes, totalOutputBytes);
+                }
+                results.Add(result);
+            }
+
+            return results.AsReadOnly();
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
     }
 
     /// <summary>Renders parsed page ranges such as <c>1-3,5</c>.</summary>
@@ -79,8 +86,14 @@ internal static partial class PdfPageImageRenderer {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = options.Format == PdfPageRenderFormat.Png
-                ? RenderDrawingAsPng(drawing, scale, options.Background, options.ImageCodec)
-                : OfficeDrawingSvgExporter.ToSvgBytes(drawing, scale);
+                ? RenderDrawingAsPng(drawing, scale, options.Background, options.ImageCodec, cancellationToken)
+                : OfficeDrawingSvgExporter.ToSvgBytes(
+                    drawing,
+                    scale,
+                    OfficeSvgSizeUnit.Point,
+                    imageCodec: null,
+                    resourceIdPrefix: null,
+                    cancellationToken: cancellationToken);
             if (bytes.LongLength > options.MaxOutputBytesPerPage) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, options.MaxOutputBytesPerPage, bytes.LongLength);
             }

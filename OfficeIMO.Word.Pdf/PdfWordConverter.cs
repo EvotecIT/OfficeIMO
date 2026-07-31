@@ -34,6 +34,7 @@ namespace OfficeIMO.Word.Pdf {
             if (options.IncludeMetadata) {
                 CopyMetadata(source.Metadata, target);
             }
+            ReportDocumentReconstructionBoundaries(source, options);
 
             bool emittedContent = false;
             WordList? bulletList = null;
@@ -42,6 +43,7 @@ namespace OfficeIMO.Word.Pdf {
 
             for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
                 PdfCore.PdfLogicalPage page = source.Pages[pageIndex];
+                ReportPageReconstructionBoundaries(page, options);
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
                 if (pageIndex > 0 && options.PreservePageBreaks && (items.Count > 0 || options.IncludeEmptyPages || hasNavigationAnchor)) {
@@ -783,6 +785,85 @@ namespace OfficeIMO.Word.Pdf {
                 new Dictionary<string, string> {
                     ["LinkCount"] = linkCount.ToString(CultureInfo.InvariantCulture)
                 });
+        }
+
+        private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfLogicalDocument source, PdfWordImportOptions options) {
+            if (source.Outlines.Count > 0) {
+                AddWarning(
+                    options,
+                    "PdfOutlineHierarchyNotReconstructed",
+                    "Document/Outlines",
+                    "PDF outline hierarchy is retained as diagnostic source metadata; semantic Word import reconstructs supported destinations and links, not the viewer outline tree.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    new Dictionary<string, string> { ["OutlineCount"] = source.Outlines.Count.ToString(CultureInfo.InvariantCulture) });
+            }
+            if (source.TaggedContent != null) {
+                AddWarning(
+                    options,
+                    "PdfTaggedStructureNotReconstructed",
+                    "Document/StructTreeRoot",
+                    "Readable PDF tagged-structure evidence informed the logical source model but was not copied as a Word accessibility structure tree.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    new Dictionary<string, string> {
+                        ["StructureElementCount"] = source.TaggedContent.StructureElementCount.ToString(CultureInfo.InvariantCulture),
+                        ["MarkedContentReferenceCount"] = source.TaggedContent.MarkedContentReferenceCount.ToString(CultureInfo.InvariantCulture)
+                    });
+            }
+            if (source.OptionalContentGroupCount > 0) {
+                AddWarning(
+                    options,
+                    "PdfOptionalContentGroupsFlattened",
+                    "Document/OCProperties",
+                    "PDF optional-content groups were flattened into the visible logical reconstruction; Word layer controls were not created.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    new Dictionary<string, string> { ["GroupCount"] = source.OptionalContentGroupCount.ToString(CultureInfo.InvariantCulture) });
+            }
+            if (source.CatalogActions.Count > 0 || source.OpenAction != null) {
+                AddWarning(
+                    options,
+                    "PdfCatalogActionsNotReconstructed",
+                    "Document/CatalogActions",
+                    "PDF document open and catalog actions were not copied into the editable Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    new Dictionary<string, string> {
+                        ["CatalogActionCount"] = source.CatalogActions.Count.ToString(CultureInfo.InvariantCulture),
+                        ["HasOpenAction"] = (source.OpenAction != null).ToString(CultureInfo.InvariantCulture)
+                    });
+            }
+        }
+
+        private static void ReportPageReconstructionBoundaries(PdfCore.PdfLogicalPage page, PdfWordImportOptions options) {
+            if (page.VectorPrimitiveCount > 0) {
+                AddWarning(
+                    options,
+                    "PdfVectorGraphicsReconstructedSemantically",
+                    "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Vectors",
+                    "PDF vector primitives are not projected as editable Word shapes; table borders and other represented semantics may still be reconstructed.",
+                    PdfCore.PdfConversionWarningSeverity.Information,
+                    new Dictionary<string, string> { ["VectorPrimitiveCount"] = page.VectorPrimitiveCount.ToString(CultureInfo.InvariantCulture) });
+            }
+
+            int annotationCount = page.Annotations.Count(static annotation =>
+                !string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase));
+            if (annotationCount > 0) {
+                AddWarning(
+                    options,
+                    "PdfAnnotationsNotReconstructed",
+                    "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Annotations",
+                    "Non-link PDF annotations are retained in source diagnostics but are not reconstructed as editable Word comments or drawing objects.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    new Dictionary<string, string> { ["AnnotationCount"] = annotationCount.ToString(CultureInfo.InvariantCulture) });
+            }
+            if (page.PageActions.Count > 0) {
+                AddWarning(
+                    options,
+                    "PdfPageActionsNotReconstructed",
+                    "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Actions",
+                    "PDF page actions and chained actions are not copied into the editable Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    new Dictionary<string, string> { ["PageActionCount"] = page.PageActions.Count.ToString(CultureInfo.InvariantCulture) });
+            }
         }
 
         private static void CopyMetadata(PdfCore.PdfMetadata source, WordDocument target) {

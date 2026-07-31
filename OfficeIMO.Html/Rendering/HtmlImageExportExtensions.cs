@@ -51,7 +51,13 @@ public static partial class HtmlImageExportExtensions {
         int width;
         int height;
         if (format == OfficeImageExportFormat.Svg) {
-            bytes = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
+            bytes = OfficeDrawingSvgExporter.ToSvgBytes(
+                drawing,
+                options.Scale,
+                OfficeSvgSizeUnit.Pixel,
+                fallbackCodec,
+                resourceIdPrefix: null,
+                cancellationToken: cancellationToken);
             width = Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale));
             height = Math.Max(1, (int)Math.Ceiling(page.Height * options.Scale));
         } else if (format.IsRaster()) {

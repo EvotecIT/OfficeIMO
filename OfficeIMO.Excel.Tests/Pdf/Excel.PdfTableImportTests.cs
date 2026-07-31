@@ -177,6 +177,165 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_SaveTablesAsExcel_MergesPageContinuationsAndCollapsesRepeatedHeaders() {
+        var rows = new List<string[]> {
+            new[] { "Group", "State" },
+            new[] { "Metric", "Owner" }
+        };
+        for (int index = 1; index <= 30; index++) {
+            rows.Add(new[] {
+                "Check " + index.ToString(CultureInfo.InvariantCulture),
+                "Team " + index.ToString(CultureInfo.InvariantCulture)
+            });
+        }
+
+        var style = new PdfCore.PdfTableStyle {
+            HeaderRowCount = 2,
+            RepeatHeaderRowCount = 2,
+            ColumnWidthPoints = new List<double?> { 120, 120 },
+            CellPaddingX = 5,
+            CellPaddingY = 3
+        };
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            })
+            .Table(rows, style: style)
+            .ToBytes();
+
+        PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions { AutoFitColumns = false });
+
+        string tableDetails = string.Join("; ", logical.Pages.SelectMany((page, pageIndex) => page.Tables.Select((table, tableIndex) =>
+            $"P{page.PageNumber}/T{tableIndex}: {table.YTop:0.##}-{table.YBottom:0.##}, {table.DetectionKind}, rows={table.Rows.Count}, headers={string.Join("|", PdfCore.PdfLogicalTableAnalysis.Extract(table).Columns)}")));
+        Assert.True(report.Entries.Count == 1, tableDetails);
+        PdfExcelTableImportEntry entry = report.Entries[0];
+        Assert.True(entry.SourceTableCount > 1);
+        Assert.Equal(entry.SourceTableCount, entry.SourcePageNumbers.Count);
+        Assert.Equal(Enumerable.Range(1, entry.SourceTableCount), entry.SourcePageNumbers);
+        Assert.Equal(30, entry.RowCount);
+        Assert.Equal(30, entry.TotalRowCount);
+        Assert.False(entry.Truncated);
+        Assert.Equal(1, entry.AdditionalHeaderRowCount);
+        Assert.Equal(entry.SourceTableCount - 1, entry.SuppressedRepeatedHeaderRows);
+
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        ExcelTableInfo table = Assert.Single(reader.GetTables());
+        Assert.Equal(new[] { "Group / Metric", "State / Owner" }, table.Columns.Select(column => column.Name).ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal("Check 1", values[1, 0]);
+        Assert.Equal("Check 30", values[30, 0]);
+    }
+
+    [Fact]
+    public void PdfTables_SaveTablesAsExcel_WritesBooleanPercentageDateAndNumericColumnsAsTypedCells() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 9
+            })
+            .Table(new[] {
+                new[] { "Active", "Completion" },
+                new[] { "Yes", "12.5%" },
+                new[] { "No", "100.0%" },
+                new[] { "Yes", "50.0%" },
+                new[] { "No", "00.0%" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 120, 120 }
+            })
+            .PageBreak()
+            .Table(new[] {
+                new[] { "Due Date", "Quantity" },
+                new[] { "2026-07-01", "2" },
+                new[] { "2026-07-31", "14" },
+                new[] { "2026-08-15", "8" },
+                new[] { "2026-09-01", "21" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 160, 80 }
+            })
+            .ToBytes();
+
+        PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions { AutoFitColumns = false });
+
+        Assert.Equal(2, report.Entries.Count);
+        Assert.Equal(new[] {
+            PdfExcelTableColumnKind.Boolean,
+            PdfExcelTableColumnKind.Percentage,
+            PdfExcelTableColumnKind.DateTime,
+            PdfExcelTableColumnKind.Number
+        }, report.Entries.SelectMany(entry => entry.ColumnKinds));
+
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] statusValues = reader.GetSheet(report.Entries[0].SheetName).ReadRange(report.Entries[0].Range);
+        Assert.Equal(true, statusValues[1, 0]);
+        Assert.Equal(0.125d, Convert.ToDouble(statusValues[1, 1], CultureInfo.InvariantCulture), 8);
+        object?[,] dueValues = reader.GetSheet(report.Entries[1].SheetName).ReadRange(report.Entries[1].Range);
+        Assert.Equal(new DateTime(2026, 7, 1), Convert.ToDateTime(dueValues[1, 0], CultureInfo.InvariantCulture));
+        Assert.Equal(14d, Convert.ToDouble(dueValues[2, 1], CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void PdfTables_SaveTablesAsExcel_KeepsPositionedCellRecoveryBoundedAndTableOnly() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 640,
+                PageHeight = 280,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            })
+            .Table(new[] {
+                new[] { "Active", "Completion Percentage", "Due Date", "Quantity" },
+                new[] { "Yes", "12.5%", "2026-07-01", "2" },
+                new[] { "No", "100%", "2026-07-31", "14" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 80, 160, 120, 80 }
+            })
+            .ToBytes();
+
+        PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions { AutoFitColumns = false });
+
+        IReadOnlyList<PdfCore.PdfTextSpan> spans = logical.Pages[0].TextBlocks.SelectMany(static block => block.Spans).ToArray();
+        List<PdfCore.TextLayoutEngine.TextLine> lines = PdfCore.TextLayoutEngine.BuildLines(spans);
+        List<PdfCore.StructuredTable> recovered = PdfCore.TableDetector.DetectPositionedCellTables(lines);
+        PdfCore.StructuredTable positionedTable = Assert.Single(recovered);
+        Assert.Equal("positioned-cells-bounded", positionedTable.Kind);
+        Assert.Equal(3, positionedTable.Rows.Count);
+        PdfExcelTableImportEntry entry = Assert.Single(report.Entries);
+        Assert.Equal(4, entry.ColumnCount);
+        Assert.Equal(2, entry.RowCount);
+        Assert.True(report.SourceScope.NonTableTextBlockCount == 0);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal("Due Date", values[0, 2]);
+        Assert.Equal(new DateTime(2026, 7, 31), Convert.ToDateTime(values[2, 2], CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public void PdfTables_NumericParserHandlesInvoiceNumberText() {
         Assert.True(PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue("$1,234.50", CultureInfo.InvariantCulture, out decimal currency));
         Assert.Equal(1234.50m, currency);

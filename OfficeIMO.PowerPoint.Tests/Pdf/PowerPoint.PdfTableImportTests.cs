@@ -46,6 +46,53 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocument_ToPowerPointPresentation_HybridKeepsVisualPageAndEditableTableOverlay() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Quarterly status"))
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "14" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 180, 80 },
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateHybrid());
+
+        Assert.Equal(PdfPowerPointImportMode.HybridVisualAndEditableTables, result.Report.Mode);
+        Assert.Single(result.Report.VisualPages);
+        Assert.Single(result.Report.TableEntries);
+        Assert.True(result.Report.VisualPages[0].Succeeded);
+        Assert.True(result.Report.HasNonEditablePageContent);
+        Assert.False(result.Report.HasOmittedPageContent);
+        PdfCore.PdfConversionWarning textWarning = Assert.Single(result.Warnings, warning => warning.Code == "PdfTextNotEditable");
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, textWarning.Severity);
+        Assert.Equal("VisualOnly", textWarning.Details["Disposition"]);
+        Assert.Contains(result.Warnings, warning => warning.Code == "PdfVectorsNotEditable");
+
+        using var presentation = new MemoryStream();
+        using (result.Value) result.Value.Save(presentation);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
+        SlidePart slide = Assert.Single(package.PresentationPart!.SlideParts);
+        Assert.Single(slide.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>());
+        Assert.Single(slide.Slide.Descendants<A.Table>());
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_ImportsDetectedTablesAsPowerPointTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

@@ -30,15 +30,17 @@ public static class HtmlRenderEngine {
         resolved.BaseUri ??= document.BaseUri;
         ApplyDocumentPolicies(document, resolved);
         resolved.Validate();
-        HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
-        cancellationToken.ThrowIfCancellationRequested();
-        IHtmlDocument renderDocument = document.CreateDocumentForRendering();
-        return RenderDocument(
-            renderDocument,
-            resolved,
-            initialDiagnostics: null,
-            document.Limits,
-            cancellationToken);
+        return ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
+            HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+            operationCancellationToken.ThrowIfCancellationRequested();
+            IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+            return RenderDocument(
+                renderDocument,
+                resolved,
+                initialDiagnostics: null,
+                document.Limits,
+                operationCancellationToken);
+        });
     }
 
     /// <summary>
@@ -48,14 +50,16 @@ public static class HtmlRenderEngine {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();
-        IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
-        HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
-        return RenderDocument(
-            renderDocument,
-            resolved,
-            initialDiagnostics: null,
-            HtmlConversionLimits.CreateUntrustedProfile(),
-            CancellationToken.None);
+        return ExecuteWithDeadline(resolved, CancellationToken.None, operationCancellationToken => {
+            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+            HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
+            return RenderDocument(
+                renderDocument,
+                resolved,
+                initialDiagnostics: null,
+                HtmlConversionLimits.CreateUntrustedProfile(),
+                operationCancellationToken);
+        });
     }
 
     private static HtmlRenderDocument RenderDocument(
@@ -123,14 +127,17 @@ public static class HtmlRenderEngine {
         resolved.BaseUri ??= document.BaseUri;
         ApplyDocumentPolicies(document, resolved);
         resolved.Validate();
-        HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
-        IHtmlDocument renderDocument = document.CreateDocumentForRendering();
-        return await RenderDocumentAsync(
-            renderDocument,
-            resolved,
-            initialDiagnostics: null,
-            document.Limits,
-            cancellationToken).ConfigureAwait(false);
+        return await ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
+            HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+            operationCancellationToken.ThrowIfCancellationRequested();
+            IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+            return await RenderDocumentAsync(
+                renderDocument,
+                resolved,
+                initialDiagnostics: null,
+                document.Limits,
+                operationCancellationToken).ConfigureAwait(false);
+        }).ConfigureAwait(false);
     }
 
     internal static Task<HtmlRenderDocument> RenderAsync(string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
@@ -144,14 +151,16 @@ public static class HtmlRenderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();
-        IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
-        HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
-        return await RenderDocumentAsync(
-            renderDocument,
-            resolved,
-            initialDiagnostics: null,
-            HtmlConversionLimits.CreateUntrustedProfile(),
-            cancellationToken).ConfigureAwait(false);
+        return await ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
+            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+            HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
+            return await RenderDocumentAsync(
+                renderDocument,
+                resolved,
+                initialDiagnostics: null,
+                HtmlConversionLimits.CreateUntrustedProfile(),
+                operationCancellationToken).ConfigureAwait(false);
+        }).ConfigureAwait(false);
     }
 
     private static async Task<HtmlRenderDocument> RenderDocumentAsync(
@@ -199,6 +208,32 @@ public static class HtmlRenderEngine {
 
     internal static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
         RenderAsync(html, options, cancellationToken);
+
+    private static T ExecuteWithDeadline<T>(
+        HtmlRenderOptions options,
+        CancellationToken callerCancellationToken,
+        Func<CancellationToken, T> operation) {
+        using OfficeIMO.Drawing.OfficeImageExportExecutionScope execution =
+            OfficeIMO.Drawing.OfficeImageExportExecutionScope.Start(options.RenderTimeout, callerCancellationToken);
+        try {
+            return operation(execution.Token);
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
+    private static async Task<T> ExecuteWithDeadlineAsync<T>(
+        HtmlRenderOptions options,
+        CancellationToken callerCancellationToken,
+        Func<CancellationToken, Task<T>> operation) {
+        using OfficeIMO.Drawing.OfficeImageExportExecutionScope execution =
+            OfficeIMO.Drawing.OfficeImageExportExecutionScope.Start(options.RenderTimeout, callerCancellationToken);
+        try {
+            return await operation(execution.Token).ConfigureAwait(false);
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
 
     private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlRenderOptions options) {
         HtmlUrlPolicy requestedHyperlinkPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();

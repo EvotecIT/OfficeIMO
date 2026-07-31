@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -68,5 +69,23 @@ public partial class DrawingTests {
         Assert.Contains("id=\"page-2-officeimo-clip-1\"", svg, StringComparison.Ordinal);
         Assert.Contains("url(#page-2-officeimo-clip-1)", svg, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"officeimo-", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_HonorsCancellationAtTheSharedVectorBoundary() {
+        var drawing = new OfficeDrawing(120D, 80D);
+        var shape = OfficeShape.Rectangle(20D, 20D);
+        shape.FillColor = OfficeColor.Blue;
+        drawing.AddShape(shape, 0D, 0D);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => OfficeDrawingSvgExporter.ToSvgBytes(
+            drawing,
+            1D,
+            OfficeSvgSizeUnit.Pixel,
+            imageCodec: null,
+            resourceIdPrefix: null,
+            cancellationToken: cancellation.Token));
     }
 }

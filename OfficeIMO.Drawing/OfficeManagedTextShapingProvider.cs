@@ -27,7 +27,6 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         if (request.IsOpenTypeCff ||
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) ||
-            OfficeTextElements.ContainsBidiControl(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             (OfficeTextElements.ContainsJoiningScript(request.Text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text))) {
@@ -72,9 +71,9 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             logicalIndex += length;
         }
 
-        return OfficeManagedTextShaper.ToVisualOrder(
+        return OfficeBidiTextResolver.ToVisualOrder(
+            contextual,
             logicalElements,
-            static element => element.VisualText,
             direction,
             cancellationToken);
     }

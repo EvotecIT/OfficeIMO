@@ -252,6 +252,7 @@ internal static class PdfMutationPlanner {
     private static bool CanAppend(PdfAppendOnlyMutationReport report, PdfMutationOperation operation, bool finalizationReservationValidated) {
         switch (operation) {
             case PdfMutationOperation.UpdateMetadata:
+            case PdfMutationOperation.SynchronizeMetadata:
                 return report.CanAppendMetadata;
             case PdfMutationOperation.FillFormFields:
                 return report.CanAppendFormFields;
@@ -269,7 +270,9 @@ internal static class PdfMutationPlanner {
     }
 
     private static bool BlocksActiveContentPreservingMutation(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
-        if (operation != PdfMutationOperation.UpdateMetadata && operation != PdfMutationOperation.FillFormFields) {
+        if (operation != PdfMutationOperation.UpdateMetadata &&
+            operation != PdfMutationOperation.SynchronizeMetadata &&
+            operation != PdfMutationOperation.FillFormFields) {
             return false;
         }
         return preflight.Probe.HasActiveContent || preflight.UncheckedDocumentInfo?.HasActiveContent == true;
@@ -283,6 +286,7 @@ internal static class PdfMutationPlanner {
 
     private static bool IsAppendOnlyImplemented(PdfMutationOperation operation) {
         return operation == PdfMutationOperation.UpdateMetadata ||
+            operation == PdfMutationOperation.SynchronizeMetadata ||
             operation == PdfMutationOperation.FillFormFields ||
             operation == PdfMutationOperation.PrepareExternalSignature ||
             operation == PdfMutationOperation.FinalizeExternalSignature ||
@@ -658,6 +662,7 @@ internal static class PdfMutationPlanner {
     private static string GetAppendAction(PdfMutationOperation operation) {
         switch (operation) {
             case PdfMutationOperation.UpdateMetadata:
+            case PdfMutationOperation.SynchronizeMetadata:
                 return "Metadata";
             case PdfMutationOperation.FillFormFields:
                 return "FormFill";

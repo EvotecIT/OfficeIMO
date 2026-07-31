@@ -14,6 +14,23 @@ internal static class PdfImageExportEngine {
         Guard.NotNull(page, nameof(page));
         Guard.NotNull(options, nameof(options));
         options.Validate();
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            options.RenderTimeout,
+            cancellationToken);
+        try {
+            return ExportCore(page, format, options, pageNumber, initialDiagnostics, execution.Token);
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
+    private static OfficeImageExportResult ExportCore(
+        PdfReadPage page,
+        OfficeImageExportFormat format,
+        PdfImageExportOptions options,
+        int? pageNumber,
+        IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
         OfficeDrawing drawing = page.ToDrawing();
@@ -47,7 +64,9 @@ internal static class PdfImageExportEngine {
                 drawing,
                 effective.Scale,
                 OfficeSvgSizeUnit.Pixel,
-                fallbackCodec);
+                fallbackCodec,
+                resourceIdPrefix: null,
+                cancellationToken: cancellationToken);
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 Scaled(drawing.Width, effective.Scale),
@@ -118,22 +137,29 @@ internal static class PdfImageExportEngine {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(consumer, nameof(consumer));
         options.Validate();
-        int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection))
-            ?? Enumerable.Range(1, document.Pages.Count).ToArray();
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            options.RenderTimeout,
+            cancellationToken);
+        try {
+            int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection))
+                ?? Enumerable.Range(1, document.Pages.Count).ToArray();
 
-        OfficeImageExportBatchProcessor.ForEachOrdered(
-            pages,
-            options.MaximumDegreeOfParallelism,
-            (pageNumber, _, token) => Export(
-                document.Pages[pageNumber - 1],
-                format,
-                options,
-                pageNumber,
-                initialDiagnostics,
-                token),
-            consumer,
-            cancellationToken,
-            options);
+            OfficeImageExportBatchProcessor.ForEachOrdered(
+                pages,
+                options.MaximumDegreeOfParallelism,
+                (pageNumber, _, token) => ExportCore(
+                    document.Pages[pageNumber - 1],
+                    format,
+                    options,
+                    pageNumber,
+                    initialDiagnostics,
+                    token),
+                consumer,
+                execution.Token,
+                options);
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
     }
 
     private static List<OfficeImageExportDiagnostic> MapDiagnostics(

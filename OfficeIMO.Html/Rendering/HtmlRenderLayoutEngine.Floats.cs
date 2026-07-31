@@ -328,9 +328,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             semanticNodeId: segment.Run.SemanticNodeId,
                             textAdvanceWidth: paintSegment.Width));
                     }
-                    HtmlRenderVisual textVisual = OfficeTextElements.ContainsRightToLeft(segment.Text)
+                    HtmlRenderVisual textVisual = OfficeTextElements.ContainsRightToLeft(segment.Text) || OfficeTextElements.ContainsBidiControl(segment.Text)
                         ? new HtmlRenderLogicalTextGroup(
-                            segment.LogicalText,
+                            OfficeTextElements.ContainsBidiControl(segment.LogicalText)
+                                ? string.Concat(OfficeBidiTextResolver.ResolveRuns(segment.LogicalText).Select(static run => run.Text))
+                                : segment.LogicalText,
                             x,
                             textY,
                             Math.Max(0.01D, segment.Width),

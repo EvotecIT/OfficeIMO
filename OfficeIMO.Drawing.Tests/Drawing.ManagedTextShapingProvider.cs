@@ -89,7 +89,7 @@ public class DrawingManagedTextShapingProviderTests {
     }
 
     [Fact]
-    public void ManagedProvider_DeclinesExplicitBidiControlsItDoesNotImplement() {
+    public void ManagedProvider_MapsExplicitBidiOverridesThroughSharedResolver() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(0x61, 0x62, 0x63);
         var request = new OfficeTextShapingRequest(
             "\u202Eabc\u202C",
@@ -99,6 +99,9 @@ public class DrawingManagedTextShapingProviderTests {
             unitsPerEm: 1000,
             direction: OfficeTextDirection.RightToLeft);
 
-        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+        OfficeTextShapingResult? result = OfficeManagedTextShapingProvider.Instance.ShapeText(request);
+
+        Assert.NotNull(result);
+        Assert.Equal(new[] { 3, 2, 1 }, result!.Glyphs.Select(static glyph => glyph.TextIndex));
     }
 }

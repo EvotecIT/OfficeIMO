@@ -18,7 +18,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private IReadOnlyList<InlinePaintSegment> ResolveInlinePaintSegments(InlineSegment segment, double x) {
-        if (!OfficeTextElements.ContainsRightToLeft(segment.Text)) {
+        if (!OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
             return new[] { new InlinePaintSegment(segment.Text, x, segment.Width) };
         }
 
@@ -40,23 +40,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private IReadOnlyList<InlineDirectionalGroup> ResolveDirectionalGroups(InlineSegment segment) {
         var groups = new List<InlineDirectionalGroup>();
-        var text = new StringBuilder();
-        bool? rightToLeft = null;
-        foreach (string element in OfficeTextElements.Enumerate(segment.Text)) {
-            bool elementRightToLeft = OfficeTextElements.ContainsRightToLeft(element);
-            bool neutral = element.All(character => char.IsWhiteSpace(character) || char.IsPunctuation(character));
-            bool resolvedDirection = neutral && rightToLeft.HasValue ? rightToLeft.Value : elementRightToLeft;
-            if (rightToLeft.HasValue && rightToLeft.Value != resolvedDirection) {
-                string value = text.ToString();
-                groups.Add(new InlineDirectionalGroup(value, rightToLeft.Value, MeasureText(value, segment.Run.Style.Font)));
-                text.Clear();
-            }
-            rightToLeft = resolvedDirection;
-            text.Append(element);
-        }
-        if (text.Length > 0) {
-            string value = text.ToString();
-            groups.Add(new InlineDirectionalGroup(value, rightToLeft == true, MeasureText(value, segment.Run.Style.Font)));
+        OfficeTextDirection baseDirection = string.Equals(segment.Run.Style.Direction, "rtl", StringComparison.Ordinal)
+            ? OfficeTextDirection.RightToLeft
+            : OfficeTextDirection.LeftToRight;
+        foreach (OfficeBidiTextRun run in OfficeBidiTextResolver.ResolveRuns(segment.Text, baseDirection)) {
+            groups.Add(new InlineDirectionalGroup(
+                run.Text,
+                run.Direction == OfficeTextDirection.RightToLeft,
+                MeasureText(run.Text, segment.Run.Style.Font)));
         }
         return groups;
     }

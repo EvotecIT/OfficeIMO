@@ -145,6 +145,8 @@ public partial class Word {
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
         Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfFormWidgetPlaceholder");
         Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfOutlineHierarchyNotReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfVectorGraphicsReconstructedSemantically");
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);

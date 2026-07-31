@@ -184,9 +184,30 @@ public static partial class OfficeSvgDrawingReader {
         if (!style.Visible) return;
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
         if (name is "g" or "svg" or "a" or "switch") {
-            AddChildren(element, drawing, style, paintServers, references, transform, viewX, viewY,
+            bool hasEffects = TryResolveSvgEffects(
+                element,
+                drawing.Width,
+                drawing.Height,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref unsupported,
+                out OfficeBlendMode blendMode,
+                out OfficeDrawingSoftMask? softMask);
+            OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+            AddChildren(element, target, style, paintServers, references, transform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                 ref visited, ref pathCommands, ref unsupported);
+            if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             return;
         }
         if (name == "use") {
@@ -220,7 +241,32 @@ public static partial class OfficeSvgDrawingReader {
         ApplyTransform(shape, transform);
 
         try {
-            drawing.AddShape(shape.Shape, shape.X, shape.Y);
+            bool hasEffects = TryResolveSvgEffects(
+                element,
+                drawing.Width,
+                drawing.Height,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref unsupported,
+                out OfficeBlendMode blendMode,
+                out OfficeDrawingSoftMask? softMask);
+            if (hasEffects) {
+                var target = new OfficeDrawing(drawing.Width, drawing.Height);
+                target.AddShape(shape.Shape, shape.X, shape.Y);
+                drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            } else {
+                drawing.AddShape(shape.Shape, shape.X, shape.Y);
+            }
         } catch (ArgumentOutOfRangeException) {
             unsupported++;
         }
@@ -502,6 +548,11 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("dominant-baseline", element.Attribute("dominant-baseline")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("display", element.Attribute("display")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("visibility", element.Attribute("visibility")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("filter", element.Attribute("filter")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("clip-path", element.Attribute("clip-path")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("marker-start", element.Attribute("marker-start")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("marker-mid", element.Attribute("marker-mid")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("marker-end", element.Attribute("marker-end")?.Value, paintServers, ref result, ref unsupported);
         foreach (string declaration in declarations) {
             int colon = declaration.IndexOf(':');
             if (colon <= 0) continue;
@@ -617,7 +668,6 @@ public static partial class OfficeSvgDrawingReader {
                 break;
             case "transform":
             case "filter":
-            case "mask":
             case "clip-path":
             case "marker-start":
             case "marker-mid":

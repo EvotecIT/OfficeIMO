@@ -41,9 +41,39 @@ public sealed class PdfExcelTableImportOptions {
         public bool ConvertNumericColumns { get; set; } = true;
 
         /// <summary>
+        /// When true, columns containing only boolean values such as true/false or yes/no are written as boolean Excel cells.
+        /// </summary>
+        public bool ConvertBooleanColumns { get; set; } = true;
+
+        /// <summary>
+        /// When true, unambiguous date or date-time columns are written as date/time Excel cells.
+        /// </summary>
+        public bool ConvertDateTimeColumns { get; set; } = true;
+
+        /// <summary>
+        /// When true, columns containing only percentage values are written as fractional numeric Excel cells.
+        /// </summary>
+        public bool ConvertPercentageColumns { get; set; } = true;
+
+        /// <summary>
         /// Culture used when parsing detected numeric PDF table values before writing typed Excel cells.
         /// </summary>
         public CultureInfo NumericCulture { get; set; } = CultureInfo.InvariantCulture;
+
+        /// <summary>
+        /// When true, adjacent page-edge table segments with compatible geometry and schema are imported as one logical table.
+        /// </summary>
+        public bool MergePageContinuations { get; set; } = true;
+
+        /// <summary>
+        /// Maximum adjacent PDF table segments that may be combined into one logical table.
+        /// </summary>
+        public int MaximumContinuationSegments { get; set; } = 64;
+
+        /// <summary>
+        /// Maximum per-column geometry difference, in PDF points, allowed when recognizing a page continuation.
+        /// </summary>
+        public double ContinuationGeometryTolerancePoints { get; set; } = 4D;
 
         /// <summary>
         /// Worksheet name used when no tables are detected, keeping the produced workbook valid.

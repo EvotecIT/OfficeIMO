@@ -1358,6 +1358,38 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("StableMarker", PdfCore.PdfReadDocument.Open(firstPdf).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(HtmlRenderMode.Continuous, 320D, 96D, "Arial")]
+    [InlineData(HtmlRenderMode.Continuous, 640D, 144D, "Times New Roman")]
+    [InlineData(HtmlRenderMode.Paged, 384D, 192D, "Courier New")]
+    public void HtmlRenderingProfiles_StayDeterministicAcrossApprovedSizeDpiAndFontMatrix(
+        HtmlRenderMode mode,
+        double width,
+        double targetDpi,
+        string fontFamily) {
+        const string html = "<style>body{margin:0}main{display:grid;grid-template-columns:1fr 2fr;gap:8px}h1{font-size:20px}p{margin:0}</style>"
+            + "<main><h1>Profile</h1><p>Baseline text 0123456789</p><p dir='rtl'>RTL \u202Babc 123\u202C</p></main>";
+        var options = new HtmlRenderOptions {
+            Mode = mode,
+            ViewportWidth = width,
+            PageSize = new OfficePageSize(4D, 3D),
+            Margins = HtmlRenderMargins.All(12D),
+            DefaultFontFamily = fontFamily,
+            TargetDpi = targetDpi,
+            MaximumRasterPixels = 20_000_000L
+        };
+
+        OfficeImageExportResult first = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult second = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+
+        Assert.Equal(first.Bytes, second.Bytes);
+        Assert.Equal(first.Width, second.Width);
+        Assert.Equal(first.Height, second.Height);
+        Assert.InRange(first.DpiX, targetDpi - 0.1D, targetDpi + 0.1D);
+        Assert.InRange(first.DpiY, targetDpi - 0.1D, targetDpi + 0.1D);
+        Assert.DoesNotContain(first.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void HtmlComputedStyle_DirAttributeParticipatesAsAnOverridablePresentationalHint() {
         const string html = "<!doctype html><html id='root' dir='rtl' style='direction:ltr'><body id='body'><p id='rtl' dir='rtl'><span id='child'>Text</span></p></body></html>";
@@ -1588,21 +1620,24 @@ public sealed partial class HtmlRenderingTests {
         string svg = HtmlConversionDocument.Parse(html).ToSvg();
         Assert.All("\uFEB3\uFEE0\uFE8E\uFEE1", character => Assert.Contains(character.ToString(), svg, StringComparison.Ordinal));
 
-        Assert.Collection(
-            rendered.Diagnostics
-                .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported)
-                .OrderBy(diagnostic => diagnostic.Source),
-            diagnostic => {
-                Assert.Equal(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, diagnostic.Code);
-                Assert.Equal("p#control", diagnostic.Source);
-            },
-            diagnostic => {
-                Assert.Equal(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, diagnostic.Code);
-                Assert.Equal("p#syriac", diagnostic.Source);
-            });
-        Assert.Contains(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
+        HtmlRenderLogicalTextGroup controlGroup = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            group => group.Text == "abcdef");
+        Assert.Equal("abcdef", controlGroup.Text);
+        IReadOnlyList<HtmlRenderText> overridden = controlGroup.Visuals.OfType<HtmlRenderText>().Where(run => "def".Contains(run.Text, StringComparison.Ordinal)).ToList();
+        Assert.Equal(3, overridden.Count);
+        Assert.True(overridden[1].X < overridden[0].X);
+        Assert.True(overridden[2].X < overridden[1].X);
+        HtmlDiagnostic bidiDiagnostic = Assert.Single(
+            rendered.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported ||
+                diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+        Assert.Equal(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, bidiDiagnostic.Code);
+        Assert.Equal("p#syriac", bidiDiagnostic.Source);
+        Assert.DoesNotContain(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, HtmlRenderDiagnosticCodes.All);
-        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, out _));
+        Assert.False(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, out _));
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, out _));
     }
 

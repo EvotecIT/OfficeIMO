@@ -46,19 +46,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Keep generated Visio galleries structurally validated and visually reviewed across representative diagram families.
 - [ ] Harden optional desktop-reference validation without making Microsoft Office or Visio a runtime dependency.
 
-## PDF, HTML, and image rendering
-
-- [ ] Complete mutation preflight, append-only update generalization, signature validation, redaction verification, standard editing workflows, parser repair diagnostics, and bounded arbitrary-PDF rendering in `OfficeIMO.Pdf`.
-- [ ] Deepen PDF annotations, forms, tagged structure, searchable text, outlines, metadata, encryption profiles, and source-format conversion evidence.
-- [ ] Improve PDF-to-Excel table continuation, repeated-header recognition, typed values, and bounded positioned-cell recovery without presenting arbitrary page art as an editable workbook.
-- [ ] Deepen PDF-to-Word logical reconstruction and PDF-to-PowerPoint hybrid visual/editable projection while retaining explicit diagnostics for unsupported images, controls, navigation, vectors, groups, forms, annotations, and animations.
-- [ ] Complete HTML cascade, generated content, font selection/shaping, bidi behavior, inline layout, baselines, intrinsic sizing, and difficult table/flex/grid/multicolumn layout cases.
-- [ ] Complete pagination, page masters, running content, complex fragmentation, advanced SVG, masks, filters, blend modes, and diagnosed raster fallbacks.
-- [ ] Add hostile-input, fuzz, aggregate resource-budget, timeout, cancellation, and deterministic-output coverage across HTML, PDF, SVG, and raster paths.
-- [ ] Expand approved visual baselines for paged and continuous output at representative sizes, DPI values, fonts, and platforms.
-- [ ] Keep `OfficeIMO.Drawing` as the single reusable owner for codecs, placement, text layout, shapes, paths, colors, gradients, clipping, and batch export policy.
-
-### Image-export evidence
+## Image-export evidence
 
 - [ ] Extend `OfficeIMO.Drawing` with reusable bounded codec, geometry, text-shaping, image, chart, streaming, cancellation, budget, and diagnostic contracts needed by more than one document package.
 - [ ] Burn down `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Word` visual-fidelity gaps with focused fixtures for worksheet objects and styling, slide inheritance and grouped content, and estimated Word pagination, overflow, and fallback reporting.

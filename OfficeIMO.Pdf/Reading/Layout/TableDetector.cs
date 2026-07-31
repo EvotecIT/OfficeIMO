@@ -13,6 +13,9 @@ namespace OfficeIMO.Pdf;
 /// - Emits a row when at least two cells are produced and one cell is numeric-ish
 /// </summary>
 internal static class TableDetector {
+    private const int MaximumPositionedRecoveryLines = 4096;
+    private const int MaximumPositionedRecoveryColumns = 64;
+    private const int MaximumPositionedRecoveryCells = 65536;
     public static List<string[]> Detect(List<TextLayoutEngine.TextLine> lines) {
         var rows = new List<string[]>();
         foreach (var match in DetectLineRows(lines)) {
@@ -55,7 +58,136 @@ internal static class TableDetector {
                 if (table != null && table.Rows.Count >= 2) tables.Add(table);
             }
         }
+        if (tables.Count == 0) {
+            tables.AddRange(DetectPositionedCellTables(nonLeaderBands.SelectMany(static band => band).ToList()));
+        }
         return tables;
+    }
+
+    internal static List<StructuredTable> DetectPositionedCellTables(IReadOnlyList<TextLayoutEngine.TextLine> lines) {
+        var result = new List<StructuredTable>();
+        var group = new List<PositionedRow>();
+        int inspectedLines = 0;
+        int inspectedCells = 0;
+        foreach (TextLayoutEngine.TextLine line in lines.OrderByDescending(static line => line.Y)) {
+            if (inspectedLines++ == MaximumPositionedRecoveryLines) break;
+            PositionedRow? row = TryCreatePositionedRow(line);
+            if (row == null || inspectedCells + row.Cells.Count > MaximumPositionedRecoveryCells) {
+                AddPositionedGroup(result, group);
+                group.Clear();
+                if (row != null) break;
+                continue;
+            }
+
+            inspectedCells += row.Cells.Count;
+            if (group.Count > 0 && !PositionedRowsAlign(group[0], row)) {
+                AddPositionedGroup(result, group);
+                group.Clear();
+            }
+            group.Add(row);
+        }
+
+        AddPositionedGroup(result, group);
+        return result;
+    }
+
+    private static PositionedRow? TryCreatePositionedRow(TextLayoutEngine.TextLine line) {
+        if (line.Spans.Count < 2) return null;
+        var cells = new List<PositionedCell>();
+        var builder = new System.Text.StringBuilder();
+        double from = 0D;
+        double to = 0D;
+        for (int index = 0; index < line.Spans.Count; index++) {
+            PdfTextSpan span = line.Spans[index];
+            bool split = false;
+            double gap = 0D;
+            if (index > 0) {
+                PdfTextSpan previous = line.Spans[index - 1];
+                double previousEnd = previous.X + Math.Max(0D, previous.Advance);
+                gap = span.X - previousEnd;
+                split = gap > Math.Max(18D, Math.Max(previous.FontSize, span.FontSize) * 2D);
+            }
+
+            if (split) {
+                cells.Add(new PositionedCell(from, to, builder.ToString().Trim()));
+                builder.Clear();
+            } else if (gap > 1D && builder.Length > 0 && builder[builder.Length - 1] != ' ') {
+                builder.Append(' ');
+            }
+
+            if (builder.Length == 0) from = span.X;
+            builder.Append(span.Text);
+            to = span.X + Math.Max(0D, span.Advance);
+            if (cells.Count == MaximumPositionedRecoveryColumns) return null;
+        }
+
+        if (builder.Length > 0) cells.Add(new PositionedCell(from, to, builder.ToString().Trim()));
+        return cells.Count is >= 2 and <= MaximumPositionedRecoveryColumns
+            ? new PositionedRow(line.Y, cells)
+            : null;
+    }
+
+    private static bool PositionedRowsAlign(PositionedRow expected, PositionedRow current) {
+        if (expected.Cells.Count != current.Cells.Count) return false;
+        for (int index = 0; index < expected.Cells.Count; index++) {
+            if (Math.Abs(expected.Cells[index].From - current.Cells[index].From) > 16D) return false;
+        }
+        return true;
+    }
+
+    private static void AddPositionedGroup(List<StructuredTable> result, List<PositionedRow> rows) {
+        if (rows.Count < 3 || !LooksLikePositionedTable(rows)) return;
+        var table = new StructuredTable {
+            YTop = rows[0].Y,
+            YBottom = rows[rows.Count - 1].Y,
+            Kind = "positioned-cells-bounded"
+        };
+        for (int columnIndex = 0; columnIndex < rows[0].Cells.Count; columnIndex++) {
+            table.Columns.Add(new StructuredTableColumn {
+                From = rows.Min(row => row.Cells[columnIndex].From),
+                To = rows.Max(row => row.Cells[columnIndex].To)
+            });
+        }
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            table.Rows.Add(rows[rowIndex].Cells.Select(static cell => cell.Text).ToArray());
+        }
+        result.Add(table);
+    }
+
+    private static bool LooksLikePositionedTable(List<PositionedRow> rows) {
+        string[] header = rows[0].Cells.Select(static cell => cell.Text).ToArray();
+        if (!LooksLikeHeaderRow(header)) return false;
+        for (int rowIndex = 1; rowIndex < rows.Count; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < rows[rowIndex].Cells.Count; columnIndex++) {
+                string value = rows[rowIndex].Cells[columnIndex].Text;
+                if (HasManyDigits(value) ||
+                    string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "no", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+        }
+        return false;
+    }
+
+    private sealed class PositionedRow {
+        internal PositionedRow(double y, List<PositionedCell> cells) {
+            Y = y;
+            Cells = cells;
+        }
+        internal double Y { get; }
+        internal List<PositionedCell> Cells { get; }
+    }
+
+    private readonly struct PositionedCell {
+        internal PositionedCell(double from, double to, string text) {
+            From = from;
+            To = to;
+            Text = text;
+        }
+        internal double From { get; }
+        internal double To { get; }
+        internal string Text { get; }
     }
 
     private static bool IsLeaderBand(List<TextLayoutEngine.TextLine> band) {
@@ -390,8 +522,21 @@ internal static class TableDetector {
 
     private static bool LooksLeaderText(string s) {
         if (string.IsNullOrWhiteSpace(s)) return false;
-        int leaders = 0; for (int i = 0; i < s.Length; i++) if (s[i] == '.' || s[i] == '-' || s[i] == '_') leaders++;
-        return leaders >= 3;
+        char previous = '\0';
+        int runLength = 0;
+        for (int i = 0; i < s.Length; i++) {
+            char current = s[i];
+            if (current != '.' && current != '-' && current != '_') {
+                previous = '\0';
+                runLength = 0;
+                continue;
+            }
+
+            runLength = current == previous ? runLength + 1 : 1;
+            if (runLength >= 3) return true;
+            previous = current;
+        }
+        return false;
     }
 
     private static bool TryLeaderRowFromLine(TextLayoutEngine.TextLine ln, out string[] row, out (double From,double To) left, out (double From,double To) right) {

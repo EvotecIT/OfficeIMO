@@ -140,6 +140,7 @@ public static class PdfLogicalTableAnalysis {
         int formWidgetCount = 0;
         int annotationCount = 0;
         int pageActionCount = 0;
+        int interactiveMediaAnnotationCount = 0;
         int remainingComparisons = Math.Min(maximumComparisons, DefaultMaximumScopeAnalysisComparisons);
         bool analysisTruncated = false;
         var normalizedRows = new Dictionary<PdfLogicalTable, Dictionary<int, ScopeComparisonText>>();
@@ -171,6 +172,8 @@ public static class PdfLogicalTableAnalysis {
             formWidgetCount += page.FormWidgets.Count;
             annotationCount += page.Annotations.Count;
             pageActionCount += page.PageActions.Count;
+            interactiveMediaAnnotationCount += page.Annotations.Count(static annotation =>
+                IsInteractiveMediaAnnotationSubtype(annotation.Subtype));
         }
 
         return new PdfTableExtractionScopeReport(
@@ -184,8 +187,17 @@ public static class PdfLogicalTableAnalysis {
             formWidgetCount,
             annotationCount,
             pageActionCount,
+            document.OptionalContentGroupCount,
+            interactiveMediaAnnotationCount,
             analysisTruncated);
     }
+
+    private static bool IsInteractiveMediaAnnotationSubtype(string subtype) =>
+        string.Equals(subtype, "Movie", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(subtype, "Sound", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(subtype, "Screen", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(subtype, "RichMedia", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(subtype, "3D", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Detects a simple header row from the first logical table row.

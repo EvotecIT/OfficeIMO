@@ -1,4 +1,18 @@
 namespace OfficeIMO.Excel.Pdf {
+    /// <summary>Typed value kind selected for an imported Excel table column.</summary>
+    public enum PdfExcelTableColumnKind {
+        /// <summary>Text cells.</summary>
+        Text,
+        /// <summary>Numeric cells.</summary>
+        Number,
+        /// <summary>Fractional numeric cells parsed from percentage text.</summary>
+        Percentage,
+        /// <summary>Boolean cells.</summary>
+        Boolean,
+        /// <summary>Date or date-time cells.</summary>
+        DateTime
+    }
+
     /// <summary>
     /// Describes one logical PDF table imported into an Excel worksheet.
     /// </summary>
@@ -14,7 +28,12 @@ public sealed class PdfExcelTableImportEntry {
             int columnCount,
             int rowCount,
             int totalRowCount,
-            bool truncated) {
+            bool truncated,
+            IReadOnlyList<int> sourcePageNumbers,
+            int sourceTableCount,
+            int suppressedRepeatedHeaderRows,
+            int additionalHeaderRowCount,
+            IReadOnlyList<PdfExcelTableColumnKind> columnKinds) {
             PageIndex = pageIndex;
             PageNumber = pageNumber;
             TableIndex = tableIndex;
@@ -26,6 +45,11 @@ public sealed class PdfExcelTableImportEntry {
             RowCount = rowCount;
             TotalRowCount = totalRowCount;
             Truncated = truncated;
+            SourcePageNumbers = Array.AsReadOnly(sourcePageNumbers.ToArray());
+            SourceTableCount = sourceTableCount;
+            SuppressedRepeatedHeaderRows = suppressedRepeatedHeaderRows;
+            AdditionalHeaderRowCount = additionalHeaderRowCount;
+            ColumnKinds = Array.AsReadOnly(columnKinds.ToArray());
         }
 
         /// <summary>Zero-based page index within the selected logical page collection.</summary>
@@ -60,6 +84,21 @@ public sealed class PdfExcelTableImportEntry {
 
         /// <summary>True when imported rows were truncated by the configured row cap.</summary>
         public bool Truncated { get; }
+
+        /// <summary>One-based PDF page numbers contributing rows to this imported table.</summary>
+        public IReadOnlyList<int> SourcePageNumbers { get; }
+
+        /// <summary>Number of detected page-level table segments combined into this imported table.</summary>
+        public int SourceTableCount { get; }
+
+        /// <summary>Number of repeated continuation header rows omitted from body data.</summary>
+        public int SuppressedRepeatedHeaderRows { get; }
+
+        /// <summary>Number of repeated header rows appended to the primary header labels.</summary>
+        public int AdditionalHeaderRowCount { get; }
+
+        /// <summary>Typed value kinds selected for the imported columns.</summary>
+        public IReadOnlyList<PdfExcelTableColumnKind> ColumnKinds { get; }
     }
 
     /// <summary>Reports the detected tables imported from a logical PDF into an Excel workbook.</summary>

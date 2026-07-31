@@ -17,7 +17,6 @@ internal static class OfficeManagedTextShaper {
         cancellationToken.ThrowIfCancellationRequested();
         bool incomplete =
             OfficeTextElements.ContainsShapingRequiredScript(text) ||
-            OfficeTextElements.ContainsBidiControl(text) ||
             (OfficeTextElements.ContainsJoiningScript(text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text));
         string contextual = OfficeArabicTextShaper.Shape(text);
@@ -49,12 +48,7 @@ internal static class OfficeManagedTextShaper {
         System.Threading.CancellationToken cancellationToken = default) {
         if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
 
-        string withoutControls = RemoveBidiControls(value!, cancellationToken);
-        IReadOnlyList<string> elements = new List<string>(OfficeTextElements.Enumerate(withoutControls));
-        IReadOnlyList<string> visualElements = ToVisualOrder(elements, static element => element, cancellationToken);
-        var visual = new StringBuilder(withoutControls.Length);
-        foreach (string element in visualElements) visual.Append(element);
-        return visual.ToString();
+        return OfficeBidiTextResolver.ToVisualOrder(value, OfficeTextDirection.Auto, cancellationToken);
     }
 
     internal static IReadOnlyList<T> ToVisualOrder<T>(
@@ -112,24 +106,6 @@ internal static class OfficeManagedTextShaper {
             }
         }
         return visual;
-    }
-
-    private static string RemoveBidiControls(
-        string value,
-        System.Threading.CancellationToken cancellationToken) {
-        if (!OfficeTextElements.ContainsBidiControl(value)) return value;
-        var result = new StringBuilder(value.Length);
-        for (int index = 0; index < value.Length; index++) {
-            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-            char character = value[index];
-            if (character == '\u061C' || character == '\u200E' || character == '\u200F' ||
-                character >= '\u202A' && character <= '\u202E' ||
-                character >= '\u2066' && character <= '\u2069') {
-                continue;
-            }
-            result.Append(character);
-        }
-        return result.ToString();
     }
 
     private static TextElementDirection ResolveDirection(string element) {

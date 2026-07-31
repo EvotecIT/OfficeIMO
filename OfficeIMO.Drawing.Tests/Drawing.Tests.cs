@@ -4257,6 +4257,28 @@ public partial class DrawingTests {
         }
     }
 
+    private sealed class TimeoutImageExportBuilder : OfficeImageExportBuilder<TimeoutImageExportBuilder, TestImageExportOptions> {
+        internal TimeoutImageExportBuilder(TestImageExportOptions options)
+            : base(options, (format, current, cancellationToken) => {
+                cancellationToken.WaitHandle.WaitOne();
+                cancellationToken.ThrowIfCancellationRequested();
+                return CreateTestImageExportResult(format, current);
+            }) {
+        }
+    }
+
+    private sealed class TimeoutAsyncImageExportBuilder : OfficeImageExportBuilder<TimeoutAsyncImageExportBuilder, TestImageExportOptions> {
+        internal TimeoutAsyncImageExportBuilder(TestImageExportOptions options)
+            : base(
+                options,
+                CreateTestImageExportResult,
+                async (format, current, cancellationToken) => {
+                    await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, cancellationToken);
+                    return CreateTestImageExportResult(format, current);
+                }) {
+        }
+    }
+
     private sealed class TestImageExportBatchBuilder : OfficeImageExportBatchBuilder<TestImageExportBatchBuilder, TestImageExportOptions> {
         internal TestImageExportBatchBuilder(TestImageExportOptions options, params string[] names)
             : this(options, null, names) {
@@ -4275,6 +4297,18 @@ public partial class DrawingTests {
                         onProduced?.Invoke();
                         consumer(result);
                     }
+                }) {
+        }
+    }
+
+    private sealed class TimeoutImageExportBatchBuilder : OfficeImageExportBatchBuilder<TimeoutImageExportBatchBuilder, TestImageExportOptions> {
+        internal TimeoutImageExportBatchBuilder(TestImageExportOptions options)
+            : base(
+                options,
+                (format, current) => Array.Empty<OfficeImageExportResult>(),
+                (format, current, consumer, cancellationToken) => {
+                    cancellationToken.WaitHandle.WaitOne();
+                    cancellationToken.ThrowIfCancellationRequested();
                 }) {
         }
     }

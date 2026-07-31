@@ -82,6 +82,50 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_SvgMasksAndBlendModesUseSharedDrawingEffectsWithoutFallbackDiagnostics() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><defs>"
+            + "<mask id='half' maskContentUnits='userSpaceOnUse' style='mask-type:luminance'><rect width='5' height='4' fill='white'/></mask>"
+            + "</defs><rect width='10' height='4' fill='blue'/><g mask='url(#half)' style='mix-blend-mode:multiply'>"
+            + "<rect width='10' height='4' fill='red'/></g></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<body style='margin:0'><img id='effects' src='data:image/svg+xml;base64," + data
+            + "' style='display:block;width:100px;height:40px'></body>";
+        var options = new HtmlRenderOptions { ViewportWidth = 100D, ViewportHeight = 40D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
+        byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        Assert.Contains("mix-blend-mode:multiply", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("<mask id=", exportedSvg, StringComparison.Ordinal);
+        Assert.Equal(new byte[] { 137, 80, 78, 71 }, png.Take(4));
+    }
+
+    [Fact]
+    public void HtmlImages_UsesDiagnosedCallerCodecFallbackForUnsupportedSvgFilters() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><rect width='10' height='4' fill='red' filter='url(#blur)'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<img id='filtered' src='data:image/svg+xml;base64," + data + "' style='width:100px;height:40px'>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            ImageCodec = new SvgFallbackCodec()
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
+
+        HtmlDiagnostic fallback = Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Equal(HtmlConversionLossKind.Approximation, fallback.LossKind);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Single(visual.Drawing.Images);
+        Assert.Contains("data:image/png;base64", exportedSvg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlImages_SvgPaintServersStayNativeAcrossPngSvgAndSearchablePdf() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs>"
             + "<linearGradient id='linear' gradientUnits='userSpaceOnUse' spreadMethod='repeat' x1='0' y1='0' x2='12.5%' y2='0'><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
@@ -572,5 +616,16 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    private sealed class SvgFallbackCodec : IOfficeRasterImageCodec {
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            if (!string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                image = null;
+                return false;
+            }
+            image = new OfficeRasterImage(10, 4, OfficeColor.Purple);
+            return true;
+        }
     }
 }

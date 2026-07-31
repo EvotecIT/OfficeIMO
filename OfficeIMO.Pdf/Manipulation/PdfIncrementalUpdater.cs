@@ -60,8 +60,51 @@ internal static partial class PdfIncrementalUpdater {
         string? keywords = null,
         PdfReadOptions? readOptions = null,
         bool createXmpMetadata = false) {
+        return UpdateMetadataCore(
+            pdf,
+            title,
+            author,
+            subject,
+            keywords,
+            readOptions,
+            createXmpMetadata,
+            PdfMutationOperation.UpdateMetadata);
+    }
+
+    /// <summary>
+    /// Appends one revision that synchronizes the document Info dictionary and XMP metadata without
+    /// rewriting the existing byte prefix.
+    /// </summary>
+    public static byte[] SynchronizeMetadata(
+        byte[] pdf,
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? readOptions = null,
+        bool createXmpMetadata = true) {
+        return UpdateMetadataCore(
+            pdf,
+            title,
+            author,
+            subject,
+            keywords,
+            readOptions,
+            createXmpMetadata,
+            PdfMutationOperation.SynchronizeMetadata);
+    }
+
+    private static byte[] UpdateMetadataCore(
+        byte[] pdf,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        PdfReadOptions? readOptions,
+        bool createXmpMetadata,
+        PdfMutationOperation operation) {
         Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, operation, readOptions);
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
 

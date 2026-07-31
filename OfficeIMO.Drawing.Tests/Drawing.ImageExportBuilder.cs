@@ -435,6 +435,67 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void SingleImageRenderTimeoutCancelsTheRendererWithTypedEvidence() {
+        var timeout = TimeSpan.FromMilliseconds(25D);
+        var builder = new TimeoutImageExportBuilder(new TestImageExportOptions())
+            .WithRenderTimeout(timeout);
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(
+            () => builder.Export());
+
+        Assert.Equal(timeout, exception.Timeout);
+        Assert.IsAssignableFrom<OperationCanceledException>(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task AsyncSingleImageRenderTimeoutCancelsTheRendererWithTypedEvidence() {
+        var timeout = TimeSpan.FromMilliseconds(25D);
+        var builder = new TimeoutAsyncImageExportBuilder(new TestImageExportOptions())
+            .WithRenderTimeout(timeout);
+
+        OfficeImageExportTimeoutException exception = await Assert.ThrowsAsync<OfficeImageExportTimeoutException>(
+            () => builder.ExportAsync());
+
+        Assert.Equal(timeout, exception.Timeout);
+        Assert.IsAssignableFrom<OperationCanceledException>(exception.InnerException);
+    }
+
+    [Fact]
+    public void BatchRenderTimeoutCancelsTheSharedStreamingPath() {
+        var timeout = TimeSpan.FromMilliseconds(25D);
+        var builder = new TimeoutImageExportBatchBuilder(new TestImageExportOptions())
+            .WithRenderTimeout(timeout);
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(
+            () => builder.Export());
+
+        Assert.Equal(timeout, exception.Timeout);
+    }
+
+    [Fact]
+    public void CallerCancellationTakesPrecedenceOverRenderTimeout() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var builder = new TimeoutImageExportBuilder(new TestImageExportOptions())
+            .WithRenderTimeout(TimeSpan.FromMinutes(1D));
+
+        OperationCanceledException exception = Assert.ThrowsAny<OperationCanceledException>(
+            () => builder.Export(cancellation.Token));
+
+        Assert.IsNotType<OfficeImageExportTimeoutException>(exception);
+    }
+
+    [Theory]
+    [InlineData(0D)]
+    [InlineData(-2D)]
+    public void RenderTimeoutRejectsNonPositiveFiniteDurations(double milliseconds) {
+        var builder = new TestImageExportBuilder(new TestImageExportOptions());
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => builder.WithRenderTimeout(TimeSpan.FromMilliseconds(milliseconds)));
+    }
+
+    [Fact]
     public void GuardedConsumerEnforcesBudgetsForDirectStreamingEntryPoints() {
         var options = new TestImageExportOptions {
             MaximumOutputCount = 1
