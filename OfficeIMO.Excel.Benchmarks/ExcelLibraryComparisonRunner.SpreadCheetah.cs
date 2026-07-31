@@ -8,7 +8,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static int SpreadCheetahWriteDataReaderPlain(DataTable table)
         => ByteCount(SpreadCheetahWriteDataReaderPlainBytes(table));
 
-    private static byte[] SpreadCheetahWriteDataReaderPlainBytes(DataTable table)
+    internal static byte[] SpreadCheetahWriteDataReaderPlainBytes(DataTable table)
         => SpreadCheetahWriteDataReaderPlainBytesAsync(table).GetAwaiter().GetResult();
 
     private static async Task<byte[]> SpreadCheetahWriteDataReaderPlainBytesAsync(DataTable table) {

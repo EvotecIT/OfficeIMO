@@ -371,6 +371,7 @@
       'markpflug-65k-csv-decoded-net10.0': 'CSV · decoded strings',
       'csv-25k-datareader-write-net10.0': 'CSV · IDataReader write',
       'markpflug-65k-xlsx-typed-net10.0': 'XLSX · typed values',
+      'xlsx-25k-datareader-write-net10.0': 'XLSX · IDataReader write',
       'markpflug-65k-xlsb-typed-net10.0': 'XLSB · typed values'
     };
     return names[selectedComparison] || selectedComparison || 'Library comparison';
@@ -387,10 +388,16 @@
 
   function comparisonGroupName(row) {
     var variables = row && row.variables ? row.variables : {};
-    var dimensions = Object.keys(variables).filter(function (key) {
+    var dimensions = [];
+    Object.keys(variables).filter(function (key) {
       return ['namespace', 'type', 'fullname'].indexOf(key.toLowerCase()) === -1;
-    }).sort().map(function (key) {
-      return key + ' ' + variables[key];
+    }).sort().forEach(function (key) {
+      String(variables[key]).split('&').forEach(function (part, index) {
+        var separator = part.indexOf('=');
+        var label = separator >= 0 ? part.substring(0, separator) : (index === 0 ? key : '');
+        var value = separator >= 0 ? part.substring(separator + 1) : part;
+        dimensions.push((label + ' ' + decodeURIComponent(value)).trim());
+      });
     });
     return [workloadName()].concat(dimensions).join(' · ');
   }

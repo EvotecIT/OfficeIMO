@@ -139,17 +139,32 @@ foreach ($comparisonId in $readComparisonIds) {
 }
 
 
-$csvWriteComparisonId = 'csv-25k-datareader-write-net10.0'
-$csvWriteEntries = @($comparisonCatalog.entries | Where-Object { $_.comparisonId -eq $csvWriteComparisonId })
-if ($csvWriteEntries.Count -lt 1 -or
-    -not @($csvWriteEntries | Where-Object { $_.runMode -eq 'quick' }) -or
-    -not @($comparisonCatalog.availability | Where-Object {
-            $_.comparisonId -eq $csvWriteComparisonId -and
-            $_.runMode -eq 'quick' -and
-            $_.platform -eq 'macos' -and
-            $_.available
-        })) {
-    throw 'Validated CSV IDataReader write evidence is missing from the platform-aware catalog.'
+$writeComparisonScenarios = [ordered]@{
+    'csv-25k-datareader-write-net10.0' = @('OfficeIMO_WriteDataReader', 'Sylvan_WriteDataReader')
+    'xlsx-25k-datareader-write-net10.0' = @('OfficeIMO', 'SpreadCheetah', 'Sylvan', 'LargeXlsx')
+}
+foreach ($writeComparison in $writeComparisonScenarios.GetEnumerator()) {
+    $writeEntries = @($comparisonCatalog.entries | Where-Object { $_.comparisonId -eq $writeComparison.Key })
+    $macQuickEntry = $writeEntries | Where-Object { $_.platform -eq 'macos' -and $_.runMode -eq 'quick' } | Select-Object -First 1
+    $macQuickAvailability = $comparisonCatalog.availability | Where-Object {
+        $_.comparisonId -eq $writeComparison.Key -and
+        $_.runMode -eq 'quick' -and
+        $_.platform -eq 'macos' -and
+        $_.available
+    } | Select-Object -First 1
+    if (-not $macQuickEntry -or -not $macQuickAvailability) {
+        throw "Validated write evidence '$($writeComparison.Key)' is missing from the platform-aware catalog."
+    }
+
+    $relativeWriteResultPath = ([string] $macQuickEntry.resultPath).TrimStart('/').Replace(
+        '/',
+        [System.IO.Path]::DirectorySeparatorChar)
+    $writeResult = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot $relativeWriteResultPath) -Raw -Encoding UTF8 | ConvertFrom-Json
+    $actualScenarios = @($writeResult.summary | ForEach-Object scenario | Sort-Object -Unique)
+    $missingScenarios = @($writeComparison.Value | Where-Object { $_ -notin $actualScenarios })
+    if ($missingScenarios.Count -gt 0) {
+        throw "Write evidence '$($writeComparison.Key)' is missing scenarios: $($missingScenarios -join ', ')."
+    }
 }
 
 $pageHtml = Get-Content -LiteralPath $pagePath -Raw -Encoding UTF8
@@ -160,6 +175,7 @@ if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-be
 if ($pageHtml -notmatch 'data-library-comparison-benchmarks' -or
     $pageHtml -notmatch 'data-comparison-id="markpflug-65k-csv-decoded-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="csv-25k-datareader-write-net10\.0"' -or
+    $pageHtml -notmatch 'data-library-comparison-workload="xlsx-25k-datareader-write-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsx-typed-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsb-typed-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-platform="windows"' -or
@@ -226,7 +242,9 @@ if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'workloadName\(\)' -or
     $scriptText -notmatch 'comparisonGroupName\(row\)' -or
     $scriptText -notmatch "\['namespace', 'type', 'fullname'\]" -or
+    $scriptText -notmatch "split\('&'\)" -or
     $scriptText -notmatch 'csv-25k-datareader-write-net10\.0' -or
+    $scriptText -notmatch 'xlsx-25k-datareader-write-net10\.0' -or
     $scriptText -match "scenario === 'OfficeIMO'" -or
     $pageHtml -notmatch 'Quick results are diagnostic only') {
     throw 'Library comparison selector does not preserve shareable state, reject stale responses, and enforce evidence safety labels.'

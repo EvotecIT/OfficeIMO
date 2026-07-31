@@ -7,6 +7,53 @@
   ],
   "entries": [
     {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "platform": "macos",
+      "runMode": "quick",
+      "generatedUtc": "2026-07-31T10:23:01.379717+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/csv-25k-datareader-write-net10.0-macos-quick.json",
+      "resultSha256": "84446462d4c804edb1df70568492f7680f87d863f3aa5b135573b44dde27fead",
+      "artifactDestinationSha256": "c9d378189c832a2961f3a6ff716d23ba9fb25f6be52aa0e4c40f04d12235f38c",
+      "artifactFileName": "csv-25k-datareader-write-net10.0-macos-quick.json",
+      "artifactRelativePath": "csv-25k-datareader-write-net10.0-macos-quick.json",
+      "suite": "OfficeIMO.CSV.DataReaderWrite25K",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS Tahoe 26.5 (25F71) [Darwin 25.5.0]",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "processorName": "Apple M4",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 10,
+        "logicalCoreCount": 10,
+        "runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "dotNetSdkVersion": "10.0.102",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.CSV.DataReaderWrite25K",
+        "environment.runtimeVersion": ".NET 10.0.2 (10.0.2, 10.0.225.61305)",
+        "environment.dotNetSdkVersion": "10.0.102",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "Arm64",
+        "environment.processArchitecture": "Arm64",
+        "environment.processorName": "Apple M4",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "10",
+        "environment.logicalCoreCount": "10",
+        "benchmark.workload.shape.sha256": "12db894d2c8046c42d1ed3ab59e3d2c5091549f8096254d56abec00d618d12bb",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "csv-25k-datareader-write-net10.0",
+        "benchmark.workload.sourceCommit": "99f604dcf84342150e526c20dba541b89ae6efc6",
+        "gitSha": "99f604dcf84342150e526c20dba541b89ae6efc6",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "linux",
       "runMode": "full",
@@ -431,6 +478,32 @@
     }
   ],
   "availability": [
+    {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-31T10:23:01.379717+00:00"
+    },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "runMode": "full",
