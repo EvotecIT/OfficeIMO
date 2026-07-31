@@ -142,6 +142,8 @@ The reverse-route boundaries are:
 
 PowerPoint 3.1 uses the concrete `PowerPointPresentation`, `PowerPointSlide`, and shape types as the editing model. Semantic deck plans, template helpers, and format adapters remain optional workflows over that model.
 
+The `OfficeIMO.PowerPoint.Fluent` namespace and its PowerPoint-only builders, the old designer extensions, and the public `PowerPointDeckComposer` were removed. Replace fluent concrete-editing calls with `PowerPointPresentation`, `PowerPointSlide`, and concrete `PowerPointShape` operations. Replace semantic composer or designer calls with a `PowerPointDeckPlan` followed by `PowerPointPresentation.Compose(...)`. Custom semantic slides remain available through `PowerPointDeckPlan.AddCustom(...)`; its callback receives a `PowerPointSlideCompositionContext`.
+
 Replace lifecycle calls as follows:
 
 | OfficeIMO 3.0 | OfficeIMO 3.1 |
@@ -158,6 +160,9 @@ The designer and deck-composer entry points now route through one plan and one c
 
 | OfficeIMO 3.0 | OfficeIMO 3.1 |
 | --- | --- |
+| `OfficeIMO.PowerPoint.Fluent` concrete-editing builders | Use `PowerPointPresentation`, `PowerPointSlide`, and concrete `PowerPointShape` operations directly |
+| `PowerPointDeckComposer.Add...` or other public composer calls | Add the semantic slide to `PowerPointDeckPlan`, then call `PowerPointPresentation.Compose(...)` |
+| `AddDesigner...` extension methods | Use the corresponding `PowerPointDeckPlan.Add...` method, then call `Compose(...)` |
 | `presentation.UseDesigner(...).AddSlides(plan)` | `presentation.Compose(plan, PowerPointCompositionOptions.FromBrief(brief))` |
 | `presentation.AddDesignerProcessSlide(...)` | `plan.AddProcess(...)`, then `presentation.Compose(...)` |
 | `deck.AddSlidesWithContinuation(plan)` | Set `options.ExpandContinuations = true` (the default), then call `Compose(...)` |

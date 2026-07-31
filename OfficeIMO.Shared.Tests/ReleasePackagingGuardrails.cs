@@ -504,6 +504,9 @@ public sealed class ReleasePackagingGuardrails {
             "`SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveTablesAsExcel()` / `SaveAsWord()` / `SaveAsPowerPoint()`",
             migration,
             StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.PowerPoint.Fluent` namespace", migration, StringComparison.Ordinal);
+        Assert.Contains("public `PowerPointDeckComposer`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PowerPointDeckPlan.AddCustom(...)`", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", migration, StringComparison.Ordinal);
 
