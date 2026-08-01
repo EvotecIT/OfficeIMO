@@ -197,9 +197,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void InvalidateTableColumnReferences(string tableName, IReadOnlyCollection<string> removedNames, Table owner) {
-            bool ContainsRemoved(string selector) => removedNames.Any(name =>
-                selector.IndexOf("[" + name + "]", StringComparison.OrdinalIgnoreCase) >= 0
-                || selector.IndexOf("[@" + name + "]", StringComparison.OrdinalIgnoreCase) >= 0);
+            bool ContainsRemoved(string selector) => ExcelFormulaSyntaxTree.ContainsStructuredColumn(selector, removedNames);
             RewriteFormulaRoots(text => ExcelFormulaSyntaxTree.Parse(text).RewriteStructuredReferences((name, selector) =>
                 name != null && string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase) && ContainsRemoved(selector)
                     ? null
@@ -239,26 +237,7 @@ namespace OfficeIMO.Excel {
 
         private static string ReplaceStructuredColumns(
             string selector,
-            IReadOnlyDictionary<string, string> renames) {
-            var builder = new System.Text.StringBuilder(selector.Length);
-            int cursor = 0;
-            while (cursor < selector.Length) {
-                bool replaced = false;
-                foreach (KeyValuePair<string, string> rename in renames) {
-                    bool rowContext = cursor + 2 < selector.Length && selector[cursor] == '[' && selector[cursor + 1] == '@';
-                    string needle = rowContext ? "[@" + rename.Key + "]" : "[" + rename.Key + "]";
-                    if (cursor + needle.Length > selector.Length
-                        || string.Compare(selector, cursor, needle, 0, needle.Length, StringComparison.OrdinalIgnoreCase) != 0) {
-                        continue;
-                    }
-                    builder.Append(rowContext ? "[@" : "[").Append(rename.Value).Append(']');
-                    cursor += needle.Length;
-                    replaced = true;
-                    break;
-                }
-                if (!replaced) builder.Append(selector[cursor++]);
-            }
-            return builder.ToString();
-        }
+            IReadOnlyDictionary<string, string> renames) =>
+            ExcelFormulaSyntaxTree.RewriteStructuredColumns(selector, renames);
     }
 }

@@ -63,5 +63,32 @@ namespace OfficeIMO.Tests {
             Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? value));
             Assert.Equal("2", value!.Text);
         }
+
+        [Fact]
+        public void Test_FileBackedEdit_SaveUsesTemporaryBudgetWithoutManagedPackageLimit() {
+            string path = Path.Combine(_directoryWithFiles, "FileBackedSaveBudget.xlsx");
+            using (var created = ExcelDocument.Create()) {
+                created.AddWorksheet("Data").CellValue(1, 1, "before");
+                created.Save(path);
+            }
+
+            using (ExcelDocument document = ExcelDocument.OpenFileBacked(path)) {
+                document.Sheets[0].CellValue(1, 1, "after");
+                Assert.Throws<IOException>(() => document.Save(new ExcelSaveOptions {
+                    MaxInMemoryPackageBytes = null,
+                    MaxTemporaryPackageBytes = 1
+                }));
+
+                document.Save(new ExcelSaveOptions {
+                    MaxInMemoryPackageBytes = 1,
+                    MaxTemporaryPackageBytes = null,
+                    ValidateOpenXml = true
+                });
+                Assert.True(document.UsesFileBackedPackage);
+            }
+
+            using ExcelDocument loaded = ExcelDocument.Load(path);
+            Assert.Equal("after", loaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        }
     }
 }

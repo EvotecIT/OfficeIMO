@@ -11,6 +11,7 @@ using System.Xml;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
@@ -498,6 +499,19 @@ namespace OfficeIMO.Excel {
 
             var errors = ValidateOpenXml(finalizedBytes);
             if (errors.Count > 0) {
+                throw new InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+            }
+        }
+
+        private static void ThrowIfOpenXmlValidationFails(string packagePath, ExcelSaveOptions? options) {
+            if (options?.ValidateOpenXml != true) return;
+
+            using SpreadsheetDocument document = SpreadsheetDocument.Open(packagePath, false);
+            var validator = new OpenXmlValidator();
+            var errors = validator.Validate(document)
+                .Select(error => $"{error.ErrorType}: {error.Description} at {error.Path}")
+                .ToArray();
+            if (errors.Length > 0) {
                 throw new InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
             }
         }

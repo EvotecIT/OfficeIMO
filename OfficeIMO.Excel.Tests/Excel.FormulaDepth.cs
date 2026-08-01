@@ -334,6 +334,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesEscapedStructuredReferenceBrackets() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Escaped Structured Brackets");
+            sheet.CellValue(1, 1, "Cost [ old");
+            sheet.CellValue(1, 2, "Cost ] new");
+            sheet.CellValue(2, 1, 1d);
+            sheet.CellValue(2, 2, 2d);
+            sheet.CellFormula(1, 4, "SUM(BracketData[Cost '[ old])");
+            sheet.CellFormula(2, 4, "SUM(BracketData[Cost '] new])");
+            sheet.AddTable("A1:B2", hasHeader: true, name: "BracketData", style: TableStyle.TableStyleMedium2);
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode escapedOpening = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Escaped Structured Brackets", "D1"));
+            ExcelFormulaDependencyNode escapedClosing = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Escaped Structured Brackets", "D2"));
+
+            Assert.Equal(new[] { "Escaped Structured Brackets!A2" }, escapedOpening.Dependencies);
+            Assert.Equal(new[] { "Escaped Structured Brackets!B2" }, escapedClosing.Dependencies);
+        }
+
+        [Fact]
         public void Test_FormulaEvaluator_ResolvesCurrentRowStructuredReferences() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Structured Evaluation");

@@ -150,17 +150,20 @@ namespace OfficeIMO.Excel {
                     depths[index + 1] = groupingDepth;
                     continue;
                 }
-                if (character == '\'') {
+                if (character == '\'' && structuredReferenceDepth == 0) {
                     inQuotedQualifier = true;
                     depths[index + 1] = groupingDepth;
                     continue;
                 }
-                if (character == '[') {
+                if (character == '['
+                    && !IsEscapedStructuredReferenceBracket(formula, index)) {
                     structuredReferenceDepth++;
                     depths[index + 1] = groupingDepth;
                     continue;
                 }
-                if (character == ']' && structuredReferenceDepth > 0) {
+                if (character == ']'
+                    && !IsEscapedStructuredReferenceBracket(formula, index)
+                    && structuredReferenceDepth > 0) {
                     structuredReferenceDepth--;
                     depths[index + 1] = groupingDepth;
                     continue;

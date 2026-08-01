@@ -223,8 +223,8 @@ namespace OfficeIMO.Excel {
 
             int depth = 0;
             for (int index = bracketStart; index < formula.Length; index++) {
-                if (formula[index] == '[') depth++;
-                else if (formula[index] == ']') {
+                if (formula[index] == '[' && !IsEscapedStructuredCharacter(formula, index)) depth++;
+                else if (formula[index] == ']' && !IsEscapedStructuredCharacter(formula, index)) {
                     depth--;
                     if (depth == 0) {
                         length = index - start + 1;
@@ -235,6 +235,114 @@ namespace OfficeIMO.Excel {
             }
             return false;
         }
+
+        internal static string RewriteStructuredColumns(
+            string selector,
+            IReadOnlyDictionary<string, string> renames) {
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            if (renames == null) throw new ArgumentNullException(nameof(renames));
+            return RewriteStructuredSelector(selector, rawColumn => {
+                string decoded = DecodeStructuredColumnName(rawColumn);
+                foreach (KeyValuePair<string, string> rename in renames) {
+                    if (string.Equals(decoded, rename.Key, StringComparison.OrdinalIgnoreCase)) {
+                        return EncodeStructuredColumnName(rename.Value);
+                    }
+                }
+                return null;
+            });
+        }
+
+        internal static bool ContainsStructuredColumn(
+            string selector,
+            IReadOnlyCollection<string> columnNames) {
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            bool found = false;
+            _ = RewriteStructuredSelector(selector, rawColumn => {
+                string decoded = DecodeStructuredColumnName(rawColumn);
+                if (columnNames.Any(name => string.Equals(decoded, name, StringComparison.OrdinalIgnoreCase))) found = true;
+                return null;
+            });
+            return found;
+        }
+
+        private static string RewriteStructuredSelector(string value, Func<string, string?> rewriteColumn) {
+            var builder = new StringBuilder(value.Length);
+            int cursor = 0;
+            while (cursor < value.Length) {
+                if (value[cursor] != '[' || IsEscapedStructuredCharacter(value, cursor)
+                    || !TryFindStructuredBracketEnd(value, cursor, out int end)) {
+                    builder.Append(value[cursor++]);
+                    continue;
+                }
+
+                string content = value.Substring(cursor + 1, end - cursor - 2);
+                if (ContainsUnescapedOpeningBracket(content)) {
+                    builder.Append('[').Append(RewriteStructuredSelector(content, rewriteColumn)).Append(']');
+                } else {
+                    bool rowContext = content.Length > 0 && content[0] == '@';
+                    string rawColumn = rowContext ? content.Substring(1) : content;
+                    bool areaSpecifier = rawColumn.Length > 0 && rawColumn[0] == '#';
+                    string? replacement = areaSpecifier ? null : rewriteColumn(rawColumn);
+                    builder.Append('[');
+                    if (rowContext) builder.Append('@');
+                    builder.Append(replacement ?? rawColumn).Append(']');
+                }
+                cursor = end;
+            }
+            return builder.ToString();
+        }
+
+        private static bool ContainsUnescapedOpeningBracket(string value) {
+            for (int index = 0; index < value.Length; index++) {
+                if (value[index] == '[' && !IsEscapedStructuredCharacter(value, index)) return true;
+            }
+            return false;
+        }
+
+        private static bool TryFindStructuredBracketEnd(string value, int start, out int end) {
+            int depth = 0;
+            for (int index = start; index < value.Length; index++) {
+                if (value[index] == '[' && !IsEscapedStructuredCharacter(value, index)) {
+                    depth++;
+                } else if (value[index] == ']' && !IsEscapedStructuredCharacter(value, index)) {
+                    depth--;
+                    if (depth == 0) {
+                        end = index + 1;
+                        return true;
+                    }
+                }
+            }
+            end = start;
+            return false;
+        }
+
+        internal static bool IsEscapedStructuredCharacter(string value, int position) {
+            int apostrophes = 0;
+            for (int index = position - 1; index >= 0 && value[index] == '\''; index--) apostrophes++;
+            return (apostrophes & 1) != 0;
+        }
+
+        internal static string DecodeStructuredColumnName(string value) {
+            var builder = new StringBuilder(value.Length);
+            for (int index = 0; index < value.Length; index++) {
+                if (value[index] == '\'' && index + 1 < value.Length && IsStructuredEscapeTarget(value[index + 1])) index++;
+                builder.Append(value[index]);
+            }
+            return builder.ToString();
+        }
+
+        private static string EncodeStructuredColumnName(string value) {
+            var builder = new StringBuilder(value.Length);
+            foreach (char character in value) {
+                if (IsStructuredEscapeTarget(character)) builder.Append('\'');
+                builder.Append(character);
+            }
+            return builder.ToString();
+        }
+
+        private static bool IsStructuredEscapeTarget(char character) =>
+            character == '\'' || character == '[' || character == ']' || character == '#' || character == '@';
 
         private static bool TryReadName(string formula, int start, out int length) {
             length = 0;

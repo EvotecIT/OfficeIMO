@@ -113,5 +113,66 @@ namespace OfficeIMO.Excel {
             destination.Position = 0;
             cancellationToken.ThrowIfCancellationRequested();
         }
+
+        private bool TrySaveFileBackedPackageToFile(
+            string targetPath,
+            ExcelSaveOptions? options,
+            CancellationToken cancellationToken) {
+            if (!_usesFileBackedPackage) return false;
+
+            cancellationToken.ThrowIfCancellationRequested();
+            PrepareWorkbookForSave(options);
+            PackagePropertiesSnapshot properties = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
+            long temporaryLimit = ResolveFileBackedTemporaryPackageLimit(options);
+            string temporaryPath = CreateTemporarySavePath(targetPath);
+            try {
+                using (var stagedFile = new FileStream(
+                    temporaryPath,
+                    FileMode.CreateNew,
+                    FileAccess.ReadWrite,
+                    FileShare.None,
+                    81920,
+                    FileOptions.SequentialScan))
+                using (var bounded = new ExcelBoundedSeekableStream(stagedFile, temporaryLimit, leaveOpen: true))
+                using (_spreadSheetDocument.Clone(bounded)) {
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                properties.ApplyTo(temporaryPath);
+                EnsureFileBackedTemporaryPackageWithinLimit(temporaryPath, temporaryLimit);
+                cancellationToken.ThrowIfCancellationRequested();
+                ExcelPackageUtilities.NormalizeContentTypes(temporaryPath);
+                EnsureFileBackedTemporaryPackageWithinLimit(temporaryPath, temporaryLimit);
+                ThrowIfOpenXmlValidationFails(temporaryPath, options);
+                cancellationToken.ThrowIfCancellationRequested();
+
+                ReplaceTargetFile(temporaryPath, targetPath);
+                temporaryPath = string.Empty;
+                MarkPackageClean(packageBytes: null);
+                FilePath = targetPath;
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("File-backed package finalization avoided managed package materialization.");
+                return true;
+            } finally {
+                DeleteFileIfExists(temporaryPath);
+            }
+        }
+
+        private static long ResolveFileBackedTemporaryPackageLimit(ExcelSaveOptions? options) {
+            long? limit = options == null
+                ? ExcelSaveOptions.DefaultMaxTemporaryPackageBytes
+                : options.MaxTemporaryPackageBytes;
+            if (limit.HasValue && limit.Value <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(ExcelSaveOptions.MaxTemporaryPackageBytes));
+            }
+            return limit ?? long.MaxValue;
+        }
+
+        private static void EnsureFileBackedTemporaryPackageWithinLimit(string path, long limit) {
+            long length = new FileInfo(path).Length;
+            if (length > limit) {
+                throw new InvalidDataException(
+                    $"The file-backed Excel package exceeds MaxTemporaryPackageBytes ({limit}).");
+            }
+        }
     }
 }

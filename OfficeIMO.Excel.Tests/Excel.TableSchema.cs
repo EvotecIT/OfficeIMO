@@ -114,5 +114,28 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(new[] { "Column2", "Column3" }, Assert.Single(document.GetTables()).Columns.Select(column => column.Name));
         }
+
+        [Fact]
+        public void Test_TableSchema_RewritesAndInvalidatesEscapedBracketColumnNames() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Keep");
+            sheet.CellValue(1, 2, "Cost [ old");
+            sheet.CellValue(2, 1, 1);
+            sheet.CellValue(2, 2, 2);
+            sheet.AddTable("A1:B2", true, "Table1", TableStyle.TableStyleMedium2);
+            sheet.CellFormula(4, 1, "SUM(Table1[Cost '[ old])");
+
+            ExcelFormulaStructuredReferenceSyntax parsed = Assert.Single(
+                ExcelFormulaSyntaxTree.Parse("Table1[Cost '[ old]").Nodes
+                    .OfType<ExcelFormulaStructuredReferenceSyntax>());
+            Assert.Equal("[Cost '[ old]", parsed.Selector);
+
+            sheet.SetTableSchema("Table1", new[] { "Keep", "Cost ] new" });
+            Assert.Equal("SUM(Table1[Cost '] new])", Assert.Single(sheet.GetFormulaCells()).Formula);
+
+            sheet.ResizeTable("Table1", "A1:A2");
+            Assert.Equal("SUM(#REF!)", Assert.Single(sheet.GetFormulaCells()).Formula);
+        }
     }
 }

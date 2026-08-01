@@ -137,8 +137,13 @@ namespace OfficeIMO.Excel {
         }
 
         private void PreflightCellShift(ExcelReference affected, ExcelCellShiftDirection direction, bool inserting) {
-            EnsureNoIntersectingOwnedStructures(affected, "Cell shifts cannot split tables, merged cells, array formulas, data tables, or PivotTable output ranges.");
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
+            string shiftedBandText = direction == ExcelCellShiftDirection.Right || direction == ExcelCellShiftDirection.Left
+                ? A1.CellReference(r1, c1) + ":" + A1.CellReference(r2, A1.MaxColumns)
+                : A1.CellReference(r1, c1) + ":" + A1.CellReference(A1.MaxRows, c2);
+            EnsureNoIntersectingOwnedStructures(
+                ExcelReference.Parse(shiftedBandText),
+                "Cell shifts cannot split tables, merged cells, array formulas, data tables, or PivotTable output ranges in the shifted band.");
             if (!inserting) return;
             if (direction == ExcelCellShiftDirection.Right) {
                 int max = WorksheetRoot.Descendants<Cell>().Where(cell => TryGetCellCoordinates(cell, out int row, out _) && row >= r1 && row <= r2)
@@ -190,13 +195,13 @@ namespace OfficeIMO.Excel {
                 bool inRowBand = row >= r1 && row <= r2;
                 bool inColumnBand = column >= c1 && column <= c2;
                 if (direction == ExcelCellShiftDirection.Right && inRowBand && column >= c1) cell.CellReference = A1.CellReference(row, column + columns);
-                else if (direction == ExcelCellShiftDirection.Down && inColumnBand && row >= r1) cell.CellReference = A1.CellReference(row + rows, column);
+                else if (direction == ExcelCellShiftDirection.Down && inColumnBand && row >= r1) MoveCellTo(cell, row + rows, column);
                 else if (direction == ExcelCellShiftDirection.Left && inRowBand) {
                     if (column >= c1 && column <= c2) cell.Remove();
                     else if (column > c2) cell.CellReference = A1.CellReference(row, column - columns);
                 } else if (direction == ExcelCellShiftDirection.Up && inColumnBand) {
                     if (row >= r1 && row <= r2) cell.Remove();
-                    else if (row > r2) cell.CellReference = A1.CellReference(row - rows, column);
+                    else if (row > r2) MoveCellTo(cell, row - rows, column);
                 }
             }
             foreach (Row row in WorksheetRoot.Descendants<Row>().Where(row => !row.Elements<Cell>().Any()).ToList()) row.Remove();
@@ -204,6 +209,14 @@ namespace OfficeIMO.Excel {
             RewriteDrawingCellShift(affected, direction, inserting);
             _excelDocument.CleanupCalculationArtifacts(save: false, ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
             ResetMutationCaches();
+        }
+
+        private void MoveCellTo(Cell cell, int row, int column) {
+            cell.Remove();
+            cell.CellReference = A1.CellReference(row, column);
+            Cell target = GetCell(row, column);
+            target.InsertBeforeSelf(cell);
+            target.Remove();
         }
 
         private void ApplyRangeTransfer(ExcelReference source, int destinationRow, int destinationColumn, bool move, bool transpose, CancellationToken cancellationToken) {

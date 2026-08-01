@@ -1,6 +1,7 @@
 using System.Linq;
 using OfficeIMO.Excel;
 using Xunit;
+using S = DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Tests {
@@ -178,6 +179,63 @@ namespace OfficeIMO.Tests {
             Xdr.TwoCellAnchor copiedAnchor = sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!
                 .Elements<Xdr.TwoCellAnchor>().Last();
             Assert.Equal(Xdr.EditAsValues.OneCell, copiedAnchor.EditAs!.Value);
+        }
+
+        [Fact]
+        public void Test_RangeMutations_VerticalCellShiftsReparentCellsToTargetRows() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(2, 1, "shifted");
+            sheet.CellValue(2, 2, "fixed");
+
+            sheet.InsertCells("A1", ExcelCellShiftDirection.Down);
+
+            Assert.False(sheet.TryGetCellValueSnapshot(2, 1, out _));
+            Assert.Equal("shifted", sheet.CellAt(3, 1).GetValue<string>());
+            Assert.Equal("fixed", sheet.CellAt(2, 2).GetValue<string>());
+            S.Cell moved = sheet.WorksheetPart.Worksheet.Descendants<S.Cell>()
+                .Single(cell => cell.CellReference?.Value == "A3");
+            Assert.Equal(3U, Assert.IsType<S.Row>(moved.Parent).RowIndex!.Value);
+
+            sheet.DeleteCells("A1", ExcelCellShiftDirection.Up);
+
+            Assert.Equal("shifted", sheet.CellAt(2, 1).GetValue<string>());
+            moved = sheet.WorksheetPart.Worksheet.Descendants<S.Cell>()
+                .Single(cell => cell.CellReference?.Value == "A2");
+            Assert.Equal(2U, Assert.IsType<S.Row>(moved.Parent).RowIndex!.Value);
+        }
+
+        [Theory]
+        [InlineData(ExcelCellShiftDirection.Down, true)]
+        [InlineData(ExcelCellShiftDirection.Up, false)]
+        [InlineData(ExcelCellShiftDirection.Right, true)]
+        [InlineData(ExcelCellShiftDirection.Left, false)]
+        public void Test_RangeMutations_RejectOwnedStructuresAnywhereInShiftedBand(
+            ExcelCellShiftDirection direction,
+            bool inserting) {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            bool vertical = direction == ExcelCellShiftDirection.Down || direction == ExcelCellShiftDirection.Up;
+            string tableRange = vertical ? "A3:B4" : "C1:D2";
+            if (vertical) {
+                sheet.CellValue(3, 1, "A");
+                sheet.CellValue(3, 2, "B");
+                sheet.CellValue(4, 1, 1);
+                sheet.CellValue(4, 2, 2);
+            } else {
+                sheet.CellValue(1, 3, "A");
+                sheet.CellValue(1, 4, "B");
+                sheet.CellValue(2, 3, 1);
+                sheet.CellValue(2, 4, 2);
+            }
+            sheet.AddTable(tableRange, true, "Owned", TableStyle.TableStyleMedium2);
+
+            Assert.Throws<System.InvalidOperationException>(() => {
+                if (inserting) sheet.InsertCells("A1", direction);
+                else sheet.DeleteCells("A1", direction);
+            });
+
+            Assert.Equal(tableRange, Assert.Single(document.GetTables()).Range);
         }
     }
 }
