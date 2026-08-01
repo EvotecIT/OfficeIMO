@@ -131,22 +131,42 @@ namespace OfficeIMO.Excel {
                 if (sheetElement.Id?.Value is not string relationshipId || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) continue;
                 bool ownerIsEdited = string.Equals(sheetElement.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase);
                 RewriteMutationFormulaLeaves(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform);
-                if (ownerIsEdited) RewriteMutationAddressAttributes(worksheetPart.Worksheet, transform);
+                if (ownerIsEdited) {
+                    RewriteMutationAddressAttributes(worksheetPart.Worksheet, transform);
+                    WorksheetCommentsPart? commentsPart = worksheetPart.WorksheetCommentsPart;
+                    if (commentsPart?.Comments != null) {
+                        RewriteMutationAddressAttributes(commentsPart.Comments, transform);
+                        commentsPart.Comments.Save();
+                    }
+                    foreach (WorksheetThreadedCommentsPart threadedPart in worksheetPart.WorksheetThreadedCommentsParts) {
+                        if (threadedPart.ThreadedComments == null) continue;
+                        RewriteMutationAddressAttributes(threadedPart.ThreadedComments, transform);
+                        threadedPart.ThreadedComments.Save();
+                    }
+                }
                 foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                     RewriteMutationFormulaLeaves(tablePart.Table, editedSheet.Name, ownerIsEdited, transform);
                     if (ownerIsEdited) RewriteMutationAddressAttributes(tablePart.Table, transform);
                     tablePart.Table?.Save();
                 }
-                foreach (ChartPart chartPart in worksheetPart.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) {
-                    RewriteMutationFormulaLeaves(chartPart.ChartSpace, editedSheet.Name, ownerIsEdited, transform);
-                    chartPart.ChartSpace?.Save();
-                }
+                RewriteMutationDrawingReferences(
+                    worksheetPart.DrawingsPart,
+                    editedSheet.Name,
+                    ownerIsEdited,
+                    transform);
                 foreach (PivotTablePart pivotPart in worksheetPart.PivotTableParts) {
                     RewriteMutationFormulaLeaves(pivotPart.PivotTableDefinition, editedSheet.Name, ownerIsEdited, transform);
                     if (ownerIsEdited) RewriteMutationAddressAttributes(pivotPart.PivotTableDefinition, transform);
                     pivotPart.PivotTableDefinition?.Save();
                 }
                 worksheetPart.Worksheet?.Save();
+            }
+            foreach (ChartsheetPart chartsheetPart in WorkbookPartRoot.ChartsheetParts) {
+                RewriteMutationDrawingReferences(
+                    chartsheetPart.DrawingsPart,
+                    editedSheet.Name,
+                    unqualifiedTargetsEdited: false,
+                    transform);
             }
             foreach (PivotTableCacheDefinitionPart cachePart in WorkbookPartRoot.PivotTableCacheDefinitionParts) {
                 foreach (WorksheetSource source in cachePart.PivotCacheDefinition?.Descendants<WorksheetSource>() ?? Enumerable.Empty<WorksheetSource>()) {
@@ -160,7 +180,8 @@ namespace OfficeIMO.Excel {
             return editedSheetIndex;
         }
 
-        private static ExcelReference? TransformColumnReference(
+        /// <summary>Maps one parsed A1 reference through a complete-column insertion or deletion.</summary>
+        internal static ExcelReference? TransformColumnReference(
             ExcelReference reference,
             int firstColumn,
             int lastDeletedColumn,
@@ -219,6 +240,68 @@ namespace OfficeIMO.Excel {
             foreach (OpenXmlLeafTextElement leaf in root.Descendants<OpenXmlLeafTextElement>().Where(IsMutationFormulaLeaf)) {
                 leaf.Text = RewriteMutationFormula(leaf.Text, editedSheetName, unqualifiedTargetsEdited, transform);
             }
+        }
+
+        private static void RewriteMutationDrawingReferences(
+            DrawingsPart? drawingsPart,
+            string editedSheetName,
+            bool unqualifiedTargetsEdited,
+            Func<ExcelReference, ExcelReference?> transform) {
+            if (drawingsPart == null) return;
+
+            bool drawingChanged = false;
+            foreach (Xdr.Shape shape in drawingsPart.WorksheetDrawing?.Descendants<Xdr.Shape>()
+                ?? Enumerable.Empty<Xdr.Shape>()) {
+                if (shape.TextLink?.Value is not string formula || formula.Length == 0) continue;
+                string rewritten = RewriteMutationFormula(
+                    formula,
+                    editedSheetName,
+                    unqualifiedTargetsEdited,
+                    transform);
+                if (string.Equals(formula, rewritten, StringComparison.Ordinal)) continue;
+                shape.TextLink = rewritten;
+                drawingChanged = true;
+            }
+            if (drawingChanged) drawingsPart.WorksheetDrawing?.Save();
+
+            foreach (ChartPart chartPart in drawingsPart.ChartParts) {
+                RewriteMutationChartRoot(
+                    chartPart.ChartSpace,
+                    editedSheetName,
+                    unqualifiedTargetsEdited,
+                    transform);
+            }
+            foreach (ExtendedChartPart chartPart in drawingsPart.ExtendedChartParts) {
+                RewriteMutationChartRoot(
+                    chartPart.ChartSpace,
+                    editedSheetName,
+                    unqualifiedTargetsEdited,
+                    transform);
+            }
+        }
+
+        private static void RewriteMutationChartRoot(
+            OpenXmlPartRootElement? chartRoot,
+            string editedSheetName,
+            bool unqualifiedTargetsEdited,
+            Func<ExcelReference, ExcelReference?> transform) {
+            if (chartRoot == null) return;
+
+            bool changed = false;
+            foreach (OpenXmlLeafTextElement formula in chartRoot.Descendants<OpenXmlLeafTextElement>()
+                .Where(IsMutationFormulaLeaf)) {
+                string original = formula.Text ?? string.Empty;
+                string rewritten = RewriteMutationFormula(
+                    original,
+                    editedSheetName,
+                    unqualifiedTargetsEdited,
+                    transform);
+                if (string.Equals(original, rewritten, StringComparison.Ordinal)) continue;
+                formula.Text = rewritten;
+                ExcelSheet.InvalidateChartFormulaCache(formula);
+                changed = true;
+            }
+            if (changed) chartRoot.Save();
         }
 
         private static bool IsMutationFormulaLeaf(OpenXmlLeafTextElement leaf) =>

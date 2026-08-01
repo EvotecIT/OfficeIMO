@@ -71,8 +71,10 @@ namespace OfficeIMO.Excel {
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
-                PreflightCellShift(affected, direction, inserting);
-                int count = WorksheetRoot.Descendants<Cell>().Count(cell => {
+                MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
+                ValidateA1MutationReferenceMode("Cell shifts");
+                PreflightCellShift(affected, direction, inserting, budget);
+                int count = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell => {
                     if (!TryGetCellCoordinates(cell, out int row, out int column)) return false;
                     return direction == ExcelCellShiftDirection.Right || direction == ExcelCellShiftDirection.Left
                         ? row >= r1 && row <= r2 && column >= c1
@@ -116,11 +118,14 @@ namespace OfficeIMO.Excel {
             if (area > effective.MaximumAffectedCells) throw new InvalidOperationException($"Range transfer affects {area} cells, exceeding MaximumAffectedCells ({effective.MaximumAffectedCells}).");
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
-                PreflightRangeTransfer(source, destination.Start.Row, destination.Start.Column, destinationRows, destinationColumns, move, transpose);
-                int existing = WorksheetRoot.Descendants<Cell>().Count(cell =>
+                MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
+                ValidateA1MutationReferenceMode("Range transfers");
+                PreflightRangeTransfer(source, destination.Start.Row, destination.Start.Column, destinationRows, destinationColumns, move, transpose, budget);
+                int existing = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell =>
                     TryGetCellCoordinates(cell, out int row, out int column)
                     && source.Contains(row, column));
-                int images = Images.Count(image => source.Contains(image.RowIndex, image.ColumnIndex));
+                int images = InspectMutationPlanElements(Images, budget)
+                    .Count(image => source.Contains(image.RowIndex, image.ColumnIndex));
                 var impacts = new List<ExcelMutationImpact> {
                     new ExcelMutationImpact("cells", existing, "Existing cells, formulas, and styles will be transferred.")
                 };
@@ -136,47 +141,69 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private void PreflightCellShift(ExcelReference affected, ExcelCellShiftDirection direction, bool inserting) {
+        private void PreflightCellShift(
+            ExcelReference affected,
+            ExcelCellShiftDirection direction,
+            bool inserting,
+            MutationPlanScanBudget? budget = null) {
+            ValidateWorkbookSharedFormulasForStructuralEdit();
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
             string shiftedBandText = direction == ExcelCellShiftDirection.Right || direction == ExcelCellShiftDirection.Left
                 ? A1.CellReference(r1, c1) + ":" + A1.CellReference(r2, A1.MaxColumns)
                 : A1.CellReference(r1, c1) + ":" + A1.CellReference(A1.MaxRows, c2);
             EnsureNoIntersectingOwnedStructures(
                 ExcelReference.Parse(shiftedBandText),
-                "Cell shifts cannot split tables, merged cells, array formulas, data tables, or PivotTable output ranges in the shifted band.");
+                "Cell shifts cannot split tables, merged cells, array formulas, data tables, or PivotTable output ranges in the shifted band.",
+                budget);
             if (!inserting) return;
             if (direction == ExcelCellShiftDirection.Right) {
-                int max = WorksheetRoot.Descendants<Cell>().Where(cell => TryGetCellCoordinates(cell, out int row, out _) && row >= r1 && row <= r2)
+                int max = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out int row, out _) && row >= r1 && row <= r2)
                     .Select(cell => TryGetCellCoordinates(cell, out _, out int column) ? column : 0).DefaultIfEmpty().Max();
                 if ((long)max + c2 - c1 + 1L > A1.MaxColumns) throw new InvalidOperationException("Cell insertion would exceed the worksheet column limit.");
             } else {
-                int max = WorksheetRoot.Descendants<Cell>().Where(cell => TryGetCellCoordinates(cell, out _, out int column) && column >= c1 && column <= c2)
+                int max = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out _, out int column) && column >= c1 && column <= c2)
                     .Select(cell => TryGetCellCoordinates(cell, out int row, out _) ? row : 0).DefaultIfEmpty().Max();
                 if ((long)max + r2 - r1 + 1L > A1.MaxRows) throw new InvalidOperationException("Cell insertion would exceed the worksheet row limit.");
             }
         }
 
-        private void PreflightRangeTransfer(ExcelReference source, int destinationRow, int destinationColumn, int rows, int columns, bool move, bool transpose) {
+        private void PreflightRangeTransfer(
+            ExcelReference source,
+            int destinationRow,
+            int destinationColumn,
+            int rows,
+            int columns,
+            bool move,
+            bool transpose,
+            MutationPlanScanBudget? budget = null) {
+            ValidateWorkbookSharedFormulasForStructuralEdit();
             ExcelReference destination = ExcelReference.Parse(A1.CellReference(destinationRow, destinationColumn) + ":" + A1.CellReference(destinationRow + rows - 1, destinationColumn + columns - 1));
             if (move || transpose) {
-                EnsureNoIntersectingOwnedStructures(source, "Move and transpose cannot split owned table, merge, array, data-table, or PivotTable structures.");
+                EnsureNoIntersectingOwnedStructures(source, "Move and transpose cannot split owned table, merge, array, data-table, or PivotTable structures.", budget);
             }
-            EnsureNoIntersectingOwnedStructures(destination, "Range-transfer destination cannot overwrite owned table, merge, array, data-table, or PivotTable structures.");
-            foreach (Cell cell in WorksheetRoot.Descendants<Cell>().Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))) {
+            EnsureNoIntersectingOwnedStructures(destination, "Range-transfer destination cannot overwrite owned table, merge, array, data-table, or PivotTable structures.", budget);
+            foreach (Cell cell in InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
+                .Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))) {
                 CellFormulaValues? type = cell.CellFormula?.FormulaType?.Value;
-                if (type == CellFormulaValues.Shared || type == CellFormulaValues.Array || type == CellFormulaValues.DataTable) {
-                    throw new InvalidOperationException("Range transfer requires materialized ordinary formulas; shared, array, and data-table formulas cannot be split.");
+                if (type == CellFormulaValues.Array || type == CellFormulaValues.DataTable) {
+                    throw new InvalidOperationException("Range transfer cannot split array or data-table formulas.");
                 }
             }
         }
 
-        private void EnsureNoIntersectingOwnedStructures(ExcelReference range, string message) {
-            bool conflict = _worksheetPart.TableDefinitionParts.Any(part => ExcelReference.TryParse(part.Table?.Reference?.Value, out ExcelReference? table) && table!.Intersects(range))
-                || WorksheetRoot.Descendants<MergeCell>().Any(merge => ExcelReference.TryParse(merge.Reference?.Value, out ExcelReference? merged) && merged!.Intersects(range))
-                || WorksheetRoot.Descendants<CellFormula>().Any(formula =>
+        private void EnsureNoIntersectingOwnedStructures(
+            ExcelReference range,
+            string message,
+            MutationPlanScanBudget? budget = null) {
+            bool conflict = InspectMutationPlanElements(_worksheetPart.TableDefinitionParts, budget)
+                    .Any(part => ExcelReference.TryParse(part.Table?.Reference?.Value, out ExcelReference? table) && table!.Intersects(range))
+                || InspectMutationPlanElements(WorksheetRoot.Descendants<MergeCell>(), budget)
+                    .Any(merge => ExcelReference.TryParse(merge.Reference?.Value, out ExcelReference? merged) && merged!.Intersects(range))
+                || InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget).Any(formula =>
                     (formula.FormulaType?.Value == CellFormulaValues.Array || formula.FormulaType?.Value == CellFormulaValues.DataTable)
                     && ExcelReference.TryParse(formula.Reference?.Value, out ExcelReference? formulaRange) && formulaRange!.Intersects(range))
-                || _worksheetPart.PivotTableParts.Any(part => ExcelReference.TryParse(part.PivotTableDefinition?.Location?.Reference?.Value, out ExcelReference? pivot) && pivot!.Intersects(range));
+                || InspectMutationPlanElements(_worksheetPart.PivotTableParts, budget)
+                    .Any(part => ExcelReference.TryParse(part.PivotTableDefinition?.Location?.Reference?.Value, out ExcelReference? pivot) && pivot!.Intersects(range));
             if (conflict) throw new InvalidOperationException(message);
         }
 
@@ -184,6 +211,7 @@ namespace OfficeIMO.Excel {
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
             int rows = r2 - r1 + 1;
             int columns = c2 - c1 + 1;
+            MaterializeWorkbookSharedFormulasForStructuralEdit();
             List<(Cell Cell, int Row, int Column)> cells = WorksheetRoot.Descendants<Cell>()
                 .Select(cell => TryGetCellCoordinates(cell, out int row, out int column) ? (cell, row, column) : (cell, 0, 0))
                 .Where(item => item.Item2 > 0).ToList();
@@ -225,6 +253,7 @@ namespace OfficeIMO.Excel {
             int sourceColumns = sc2 - sc1 + 1;
             int destinationRows = transpose ? sourceColumns : sourceRows;
             int destinationColumns = transpose ? sourceRows : sourceColumns;
+            MaterializeWorkbookSharedFormulasForStructuralEdit();
             var snapshots = WorksheetRoot.Descendants<Cell>()
                 .Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))
                 .Select(cell => {
@@ -334,17 +363,35 @@ namespace OfficeIMO.Excel {
                         : reference.Kind == ExcelReferenceKind.WholeColumn ? ExcelReferenceKind.WholeRow
                         : reference.Kind
                     : reference.Kind;
+                int startRow = kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.Start);
+                int startColumn = kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.Start);
+                int endRow = kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.End);
+                int endColumn = kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.End);
+                if (!CoordinatesFitWorksheet(kind, startRow, startColumn, endRow, endColumn)) return null;
                 return reference.WithCoordinates(
                     kind,
-                    kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.Start),
-                    kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.Start),
-                    kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.End),
-                    kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.End),
+                    startRow,
+                    startColumn,
+                    endRow,
+                    endColumn,
                     transpose ? reference.Start.ColumnAbsolute : null,
                     transpose ? reference.Start.RowAbsolute : null,
                     transpose ? reference.End.ColumnAbsolute : null,
                     transpose ? reference.End.RowAbsolute : null);
             });
+        }
+
+        private static bool CoordinatesFitWorksheet(
+            ExcelReferenceKind kind,
+            int startRow,
+            int startColumn,
+            int endRow,
+            int endColumn) {
+            bool rowsFit = kind == ExcelReferenceKind.WholeColumn
+                || (startRow >= 1 && startRow <= A1.MaxRows && endRow >= 1 && endRow <= A1.MaxRows);
+            bool columnsFit = kind == ExcelReferenceKind.WholeRow
+                || (startColumn >= 1 && startColumn <= A1.MaxColumns && endColumn >= 1 && endColumn <= A1.MaxColumns);
+            return rowsFit && columnsFit;
         }
 
         private sealed class RangeTransferImageSnapshot {

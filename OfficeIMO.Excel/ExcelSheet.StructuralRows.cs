@@ -224,7 +224,7 @@ namespace OfficeIMO.Excel {
 
         private void PreflightRowInsertion(int firstRow, int count) {
             ValidateStructuralRowReferenceMode();
-            ValidateStructuralRowControlSafety();
+            ValidateStructuralVmlControlSafety();
             ValidateRowInsertionAgainstArrayFormulas(firstRow);
             ValidateRowInsertionAgainstPivotOutputs(firstRow);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
@@ -239,7 +239,7 @@ namespace OfficeIMO.Excel {
         private void PreflightRowDeletion(int firstRow, int count) {
             int lastRemovedRow = firstRow + count - 1;
             ValidateStructuralRowReferenceMode();
-            ValidateStructuralRowControlSafety();
+            ValidateStructuralVmlControlSafety();
             ValidateRowDeletionAgainstOwnedRanges(firstRow, lastRemovedRow);
             ValidateWorkbookSharedFormulasForStructuralEdit();
         }
@@ -751,7 +751,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ValidateStructuralRowControlSafety() {
+        private void ValidateStructuralVmlControlSafety() {
             IEnumerable<VmlDrawingPart> workbookVmlParts =
                 WorkbookPartRoot.WorksheetParts.SelectMany(part => part.VmlDrawingParts)
                     .Concat(WorkbookPartRoot.DialogsheetParts.SelectMany(part => part.VmlDrawingParts))
@@ -762,12 +762,12 @@ namespace OfficeIMO.Excel {
                     || worksheetPart.ControlPropertiesParts.Any())
                 || ContainsUnsupportedVmlFormControl(workbookVmlParts)) {
                 throw new InvalidOperationException(
-                    "Cannot edit rows in a workbook containing form controls because their anchors and cross-sheet links cannot yet be remapped safely.");
+                    "Cannot structurally edit a workbook containing form controls because their anchors and cross-sheet links cannot yet be remapped safely.");
             }
             if (WorksheetRoot.Descendants<OleObjects>().Any()
                 || _worksheetPart.EmbeddedObjectParts.Any()) {
                 throw new InvalidOperationException(
-                    "Cannot edit rows on a worksheet containing embedded OLE objects because their VML anchors cannot yet be remapped safely.");
+                    "Cannot structurally edit a worksheet containing embedded OLE objects because their VML anchors cannot yet be remapped safely.");
             }
             if (_worksheetPart.SingleCellTablePart != null) {
                 throw new InvalidOperationException(

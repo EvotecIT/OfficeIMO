@@ -34,9 +34,10 @@ namespace OfficeIMO.Excel {
             ExcelMutationPlanOptions effective = (options ?? new ExcelMutationPlanOptions()).CloneAndValidate();
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
+                MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
                 int last = firstColumn + count - 1;
-                PreflightColumnMutation(firstColumn, last, count, deleting);
-                int cells = WorksheetRoot.Descendants<Cell>().Count(cell => {
+                PreflightColumnMutation(firstColumn, last, count, deleting, budget);
+                int cells = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell => {
                     int column = cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0;
                     return deleting ? column >= firstColumn : column >= firstColumn;
                 });
@@ -45,12 +46,16 @@ namespace OfficeIMO.Excel {
                 }
                 var impacts = new List<ExcelMutationImpact>();
                 if (cells > 0) impacts.Add(new ExcelMutationImpact("cells", cells, "Worksheet cells will be shifted or removed."));
-                int formulas = GetFormulaCells().Count(item =>
-                    item.SyntaxTree.Nodes.OfType<ExcelFormulaReferenceSyntax>().Any());
+                int formulas = InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget)
+                    .Count(formula => ExcelFormulaSyntaxTree.Parse(formula.Text ?? string.Empty)
+                        .Nodes.OfType<ExcelFormulaReferenceSyntax>().Any());
                 if (formulas > 0) impacts.Add(new ExcelMutationImpact("formulas", formulas, "Parsed formula references may be rewritten."));
-                int tables = _worksheetPart.TableDefinitionParts.Count();
+                int tables = InspectMutationPlanElements(_worksheetPart.TableDefinitionParts, budget).Count();
                 if (tables > 0) impacts.Add(new ExcelMutationImpact("tables", tables, "Intersecting table ranges and schemas will be remapped."));
-                int drawings = _worksheetPart.DrawingsPart?.WorksheetDrawing?.ChildElements.Count ?? 0;
+                int drawings = InspectMutationPlanElements(
+                    _worksheetPart.DrawingsPart?.WorksheetDrawing?.ChildElements
+                        ?? Enumerable.Empty<OpenXmlElement>(),
+                    budget).Count();
                 if (drawings > 0) impacts.Add(new ExcelMutationImpact("drawings", drawings, "Cell-anchored drawing columns will be remapped."));
                 string range = A1.ColumnIndexToLetters(firstColumn) + ":" + A1.ColumnIndexToLetters(last);
                 return new ExcelStructuralMutationPlan(
@@ -70,19 +75,26 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private void PreflightColumnMutation(int firstColumn, int lastColumn, int count, bool deleting) {
-            if (WorkbookRoot.GetFirstChild<CalculationProperties>()?.ReferenceMode?.Value == ReferenceModeValues.R1C1) {
-                throw new InvalidOperationException("Structural column edits require A1 workbook reference mode.");
-            }
+        private void PreflightColumnMutation(
+            int firstColumn,
+            int lastColumn,
+            int count,
+            bool deleting,
+            MutationPlanScanBudget? budget = null) {
+            ValidateA1MutationReferenceMode("Structural column edits");
+            ValidateWorkbookSharedFormulasForStructuralEdit();
+            ValidateStructuralVmlControlSafety();
+            ValidateColumnConnectionParameters(firstColumn, count, deleting);
+            if (!deleting) ValidateColumnCommentVmlAnchorCapacity(firstColumn, count);
             if (!deleting) {
-                int maximumUsedColumn = WorksheetRoot.Descendants<Cell>()
+                int maximumUsedColumn = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
                     .Select(cell => cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0)
                     .DefaultIfEmpty(0).Max();
                 if (maximumUsedColumn >= firstColumn && (long)maximumUsedColumn + count > A1.MaxColumns) {
                     throw new InvalidOperationException("Column insertion would move worksheet content beyond the Excel column limit.");
                 }
             }
-            foreach (CellFormula formula in WorksheetRoot.Descendants<CellFormula>().Where(item =>
+            foreach (CellFormula formula in InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget).Where(item =>
                 item.FormulaType?.Value == CellFormulaValues.Array || item.FormulaType?.Value == CellFormulaValues.DataTable)) {
                 if (!ExcelReference.TryParse(formula.Reference?.Value, out ExcelReference? range)) continue;
                 range!.GetBounds(out _, out int c1, out _, out int c2);
@@ -91,14 +103,14 @@ namespace OfficeIMO.Excel {
                     : c1 < firstColumn && c2 >= firstColumn;
                 if (conflict) throw new InvalidOperationException("Column mutation would split an array formula or data table.");
             }
-            foreach (TableDefinitionPart part in _worksheetPart.TableDefinitionParts) {
+            foreach (TableDefinitionPart part in InspectMutationPlanElements(_worksheetPart.TableDefinitionParts, budget)) {
                 Table? table = part.Table;
                 if (!deleting || !ExcelReference.TryParse(table?.Reference?.Value, out ExcelReference? range)) continue;
                 range!.GetBounds(out _, out int c1, out _, out int c2);
                 int overlap = Math.Max(0, Math.Min(c2, lastColumn) - Math.Max(c1, firstColumn) + 1);
                 if (overlap >= c2 - c1 + 1) throw new InvalidOperationException($"Column deletion would remove every column from table '{table!.Name?.Value}'.");
             }
-            foreach (PivotTablePart part in _worksheetPart.PivotTableParts) {
+            foreach (PivotTablePart part in InspectMutationPlanElements(_worksheetPart.PivotTableParts, budget)) {
                 if (!ExcelReference.TryParse(part.PivotTableDefinition?.Location?.Reference?.Value, out ExcelReference? range)) continue;
                 range!.GetBounds(out _, out int c1, out _, out int c2);
                 bool conflict = deleting
@@ -110,6 +122,7 @@ namespace OfficeIMO.Excel {
 
         private void ApplyColumnMutation(int firstColumn, int count, bool deleting, CancellationToken cancellationToken) {
             int lastColumn = firstColumn + count - 1;
+            MaterializeWorkbookSharedFormulasForStructuralEdit();
             IReadOnlyList<(int Row, int Column, string Name)> pendingHeaders = AdjustTableSchemasForColumnMutation(firstColumn, lastColumn, count, deleting);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
@@ -134,7 +147,9 @@ namespace OfficeIMO.Excel {
             }
             foreach ((int row, int column, string name) in pendingHeaders) CellValueCoreNoMaterialize(row, column, name);
             RewriteColumnDefinitions(firstColumn, lastColumn, count, deleting);
+            RemapColumnConnectionParameters(firstColumn, count, deleting, cancellationToken);
             _excelDocument.RewriteColumnMutationReferences(this, firstColumn, count, deleting);
+            RemapColumnCommentVml(firstColumn, count, deleting);
             _excelDocument.CleanupCalculationArtifacts(save: false, ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
             ResetMutationCaches();
         }
