@@ -365,7 +365,9 @@ When the source is already an `IDataReader`, write it directly to a path or
 stream without introducing a second serialization path:
 
 ```csharp
-using IDataReader reader = command.ExecuteReader();
+using OfficeIMO.CSV;
+
+using var reader = command.ExecuteReader();
 CsvDocument.WriteDataReader("summary.csv.gz", reader, new CsvSaveOptions {
     CompressionType = CsvCompressionType.Auto
 });

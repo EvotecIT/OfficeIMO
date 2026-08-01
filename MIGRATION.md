@@ -94,6 +94,44 @@ and writer pipelines. Replace `ImportDelimitedFile`, `FromCsv`,
 `ExcelCsvImportResult`. Use `SaveAsCsv` and `SaveAsExcel` for destination-shaped
 conversion entry points.
 
+Move the removed import-option properties into the CSV parsing and reader
+options owned by `ExcelCsvImportOptions`:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `Delimiter = value` | `LoadOptions.Delimiter = value` and `LoadOptions.DetectDelimiter = false` |
+| `Delimiter = null` | `LoadOptions.DetectDelimiter = true` |
+| `HeadersInFirstRow` | `LoadOptions.HasHeaderRow` |
+| `SkipInitialRecords` | `LoadOptions.SkipInitialRecords` |
+| `Culture` | `LoadOptions.Culture` |
+| `ConvertNumbersAndDates` | `ReaderOptions.InferSchema` |
+
+For example, an explicit semicolon import now uses nested options:
+
+```csharp
+using System.Globalization;
+using OfficeIMO.CSV;
+using OfficeIMO.Reader.Excel;
+
+var options = new ExcelCsvImportOptions {
+    SheetName = "Import",
+    LoadOptions = new CsvLoadOptions {
+        Delimiter = ';',
+        DetectDelimiter = false,
+        HasHeaderRow = true,
+        SkipInitialRecords = 1,
+        Culture = CultureInfo.GetCultureInfo("pl-PL")
+    },
+    ReaderOptions = new CsvDataReaderOptions { InferSchema = true }
+};
+```
+
+`CreateTable`, `SheetName`, `TableName`, and `TableStyle` keep the same names on
+`ExcelCsvImportOptions`. Leave `TableName` unset to use the effective worksheet
+name, matching the former import behavior. `IncludeHeaders` controls whether the
+reader's resolved field names are written into the worksheet and defaults to
+`true`.
+
 The same cleanup removes the alternate `ImportDelimitedText` and `TableToCsv`
 entry points. Use `ImportCsvText` and the worksheet `ToCsv` / `SaveAsCsv`
 methods instead. Calls that passed `ToCsv` arguments positionally should use

@@ -40,6 +40,17 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Equal(165258.24m, row.Amount);
     }
 
+    [Fact]
+    public void RowsAs_MapsOnlyPropertiesWithPublicSetters() {
+        CsvDocument document = CsvDocument.Parse("Writable,InitOnly,PrivateSetter\n42,84,126\n");
+
+        MixedAccessRow row = Assert.Single(document.RowsAs<MixedAccessRow>());
+
+        Assert.Equal(42, row.Writable);
+        Assert.Equal(84, row.InitOnly);
+        Assert.Equal(7, row.PrivateSetter);
+    }
+
     private sealed class SalesRow {
         public int OrderId { get; set; }
         public string SalesChannel { get; set; } = string.Empty;
@@ -49,5 +60,11 @@ public sealed class CsvTypedRowsApiTests {
     private struct SalesValue {
         public int OrderId { get; set; }
         public decimal Amount { get; set; }
+    }
+
+    private sealed class MixedAccessRow {
+        public int Writable { get; set; }
+        public int InitOnly { get; init; }
+        public int PrivateSetter { get; private set; } = 7;
     }
 }

@@ -182,6 +182,25 @@ public class ExcelCsvExtensionsTests {
     }
 
     [Fact]
+    public void CsvImportDefaultsTableNameToTheEffectiveWorksheetName() {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream)) {
+            document.ImportCsvText(
+                "Name,Amount\r\nAlpha,10.5",
+                new ExcelCsvImportOptions { SheetName = "Orders" });
+            document.Save();
+        }
+
+        stream.Position = 0;
+        using ExcelDocument reloaded = ExcelDocument.Load(
+            stream,
+            new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+        ExcelTableInfo table = Assert.Single(reloaded.GetTables());
+        Assert.Equal("Orders", table.Name);
+        Assert.Equal("Orders", table.SheetName);
+    }
+
+    [Fact]
     public void DelimitedImportSkipsLogicalRecordsBeforeDetection() {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);

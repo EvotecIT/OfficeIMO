@@ -131,7 +131,7 @@ public static class CsvMappingExtensions
     {
         var writableProperties = typeof(T)
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Where(static property => property.CanWrite && property.GetIndexParameters().Length == 0)
+            .Where(static property => property.SetMethod?.IsPublic == true && property.GetIndexParameters().Length == 0)
             .ToArray();
         var exact = writableProperties.ToDictionary(static property => property.Name, StringComparer.OrdinalIgnoreCase);
         var canonical = new Dictionary<string, PropertyInfo>(StringComparer.Ordinal);

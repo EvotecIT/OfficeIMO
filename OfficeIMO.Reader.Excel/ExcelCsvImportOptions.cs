@@ -30,7 +30,10 @@ public sealed class ExcelCsvImportOptions {
     /// <summary>Gets or sets whether an Excel table is created over the imported range.</summary>
     public bool CreateTable { get; set; } = true;
 
-    /// <summary>Gets or sets the requested Excel table name.</summary>
+    /// <summary>
+    /// Gets or sets the requested Excel table name. When omitted or whitespace,
+    /// the effective worksheet name is used.
+    /// </summary>
     public string? TableName { get; set; }
 
     /// <summary>Gets or sets the Excel table style.</summary>

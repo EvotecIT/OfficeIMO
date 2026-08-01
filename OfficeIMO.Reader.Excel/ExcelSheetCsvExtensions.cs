@@ -160,12 +160,15 @@ public static class ExcelSheetCsvExtensions {
             return new ExcelCsvImportResult(sheet.Name, string.Empty);
         }
 
+        string tableName = string.IsNullOrWhiteSpace(options.TableName)
+            ? sheet.Name
+            : options.TableName!.Trim();
         string range = sheet.InsertDataReader(
             reader,
             options.StartRow,
             options.StartColumn,
             options.IncludeHeaders,
-            options.TableName,
+            tableName,
             options.TableStyle,
             options.IncludeAutoFilter,
             options.CreateTable,
