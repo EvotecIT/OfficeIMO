@@ -267,6 +267,9 @@ namespace OfficeIMO.GoogleWorkspace {
                             response.StatusCode, errorBody);
                     }
 
+                    // The remote mutation has already committed before its response is read or decoded.
+                    // Persist that outcome first so response-processing failures cannot invite a blind retry.
+                    CompleteMutationSuccess(mutation);
                     byte[] responseBytes = await ReadResponseBytesAsync(
                         response.Content,
                         maxResponseBytes,
@@ -350,6 +353,7 @@ namespace OfficeIMO.GoogleWorkspace {
                             method, visibleTarget, response.StatusCode, body);
                     }
 
+                    CompleteMutationSuccess(mutation);
                     validateResponse?.Invoke(response);
                     return await ReadResponseBytesAsync(response.Content,
                         maxResponseBytes, responseToken).ConfigureAwait(false);
@@ -449,13 +453,16 @@ namespace OfficeIMO.GoogleWorkspace {
                     requestTimeout,
                     cancellationToken,
                     retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent, visibleTarget); }).ConfigureAwait(false)) {
-                    byte[] body = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
                     bool accepted = response.IsSuccessStatusCode
                         || (additionalSuccessStatusCodes != null && additionalSuccessStatusCodes.Contains(response.StatusCode));
                     if (!accepted) {
-                        string responseText = Encoding.UTF8.GetString(body);
+                        byte[] errorBody = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                        string responseText = Encoding.UTF8.GetString(errorBody);
                         throw GoogleWorkspaceApiException.Create(serviceName, method, visibleTarget, response.StatusCode, responseText);
                     }
+
+                    CompleteMutationSuccess(mutation);
+                    byte[] body = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
 
                     var headers = response.Headers
                         .Concat(response.Content.Headers)
@@ -465,7 +472,6 @@ namespace OfficeIMO.GoogleWorkspace {
                             StringComparer.OrdinalIgnoreCase);
                     var result = new GoogleWorkspaceHttpResponse(response.StatusCode, body,
                         response.Content.Headers.ContentType?.MediaType, headers);
-                    CompleteMutationSuccess(mutation);
                     return result;
                 }
             } catch (Exception exception) {

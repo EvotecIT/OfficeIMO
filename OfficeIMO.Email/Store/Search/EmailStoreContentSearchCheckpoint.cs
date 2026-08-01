@@ -37,7 +37,7 @@ public sealed class EmailStoreContentSearchCheckpoint {
             long offset = reader.ReadInt64();
             string source = EmailStoreScalarCodec.ReadString(reader, 256);
             string query = EmailStoreScalarCodec.ReadString(reader, 256);
-            if (offset < 0 || source.Length != 64 || query.Length != 64 || stream.Position != stream.Length) {
+            if (offset < 0 || offset > int.MaxValue || source.Length != 64 || query.Length != 64 || stream.Position != stream.Length) {
                 throw new InvalidDataException("The checkpoint payload is invalid.");
             }
             return new EmailStoreContentSearchCheckpoint(value, offset, source, query);
@@ -56,6 +56,9 @@ public sealed class EmailStoreContentSearchCheckpoint {
 
     internal static EmailStoreContentSearchCheckpoint Create(long itemOffset, string sourceFingerprint,
         string querySignature) {
+        if (itemOffset < 0 || itemOffset > int.MaxValue) {
+            throw new ArgumentOutOfRangeException(nameof(itemOffset));
+        }
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
             writer.Write(Magic); writer.Write(Version); writer.Write(itemOffset);

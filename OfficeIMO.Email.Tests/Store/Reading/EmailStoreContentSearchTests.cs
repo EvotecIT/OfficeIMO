@@ -82,6 +82,22 @@ public sealed class EmailStoreContentSearchTests {
     }
 
     [Fact]
+    public void RejectsContentSearchCheckpointOffsetOutsideEnumerationRange() {
+        EmailStoreContentSearchCheckpoint checkpoint = EmailStoreContentSearchCheckpoint.Create(
+            0, new string('a', 64), new string('b', 64));
+        string normalized = checkpoint.Value.Replace('-', '+').Replace('_', '/');
+        if (normalized.Length % 4 == 2) normalized += "==";
+        else if (normalized.Length % 4 == 3) normalized += "=";
+        byte[] payload = Convert.FromBase64String(normalized);
+        Array.Copy(BitConverter.GetBytes((long)int.MaxValue + 1), 0, payload, 5, sizeof(long));
+        string invalid = Convert.ToBase64String(payload).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+        Assert.Throws<InvalidDataException>(() => EmailStoreContentSearchCheckpoint.Parse(invalid));
+        Assert.Throws<ArgumentOutOfRangeException>(() => EmailStoreContentSearchCheckpoint.Create(
+            (long)int.MaxValue + 1, new string('a', 64), new string('b', 64)));
+    }
+
+    [Fact]
     public void QuerySignatureUsesUnambiguousFieldBoundaries() {
         var first = new EmailStoreContentQuery(new[] { "needle" }, metadataFilter: new EmailStoreQuery(
             subjectContains: "a|b", senderContains: "c"));

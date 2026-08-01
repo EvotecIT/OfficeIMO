@@ -121,6 +121,13 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveFile finalMetadata = await GetFileAsync(fileId, DefaultFileFields, report, cancellationToken).ConfigureAwait(false);
             if (finalMetadata.Version != version || finalMetadata.Size != total) throw new InvalidOperationException("The Google Drive resource changed during download; the destination was retained for reconciliation.");
             GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(fullPath, output);
+            if (output.Length != state.ConfirmedBytes ||
+                !StringComparer.Ordinal.Equals(state.PrefixFingerprint,
+                    HashFileChain(output, chunkSize, state.ConfirmedBytes, cancellationToken)) ||
+                output.Length != state.ConfirmedBytes) {
+                throw new InvalidOperationException("The guarded download destination changed before completion; the checkpoint and destination must be reconciled.");
+            }
+            GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(fullPath, output);
             return state;
         }
 

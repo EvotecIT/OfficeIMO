@@ -184,6 +184,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task MalformedMutationResponseStillRecordsRemoteSuccess() {
+            int requests = 0;
+            using var http = new HttpClient(new Handler(_ => {
+                requests++;
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("{", Encoding.UTF8, "application/json"),
+                };
+            }));
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            using var transport = new GoogleWorkspaceHttpTransport(MutationOptions(http, receipts.Add));
+
+            await Assert.ThrowsAsync<System.Text.Json.JsonException>(() =>
+                transport.SendJsonAsync<GoogleDriveFile>("token", HttpMethod.Post,
+                    "https://www.googleapis.com/drive/v3/files", new { name = "created" },
+                    GoogleWorkspaceRequestSafety.NonIdempotent, "Google Drive API", new TranslationReport(),
+                    mutationKind: GoogleWorkspaceMutationKind.Create,
+                    requiredScopes: new[] { GoogleWorkspaceScopeCatalog.DriveFile }));
+
+            Assert.Equal(1, requests);
+            GoogleWorkspaceOperationReceipt receipt = Assert.Single(receipts);
+            Assert.True(receipt.Succeeded);
+            Assert.Equal("completed", receipt.Outcome);
+        }
+
+        [Fact]
         public async Task ReceiptSinkFailureDoesNotReplaceRemoteFailure() {
             int requests = 0;
             using var http = new HttpClient(new Handler(_ => {
@@ -622,6 +647,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ResumableUploadDoesNotPublishCompletedCheckpointForChangedSource() {
+            const int total = 16;
+            byte[] payload = new byte[total];
+            var confirmedOffsets = new List<long>();
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            using var http = new HttpClient(new Handler(async request => {
+                if (request.Method == HttpMethod.Post) {
+                    var initiated = Json("{}");
+                    initiated.Headers.Location = new Uri("https://upload.googleapis.com/final-source-check");
+                    return initiated;
+                }
+                string range = request.Content!.Headers.GetValues("Content-Range").Single();
+                if (range == $"bytes */{total}") {
+                    return new HttpResponseMessage((HttpStatusCode)308) {
+                        Content = new StringContent(string.Empty),
+                    };
+                }
+                _ = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                payload[0] = 1;
+                return new HttpResponseMessage(HttpStatusCode.Created) {
+                    Content = new StringContent("{\"id\":\"changed-1\",\"version\":\"2\"}",
+                        Encoding.UTF8, "application/json"),
+                };
+            }));
+            using var client = new GoogleDriveClient(Session(http, receipts));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                client.UploadResumableStreamAsync(new MemoryStream(payload), payload.Length,
+                    new GoogleDriveUploadOptions { Name = "changed.bin" },
+                    checkpointSink: (checkpoint, _) => {
+                        confirmedOffsets.Add(checkpoint.ConfirmedBytes);
+                        return Task.CompletedTask;
+                    }));
+
+            Assert.Equal(new long[] { 0 }, confirmedOffsets);
+            GoogleWorkspaceOperationReceipt createReceipt = Assert.Single(receipts, receipt =>
+                receipt.MutationKind == GoogleWorkspaceMutationKind.Create);
+            Assert.True(createReceipt.Succeeded);
+        }
+
+        [Fact]
         public async Task ResumableUploadCheckpointRejectsChangedContentTypeBeforeResumeRequest() {
             int requests = 0;
             string? initiatedContentType = null;
@@ -712,6 +778,42 @@ namespace OfficeIMO.Tests {
                 GoogleDriveDownloadCheckpoint completed = await second.DownloadToFileAsync("file-1", path, restored, chunkSize: 256 * 1024);
                 Assert.Equal(payload.Length, completed.ConfirmedBytes);
                 Assert.Equal(payload, File.ReadAllBytes(path));
+            } finally { if (File.Exists(path)) File.Delete(path); }
+        }
+
+        [Fact]
+        public async Task RangedDownloadRejectsFinalDestinationContentMutationOnUnix() {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+            byte[] payload = Enumerable.Range(0, 300_000).Select(value => unchecked((byte)value)).ToArray();
+            string path = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-download-final-mutation-" + Guid.NewGuid().ToString("N") + ".bin");
+            int metadataRequests = 0;
+            using var http = new HttpClient(new Handler(request => {
+                if (!request.RequestUri!.Query.Contains("alt=media", StringComparison.Ordinal)) {
+                    if (++metadataRequests == 2) {
+                        using var tamper = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
+                        tamper.WriteByte(unchecked((byte)(payload[0] + 1)));
+                        tamper.Flush(flushToDisk: true);
+                    }
+                    return Json($"{{\"id\":\"file-1\",\"version\":\"7\",\"size\":\"{payload.Length}\"}}");
+                }
+                RangeItemHeaderValue range = request.Headers.Range!.Ranges.Single();
+                int start = checked((int)range.From!.Value);
+                int end = checked((int)range.To!.Value);
+                var response = new HttpResponseMessage(HttpStatusCode.PartialContent) {
+                    Content = new ByteArrayContent(payload.Skip(start).Take(end - start + 1).ToArray()),
+                };
+                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(start, end, payload.Length);
+                return response;
+            }));
+            try {
+                using var client = new GoogleDriveClient(Session(http,
+                    new List<GoogleWorkspaceOperationReceipt>()));
+
+                await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                    client.DownloadToFileAsync("file-1", path, chunkSize: 256 * 1024));
+
+                Assert.NotEqual(payload, File.ReadAllBytes(path));
             } finally { if (File.Exists(path)) File.Delete(path); }
         }
 

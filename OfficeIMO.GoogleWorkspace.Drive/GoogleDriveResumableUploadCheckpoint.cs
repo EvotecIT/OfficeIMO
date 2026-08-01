@@ -133,8 +133,10 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) {
                     create.CompleteSuccess();
                     EnsureSourceUnchanged(content, length, sourceFingerprint, cancellationToken);
-                    state = state.Advance(length); if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
-                    return new GoogleDriveResumableUploadResult(status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile), state);
+                    GoogleDriveFile file = status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
+                    state = state.Advance(length);
+                    if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
+                    return new GoogleDriveResumableUploadResult(file, state);
                 }
                 long offset = ResolveNextOffset(status, state.ConfirmedBytes);
                 int chunkSize = NormalizeChunkSize(options.ResumableChunkSize);
@@ -162,13 +164,17 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                             noProgressResponses = 0;
                         }
                     }
-                    if (completed) create.CompleteSuccess();
+                    if (offset == length && completed) {
+                        create.CompleteSuccess();
+                        EnsureSourceUnchanged(content, length, sourceFingerprint, cancellationToken);
+                        GoogleDriveFile file = status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
+                        state = state.Advance(offset);
+                        if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
+                        options.Progress?.Report(new GoogleDriveTransferProgress(offset, length));
+                        return new GoogleDriveResumableUploadResult(file, state);
+                    }
                     state = state.Advance(offset); if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
                     options.Progress?.Report(new GoogleDriveTransferProgress(offset, length));
-                    if (offset == length && completed) {
-                        EnsureSourceUnchanged(content, length, sourceFingerprint, cancellationToken);
-                        return new GoogleDriveResumableUploadResult(status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile), state);
-                    }
                 }
                 throw new InvalidOperationException("Google Drive resumable upload ended without final file metadata.");
             } catch (Exception exception) {

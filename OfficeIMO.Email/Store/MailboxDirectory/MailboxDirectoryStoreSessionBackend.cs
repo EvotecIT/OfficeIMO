@@ -134,6 +134,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         AppendFingerprint(fingerprint, "OfficeIMO.MailboxDirectory.Content.v2");
         AppendInt64(fingerprint, _files.Count);
         var buffer = new byte[64 * 1024];
+        long aggregateLength = 0;
         foreach (MailboxFile file in _files) {
             cancellationToken.ThrowIfCancellationRequested();
             AppendFingerprint(fingerprint, file.RelativePath);
@@ -144,21 +145,26 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             }
             using (FileStream stream = OpenRegularMailboxFile(file.Path)) {
                 long declaredLength = stream.Length;
+                aggregateLength = AddBounded(aggregateLength, declaredLength);
                 AppendInt64(fingerprint, declaredLength);
                 long totalRead = 0;
-                int read;
-                while ((read = stream.Read(buffer, 0, buffer.Length)) != 0) {
+                while (totalRead < declaredLength) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    fingerprint.AppendData(buffer, 0, read);
-                    totalRead += read;
-                    if (totalRead > declaredLength) {
+                    int read = stream.Read(buffer, 0,
+                        (int)Math.Min(buffer.Length, declaredLength - totalRead));
+                    if (read == 0) {
                         throw new InvalidDataException("A mailbox-directory source changed while it was fingerprinted.");
                     }
+                    fingerprint.AppendData(buffer, 0, read);
+                    totalRead += read;
                 }
                 if (totalRead != declaredLength || stream.Length != declaredLength) {
                     throw new InvalidDataException("A mailbox-directory source changed while it was fingerprinted.");
                 }
             }
+        }
+        if (aggregateLength != _sourceLength) {
+            throw new InvalidDataException("The mailbox-directory aggregate source length changed after it was indexed.");
         }
         return EmailHashing.ToHexLower(fingerprint.GetHashAndReset());
     }
