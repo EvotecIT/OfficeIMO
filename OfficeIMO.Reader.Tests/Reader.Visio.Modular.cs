@@ -11,6 +11,24 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderVisioModularTests {
     [Fact]
+    public void DocumentReaderVisio_LoadedDocumentUsesTheSameSourceIdAsPathRead() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+        VisioDocument created = VisioDocument.Create(path);
+        created.AddPage("Source identity");
+        created.Save();
+
+        try {
+            OfficeDocumentReadResult pathResult = VisioReaderAdapter.ReadDocument(path);
+            VisioDocument loaded = VisioDocument.Load(path);
+            OfficeDocumentReadResult loadedResult = loaded.ToOfficeDocumentReadResult();
+
+            Assert.Equal(pathResult.Source.SourceId, loadedResult.Source.SourceId);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReaderVisio_MapsOnlyExplicitReaderInputLimitsIntoVisioLoads() {
         Assert.Null(VisioReaderAdapter.CreateLoadOptions(new ReaderOptions()));
 

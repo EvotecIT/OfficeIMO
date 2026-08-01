@@ -1,10 +1,24 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Visio;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class VisioLoad {
+        [Fact]
+        public async Task LoadAsync_DefaultLiteralRetainsCancellationTokenOverload() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.AddPage("Page-1");
+            document.Save();
+
+            VisioDocument loaded = await VisioDocument.LoadAsync(filePath, default);
+
+            Assert.Single(loaded.Pages);
+        }
+
         [Fact]
         public void CanRoundTripVisioDocument() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

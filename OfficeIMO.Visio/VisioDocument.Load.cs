@@ -71,7 +71,7 @@ namespace OfficeIMO.Visio {
         public static async Task<VisioDocument> LoadAsync(
             string filePath,
             VisioLoadOptions? options,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             string fullPath = Path.GetFullPath(filePath);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Visio {
         public static async Task<VisioDocument> LoadAsync(
             Stream stream,
             VisioLoadOptions? options,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();

@@ -317,6 +317,14 @@ Reusable conversion options no longer retain operation state in members such as 
 
 The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfLogicalDocument` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF adapters, while `ToPdf()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
 
+`VisioDocument.Load(path)` and `Load(stream)` now apply a 512 MiB default input
+limit before opening the package. For trusted documents that intentionally
+exceed that size, pass `new VisioLoadOptions { MaxInputBytes = null }`. The
+options-first async overload keeps cancellation explicit:
+`LoadAsync(path, options, cancellationToken)`. Existing two-argument calls such
+as `LoadAsync(path, default)` continue to bind to the `CancellationToken`
+overload; use a typed or named token when the argument's purpose is not obvious.
+
 ### Common member replacements
 
 | Removed member | Replacement |

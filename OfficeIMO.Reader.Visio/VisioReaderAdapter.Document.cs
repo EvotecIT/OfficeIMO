@@ -60,9 +60,12 @@ internal static partial class VisioReaderAdapter {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveVisioOptions = ReaderVisioOptionsCloner.CloneOrDefault(visioOptions);
         var logicalSourceName = NormalizeLogicalSourceName(sourceName ?? document.FilePath, "document.vsdx");
+        string sourceIdKey = sourceName == null && !string.IsNullOrWhiteSpace(document.FilePath)
+            ? NormalizePathForId(document.FilePath!)
+            : logicalSourceName;
         var source = new SourceMetadata {
             Path = logicalSourceName,
-            SourceId = BuildSourceId(logicalSourceName)
+            SourceId = BuildSourceId(sourceIdKey)
         };
 
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectiveVisioOptions, cancellationToken);

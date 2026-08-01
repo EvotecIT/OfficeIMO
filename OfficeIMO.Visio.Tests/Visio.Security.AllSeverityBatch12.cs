@@ -48,7 +48,7 @@ public sealed class VisioAllSeverityBatch12SecurityTests {
             Assert.Throws<InvalidDataException>(() =>
                 VisioDocument.Load(path, restrictive));
             await Assert.ThrowsAsync<InvalidDataException>(() =>
-                VisioDocument.LoadAsync(path, restrictive));
+                VisioDocument.LoadAsync(path, restrictive, default));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
