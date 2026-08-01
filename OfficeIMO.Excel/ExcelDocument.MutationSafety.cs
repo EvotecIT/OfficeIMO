@@ -14,7 +14,8 @@ namespace OfficeIMO.Excel {
             string operation,
             Action? consumeScannedElement = null,
             ExcelReference? rewriteBoundary = null,
-            ExcelCellShiftDirection? cellShiftDirection = null) {
+            ExcelCellShiftDirection? cellShiftDirection = null,
+            Func<ExcelReference, ExcelReference?>? capacityTransform = null) {
             List<Sheet> sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
             int editedSheetIndex = sheets.FindIndex(sheet =>
                 string.Equals(sheet.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase));
@@ -44,36 +45,59 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    if (rewriteBoundary == null) continue;
                     ExcelReference reference = referenceNode.Reference;
                     if (!ReferenceTargetsSheet(reference, editedSheet.Name, formula.UnqualifiedTargetsEdited)) continue;
+                    ValidateMutationReferenceCapacity(reference, referenceNode.Text, operation, capacityTransform);
+                    if (rewriteBoundary == null) continue;
                     if (!IsUnsafePartialMutationReference(reference, sr1, sc1, sr2, sc2, cellShiftDirection)) continue;
                     throw new InvalidOperationException(
                         $"{operation} cannot preserve partially overlapping reference '{referenceNode.Text}'. Edit the complete referenced range or update the formula first.");
                 }
             }
 
-            if (rewriteBoundary == null) return;
+            if (rewriteBoundary == null && capacityTransform == null) return;
             foreach (string referenceText in EnumerateMutationRangeMetadataReferences(editedSheet.WorksheetPart)) {
                 consumeScannedElement?.Invoke();
-                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)) continue;
+                ValidateMutationReferenceCapacity(reference!, referenceText, operation, capacityTransform);
+                if (rewriteBoundary == null
                     || !IsUnsafePartialMutationReference(reference!, sr1, sc1, sr2, sc2, cellShiftDirection)) continue;
                 throw new InvalidOperationException(
                     $"{operation} cannot preserve partially overlapping range metadata '{referenceText}'. Edit the complete metadata range first.");
             }
             foreach (string referenceText in EnumerateMutationExternalRangeMetadataReferences(editedSheet)) {
                 consumeScannedElement?.Invoke();
-                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)) continue;
+                ValidateMutationReferenceCapacity(reference!, referenceText, operation, capacityTransform);
+                if (rewriteBoundary == null
                     || !IsUnsafePartialMutationReference(reference!, sr1, sc1, sr2, sc2, cellShiftDirection)) continue;
                 throw new InvalidOperationException(
                     $"{operation} cannot preserve partially overlapping workbook source range '{referenceText}'. Edit the complete source range first.");
             }
             foreach (string referenceText in EnumerateMutationPivotSourceReferences(editedSheet)) {
                 consumeScannedElement?.Invoke();
-                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)) continue;
+                ValidateMutationReferenceCapacity(reference!, referenceText, operation, capacityTransform);
+                if (rewriteBoundary == null
                     || !IsUnsafePartialMutationReference(reference!, sr1, sc1, sr2, sc2, cellShiftDirection)) continue;
                 throw new InvalidOperationException(
                     $"{operation} cannot preserve partially overlapping pivot cache source '{referenceText}'. Edit the complete pivot source range first.");
+            }
+        }
+
+        private static void ValidateMutationReferenceCapacity(
+            ExcelReference reference,
+            string referenceText,
+            string operation,
+            Func<ExcelReference, ExcelReference?>? transform) {
+            if (transform == null) return;
+            try {
+                transform(reference);
+            } catch (Exception exception) when (exception is ArgumentOutOfRangeException
+                || exception is OverflowException) {
+                throw new InvalidOperationException(
+                    $"{operation} would move reference '{referenceText}' beyond worksheet limits.",
+                    exception);
             }
         }
 

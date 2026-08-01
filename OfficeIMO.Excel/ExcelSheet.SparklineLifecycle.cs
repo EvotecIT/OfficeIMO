@@ -88,9 +88,7 @@ namespace OfficeIMO.Excel {
                     if (collection == null || !collection.Elements<Sparkline>().Any()) group.Remove();
                 }
                 if (removed > 0) {
-                    foreach (SparklineGroups groups in WorksheetRoot.Descendants<SparklineGroups>().ToList()) {
-                        if (!groups.Elements<SparklineGroup>().Any()) groups.Remove();
-                    }
+                    CleanupEmptySparklineStructures(WorksheetRoot);
                     WorksheetRoot.Save();
                 }
             });
@@ -105,7 +103,10 @@ namespace OfficeIMO.Excel {
                     removed += groups.Descendants<Sparkline>().Count();
                     groups.Remove();
                 }
-                if (removed > 0) WorksheetRoot.Save();
+                if (removed > 0) {
+                    CleanupEmptySparklineStructures(WorksheetRoot);
+                    WorksheetRoot.Save();
+                }
             });
             return removed;
         }

@@ -31,14 +31,16 @@ namespace OfficeIMO.Excel {
             string operation,
             Action? consumeScannedElement = null,
             ExcelReference? rewriteBoundary = null,
-            ExcelCellShiftDirection? cellShiftDirection = null) {
+            ExcelCellShiftDirection? cellShiftDirection = null,
+            Func<ExcelReference, ExcelReference?>? capacityTransform = null) {
             ValidateA1MutationReferenceMode(operation);
             _excelDocument.ValidateMutationReferencesCanBeRewritten(
                 this,
                 operation,
                 consumeScannedElement,
                 rewriteBoundary,
-                cellShiftDirection);
+                cellShiftDirection,
+                capacityTransform);
         }
     }
 }

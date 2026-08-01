@@ -83,7 +83,13 @@ namespace OfficeIMO.Excel {
             MutationPlanScanBudget? budget = null) {
             ValidatePackageMutationReferenceSafety(
                 "Structural column edits",
-                budget == null ? null : new Action(budget.Consume));
+                budget == null ? null : new Action(budget.Consume),
+                capacityTransform: reference => ExcelDocument.TransformColumnReference(
+                    reference,
+                    firstColumn,
+                    lastColumn,
+                    count,
+                    deleting));
             ValidateWorkbookSharedFormulasForStructuralEdit();
             ValidateStructuralVmlControlSafety(budget);
             ValidateColumnConnectionParameters(firstColumn, count, deleting, budget);

@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
             (int r1, int c1, int r2, int c2) targetBounds) {
             foreach (OpenXmlElement element in table.Descendants().Where(element =>
                 string.Equals(element.LocalName, "sortState", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(element.LocalName, "sortCondition", StringComparison.OrdinalIgnoreCase))) {
+                || string.Equals(element.LocalName, "sortCondition", StringComparison.OrdinalIgnoreCase)).ToList()) {
                 OpenXmlAttribute? referenceAttribute = element.GetAttributes()
                     .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "ref", StringComparison.OrdinalIgnoreCase));
                 if (referenceAttribute == null
@@ -205,15 +205,28 @@ namespace OfficeIMO.Excel {
                 reference!.GetBounds(out int r1, out int c1, out int r2, out int c2);
                 if (r1 < currentBounds.r1 || c1 < currentBounds.c1
                     || r2 > currentBounds.r2 || c2 > currentBounds.c2) continue;
-                int mappedR1 = Math.Min(r1, targetBounds.r2);
-                int mappedC1 = Math.Min(c1, targetBounds.c2);
-                int mappedR2 = r2 == currentBounds.r2 ? targetBounds.r2 : r2;
-                int mappedC2 = c2 == currentBounds.c2 ? targetBounds.c2 : c2;
+                bool intersectsTarget = r1 <= targetBounds.r2 && r2 >= targetBounds.r1
+                    && c1 <= targetBounds.c2 && c2 >= targetBounds.c1;
+                if (!intersectsTarget) {
+                    element.Remove();
+                    continue;
+                }
+                int mappedR1 = r1 == currentBounds.r1 ? targetBounds.r1 : Math.Max(r1, targetBounds.r1);
+                int mappedC1 = c1 == currentBounds.c1 ? targetBounds.c1 : Math.Max(c1, targetBounds.c1);
+                int mappedR2 = r2 == currentBounds.r2 ? targetBounds.r2 : Math.Min(r2, targetBounds.r2);
+                int mappedC2 = c2 == currentBounds.c2 ? targetBounds.c2 : Math.Min(c2, targetBounds.c2);
                 element.SetAttribute(new OpenXmlAttribute(
                     referenceAttribute.Value.Prefix,
                     referenceAttribute.Value.LocalName,
                     referenceAttribute.Value.NamespaceUri,
                     reference.WithCoordinates(reference.Kind, mappedR1, mappedC1, mappedR2, mappedC2).ToString()));
+            }
+            foreach (OpenXmlElement sortState in table.Descendants().Where(element =>
+                string.Equals(element.LocalName, "sortState", StringComparison.OrdinalIgnoreCase)).ToList()) {
+                if (!sortState.Descendants().Any(element =>
+                    string.Equals(element.LocalName, "sortCondition", StringComparison.OrdinalIgnoreCase))) {
+                    sortState.Remove();
+                }
             }
         }
     }

@@ -49,6 +49,8 @@ namespace OfficeIMO.Drawing {
         public static OfficePackageSecurityReport Inspect(Stream source,
             OfficePackageSecurityOptions? options = null) {
             OfficePackageSecurityOptions resolved = options ?? OfficePackageSecurityOptions.SecureDefaults;
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (source.CanSeek) return InspectSeekableSource(source, resolved);
             byte[] bytes = ReadSource(source, resolved);
             return Inspect(bytes, resolved);
         }
@@ -64,9 +66,9 @@ namespace OfficeIMO.Drawing {
         /// <summary>Reads and validates a caller-owned stream while preserving its position when seekable.</summary>
         public static OfficePackageSecurityReport Validate(Stream source,
             OfficePackageSecurityOptions? options = null) {
-            OfficePackageSecurityOptions resolved = options ?? OfficePackageSecurityOptions.SecureDefaults;
-            byte[] bytes = ReadSource(source, resolved);
-            return Validate(bytes, resolved);
+            OfficePackageSecurityReport report = Inspect(source, options);
+            ThrowFirstError(report);
+            return report;
         }
 
         internal static byte[] ReadAndValidate(Stream source, OfficePackageSecurityOptions options) {
@@ -130,6 +132,12 @@ namespace OfficeIMO.Drawing {
 
         private static OfficePackageSecurityReport InspectZip(byte[] bytes,
             OfficePackageSecurityOptions options, List<OfficePackageSecurityFinding> findings) {
+            using var source = new MemoryStream(bytes, writable: false);
+            return InspectZip(source, bytes.LongLength, options, findings);
+        }
+
+        private static OfficePackageSecurityReport InspectZip(Stream source, long packageBytes,
+            OfficePackageSecurityOptions options, List<OfficePackageSecurityFinding> findings) {
             int partCount = 0;
             long totalBytes = 0;
             long largestPart = 0;
@@ -144,25 +152,25 @@ namespace OfficeIMO.Drawing {
             ZipXmlPart? contentTypesPart = null;
 
             OfficeArchiveSafety.ZipCentralDirectoryScanResult centralDirectory =
-                OfficeArchiveSafety.ScanZipCentralDirectory(bytes,
+                OfficeArchiveSafety.ScanZipCentralDirectory(source, packageBytes,
                     options.MaxPartCount);
             if (!centralDirectory.IsValid) {
                 findings.Add(Error(OfficePackageSecurityRule.MalformedPackage,
                     centralDirectory.Error ?? "The ZIP central directory is malformed."));
-                return new OfficePackageSecurityReport(bytes.Length, OfficePackageContainerKind.OpenXml,
+                return new OfficePackageSecurityReport(packageBytes, OfficePackageContainerKind.OpenXml,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, findings.ToArray());
             }
             if (centralDirectory.LimitExceeded) {
                 findings.Add(Error(OfficePackageSecurityRule.PartCount,
                     $"ZIP entry count exceeds the configured maximum of {options.MaxPartCount} before package parts are opened.",
                     observedValue: centralDirectory.EntryCount, limit: options.MaxPartCount));
-                return new OfficePackageSecurityReport(bytes.Length, OfficePackageContainerKind.OpenXml,
+                return new OfficePackageSecurityReport(packageBytes, OfficePackageContainerKind.OpenXml,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, findings.ToArray());
             }
 
             try {
-                using var source = new MemoryStream(bytes, writable: false);
-                using var archive = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: false);
+                source.Position = 0;
+                using var archive = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true);
                 foreach (ZipArchiveEntry entry in archive.Entries) {
                     if (IsDirectory(entry)) continue;
                     partCount++;
@@ -251,17 +259,23 @@ namespace OfficeIMO.Drawing {
             AddPolicyFinding(findings, options.ExternalRelationships,
                 OfficePackageSecurityRule.ExternalRelationships, externalCount, "external relationship");
 
-            return new OfficePackageSecurityReport(bytes.Length, OfficePackageContainerKind.OpenXml,
+            return new OfficePackageSecurityReport(packageBytes, OfficePackageContainerKind.OpenXml,
                 partCount, totalBytes, largestPart, highestRatio, macroCount, embeddedCount, activeXCount,
                 externalCount, signatureCount, findings.ToArray());
         }
 
         private static OfficePackageSecurityReport InspectCompound(byte[] bytes,
             OfficePackageSecurityOptions options, List<OfficePackageSecurityFinding> findings) {
+            using var source = new MemoryStream(bytes, writable: false);
+            return InspectCompound(source, bytes.LongLength, options, findings);
+        }
+
+        private static OfficePackageSecurityReport InspectCompound(Stream source, long packageBytes,
+            OfficePackageSecurityOptions options, List<OfficePackageSecurityFinding> findings) {
             int inspectionEntryLimit = options.MaxPartCount >= int.MaxValue - 4
                 ? int.MaxValue
                 : options.MaxPartCount + 4;
-            using var source = new MemoryStream(bytes, writable: false);
+            source.Position = 0;
             if (!OfficeCompoundFileReader.TryInspectDirectory(source, options.MaxPackageBytes,
                 inspectionEntryLimit, out IReadOnlyList<OfficeCompoundFileEntry> entries, out string? error)) {
                 OfficePackageSecurityRule rule = error != null
@@ -276,7 +290,7 @@ namespace OfficeIMO.Drawing {
                     : (double?)null;
                 findings.Add(Error(rule, error ?? "The OLE compound package directory could not be inspected.",
                     observedValue: observed, limit: limit));
-                return new OfficePackageSecurityReport(bytes.Length, OfficePackageContainerKind.CompoundBinary,
+                return new OfficePackageSecurityReport(packageBytes, OfficePackageContainerKind.CompoundBinary,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, findings.ToArray());
             }
 
@@ -324,7 +338,7 @@ namespace OfficeIMO.Drawing {
             AddPolicyFinding(findings, options.ActiveX, OfficePackageSecurityRule.ActiveX, activeXCount,
                 "ActiveX metadata stream");
 
-            return new OfficePackageSecurityReport(bytes.Length, OfficePackageContainerKind.CompoundBinary,
+            return new OfficePackageSecurityReport(packageBytes, OfficePackageContainerKind.CompoundBinary,
                 partCount, totalBytes, largestPart, 0, macroCount, embeddedCount, activeXCount,
                 0, 0, findings.ToArray());
         }

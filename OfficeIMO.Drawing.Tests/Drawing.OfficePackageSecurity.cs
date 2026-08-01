@@ -183,6 +183,26 @@ public sealed class DrawingOfficePackageSecurityTests {
     }
 
     [Fact]
+    public void SeekableStreamInspectionDoesNotMaterializeLargeOpaqueParts() {
+        var payload = new byte[4 * 1024 * 1024];
+        new Random(42).NextBytes(payload);
+        byte[] package = CreateZip(archive => {
+            AddEntry(archive, "[Content_Types].xml", "<Types />");
+            ZipArchiveEntry entry = archive.CreateEntry("xl/media/image1.bin", CompressionLevel.NoCompression);
+            using Stream output = entry.Open();
+            output.Write(payload, 0, payload.Length);
+        });
+        using var source = new CountingSeekableReadStream(package);
+
+        OfficePackageSecurityReport report = OfficePackageSecurityInspector.Inspect(source);
+
+        Assert.True(report.IsValid);
+        Assert.Equal(0, source.Position);
+        Assert.True(source.BytesRead < 1024 * 1024,
+            $"Streaming inspection read {source.BytesRead} bytes from a {package.Length}-byte package.");
+    }
+
+    [Fact]
     public void InspectorAppliesActiveContentPoliciesToLegacyCompoundFiles() {
         var streams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
             ["Workbook"] = new byte[] { 1, 2, 3 },
@@ -368,5 +388,17 @@ public sealed class DrawingOfficePackageSecurityTests {
         ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.Optimal);
         using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
         writer.Write(content);
+    }
+
+    private sealed class CountingSeekableReadStream : MemoryStream {
+        internal CountingSeekableReadStream(byte[] bytes) : base(bytes, writable: false) { }
+
+        internal long BytesRead { get; private set; }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            BytesRead += read;
+            return read;
+        }
     }
 }

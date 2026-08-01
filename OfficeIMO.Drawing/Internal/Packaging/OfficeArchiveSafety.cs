@@ -124,6 +124,158 @@ internal static class OfficeArchiveSafety {
         bytes?.Length ?? 0, entryLimit);
 
     /// <summary>
+    /// Scans ZIP central-directory records from a seekable stream using bounded buffers.
+    /// The source position is restored before this method returns.
+    /// </summary>
+    internal static ZipCentralDirectoryScanResult ScanZipCentralDirectory(
+        Stream source, long archiveLength, int entryLimit) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (!source.CanRead || !source.CanSeek) throw new ArgumentException(
+            "ZIP central-directory inspection requires a readable seekable stream.", nameof(source));
+        if (archiveLength < 0 || archiveLength > source.Length - source.Position) {
+            throw new ArgumentOutOfRangeException(nameof(archiveLength));
+        }
+        if (entryLimit < 0) throw new ArgumentOutOfRangeException(nameof(entryLimit));
+
+        long originalPosition = source.Position;
+        try {
+            if (archiveLength < 22) {
+                return ZipCentralDirectoryScanResult.Invalid(
+                    "The ZIP end-of-central-directory record was not found.");
+            }
+
+            int tailLength = checked((int)Math.Min(archiveLength, 22L + ushort.MaxValue));
+            var tail = new byte[tailLength];
+            ReadExactlyAt(source, originalPosition + archiveLength - tailLength, tail, tailLength);
+            int endOfCentralDirectory = FindEndOfCentralDirectory(tail, 0, tail.Length);
+            if (endOfCentralDirectory < 0) {
+                return ZipCentralDirectoryScanResult.Invalid(
+                    "The ZIP end-of-central-directory record was not found.");
+            }
+
+            long endOfCentralDirectoryOffset = archiveLength - tailLength + endOfCentralDirectory;
+            ushort diskNumber = ReadZipUInt16(tail, endOfCentralDirectory + 4);
+            ushort centralDirectoryDisk = ReadZipUInt16(tail, endOfCentralDirectory + 6);
+            ushort entriesOnDisk16 = ReadZipUInt16(tail, endOfCentralDirectory + 8);
+            ushort totalEntries16 = ReadZipUInt16(tail, endOfCentralDirectory + 10);
+            uint centralDirectorySize32 = ReadZipUInt32(tail, endOfCentralDirectory + 12);
+            uint centralDirectoryOffset32 = ReadZipUInt32(tail, endOfCentralDirectory + 16);
+
+            ulong declaredEntries;
+            ulong centralDirectorySize;
+            ulong centralDirectoryOffset;
+            bool zip64 = entriesOnDisk16 == ushort.MaxValue
+                || totalEntries16 == ushort.MaxValue
+                || centralDirectorySize32 == uint.MaxValue
+                || centralDirectoryOffset32 == uint.MaxValue;
+            if (zip64) {
+                if (!TryReadZip64Directory(source, originalPosition, archiveLength,
+                        endOfCentralDirectoryOffset,
+                        out uint zip64DiskNumber,
+                        out uint zip64CentralDirectoryDisk,
+                        out ulong zip64EntriesOnDisk,
+                        out declaredEntries,
+                        out centralDirectorySize,
+                        out centralDirectoryOffset,
+                        out string? zip64Error)) {
+                    return ZipCentralDirectoryScanResult.Invalid(zip64Error
+                        ?? "The ZIP64 central directory is malformed.");
+                }
+                if (zip64DiskNumber != 0 || zip64CentralDirectoryDisk != 0
+                    || zip64EntriesOnDisk != declaredEntries) {
+                    return ZipCentralDirectoryScanResult.Invalid(
+                        "Multi-disk ZIP packages are not supported.");
+                }
+            } else {
+                if (diskNumber != 0 || centralDirectoryDisk != 0
+                    || entriesOnDisk16 != totalEntries16) {
+                    return ZipCentralDirectoryScanResult.Invalid(
+                        "Multi-disk ZIP packages are not supported.");
+                }
+                declaredEntries = totalEntries16;
+                centralDirectorySize = centralDirectorySize32;
+                centralDirectoryOffset = centralDirectoryOffset32;
+            }
+
+            if (declaredEntries > (ulong)entryLimit) {
+                return ZipCentralDirectoryScanResult.Exceeded(checked((long)
+                    Math.Min(declaredEntries, (ulong)long.MaxValue)));
+            }
+            if (centralDirectoryOffset > (ulong)archiveLength
+                || centralDirectorySize > (ulong)archiveLength - centralDirectoryOffset) {
+                return ZipCentralDirectoryScanResult.Invalid(
+                    "The ZIP central-directory bounds exceed the package.");
+            }
+
+            long cursor = checked((long)centralDirectoryOffset);
+            long end = checked(cursor + (long)centralDirectorySize);
+            long actualEntries = 0;
+            bool foundDigitalSignature = false;
+            var header = new byte[46];
+            while (cursor < end) {
+                if (cursor > end - 4) {
+                    return ZipCentralDirectoryScanResult.Invalid(
+                        "The ZIP central directory ends inside a record signature.");
+                }
+                ReadExactlyAt(source, originalPosition + cursor, header, 4);
+                uint signature = ReadZipUInt32(header, 0);
+                if (signature == CentralDirectoryFileHeaderSignature) {
+                    if (foundDigitalSignature) {
+                        return ZipCentralDirectoryScanResult.Invalid(
+                            "The ZIP central directory contains a file header after its digital-signature record.");
+                    }
+                    if (cursor > end - 46) {
+                        return ZipCentralDirectoryScanResult.Invalid(
+                            "A ZIP central-directory file header is truncated.");
+                    }
+                    ReadExactlyAt(source, originalPosition + cursor, header, header.Length);
+                    long recordLength = 46L
+                        + ReadZipUInt16(header, 28)
+                        + ReadZipUInt16(header, 30)
+                        + ReadZipUInt16(header, 32);
+                    if (recordLength > end - cursor) {
+                        return ZipCentralDirectoryScanResult.Invalid(
+                            "A ZIP central-directory file header exceeds the declared directory bounds.");
+                    }
+                    cursor += recordLength;
+                    actualEntries++;
+                    if (actualEntries > entryLimit) {
+                        return ZipCentralDirectoryScanResult.Exceeded(actualEntries);
+                    }
+                } else if (signature == CentralDirectoryDigitalSignature) {
+                    if (foundDigitalSignature) {
+                        return ZipCentralDirectoryScanResult.Invalid(
+                            "The ZIP central directory contains more than one digital-signature record.");
+                    }
+                    if (cursor > end - 6) {
+                        return ZipCentralDirectoryScanResult.Invalid(
+                            "The ZIP central-directory digital signature is truncated.");
+                    }
+                    ReadExactlyAt(source, originalPosition + cursor, header, 6);
+                    long recordLength = 6L + ReadZipUInt16(header, 4);
+                    if (recordLength > end - cursor) {
+                        return ZipCentralDirectoryScanResult.Invalid(
+                            "The ZIP central-directory digital signature exceeds the declared directory bounds.");
+                    }
+                    cursor += recordLength;
+                    foundDigitalSignature = true;
+                } else {
+                    return ZipCentralDirectoryScanResult.Invalid(
+                        $"The ZIP central directory contains unexpected signature 0x{signature:X8}.");
+                }
+            }
+
+            if (actualEntries != checked((long)declaredEntries)) {
+                return ZipCentralDirectoryScanResult.Invalid(
+                    $"The ZIP central directory declares {declaredEntries} entries but contains {actualEntries}.");
+            }
+            return ZipCentralDirectoryScanResult.Valid(actualEntries);
+        } finally {
+            source.Position = originalPosition;
+        }
+    }
+
+    /// <summary>
     /// Scans a ZIP slice without copying it or materializing entry metadata.
     /// </summary>
     internal static ZipCentralDirectoryScanResult ScanZipCentralDirectory(
@@ -334,6 +486,69 @@ internal static class OfficeArchiveSafety {
         centralDirectorySize = ReadZipUInt64(bytes, recordOffset + 40);
         centralDirectoryOffset = ReadZipUInt64(bytes, recordOffset + 48);
         return true;
+    }
+
+    private static bool TryReadZip64Directory(Stream source,
+        long archiveOffset, long archiveLength, long endOfCentralDirectory,
+        out uint diskNumber,
+        out uint centralDirectoryDisk, out ulong entriesOnDisk,
+        out ulong totalEntries, out ulong centralDirectorySize,
+        out ulong centralDirectoryOffset, out string? error) {
+        diskNumber = centralDirectoryDisk = 0;
+        entriesOnDisk = totalEntries = centralDirectorySize = centralDirectoryOffset = 0;
+        error = null;
+        long locatorOffset = endOfCentralDirectory - 20;
+        if (locatorOffset < 0) {
+            error = "The ZIP64 end-of-central-directory locator was not found.";
+            return false;
+        }
+        var locator = new byte[20];
+        ReadExactlyAt(source, archiveOffset + locatorOffset, locator, locator.Length);
+        if (ReadZipUInt32(locator, 0) != Zip64EndOfCentralDirectoryLocatorSignature) {
+            error = "The ZIP64 end-of-central-directory locator was not found.";
+            return false;
+        }
+        if (ReadZipUInt32(locator, 4) != 0 || ReadZipUInt32(locator, 16) != 1) {
+            error = "Multi-disk ZIP64 packages are not supported.";
+            return false;
+        }
+
+        ulong zip64Offset = ReadZipUInt64(locator, 8);
+        if (archiveLength < 56 || zip64Offset > (ulong)archiveLength - 56UL) {
+            error = "The ZIP64 end-of-central-directory record exceeds the package bounds.";
+            return false;
+        }
+        var record = new byte[56];
+        ReadExactlyAt(source, checked(archiveOffset + (long)zip64Offset), record, record.Length);
+        if (ReadZipUInt32(record, 0) != Zip64EndOfCentralDirectorySignature) {
+            error = "The ZIP64 end-of-central-directory record was not found at its declared offset.";
+            return false;
+        }
+        ulong recordSize = ReadZipUInt64(record, 4);
+        if (recordSize < 44UL || recordSize > (ulong)archiveLength - zip64Offset - 12UL) {
+            error = "The ZIP64 end-of-central-directory record has invalid bounds.";
+            return false;
+        }
+
+        diskNumber = ReadZipUInt32(record, 16);
+        centralDirectoryDisk = ReadZipUInt32(record, 20);
+        entriesOnDisk = ReadZipUInt64(record, 24);
+        totalEntries = ReadZipUInt64(record, 32);
+        centralDirectorySize = ReadZipUInt64(record, 40);
+        centralDirectoryOffset = ReadZipUInt64(record, 48);
+        return true;
+    }
+
+    private static void ReadExactlyAt(Stream source, long position,
+        byte[] buffer, int count) {
+        source.Position = position;
+        int offset = 0;
+        while (offset < count) {
+            int read = source.Read(buffer, offset, count - offset);
+            if (read <= 0) throw new InvalidDataException(
+                "The ZIP package ended before its declared metadata.");
+            offset += read;
+        }
     }
 
     private static ushort ReadZipUInt16(byte[] data, int offset) =>
