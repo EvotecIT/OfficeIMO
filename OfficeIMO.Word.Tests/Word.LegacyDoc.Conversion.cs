@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
@@ -29,6 +30,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal("LegacyDocWriteUnsupported", unsupported.DiagnosticCode);
             Assert.Null(unsupported.EncodedByteCount);
             Assert.Throws<NotSupportedException>(() => unsupported.EnsureSupported());
+        }
+
+        [Fact]
+        public void LegacyDoc_WriteAssessment_DoesNotNormalizeTheLiveDocument() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Assessment must not mutate this document");
+            Body body = document._wordprocessingDocument.MainDocumentPart!.Document.Body!;
+            SectionProperties sectionProperties = Assert.Single(body.Elements<SectionProperties>());
+            sectionProperties.Remove();
+            body.PrependChild(sectionProperties);
+            string bodyBeforeAssessment = body.OuterXml;
+
+            LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+
+            Assert.True(assessment.IsSupported);
+            Assert.Equal(bodyBeforeAssessment, body.OuterXml);
         }
 
         [Fact]

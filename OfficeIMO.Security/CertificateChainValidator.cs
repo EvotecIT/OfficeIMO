@@ -29,6 +29,14 @@ internal static class CertificateChainValidator {
         chain.ChainPolicy.RevocationMode = options.RevocationMode;
         chain.ChainPolicy.RevocationFlag = options.RevocationFlag;
         chain.ChainPolicy.VerificationFlags = options.VerificationFlags;
+        if (!TryApplyCertificateDownloadPolicy(chain.ChainPolicy, options.DisableCertificateDownloads)) {
+            findings.Add(new SecurityFinding(
+                SecurityFindingSeverity.Warning,
+                "CertificateDownloadPolicyUnavailable",
+                role + " certificate chain was not built because this runtime cannot enforce the requested no-download policy.",
+                signerIndex));
+            return Empty(SecurityValidationStatus.Indeterminate);
+        }
         chain.ChainPolicy.UrlRetrievalTimeout = options.UrlRetrievalTimeout;
         if (options.VerificationTime.HasValue) {
             chain.ChainPolicy.VerificationTime = options.VerificationTime.Value;
@@ -161,6 +169,24 @@ internal static class CertificateChainValidator {
             chainStatus,
             SecurityValidationStatus.NotPerformed,
             Array.Empty<string>());
+
+    private static bool TryApplyCertificateDownloadPolicy(
+        X509ChainPolicy chainPolicy,
+        bool disableCertificateDownloads) {
+#if NETSTANDARD2_0
+        System.Reflection.PropertyInfo? property = typeof(X509ChainPolicy).GetProperty("DisableCertificateDownloads");
+        if (property == null || !property.CanWrite) return !disableCertificateDownloads;
+        try {
+            property.SetValue(chainPolicy, disableCertificateDownloads, null);
+            return true;
+        } catch (Exception exception) when (exception is ArgumentException or System.Reflection.TargetInvocationException) {
+            return !disableCertificateDownloads;
+        }
+#else
+        chainPolicy.DisableCertificateDownloads = disableCertificateDownloads;
+        return true;
+#endif
+    }
 
     private static SecurityValidationStatus ClassifyRevocation(X509Chain chain, X509RevocationMode revocationMode) {
         if (revocationMode == X509RevocationMode.NoCheck) return SecurityValidationStatus.NotPerformed;

@@ -207,7 +207,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Inspects Open Packaging Convention signature metadata without performing cryptographic validation.
     /// </summary>
-    internal static class OfficePackageSignatureInspector {
+    internal static partial class OfficePackageSignatureInspector {
         internal static OfficePackageSignatureInfo Inspect(
             OpenXmlPackage package,
             DigitalSignatureOriginPart? originPart,
@@ -219,7 +219,8 @@ namespace OfficeIMO.Word {
             long maxTotalDigestBytes = 512L * 1024 * 1024,
             long maxSignatureBytes = 16L * 1024 * 1024,
             int maxCertificates = 64,
-            long maxCertificateBytes = 4L * 1024 * 1024) {
+            long maxCertificateBytes = 4L * 1024 * 1024,
+            bool verifyDigests = true) {
             if (package == null) throw new ArgumentNullException(nameof(package));
             if (maxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificates));
             if (maxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificateBytes));
@@ -268,7 +269,8 @@ namespace OfficeIMO.Word {
                             maxTotalDigestBytes,
                             maxSignatureBytes,
                             maxCertificates,
-                            maxCertificateBytes);
+                            maxCertificateBytes,
+                            verifyDigests);
                         signatureParts.Add(partInfo);
                         details.Add(DescribeSignaturePart(partInfo));
                         AddParseDetails(details, "Signature method", partInfo.SignatureMethodAlgorithm);
@@ -313,7 +315,8 @@ namespace OfficeIMO.Word {
             long maxTotalDigestBytes,
             long maxSignatureBytes,
             int maxCertificates,
-            long maxCertificateBytes) {
+            long maxCertificateBytes,
+            bool verifyDigests) {
             var unsupportedDetails = new List<string>();
             string? relationshipId = FindRelationshipId(originPart.Parts, signaturePart);
             long? length = null;
@@ -349,10 +352,19 @@ namespace OfficeIMO.Word {
                     .Select(value => value!)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
-                IReadOnlyList<XElement> referencesToInspect = GetAuthenticatedReferences(xml, ds, unsupportedDetails);
-                ValidateDigestWorkBudget(referencesToInspect, signatureArchive, maxSignedReferences, maxTotalDigestBytes);
+                IReadOnlyList<XElement> referencesToInspect = GetAuthenticatedReferences(
+                    xml,
+                    ds,
+                    unsupportedDetails,
+                    out int authenticatedReferenceCount);
+                ValidateDigestWorkBudget(
+                    referencesToInspect,
+                    authenticatedReferenceCount,
+                    signatureArchive,
+                    maxSignedReferences,
+                    maxTotalDigestBytes);
                 signedReferences.AddRange(referencesToInspect
-                    .Select(reference => InspectSignedReference(reference, ds, packagePartUris, packageParts, signatureArchive, digestInspectionUnavailableDetail, maxPartBytes)));
+                    .Select(reference => InspectSignedReference(reference, ds, packagePartUris, packageParts, signatureArchive, digestInspectionUnavailableDetail, maxPartBytes, verifyDigests)));
                 timestamps.AddRange(ReadSignatureTimestamps(xml));
                 unsupportedDetails.AddRange(signedReferences
                     .Where(reference => reference.DigestVerificationStatus == OfficePackageSignatureDigestVerificationStatus.Unsupported)
@@ -401,7 +413,8 @@ namespace OfficeIMO.Word {
         private static IReadOnlyList<XElement> GetAuthenticatedReferences(
             XDocument xml,
             XNamespace ds,
-            List<string> unsupportedDetails) {
+            List<string> unsupportedDetails,
+            out int authenticatedReferenceCount) {
             XElement? signedInfo = xml.Root?.Element(ds + "SignedInfo");
             List<XElement> signedInfoReferences = signedInfo?.Elements(ds + "Reference").ToList()
                 ?? new List<XElement>();
@@ -438,6 +451,9 @@ namespace OfficeIMO.Word {
                 unsupportedDetails.Add("Ignored package references from an XML DSig Manifest that is not authenticated by SignedInfo.");
             }
 
+            authenticatedReferenceCount = signedInfoReferences.Count + authenticatedManifests
+                .Sum(manifest => manifest.Elements(ds + "Reference").Count());
+
             List<XElement> result = signedInfoReferences
                 .Where(reference => NormalizePackagePartReference((string?)reference.Attribute("URI")) != null)
                 .Concat(authenticatedManifests.SelectMany(manifest => manifest.Elements(ds + "Reference")))
@@ -457,27 +473,6 @@ namespace OfficeIMO.Word {
                        algorithm == "http://www.w3.org/2001/10/xml-exc-c14n#" ||
                        algorithm == "http://www.w3.org/2001/10/xml-exc-c14n#WithComments";
             });
-        }
-
-        private static void ValidateDigestWorkBudget(
-            IReadOnlyList<XElement> references,
-            OfficePackageSignatureArchive? archive,
-            int maxSignedReferences,
-            long maxTotalDigestBytes) {
-            if (references.Count > maxSignedReferences) {
-                throw new InvalidDataException("The XML signature contains more than " + maxSignedReferences + " authenticated references.");
-            }
-            if (archive == null) return;
-
-            long totalDigestBytes = 0;
-            foreach (XElement reference in references) {
-                string? targetPartUri = NormalizePackagePartReference((string?)reference.Attribute("URI"));
-                if (targetPartUri == null || !archive.TryGetPartLength(targetPartUri, out long partLength)) continue;
-                if (partLength > maxTotalDigestBytes - totalDigestBytes) {
-                    throw new InvalidDataException("Authenticated package references exceed the " + maxTotalDigestBytes + " byte aggregate digest-work limit.");
-                }
-                totalDigestBytes += partLength;
-            }
         }
 
         private static bool HasElementId(XElement element, string id) {
@@ -650,7 +645,8 @@ namespace OfficeIMO.Word {
             IReadOnlyDictionary<string, OpenXmlPart> packageParts,
             OfficePackageSignatureArchive? signatureArchive,
             string? digestInspectionUnavailableDetail,
-            long maxPartBytes) {
+            long maxPartBytes,
+            bool verifyDigest) {
             string? uri = ((string?)reference.Attribute("URI"))?.Trim();
             string? digestMethod = reference.Element(ds + "DigestMethod")?.Attribute("Algorithm")?.Value;
             string? digestValue = reference.Element(ds + "DigestValue")?.Value.Trim();
@@ -672,7 +668,8 @@ namespace OfficeIMO.Word {
                 reference,
                 signatureArchive,
                 digestInspectionUnavailableDetail,
-                maxPartBytes);
+                maxPartBytes,
+                verifyDigest);
 
             return new OfficePackageSignatureReferenceInfo(
                 uri,
@@ -696,13 +693,19 @@ namespace OfficeIMO.Word {
             XElement reference,
             OfficePackageSignatureArchive? signatureArchive,
             string? digestInspectionUnavailableDetail,
-            long maxPartBytes) {
+            long maxPartBytes,
+            bool verifyDigest) {
             if (string.IsNullOrWhiteSpace(targetPartUri) || targetPartExists != true) {
                 return DigestVerificationResult.NotChecked(null);
             }
 
             if (string.IsNullOrWhiteSpace(digestMethod) || string.IsNullOrWhiteSpace(digestValue)) {
                 return DigestVerificationResult.NotChecked(null);
+            }
+
+            if (!verifyDigest) {
+                return DigestVerificationResult.NotChecked(
+                    "Digest verification was deferred because this call inspects signature metadata only.");
             }
 
             string normalizedTargetPartUri = targetPartUri!;

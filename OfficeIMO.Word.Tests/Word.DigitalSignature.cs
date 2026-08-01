@@ -196,6 +196,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_DefaultCertificatePolicyDisablesIssuerDownloadsAndAllowsOptIn() {
+            string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "DigitalSignatures", "signed-valid.docx"));
+            using WordDocument document = WordDocument.Load(sourcePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+
+            bool? defaultDisableCertificateDownloads = null;
+            var defaultOptions = new WordSignatureValidationOptions();
+            defaultOptions.CertificateValidation.ChainEvaluator = (_, chain) => {
+                defaultDisableCertificateDownloads = chain.ChainPolicy.DisableCertificateDownloads;
+                return true;
+            };
+            document.ValidateSignatures(defaultOptions);
+
+            bool? optedInDisableCertificateDownloads = null;
+            var optInOptions = new WordSignatureValidationOptions();
+            optInOptions.CertificateValidation.DisableCertificateDownloads = false;
+            optInOptions.CertificateValidation.ChainEvaluator = (_, chain) => {
+                optedInDisableCertificateDownloads = chain.ChainPolicy.DisableCertificateDownloads;
+                return true;
+            };
+            document.ValidateSignatures(optInOptions);
+
+            Assert.True(defaultDisableCertificateDownloads);
+            Assert.False(optedInDisableCertificateDownloads);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_MetadataInspectionDefersTransformAwareDigestsToValidation() {
+            string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "DigitalSignatures", "signed-valid.docx"));
+            using WordDocument document = WordDocument.Load(sourcePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+
+            WordSignatureInfo inspection = document.InspectSignatures();
+            WordSignatureReferenceInfo[] inspectedTransformedReferences = inspection.SignatureParts
+                .SelectMany(part => part.SignedReferences)
+                .Where(reference => reference.TransformAlgorithms.Count > 0)
+                .ToArray();
+
+            Assert.NotEmpty(inspectedTransformedReferences);
+            Assert.All(inspectedTransformedReferences, reference =>
+                Assert.Equal(WordSignatureValidationState.NotChecked, reference.DigestVerificationStatus));
+
+            WordSignatureValidationReport validation = document.ValidateSignatures();
+            WordSignatureReferenceInfo[] validatedTransformedReferences = validation.SignatureInfo.SignatureParts
+                .SelectMany(part => part.SignedReferences)
+                .Where(reference => reference.TransformAlgorithms.Count > 0)
+                .ToArray();
+            Assert.NotEmpty(validatedTransformedReferences);
+            Assert.All(validatedTransformedReferences, reference =>
+                Assert.Equal(WordSignatureValidationState.Passed, reference.DigestVerificationStatus));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_SharedPackageInspectorReadsOpenXmlSignatureMetadata() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSharedInspector.docx");
             byte[] signatureBytes = CreateSignatureXml();
@@ -447,6 +498,35 @@ namespace OfficeIMO.Tests {
             Assert.Empty(part.SignedReferences);
             Assert.Contains(part.UnsupportedDetails, detail => detail.Contains("aggregate digest-work limit", System.StringComparison.Ordinal));
             Assert.False(validation.IsValidUnderPolicy);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_CountsAllSignedInfoReferencesBeforeCryptographicValidation() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSignedInfoReferenceLimit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("SignedInfo reference count resource limit");
+                document.Save();
+            }
+            string documentDigest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            string digest = "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue>";
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo>" +
+                "<SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                "<Reference URI=\"/word/document.xml\"><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>" + documentDigest + "</DigestValue></Reference>" +
+                "<Reference URI=\"#payload\">" + digest + "</Reference>" +
+                "</SignedInfo><Object Id=\"payload\">payload</Object></Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                MaxSignedReferences = 1,
+                ValidateCryptographicSignature = false
+            });
+
+            WordSignaturePartInfo part = Assert.Single(validation.SignatureInfo.SignatureParts);
+            Assert.True(part.HasParseError);
+            Assert.Contains(part.UnsupportedDetails, detail => detail.Contains("more than 1 authenticated references", System.StringComparison.Ordinal));
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
         }
 
         [Fact]

@@ -67,6 +67,7 @@ namespace OfficeIMO.Word {
                     signatureElement.NamespaceURI != SignedXml.XmlDsigNamespaceUrl) {
                     return FailedMalformed(signaturePartInfo, "The signature part does not contain an XML DSig Signature root element.");
                 }
+                EnsureSignedInfoReferenceCountWithinLimit(signatureElement, options.MaxSignedReferences);
 
                 certificates.AddRange(ReadCertificates(
                     signaturePart,
@@ -183,6 +184,25 @@ namespace OfficeIMO.Word {
                     findings.ToArray());
             } finally {
                 foreach (X509Certificate2 certificate in certificates) certificate.Dispose();
+            }
+        }
+
+        private static void EnsureSignedInfoReferenceCountWithinLimit(
+            XmlElement signatureElement,
+            int maxSignedReferences) {
+            XmlElement? signedInfo = signatureElement.ChildNodes
+                .OfType<XmlElement>()
+                .FirstOrDefault(element =>
+                    element.LocalName == "SignedInfo" &&
+                    element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl);
+            int referenceCount = signedInfo?.ChildNodes
+                .OfType<XmlElement>()
+                .Count(element =>
+                    element.LocalName == "Reference" &&
+                    element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl) ?? 0;
+            if (referenceCount > maxSignedReferences) {
+                throw new InvalidDataException(
+                    "The XML signature contains more than " + maxSignedReferences + " SignedInfo references.");
             }
         }
 
@@ -476,6 +496,7 @@ namespace OfficeIMO.Word {
                 RevocationMode = source.RevocationMode,
                 RevocationFlag = source.RevocationFlag,
                 VerificationFlags = source.VerificationFlags,
+                DisableCertificateDownloads = source.DisableCertificateDownloads,
                 VerificationTime = verificationTime,
                 UrlRetrievalTimeout = source.UrlRetrievalTimeout,
                 ChainEvaluator = source.ChainEvaluator

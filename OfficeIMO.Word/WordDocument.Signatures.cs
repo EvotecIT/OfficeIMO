@@ -5,7 +5,8 @@ using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Word {
     public partial class WordDocument {
         /// <summary>
-        /// Inspects package-level digital-signature metadata without validating cryptographic trust.
+        /// Inspects package-level digital-signature metadata without copying the encoded package or validating digests and cryptographic trust.
+        /// Use <see cref="ValidateSignatures()"/> for transform-aware digest and trust validation.
         /// </summary>
         public WordSignatureInfo InspectSignatures() {
             var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
@@ -13,7 +14,8 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument,
                 originPart,
                 ApplicationProperties.DigitalSignature != null,
-                originPart == null ? null : _ownedPackageStream?.ToArray());
+                packageBytes: null,
+                verifyDigests: false);
         }
 
         /// <summary>
@@ -46,7 +48,8 @@ namespace OfficeIMO.Word {
                     maxTotalDigestBytes: options.MaxTotalDigestBytes,
                     maxSignatureBytes: options.MaxSignatureBytes,
                     maxCertificates: options.MaxCertificates,
-                    maxCertificateBytes: options.MaxCertificateBytes);
+                    maxCertificateBytes: options.MaxCertificateBytes,
+                    verifyDigests: false);
                 return WordSignatureValidationReport.From(unsignedInfo);
             }
             if (originPart != null && originPart.XmlSignatureParts.Skip(options.MaxSignatureParts).Any()) {
@@ -75,7 +78,8 @@ namespace OfficeIMO.Word {
                     maxTotalDigestBytes: options.MaxTotalDigestBytes,
                     maxSignatureBytes: options.MaxSignatureBytes,
                     maxCertificates: options.MaxCertificates,
-                    maxCertificateBytes: options.MaxCertificateBytes);
+                    maxCertificateBytes: options.MaxCertificateBytes,
+                    verifyDigests: false);
                 return WordSignatureValidationReport.WithValidationFailure(
                     WordSignatureValidationReport.From(boundedInfo),
                     "PackageByteLimitExceeded",

@@ -154,6 +154,7 @@ public static class Rfc3161TimestampVerifier {
             RevocationMode = source?.RevocationMode ?? X509RevocationMode.NoCheck,
             RevocationFlag = source?.RevocationFlag ?? X509RevocationFlag.ExcludeRoot,
             VerificationFlags = source?.VerificationFlags ?? X509VerificationFlags.NoFlag,
+            DisableCertificateDownloads = source?.DisableCertificateDownloads ?? true,
             VerificationTime = generationTime.Kind == DateTimeKind.Utc
                 ? generationTime
                 : DateTime.SpecifyKind(generationTime, DateTimeKind.Utc),

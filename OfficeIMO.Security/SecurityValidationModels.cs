@@ -56,9 +56,11 @@ public sealed class CertificateValidationOptions {
     public X509RevocationFlag RevocationFlag { get; set; } = X509RevocationFlag.ExcludeRoot;
     /// <summary>Additional platform verification flags.</summary>
     public X509VerificationFlags VerificationFlags { get; set; } = X509VerificationFlags.NoFlag;
+    /// <summary>Whether platform chain building must avoid downloading missing issuer certificates. Defaults to true.</summary>
+    public bool DisableCertificateDownloads { get; set; } = true;
     /// <summary>Optional verification time. The current system time is used when omitted.</summary>
     public DateTime? VerificationTime { get; set; }
-    /// <summary>Maximum platform URL retrieval duration when revocation policy permits retrieval.</summary>
+    /// <summary>Maximum platform URL retrieval duration when certificate downloads or revocation policy permit retrieval.</summary>
     public TimeSpan UrlRetrievalTimeout { get; set; } = TimeSpan.FromSeconds(15);
     /// <summary>Additional intermediate, root, signer, TSA, or recipient certificates.</summary>
     public X509Certificate2Collection ExtraCertificates { get; } = new X509Certificate2Collection();

@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+
 namespace OfficeIMO.Word {
     /// <summary>Reports whether the current document can be encoded by OfficeIMO's bounded native DOC writer.</summary>
     public sealed class LegacyDocWriteAssessment {
@@ -33,20 +35,26 @@ namespace OfficeIMO.Word {
         /// This allocates the candidate DOC bytes so the assessment cannot drift from the writer used by <see cref="Save(Stream, WordFileFormat, WordSaveOptions?)"/>.
         /// </summary>
         public LegacyDocWriteAssessment AssessLegacyDocWrite(WordSaveOptions? options = null) {
-            if (AccessMode == OfficeIMO.Drawing.DocumentAccessMode.ReadOnly) {
-                if (_ownedPackageStream == null) {
-                    return new LegacyDocWriteAssessment(
-                        false,
-                        null,
-                        "LegacyDocWriteAssessmentUnavailable",
-                        "The read-only document does not expose package bytes that can be assessed through a writable clone.");
-                }
+            using var cloneStream = new MemoryStream();
+            using (var packageClone = _wordprocessingDocument.Clone(cloneStream, true)) { }
+            cloneStream.Position = 0;
+            using WordDocument writableClone = Load(cloneStream);
+            CopyLegacyDocAssessmentStateTo(writableClone);
+            return writableClone.AssessLegacyDocWriteCore(options);
+        }
 
-                using var cloneStream = new MemoryStream(_ownedPackageStream.ToArray(), writable: false);
-                using WordDocument writableClone = Load(cloneStream);
-                return writableClone.AssessLegacyDocWrite(options);
-            }
+        private void CopyLegacyDocAssessmentStateTo(WordDocument clone) {
+            clone.SourceFormat = SourceFormat;
+            clone._legacyDocImportDiagnostics = _legacyDocImportDiagnostics;
+            clone._legacyDocUnsupportedFeatures = _legacyDocUnsupportedFeatures;
+            clone._legacyDocPreservedFeatures = _legacyDocPreservedFeatures;
+            clone._legacyDocCompoundFeatures = _legacyDocCompoundFeatures;
+            clone._legacyDocSourceCompoundFile = _legacyDocSourceCompoundFile;
+            clone._legacyDocSourcePath = _legacyDocSourcePath;
+            clone._openXmlOriginalPackageBytes = _openXmlOriginalPackageBytes;
+        }
 
+        private LegacyDocWriteAssessment AssessLegacyDocWriteCore(WordSaveOptions? options) {
             try {
                 byte[] bytes = ToBytes(WordFileFormat.Doc, options);
                 return new LegacyDocWriteAssessment(
