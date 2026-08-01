@@ -90,8 +90,11 @@ namespace OfficeIMO.Tests {
             string repositoryRoot = LocateRepositoryRootForPremiumGapTests();
             string roadmapPath = Path.Combine(repositoryRoot, "Docs", "ROADMAP.md");
             string roadmap = File.ReadAllText(roadmapPath);
-            Assert.DoesNotContain("## Word", roadmap, StringComparison.Ordinal);
+            Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
             Assert.DoesNotContain("VBA macro-project signing", roadmap, StringComparison.Ordinal);
+            Assert.Contains("advanced drawing, imported chart mutation, SmartArt editing", roadmap, StringComparison.Ordinal);
+            Assert.Contains("effective-formatting and true move semantics", roadmap, StringComparison.Ordinal);
+            Assert.Contains("aggregate budgets for supported non-image resources", roadmap, StringComparison.Ordinal);
 
             string compatibilityPath = Path.Combine(repositoryRoot, "OfficeIMO.Word", "COMPATIBILITY.md");
             string compatibility = File.ReadAllText(compatibilityPath);

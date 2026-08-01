@@ -240,6 +240,65 @@ namespace OfficeIMO.Drawing.Internal {
                 allowNonAtomicReplacementFallback: false);
         }
 
+        /// <summary>
+        /// Atomically installs a completed staging file only when the displaced destination still
+        /// matches the caller's expected snapshot. A mismatch restores the displaced destination.
+        /// </summary>
+        public static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+            string temporaryPath,
+            string targetPath,
+            Func<string, bool> destinationMatchesExpected) {
+            if (string.IsNullOrWhiteSpace(temporaryPath)) {
+                throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
+            }
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(destinationMatchesExpected);
+#else
+            if (destinationMatchesExpected == null) throw new ArgumentNullException(nameof(destinationMatchesExpected));
+#endif
+
+            string fullTargetPath = GetFullTargetPath(targetPath);
+            EnsureDestinationWritable(fullTargetPath);
+            string backupPath = CreateTemporaryPath(fullTargetPath);
+            string displacedPath = CreateTemporaryPath(fullTargetPath);
+            bool targetContainsTemporary = false;
+            try {
+#if NET6_0_OR_GREATER
+                if (!OperatingSystem.IsWindows()) {
+                    File.SetUnixFileMode(temporaryPath, File.GetUnixFileMode(fullTargetPath));
+                }
+#endif
+                ExecuteWithRetry(() => File.Replace(temporaryPath, fullTargetPath, backupPath));
+                targetContainsTemporary = true;
+                if (destinationMatchesExpected(backupPath)) {
+                    DeleteIfExists(backupPath);
+                    targetContainsTemporary = false;
+                    return true;
+                }
+
+                ExecuteWithRetry(() => File.Replace(backupPath, fullTargetPath, displacedPath));
+                targetContainsTemporary = false;
+                DeleteIfExists(displacedPath);
+                return false;
+            } catch (Exception commitException) {
+                if (targetContainsTemporary && File.Exists(backupPath) && File.Exists(fullTargetPath)) {
+                    try {
+                        ExecuteWithRetry(() => File.Replace(backupPath, fullTargetPath, displacedPath));
+                        targetContainsTemporary = false;
+                    } catch (Exception rollbackException) {
+                        throw new IOException(
+                            "The guarded atomic commit failed and the displaced destination could not be restored. " +
+                            "Its backup remains at '" + backupPath + "'.",
+                            new AggregateException(commitException, rollbackException));
+                    }
+                }
+                throw;
+            } finally {
+                if (!targetContainsTemporary) DeleteIfExists(backupPath);
+                DeleteIfExists(displacedPath);
+            }
+        }
+
         private static void CommitTemporaryFileCore(
             string temporaryPath,
             string targetPath,

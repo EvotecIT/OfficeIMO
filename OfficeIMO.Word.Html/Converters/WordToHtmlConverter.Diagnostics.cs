@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.Html {
                                 ? textElement.Text?.Length ?? 0
                                 : 0;
                             foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
-                                if (!ShouldCountOutputAttribute(element, attribute)) continue;
+                                if (!ShouldCountOutputAttribute(element, attribute, options)) continue;
                                 elementCharacters = SaturatingAdd(elementCharacters, attribute.Value?.Length ?? 0);
                             }
                             outputConstructionCharacters = SaturatingAdd(outputConstructionCharacters, elementCharacters);
@@ -73,10 +73,32 @@ namespace OfficeIMO.Word.Html {
         private static bool ShouldCountOutputLeafText(OpenXmlElement element) =>
             element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode;
 
-        private static bool ShouldCountOutputAttribute(OpenXmlElement element, OpenXmlAttribute attribute) =>
-            element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode &&
-            (element is not DocumentFormat.OpenXml.Wordprocessing.SimpleField ||
-             !attribute.LocalName.Equals("instr", StringComparison.Ordinal));
+        private static bool ShouldCountOutputAttribute(
+            OpenXmlElement element,
+            OpenXmlAttribute attribute,
+            WordToHtmlOptions options) {
+            if (element is DocumentFormat.OpenXml.Wordprocessing.FieldCode) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.SimpleField &&
+                attribute.LocalName.Equals("instr", StringComparison.Ordinal)) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.RunFonts && !options.IncludeFontStyles) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.RunStyle && !options.IncludeRunClasses) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.Color && !options.IncludeRunColorStyles) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.Highlight && !options.IncludeRunHighlightStyles) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.Shading &&
+                element.Parent is DocumentFormat.OpenXml.Wordprocessing.RunProperties &&
+                !options.IncludeRunHighlightStyles) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.ParagraphStyleId && !options.IncludeParagraphClasses) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.Indentation &&
+                !options.IncludeParagraphIndentationStyles) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines &&
+                !options.IncludeParagraphSpacingStyles) return false;
+            if ((element is DocumentFormat.OpenXml.Wordprocessing.PageSize ||
+                 element is DocumentFormat.OpenXml.Wordprocessing.PageMargin) &&
+                !options.IncludeSectionMetadata) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.GridColumn &&
+                !options.IncludeTableColumnGroups) return false;
+            return true;
+        }
 
         private static bool IsOutputContentRoot(OpenXmlElement root, WordToHtmlOptions options) =>
             (root is not DocumentFormat.OpenXml.Wordprocessing.Header && root is not DocumentFormat.OpenXml.Wordprocessing.Footer || options.ExportHeadersAndFooters) &&

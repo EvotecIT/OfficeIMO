@@ -31,6 +31,7 @@ namespace OfficeIMO.Word {
         public int MaxCertificates { get; set; } = 64;
         public long MaxCertificateBytes { get; set; } = 4L * 1024 * 1024;
         public long MaxTotalCertificateBytes { get; set; } = 64L * 1024 * 1024;
+        internal Action<string, string>? BeforeCommit { get; set; }
     }
 
     /// <summary>Result of an attempted Open Packaging Convention package-signing operation.</summary>
@@ -101,13 +102,23 @@ namespace OfficeIMO.Word {
                 IReadOnlyList<X509Certificate2> signingCertificates = ValidateSigningCertificates(certificate, options);
 
                 stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
-                File.Copy(fullPath, stagingPath, overwrite: false);
+                WordPackageSnapshot.CopyBounded(fullPath, stagingPath, options.MaxPackageBytes);
+                string sourcePackageHash = WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
                 PrepareDigitalSignatureMetadata(stagingPath);
                 byte[] packageBytes = File.ReadAllBytes(stagingPath);
                 SigningPayload payload = CreateSignature(packageBytes, signingCertificates, signingKey, options);
                 SignaturePartWriteResult write = AddSignaturePart(stagingPath, payload.SignatureXml);
                 EnsureSignedPackageWithinLimits(stagingPath, options);
-                OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, fullPath);
+                options.BeforeCommit?.Invoke(stagingPath, fullPath);
+                if (!OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+                    stagingPath,
+                    fullPath,
+                    displacedPath => string.Equals(
+                        sourcePackageHash,
+                        WordPackageSnapshot.ComputeSha256(displacedPath, options.MaxPackageBytes),
+                        StringComparison.Ordinal))) {
+                    return Failed(fullPath, "The source package changed while its signature was being created; the concurrent source was preserved.");
+                }
                 stagingPath = string.Empty;
 
                 string[] details = {

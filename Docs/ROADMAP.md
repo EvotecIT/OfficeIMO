@@ -36,6 +36,14 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Keep generated Visio galleries structurally validated and visually reviewed across representative diagram families.
 - [ ] Harden optional desktop-reference validation without making Microsoft Office or Visio a runtime dependency.
 
+## Word
+
+- [ ] Deepen advanced drawing, imported chart mutation, SmartArt editing, grouping, anchoring, and Word-exact layout evidence beyond the current bounded shapes.
+- [ ] Extend structured comparison and redline generation one documented shape at a time while keeping effective-formatting and true move semantics explicit until their stable contracts exist.
+- [ ] Complete the remaining locale-sensitive, layout-dependent, complex-table, nested-instruction, and native `LISTNUM` field profiles without approximating unsupported results silently.
+- [ ] Broaden Word/HTML reciprocal fidelity for ruby, forms, nested tables and list blocks, figures, comments, headers, footers, sections, properties, and accessibility metadata; finish mapped CSS-value diagnostics and aggregate budgets for supported non-image resources.
+- [ ] Expand producer-provenanced review, redline, template, mail-merge, legacy DOC, Word/HTML, rendering, and performance corpora while preserving guarded loss reports and avoiding unsupported native DOC authoring claims.
+
 ## PDF, HTML, and image rendering
 
 - [ ] Complete mutation preflight, append-only update generalization, signature validation, redaction verification, standard editing workflows, parser repair diagnostics, and bounded arbitrary-PDF rendering in `OfficeIMO.Pdf`.

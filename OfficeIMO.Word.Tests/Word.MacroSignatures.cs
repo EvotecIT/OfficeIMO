@@ -517,21 +517,17 @@ namespace OfficeIMO.Tests {
                 new Org.BouncyCastle.Asn1.DerSequence(
                     new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.6.1.4.1.311.2.1.15")),
                 new Org.BouncyCastle.Asn1.X509.DigestInfo(digestAlgorithm, subjectDigest));
-            using System.Security.Cryptography.RSA rsa = certificate.GetRSAPrivateKey()
-                ?? throw new InvalidOperationException("Test certificate is missing its RSA private key.");
-            Org.BouncyCastle.X509.X509Certificate bcCertificate =
-                Org.BouncyCastle.Security.DotNetUtilities.FromX509Certificate(certificate);
-            Org.BouncyCastle.Crypto.AsymmetricKeyParameter privateKey =
-                Org.BouncyCastle.Security.DotNetUtilities.GetRsaKeyPair(rsa).Private;
-            var generator = new Org.BouncyCastle.Cms.CmsSignedDataGenerator { UseDefiniteLength = true };
-            var signatureFactory = new Org.BouncyCastle.Crypto.Operators.Asn1SignatureFactory(
-                "SHA256WITHRSA", privateKey);
-            generator.AddSignerInfoGenerator(
-                new Org.BouncyCastle.Cms.SignerInfoGeneratorBuilder().Build(signatureFactory, bcCertificate));
-            generator.AddCertificate(bcCertificate);
-            var content = new Org.BouncyCastle.Cms.CmsProcessableByteArray(indirectData.GetEncoded());
-            byte[] encoded = generator.Generate(
-                "1.3.6.1.4.1.311.2.1.4", content, encapsulate: true).GetEncoded();
+            var content = new System.Security.Cryptography.Pkcs.ContentInfo(
+                new System.Security.Cryptography.Oid("1.3.6.1.4.1.311.2.1.4"),
+                indirectData.GetEncoded());
+            var signedCms = new System.Security.Cryptography.Pkcs.SignedCms(content, detached: false);
+            var signer = new System.Security.Cryptography.Pkcs.CmsSigner(
+                System.Security.Cryptography.Pkcs.SubjectIdentifierType.IssuerAndSerialNumber,
+                certificate) {
+                IncludeOption = X509IncludeOption.EndCertOnly
+            };
+            signedCms.ComputeSignature(signer);
+            byte[] encoded = signedCms.Encode();
             var decoded = new Org.BouncyCastle.Cms.CmsSignedData(encoded);
             Assert.Equal("1.3.6.1.4.1.311.2.1.4", decoded.SignedContentType.Id);
             return encoded;

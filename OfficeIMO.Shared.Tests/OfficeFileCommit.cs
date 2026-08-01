@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -122,6 +123,31 @@ namespace OfficeIMO.Shared.Tests {
                 Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(destination));
                 Assert.False(File.Exists(temporary));
                 Assert.Empty(Directory.GetFiles(root, "*.bak"));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void GuardedAtomicCommit_RestoresAChangedDestination() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporary = Path.Combine(root, "artifact.staged.bin");
+            byte[] expectedOriginal = { 1, 2, 3, 4 };
+            byte[] concurrentEdit = { 5, 6, 7, 8 };
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, concurrentEdit);
+            File.WriteAllBytes(temporary, new byte[] { 9, 8, 7 });
+
+            try {
+                bool committed = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+                    temporary,
+                    destination,
+                    displaced => File.ReadAllBytes(displaced).SequenceEqual(expectedOriginal));
+
+                Assert.False(committed);
+                Assert.Equal(concurrentEdit, File.ReadAllBytes(destination));
+                Assert.False(File.Exists(temporary));
             } finally {
                 if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
             }

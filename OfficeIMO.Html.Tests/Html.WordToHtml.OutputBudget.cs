@@ -100,5 +100,24 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Complex cached result", result.RequireValue(), StringComparison.Ordinal);
             Assert.DoesNotContain(new string('x', 128), result.RequireValue(), StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetExcludesDisabledRunFontAttributes() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph._paragraph.Append(new Run(
+                new RunProperties(new RunFonts { Ascii = new string('x', 8192) }),
+                new Text("Visible content")));
+
+            HtmlTextConversionResult result = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                IncludeFontStyles = false,
+                MaxOutputCharacters = 4096
+            });
+
+            Assert.True(result.Succeeded);
+            Assert.Contains("Visible content", result.RequireValue(), StringComparison.Ordinal);
+            Assert.DoesNotContain("font-family", result.RequireValue(), StringComparison.Ordinal);
+        }
     }
 }

@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
@@ -23,7 +22,7 @@ namespace OfficeIMO.Word {
             string snapshotPath = Path.Combine(snapshotDirectory, "snapshot" + Path.GetExtension(fullPath));
             try {
                 Directory.CreateDirectory(snapshotDirectory);
-                CopyValidationSnapshot(fullPath, snapshotPath, options.Inspection.PackageSecurity.MaxPackageBytes);
+                WordPackageSnapshot.CopyBounded(fullPath, snapshotPath, options.Inspection.PackageSecurity.MaxPackageBytes);
                 return ValidateSnapshot(fullPath, snapshotPath, options, dependencies);
             } finally {
                 OfficeFileCommit.DeleteIfExists(snapshotPath);
@@ -92,28 +91,6 @@ namespace OfficeIMO.Word {
             return Result(info, true, WordSignatureValidationState.Passed, findings, options);
         }
 
-        private static void CopyValidationSnapshot(string sourcePath, string snapshotPath, long maximumBytes) {
-            using var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (source.Length > maximumBytes) {
-                throw new ArgumentException(
-                    $"The macro-enabled Word package length {source.Length} exceeds the configured limit of {maximumBytes} bytes.",
-                    nameof(sourcePath));
-            }
-            using var destination = new FileStream(snapshotPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            byte[] buffer = new byte[81920];
-            long copied = 0;
-            int read;
-            while ((read = source.Read(buffer, 0, buffer.Length)) > 0) {
-                copied += read;
-                if (copied > maximumBytes) {
-                    throw new ArgumentException(
-                        $"The macro-enabled Word package exceeds the configured limit of {maximumBytes} bytes.",
-                        nameof(sourcePath));
-                }
-                destination.Write(buffer, 0, read);
-            }
-        }
-
         private static WordMacroProjectSignatureInfo WithFilePath(
             WordMacroProjectSignatureInfo source,
             string filePath) =>
@@ -175,11 +152,13 @@ namespace OfficeIMO.Word {
 
             string stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
             try {
-                CopyValidationSnapshot(
+                WordPackageSnapshot.CopyBounded(
                     fullPath,
                     stagingPath,
                     options.Inspection.PackageSecurity.MaxPackageBytes);
-                string sourcePackageHash = HashFile(stagingPath, options.Inspection.PackageSecurity.MaxPackageBytes);
+                string sourcePackageHash = WordPackageSnapshot.ComputeSha256(
+                    stagingPath,
+                    options.Inspection.PackageSecurity.MaxPackageBytes);
                 WordSignatureInfo existingPackageSignatures = InspectPackageSignatures(stagingPath);
                 if (existingPackageSignatures.HasSignatures &&
                     options.ExistingPackageSignaturePolicy != WordSignedDocumentSavePolicy.AllowSignatureInvalidation) {
@@ -257,8 +236,15 @@ namespace OfficeIMO.Word {
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
                 }
 
-                if (!TryCommitIfSourceUnchanged(stagingPath, fullPath, sourcePackageHash,
-                    options.Inspection.PackageSecurity.MaxPackageBytes)) {
+                if (!OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+                    stagingPath,
+                    fullPath,
+                    displacedPath => string.Equals(
+                        sourcePackageHash,
+                        WordPackageSnapshot.ComputeSha256(
+                            displacedPath,
+                            options.Inspection.PackageSecurity.MaxPackageBytes),
+                        StringComparison.Ordinal))) {
                     stagingPath = string.Empty;
                     findings.Add(Finding("SourcePackageChangedDuringSigning", WordSignatureValidationState.Failed,
                         "The source document changed while native signing tools were running; the newer source was preserved and the staged signature was discarded."));
@@ -415,64 +401,6 @@ namespace OfficeIMO.Word {
             bool hasApplicationMetadata = document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
             return WordSignatureInspector.Inspect(document, origin, hasApplicationMetadata,
                 packageBytes: null, verifyDigests: false);
-        }
-
-        private static string HashFile(string filePath, long maximumBytes) {
-            using FileStream stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (stream.Length > maximumBytes) throw new InvalidDataException("The Word package exceeds its configured byte limit.");
-            using SHA256 hash = SHA256.Create();
-            byte[] buffer = new byte[81920];
-            long total = 0;
-            while (true) {
-                int read = stream.Read(buffer, 0, buffer.Length);
-                if (read == 0) break;
-                total = checked(total + read);
-                if (total > maximumBytes) throw new InvalidDataException("The Word package exceeds its configured byte limit.");
-                hash.TransformBlock(buffer, 0, read, null, 0);
-            }
-            hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            return BitConverter.ToString(hash.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty);
-        }
-
-        private static bool TryCommitIfSourceUnchanged(
-            string stagingPath,
-            string targetPath,
-            string expectedSourceHash,
-            long maximumBytes) {
-            string backupPath = OfficeFileCommit.CreateStagingPath(targetPath);
-            string displacedPath = OfficeFileCommit.CreateStagingPath(targetPath);
-            bool targetContainsStaging = false;
-            try {
-                File.Replace(stagingPath, targetPath, backupPath);
-                targetContainsStaging = true;
-                string replacedSourceHash = HashFile(backupPath, maximumBytes);
-                if (string.Equals(expectedSourceHash, replacedSourceHash, StringComparison.Ordinal)) {
-                    OfficeFileCommit.DeleteIfExists(backupPath);
-                    targetContainsStaging = false;
-                    return true;
-                }
-
-                File.Replace(backupPath, targetPath, displacedPath);
-                targetContainsStaging = false;
-                OfficeFileCommit.DeleteIfExists(displacedPath);
-                return false;
-            } catch (Exception commitException) {
-                if (targetContainsStaging && File.Exists(backupPath) && File.Exists(targetPath)) {
-                    try {
-                        File.Replace(backupPath, targetPath, displacedPath);
-                        targetContainsStaging = false;
-                    } catch (Exception rollbackException) {
-                        throw new IOException(
-                            "The guarded VBA-signature commit failed and the concurrent source could not be restored. " +
-                            "Its atomic backup remains at '" + backupPath + "'.",
-                            new AggregateException(commitException, rollbackException));
-                    }
-                }
-                throw;
-            } finally {
-                if (!targetContainsStaging) OfficeFileCommit.DeleteIfExists(backupPath);
-                OfficeFileCommit.DeleteIfExists(displacedPath);
-            }
         }
 
         private static bool TryResolveSignTool(string? configuredPath, out string path, out string detail) {

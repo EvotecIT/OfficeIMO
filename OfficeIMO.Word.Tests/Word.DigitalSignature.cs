@@ -1146,6 +1146,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_SignPackagePreservesAConcurrentSourceChange() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureConcurrentSource.docx");
+            string replacementPath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureConcurrentReplacement.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Original package state");
+                document.Save();
+            }
+            using (WordDocument replacement = WordDocument.Create(replacementPath)) {
+                replacement.AddParagraph("Concurrent package state");
+                replacement.Save();
+            }
+            byte[] concurrentBytes = File.ReadAllBytes(replacementPath);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            var options = new OfficePackageSigningOptions {
+                BeforeCommit = (_, target) => File.WriteAllBytes(target, concurrentBytes)
+            };
+
+            OfficePackageSigningResult result = OfficePackageSignatureWriter.Sign(filePath, certificate, options);
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Details, detail =>
+                detail.Contains("changed while its signature was being created", StringComparison.Ordinal));
+            Assert.Equal(concurrentBytes, File.ReadAllBytes(filePath));
+            using WordprocessingDocument preserved = WordprocessingDocument.Open(filePath, false);
+            Assert.Null(preserved.DigitalSignatureOriginPart);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidateSignaturesUsesCurrentInMemoryDocumentState() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureLiveStateValidation.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
