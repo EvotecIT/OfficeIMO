@@ -188,14 +188,19 @@ namespace OfficeIMO.Excel {
         public string RewriteTableNames(Func<string, string?> rewriter) {
             if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
             var builder = new StringBuilder(Text.Length);
+            IReadOnlyList<ExcelSheet.FormulaLexicalBinding> lexicalBindings = ExcelSheet.GetFormulaLexicalBindings(Text);
+            int nodeIndex = 0;
             foreach (ExcelFormulaSyntaxNode node in _nodes) {
                 if (node is ExcelFormulaStructuredReferenceSyntax structured && structured.TableName != null) {
                     builder.Append(rewriter(structured.TableName) ?? "#REF!").Append(structured.Selector);
-                } else if (node is ExcelFormulaNameSyntax name && name.Name.IndexOf('!') < 0) {
+                } else if (node is ExcelFormulaNameSyntax name
+                    && name.Name.IndexOf('!') < 0
+                    && !lexicalBindings.Any(binding => binding.Shadows(name.Name, nodeIndex, node.Text.Length))) {
                     builder.Append(rewriter(name.Name) ?? "#REF!");
                 } else {
                     builder.Append(node.Text);
                 }
+                nodeIndex += node.Text.Length;
             }
             return builder.ToString();
         }

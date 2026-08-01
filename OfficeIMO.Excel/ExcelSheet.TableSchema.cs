@@ -8,6 +8,17 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>Resolves a table name, display name, or current range to its stable package name.</summary>
+        internal string ResolveTableName(string tableOrRange) {
+            if (string.IsNullOrWhiteSpace(tableOrRange)) throw new ArgumentNullException(nameof(tableOrRange));
+            return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+                Table table = FindTableByRangeNameOrDisplayName(tableOrRange)
+                    ?? throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
+                return table.Name?.Value ?? table.DisplayName?.Value
+                    ?? throw new InvalidOperationException("Table name is missing.");
+            });
+        }
+
         /// <summary>Renames a table and every parsed structured reference to it across the workbook.</summary>
         public string RenameTable(
             string tableOrRange,

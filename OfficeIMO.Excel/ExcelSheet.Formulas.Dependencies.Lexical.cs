@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
             internal int End { get; }
         }
 
-        private readonly struct FormulaLexicalBinding {
+        internal readonly struct FormulaLexicalBinding {
             internal FormulaLexicalBinding(
                 string name,
                 int declarationStart,
@@ -44,7 +44,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static IReadOnlyList<FormulaLexicalBinding> GetFormulaLexicalBindings(string formula) {
+        internal static IReadOnlyList<FormulaLexicalBinding> GetFormulaLexicalBindings(string formula) {
+            if (formula.IndexOf("LET", StringComparison.OrdinalIgnoreCase) < 0
+                && formula.IndexOf("LAMBDA", StringComparison.OrdinalIgnoreCase) < 0) {
+                return Array.Empty<FormulaLexicalBinding>();
+            }
             List<FormulaLexicalBinding>? bindings = null;
             for (int index = 0; index < formula.Length; index++) {
                 if (!TryGetFormulaLexicalFunctionCall(formula, index, out bool isLet, out int openingParenthesis)

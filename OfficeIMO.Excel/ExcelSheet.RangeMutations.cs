@@ -124,7 +124,8 @@ namespace OfficeIMO.Excel {
                 if (move) {
                     ValidatePackageMutationReferenceSafety(
                         "Range moves",
-                        budget.Consume);
+                        budget.Consume,
+                        source);
                 } else {
                     ValidateA1MutationReferenceMode("Range transfers");
                 }
@@ -165,12 +166,24 @@ namespace OfficeIMO.Excel {
                 budget);
             if (!inserting) return;
             if (direction == ExcelCellShiftDirection.Right) {
-                int max = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out int row, out _) && row >= r1 && row <= r2)
+                int maxCell = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out int row, out _) && row >= r1 && row <= r2)
                     .Select(cell => TryGetCellCoordinates(cell, out _, out int column) ? column : 0).DefaultIfEmpty().Max();
+                int maxDrawing = InspectMutationPlanElements(
+                        _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<Xdr.MarkerType>() ?? Enumerable.Empty<Xdr.MarkerType>(),
+                        budget)
+                    .Select(marker => TryGetDrawingMarkerCoordinates(marker, out int row, out int column) && row >= r1 && row <= r2 && column >= c1 ? column : 0)
+                    .DefaultIfEmpty().Max();
+                int max = Math.Max(maxCell, maxDrawing);
                 if ((long)max + c2 - c1 + 1L > A1.MaxColumns) throw new InvalidOperationException("Cell insertion would exceed the worksheet column limit.");
             } else {
-                int max = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out _, out int column) && column >= c1 && column <= c2)
+                int maxCell = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out _, out int column) && column >= c1 && column <= c2)
                     .Select(cell => TryGetCellCoordinates(cell, out int row, out _) ? row : 0).DefaultIfEmpty().Max();
+                int maxDrawing = InspectMutationPlanElements(
+                        _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<Xdr.MarkerType>() ?? Enumerable.Empty<Xdr.MarkerType>(),
+                        budget)
+                    .Select(marker => TryGetDrawingMarkerCoordinates(marker, out int row, out int column) && column >= c1 && column <= c2 && row >= r1 ? row : 0)
+                    .DefaultIfEmpty().Max();
+                int max = Math.Max(maxCell, maxDrawing);
                 if ((long)max + r2 - r1 + 1L > A1.MaxRows) throw new InvalidOperationException("Cell insertion would exceed the worksheet row limit.");
             }
         }
@@ -464,30 +477,38 @@ namespace OfficeIMO.Excel {
         }
 
         private string TranslateMovedFormula(string formula, ExcelReference source, int destinationRow, int destinationColumn, bool transpose) {
-            source.GetBounds(out int sr1, out int sc1, out int sr2, out int sc2);
             return ExcelFormulaSyntaxTree.Parse(formula).Rewrite(reference => {
                 if (!string.IsNullOrWhiteSpace(reference.Qualifier)
                     && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) return reference;
-                reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
-                if (rr1 < sr1 || rr2 > sr2 || rc1 < sc1 || rc2 > sc2) return reference;
-                int MapRow(int row, int column) => transpose ? destinationRow + column - sc1 : destinationRow + row - sr1;
-                int MapColumn(int row, int column) => transpose ? destinationColumn + row - sr1 : destinationColumn + column - sc1;
-                ExcelReferenceKind kind = transpose
-                    ? reference.Kind == ExcelReferenceKind.WholeRow ? ExcelReferenceKind.WholeColumn
-                        : reference.Kind == ExcelReferenceKind.WholeColumn ? ExcelReferenceKind.WholeRow
-                        : reference.Kind
-                    : reference.Kind;
-                return reference.WithCoordinates(
-                    kind,
-                    kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.Start.Row, reference.Start.Column),
-                    kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.Start.Row, reference.Start.Column),
-                    kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.End.Row, reference.End.Column),
-                    kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.End.Row, reference.End.Column),
-                    transpose ? reference.Start.ColumnAbsolute : null,
-                    transpose ? reference.Start.RowAbsolute : null,
-                    transpose ? reference.End.ColumnAbsolute : null,
-                    transpose ? reference.End.RowAbsolute : null);
+                return ExcelDocument.TransformMovedRangeReference(reference, source, destinationRow, destinationColumn, transpose);
             });
+        }
+
+        internal void RemapMovedConnectionParameters(
+            ExcelReference source,
+            int destinationRow,
+            int destinationColumn,
+            bool transpose) {
+            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
+            if (connections == null) return;
+
+            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
+            bool changed = false;
+            foreach (Connection connection in connections.Elements<Connection>()
+                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                    if (parameter.Cell?.Value is not string value
+                        || !ExcelReference.TryParse(value, out ExcelReference? reference)
+                        || reference!.IsQualified && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) continue;
+                    ExcelReference mapped = ExcelDocument.TransformMovedRangeReference(
+                        reference!, source, destinationRow, destinationColumn, transpose);
+                    string rewritten = mapped.ToString();
+                    if (string.Equals(value, rewritten, StringComparison.OrdinalIgnoreCase)) continue;
+                    parameter.Cell = rewritten;
+                    changed = true;
+                }
+            }
+            if (changed) connections.Save();
         }
 
         private void PutClonedCell(int row, int column, Cell clone) {
@@ -507,6 +528,15 @@ namespace OfficeIMO.Excel {
             row = column = 0;
             if (cell.CellReference?.Value is not string reference) return false;
             (row, column) = A1.ParseCellRef(reference);
+            return row > 0 && column > 0;
+        }
+
+        private static bool TryGetDrawingMarkerCoordinates(Xdr.MarkerType marker, out int row, out int column) {
+            row = column = 0;
+            if (!int.TryParse(marker.RowId?.Text, out int zeroBasedRow)
+                || !int.TryParse(marker.ColumnId?.Text, out int zeroBasedColumn)) return false;
+            row = zeroBasedRow + 1;
+            column = zeroBasedColumn + 1;
             return row > 0 && column > 0;
         }
 

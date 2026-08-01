@@ -26,29 +26,39 @@ namespace OfficeIMO.Excel {
             int destinationRow,
             int destinationColumn,
             bool transpose) {
-            source.GetBounds(out int sr1, out int sc1, out int sr2, out int sc2);
-            ExcelReference? Transform(ExcelReference reference) {
-                reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
-                if (rr1 < sr1 || rr2 > sr2 || rc1 < sc1 || rc2 > sc2) return reference;
-                int MapRow(int row, int column) => transpose ? destinationRow + column - sc1 : destinationRow + row - sr1;
-                int MapColumn(int row, int column) => transpose ? destinationColumn + row - sr1 : destinationColumn + column - sc1;
-                ExcelReferenceKind kind = transpose
-                    ? reference.Kind == ExcelReferenceKind.WholeRow ? ExcelReferenceKind.WholeColumn
-                        : reference.Kind == ExcelReferenceKind.WholeColumn ? ExcelReferenceKind.WholeRow
-                        : reference.Kind
-                    : reference.Kind;
-                return reference.WithCoordinates(
-                    kind,
-                    kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.Start.Row, reference.Start.Column),
-                    kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.Start.Row, reference.Start.Column),
-                    kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.End.Row, reference.End.Column),
-                    kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.End.Row, reference.End.Column),
-                    transpose ? reference.Start.ColumnAbsolute : null,
-                    transpose ? reference.Start.RowAbsolute : null,
-                    transpose ? reference.End.ColumnAbsolute : null,
-                    transpose ? reference.End.RowAbsolute : null);
-            }
+            editedSheet.RemapMovedConnectionParameters(source, destinationRow, destinationColumn, transpose);
+            ExcelReference? Transform(ExcelReference reference) =>
+                TransformMovedRangeReference(reference, source, destinationRow, destinationColumn, transpose);
             RewriteMutationReferencesAcrossPackage(editedSheet, Transform);
+        }
+
+        /// <summary>Maps one parsed A1 reference through a complete range move.</summary>
+        internal static ExcelReference TransformMovedRangeReference(
+            ExcelReference reference,
+            ExcelReference source,
+            int destinationRow,
+            int destinationColumn,
+            bool transpose) {
+            source.GetBounds(out int sr1, out int sc1, out int sr2, out int sc2);
+            reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
+            if (rr1 < sr1 || rr2 > sr2 || rc1 < sc1 || rc2 > sc2) return reference;
+            int MapRow(int row, int column) => transpose ? destinationRow + column - sc1 : destinationRow + row - sr1;
+            int MapColumn(int row, int column) => transpose ? destinationColumn + row - sr1 : destinationColumn + column - sc1;
+            ExcelReferenceKind kind = transpose
+                ? reference.Kind == ExcelReferenceKind.WholeRow ? ExcelReferenceKind.WholeColumn
+                    : reference.Kind == ExcelReferenceKind.WholeColumn ? ExcelReferenceKind.WholeRow
+                    : reference.Kind
+                : reference.Kind;
+            return reference.WithCoordinates(
+                kind,
+                kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.Start.Row, reference.Start.Column),
+                kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.Start.Row, reference.Start.Column),
+                kind == ExcelReferenceKind.WholeColumn ? 0 : MapRow(reference.End.Row, reference.End.Column),
+                kind == ExcelReferenceKind.WholeRow ? 0 : MapColumn(reference.End.Row, reference.End.Column),
+                transpose ? reference.Start.ColumnAbsolute : null,
+                transpose ? reference.Start.RowAbsolute : null,
+                transpose ? reference.End.ColumnAbsolute : null,
+                transpose ? reference.End.RowAbsolute : null);
         }
 
         internal void RewriteCellShiftReferences(

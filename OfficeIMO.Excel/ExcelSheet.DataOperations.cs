@@ -597,25 +597,11 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<(FilterOperatorValues Operator, string Value)> conditions) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             if (conditions == null || conditions.Count == 0) throw new ArgumentException("At least one condition is required.", nameof(conditions));
+            range = ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
-                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
-                    autoFilter?.Remove();
-                    autoFilter = new AutoFilter { Reference = range };
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
-                        if (conditionalFormatting != null) {
-                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
-                        } else {
-                            worksheet.InsertAfter(autoFilter, sheetData);
-                        }
-                    } else {
-                        worksheet.Append(autoFilter);
-                    }
-                }
+                AutoFilter autoFilter = GetOrReplaceWorksheetAutoFilter(worksheet, range);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -641,26 +627,11 @@ namespace OfficeIMO.Excel {
 
         internal void ApplyAutoFilterBlankCriteria(string range, uint columnId) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
-            ValidateAutoFilterColumnOffset(range, columnId);
+            range = ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
-                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
-                    autoFilter?.Remove();
-                    autoFilter = new AutoFilter { Reference = range };
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
-                        if (conditionalFormatting != null) {
-                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
-                        } else {
-                            worksheet.InsertAfter(autoFilter, sheetData);
-                        }
-                    } else {
-                        worksheet.Append(autoFilter);
-                    }
-                }
+                AutoFilter autoFilter = GetOrReplaceWorksheetAutoFilter(worksheet, range);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -680,26 +651,11 @@ namespace OfficeIMO.Excel {
             bool isPercent) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             if (value < 1 || value > 500) throw new ArgumentOutOfRangeException(nameof(value), "Top10 AutoFilter values must be between 1 and 500.");
-            ValidateAutoFilterColumnOffset(range, columnId);
+            range = ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
-                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
-                    autoFilter?.Remove();
-                    autoFilter = new AutoFilter { Reference = range };
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
-                        if (conditionalFormatting != null) {
-                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
-                        } else {
-                            worksheet.InsertAfter(autoFilter, sheetData);
-                        }
-                    } else {
-                        worksheet.Append(autoFilter);
-                    }
-                }
+                AutoFilter autoFilter = GetOrReplaceWorksheetAutoFilter(worksheet, range);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -715,7 +671,25 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static void ValidateAutoFilterColumnOffset(string range, uint columnId) {
+        private static AutoFilter GetOrReplaceWorksheetAutoFilter(Worksheet worksheet, string range) {
+            AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
+            if (autoFilter != null && string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
+                return autoFilter;
+            }
+            autoFilter?.Remove();
+            autoFilter = new AutoFilter { Reference = range };
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                worksheet.Append(autoFilter);
+                return autoFilter;
+            }
+            ConditionalFormatting? conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
+            if (conditionalFormatting != null) worksheet.InsertBefore(autoFilter, conditionalFormatting);
+            else worksheet.InsertAfter(autoFilter, sheetData);
+            return autoFilter;
+        }
+
+        private static string ValidateAutoFilterColumnOffset(string range, uint columnId) {
             ExcelReference reference = ExcelReference.Parse(range);
             if (reference.Kind != ExcelReferenceKind.Cell && reference.Kind != ExcelReferenceKind.Range) {
                 throw new ArgumentException("AutoFilter ranges require a cell or rectangular range reference.", nameof(range));
@@ -723,9 +697,13 @@ namespace OfficeIMO.Excel {
             if (reference.IsQualified) {
                 throw new ArgumentException("Worksheet AutoFilter ranges must be local, unqualified references.", nameof(range));
             }
-            reference.GetBounds(out _, out int firstColumn, out _, out int lastColumn);
+            reference.GetBounds(out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
             uint width = checked((uint)(lastColumn - firstColumn + 1));
             if (columnId >= width) throw new ArgumentOutOfRangeException(nameof(columnId), "AutoFilter column offset must be inside the filter range.");
+            string firstCell = A1.CellReference(firstRow, firstColumn);
+            return reference.Kind == ExcelReferenceKind.Cell
+                ? firstCell
+                : firstCell + ":" + A1.CellReference(lastRow, lastColumn);
         }
 
     }

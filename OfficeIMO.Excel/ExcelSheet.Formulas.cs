@@ -396,7 +396,9 @@ namespace OfficeIMO.Excel {
             if (metadataIndex is uint oneBasedMetadataIndex && oneBasedMetadataIndex > 0) {
                 MetadataBlock? cellBlock = metadata?.GetFirstChild<CellMetadata>()?
                     .Elements<MetadataBlock>()
-                    .ElementAtOrDefault(checked((int)oneBasedMetadataIndex - 1));
+                    .ElementAtOrDefault(oneBasedMetadataIndex > int.MaxValue
+                        ? -1
+                        : (int)oneBasedMetadataIndex - 1);
                 MetadataType[] types = metadata?.GetFirstChild<MetadataTypes>()?
                     .Elements<MetadataType>()
                     .ToArray() ?? Array.Empty<MetadataType>();

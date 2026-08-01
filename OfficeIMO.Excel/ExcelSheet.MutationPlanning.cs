@@ -29,12 +29,14 @@ namespace OfficeIMO.Excel {
 
         private void ValidatePackageMutationReferenceSafety(
             string operation,
-            Action? consumeScannedElement = null) {
+            Action? consumeScannedElement = null,
+            ExcelReference? movedSource = null) {
             ValidateA1MutationReferenceMode(operation);
             _excelDocument.ValidateMutationReferencesCanBeRewritten(
                 this,
                 operation,
-                consumeScannedElement);
+                consumeScannedElement,
+                movedSource);
         }
     }
 }

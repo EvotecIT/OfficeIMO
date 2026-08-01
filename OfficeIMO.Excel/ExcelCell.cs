@@ -586,14 +586,16 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Replaces the table's ordered column schema and optionally resizes its range.</summary>
         public ExcelTable SetSchema(IReadOnlyList<string> columnNames, string? newRange = null) {
-            Sheet.SetTableSchema(NameOrRange, columnNames, newRange);
-            return this;
+            string stableName = Sheet.ResolveTableName(NameOrRange);
+            Sheet.SetTableSchema(stableName, columnNames, newRange);
+            return new ExcelTable(Sheet, stableName);
         }
 
         /// <summary>Resizes the table, preserving current column names where possible.</summary>
         public ExcelTable Resize(string newRange) {
-            Sheet.ResizeTable(NameOrRange, newRange);
-            return this;
+            string stableName = Sheet.ResolveTableName(NameOrRange);
+            Sheet.ResizeTable(stableName, newRange);
+            return new ExcelTable(Sheet, stableName);
         }
 
         /// <summary>

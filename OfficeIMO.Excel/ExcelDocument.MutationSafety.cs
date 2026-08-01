@@ -12,55 +12,89 @@ namespace OfficeIMO.Excel {
         internal void ValidateMutationReferencesCanBeRewritten(
             ExcelSheet editedSheet,
             string operation,
-            Action? consumeScannedElement = null) {
+            Action? consumeScannedElement = null,
+            ExcelReference? movedSource = null) {
             List<Sheet> sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
             int editedSheetIndex = sheets.FindIndex(sheet =>
                 string.Equals(sheet.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase));
             if (editedSheetIndex < 0) return;
+            int sr1 = 0;
+            int sc1 = 0;
+            int sr2 = 0;
+            int sc2 = 0;
+            movedSource?.GetBounds(out sr1, out sc1, out sr2, out sc2);
 
-            foreach (string formula in EnumerateMutationFormulaTexts(sheets)) {
+            foreach (MutationFormulaContext formula in EnumerateMutationFormulaContexts(sheets, editedSheetIndex)) {
                 consumeScannedElement?.Invoke();
-                foreach (ExcelFormulaReferenceSyntax referenceNode in ExcelFormulaSyntaxTree.Parse(formula)
+                foreach (ExcelFormulaReferenceSyntax referenceNode in ExcelFormulaSyntaxTree.Parse(formula.Text)
                     .Nodes.OfType<ExcelFormulaReferenceSyntax>()) {
                     consumeScannedElement?.Invoke();
-                    if (!TryGetThreeDimensionalSheetRange(
+                    if (TryGetThreeDimensionalSheetRange(
                             referenceNode.Reference,
                             out string firstSheetName,
                             out string lastSheetName)
-                        || !TryFindSheetIndex(sheets, firstSheetName, out int firstSheetIndex)
-                        || !TryFindSheetIndex(sheets, lastSheetName, out int lastSheetIndex)) continue;
+                        && TryFindSheetIndex(sheets, firstSheetName, out int firstSheetIndex)
+                        && TryFindSheetIndex(sheets, lastSheetName, out int lastSheetIndex)) {
+                        int lower = Math.Min(firstSheetIndex, lastSheetIndex);
+                        int upper = Math.Max(firstSheetIndex, lastSheetIndex);
+                        if (editedSheetIndex >= lower && editedSheetIndex <= upper) {
+                            throw new InvalidOperationException(
+                                $"{operation} cannot preserve 3-D reference '{referenceNode.Text}' because worksheet '{editedSheet.Name}' is inside its sheet span.");
+                        }
+                    }
 
-                    int lower = Math.Min(firstSheetIndex, lastSheetIndex);
-                    int upper = Math.Max(firstSheetIndex, lastSheetIndex);
-                    if (editedSheetIndex < lower || editedSheetIndex > upper) continue;
+                    if (movedSource == null) continue;
+                    ExcelReference reference = referenceNode.Reference;
+                    if (!ReferenceTargetsSheet(reference, editedSheet.Name, formula.UnqualifiedTargetsEdited)) continue;
+                    reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
+                    bool intersects = rr1 <= sr2 && rr2 >= sr1 && rc1 <= sc2 && rc2 >= sc1;
+                    bool contained = rr1 >= sr1 && rr2 <= sr2 && rc1 >= sc1 && rc2 <= sc2;
+                    if (!intersects || contained) continue;
                     throw new InvalidOperationException(
-                        $"{operation} cannot preserve 3-D reference '{referenceNode.Text}' because worksheet '{editedSheet.Name}' is inside its sheet span.");
+                        $"Range moves cannot preserve partially overlapping reference '{referenceNode.Text}'. Move the complete referenced range or update the formula first.");
                 }
             }
         }
 
-        private IEnumerable<string> EnumerateMutationFormulaTexts(IReadOnlyList<Sheet> sheets) {
+        private IEnumerable<MutationFormulaContext> EnumerateMutationFormulaContexts(
+            IReadOnlyList<Sheet> sheets,
+            int editedSheetIndex) {
             foreach (DefinedName name in WorkbookRoot.DefinedNames?.Elements<DefinedName>()
                 ?? Enumerable.Empty<DefinedName>()) {
-                if (!string.IsNullOrEmpty(name.Text)) yield return name.Text;
+                if (!string.IsNullOrEmpty(name.Text)) {
+                    bool local = name.LocalSheetId?.Value is uint localIndex && localIndex == (uint)editedSheetIndex;
+                    yield return new MutationFormulaContext(name.Text, local);
+                }
             }
 
-            foreach (Sheet sheet in sheets) {
+            for (int sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++) {
+                Sheet sheet = sheets[sheetIndex];
                 if (sheet.Id?.Value is not string relationshipId) continue;
                 OpenXmlPart part = WorkbookPartRoot.GetPartById(relationshipId);
                 if (part is WorksheetPart worksheetPart) {
-                    foreach (string formula in EnumerateMutationFormulaTexts(worksheetPart.Worksheet)) yield return formula;
+                    bool ownerIsEdited = sheetIndex == editedSheetIndex;
+                    foreach (string formula in EnumerateMutationFormulaTexts(worksheetPart.Worksheet)) yield return new MutationFormulaContext(formula, ownerIsEdited);
                     foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
-                        foreach (string formula in EnumerateMutationFormulaTexts(tablePart.Table)) yield return formula;
+                        foreach (string formula in EnumerateMutationFormulaTexts(tablePart.Table)) yield return new MutationFormulaContext(formula, ownerIsEdited);
                     }
                     foreach (PivotTablePart pivotPart in worksheetPart.PivotTableParts) {
-                        foreach (string formula in EnumerateMutationFormulaTexts(pivotPart.PivotTableDefinition)) yield return formula;
+                        foreach (string formula in EnumerateMutationFormulaTexts(pivotPart.PivotTableDefinition)) yield return new MutationFormulaContext(formula, ownerIsEdited);
                     }
-                    foreach (string formula in EnumerateMutationDrawingFormulaTexts(worksheetPart.DrawingsPart)) yield return formula;
+                    foreach (string formula in EnumerateMutationDrawingFormulaTexts(worksheetPart.DrawingsPart)) yield return new MutationFormulaContext(formula, ownerIsEdited);
                 } else if (part is ChartsheetPart chartsheetPart) {
-                    foreach (string formula in EnumerateMutationDrawingFormulaTexts(chartsheetPart.DrawingsPart)) yield return formula;
+                    foreach (string formula in EnumerateMutationDrawingFormulaTexts(chartsheetPart.DrawingsPart)) yield return new MutationFormulaContext(formula, false);
                 }
             }
+        }
+
+        private readonly struct MutationFormulaContext {
+            internal MutationFormulaContext(string text, bool unqualifiedTargetsEdited) {
+                Text = text;
+                UnqualifiedTargetsEdited = unqualifiedTargetsEdited;
+            }
+
+            internal string Text { get; }
+            internal bool UnqualifiedTargetsEdited { get; }
         }
 
         private static IEnumerable<string> EnumerateMutationDrawingFormulaTexts(DrawingsPart? drawingsPart) {

@@ -183,12 +183,14 @@ namespace OfficeIMO.Excel {
                 IgnoredErrors? container = WorksheetRoot.GetFirstChild<IgnoredErrors>();
                 if (container == null) return;
                 foreach (IgnoredError ignored in container.Elements<IgnoredError>().ToList()) {
-                    bool overlaps = ParseRegionReferences(ignored.SequenceOfReferences?.InnerText)
-                        .Select(reference => ExcelReference.Parse(reference))
-                        .Any(reference => reference.Intersects(target));
-                    if (!overlaps) continue;
-                    ignored.Remove();
+                    IReadOnlyList<string> references = ParseRegionReferences(ignored.SequenceOfReferences?.InnerText);
+                    string[] remaining = references
+                        .Where(reference => !ExcelReference.Parse(reference).Intersects(target))
+                        .ToArray();
+                    if (remaining.Length == references.Count) continue;
                     removed++;
+                    if (remaining.Length == 0) ignored.Remove();
+                    else ignored.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remaining) };
                 }
                 if (!container.Elements<IgnoredError>().Any()) container.Remove();
                 WorksheetRoot.Save();
