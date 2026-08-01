@@ -317,12 +317,19 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
+            bool hasDatePictureSwitch = parsed.Switches.Any(fieldSwitch =>
+                fieldSwitch.TrimStart().StartsWith(@"\@", StringComparison.Ordinal));
+            if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch) && hasDatePictureSwitch) {
+                message = "Merge fields cannot combine numeric and date/time picture switches in the deterministic formatting profile.";
+                return false;
+            }
+
             if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)) {
                 if (!WordFieldUpdater.TryFormatFormulaValue(0m, parsed.NumericPictureSwitch, out _, out string? diagnostic)) {
                     message = diagnostic ?? "Merge field numeric picture is outside the deterministic formatting profile.";
                     return false;
                 }
-            } else if (parsed.Switches.Any(fieldSwitch => fieldSwitch.TrimStart().StartsWith(@"\@", StringComparison.Ordinal))) {
+            } else if (hasDatePictureSwitch) {
                 if (!WordFieldUpdater.TryFormatDateTime(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), parsed, out _, out message)) return false;
             }
 

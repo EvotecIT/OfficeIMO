@@ -62,6 +62,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetUsesSerializedVoidElementSize() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            for (int index = 0; index < 200; index++) paragraph.AddBreak();
+            var unboundedOptions = new WordToHtmlOptions { IncludeDefaultCss = false };
+            string expected = document.ToHtmlResult(unboundedOptions).RequireValue();
+
+            HtmlTextConversionResult bounded = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = expected.Length
+            });
+
+            Assert.True(bounded.Succeeded);
+            Assert.Equal(expected, bounded.RequireValue());
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetExcludesFieldInstructionsThatAreNotRendered() {
             using WordDocument document = WordDocument.Create();
             string largeInstruction = " QUOTE \"" + new string('x', 8192) + "\" ";

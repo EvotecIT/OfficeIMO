@@ -3,6 +3,10 @@ using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
+        private static readonly HashSet<string> HtmlVoidElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"
+        };
+
         private static readonly ConditionalWeakTable<IDocument, OutputElementBudget> OutputElementBudgets =
             new ConditionalWeakTable<IDocument, OutputElementBudget>();
 
@@ -30,8 +34,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             internal IElement CreateElement(IDocument owner, string tagName) {
-                // Even an empty element serializes with an opening and closing tag.
-                long minimumSerializedCharacters = (tagName.Length * 2L) + 5L;
+                long minimumSerializedCharacters = HtmlVoidElements.Contains(tagName)
+                    ? tagName.Length + 2L
+                    : (tagName.Length * 2L) + 5L;
                 long projectedCharacters = SaturatingAdd(_minimumOutputCharacters, minimumSerializedCharacters);
                 if (projectedCharacters > _options.MaxOutputCharacters) {
                     ThrowExportLimitExceeded(

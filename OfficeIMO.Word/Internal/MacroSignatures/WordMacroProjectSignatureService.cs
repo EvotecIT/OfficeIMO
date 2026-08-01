@@ -175,7 +175,10 @@ namespace OfficeIMO.Word {
 
             string stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
             try {
-                File.Copy(fullPath, stagingPath, overwrite: false);
+                CopyValidationSnapshot(
+                    fullPath,
+                    stagingPath,
+                    options.Inspection.PackageSecurity.MaxPackageBytes);
                 string sourcePackageHash = HashFile(stagingPath, options.Inspection.PackageSecurity.MaxPackageBytes);
                 WordSignatureInfo existingPackageSignatures = InspectPackageSignatures(stagingPath);
                 if (existingPackageSignatures.HasSignatures &&
@@ -210,20 +213,28 @@ namespace OfficeIMO.Word {
                             profile + " VBA signing", sign, profile));
                         return SigningResult(fullPath, ToolWasAvailable(sign), false, false, null, findings);
                     }
-                    WordMacroProjectToolResult verify = dependencies.Runner.Run(
-                        new WordMacroProjectToolInvocation(signTool, BuildVerifyArguments(stagingPath)),
-                        options.ToolTimeout,
-                        options.MaxToolOutputCharacters);
-                    if (!verify.Succeeded) {
-                        findings.Add(ToolFailure("Macro" + profile + "ReadbackFailed",
-                            profile + " VBA verification", verify, profile));
-                        return SigningResult(fullPath, ToolWasAvailable(verify), false, false, null, findings);
+                    WordMacroProjectSignatureInfo profileReadback =
+                        WordMacroProjectSignatureInspector.Inspect(stagingPath, options.Inspection);
+                    WordMacroProjectSignaturePartInfo? createdProfile = profileReadback.Signatures
+                        .FirstOrDefault(signature => signature.Profile == profile);
+                    if (createdProfile == null || !createdProfile.CmsParsed ||
+                        createdProfile.CryptographicStatus != WordSignatureValidationState.Passed) {
+                        findings.Add(Finding("Macro" + profile + "ReadbackFailed",
+                            WordSignatureValidationState.Failed,
+                            "The " + profile + " VBA signature was not present with a valid CMS signature after creation.",
+                            profile));
+                        return SigningResult(fullPath, true, false, false, null, findings);
                     }
                     findings.Add(Finding("Macro" + profile + "SignatureCreated",
                         WordSignatureValidationState.Passed,
                         "The " + profile + " VBA signature was created and verified before the next profile.", profile));
                 }
 
+                using var validatedStagingLock = new FileStream(
+                    stagingPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read | FileShare.Delete);
                 WordMacroProjectSignatureValidationResult stagedValidation = Validate(stagingPath, options, dependencies);
                 findings.AddRange(stagedValidation.Findings.Where(finding =>
                     !findings.Any(existing => existing.Code == finding.Code && existing.Profile == finding.Profile)));
@@ -342,9 +353,6 @@ namespace OfficeIMO.Word {
                 .Cast<WordMacroProjectSignatureProfile>()
                 .Where(profile => profile != WordMacroProjectSignatureProfile.Unknown)
                 .All(profile => info.Signatures.Any(signature => signature.Profile == profile));
-
-        private static IReadOnlyList<string> BuildVerifyArguments(string filePath) =>
-            new[] { "verify", "/pa", "/v", filePath };
 
         private static IReadOnlyList<string> BuildSignArguments(
             string filePath,

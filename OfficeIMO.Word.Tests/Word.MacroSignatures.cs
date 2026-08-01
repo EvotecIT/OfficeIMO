@@ -231,9 +231,9 @@ namespace OfficeIMO.Tests {
             Assert.True(result.MacroProjectPreserved);
             Assert.NotNull(result.ValidationResult);
             Assert.True(result.ValidationResult!.IsValidUnderPolicy);
-            Assert.Equal(7, runner.Invocations.Count);
+            Assert.Equal(4, runner.Invocations.Count);
             Assert.EndsWith("offclearsig.exe", runner.Invocations[0].ExecutablePath, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(new[] { "sign", "verify", "sign", "verify", "sign", "verify" },
+            Assert.Equal(new[] { "sign", "sign", "sign" },
                 runner.Invocations.Skip(1).Select(invocation => invocation.Arguments[0]).ToArray());
             Assert.All(runner.Invocations.Where(invocation => invocation.Arguments[0] == "sign"), invocation => {
                 Assert.Contains("/sha1", invocation.Arguments);
@@ -250,6 +250,51 @@ namespace OfficeIMO.Tests {
             WordMacroProjectSignatureInfo committed = WordDocument.InspectMacroProjectSignatures(filePath, options.Inspection);
             Assert.Equal(3, committed.Signatures.Count);
             Assert.Equal(originalMacroHash, committed.MacroProjectSha256);
+        }
+
+        [Fact]
+        public void MacroSigningLocksTheValidatedStagingBytesUntilAtomicCommit() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureLockedStage.docm");
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            string toolsDirectory = CreateFakeOfficeSipsDirectory();
+            var runner = new SimulatedOfficeSipsRunner(certificate);
+            var platform = new StagingMutationMacroSigningPlatform(runner);
+            var dependencies = new WordMacroProjectSigningDependencies(runner, platform);
+            var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
+            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
+                filePath, certificate.Thumbprint!, options, dependencies);
+
+            Assert.True(result.Succeeded, string.Join(" | ", result.Findings.Select(
+                finding => finding.Code + ": " + finding.Message)));
+            Assert.Equal(
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows),
+                platform.StagingMutationBlocked);
+            Assert.True(WordDocument.ValidateMacroProjectSignature(filePath, options).SignatureInfo.HasV3Signature);
+        }
+
+        [Fact]
+        public void MacroSigningBoundsTheSourceSnapshotCopy() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureBoundedSource.docm");
+            long originalLength = new FileInfo(filePath).Length;
+            string toolsDirectory = CreateFakeOfficeSipsDirectory();
+            var runner = new RecordingMacroToolRunner(_ => Success());
+            var platform = new SourceMutationMacroSigningPlatform(() =>
+                File.WriteAllBytes(filePath, new byte[checked((int)originalLength + 4096)]));
+            var dependencies = new WordMacroProjectSigningDependencies(runner, platform);
+            var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
+            options.Inspection.PackageSecurity.MaxPackageBytes = originalLength + 1024;
+
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
+                filePath, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
+
+            Assert.False(result.Succeeded);
+            Assert.Empty(runner.Invocations);
+            Assert.Contains(result.Findings, finding =>
+                finding.Code == "MacroProjectSigningFailed" &&
+                finding.Message.Contains("configured limit", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -669,6 +714,40 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        private sealed class StagingMutationMacroSigningPlatform : IWordMacroProjectPlatform {
+            private readonly SimulatedOfficeSipsRunner _runner;
+
+            internal StagingMutationMacroSigningPlatform(SimulatedOfficeSipsRunner runner) => _runner = runner;
+
+            internal bool StagingMutationBlocked { get; private set; }
+            public bool IsWindows => true;
+
+            public bool TryGetSubjectInterfacePackage(string filePath, out Guid subjectGuid, out string detail) {
+                subjectGuid = new Guid("6E64D5BD-CEB0-4B66-B4A0-15AC71775C48");
+                detail = "simulated Microsoft Office SIP";
+                return true;
+            }
+
+            public WordMacroProjectContentBindingResult ValidateContentBinding(
+                string filePath,
+                string digestAlgorithmOid,
+                byte[] expectedDigest) {
+                string stagingPath = _runner.Invocations.Last(invocation =>
+                    invocation.Arguments.Count > 0 && invocation.Arguments[0] == "sign").Arguments.Last();
+                byte[] originalBytes = File.ReadAllBytes(stagingPath);
+                try {
+                    File.WriteAllBytes(stagingPath, new byte[] { 0x01, 0x02, 0x03 });
+                    File.WriteAllBytes(stagingPath, originalBytes);
+                } catch (IOException) {
+                    StagingMutationBlocked = true;
+                } catch (UnauthorizedAccessException) {
+                    StagingMutationBlocked = true;
+                }
+                return new WordMacroProjectContentBindingResult(true, true,
+                    "simulated Office SIP digest match while the stage is locked");
+            }
+        }
+
         private sealed class RecordingMacroToolRunner : IWordMacroProjectToolRunner {
             private readonly Func<WordMacroProjectToolInvocation, WordMacroProjectToolResult> _run;
             internal RecordingMacroToolRunner(Func<WordMacroProjectToolInvocation, WordMacroProjectToolResult> run) => _run = run;
@@ -691,7 +770,7 @@ namespace OfficeIMO.Tests {
                 Invocations.Add(invocation);
                 if (invocation.Arguments.Count > 0 && invocation.Arguments[0] == "sign") {
                     _profile++;
-                    AddMacroSignatureProfile(invocation.Arguments[^1],
+                    AddMacroSignatureProfile(invocation.Arguments[invocation.Arguments.Count - 1],
                         (WordMacroProjectSignatureProfile)_profile, _certificate);
                 }
                 return Success();
