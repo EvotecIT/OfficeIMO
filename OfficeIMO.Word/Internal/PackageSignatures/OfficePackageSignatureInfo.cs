@@ -220,16 +220,19 @@ namespace OfficeIMO.Word {
             long maxSignatureBytes = 16L * 1024 * 1024,
             int maxCertificates = 64,
             long maxCertificateBytes = 4L * 1024 * 1024,
+            long maxTotalCertificateBytes = 64L * 1024 * 1024,
             bool verifyDigests = true) {
             if (package == null) throw new ArgumentNullException(nameof(package));
             if (maxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificates));
             if (maxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificateBytes));
+            if (maxTotalCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalCertificateBytes));
             if (maxSignedReferences <= 0) throw new ArgumentOutOfRangeException(nameof(maxSignedReferences));
             if (maxTotalDigestBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalDigestBytes));
 
             var signatureParts = new List<OfficePackageSignaturePartInfo>();
             var unsupportedDetails = new List<string>();
             var details = new List<string>();
+            var certificateByteBudget = new OfficePackageCertificateByteBudget(maxTotalCertificateBytes);
             string? originRelationshipId = null;
 
             OfficePackageSignatureArchive? signatureArchive = null;
@@ -270,6 +273,7 @@ namespace OfficeIMO.Word {
                             maxSignatureBytes,
                             maxCertificates,
                             maxCertificateBytes,
+                            certificateByteBudget,
                             verifyDigests);
                         signatureParts.Add(partInfo);
                         details.Add(DescribeSignaturePart(partInfo));
@@ -316,6 +320,7 @@ namespace OfficeIMO.Word {
             long maxSignatureBytes,
             int maxCertificates,
             long maxCertificateBytes,
+            OfficePackageCertificateByteBudget certificateByteBudget,
             bool verifyDigests) {
             var unsupportedDetails = new List<string>();
             string? relationshipId = FindRelationshipId(originPart.Parts, signaturePart);
@@ -381,8 +386,8 @@ namespace OfficeIMO.Word {
                 if (embeddedCertificateCount + relatedCertificateCount > maxCertificates) {
                     throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
                 }
-                subjectNames.AddRange(ReadEmbeddedCertificateSubjects(xml, ds, signaturePart.Uri.ToString(), maxCertificateBytes, unsupportedDetails));
-                subjectNames.AddRange(ReadRelatedCertificateSubjects(signaturePart, maxCertificateBytes, unsupportedDetails));
+                subjectNames.AddRange(ReadEmbeddedCertificateSubjects(xml, ds, signaturePart.Uri.ToString(), maxCertificateBytes, certificateByteBudget, unsupportedDetails));
+                subjectNames.AddRange(ReadRelatedCertificateSubjects(signaturePart, maxCertificateBytes, certificateByteBudget, unsupportedDetails));
                 timestamps = timestamps
                     .OrderBy(timestamp => timestamp.Kind, StringComparer.OrdinalIgnoreCase)
                     .ThenBy(timestamp => timestamp.Value, StringComparer.OrdinalIgnoreCase)
@@ -533,6 +538,7 @@ namespace OfficeIMO.Word {
             XNamespace ds,
             string signaturePartUri,
             long maxCertificateBytes,
+            OfficePackageCertificateByteBudget certificateByteBudget,
             List<string> unsupportedDetails) {
             foreach (XElement element in xml.Descendants(ds + "X509Certificate")) {
                 string certificateText = element.Value.Trim();
@@ -549,6 +555,7 @@ namespace OfficeIMO.Word {
                     if (rawCertificate.LongLength > maxCertificateBytes) {
                         throw new InvalidDataException("The embedded X509Certificate exceeds the " + maxCertificateBytes + " byte limit.");
                     }
+                    certificateByteBudget.Reserve(rawCertificate.LongLength);
                 } catch (FormatException ex) {
                     unsupportedDetails.Add("Unable to parse X509Certificate in XML signature part " + signaturePartUri + ": " + ex.Message);
                     continue;
@@ -564,6 +571,7 @@ namespace OfficeIMO.Word {
         private static IEnumerable<string> ReadRelatedCertificateSubjects(
             XmlSignaturePart signaturePart,
             long maxCertificateBytes,
+            OfficePackageCertificateByteBudget certificateByteBudget,
             List<string> unsupportedDetails) {
             foreach (IdPartPair relationship in signaturePart.Parts) {
                 OpenXmlPart relatedPart = relationship.OpenXmlPart;
@@ -580,6 +588,7 @@ namespace OfficeIMO.Word {
                     using var memoryStream = new MemoryStream();
                     CopyBounded(stream, memoryStream, maxCertificateBytes);
                     rawCertificate = memoryStream.ToArray();
+                    certificateByteBudget.Reserve(rawCertificate.LongLength);
                 } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException) {
                     unsupportedDetails.Add("Unable to read signature certificate part " + relatedPart.Uri + ": " + ex.Message);
                     continue;

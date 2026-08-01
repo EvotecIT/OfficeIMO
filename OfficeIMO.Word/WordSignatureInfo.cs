@@ -286,6 +286,7 @@ namespace OfficeIMO.Word {
             long maxSignatureBytes = 16L * 1024 * 1024,
             int maxCertificates = 64,
             long maxCertificateBytes = 4L * 1024 * 1024,
+            long maxTotalCertificateBytes = 64L * 1024 * 1024,
             bool verifyDigests = true) {
             if (package == null) throw new ArgumentNullException(nameof(package));
 
@@ -302,6 +303,7 @@ namespace OfficeIMO.Word {
                     maxSignatureBytes,
                     maxCertificates,
                     maxCertificateBytes,
+                    maxTotalCertificateBytes,
                     verifyDigests));
         }
     }

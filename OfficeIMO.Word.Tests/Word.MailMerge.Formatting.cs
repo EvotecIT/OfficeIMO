@@ -400,6 +400,55 @@ namespace OfficeIMO.Tests {
             Assert.Contains("inner value", body.InnerText, System.StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void Test_MailMerge_ExecutionReportRejectsOuterSimpleFieldContainingNestedSimpleField() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(
+                new SimpleField(
+                    new Run(new Text("outer placeholder")),
+                    new SimpleField(new Run(new Text("inner placeholder"))) { Instruction = " MERGEFIELD Inner " }) {
+                    Instruction = " MERGEFIELD Outer "
+                }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Outer"] = "outer value", ["Inner"] = "inner value" });
+
+            Assert.False(report.IsComplete);
+            Assert.Contains(report.Fields, result =>
+                result.Status == WordMailMergeFieldStatus.MalformedField &&
+                result.Instruction.Contains("Outer", System.StringComparison.Ordinal));
+            Assert.Contains(report.Fields, result =>
+                result.Name == "Inner" &&
+                result.Status == WordMailMergeFieldStatus.Merged &&
+                result.Value == "inner value");
+            Assert.DoesNotContain("outer value", body.InnerText, System.StringComparison.Ordinal);
+            Assert.Contains("inner value", body.InnerText, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_MailMerge_UpdatesSimpleFieldResultInsideInlineWrapper() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(
+                new SimpleField(
+                    new Hyperlink(new Run(new Text("stale result"))) { Id = "rIdMissing" }) {
+                    Instruction = " MERGEFIELD Name "
+                }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" },
+                removeFields: false);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal("Ada", Assert.Single(report.Fields).Value);
+            Assert.DoesNotContain("stale result", body.InnerText, System.StringComparison.Ordinal);
+            Assert.Equal("Ada", body.InnerText);
+            Assert.Single(body.Descendants<SimpleField>());
+        }
+
         private static SimpleField CreateSimpleMergeFieldForFormattingTest(string name, RunProperties runProperties) {
             return new SimpleField(
                 new Run(

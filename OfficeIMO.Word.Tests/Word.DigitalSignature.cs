@@ -723,7 +723,8 @@ namespace OfficeIMO.Tests {
                 MaxPackageBytes = 768L * 1024 * 1024,
                 MaxPackageParts = 12000,
                 MaxPartBytes = 384L * 1024 * 1024,
-                MaxTotalDigestBytes = 640L * 1024 * 1024
+                MaxTotalDigestBytes = 640L * 1024 * 1024,
+                MaxSignedReferences = 8000
             };
 
             WordSignatureValidationOptions validationOptions = WordDocument.CreateSigningReadbackOptions(
@@ -734,7 +735,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal(signingOptions.MaxPackageParts, validationOptions.MaxPackageParts);
             Assert.Equal(signingOptions.MaxPartBytes, validationOptions.MaxPartBytes);
             Assert.Equal(signingOptions.MaxTotalDigestBytes, validationOptions.MaxTotalDigestBytes);
+            Assert.Equal(signingOptions.MaxSignedReferences, validationOptions.MaxSignedReferences);
             Assert.Equal(48, validationOptions.MaxSignatureParts);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_SigningRejectsReferenceCountOutsideConfiguredLimitAtomically() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureReferenceLimit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signing reference limit");
+                document.Save();
+            }
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult result = WordDocument.TrySignPackage(
+                filePath,
+                certificate,
+                new WordPackageSigningOptions { MaxSignedReferences = 1 });
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Details, detail => detail.Contains("authenticated references", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
         }
 
         [Fact]
@@ -787,6 +809,30 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
             Assert.Contains("byte limit", Assert.Single(validation.SignatureInfo.SignatureParts).ParseError!, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidationBoundsAggregateCertificateWorkAcrossSignatureParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureAggregateCertificateBytes.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Aggregate certificate byte resource limit");
+                document.Save();
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            byte[] certificateBytes = certificate.Export(X509ContentType.Cert);
+            AddDigitalSignatureMetadata(
+                filePath,
+                CreateSignatureXmlWithCertificates(System.Convert.ToBase64String(certificateBytes)),
+                signatureCount: 2);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                MaxTotalCertificateBytes = certificateBytes.LongLength + 1
+            });
+
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.SignatureInfo.SignatureParts, part =>
+                part.ParseError?.Contains("aggregate certificate limit", System.StringComparison.OrdinalIgnoreCase) == true);
         }
 
         [Fact]
@@ -1007,6 +1053,29 @@ namespace OfficeIMO.Tests {
                 Assert.True(validation.SignatureInfo.SignatureParts.Count > 0);
                 Assert.Contains(validation.SignatureInfo.SignatureParts.SelectMany(part => part.SignedReferences), reference => reference.HasDigestValue);
             }
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidateSignaturesUsesCurrentInMemoryDocumentState() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureLiveStateValidation.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed source state");
+                document.Save();
+            }
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, certificate);
+
+            using WordDocument loaded = WordDocument.Load(filePath);
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            Assert.Equal(WordSignatureValidationState.Passed, loaded.ValidateSignatures(options).SignedPartDigestStatus);
+
+            loaded.AddParagraph("Unsaved mutation");
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.Equal(WordSignatureValidationState.Failed, validation.SignedPartDigestStatus);
+            Assert.False(validation.IsValidUnderPolicy);
         }
 
         [Fact]

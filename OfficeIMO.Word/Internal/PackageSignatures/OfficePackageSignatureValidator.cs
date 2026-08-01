@@ -42,6 +42,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("The OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
             }
             using var archive = new OfficePackageSignatureArchive(packageBytes, options.MaxPackageParts);
+            var certificateByteBudget = new OfficePackageCertificateByteBudget(options.MaxTotalCertificateBytes);
             Dictionary<string, XmlSignaturePart> packageParts = originPart.XmlSignatureParts
                 .ToDictionary(part => OfficePackageSignatureArchive.NormalizePartUri(part.Uri.ToString()), StringComparer.OrdinalIgnoreCase);
             var results = new List<WordSignaturePartValidationResult>(signatureInfo.SignatureParts.Count);
@@ -52,7 +53,7 @@ namespace OfficeIMO.Word {
                     results.Add(FailedMissingPart(signaturePartInfo));
                     continue;
                 }
-                results.Add(ValidateSignaturePart(signaturePart, signaturePartInfo, archive, options));
+                results.Add(ValidateSignaturePart(signaturePart, signaturePartInfo, archive, options, certificateByteBudget));
             }
             return results;
         }
@@ -61,7 +62,8 @@ namespace OfficeIMO.Word {
             XmlSignaturePart signaturePart,
             WordSignaturePartInfo signaturePartInfo,
             OfficePackageSignatureArchive archive,
-            WordSignatureValidationOptions options) {
+            WordSignatureValidationOptions options,
+            OfficePackageCertificateByteBudget certificateByteBudget) {
             var findings = new List<WordSignatureValidationFinding>();
             var timestampResults = new List<Rfc3161TimestampVerificationResult>();
             var certificates = new List<X509Certificate2>();
@@ -81,6 +83,7 @@ namespace OfficeIMO.Word {
                     document,
                     options.MaxCertificates,
                     options.MaxCertificateBytes,
+                    certificateByteBudget,
                     findings));
                 XmlElement? signatureValue = ReadSignatureValue(document, findings, signaturePartInfo.Uri);
                 WordSignatureValidationState cryptographicStatus;
@@ -331,6 +334,7 @@ namespace OfficeIMO.Word {
             XmlDocument signatureXml,
             int maxCertificates,
             long maxCertificateBytes,
+            OfficePackageCertificateByteBudget certificateByteBudget,
             List<WordSignatureValidationFinding> findings) {
             var result = new List<X509Certificate2>();
             XmlNodeList embedded = signatureXml.GetElementsByTagName("X509Certificate", SignedXml.XmlDsigNamespaceUrl);
@@ -338,7 +342,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
             }
             foreach (XmlElement element in embedded.OfType<XmlElement>()) {
-                TryAddCertificate(element.InnerText, "embedded X509Certificate", maxCertificateBytes, result, findings, signaturePart.Uri.ToString());
+                TryAddCertificate(element.InnerText, "embedded X509Certificate", maxCertificateBytes, certificateByteBudget, result, findings, signaturePart.Uri.ToString());
             }
 
             int declaredCertificateCount = embedded.Count;
@@ -354,7 +358,9 @@ namespace OfficeIMO.Word {
                     }
                     using var buffer = new MemoryStream();
                     CopyBounded(stream, buffer, maxCertificateBytes);
-                    result.Add(LoadCertificate(buffer.ToArray()));
+                    byte[] certificateBytes = buffer.ToArray();
+                    certificateByteBudget.Reserve(certificateBytes.LongLength);
+                    result.Add(LoadCertificate(certificateBytes));
                 } catch (Exception exception) when (exception is IOException or CryptographicException or InvalidOperationException) {
                     findings.Add(Finding("CertificateMalformed", WordSignatureValidationState.Failed,
                         "The related signature certificate could not be read: " + exception.Message,
@@ -368,6 +374,7 @@ namespace OfficeIMO.Word {
             string encoded,
             string source,
             long maxCertificateBytes,
+            OfficePackageCertificateByteBudget certificateByteBudget,
             List<X509Certificate2> certificates,
             List<WordSignatureValidationFinding> findings,
             string signaturePartUri) {
@@ -381,6 +388,7 @@ namespace OfficeIMO.Word {
                 if (certificateBytes.LongLength > maxCertificateBytes) {
                     throw new InvalidDataException("The " + source + " value exceeds the " + maxCertificateBytes + " byte limit.");
                 }
+                certificateByteBudget.Reserve(certificateBytes.LongLength);
                 certificates.Add(LoadCertificate(certificateBytes));
             } catch (Exception exception) when (exception is FormatException or CryptographicException) {
                 findings.Add(Finding("CertificateMalformed", WordSignatureValidationState.Failed,
@@ -667,6 +675,7 @@ namespace OfficeIMO.Word {
             if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
             if (options.MaxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificates));
             if (options.MaxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificateBytes));
+            if (options.MaxTotalCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalCertificateBytes));
             if (options.MaxTimestampTokens <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTimestampTokens));
             if (options.MaxTimestampBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTimestampBytes));
         }

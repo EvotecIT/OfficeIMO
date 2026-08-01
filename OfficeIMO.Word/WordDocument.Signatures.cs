@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word {
@@ -49,6 +50,7 @@ namespace OfficeIMO.Word {
                     maxSignatureBytes: options.MaxSignatureBytes,
                     maxCertificates: options.MaxCertificates,
                     maxCertificateBytes: options.MaxCertificateBytes,
+                    maxTotalCertificateBytes: options.MaxTotalCertificateBytes,
                     verifyDigests: false);
                 return WordSignatureValidationReport.From(unsignedInfo);
             }
@@ -66,7 +68,10 @@ namespace OfficeIMO.Word {
                     "SignatureResourceLimitExceeded",
                     "The package contains more than " + options.MaxSignatureParts + " XML signature parts.");
             }
-            if (_ownedPackageStream != null && _ownedPackageStream.Length > options.MaxPackageBytes) {
+            byte[] packageBytes;
+            try {
+                packageBytes = CreateSignatureValidationSnapshot(options.MaxPackageBytes);
+            } catch (InvalidDataException exception) {
                 WordSignatureInfo boundedInfo = WordSignatureInspector.Inspect(
                     _wordprocessingDocument,
                     originPart,
@@ -79,17 +84,22 @@ namespace OfficeIMO.Word {
                     maxSignatureBytes: options.MaxSignatureBytes,
                     maxCertificates: options.MaxCertificates,
                     maxCertificateBytes: options.MaxCertificateBytes,
+                    maxTotalCertificateBytes: options.MaxTotalCertificateBytes,
                     verifyDigests: false);
                 return WordSignatureValidationReport.WithValidationFailure(
                     WordSignatureValidationReport.From(boundedInfo),
                     "PackageByteLimitExceeded",
-                    "The OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
+                    exception.Message);
             }
-            byte[]? packageBytes = _ownedPackageStream?.ToArray();
+
+            using var validationStream = new MemoryStream(packageBytes, writable: false);
+            using WordprocessingDocument validationPackage = WordprocessingDocument.Open(validationStream, false);
+            DigitalSignatureOriginPart? validationOriginPart = validationPackage.DigitalSignatureOriginPart;
+            bool validationHasApplicationSignatureMetadata = validationPackage.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
             WordSignatureInfo signatureInfo = WordSignatureInspector.Inspect(
-                _wordprocessingDocument,
-                originPart,
-                hasApplicationSignatureMetadata,
+                validationPackage,
+                validationOriginPart,
+                validationHasApplicationSignatureMetadata,
                 packageBytes,
                 options.MaxPackageParts,
                 options.MaxPartBytes,
@@ -97,17 +107,16 @@ namespace OfficeIMO.Word {
                 options.MaxTotalDigestBytes,
                 options.MaxSignatureBytes,
                 options.MaxCertificates,
-                options.MaxCertificateBytes);
+                options.MaxCertificateBytes,
+                options.MaxTotalCertificateBytes);
             WordSignatureValidationReport structural = WordSignatureValidationReport.From(signatureInfo);
-            if (!signatureInfo.HasSignatures ||
-                packageBytes == null ||
-                originPart == null) {
+            if (!signatureInfo.HasSignatures || validationOriginPart == null) {
                 return structural;
             }
 
             try {
                 IReadOnlyList<WordSignaturePartValidationResult> signatures = OfficePackageSignatureValidator.Validate(
-                    originPart,
+                    validationOriginPart,
                     packageBytes,
                     signatureInfo,
                     options);
@@ -184,8 +193,22 @@ namespace OfficeIMO.Word {
                 MaxPackageBytes = signingOptions.MaxPackageBytes,
                 MaxPackageParts = signingOptions.MaxPackageParts,
                 MaxPartBytes = signingOptions.MaxPartBytes,
+                MaxSignedReferences = signingOptions.MaxSignedReferences,
                 MaxTotalDigestBytes = signingOptions.MaxTotalDigestBytes
             };
+        }
+
+        private byte[] CreateSignatureValidationSnapshot(long maxPackageBytes) {
+            if (_ownedPackageStream == null) {
+                throw new InvalidDataException("The current OPC package has no encoded package stream available for validation.");
+            }
+            if (_wordprocessingDocument.FileOpenAccess != FileAccess.Read) {
+                _wordprocessingDocument.Save();
+            }
+            if (_ownedPackageStream.Length > maxPackageBytes) {
+                throw new InvalidDataException("The current OPC package exceeds the " + maxPackageBytes + " byte validation limit.");
+            }
+            return _ownedPackageStream.ToArray();
         }
 
         /// <summary>

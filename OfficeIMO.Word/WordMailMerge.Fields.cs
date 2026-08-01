@@ -24,7 +24,12 @@ namespace OfficeIMO.Word {
         }
         private static void ReplaceMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
             foreach (MergeFieldOccurrence occurrence in DiscoverMergeFieldOccurrences(root).OrderBy(item => item.Order)) {
-                if (occurrence.SimpleField != null) {
+                if (occurrence.SimpleField != null && occurrence.MalformedMessage != null) {
+                    ReportMalformedMergeField(
+                        results,
+                        occurrence.SimpleField.Instruction?.Value ?? string.Empty,
+                        occurrence.MalformedMessage);
+                } else if (occurrence.SimpleField != null) {
                     ReplaceSimpleMergeField(occurrence.SimpleField, values, removeFields, results);
                 } else if (occurrence.MalformedMessage != null) {
                     ReportMalformedMergeField(results, ReadComplexFieldInstruction(occurrence.ComplexRuns!), occurrence.MalformedMessage);
@@ -51,11 +56,11 @@ namespace OfficeIMO.Word {
             }
 
             if (removeFields) {
-                var replacement = CreateReplacementRun(formattedValue, simpleField.Elements<Run>().FirstOrDefault());
+                var replacement = CreateReplacementRun(formattedValue, EnumerateSimpleFieldOwnedRuns(simpleField).FirstOrDefault());
                 simpleField.InsertBeforeSelf(replacement);
                 simpleField.Remove();
             } else {
-                List<Run> resultRuns = simpleField.Elements<Run>().ToList();
+                List<Run> resultRuns = EnumerateSimpleFieldOwnedRuns(simpleField).ToList();
                 if (!SetFieldResultText(resultRuns, formattedValue)) {
                     simpleField.Append(CreateReplacementRun(formattedValue, sourceRun: null));
                 }
@@ -68,7 +73,12 @@ namespace OfficeIMO.Word {
                 .Select((element, index) => new { element, index })
                 .ToDictionary(item => item.element, item => item.index);
             var occurrences = root.Descendants<SimpleField>()
-                .Select(simpleField => MergeFieldOccurrence.ForSimple(orderByElement[simpleField], simpleField))
+                .Select(simpleField => MergeFieldOccurrence.ForSimple(
+                    orderByElement[simpleField],
+                    simpleField,
+                    simpleField.Descendants<SimpleField>().Any()
+                        ? "A simple MERGEFIELD contains a nested field and cannot be processed deterministically."
+                        : null))
                 .ToList();
 
             foreach (var paragraph in EnumerateParagraphs(root)) {
@@ -149,6 +159,28 @@ namespace OfficeIMO.Word {
 
             foreach (OpenXmlElement child in element.ChildElements) {
                 foreach (Run descendantRun in EnumerateRunsUntilNestedParagraph(child)) {
+                    yield return descendantRun;
+                }
+            }
+        }
+
+        private static IEnumerable<Run> EnumerateSimpleFieldOwnedRuns(SimpleField simpleField) {
+            foreach (OpenXmlElement child in simpleField.ChildElements) {
+                foreach (Run run in EnumerateRunsUntilNestedSimpleField(child)) {
+                    yield return run;
+                }
+            }
+        }
+
+        private static IEnumerable<Run> EnumerateRunsUntilNestedSimpleField(OpenXmlElement element) {
+            if (element is SimpleField) yield break;
+            if (element is Run run) {
+                yield return run;
+                yield break;
+            }
+
+            foreach (OpenXmlElement child in element.ChildElements) {
+                foreach (Run descendantRun in EnumerateRunsUntilNestedSimpleField(child)) {
                     yield return descendantRun;
                 }
             }
@@ -312,8 +344,8 @@ namespace OfficeIMO.Word {
             internal IReadOnlyList<Run>? ComplexRuns { get; }
             internal string? MalformedMessage { get; }
 
-            internal static MergeFieldOccurrence ForSimple(int order, SimpleField simpleField) =>
-                new MergeFieldOccurrence(order, simpleField, null, null);
+            internal static MergeFieldOccurrence ForSimple(int order, SimpleField simpleField, string? malformedMessage = null) =>
+                new MergeFieldOccurrence(order, simpleField, null, malformedMessage);
 
             internal static MergeFieldOccurrence ForComplex(int order, IReadOnlyList<Run> runs, string? malformedMessage = null) =>
                 new MergeFieldOccurrence(order, null, runs, malformedMessage);

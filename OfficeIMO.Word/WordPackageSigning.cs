@@ -121,6 +121,9 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the maximum aggregate uncompressed package-part bytes digested while signing. Defaults to 512 MiB.</summary>
         public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;
 
+        /// <summary>Gets or sets the maximum authenticated XML signature references created per signature. Defaults to 4,096.</summary>
+        public int MaxSignedReferences { get; set; } = 4096;
+
         internal OfficePackageSigningOptions ToPackageOptions() {
             return new OfficePackageSigningOptions {
                 PartUris = PartUris,
@@ -133,7 +136,8 @@ namespace OfficeIMO.Word {
                 MaxPackageParts = MaxPackageParts,
                 MaxPackageBytes = MaxPackageBytes,
                 MaxPartBytes = MaxPartBytes,
-                MaxTotalDigestBytes = MaxTotalDigestBytes
+                MaxTotalDigestBytes = MaxTotalDigestBytes,
+                MaxSignedReferences = MaxSignedReferences
             };
         }
     }

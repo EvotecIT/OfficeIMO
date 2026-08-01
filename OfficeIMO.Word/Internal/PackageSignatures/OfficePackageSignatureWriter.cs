@@ -26,6 +26,7 @@ namespace OfficeIMO.Word {
         public long MaxPackageBytes { get; set; } = 512L * 1024 * 1024;
         public long MaxPartBytes { get; set; } = 256L * 1024 * 1024;
         public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;
+        public int MaxSignedReferences { get; set; } = 4096;
     }
 
     /// <summary>Result of an attempted Open Packaging Convention package-signing operation.</summary>
@@ -78,6 +79,7 @@ namespace OfficeIMO.Word {
             if (options.MaxPackageBytes <= 0) return Failed(fullPath, "MaxPackageBytes must be greater than zero.");
             if (options.MaxPartBytes <= 0) return Failed(fullPath, "MaxPartBytes must be greater than zero.");
             if (options.MaxTotalDigestBytes <= 0) return Failed(fullPath, "MaxTotalDigestBytes must be greater than zero.");
+            if (options.MaxSignedReferences <= 0) return Failed(fullPath, "MaxSignedReferences must be greater than zero.");
             long packageLength = new FileInfo(fullPath).Length;
             if (packageLength > options.MaxPackageBytes) {
                 return Failed(fullPath, "The package exceeds the " + options.MaxPackageBytes + " byte signing limit.");
@@ -181,6 +183,11 @@ namespace OfficeIMO.Word {
                     relationshipSelectorCount += CountRelationshipSelectors(partRelationships);
                     manifest.Add(partRelationships);
                 }
+            }
+
+            int authenticatedReferenceCount = manifest.Elements(ds + "Reference").Count() + 1;
+            if (authenticatedReferenceCount > options.MaxSignedReferences) {
+                throw new InvalidDataException("The package signature would contain more than " + options.MaxSignedReferences + " authenticated references.");
             }
 
             long totalDigestBytes = 0;
