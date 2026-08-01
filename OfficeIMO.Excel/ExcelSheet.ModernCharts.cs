@@ -190,13 +190,25 @@ namespace OfficeIMO.Excel {
                     || valueLastColumn != valueColumn) return null;
             }
 
+            bool hasHeaderRow = firstRow > 1;
+            if (hasHeaderRow) {
+                ExcelSheet dataSheet = _excelDocument[sheetName];
+                Cx.Series[] series = root?.Descendants<Cx.Series>().ToArray() ?? Array.Empty<Cx.Series>();
+                hasHeaderRow = series.Length == data.Length;
+                for (int index = 0; hasHeaderRow && index < series.Length; index++) {
+                    string expectedName = series[index].Descendants<Cx.VXsdstring>().FirstOrDefault()?.Text ?? string.Empty;
+                    hasHeaderRow = dataSheet.TryGetCellText(firstRow - 1, categoryColumn + index + 1, out string actualName)
+                        && string.Equals(expectedName, actualName, StringComparison.Ordinal);
+                }
+            }
+
             return new ExcelChartDataRange(
                 sheetName,
-                firstRow,
+                hasHeaderRow ? firstRow - 1 : firstRow,
                 categoryColumn,
                 lastRow - firstRow + 1,
                 data.Length,
-                hasHeaderRow: false);
+                hasHeaderRow);
         }
 
         internal static Cx.ChartSpace BuildModernChartSpace(

@@ -44,8 +44,27 @@ namespace OfficeIMO.Excel {
                     ?? throw new InvalidOperationException($"Table '{tableName}' is not query-backed.");
                 var current = A1.ParseRange(table.Reference?.Value
                     ?? throw new InvalidDataException("Query-backed table range is missing."));
+                NormalizeImplicitCellReferences();
+                int totalsRowCount = checked((int)(table.TotalsRowCount?.Value
+                    ?? (table.TotalsRowShown?.Value == true ? 1U : 0U)));
+                if (totalsRowCount < 0 || totalsRowCount >= current.r2 - current.r1 + 1) {
+                    throw new InvalidDataException("Query-backed table totals-row metadata is inconsistent with its range.");
+                }
+                int currentTotalsStartRow = current.r2 - totalsRowCount + 1;
+                List<(int RowOffset, int ColumnOffset, Cell Cell)> totalsCells = totalsRowCount == 0
+                    ? new List<(int RowOffset, int ColumnOffset, Cell Cell)>()
+                    : EnumerateCellsWithEffectiveCoordinates()
+                        .Where(item => item.Row >= currentTotalsStartRow
+                            && item.Row <= current.r2
+                            && item.Column >= current.c1
+                            && item.Column <= current.c2)
+                        .Select(item => (
+                            item.Row - currentTotalsStartRow,
+                            item.Column - current.c1,
+                            (Cell)item.Cell.CloneNode(true)))
+                        .ToList();
                 int targetLastColumn = checked(current.c1 + columnNames.Count - 1);
-                int targetLastRow = checked(current.r1 + rows.Count);
+                int targetLastRow = checked(current.r1 + rows.Count + totalsRowCount);
                 if (targetLastColumn > 16_384 || targetLastRow > 1_048_576) {
                     throw new InvalidOperationException("Query result exceeds worksheet capacity.");
                 }
@@ -95,11 +114,34 @@ namespace OfficeIMO.Excel {
                         CellValueCoreNoMaterialize(current.r1 + row + 1, current.c1 + column, values[column]);
                     }
                 }
+                int targetTotalsStartRow = targetLastRow - totalsRowCount + 1;
+                foreach ((int rowOffset, int columnOffset, Cell clone) in totalsCells) {
+                    if (columnOffset >= columnNames.Count) continue;
+                    int sourceRow = currentTotalsStartRow + rowOffset;
+                    int sourceColumn = current.c1 + columnOffset;
+                    int targetRow = targetTotalsStartRow + rowOffset;
+                    int targetColumn = current.c1 + columnOffset;
+                    clone.CellReference = A1.CellReference(targetRow, targetColumn);
+                    if (clone.CellFormula != null && targetRow != sourceRow) {
+                        clone.CellFormula.Text = TranslateCopiedFormula(
+                            clone.CellFormula.Text,
+                            sourceRow,
+                            sourceColumn,
+                            targetRow,
+                            targetColumn,
+                            transpose: false);
+                        clone.CellFormula.CalculateCell = true;
+                        clone.CellValue = null;
+                    }
+                    PutClonedCell(targetRow, targetColumn, clone);
+                }
 
                 table.Reference = updatedRange;
                 AutoFilter? filter = table.GetFirstChild<AutoFilter>();
                 if (filter != null) {
-                    filter.Reference = updatedRange;
+                    int filterLastRow = targetLastRow - totalsRowCount;
+                    filter.Reference = A1.CellReference(current.r1, current.c1) + ":"
+                        + A1.CellReference(filterLastRow, targetLastColumn);
                     foreach (FilterColumn stale in filter.Elements<FilterColumn>()
                         .Where(item => (item.ColumnId?.Value ?? uint.MaxValue) >= (uint)columnNames.Count).ToList()) stale.Remove();
                 }
@@ -113,17 +155,16 @@ namespace OfficeIMO.Excel {
                 _excelDocument.CleanupCalculationArtifacts(
                     save: false,
                     ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
-                return checked(rows.Count * columnNames.Count + columnNames.Count);
+                return checked(rows.Count * columnNames.Count + columnNames.Count + totalsCells.Count);
             }, new ExcelMutationPlanOptions(), cancellationToken);
             return updatedRange!;
         }
 
         private void EnsureQueryRefreshExpansionIsEmpty(ExcelReference current, ExcelReference target) {
-            bool conflict = WorksheetRoot.Descendants<Cell>().Any(cell =>
-                TryGetCellCoordinates(cell, out int row, out int column)
-                && target.Contains(row, column)
-                && !current.Contains(row, column)
-                && (cell.CellFormula != null || cell.CellValue != null || cell.InlineString != null));
+            bool conflict = EnumerateCellsWithEffectiveCoordinates().Any(item =>
+                target.Contains(item.Row, item.Column)
+                && !current.Contains(item.Row, item.Column)
+                && (item.Cell.CellFormula != null || item.Cell.CellValue != null || item.Cell.InlineString != null));
             if (conflict) {
                 throw new InvalidOperationException(
                     "Query refresh expansion would overwrite populated worksheet cells outside the current table range.");

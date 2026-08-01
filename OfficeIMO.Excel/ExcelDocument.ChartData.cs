@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -8,6 +9,8 @@ namespace OfficeIMO.Excel {
         internal const string ChartDataSheetName = "OfficeIMO_ChartData";
         private const string ChartDataOwnerDefinedName = "_OfficeIMO_ChartDataOwner";
         private readonly object _chartDataLock = new object();
+        private readonly List<(int StartRow, int RowCount)> _chartDataFreeRows =
+            new List<(int StartRow, int RowCount)>();
         private ExcelSheet? _chartDataSheet;
         private int _chartDataNextRow;
 
@@ -30,13 +33,117 @@ namespace OfficeIMO.Excel {
             if (spacingRows < 0) spacingRows = 0;
 
             lock (_chartDataLock) {
+                int slotRows = checked(rowsNeeded + spacingRows);
+                for (int index = 0; index < _chartDataFreeRows.Count; index++) {
+                    (int freeStart, int freeCount) = _chartDataFreeRows[index];
+                    if (freeCount < slotRows) continue;
+                    if (freeCount == slotRows) _chartDataFreeRows.RemoveAt(index);
+                    else _chartDataFreeRows[index] = (freeStart + slotRows, freeCount - slotRows);
+                    return freeStart;
+                }
                 if (_chartDataNextRow <= 0) {
                     _chartDataNextRow = CalculateInitialChartDataRow(sheet);
                 }
 
                 int startRow = _chartDataNextRow;
-                _chartDataNextRow = startRow + rowsNeeded + spacingRows;
+                long nextRow = (long)startRow + slotRows;
+                if (nextRow - 1L > A1.MaxRows) {
+                    throw new InvalidOperationException("Chart data exceeds Excel's worksheet row limit.");
+                }
+                _chartDataNextRow = checked((int)nextRow);
                 return startRow;
+            }
+        }
+
+        internal void ReleaseOwnedChartDataRange(
+            ExcelChartDataRange currentRange,
+            ExcelChartDataRange? retainedRange = null) {
+            if (currentRange == null || !IsOwnedChartDataSheet(currentRange.SheetName)) return;
+            ExcelSheet dataSheet = this[currentRange.SheetName];
+            ExcelReference current = ExcelReference.Parse(currentRange.DataRangeA1);
+            ExcelReference? retained = retainedRange != null
+                && string.Equals(currentRange.SheetName, retainedRange.SheetName, StringComparison.OrdinalIgnoreCase)
+                    ? ExcelReference.Parse(retainedRange.DataRangeA1)
+                    : null;
+            IReadOnlyList<ExcelReference> liveReferences = GetOwnedChartDataReferences(currentRange.SheetName);
+            IReadOnlyList<ExcelReference> obsolete = SubtractChartDataRange(current, retained);
+            foreach (ExcelReference range in obsolete) {
+                if (liveReferences.Any(reference => reference.Intersects(range))) continue;
+                range.GetBounds(out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
+                dataSheet.ClearRange(
+                    A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn),
+                    ExcelClearOptions.All);
+            }
+            if (obsolete.Count == 1
+                && obsolete[0].Equals(current)
+                && !liveReferences.Any(reference => reference.Intersects(current))) {
+                current.GetBounds(out int firstRow, out _, out int lastRow, out _);
+                int releaseLastRow = Math.Min(A1.MaxRows, checked(lastRow + 2));
+                foreach (ExcelReference reference in liveReferences) {
+                    reference.GetBounds(out int liveFirstRow, out _, out _, out _);
+                    if (liveFirstRow > lastRow && liveFirstRow <= releaseLastRow) {
+                        releaseLastRow = liveFirstRow - 1;
+                    }
+                }
+                ReleaseChartDataRows(firstRow, releaseLastRow - firstRow + 1);
+            }
+        }
+
+        private IReadOnlyList<ExcelReference> GetOwnedChartDataReferences(string sheetName) {
+            List<Sheet> sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+            int sheetIndex = sheets.FindIndex(sheet =>
+                string.Equals(sheet.Name?.Value, sheetName, StringComparison.OrdinalIgnoreCase));
+            if (sheetIndex < 0) return Array.Empty<ExcelReference>();
+            var references = new List<ExcelReference>();
+            foreach (var context in EnumerateMutationFormulaContexts(
+                sheets,
+                sheetIndex,
+                ChartDataOwnerDefinedName)) {
+                foreach (ExcelFormulaReferenceSyntax node in ExcelFormulaSyntaxTree.Parse(context.Text)
+                    .Nodes.OfType<ExcelFormulaReferenceSyntax>()) {
+                    if (ReferenceTargetsSheet(node.Reference, sheetName, context.UnqualifiedTargetsEdited)) {
+                        references.Add(node.Reference);
+                    }
+                }
+            }
+            return references;
+        }
+
+        private static IReadOnlyList<ExcelReference> SubtractChartDataRange(
+            ExcelReference current,
+            ExcelReference? retained) {
+            current.GetBounds(out int currentFirstRow, out int currentFirstColumn, out int currentLastRow, out int currentLastColumn);
+            if (retained == null || !current.Intersects(retained)) return new[] { current };
+            retained.GetBounds(out int retainedFirstRow, out int retainedFirstColumn, out int retainedLastRow, out int retainedLastColumn);
+            int firstRow = Math.Max(currentFirstRow, retainedFirstRow);
+            int firstColumn = Math.Max(currentFirstColumn, retainedFirstColumn);
+            int lastRow = Math.Min(currentLastRow, retainedLastRow);
+            int lastColumn = Math.Min(currentLastColumn, retainedLastColumn);
+            var ranges = new List<ExcelReference>(4);
+            void Add(int r1, int c1, int r2, int c2) {
+                if (r1 > r2 || c1 > c2) return;
+                ranges.Add(ExcelReference.Parse(
+                    A1.CellReference(r1, c1) + ":" + A1.CellReference(r2, c2)));
+            }
+            Add(currentFirstRow, currentFirstColumn, firstRow - 1, currentLastColumn);
+            Add(lastRow + 1, currentFirstColumn, currentLastRow, currentLastColumn);
+            Add(firstRow, currentFirstColumn, lastRow, firstColumn - 1);
+            Add(firstRow, lastColumn + 1, lastRow, currentLastColumn);
+            return ranges;
+        }
+
+        private void ReleaseChartDataRows(int startRow, int rowCount) {
+            lock (_chartDataLock) {
+                _chartDataFreeRows.Add((startRow, rowCount));
+                _chartDataFreeRows.Sort((left, right) => left.StartRow.CompareTo(right.StartRow));
+                for (int index = _chartDataFreeRows.Count - 1; index > 0; index--) {
+                    (int previousStart, int previousCount) = _chartDataFreeRows[index - 1];
+                    (int currentStart, int currentCount) = _chartDataFreeRows[index];
+                    if (previousStart + previousCount < currentStart) continue;
+                    int mergedEnd = Math.Max(previousStart + previousCount, currentStart + currentCount);
+                    _chartDataFreeRows[index - 1] = (previousStart, mergedEnd - previousStart);
+                    _chartDataFreeRows.RemoveAt(index);
+                }
             }
         }
 
@@ -134,7 +241,7 @@ namespace OfficeIMO.Excel {
                     return 1;
                 }
             }
-            return r2 + 2;
+            return checked(r2 + 3);
         }
     }
 }

@@ -84,8 +84,9 @@ namespace OfficeIMO.Excel {
                         direction,
                         inserting));
                 PreflightCellShift(affected, direction, inserting, budget);
-                int count = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell => {
-                    if (!TryGetCellCoordinates(cell, out int row, out int column)) return false;
+                int count = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget).Count(item => {
+                    int row = item.Row;
+                    int column = item.Column;
                     return direction == ExcelCellShiftDirection.Right || direction == ExcelCellShiftDirection.Left
                         ? row >= r1 && row <= r2 && column >= c1
                         : column >= c1 && column <= c2 && row >= r1;
@@ -138,9 +139,8 @@ namespace OfficeIMO.Excel {
                     ValidateA1MutationReferenceMode("Range transfers");
                 }
                 PreflightRangeTransfer(source, destination.Start.Row, destination.Start.Column, destinationRows, destinationColumns, move, transpose, budget);
-                int existing = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell =>
-                    TryGetCellCoordinates(cell, out int row, out int column)
-                    && source.Contains(row, column));
+                int existing = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
+                    .Count(item => source.Contains(item.Row, item.Column));
                 int images = InspectMutationPlanElements(Images, budget)
                     .Count(image => !image.HasAbsoluteAnchor && source.Contains(image.RowIndex, image.ColumnIndex));
                 var impacts = new List<ExcelMutationImpact> {
@@ -180,8 +180,9 @@ namespace OfficeIMO.Excel {
             ValidateCellShiftConnectionParameters(affected, direction, inserting, budget);
             if (!inserting) return;
             if (direction == ExcelCellShiftDirection.Right) {
-                int maxCell = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out int row, out _) && row >= r1 && row <= r2)
-                    .Select(cell => TryGetCellCoordinates(cell, out _, out int column) ? column : 0).DefaultIfEmpty().Max();
+                int maxCell = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
+                    .Where(item => item.Row >= r1 && item.Row <= r2)
+                    .Select(item => item.Column).DefaultIfEmpty().Max();
                 int maxDrawing = InspectMutationPlanElements(
                         _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<Xdr.MarkerType>() ?? Enumerable.Empty<Xdr.MarkerType>(),
                         budget)
@@ -193,8 +194,9 @@ namespace OfficeIMO.Excel {
                 int max = Math.Max(maxCell, maxDrawing);
                 if ((long)max + c2 - c1 + 1L > A1.MaxColumns) throw new InvalidOperationException("Cell insertion would exceed the worksheet column limit.");
             } else {
-                int maxCell = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out _, out int column) && column >= c1 && column <= c2)
-                    .Select(cell => TryGetCellCoordinates(cell, out int row, out _) ? row : 0).DefaultIfEmpty().Max();
+                int maxCell = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
+                    .Where(item => item.Column >= c1 && item.Column <= c2)
+                    .Select(item => item.Row).DefaultIfEmpty().Max();
                 int maxDrawing = InspectMutationPlanElements(
                         _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<Xdr.MarkerType>() ?? Enumerable.Empty<Xdr.MarkerType>(),
                         budget)
@@ -227,8 +229,9 @@ namespace OfficeIMO.Excel {
                 ValidateRangeMoveHyperlinks(source, destination, budget);
                 ValidateRangeMoveCommentVmlAnchors(source, destination, budget);
             }
-            foreach (Cell cell in InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
-                .Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))) {
+            foreach (Cell cell in InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
+                .Where(item => source.Contains(item.Row, item.Column))
+                .Select(item => item.Cell)) {
                 CellFormulaValues? type = cell.CellFormula?.FormulaType?.Value;
                 if (type == CellFormulaValues.Array || type == CellFormulaValues.DataTable) {
                     throw new InvalidOperationException("Range transfer cannot split array or data-table formulas.");
@@ -270,6 +273,7 @@ namespace OfficeIMO.Excel {
             int rows = r2 - r1 + 1;
             int columns = c2 - c1 + 1;
             MaterializeWorkbookSharedFormulasForStructuralEdit();
+            NormalizeImplicitCellReferences();
             List<(Cell Cell, int Row, int Column)> cells = WorksheetRoot.Descendants<Cell>()
                 .Select(cell => TryGetCellCoordinates(cell, out int row, out int column) ? (cell, row, column) : (cell, 0, 0))
                 .Where(item => item.Item2 > 0).ToList();
@@ -342,6 +346,7 @@ namespace OfficeIMO.Excel {
             int destinationRows = transpose ? sourceColumns : sourceRows;
             int destinationColumns = transpose ? sourceRows : sourceColumns;
             MaterializeWorkbookSharedFormulasForStructuralEdit();
+            NormalizeImplicitCellReferences();
             var snapshots = WorksheetRoot.Descendants<Cell>()
                 .Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))
                 .Select(cell => {

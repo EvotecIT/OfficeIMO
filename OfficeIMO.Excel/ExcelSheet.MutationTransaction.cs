@@ -34,9 +34,12 @@ namespace OfficeIMO.Excel {
                     cancellationToken.ThrowIfCancellationRequested();
                     WorksheetRoot.Save();
                     MarkRequiresSavePreparation();
+                    IReadOnlyList<ExcelMutationDiagnostic> diagnostics =
+                        _excelDocument.GetMutationDiagnostics(options.MaximumDiagnostics, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
                     result = new ExcelMutationResult(
                         affectedCells,
-                        _excelDocument.GetMutationDiagnostics(options.MaximumDiagnostics));
+                        diagnostics);
                 } catch {
                     snapshot.Restore();
                     ResetMutationCaches();
@@ -340,15 +343,21 @@ namespace OfficeIMO.Excel {
     }
 
     public partial class ExcelDocument {
-        internal IReadOnlyList<ExcelMutationDiagnostic> GetMutationDiagnostics(int maximumDiagnostics) {
-            return ValidateDocument(DocumentFormat.OpenXml.FileFormatVersions.Microsoft365)
-                .Take(maximumDiagnostics)
-                .Select(error => new ExcelMutationDiagnostic(
+        internal IReadOnlyList<ExcelMutationDiagnostic> GetMutationDiagnostics(
+            int maximumDiagnostics,
+            CancellationToken cancellationToken = default) {
+            var diagnostics = new List<ExcelMutationDiagnostic>(maximumDiagnostics);
+            foreach (var error in ValidateDocument(DocumentFormat.OpenXml.FileFormatVersions.Microsoft365)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (diagnostics.Count >= maximumDiagnostics) break;
+                diagnostics.Add(new ExcelMutationDiagnostic(
                     "OPENXML_VALIDATION",
                     ExcelMutationDiagnosticSeverity.Error,
                     error.Description ?? "Open XML validation error.",
-                    error.Part?.Uri.ToString()))
-                .ToArray();
+                    error.Part?.Uri.ToString()));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return diagnostics;
         }
     }
 }

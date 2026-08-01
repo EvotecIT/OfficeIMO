@@ -147,6 +147,7 @@ namespace OfficeIMO.Excel {
             part.ChartSpace.Save();
             _sheet.MarkRequiresSavePreparation();
             DataRange = updatedRange;
+            _sheet.Document.ReleaseOwnedChartDataRange(currentRange, updatedRange);
             return this;
         }
 
@@ -175,6 +176,7 @@ namespace OfficeIMO.Excel {
             OpenXmlElement? anchor = _frame.Parent;
             anchor?.Remove();
             _drawingsPart.DeletePart(part);
+            if (DataRange != null) _sheet.Document.ReleaseOwnedChartDataRange(DataRange);
             if (_drawingsPart.WorksheetDrawing?.ChildElements.Any() == true) {
                 SaveDrawing();
                 return;

@@ -177,9 +177,14 @@ namespace OfficeIMO.Excel {
 
         private IEnumerable<MutationFormulaContext> EnumerateMutationFormulaContexts(
             IReadOnlyList<Sheet> sheets,
-            int editedSheetIndex) {
+            int editedSheetIndex,
+            string? excludedDefinedName = null) {
             foreach (DefinedName name in WorkbookRoot.DefinedNames?.Elements<DefinedName>()
                 ?? Enumerable.Empty<DefinedName>()) {
+                if (!string.IsNullOrEmpty(excludedDefinedName)
+                    && string.Equals(name.Name?.Value, excludedDefinedName, StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
                 if (!string.IsNullOrEmpty(name.Text)) {
                     bool local = name.LocalSheetId?.Value is uint localIndex && localIndex == (uint)editedSheetIndex;
                     yield return new MutationFormulaContext(name.Text, local);
