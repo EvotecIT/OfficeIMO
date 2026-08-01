@@ -570,6 +570,9 @@ namespace OfficeIMO.Excel {
 
         private string NormalizeFormulaDependencyReference(string reference, int? sourceRow) {
             string normalized = reference.Trim().Replace("$", string.Empty);
+            if (normalized.EndsWith("#", StringComparison.Ordinal)) {
+                normalized = normalized.Substring(0, normalized.Length - 1);
+            }
             if (TryResolveFormulaDependencyReference(
                 normalized,
                 sourceRow,

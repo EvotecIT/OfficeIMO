@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -139,6 +140,65 @@ namespace OfficeIMO.Excel {
                 newIndex++;
             }
             return (uint)lastSurvivingNewIndex;
+        }
+
+        private static void RewriteMutationCellWatchesAndSmartTags(
+            Worksheet? worksheet,
+            Func<ExcelReference, ExcelReference?> transform) {
+            if (worksheet == null) return;
+
+            CellWatches? watches = worksheet.GetFirstChild<CellWatches>();
+            if (watches != null) {
+                foreach (CellWatch watch in watches.Elements<CellWatch>().ToList()) {
+                    string? original = watch.CellReference?.Value;
+                    string? rewritten = RewriteMutationSingleReference(original, transform);
+                    if (rewritten == null) {
+                        watch.Remove();
+                    } else if (!string.Equals(original, rewritten, StringComparison.OrdinalIgnoreCase)) {
+                        watch.CellReference = rewritten;
+                    }
+                }
+                if (!watches.Elements<CellWatch>().Any()) watches.Remove();
+            }
+
+            var affectedContainers = new HashSet<OpenXmlElement>();
+            foreach (OpenXmlElement tag in worksheet.Descendants()
+                .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))
+                .ToList()) {
+                OpenXmlAttribute? attribute = tag.GetAttributes().FirstOrDefault(candidate =>
+                    string.Equals(candidate.LocalName, "r", StringComparison.OrdinalIgnoreCase));
+                if (!attribute.HasValue || string.IsNullOrEmpty(attribute.Value.LocalName)) continue;
+                string? rewritten = RewriteMutationSingleReference(attribute.Value.Value, transform);
+                if (tag.Parent is OpenXmlElement container) affectedContainers.Add(container);
+                if (rewritten == null) {
+                    tag.Remove();
+                } else if (!string.Equals(attribute.Value.Value, rewritten, StringComparison.OrdinalIgnoreCase)) {
+                    tag.SetAttribute(new OpenXmlAttribute(
+                        attribute.Value.Prefix,
+                        attribute.Value.LocalName,
+                        attribute.Value.NamespaceUri,
+                        rewritten));
+                }
+            }
+
+            foreach (OpenXmlElement container in affectedContainers) {
+                uint count = (uint)container.ChildElements.Count(child =>
+                    string.Equals(child.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase));
+                if (count == 0U) {
+                    container.Remove();
+                    continue;
+                }
+
+                OpenXmlAttribute? countAttribute = container.GetAttributes().FirstOrDefault(candidate =>
+                    string.Equals(candidate.LocalName, "count", StringComparison.OrdinalIgnoreCase));
+                if (countAttribute.HasValue && !string.IsNullOrEmpty(countAttribute.Value.LocalName)) {
+                    container.SetAttribute(new OpenXmlAttribute(
+                        countAttribute.Value.Prefix,
+                        countAttribute.Value.LocalName,
+                        countAttribute.Value.NamespaceUri,
+                        count.ToString(CultureInfo.InvariantCulture)));
+                }
+            }
         }
 
         private static void RewriteMutationWebPublishItems(

@@ -70,8 +70,8 @@ namespace OfficeIMO.Tests {
             string tables = tree.RewriteTableNames(name =>
                 string.Equals(name, "Sales", StringComparison.OrdinalIgnoreCase) ? "Orders" : name);
 
-            Assert.Equal(formula.Replace("TaxRate", "Rate2026", StringComparison.Ordinal), names);
-            Assert.Equal(formula.Replace("Sales", "Orders", StringComparison.Ordinal), tables);
+            Assert.Equal(formula.Replace("TaxRate", "Rate2026"), names);
+            Assert.Equal(formula.Replace("Sales", "Orders"), tables);
             Assert.DoesNotContain(tree.Nodes.OfType<ExcelFormulaNameSyntax>(), node => node.Name.StartsWith("REF", StringComparison.OrdinalIgnoreCase));
             Assert.DoesNotContain(tree.Nodes.OfType<ExcelFormulaNameSyntax>(), node => node.Name.StartsWith("NAME", StringComparison.OrdinalIgnoreCase));
         }

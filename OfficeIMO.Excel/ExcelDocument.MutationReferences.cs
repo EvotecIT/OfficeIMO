@@ -163,6 +163,7 @@ namespace OfficeIMO.Excel {
                     transform);
                 if (ownerIsEdited) {
                     RewriteMutationAddressAttributes(worksheetPart.Worksheet, transform);
+                    RewriteMutationCellWatchesAndSmartTags(worksheetPart.Worksheet, transform);
                     RewriteMutationViewReferences(worksheetPart.Worksheet, transform);
                     RewriteMutationScenarioInputs(worksheetPart.Worksheet, transform);
                     RewriteMutationSparklineLocations(worksheetPart.Worksheet, transform);

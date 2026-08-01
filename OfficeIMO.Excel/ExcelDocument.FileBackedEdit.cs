@@ -39,10 +39,7 @@ namespace OfficeIMO.Excel {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "workbook");
             long? maximumBytes = ResolveInputLimit(resolved);
             long sourceLength = new FileInfo(filePath).Length;
-            if (maximumBytes.HasValue && sourceLength > maximumBytes.Value) {
-                throw new InvalidDataException(
-                    $"Workbook input contains {sourceLength} bytes, exceeding MaxInputBytes ({maximumBytes.Value}).");
-            }
+            ValidateFileBackedSourceSize(sourceLength, maximumBytes, resolved);
 
             cancellationToken.ThrowIfCancellationRequested();
             FileStream? packageStream = null;
@@ -55,7 +52,7 @@ namespace OfficeIMO.Excel {
                     out _);
                 using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
                     FileShare.ReadWrite | FileShare.Delete, 81920, FileOptions.SequentialScan)) {
-                    CopyFileBackedSource(source, packageStream, maximumBytes, cancellationToken);
+                    CopyFileBackedSource(source, packageStream, maximumBytes, resolved, cancellationToken);
                 }
 
                 if (resolved.PackageSecurity != null) {
@@ -95,6 +92,7 @@ namespace OfficeIMO.Excel {
             Stream source,
             Stream destination,
             long? maximumBytes,
+            ExcelLoadOptions options,
             CancellationToken cancellationToken) {
             var buffer = new byte[81920];
             long total = 0;
@@ -103,15 +101,25 @@ namespace OfficeIMO.Excel {
                 int read = source.Read(buffer, 0, buffer.Length);
                 if (read == 0) break;
                 total = checked(total + read);
-                if (maximumBytes.HasValue && total > maximumBytes.Value) {
-                    throw new InvalidDataException(
-                        $"Workbook input exceeds MaxInputBytes ({maximumBytes.Value}).");
-                }
+                ValidateFileBackedSourceSize(total, maximumBytes, options);
                 destination.Write(buffer, 0, read);
             }
             destination.Flush();
             destination.Position = 0;
             cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        private static void ValidateFileBackedSourceSize(
+            long sourceBytes,
+            long? maximumBytes,
+            ExcelLoadOptions options) {
+            if (!maximumBytes.HasValue || sourceBytes <= maximumBytes.Value) return;
+            if (options.PackageSecurity != null
+                && maximumBytes.Value == options.PackageSecurity.MaxPackageBytes) {
+                OfficePackageSecurityInspector.ValidateSourceSize(sourceBytes, options.PackageSecurity);
+            }
+            throw new InvalidDataException(
+                $"Workbook input contains {sourceBytes} bytes, exceeding MaxInputBytes ({maximumBytes.Value}).");
         }
 
         private bool TrySaveFileBackedPackageToFile(
