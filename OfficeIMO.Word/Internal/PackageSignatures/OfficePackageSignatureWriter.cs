@@ -109,15 +109,26 @@ namespace OfficeIMO.Word {
                 SigningPayload payload = CreateSignature(packageBytes, signingCertificates, signingKey, options);
                 SignaturePartWriteResult write = AddSignaturePart(stagingPath, payload.SignatureXml);
                 EnsureSignedPackageWithinLimits(stagingPath, options);
+                string validatedPackageHash = WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
                 options.BeforeCommit?.Invoke(stagingPath, fullPath);
+                if (!string.Equals(
+                    validatedPackageHash,
+                    WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes),
+                    StringComparison.Ordinal)) {
+                    return Failed(fullPath, "The validated staging package changed before atomic commit; the original source was preserved.");
+                }
                 if (!OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
                     stagingPath,
                     fullPath,
                     displacedPath => string.Equals(
                         sourcePackageHash,
                         WordPackageSnapshot.ComputeSha256(displacedPath, options.MaxPackageBytes),
+                        StringComparison.Ordinal),
+                    installedPath => string.Equals(
+                        validatedPackageHash,
+                        WordPackageSnapshot.ComputeSha256(installedPath, options.MaxPackageBytes),
                         StringComparison.Ordinal))) {
-                    return Failed(fullPath, "The source package changed while its signature was being created; the concurrent source was preserved.");
+                    return Failed(fullPath, "The source or validated staging package changed while its signature was being created; the current source was preserved.");
                 }
                 stagingPath = string.Empty;
 

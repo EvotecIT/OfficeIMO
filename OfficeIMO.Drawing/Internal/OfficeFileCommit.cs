@@ -242,12 +242,14 @@ namespace OfficeIMO.Drawing.Internal {
 
         /// <summary>
         /// Atomically installs a completed staging file only when the displaced destination still
-        /// matches the caller's expected snapshot. A mismatch restores the displaced destination.
+        /// matches the caller's expected snapshot and, when requested, the installed file matches
+        /// the validated staging snapshot. A mismatch restores the displaced destination.
         /// </summary>
         public static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
             string temporaryPath,
             string targetPath,
-            Func<string, bool> destinationMatchesExpected) {
+            Func<string, bool> destinationMatchesExpected,
+            Func<string, bool>? installedFileMatchesExpected = null) {
             if (string.IsNullOrWhiteSpace(temporaryPath)) {
                 throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
             }
@@ -270,7 +272,8 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
                 ExecuteWithRetry(() => File.Replace(temporaryPath, fullTargetPath, backupPath));
                 targetContainsTemporary = true;
-                if (destinationMatchesExpected(backupPath)) {
+                if (destinationMatchesExpected(backupPath) &&
+                    (installedFileMatchesExpected == null || installedFileMatchesExpected(fullTargetPath))) {
                     DeleteIfExists(backupPath);
                     targetContainsTemporary = false;
                     return true;

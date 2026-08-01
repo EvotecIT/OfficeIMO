@@ -468,7 +468,7 @@ namespace OfficeIMO.Word {
                     .Where(element => element.Name == ds + "Manifest")
                     .ToArray();
                 if (targetManifests.Length == 0) continue;
-                if (!FragmentReferencePreservesCompleteSubtree(signedReference, ds)) {
+                if (!FragmentReferencePreservesCompleteSubtree(signedReference, targets[0], ds)) {
                     unsupportedDetails.Add("Ignored package references from an XML DSig Manifest because its SignedInfo fragment reference uses a transform that does not preserve the complete target subtree.");
                     continue;
                 }
@@ -490,12 +490,18 @@ namespace OfficeIMO.Word {
             return result.Count > 0 ? result : signedInfoReferences;
         }
 
-        private static bool FragmentReferencePreservesCompleteSubtree(XElement reference, XNamespace ds) {
+        private static bool FragmentReferencePreservesCompleteSubtree(
+            XElement reference,
+            XElement target,
+            XNamespace ds) {
             XElement? transforms = reference.Element(ds + "Transforms");
             if (transforms == null) return true;
 
             return transforms.Elements(ds + "Transform").All(transform => {
                 string? algorithm = ((string?)transform.Attribute("Algorithm"))?.Trim();
+                if (algorithm == "http://www.w3.org/2000/09/xmldsig#enveloped-signature") {
+                    return !target.DescendantsAndSelf(ds + "Signature").Any();
+                }
                 return algorithm == "http://www.w3.org/TR/2001/REC-xml-c14n-20010315" ||
                        algorithm == "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments" ||
                        algorithm == "http://www.w3.org/2001/10/xml-exc-c14n#" ||
