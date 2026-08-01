@@ -44,6 +44,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetCombinesContentAndElementConstruction() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph(new string('x', 512));
+            for (int index = 0; index < 500; index++) {
+                document.AddParagraph();
+            }
+            var options = new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = 4096
+            };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
+                () => document.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.StartsWith("GeneratedElement:", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetStopsEmptyDropDownOptionsBeforeDomConstruction() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph().AddDropDownList(

@@ -64,7 +64,12 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
             }
-            return new ExportInspection(hasFields, hasRevisions, hasRevisionText, hasComments);
+            return new ExportInspection(
+                hasFields,
+                hasRevisions,
+                hasRevisionText,
+                hasComments,
+                outputConstructionCharacters);
         }
 
         private static long SaturatingAdd(long left, long right) =>
@@ -241,17 +246,24 @@ namespace OfficeIMO.Word.Html {
         }
 
         private readonly struct ExportInspection {
-            internal ExportInspection(bool hasFields, bool hasRevisions, bool hasRevisionText, bool hasComments) {
+            internal ExportInspection(
+                bool hasFields,
+                bool hasRevisions,
+                bool hasRevisionText,
+                bool hasComments,
+                long outputConstructionCharacters) {
                 HasFields = hasFields;
                 HasRevisions = hasRevisions;
                 HasRevisionText = hasRevisionText;
                 HasComments = hasComments;
+                OutputConstructionCharacters = outputConstructionCharacters;
             }
 
             internal bool HasFields { get; }
             internal bool HasRevisions { get; }
             internal bool HasRevisionText { get; }
             internal bool HasComments { get; }
+            internal long OutputConstructionCharacters { get; }
         }
 
         private static void AddExportDiagnostic(WordToHtmlOptions options, string code, string message, HtmlConversionLossKind lossKind) {

@@ -122,7 +122,10 @@ namespace OfficeIMO.Word.Html {
             var head = htmlDoc.Head ?? throw new InvalidOperationException("HTML document missing head element.");
             var body = htmlDoc.Body ?? throw new InvalidOperationException("HTML document missing body element.");
 
-            RegisterOutputElementBudget(htmlDoc, options, MeasureCurrentHtmlCharacters());
+            RegisterOutputElementBudget(
+                htmlDoc,
+                options,
+                SaturatingAdd(MeasureCurrentHtmlCharacters(), exportInspection.OutputConstructionCharacters));
 
             AppendHeadMetadata(document, htmlDoc, head, options, CancellationToken.None);
 
