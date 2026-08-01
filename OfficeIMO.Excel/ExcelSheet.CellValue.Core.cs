@@ -85,6 +85,7 @@ namespace OfficeIMO.Excel {
             var (cellValue, dataType) = CoerceForCell(value);
 
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = cellValue;
             cell.DataType = dataType;
             ApplyAutomaticCellFormatting(cell, value, dataType);
@@ -98,6 +99,7 @@ namespace OfficeIMO.Excel {
             }
 
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             string text = value!;
             if (TryGetCellValueSharedStringIndex(text, out int cachedSharedStringIndex, out bool cachedContainsLineBreak)) {
                 SetExistingCellSharedStringValue(cell, cachedSharedStringIndex, cachedContainsLineBreak);
@@ -143,6 +145,7 @@ namespace OfficeIMO.Excel {
 
         private void CellEmptyStringValueCore(int row, int column) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(string.Empty);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
             cell.InlineString = null;
@@ -174,6 +177,7 @@ namespace OfficeIMO.Excel {
 
         private void CellDoubleValueCore(int row, int column, double value) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(InvariantNumberText.Get(value));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             ClearHeaderCacheForCellMutation(row, column);
@@ -181,6 +185,7 @@ namespace OfficeIMO.Excel {
 
         private void CellDecimalValueCore(int row, int column, decimal value) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             ClearHeaderCacheForCellMutation(row, column);
@@ -188,6 +193,7 @@ namespace OfficeIMO.Excel {
 
         private void CellNumberTextValueCore(int row, int column, string text) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             ClearHeaderCacheForCellMutation(row, column);
@@ -195,6 +201,7 @@ namespace OfficeIMO.Excel {
 
         private void CellBooleanValueCore(int row, int column, bool value) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(value ? "1" : "0");
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
             ClearHeaderCacheForCellMutation(row, column);
@@ -203,6 +210,7 @@ namespace OfficeIMO.Excel {
         private void CellDateTimeValueCore(int row, int column, DateTime value) {
             double serial = ExcelDateSystemConverter.ToSerial(value, _excelDocument.DateSystem);
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -215,6 +223,7 @@ namespace OfficeIMO.Excel {
         private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value) {
             var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
 
             DateTime converted;
             try {
@@ -252,6 +261,7 @@ namespace OfficeIMO.Excel {
 #if NET6_0_OR_GREATER
         private void CellDateOnlyValueCore(int row, int column, DateOnly value) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(value.ToDateTime(TimeOnly.MinValue), _excelDocument.DateSystem)));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -263,6 +273,7 @@ namespace OfficeIMO.Excel {
 
         private void CellTimeOnlyValueCore(int row, int column, TimeOnly value) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(InvariantNumberText.Get(value.ToTimeSpan().TotalDays));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -275,6 +286,7 @@ namespace OfficeIMO.Excel {
 
         private void CellFormulaCore(int row, int column, string formula) {
             Cell cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             // Excel formulas in XML should not start with '=' and must not include illegal control characters
             var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             cell.CellFormula = new CellFormula(safe);
@@ -284,6 +296,7 @@ namespace OfficeIMO.Excel {
         private void CellTimeSpanValueCore(int row, int column, TimeSpan value) {
             double serial = value.TotalDays;
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;

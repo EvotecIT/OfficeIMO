@@ -98,6 +98,7 @@ namespace OfficeIMO.Excel {
             if (runs == null) throw new ArgumentNullException(nameof(runs));
             WriteLock(() => {
                 var cell = GetCell(row, column);
+                ClearCellValueMetadata(cell);
                 var inline = new InlineString();
                 foreach (var run in runs) {
                     var text = new Text(run.Text ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve };

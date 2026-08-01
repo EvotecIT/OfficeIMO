@@ -187,10 +187,14 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (clearValues && (cell.CellValue != null || cell.DataType != null || cell.InlineString != null)) {
+                    if (clearValues && (cell.CellValue != null
+                        || cell.DataType != null
+                        || cell.InlineString != null
+                        || HasCellValueMetadata(cell))) {
                         cell.CellValue = null;
                         cell.DataType = null;
                         cell.InlineString = null;
+                        ClearCellValueMetadata(cell);
                         changed = true;
                     }
 

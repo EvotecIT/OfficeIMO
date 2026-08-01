@@ -16,8 +16,8 @@ namespace OfficeIMO.Excel {
         private static readonly TimeSpan StructuralReferenceRegexTimeout = TimeSpan.FromMilliseconds(200);
 
         internal static readonly Regex SharedFormulaReferenceRegex = new Regex(
-            @"(?<![A-Za-z0-9_\.\\])(?<qualifier>(?:'(?:[^']|'')+'|\[[^\]]+\][A-Za-z0-9_\. ]+|[A-Za-z_][A-Za-z0-9_\. ]*:[A-Za-z_][A-Za-z0-9_\. ]*|[A-Za-z_][A-Za-z0-9_\. ]*)!)?(?:(?<cellStartColumnAbsolute>\$?)(?<cellStartColumn>[A-Za-z]{1,3})(?<cellStartRowAbsolute>\$?)(?<cellStartRow>\d{1,7})(?::(?<cellEndColumnAbsolute>\$?)(?<cellEndColumn>[A-Za-z]{1,3})(?<cellEndRowAbsolute>\$?)(?<cellEndRow>\d{1,7}))?(?<cellSpill>#)?|(?<wholeStartColumnAbsolute>\$?)(?<wholeStartColumn>[A-Za-z]{1,3}):(?<wholeEndColumnAbsolute>\$?)(?<wholeEndColumn>[A-Za-z]{1,3})|(?<wholeStartRowAbsolute>\$?)(?<wholeStartRow>\d{1,7}):(?<wholeEndRowAbsolute>\$?)(?<wholeEndRow>\d{1,7}))(?![A-Za-z0-9_\.]|\()",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+            @"(?<![\p{L}\p{M}\p{N}_\.\\])(?<qualifier>(?:'(?:[^']|'')+'|\[[^\]]+\][\p{L}\p{M}\p{N}_\. ]+|[\p{L}_][\p{L}\p{M}\p{N}_\. ]*:[\p{L}_][\p{L}\p{M}\p{N}_\. ]*|[\p{L}_][\p{L}\p{M}\p{N}_\. ]*)!)?(?:(?<cellStartColumnAbsolute>\$?)(?<cellStartColumn>[A-Za-z]{1,3})(?<cellStartRowAbsolute>\$?)(?<cellStartRow>\d{1,7})(?::(?<cellEndColumnAbsolute>\$?)(?<cellEndColumn>[A-Za-z]{1,3})(?<cellEndRowAbsolute>\$?)(?<cellEndRow>\d{1,7}))?(?<cellSpill>#)?|(?<wholeStartColumnAbsolute>\$?)(?<wholeStartColumn>[A-Za-z]{1,3}):(?<wholeEndColumnAbsolute>\$?)(?<wholeEndColumn>[A-Za-z]{1,3})|(?<wholeStartRowAbsolute>\$?)(?<wholeStartRow>\d{1,7}):(?<wholeEndRowAbsolute>\$?)(?<wholeEndRow>\d{1,7}))(?![\p{L}\p{M}\p{N}_\.]|\()",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant,
             SharedFormulaRegexTimeout);
 
         internal static readonly Regex CellReferenceRegex = new Regex(

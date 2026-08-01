@@ -51,59 +51,84 @@ namespace OfficeIMO.Excel {
             if (!IsSupportedImageContentType(contentType)) throw new NotSupportedException($"Image content type '{contentType}' is not supported.");
             string text = altText ?? string.Empty;
             WriteLock(() => {
-                WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
-                CellMetadataPart metadataPart = workbookPart.CellMetadataPart ?? workbookPart.AddNewPart<CellMetadataPart>();
-                Metadata metadata = metadataPart.Metadata ??= new Metadata();
-                uint typeIndex = EnsureRichValueMetadataType(metadata);
-                FutureMetadata future = EnsureRichValueFutureMetadata(metadata);
-                ValueMetadata valueMetadata = metadata.GetFirstChild<ValueMetadata>() ?? metadata.AppendChild(new ValueMetadata());
-
-                RdRichValuePart valuePart = workbookPart.RdRichValueParts.FirstOrDefault()
-                    ?? workbookPart.AddNewPart<RdRichValuePart>();
-                Rich.RichValueData values = valuePart.RichValueData ??= new Rich.RichValueData();
-                RdRichValueStructurePart structurePart = workbookPart.GetPartsOfType<RdRichValueStructurePart>().FirstOrDefault()
-                    ?? workbookPart.AddNewPart<RdRichValueStructurePart>();
-                Rich.RichValueStructures structures = structurePart.RichValueStructures ??= new Rich.RichValueStructures();
-                uint structureIndex = EnsureLocalImageStructure(structures);
-
-                ExtendedPart relationshipPart = workbookPart.Parts.Select(pair => pair.OpenXmlPart).OfType<ExtendedPart>()
-                    .FirstOrDefault(part => string.Equals(part.RelationshipType, RichValueRelRelationshipType, StringComparison.Ordinal))
-                    ?? workbookPart.AddExtendedPart(RichValueRelRelationshipType, RichValueRelContentType, "xml");
-                RichRel.RichValueRels relationships = LoadRichValueRelationships(relationshipPart);
-                ExtendedPart imagePart = relationshipPart.AddExtendedPart(ImageRelationshipType, contentType, GetImageExtension(contentType));
-                using (var imageStream = new MemoryStream(imageBytes, writable: false)) imagePart.FeedData(imageStream);
-                string imageRelationshipId = relationshipPart.GetIdOfPart(imagePart);
-                uint relationshipIndex = (uint)relationships.Elements<RichRel.RichValueRelRelationship>().Count();
-                relationships.Append(new RichRel.RichValueRelRelationship { Id = imageRelationshipId });
-                SaveExtendedRoot(relationshipPart, relationships);
-
-                uint valueIndex = (uint)values.Elements<Rich.RichValue>().Count();
-                Rich.RichValue value = CreateLocalImageValue(structureIndex, relationshipIndex, text, structures);
-                values.Append(value);
-                values.Count = (uint)values.Elements<Rich.RichValue>().Count();
-                values.Save();
-                structures.Count = (uint)structures.Elements<Rich.RichValueStructure>().Count();
-                structures.Save();
-
-                uint futureIndex = (uint)future.Elements<FutureMetadataBlock>().Count();
-                var extension = new Extension { Uri = RichValueMetadataExtensionUri };
-                extension.Append(new Rich.RichValueBlock { I = valueIndex });
-                future.Append(new FutureMetadataBlock(new ExtensionList(extension)));
-                future.Count = (uint)future.Elements<FutureMetadataBlock>().Count();
-
-                var metadataBlock = new MetadataBlock(new MetadataRecord { TypeIndex = typeIndex, Val = futureIndex });
-                valueMetadata.Append(metadataBlock);
-                valueMetadata.Count = (uint)valueMetadata.Elements<MetadataBlock>().Count();
-                Cell cell = GetCell(row, column);
-                cell.ValueMetaIndex = valueMetadata.Count;
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
-                cell.CellValue = new CellValue("#VALUE!");
-                cell.CellFormula = null;
-                cell.InlineString = null;
-                metadata.Save();
+                using var imageStream = new MemoryStream(imageBytes, writable: false);
+                SetInCellImageCore(row, column, imageStream, contentType, text);
                 WorksheetRoot.Save();
             });
             return new ExcelInCellImage(A1.CellReference(row, column), contentType, text, (byte[])imageBytes.Clone());
+        }
+
+        private void SetInCellImageCore(int row, int column, Stream imageStream, string contentType, string altText) {
+            WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
+            CellMetadataPart metadataPart = workbookPart.CellMetadataPart ?? workbookPart.AddNewPart<CellMetadataPart>();
+            Metadata metadata = metadataPart.Metadata ??= new Metadata();
+            uint typeIndex = EnsureRichValueMetadataType(metadata);
+            FutureMetadata future = EnsureRichValueFutureMetadata(metadata);
+            ValueMetadata valueMetadata = metadata.GetFirstChild<ValueMetadata>() ?? metadata.AppendChild(new ValueMetadata());
+
+            RdRichValuePart valuePart = workbookPart.RdRichValueParts.FirstOrDefault()
+                ?? workbookPart.AddNewPart<RdRichValuePart>();
+            Rich.RichValueData values = valuePart.RichValueData ??= new Rich.RichValueData();
+            RdRichValueStructurePart structurePart = workbookPart.GetPartsOfType<RdRichValueStructurePart>().FirstOrDefault()
+                ?? workbookPart.AddNewPart<RdRichValueStructurePart>();
+            Rich.RichValueStructures structures = structurePart.RichValueStructures ??= new Rich.RichValueStructures();
+            uint structureIndex = EnsureLocalImageStructure(structures);
+
+            ExtendedPart relationshipPart = workbookPart.Parts.Select(pair => pair.OpenXmlPart).OfType<ExtendedPart>()
+                .FirstOrDefault(part => string.Equals(part.RelationshipType, RichValueRelRelationshipType, StringComparison.Ordinal))
+                ?? workbookPart.AddExtendedPart(RichValueRelRelationshipType, RichValueRelContentType, "xml");
+            RichRel.RichValueRels relationships = LoadRichValueRelationships(relationshipPart);
+            ExtendedPart imagePart = relationshipPart.AddExtendedPart(ImageRelationshipType, contentType, GetImageExtension(contentType));
+            imagePart.FeedData(imageStream);
+            string imageRelationshipId = relationshipPart.GetIdOfPart(imagePart);
+            uint relationshipIndex = (uint)relationships.Elements<RichRel.RichValueRelRelationship>().Count();
+            relationships.Append(new RichRel.RichValueRelRelationship { Id = imageRelationshipId });
+            SaveExtendedRoot(relationshipPart, relationships);
+
+            uint valueIndex = (uint)values.Elements<Rich.RichValue>().Count();
+            Rich.RichValue value = CreateLocalImageValue(structureIndex, relationshipIndex, altText, structures);
+            values.Append(value);
+            values.Count = (uint)values.Elements<Rich.RichValue>().Count();
+            values.Save();
+            structures.Count = (uint)structures.Elements<Rich.RichValueStructure>().Count();
+            structures.Save();
+
+            uint futureIndex = (uint)future.Elements<FutureMetadataBlock>().Count();
+            var extension = new Extension { Uri = RichValueMetadataExtensionUri };
+            extension.Append(new Rich.RichValueBlock { I = valueIndex });
+            future.Append(new FutureMetadataBlock(new ExtensionList(extension)));
+            future.Count = (uint)future.Elements<FutureMetadataBlock>().Count();
+
+            var metadataBlock = new MetadataBlock(new MetadataRecord { TypeIndex = typeIndex, Val = futureIndex });
+            valueMetadata.Append(metadataBlock);
+            valueMetadata.Count = (uint)valueMetadata.Elements<MetadataBlock>().Count();
+            Cell cell = GetCell(row, column);
+            cell.ValueMetaIndex = valueMetadata.Count;
+            cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
+            cell.CellValue = new CellValue("#VALUE!");
+            cell.CellFormula = null;
+            cell.InlineString = null;
+            metadata.Save();
+        }
+
+        internal void CopyInCellImagesTo(ExcelSheet targetSheet) {
+            bool copied = false;
+            foreach (Cell sourceCell in WorksheetRoot.Descendants<Cell>()) {
+                if (!TryResolveInCellImage(sourceCell, out OpenXmlPart? imagePart, out string altText)
+                    || imagePart == null
+                    || sourceCell.CellReference?.Value is not string cellReference) {
+                    continue;
+                }
+
+                (int row, int column) = A1.ParseCellRef(cellReference);
+                using Stream imageStream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+                targetSheet.SetInCellImageCore(row, column, imageStream, imagePart.ContentType, altText);
+                copied = true;
+            }
+
+            if (copied) {
+                targetSheet.WorksheetRoot.Save();
+            }
         }
 
         /// <summary>Reads native in-cell images with a deterministic aggregate payload budget.</summary>
@@ -143,6 +168,14 @@ namespace OfficeIMO.Excel {
                 removed = true;
             });
             return removed;
+        }
+
+        private static bool HasCellValueMetadata(Cell cell) => cell.ValueMetaIndex != null;
+
+        private static void ClearCellValueMetadata(Cell cell) {
+            if (cell.ValueMetaIndex == null) return;
+            cell.ValueMetaIndex = null;
+            cell.RemoveAttribute("vm", string.Empty);
         }
 
         private bool TryResolveInCellImage(Cell cell, out OpenXmlPart? imagePart, out string altText) {

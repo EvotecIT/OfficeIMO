@@ -58,6 +58,11 @@ namespace OfficeIMO.Excel {
     /// tokens verbatim and provides the common rewriter used by public conversion and search APIs.
     /// </summary>
     public sealed class ExcelFormulaSyntaxTree {
+        private static readonly string[] ErrorLiterals = {
+            "#GETTING_DATA", "#BLOCKED!", "#CONNECT!", "#UNKNOWN!", "#PYTHON!",
+            "#DIV/0!", "#VALUE!", "#SPILL!", "#FIELD!", "#CALC!", "#BUSY!",
+            "#NULL!", "#NAME?", "#REF!", "#NUM!", "#N/A"
+        };
         private readonly IReadOnlyList<ExcelFormulaSyntaxNode> _nodes;
 
         private ExcelFormulaSyntaxTree(string text, IReadOnlyList<ExcelFormulaSyntaxNode> nodes) {
@@ -104,6 +109,11 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (TryReadErrorLiteral(formula, cursor, out int errorLength)) {
+                    cursor += errorLength;
+                    continue;
+                }
+
                 if (TryReadStructuredReference(formula, cursor, out int structuredLength, out string? tableName, out string selector)) {
                     AddText(nodes, formula, textStart, cursor - textStart);
                     string text = formula.Substring(cursor, structuredLength);
@@ -134,6 +144,31 @@ namespace OfficeIMO.Excel {
             }
             AddText(nodes, formula, textStart, formula.Length - textStart);
             return new ExcelFormulaSyntaxTree(formula, new ReadOnlyCollection<ExcelFormulaSyntaxNode>(nodes));
+        }
+
+        private static bool TryReadErrorLiteral(string formula, int start, out int length) {
+            if (formula[start] != '#') {
+                length = 0;
+                return false;
+            }
+
+            foreach (string literal in ErrorLiterals) {
+                if (start + literal.Length > formula.Length
+                    || string.Compare(formula, start, literal, 0, literal.Length, StringComparison.OrdinalIgnoreCase) != 0) {
+                    continue;
+                }
+
+                int end = start + literal.Length;
+                if (end < formula.Length && IsNamePart(formula[end])) {
+                    continue;
+                }
+
+                length = literal.Length;
+                return true;
+            }
+
+            length = 0;
+            return false;
         }
 
         /// <summary>Rewrites reference nodes once while preserving literals and all other syntax.</summary>
