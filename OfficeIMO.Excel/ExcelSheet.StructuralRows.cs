@@ -600,7 +600,7 @@ namespace OfficeIMO.Excel {
                     ValidateReferenceListDoesNotOverflow(filter.Ref?.Value, firstRow, count);
                 }
             }
-            foreach (QueryTablePart part in _worksheetPart.QueryTableParts) {
+            foreach (QueryTablePart part in ExcelPackageQueryTableParts.Enumerate(_worksheetPart)) {
                 if (part.QueryTable != null) {
                     ValidateReferenceAttributesDoNotOverflow(part.QueryTable, firstRow, count);
                 }

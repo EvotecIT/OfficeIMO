@@ -13,12 +13,6 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Add shared conversion reports and strict no-loss policies wherever an adapter can simplify, omit, rasterize, or preserve unsupported content.
 - [ ] Keep public surfaces small: add reusable capability to the owning core package and keep CLI, PowerShell, website, MCP, Reader, and converter adapters thin.
 
-## Excel
-
-- [ ] Add native slicer and timeline UI authoring over supported PivotTable and shared-cache bindings while preserving unsupported imported UI parts.
-- [ ] Add guarded query-backed source execution and refresh; connection and query metadata remain inspect-and-preserve only until execution has an explicit host and security policy.
-- [ ] Extend native ChartEx and imported modern-chart mutation beyond the current compatible recipes and preservation contracts.
-
 ## Word
 
 - [ ] Complete XML-signature validation, including transform-aware OPC digests, certificate-chain trust, revocation, and timestamp-authority validation; add cross-platform package signing and keep macro-project signing as a separate explicit capability.

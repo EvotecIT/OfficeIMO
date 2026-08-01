@@ -140,13 +140,14 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 - [x] Transactional row/column/cell shifts plus copy/move/transpose with dry-runs, rollback budgets, reference remapping, and package diagnostics
 - [x] Data validation, conditional formatting, icon sets, data bars, color scales, allowed-edit range management, ignored-error metadata preservation, and sparkline lifecycles
 - [x] Shared A1/R1C1 formula/reference syntax, formula-aware search and state diagnostics, dependency graphs, and a bounded calculation engine for reporting functions
-- [x] Charts across common 2-D/3-D, pie, radar, stock, surface, combo, secondary-axis, trendline, and dashboard scenarios
-- [x] Pivot tables with row/column/page/data fields, layouts, styles, filters, grouping metadata, calculated fields, and readback
+- [x] Charts across common 2-D/3-D, pie, radar, stock, surface, combo, secondary-axis, trendline, dashboard, and native ChartEx scenarios
+- [x] Pivot tables with fields, layouts, styles, filters, grouping, calculated fields, shared caches, and native slicer/timeline views
+- [x] Native query-backed tables with caller-hosted execution, explicit security policy, bounded transactional refresh, cancellation, and structural remapping
 - [x] Templates with marker binding, repeated rows, repeated sheets, optional regions, formatters, image binding, and preflight diagnostics
 - [x] Legacy comments plus threaded-comment/person metadata inspection and preservation
 - [x] Worksheet/workbook protection, encrypted OOXML packages, document properties, and compatibility validation
 - [x] Print areas, page breaks, page setup, and first/odd/even headers and footers with supported images
-- [x] Native in-cell images plus feature inspection and relationship-preserving round trips for macros, external links, custom XML, embedded packages, signatures, controls, modern charts, pivots, slicers, timelines, and query metadata
+- [x] Native in-cell images plus feature inspection and relationship-preserving round trips for macros, external links, custom XML, embedded packages, signatures, controls, and unowned imported parts
 - [x] Explicit file-backed editing with size/part budgets and deterministic cancellation, without changing established direct-write, streaming-read, or unchanged-package fast paths
 - [x] Workbook, worksheet, and range export to PNG, JPEG, TIFF, lossless WebP, and SVG; adapters add PDF, HTML, ODS, and Google Sheets
 - [x] Reproducible read, write, edit, package-size, and feature-rich cross-library benchmark suites with output validation and platform provenance

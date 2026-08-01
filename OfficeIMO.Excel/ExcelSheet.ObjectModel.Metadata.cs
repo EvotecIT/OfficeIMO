@@ -226,7 +226,7 @@ namespace OfficeIMO.Excel {
         private static HashSet<uint> GetWorksheetQueryConnectionIds(
             WorksheetPart worksheetPart,
             MutationPlanScanBudget? budget = null) {
-            return new HashSet<uint>(InspectMutationPlanElements(worksheetPart.QueryTableParts, budget)
+            return new HashSet<uint>(InspectMutationPlanElements(ExcelPackageQueryTableParts.Enumerate(worksheetPart), budget)
                 .Select(part => part.QueryTable?.ConnectionId?.Value)
                 .Where(id => id.HasValue)
                 .Select(id => id!.Value));

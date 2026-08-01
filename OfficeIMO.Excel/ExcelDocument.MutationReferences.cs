@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel {
                     if (ownerIsEdited) RewriteMutationAddressAttributes(tablePart.Table, transform);
                     tablePart.Table?.Save();
                 }
-                foreach (QueryTablePart queryPart in worksheetPart.QueryTableParts) {
+                foreach (QueryTablePart queryPart in ExcelPackageQueryTableParts.Enumerate(worksheetPart)) {
                     if (!ownerIsEdited) continue;
                     RewriteMutationAddressAttributes(queryPart.QueryTable, transform);
                     queryPart.QueryTable?.Save();

@@ -5,7 +5,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private const string ChartDataSheetName = "OfficeIMO_ChartData";
+        internal const string ChartDataSheetName = "OfficeIMO_ChartData";
+        private const string ChartDataOwnerDefinedName = "_OfficeIMO_ChartDataOwner";
         private readonly object _chartDataLock = new object();
         private ExcelSheet? _chartDataSheet;
         private int _chartDataNextRow;
@@ -49,7 +50,10 @@ namespace OfficeIMO.Excel {
             ReportChartDataTiming(stageWatch, "ChartData.GetSheets");
 
             stageWatch?.Restart();
-            var existing = sheets.FirstOrDefault(s => string.Equals(s.Name?.Value, ChartDataSheetName, StringComparison.OrdinalIgnoreCase));
+            string? ownedSheetName = GetOwnedChartDataSheetName();
+            var existing = ownedSheetName == null
+                ? null
+                : sheets.FirstOrDefault(s => string.Equals(s.Name?.Value, ownedSheetName, StringComparison.OrdinalIgnoreCase));
             ReportChartDataTiming(stageWatch, "ChartData.FindExistingSheet");
             if (existing != null) {
                 stageWatch?.Restart();
@@ -59,7 +63,14 @@ namespace OfficeIMO.Excel {
             }
 
             stageWatch?.Restart();
-            var created = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, ChartDataSheetName);
+            var names = new HashSet<string>(
+                sheets.Select(sheet => sheet.Name?.Value ?? string.Empty),
+                StringComparer.OrdinalIgnoreCase);
+            string createdName = ChartDataSheetName;
+            for (int suffix = 2; names.Contains(createdName); suffix++) {
+                createdName = ChartDataSheetName + "_" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+            var created = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, createdName);
             ReportChartDataTiming(stageWatch, "ChartData.CreateWorksheet");
 
             stageWatch?.Restart();
@@ -70,6 +81,18 @@ namespace OfficeIMO.Excel {
             }
             ReportChartDataTiming(stageWatch, "ChartData.HideWorksheet");
 
+            DefinedNames definedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
+            foreach (DefinedName marker in definedNames.Elements<DefinedName>().Where(name =>
+                name.LocalSheetId == null
+                && string.Equals(name.Name?.Value, ChartDataOwnerDefinedName, StringComparison.OrdinalIgnoreCase)).ToList()) {
+                marker.Remove();
+            }
+            definedNames.Append(new DefinedName {
+                Name = ChartDataOwnerDefinedName,
+                Hidden = true,
+                Text = ExcelChartUtils.BuildSheetQualifiedRange(created.Name, "$A$1")
+            });
+
             stageWatch?.Restart();
             using (PreserveDirectDataSetFastSaveStateDuringDirtyMarks()) {
                 MarkSheetCacheDirty();
@@ -78,6 +101,23 @@ namespace OfficeIMO.Excel {
             _chartDataSheet = created;
             _chartDataNextRow = 1;
             return created;
+        }
+
+        internal bool IsOwnedChartDataSheet(string sheetName) {
+            string? ownedSheetName = GetOwnedChartDataSheetName();
+            if (!string.Equals(ownedSheetName, sheetName, StringComparison.OrdinalIgnoreCase)) return false;
+            return Sheets.Any(sheet => string.Equals(sheet.Name, ownedSheetName, StringComparison.OrdinalIgnoreCase) && sheet.Hidden);
+        }
+
+        private string? GetOwnedChartDataSheetName() {
+            DefinedName? marker = WorkbookRoot.DefinedNames?.Elements<DefinedName>().FirstOrDefault(name =>
+                name.LocalSheetId == null
+                && name.Hidden?.Value == true
+                && string.Equals(name.Name?.Value, ChartDataOwnerDefinedName, StringComparison.OrdinalIgnoreCase));
+            return ExcelChartUtils.TryParseSheetQualifiedRange(marker?.Text, out string sheetName, out string range)
+                && string.Equals(range, "A1", StringComparison.OrdinalIgnoreCase)
+                ? sheetName
+                : null;
         }
 
         private void ReportChartDataTiming(Stopwatch? stopwatch, string operation) {

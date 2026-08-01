@@ -148,6 +148,7 @@ namespace OfficeIMO.Excel {
         /// Removes a worksheet by name, deleting its part and entry in the workbook.
         /// </summary>
         public void RemoveWorksheet(string sheetName) {
+            PreparePivotInteractionsForWorksheetRemoval(sheetName);
             Locking.ExecuteWrite(EnsureLock(), () => {
                 var wb = WorkbookRoot;
                 var sheets = wb.Sheets;

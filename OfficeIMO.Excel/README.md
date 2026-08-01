@@ -289,7 +289,25 @@ sheet.AddParetoChart(
 document.Save();
 ```
 
-Histogram, Pareto, funnel, and waterfall helpers build compatible XLSX charts from raw values. They do not claim to be native ChartEx parts. Use `ExcelFormatCapabilityReport.Current.ToMarkdown()` when a workflow must choose between XLSX, XLS, and XLSB targets.
+Histogram, Pareto, funnel, and waterfall helpers build compatible XLSX charts from raw values. Native ChartEx authoring is available separately for funnel, waterfall, box-and-whisker, treemap, and sunburst layouts:
+
+```csharp
+var modernData = new ExcelChartData(
+    new[] { "Qualified", "Proposal", "Won" },
+    new[] { new ExcelChartSeries("Deals", new[] { 42d, 18d, 7d }) });
+
+var modernChart = sheet.AddModernChart(
+    modernData,
+    row: 18,
+    column: 10,
+    chartType: ExcelModernChartType.Funnel,
+    title: "Pipeline");
+
+modernChart.SetTitle("Current pipeline")
+    .SetPlacement(row: 18, column: 10, widthPixels: 640, heightPixels: 360);
+```
+
+`ExcelModernChart` can inspect imported ChartEx objects and change their name, title, supported layout, and one-cell placement without replacing unrelated markup. `UpdateData` is available only when the ChartEx formulas resolve to OfficeIMO's owned hidden chart-data sheet; visible imported business data is never claimed as writable chart storage. Other imported charts remain formatting-preserving but data replacement is rejected. Use `ExcelFormatCapabilityReport.Current.ToMarkdown()` when a workflow must choose between XLSX, XLS, and XLSB targets.
 
 ### Pivot tables and pivot-backed charts
 
@@ -333,7 +351,11 @@ sheet.CellValue(5, 2, "Beta");
 sheet.CellValue(5, 3, "Q2");
 sheet.CellValue(5, 4, 87000);
 sheet.UpdatePivotTableSource("SalesPivot", sheet, "A1:D5");
-document.AddPivotSlicerCache("SalesPivot", "Region");
+document.AddPivotSlicer(
+    "SalesPivot",
+    "Region",
+    sheet.Name,
+    new ExcelSlicerViewOptions { Name = "RegionFilter", Row = 12, Column = 8 });
 
 var pivot = sheet.GetPivotTables().Single(p => p.Name == "SalesPivot");
 Console.WriteLine($"{pivot.Name}: {string.Join(", ", pivot.RowFields)}");
@@ -346,7 +368,35 @@ chart.SetPivotSource("SalesPivot");
 document.Save();
 ```
 
-Pivot support covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, shared-cache-aware source updates, refresh-on-open, and readback. Slicer and timeline pivot/field bindings can be validated and persisted as OfficeIMO-owned metadata without pretending to be native Excel UI shapes. Native imported cache parts, ChartEx parts, connection/query metadata, and their relationships are preserved and reported when OfficeIMO does not own their complete authoring model.
+Pivot support covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, shared-cache-aware source updates, refresh-on-open, and readback. `AddPivotSlicer` authors native slicer caches, worksheet views, and drawing anchors for supported fields. `AddPivotTimeline` does the same for date-only fields. Compatible views reuse shared caches; removing the last view can prune its cache. Unsupported imported siblings remain preserved.
+
+### Guarded query-backed tables
+
+```csharp
+using var document = ExcelDocument.Create("query-report.xlsx");
+var sheet = document.AddWorksheet("Results");
+
+var query = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
+    ConnectionName = "SalesQuery",
+    CommandText = "sales/current",
+    WorksheetName = sheet.Name,
+    StartCell = "B3",
+    TableName = "SalesResults",
+    ColumnNames = new[] { "Region", "Amount" }
+});
+
+ExcelQueryRefreshResult refresh = await document.RefreshQueryAsync(
+    query.ConnectionName,
+    applicationQueryHost,
+    new ExcelQueryExecutionPolicy {
+        AllowExecution = true,
+        MaximumRows = 100_000,
+        MaximumCells = 500_000
+    },
+    cancellationToken);
+```
+
+OfficeIMO stores the native connection, table, and query-table relationship chain but does not ship a database or network provider. The application-owned `IExcelQueryExecutionHost` interprets the opaque command and returns rows. OfficeIMO applies row, column, cell, and character budgets before a transactional table replacement. Commands loaded from imported workbooks require the separate `AllowImportedCommands` opt-in.
 
 ### Formula inspection and calculation policy
 
@@ -391,7 +441,7 @@ if (!report.Can(ExcelPreflightCapability.ExportPdfReport)) {
 }
 ```
 
-Use workflow preflight when an application needs to decide whether a workbook is safe for readback, cell-value edits, structure-changing edits, cached-formula reads, OfficeIMO formula calculation, template binding, or first-party PDF report export. Preserve-only features such as macros, slicers, timelines, threaded comments, external links, custom XML, OLE objects, and form controls are reported with package details instead of being silently ignored.
+Use workflow preflight when an application needs to decide whether a workbook is safe for readback, cell-value edits, structure-changing edits, cached-formula reads, OfficeIMO formula calculation, template binding, or first-party PDF report export. Preserve-only features such as macros, unsupported imported interaction markup, threaded comments, external links, custom XML, OLE objects, and form controls are reported with package details instead of being silently ignored.
 
 ### DataTable and JSON exchange
 

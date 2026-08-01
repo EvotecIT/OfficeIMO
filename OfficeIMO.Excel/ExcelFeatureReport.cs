@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.Utilities;
@@ -465,6 +466,13 @@ namespace OfficeIMO.Excel {
                         pdfUnsupportedChartDetails.Add($"{sheet.Name}: {snapshot.ChartType} ({GetChartDisplayName(snapshot)})");
                     }
                 }
+                var modernCharts = excelSheet.ModernCharts.ToList();
+                chartCount += modernCharts.Count;
+                if (isVisibleForDefaultPdfExport) {
+                    pdfUnsupportedChartCount += modernCharts.Count;
+                    pdfUnsupportedChartDetails.AddRange(modernCharts.Select(chart =>
+                        $"{sheet.Name}: {chart.ChartType} ChartEx ({chart.Name})"));
+                }
                 if (isVisibleForDefaultPdfExport) {
                     ExcelSheet.HeaderFooterSnapshot headerFooter = excelSheet.GetHeaderFooter();
                     AddUnsupportedHeaderFooterImages(headerFooter, sheetName, ref pdfUnsupportedImageCount, pdfUnsupportedImageDetails);
@@ -498,7 +506,7 @@ namespace OfficeIMO.Excel {
             Add(features, "Formatting", "Conditional formatting", ExcelFeatureSupportLevel.PartiallyEditable, conditionalFormattingCount, null,
                 "Common rule types are editable; full Excel conditional-formatting parity remains a roadmap item.");
             Add(features, "Visualization", "Charts", ExcelFeatureSupportLevel.PartiallyEditable, chartCount, null,
-                "Common chart authoring and updates are supported, including stacked/100% stacked column/bar/line/area variants, 3-D area/line/column/bar/pie, pie-of-pie/bar-of-pie, radar, stock, and filled/wireframe/contour surface charts; advanced chart families remain partial.");
+                "Common chart authoring and updates are supported, including stacked/100% stacked column/bar/line/area variants, 3-D area/line/column/bar/pie, pie-of-pie/bar-of-pie, radar, stock, surface charts, and native ChartEx funnel, waterfall, box-and-whisker, treemap, and sunburst layouts; imported mutation remains bounded.");
             Add(features, "Visualization", "PDF-unsupported charts", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedChartCount, null,
                 "These charts can be authored or preserved in the workbook but are skipped by the first-party Excel-to-PDF chart snapshot renderer.",
                 pdfUnsupportedChartDetails);
@@ -506,7 +514,7 @@ namespace OfficeIMO.Excel {
                 "These charts are present in the workbook but cannot be read into the first-party Excel-to-PDF chart snapshot model.",
                 pdfUnreadableChartDetails);
             Add(features, "Visualization", "Pivot tables", ExcelFeatureSupportLevel.PartiallyEditable, pivotCount, null,
-                "Source-range pivot creation and inspection are supported, including composable fluent field sort/subtotal/layout/display/number-format helpers with built-in/custom id/code readback, field item/page filters with fluent helpers plus hidden, visible, and selected-item readback, common label/value filters, negated filter variants, fixed and dynamic date filters, top/bottom count/percent/sum filters, formula-backed calculated fields with number-format id/code readback, date/number grouping metadata, generated multi-level date hierarchy fields with base/parent relationships, and explicit grouped-cache item metadata; slicers, deeper Excel interoperability checks, and advanced filters remain partial.");
+                "Source-range pivot creation and inspection are supported, including composable field configuration, filters, calculated fields, grouping metadata, shared-cache source updates, and native slicer/timeline views for supported fields; deeper Excel interoperability remains partial.");
             Add(features, "Visualization", "PDF-unrendered pivot tables", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnrenderedPivotCount, null,
                 "Pivot table metadata is not rendered by the first-party Excel-to-PDF path unless the pivot output is already materialized as ordinary worksheet cells.",
                 pdfUnrenderedPivotDetails);
@@ -610,9 +618,27 @@ namespace OfficeIMO.Excel {
             var slicerBindingMetadataDetails = DescribeParts(allParts, IsSlicerBindingMetadataPart);
             var timelineBindingMetadataDetails = DescribeParts(allParts, IsTimelineBindingMetadataPart);
             var externalLinkDetails = DescribePartsByUriOrContentType(allParts, "externalLink");
-            var connectionDetails = DescribePartsByUriOrContentType(allParts, "connection")
-                .Concat(DescribePartsByUriOrContentType(allParts, "queryTable"))
+            IReadOnlyList<ExcelQueryBackedTableInfo> queryBackedTables = GetQueryBackedTables();
+            var managedQueryPartUris = new HashSet<Uri>(WorkbookPartRoot.WorksheetParts
+                .SelectMany(part => part.TableDefinitionParts)
+                .SelectMany(part => part.QueryTableParts)
+                .Select(part => part.Uri));
+            var managedConnectionIds = new HashSet<uint>(queryBackedTables.Select(item => item.ConnectionId));
+            ConnectionsPart? nativeConnections = WorkbookPartRoot.ConnectionsPart;
+            if (nativeConnections?.Connections?.Elements<Connection>().Any() == true
+                && nativeConnections.Connections.Elements<Connection>().All(connection =>
+                    connection.Id?.Value is uint id && managedConnectionIds.Contains(id))) {
+                managedQueryPartUris.Add(nativeConnections.Uri);
+            }
+            var connectionDetails = allParts
+                .Where(part => !managedQueryPartUris.Contains(part.Uri))
+                .Where(part => part.Uri.OriginalString.IndexOf("connection", StringComparison.OrdinalIgnoreCase) >= 0
+                    || part.ContentType.IndexOf("connection", StringComparison.OrdinalIgnoreCase) >= 0
+                    || part.Uri.OriginalString.IndexOf("queryTable", StringComparison.OrdinalIgnoreCase) >= 0
+                    || part.ContentType.IndexOf("queryTable", StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             var embeddedPackageDetails = DescribePartsByUri(allParts, "/embeddings/");
@@ -630,18 +656,21 @@ namespace OfficeIMO.Excel {
             Add(features, "Compatibility", "VBA macros", ExcelFeatureSupportLevel.PartiallyEditable, vbaDetails.Count, null,
                 "VBA projects can be attached, hash-checked, inspected, extracted with byte limits, and removed; OfficeIMO does not edit VBA source or sign macro projects.", vbaDetails);
             Add(features, "Compatibility", "Slicers", ExcelFeatureSupportLevel.PartiallyEditable, slicerDetails.Count, null,
-                "Native Excel slicer parts can be inspected and preserved; native cache and UI authoring remains partial.", slicerDetails);
+                "Native slicer caches and worksheet views can be authored for supported PivotTable fields, inspected, removed, and structurally remapped; unsupported imported markup is preserved.", slicerDetails);
             Add(features, "Compatibility", "Timelines", ExcelFeatureSupportLevel.PartiallyEditable, timelineDetails.Count, null,
-                "Native Excel timeline parts can be inspected and preserved; native cache and UI authoring remains partial.", timelineDetails);
+                "Native timeline caches and worksheet views can be authored for supported date-only PivotTable fields, inspected, removed, and structurally remapped; unsupported imported markup is preserved.", timelineDetails);
             Add(features, "Compatibility", "Slicer binding metadata", ExcelFeatureSupportLevel.Editable, slicerBindingMetadataDetails.Count, null,
                 "OfficeIMO-owned pivot slicer binding metadata can be authored and read back, but it is not a native Excel slicer cache or UI object.", slicerBindingMetadataDetails);
             Add(features, "Compatibility", "Timeline binding metadata", ExcelFeatureSupportLevel.Editable, timelineBindingMetadataDetails.Count, null,
                 "OfficeIMO-owned pivot timeline binding metadata can be authored and read back, but it is not a native Excel timeline cache or UI object.", timelineBindingMetadataDetails);
+            Add(features, "Compatibility", "Query-backed tables", ExcelFeatureSupportLevel.PartiallyEditable, queryBackedTables.Count, null,
+                "Native query-backed tables can be authored, inspected, refreshed transactionally through an explicit caller host and bounded security policy, detached, or converted to ordinary cells.",
+                queryBackedTables.Select(item => $"{item.WorksheetName}!{item.Range}: {item.ConnectionName} -> {item.TableName}").ToArray());
             Add(features, "Compatibility", "External workbook links", ExcelFeatureSupportLevel.Preserved, externalLinkDetails.Count + externalRelationshipDetails.Count, null,
                 "External relationships and workbook-link parts should be treated carefully during round trips.",
                 externalLinkDetails.Concat(externalRelationshipDetails).ToArray());
             Add(features, "Compatibility", "Connections and query tables", ExcelFeatureSupportLevel.Preserved, connectionDetails.Count, null,
-                "Connections and query-table metadata are preserve-only.", connectionDetails);
+                "Connection and query-table parts outside the supported table binding remain preserve-only.", connectionDetails);
             Add(features, "Compatibility", "Custom XML parts", ExcelFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.", customXmlDetails);
             Add(features, "Compatibility", "Digital signatures", ExcelFeatureSupportLevel.Preserved, signatureDetails.Count, null,

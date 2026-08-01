@@ -476,7 +476,7 @@ namespace OfficeIMO.Excel {
             }
 
             var queryConnectionIds = new HashSet<uint>();
-            foreach (QueryTablePart queryPart in _worksheetPart.QueryTableParts) {
+            foreach (QueryTablePart queryPart in ExcelPackageQueryTableParts.Enumerate(_worksheetPart)) {
                 budget.Consume();
                 var queryElements = new List<OpenXmlElement>();
                 foreach (OpenXmlElement element in queryPart.QueryTable?.Descendants()

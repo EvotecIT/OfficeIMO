@@ -147,6 +147,20 @@ namespace OfficeIMO.Excel {
                 AddRoot(workbookPart.ConnectionsPart?.Connections, value => workbookPart.ConnectionsPart!.Connections = value);
                 AddRoot(workbookPart.WorkbookStylesPart?.Stylesheet, value => workbookPart.WorkbookStylesPart!.Stylesheet = value);
                 AddRoot(workbookPart.SharedStringTablePart?.SharedStringTable, value => workbookPart.SharedStringTablePart!.SharedStringTable = value);
+                foreach (SlicerCachePart part in workbookPart.SlicerCacheParts) {
+                    AddPartRoot(
+                        workbookPart,
+                        part,
+                        part.SlicerCacheDefinition,
+                        (restoredPart, value) => restoredPart.SlicerCacheDefinition = value);
+                }
+                foreach (TimeLineCachePart part in workbookPart.TimeLineCacheParts) {
+                    AddPartRoot(
+                        workbookPart,
+                        part,
+                        part.TimelineCacheDefinition,
+                        (restoredPart, value) => restoredPart.TimelineCacheDefinition = value);
+                }
                 CalculationChainPart? calculationChainPart = workbookPart.CalculationChainPart;
                 if (calculationChainPart?.CalculationChain != null) {
                     string xml = calculationChainPart.CalculationChain.OuterXml;
@@ -243,9 +257,34 @@ namespace OfficeIMO.Excel {
                                 (restoredPart, value) => restoredPart.NamedSheetViews = value);
                         }
                     }
+                    foreach (SlicersPart part in worksheetPart.SlicersParts) {
+                        AddPartRoot(
+                            worksheetPart,
+                            part,
+                            part.Slicers,
+                            (restoredPart, value) => restoredPart.Slicers = value);
+                    }
+                    foreach (TimeLinePart part in worksheetPart.TimeLineParts) {
+                        AddPartRoot(
+                            worksheetPart,
+                            part,
+                            part.Timelines,
+                            (restoredPart, value) => restoredPart.Timelines = value);
+                    }
                     AddDrawingRoots(worksheetPart.DrawingsPart);
                     foreach (TableDefinitionPart part in worksheetPart.TableDefinitionParts) {
-                        AddRoot(part.Table, value => part.Table = value);
+                        AddPartRoot(
+                            worksheetPart,
+                            part,
+                            part.Table,
+                            (restoredPart, value) => restoredPart.Table = value);
+                        foreach (QueryTablePart queryPart in part.QueryTableParts) {
+                            AddPartRoot(
+                                part,
+                                queryPart,
+                                queryPart.QueryTable,
+                                (restoredPart, value) => restoredPart.QueryTable = value);
+                        }
                     }
                     foreach (QueryTablePart part in worksheetPart.QueryTableParts) {
                         AddRoot(part.QueryTable, value => part.QueryTable = value);
