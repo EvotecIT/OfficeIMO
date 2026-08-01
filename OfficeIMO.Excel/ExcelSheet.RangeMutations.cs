@@ -675,8 +675,13 @@ namespace OfficeIMO.Excel {
                 (row, column) => {
                     if (direction == ExcelCellShiftDirection.Right && row >= r1 && row <= r2 && column >= c1) column += columns;
                     else if (direction == ExcelCellShiftDirection.Down && column >= c1 && column <= c2 && row >= r1) row += rows;
-                    else if (direction == ExcelCellShiftDirection.Left && row >= r1 && row <= r2 && column > c2) column -= columns;
-                    else if (direction == ExcelCellShiftDirection.Up && column >= c1 && column <= c2 && row > r2) row -= rows;
+                    else if (direction == ExcelCellShiftDirection.Left && row >= r1 && row <= r2) {
+                        if (column > c2) column -= columns;
+                        else if (!inserting && column >= c1) column = c1;
+                    } else if (direction == ExcelCellShiftDirection.Up && column >= c1 && column <= c2) {
+                        if (row > r2) row -= rows;
+                        else if (!inserting && row >= r1) row = r1;
+                    }
                     return (row, column);
                 });
         }

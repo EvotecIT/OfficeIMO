@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel {
                 Table table = FindTableByRangeNameOrDisplayName(tableOrRange)
                     ?? throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
                 string oldName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
+                string oldDisplayName = table.DisplayName?.Value ?? oldName;
                 if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)) {
                     result = oldName;
                     return;
@@ -40,7 +41,9 @@ namespace OfficeIMO.Excel {
                 table.Save();
                 _excelDocument.RemoveReservedTableName(oldName);
                 _excelDocument.ReserveTableName(resolved);
-                _excelDocument.RewriteTableNameReferences(oldName, resolved);
+                _excelDocument.RewriteTableNameReferences(
+                    new[] { oldName, oldDisplayName },
+                    resolved);
                 WorksheetRoot.Save();
                 _excelDocument.CleanupCalculationArtifacts(
                     save: false,
@@ -232,13 +235,15 @@ namespace OfficeIMO.Excel {
     }
 
     public partial class ExcelDocument {
-        internal void RewriteTableNameReferences(string oldName, string newName) {
-            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [oldName] = newName };
+        internal void RewriteTableNameReferences(IEnumerable<string> oldNames, string newName) {
+            var aliases = new HashSet<string>(
+                oldNames.Where(name => !string.IsNullOrWhiteSpace(name)),
+                StringComparer.OrdinalIgnoreCase);
             RewriteFormulaRoots(text => ExcelFormulaSyntaxTree.Parse(text).RewriteTableNames(name =>
-                map.TryGetValue(name, out string? replacement) ? replacement : name));
+                aliases.Contains(name) ? newName : name));
             foreach (PivotTableCacheDefinitionPart cachePart in WorkbookPartRoot.PivotTableCacheDefinitionParts) {
                 foreach (WorksheetSource source in cachePart.PivotCacheDefinition?.Descendants<WorksheetSource>() ?? Enumerable.Empty<WorksheetSource>()) {
-                    if (string.Equals(source.Name?.Value, oldName, StringComparison.OrdinalIgnoreCase)) source.Name = newName;
+                    if (source.Name?.Value is string sourceName && aliases.Contains(sourceName)) source.Name = newName;
                 }
                 cachePart.PivotCacheDefinition?.Save();
             }

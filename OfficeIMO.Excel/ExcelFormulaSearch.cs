@@ -97,15 +97,8 @@ namespace OfficeIMO.Excel {
                     index++;
                     continue;
                 }
-                if (!inString && current == '\'') {
-                    index++;
-                    while (index < formula.Length) {
-                        if (formula[index] != '\'') { index++; continue; }
-                        if (index + 1 < formula.Length && formula[index + 1] == '\'') { index += 2; continue; }
-                        index++;
-                        break;
-                    }
-                    if (index < formula.Length && formula[index] == '!') index++;
+                if (!inString && current == '\'' && TrySkipQuotedQualifier(formula, index, out int nextIndex)) {
+                    index = nextIndex;
                     continue;
                 }
                 if (inString || !(char.IsLetter(current) || current == '_')) { index++; continue; }
@@ -120,6 +113,27 @@ namespace OfficeIMO.Excel {
                     if (string.Equals(name, NormalizeFunctionName(requested), comparison)) return true;
                 }
             }
+            return false;
+        }
+
+        private static bool TrySkipQuotedQualifier(string formula, int start, out int nextIndex) {
+            int index = start + 1;
+            while (index < formula.Length) {
+                if (formula[index] != '\'') {
+                    index++;
+                    continue;
+                }
+                if (index + 1 < formula.Length && formula[index + 1] == '\'') {
+                    index += 2;
+                    continue;
+                }
+                if (index + 1 < formula.Length && formula[index + 1] == '!') {
+                    nextIndex = index + 2;
+                    return true;
+                }
+                break;
+            }
+            nextIndex = start;
             return false;
         }
 
