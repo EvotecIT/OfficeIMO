@@ -62,6 +62,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_ClassifiesDelegatedLayoutFieldsAsExternalLayoutRequired() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(BuildSimpleField(" TOC ", "stale-toc"));
+            document.AddParagraph()._paragraph.Append(BuildSimpleField(" INDEX ", "stale-index"));
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+            Assert.All(report.Results, result => {
+                Assert.Equal(WordFieldUpdateStatus.Skipped, result.Status);
+                Assert.Equal("FieldRefreshDelegated", result.DiagnosticCode);
+                Assert.Equal(WordFieldEvaluationBasis.ExternalLayoutRequired, result.EvaluationBasis);
+            });
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesParseDiagnosticForLockedMalformedField() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("stale"))) {
+                Instruction = " SILLYFIELD value ",
+                FieldLock = true
+            });
+
+            WordFieldUpdateResult result = Assert.Single(document.UpdateFieldsAndGetReport().Results);
+
+            Assert.Equal(WordFieldUpdateStatus.ParseError, result.Status);
+            Assert.Equal("FieldInstructionInvalid", result.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, result.EvaluationBasis);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesMetadataCustomPropertiesAndFileName() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.Metadata.docx");
 

@@ -372,6 +372,34 @@ namespace OfficeIMO.Tests {
             Assert.Contains(report.Fields, result => result.Name == "Inner" && result.Status == WordMailMergeFieldStatus.Merged);
         }
 
+        [Fact]
+        public void Test_MailMerge_ExecutionReportPreservesOuterComplexFieldContainingNestedSimpleField() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Outer ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new SimpleField(new Run(new Text("inner placeholder"))) { Instruction = " MERGEFIELD Inner " },
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Outer"] = "outer value", ["Inner"] = "inner value" },
+                removeFields: false);
+
+            Assert.False(report.IsComplete);
+            Assert.Contains(report.Fields, result =>
+                result.Status == WordMailMergeFieldStatus.MalformedField &&
+                result.Instruction.Contains("Outer", System.StringComparison.Ordinal));
+            Assert.Contains(report.Fields, result =>
+                result.Name == "Inner" &&
+                result.Status == WordMailMergeFieldStatus.Merged &&
+                result.Value == "inner value");
+            Assert.DoesNotContain("outer value", body.InnerText, System.StringComparison.Ordinal);
+            Assert.Contains("inner value", body.InnerText, System.StringComparison.Ordinal);
+        }
+
         private static SimpleField CreateSimpleMergeFieldForFormattingTest(string name, RunProperties runProperties) {
             return new SimpleField(
                 new Run(

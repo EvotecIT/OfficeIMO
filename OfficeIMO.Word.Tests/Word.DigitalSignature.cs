@@ -393,6 +393,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_FragmentTransformCannotAuthenticateExcludedNestedManifest() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTransformedFragmentManifest.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Fragment transforms must preserve authenticated manifests");
+                document.Save();
+            }
+            string documentDigest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\">" +
+                "<SignedInfo><SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                "<Reference URI=\"#signed-object\"><Transforms><Transform Algorithm=\"http://www.w3.org/TR/1999/REC-xpath-19991116\">" +
+                "<XPath>not(ancestor-or-self::Manifest)</XPath></Transform></Transforms>" +
+                "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue></Reference></SignedInfo>" +
+                "<Object Id=\"signed-object\"><Manifest><Reference URI=\"/word/document.xml\">" +
+                "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>" + documentDigest + "</DigestValue>" +
+                "</Reference></Manifest><SignatureProperties /></Object></Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures();
+
+            WordSignaturePartInfo part = Assert.Single(validation.SignatureInfo.SignatureParts);
+            Assert.DoesNotContain(part.SignedReferences, reference => reference.IsPackagePartReference);
+            Assert.Contains(part.UnsupportedDetails, detail => detail.Contains("transform", System.StringComparison.OrdinalIgnoreCase));
+            Assert.NotEqual(WordSignatureValidationState.Passed, validation.SignedPartCoverageStatus);
+            Assert.False(validation.IsValidUnderPolicy);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_BoundsAggregateDigestWorkBeforeReadingDuplicateParts() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureDigestWorkBudget.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

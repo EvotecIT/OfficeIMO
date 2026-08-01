@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
             Status = status;
             ResultText = resultText;
             Message = message;
-            EvaluationBasis = WordFieldEvaluationContracts.GetBasis(fieldType, status);
+            EvaluationBasis = WordFieldEvaluationContracts.GetBasis(fieldType, status, isLocked);
             DiagnosticCode = WordFieldEvaluationContracts.GetDiagnosticCode(fieldType, status, isLocked);
         }
 

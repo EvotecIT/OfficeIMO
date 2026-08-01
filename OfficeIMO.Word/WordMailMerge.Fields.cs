@@ -75,6 +75,10 @@ namespace OfficeIMO.Word {
                 var activeFields = new List<ComplexFieldFrame>();
 
                 foreach (var run in EnumerateParagraphOwnedRuns(paragraph).ToList()) {
+                    if (activeFields.Count > 0 && run.Ancestors<SimpleField>().Any()) {
+                        foreach (ComplexFieldFrame activeField in activeFields) activeField.HasNestedField = true;
+                    }
+
                     var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
                         foreach (ComplexFieldFrame activeField in activeFields) {

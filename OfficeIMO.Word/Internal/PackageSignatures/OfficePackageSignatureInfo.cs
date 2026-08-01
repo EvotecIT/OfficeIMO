@@ -422,9 +422,16 @@ namespace OfficeIMO.Word {
                     .Take(2)
                     .ToArray() ?? Array.Empty<XElement>();
                 if (targets.Length != 1) continue;
-                authenticatedManifests.UnionWith(targets[0]
+                XElement[] targetManifests = targets[0]
                     .DescendantsAndSelf()
-                    .Where(element => element.Name == ds + "Manifest"));
+                    .Where(element => element.Name == ds + "Manifest")
+                    .ToArray();
+                if (targetManifests.Length == 0) continue;
+                if (!FragmentReferencePreservesCompleteSubtree(signedReference, ds)) {
+                    unsupportedDetails.Add("Ignored package references from an XML DSig Manifest because its SignedInfo fragment reference uses a transform that does not preserve the complete target subtree.");
+                    continue;
+                }
+                authenticatedManifests.UnionWith(targetManifests);
             }
 
             if (allManifests.Any(manifest => !authenticatedManifests.Contains(manifest))) {
@@ -437,6 +444,19 @@ namespace OfficeIMO.Word {
                 .Distinct()
                 .ToList();
             return result.Count > 0 ? result : signedInfoReferences;
+        }
+
+        private static bool FragmentReferencePreservesCompleteSubtree(XElement reference, XNamespace ds) {
+            XElement? transforms = reference.Element(ds + "Transforms");
+            if (transforms == null) return true;
+
+            return transforms.Elements(ds + "Transform").All(transform => {
+                string? algorithm = ((string?)transform.Attribute("Algorithm"))?.Trim();
+                return algorithm == "http://www.w3.org/TR/2001/REC-xml-c14n-20010315" ||
+                       algorithm == "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments" ||
+                       algorithm == "http://www.w3.org/2001/10/xml-exc-c14n#" ||
+                       algorithm == "http://www.w3.org/2001/10/xml-exc-c14n#WithComments";
+            });
         }
 
         private static void ValidateDigestWorkBudget(

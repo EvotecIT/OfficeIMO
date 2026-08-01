@@ -169,6 +169,10 @@ namespace OfficeIMO.Word {
                     status = WordFieldUpdateStatus.Skipped;
                     message = "Table of contents refresh was queued for Word to update on open; call WordTableOfContent.RefreshEntries() to generate deterministic OfficeIMO entries.";
                     return false;
+                case WordFieldType.Index:
+                    status = WordFieldUpdateStatus.Skipped;
+                    message = "Index refresh requires Word or another layout-aware application and was left for update on open.";
+                    return false;
                 default:
                     return false;
             }

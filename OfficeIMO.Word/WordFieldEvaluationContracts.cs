@@ -18,7 +18,11 @@ namespace OfficeIMO.Word {
     }
 
     internal static class WordFieldEvaluationContracts {
-        internal static WordFieldEvaluationBasis GetBasis(WordFieldType? fieldType, WordFieldUpdateStatus status) {
+        internal static WordFieldEvaluationBasis GetBasis(WordFieldType? fieldType, WordFieldUpdateStatus status, bool isLocked) {
+            if (!isLocked && status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) {
+                return WordFieldEvaluationBasis.ExternalLayoutRequired;
+            }
+
             if (status != WordFieldUpdateStatus.Updated) {
                 return WordFieldEvaluationBasis.NotEvaluated;
             }
@@ -33,12 +37,12 @@ namespace OfficeIMO.Word {
         }
 
         internal static string GetDiagnosticCode(WordFieldType? fieldType, WordFieldUpdateStatus status, bool isLocked) {
-            if (isLocked) return "FieldLocked";
             if (status == WordFieldUpdateStatus.ParseError) return "FieldInstructionInvalid";
             if (status == WordFieldUpdateStatus.Unsupported) return "FieldEvaluationUnsupported";
+            if (isLocked) return "FieldLocked";
             if (status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) return "FieldRefreshDelegated";
             if (status == WordFieldUpdateStatus.Skipped) return "FieldSourceUnavailable";
-            return GetBasis(fieldType, status) == WordFieldEvaluationBasis.ExplicitBreakEstimate
+            return GetBasis(fieldType, status, isLocked) == WordFieldEvaluationBasis.ExplicitBreakEstimate
                 ? "FieldUpdatedFromExplicitBreaks"
                 : "FieldUpdatedInvariant";
         }
