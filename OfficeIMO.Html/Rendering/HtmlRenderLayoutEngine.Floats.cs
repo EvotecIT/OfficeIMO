@@ -213,6 +213,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
         var breakOffsets = new SortedSet<double>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+        IReadOnlyList<IReadOnlyList<InlineSegment>> mergedLines = lines
+            .Select(static line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
+            .ToArray();
+        IReadOnlyList<IReadOnlyList<InlineSegment>>? resolvedBidiLines = ResolveInlineParagraphSegments(
+            mergedLines,
+            paragraphStyle.Direction);
 
         if (floatPlacements != null) {
             foreach (InlineFloatPlacement placement in floatPlacements) {
@@ -247,7 +253,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double flowY = 0D;
-        foreach (InlineLine current in lines) {
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            InlineLine current = lines[lineIndex];
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             double baseline = current.ResolveBaseline(paragraphStyle.LineHeight);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
@@ -256,11 +263,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double offsetX = ResolveLineOffset(paragraphStyle.Alignment, availableWidth, current.Width);
             double lineStart = lineX + offsetX;
             double lineRight = lineX + availableWidth;
-            IReadOnlyList<InlineSegment> mergedSegments = MergeAdjacentInlineSegments(current.Segments);
-            IReadOnlyList<InlineSegment> paintLineSegments = ResolveInlineLineSegments(
-                mergedSegments,
-                paragraphStyle.Direction,
-                out bool lineBidiResolved);
+            IReadOnlyList<InlineSegment> paintLineSegments = resolvedBidiLines?[lineIndex] ?? mergedLines[lineIndex];
+            bool lineBidiResolved = resolvedBidiLines != null;
             bool rightToLeftLine = !lineBidiResolved
                 && string.Equals(paragraphStyle.Direction, "rtl", StringComparison.Ordinal)
                 && current.Segments.Any(segment => OfficeTextElements.ContainsRightToLeft(segment.Text));

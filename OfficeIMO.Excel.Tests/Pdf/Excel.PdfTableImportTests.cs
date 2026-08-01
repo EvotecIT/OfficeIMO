@@ -397,6 +397,34 @@ public partial class Excel {
         Assert.Equal("3/4", values[2, 0]);
     }
 
+    [Theory]
+    [InlineData("Vendor")]
+    [InlineData("Trend")]
+    [InlineData("Spend")]
+    public void PdfTables_SaveTablesAsExcel_DoesNotMatchDateHintsInsideHeaderWords(string header) {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { header, "Label" },
+                new[] { "1/2", "First" },
+                new[] { "3/4", "Second" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 120, 160 }
+            })
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportEntry entry = Assert.Single(LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions { AutoFitColumns = false }).Entries);
+
+        Assert.Equal(PdfExcelTableColumnKind.Text, entry.ColumnKinds[0]);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal("1/2", values[1, 0]);
+        Assert.Equal("3/4", values[2, 0]);
+    }
+
     [Fact]
     public void PdfTables_SaveTablesAsExcel_KeepsPositionedCellRecoveryBoundedAndTableOnly() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {

@@ -334,9 +334,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static bool HasDateSignal(string columnName, IReadOnlyList<string> values) {
-            string name = columnName.Trim().ToLowerInvariant();
-            string[] hints = { "date", "time", "due", "created", "updated", "modified", "issued", "expiry", "expires", "start", "end" };
-            if (hints.Any(name.Contains)) return true;
+            if (TokenizeHeaderWords(columnName).Any(static word => DateHeaderHints.Contains(word, StringComparer.Ordinal))) return true;
             return values.All(static value => DateTime.TryParseExact(
                 value.Trim(),
                 UnambiguousDateTimeFormats,
@@ -344,6 +342,31 @@ namespace OfficeIMO.Excel.Pdf {
                 DateTimeStyles.AllowWhiteSpaces,
                 out _));
         }
+
+        private static IEnumerable<string> TokenizeHeaderWords(string value) {
+            var word = new System.Text.StringBuilder();
+            for (int index = 0; index < value.Length; index++) {
+                char current = value[index];
+                if (!char.IsLetterOrDigit(current)) {
+                    if (word.Length > 0) {
+                        yield return word.ToString().ToLowerInvariant();
+                        word.Clear();
+                    }
+                    continue;
+                }
+
+                if (word.Length > 0 && char.IsUpper(current) && char.IsLower(value[index - 1])) {
+                    yield return word.ToString().ToLowerInvariant();
+                    word.Clear();
+                }
+                word.Append(current);
+            }
+            if (word.Length > 0) yield return word.ToString().ToLowerInvariant();
+        }
+
+        private static readonly string[] DateHeaderHints = {
+            "date", "time", "due", "created", "updated", "modified", "issued", "expiry", "expires", "start", "end"
+        };
 
         private static readonly string[] UnambiguousDateTimeFormats = {
             "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd",

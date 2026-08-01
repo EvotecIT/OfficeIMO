@@ -53,21 +53,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return groups;
     }
 
-    private IReadOnlyList<InlineSegment> ResolveInlineLineSegments(
-        IReadOnlyList<InlineSegment> segments,
-        string paragraphDirection,
-        out bool resolved) {
-        resolved = false;
-        if (segments.Count < 2 || segments.Any(static segment =>
+    private IReadOnlyList<IReadOnlyList<InlineSegment>>? ResolveInlineParagraphSegments(
+        IReadOnlyList<IReadOnlyList<InlineSegment>> lines,
+        string paragraphDirection) {
+        if (lines.Count == 1 && lines[0].Count < 2) return null;
+        if (lines.SelectMany(static line => line).Any(static segment =>
                 segment.Run.AtomicBlock != null ||
                 segment.Run.RunningStringElement != null ||
                 segment.Run.PositionedMarkerElement != null)) {
-            return segments;
+            return null;
         }
 
-        string directionalText = string.Concat(segments.Select(static segment => segment.Text));
-        if (!OfficeTextElements.ContainsBidiControl(directionalText)) return segments;
+        string directionalText = string.Concat(lines.SelectMany(static line => line).Select(static segment => segment.Text));
+        if (!OfficeTextElements.ContainsBidiControl(directionalText)) return null;
 
+        var visibleLines = new List<IReadOnlyList<InlineBidiElement>>(lines.Count);
+        foreach (IReadOnlyList<InlineSegment> line in lines) {
+            visibleLines.Add(BuildInlineBidiElements(line));
+        }
+
+        OfficeTextDirection baseDirection = string.Equals(paragraphDirection, "rtl", StringComparison.Ordinal)
+            ? OfficeTextDirection.RightToLeft
+            : OfficeTextDirection.LeftToRight;
+        IReadOnlyList<IReadOnlyList<InlineBidiElement>> orderedLines = OfficeBidiTextResolver.ToVisualLineOrder(
+            directionalText,
+            visibleLines,
+            baseDirection,
+            _cancellationToken,
+            static element => element.WithText(OfficeBidiTextResolver.MirrorText(element.Text)));
+        if (orderedLines.Count != lines.Count) return null;
+
+        var result = new List<IReadOnlyList<InlineSegment>>(lines.Count);
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            result.Add(BuildResolvedInlineSegments(lines[lineIndex], orderedLines[lineIndex]));
+        }
+        return result.AsReadOnly();
+    }
+
+    private List<InlineBidiElement> BuildInlineBidiElements(IReadOnlyList<InlineSegment> segments) {
         var visibleElements = new List<InlineBidiElement>();
         for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
             CheckCancellation();
@@ -108,24 +131,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     Math.Max(0.01D, widths[elementIndex] * widthScale)));
             }
         }
+        return visibleElements;
+    }
 
-        OfficeTextDirection baseDirection = string.Equals(paragraphDirection, "rtl", StringComparison.Ordinal)
-            ? OfficeTextDirection.RightToLeft
-            : OfficeTextDirection.LeftToRight;
-        IReadOnlyList<InlineBidiElement> ordered = OfficeBidiTextResolver.ToVisualOrder(
-            directionalText,
-            visibleElements,
-            baseDirection,
-            _cancellationToken,
-            static element => element.WithText(OfficeBidiTextResolver.MirrorText(element.Text)));
-        if (visibleElements.Count > 0 && ordered.Count == 0) return segments;
-
+    private static IReadOnlyList<InlineSegment> BuildResolvedInlineSegments(
+        IReadOnlyList<InlineSegment> sources,
+        IReadOnlyList<InlineBidiElement> ordered) {
         var result = new List<InlineSegment>();
         int start = 0;
         while (start < ordered.Count) {
             int end = start + 1;
             while (end < ordered.Count && ordered[end].SourceSegmentIndex == ordered[start].SourceSegmentIndex) end++;
-            InlineSegment source = segments[ordered[start].SourceSegmentIndex];
+            InlineSegment source = sources[ordered[start].SourceSegmentIndex];
             string text = string.Concat(ordered.Skip(start).Take(end - start).Select(static element => element.Text));
             string logicalText = string.Concat(ordered
                 .Skip(start)
@@ -136,9 +153,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             result.Add(new InlineSegment(text, segmentWidth, source.Run, logicalText, bidiResolved: true));
             start = end;
         }
-
-        resolved = true;
-        return result;
+        return result.AsReadOnly();
     }
 
     private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, OfficeFontInfo font) {

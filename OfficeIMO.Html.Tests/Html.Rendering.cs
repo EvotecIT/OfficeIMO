@@ -1695,6 +1695,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_CarriesBidiOverridesAcrossWrappedLines() {
+        const string html = "<p style='margin:0;width:32px;font-size:12px'>\u202Eone two four\u202C</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        IReadOnlyList<HtmlRenderLogicalTextGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderLogicalTextGroup>()
+            .ToList();
+
+        Assert.Contains(groups, group =>
+            group.Text == "one" && Assert.Single(group.Visuals.OfType<HtmlRenderText>()).Text == "eno");
+        Assert.Contains(groups, group =>
+            group.Text == "two" && Assert.Single(group.Visuals.OfType<HtmlRenderText>()).Text == "owt");
+        Assert.Contains(groups, group =>
+            group.Text == "four" && Assert.Single(group.Visuals.OfType<HtmlRenderText>()).Text == "ruof");
+    }
+
+    [Fact]
     public void HtmlRenderer_ResolvesLogicalTextAlignmentAgainstElementDirection() {
         const string html = "<div style='width:160px'><p id='start' dir='rtl' style='margin:0'>Start</p><p id='end' dir='rtl' style='margin:0;text-align:end'>End</p><p id='left' dir='rtl' style='margin:0;text-align:left'>Left</p></div>";
 

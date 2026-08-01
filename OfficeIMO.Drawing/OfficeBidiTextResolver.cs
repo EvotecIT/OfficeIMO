@@ -166,6 +166,45 @@ public static class OfficeBidiTextResolver {
         return visualElements.Select(static element => element.Value).ToArray();
     }
 
+    internal static IReadOnlyList<IReadOnlyList<T>> ToVisualLineOrder<T>(
+        string directionalText,
+        IReadOnlyList<IReadOnlyList<T>> visibleLines,
+        OfficeTextDirection baseDirection,
+        CancellationToken cancellationToken,
+        Func<T, T>? mirrorOddLevel = null) {
+        IReadOnlyList<OfficeBidiTextRun> runs = ResolveRuns(directionalText, baseDirection, cancellationToken);
+        int visibleElementCount = visibleLines.Sum(static line => line.Count);
+        var resolvedElements = new List<VisualElement<T>>(visibleElementCount);
+        int lineIndex = 0;
+        int elementIndex = 0;
+        foreach (OfficeBidiTextRun run in runs) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = OfficeTextElements.Split(run.Text).Count;
+            for (int index = 0; index < count; index++) {
+                while (lineIndex < visibleLines.Count && elementIndex >= visibleLines[lineIndex].Count) {
+                    lineIndex++;
+                    elementIndex = 0;
+                }
+                if (lineIndex >= visibleLines.Count) return Array.Empty<IReadOnlyList<T>>();
+                T value = visibleLines[lineIndex][elementIndex++];
+                if ((run.EmbeddingLevel & 1) == 1 && mirrorOddLevel != null) value = mirrorOddLevel(value);
+                resolvedElements.Add(new VisualElement<T>(value, run.EmbeddingLevel));
+            }
+        }
+        if (resolvedElements.Count != visibleElementCount) return Array.Empty<IReadOnlyList<T>>();
+
+        var result = new List<IReadOnlyList<T>>(visibleLines.Count);
+        int offset = 0;
+        foreach (IReadOnlyList<T> line in visibleLines) {
+            cancellationToken.ThrowIfCancellationRequested();
+            List<VisualElement<T>> visualLine = resolvedElements.GetRange(offset, line.Count);
+            ReorderByEmbeddingLevel(visualLine, cancellationToken);
+            result.Add(visualLine.Select(static element => element.Value).ToArray());
+            offset += line.Count;
+        }
+        return result.AsReadOnly();
+    }
+
     internal static string MirrorText(string value) {
         if (value.Length == 0) return value;
         var mirrored = new StringBuilder(value.Length);
