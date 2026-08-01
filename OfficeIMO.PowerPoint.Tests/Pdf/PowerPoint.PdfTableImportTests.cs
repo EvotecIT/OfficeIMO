@@ -288,6 +288,70 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfPowerPointConversionReport_HybridCorrelatesRenderFailuresWithSourcePages() {
+        var successfulRender = new PdfCore.PdfPageRenderResult(
+            1,
+            PdfCore.PdfPageRenderFormat.Png,
+            new byte[] { 1 },
+            1,
+            1,
+            TimeSpan.Zero,
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>());
+        var failedRender = new PdfCore.PdfPageRenderResult(
+            2,
+            PdfCore.PdfPageRenderFormat.Png,
+            null,
+            0,
+            0,
+            TimeSpan.Zero,
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
+            new[] { "render failed" });
+        var sourceScope = new PdfCore.PdfTableExtractionScopeReport(
+            sourcePageCount: 2,
+            pagesWithTables: 1,
+            detectedTableCount: 1,
+            nonTableTextBlockCount: 0,
+            vectorPrimitiveCount: 0,
+            imageCount: 1,
+            linkCount: 0,
+            formWidgetCount: 0,
+            annotationCount: 0,
+            pageActionCount: 0,
+            optionalContentGroupCount: 0,
+            interactiveMediaAnnotationCount: 0,
+            analysisTruncated: false);
+        var failedScope = new PdfCore.PdfTableExtractionScopeReport(
+            sourcePageCount: 1,
+            pagesWithTables: 1,
+            detectedTableCount: 1,
+            nonTableTextBlockCount: 0,
+            vectorPrimitiveCount: 0,
+            imageCount: 0,
+            linkCount: 0,
+            formWidgetCount: 0,
+            annotationCount: 0,
+            pageActionCount: 0,
+            optionalContentGroupCount: 0,
+            interactiveMediaAnnotationCount: 0,
+            analysisTruncated: false);
+        var report = new PdfPowerPointConversionReport(
+            Array.Empty<PdfPowerPointTableImportEntry>(),
+            new[] {
+                new PdfPowerPointVisualPageEntry(successfulRender, slideIndex: 0),
+                new PdfPowerPointVisualPageEntry(failedRender, slideIndex: 1)
+            },
+            sourceScope,
+            failedScope);
+
+        Assert.False(report.HasOmittedPageContent);
+        PdfCore.PdfConversionWarning imageWarning = Assert.Single(
+            report.Warnings,
+            static warning => warning.Code == "PdfImagesNotEditable");
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, imageWarning.Severity);
+        Assert.Equal("VisualOnly", imageWarning.Details["Disposition"]);
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_ImportsDetectedTablesAsPowerPointTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

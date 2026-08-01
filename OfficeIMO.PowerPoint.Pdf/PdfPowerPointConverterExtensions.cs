@@ -363,9 +363,18 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         PdfCore.PdfTableExtractionScopeReport scope = PdfCore.PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+        var failedPageNumbers = new HashSet<int>(
+            visualEntries
+                .Where(static entry => !entry.Succeeded)
+                .Select(static entry => entry.PageNumber));
+        PdfCore.PdfLogicalPage[] failedPages = logical.Pages
+            .Where(page => failedPageNumbers.Contains(page.PageNumber))
+            .ToArray();
+        PdfCore.PdfTableExtractionScopeReport failedVisualScope =
+            PdfCore.PdfLogicalTableAnalysis.AnalyzeExtractionScope(failedPages);
         return new PdfPowerPointConversionResult(
             presentation,
-            new PdfPowerPointConversionReport(tableEntries, visualEntries, scope));
+            new PdfPowerPointConversionReport(tableEntries, visualEntries, scope, failedVisualScope));
     }
 
     private static void AddHybridTableOverlay(

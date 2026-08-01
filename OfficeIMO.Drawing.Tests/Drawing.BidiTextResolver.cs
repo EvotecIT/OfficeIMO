@@ -77,6 +77,19 @@ public partial class Drawing {
     }
 
     [Theory]
+    [InlineData("אב\u202Bcd\u202C!גד")]
+    [InlineData("אב\u2067cd\u2069!גד")]
+    public void BidiTextResolver_RestoresOuterStrongContextAfterDirectionalScope(string logical) {
+        IReadOnlyList<OfficeBidiTextRun> runs = OfficeBidiTextResolver.ResolveRuns(
+            logical,
+            OfficeTextDirection.LeftToRight);
+
+        OfficeBidiTextRun punctuation = Assert.Single(runs, static run => run.Text.Contains("!", StringComparison.Ordinal));
+        Assert.Equal(OfficeTextDirection.RightToLeft, punctuation.Direction);
+        Assert.Equal(1, punctuation.EmbeddingLevel);
+    }
+
+    [Theory]
     [InlineData("\u200F")]
     [InlineData("\u061C")]
     public void BidiTextResolver_UsesTrailingRtlMarksAsStrongNeutralContext(string mark) {
