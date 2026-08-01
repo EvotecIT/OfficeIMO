@@ -255,6 +255,41 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocument_ToPowerPointPresentation_HybridChargesRepeatedBackgroundsToAggregateBudget() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 520,
+                PageHeight = 420,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 9
+            })
+            .Table(new[] {
+                new[] { "C1", "C2" },
+                new[] { "R1C1", "R1C2" },
+                new[] { "R2C1", "R2C2" },
+                new[] { "R3C1", "R3C2" }
+            }, style: new PdfCore.PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 120, 120 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+        PdfCore.PdfDocument source = PdfCore.PdfDocument.Open(pdf);
+        PdfCore.PdfPageRenderResult rendered = Assert.Single(source.Read.RenderPages(
+            options: new PdfCore.PdfPageRenderOptions { Dpi = 144 }));
+        long oneBackgroundBytes = Assert.IsType<byte[]>(rendered.Bytes).LongLength;
+        var options = PdfPowerPointImportOptions.CreateHybrid();
+        options.MaxRowsPerSlide = 1;
+        options.MaxTotalOutputBytes = oneBackgroundBytes * 2;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            source.ToPowerPointPresentationResult(options));
+
+        Assert.Contains("aggregate output byte limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfDocument_ToPowerPointPresentation_HybridUsesVisualPlacementForMixedPageAspectRatios() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

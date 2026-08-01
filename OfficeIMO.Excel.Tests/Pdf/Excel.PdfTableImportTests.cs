@@ -501,6 +501,33 @@ public partial class Excel {
     }
 
     [Theory]
+    [InlineData("March 5", "April 7")]
+    [InlineData("01/02", "03/04")]
+    public void PdfTables_SaveTablesAsExcel_KeepsYearlessDateValuesAsText(string firstValue, string secondValue) {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Date", "Label" },
+                new[] { firstValue, "First" },
+                new[] { secondValue, "Second" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 120, 160 }
+            })
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportEntry entry = Assert.Single(LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions { AutoFitColumns = false }).Entries);
+
+        Assert.Equal(PdfExcelTableColumnKind.Text, entry.ColumnKinds[0]);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal(firstValue, values[1, 0]);
+        Assert.Equal(secondValue, values[2, 0]);
+    }
+
+    [Theory]
     [InlineData("01/02/2025", "03/04/2025")]
     [InlineData("01-02-2025", "03-04-2025")]
     [InlineData("01.02.2025", "03.04.2025")]

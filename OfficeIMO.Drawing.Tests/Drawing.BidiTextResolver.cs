@@ -90,6 +90,20 @@ public partial class Drawing {
     }
 
     [Theory]
+    [InlineData("A\u202B!b\u202C", "Ab!")]
+    [InlineData("A\u2067!b\u2069", "Ab!")]
+    public void BidiTextResolver_InitializesNeutralContextInsideDirectionalScopes(string logical, string expectedVisual) {
+        IReadOnlyList<OfficeBidiTextRun> runs = OfficeBidiTextResolver.ResolveRuns(
+            logical,
+            OfficeTextDirection.LeftToRight);
+
+        OfficeBidiTextRun punctuation = Assert.Single(runs, static run => run.Text.Contains("!", StringComparison.Ordinal));
+        Assert.Equal(OfficeTextDirection.RightToLeft, punctuation.Direction);
+        Assert.Equal(1, punctuation.EmbeddingLevel);
+        Assert.Equal(expectedVisual, OfficeBidiTextResolver.ToVisualOrder(logical, OfficeTextDirection.LeftToRight));
+    }
+
+    [Theory]
     [InlineData("\u200F")]
     [InlineData("\u061C")]
     public void BidiTextResolver_UsesTrailingRtlMarksAsStrongNeutralContext(string mark) {

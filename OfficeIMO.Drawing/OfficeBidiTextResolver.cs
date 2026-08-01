@@ -233,10 +233,10 @@ public static class OfficeBidiTextResolver {
             case '\u200E':
                 lastDirection = OfficeTextDirection.LeftToRight;
                 return true;
-            case '\u202A': Push(states, OfficeTextDirection.LeftToRight, false, false, lastDirection, ref overflow); return true;
-            case '\u202B': Push(states, OfficeTextDirection.RightToLeft, false, false, lastDirection, ref overflow); return true;
-            case '\u202D': Push(states, OfficeTextDirection.LeftToRight, true, false, lastDirection, ref overflow); return true;
-            case '\u202E': Push(states, OfficeTextDirection.RightToLeft, true, false, lastDirection, ref overflow); return true;
+            case '\u202A': Push(states, OfficeTextDirection.LeftToRight, false, false, ref lastDirection, ref overflow); return true;
+            case '\u202B': Push(states, OfficeTextDirection.RightToLeft, false, false, ref lastDirection, ref overflow); return true;
+            case '\u202D': Push(states, OfficeTextDirection.LeftToRight, true, false, ref lastDirection, ref overflow); return true;
+            case '\u202E': Push(states, OfficeTextDirection.RightToLeft, true, false, ref lastDirection, ref overflow); return true;
             case '\u202C':
                 if (overflow.OverflowEmbeddingCount > 0) {
                     overflow.OverflowEmbeddingCount--;
@@ -244,10 +244,10 @@ public static class OfficeBidiTextResolver {
                     lastDirection = states.Pop().OuterStrongDirection;
                 }
                 return true;
-            case '\u2066': Push(states, OfficeTextDirection.LeftToRight, false, true, lastDirection, ref overflow); return true;
-            case '\u2067': Push(states, OfficeTextDirection.RightToLeft, false, true, lastDirection, ref overflow); return true;
+            case '\u2066': Push(states, OfficeTextDirection.LeftToRight, false, true, ref lastDirection, ref overflow); return true;
+            case '\u2067': Push(states, OfficeTextDirection.RightToLeft, false, true, ref lastDirection, ref overflow); return true;
             case '\u2068':
-                Push(states, firstStrongIsolateDirection ?? states.Peek().Direction, false, true, lastDirection, ref overflow);
+                Push(states, firstStrongIsolateDirection ?? states.Peek().Direction, false, true, ref lastDirection, ref overflow);
                 return true;
             case '\u2069':
                 if (overflow.OverflowIsolateCount > 0) {
@@ -276,7 +276,7 @@ public static class OfficeBidiTextResolver {
         OfficeTextDirection direction,
         bool @override,
         bool isolate,
-        OfficeTextDirection outerStrongDirection,
+        ref OfficeTextDirection lastDirection,
         ref BidiOverflowState overflow) {
         int level = NextEmbeddingLevel(states.Peek().Level, direction);
         bool overflowed = level > MaximumEmbeddingDepth
@@ -288,7 +288,8 @@ public static class OfficeBidiTextResolver {
             return;
         }
 
-        states.Push(new DirectionalState(direction, @override, isolate, level, outerStrongDirection));
+        states.Push(new DirectionalState(direction, @override, isolate, level, lastDirection));
+        lastDirection = direction;
         if (isolate) overflow.ValidIsolateCount++;
     }
 

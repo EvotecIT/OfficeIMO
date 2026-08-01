@@ -280,6 +280,7 @@ namespace OfficeIMO.Excel.Pdf {
                     kinds[columnIndex] = PdfExcelTableColumnKind.Number;
                 } else if (options.ConvertDateTimeColumns &&
                            HasDateSignal(columns[columnIndex], values) &&
+                           values.All(static value => HasExplicitYear(value)) &&
                            values.All(value => DateTime.TryParse(value, options.NumericCulture, DateTimeStyles.AllowWhiteSpaces, out _))) {
                     kinds[columnIndex] = PdfExcelTableColumnKind.DateTime;
                 }
@@ -400,6 +401,24 @@ namespace OfficeIMO.Excel.Pdf {
                 int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out _) &&
                 first is >= 1 and <= 12 &&
                 second is >= 1 and <= 12;
+        }
+
+        private static bool HasExplicitYear(string value) {
+            int digitCount = 0;
+            int number = 0;
+            for (int index = 0; index <= value.Length; index++) {
+                bool isDigit = index < value.Length && char.IsDigit(value[index]);
+                if (isDigit) {
+                    digitCount++;
+                    number = digitCount <= 4 ? number * 10 + (value[index] - '0') : number;
+                    continue;
+                }
+
+                if (digitCount == 4 && number >= 1000) return true;
+                digitCount = 0;
+                number = 0;
+            }
+            return false;
         }
 
         private static IEnumerable<string> TokenizeHeaderWords(string value) {

@@ -274,6 +274,7 @@ public static partial class PowerPointPdfConverterExtensions {
         ConfigureSlideSize(presentation, rendered);
         var visualEntries = new List<PdfPowerPointVisualPageEntry>(rendered.Count);
         var tableEntries = new List<PdfPowerPointTableImportEntry>();
+        long embeddedVisualBytes = 0;
         Dictionary<int, IReadOnlyList<PdfCore.PdfLogicalTableExtraction>> tablesByPage =
             PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows)
                 .GroupBy(static extraction => extraction.PageIndex)
@@ -303,7 +304,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
                     int slideIndex = presentation.Slides.Count;
                     PptCore.PowerPointSlide slide = presentation.AddSlide();
-                    AddVisualPage(presentation, slide, render);
+                    AddHybridVisualPage(presentation, slide, render, options.MaxTotalOutputBytes, ref embeddedVisualBytes);
                     visualEntries.Add(new PdfPowerPointVisualPageEntry(render, slideIndex));
                     bool separateRepeatedHeader = headerRowIncluded && segment.RowStartIndex > 0;
                     if (separateRepeatedHeader) {
@@ -351,7 +352,7 @@ public static partial class PowerPointPdfConverterExtensions {
             if (!addedTableSlide) {
                 int slideIndex = presentation.Slides.Count;
                 PptCore.PowerPointSlide slide = presentation.AddSlide();
-                AddVisualPage(presentation, slide, render);
+                AddHybridVisualPage(presentation, slide, render, options.MaxTotalOutputBytes, ref embeddedVisualBytes);
                 visualEntries.Add(new PdfPowerPointVisualPageEntry(render, slideIndex));
             }
         }
@@ -458,6 +459,27 @@ public static partial class PowerPointPdfConverterExtensions {
             slide.AddTitle("PDF page " + page.PageNumber.ToString(CultureInfo.InvariantCulture));
             slide.AddTextBox("This page could not be rendered by the managed PDF renderer.");
         }
+    }
+
+    private static void AddHybridVisualPage(
+        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointSlide slide,
+        PdfCore.PdfPageRenderResult page,
+        long maximumBytes,
+        ref long embeddedBytes) {
+        byte[]? bytes = page.Bytes;
+        if (bytes != null) {
+            long next = embeddedBytes > maximumBytes - bytes.LongLength
+                ? long.MaxValue
+                : embeddedBytes + bytes.LongLength;
+            if (next > maximumBytes) {
+                throw new InvalidDataException(
+                    "Hybrid PDF visual backgrounds exceed the configured aggregate output byte limit of " +
+                    maximumBytes.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+            embeddedBytes = next;
+        }
+        AddVisualPage(presentation, slide, page);
     }
 
     private static (long Left, long Top, long Width, long Height) GetHybridTableBounds(
