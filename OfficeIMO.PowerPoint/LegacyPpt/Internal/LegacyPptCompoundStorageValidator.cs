@@ -21,7 +21,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 physicalBytes, physicalBytes);
             using var source = new MemoryStream(bytes, writable: false);
             return OfficeCompoundFileReader.TryReadSelective(source,
-                readOptions, externalize: (_, _) => true,
+                readOptions, externalize: (name, _) =>
+                    !string.Equals(name, "VBA/dir",
+                        StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(name, "VBA/_VBA_PROJECT",
+                        StringComparison.OrdinalIgnoreCase),
                 openExternalDestination: (_, _) => Stream.Null,
                 out compound, out reason);
         }

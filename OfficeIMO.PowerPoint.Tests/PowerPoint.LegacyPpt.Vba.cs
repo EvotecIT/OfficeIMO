@@ -439,16 +439,23 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateVbaTestProject(string moduleName,
-            string moduleText) {
+            string moduleText, bool corruptDirectory = false,
+            bool corruptProjectHeader = false) {
             using var output = new MemoryStream();
             using (RootStorage root = RootStorage.Create(output,
                        CfbVersion.V3, StorageModeFlags.LeaveOpen)) {
                 Storage vba = root.CreateStorage("VBA");
                 using (CfbStream directory = vba.CreateStream("dir")) {
-                    directory.Write(Array.Empty<byte>(), 0, 0);
+                    byte[] directoryBytes = corruptDirectory
+                        ? new byte[] { 0x01, 0x00, 0x00 }
+                        : CreateVbaDirectory(moduleName);
+                    directory.Write(directoryBytes, 0, directoryBytes.Length);
                 }
                 using (CfbStream project = vba.CreateStream("_VBA_PROJECT")) {
-                    project.Write(Array.Empty<byte>(), 0, 0);
+                    byte[] projectBytes = corruptProjectHeader
+                        ? new byte[] { 0xCC, 0x60, 0xFF, 0xFF, 0x00, 0x01, 0x00 }
+                        : new byte[] { 0xCC, 0x61, 0xFF, 0xFF, 0x00, 0x01, 0x00 };
+                    project.Write(projectBytes, 0, projectBytes.Length);
                 }
                 using (CfbStream module = vba.CreateStream(moduleName)) {
                     byte[] moduleBytes = Encoding.UTF8.GetBytes(moduleText);
@@ -459,6 +466,47 @@ namespace OfficeIMO.Tests {
                 }
             }
             return output.ToArray();
+        }
+
+        private static byte[] CreateVbaDirectory(string projectName) {
+            byte[] name = Encoding.ASCII.GetBytes(projectName);
+            using var records = new MemoryStream();
+            using (var writer = new BinaryWriter(records, Encoding.UTF8,
+                       leaveOpen: true)) {
+                WriteVbaDirectoryRecord(writer, 0x0001, new byte[4]);
+                WriteVbaDirectoryRecord(writer, 0x0002,
+                    new byte[] { 0x09, 0x04, 0x00, 0x00 });
+                WriteVbaDirectoryRecord(writer, 0x0014,
+                    new byte[] { 0x09, 0x04, 0x00, 0x00 });
+                WriteVbaDirectoryRecord(writer, 0x0003,
+                    new byte[] { 0xE4, 0x04 });
+                WriteVbaDirectoryRecord(writer, 0x0004, name);
+                writer.Write((ushort)0x0010);
+                writer.Write(0U);
+            }
+
+            byte[] uncompressed = records.ToArray();
+            using var compressed = new MemoryStream();
+            compressed.WriteByte(0x01);
+            using var chunk = new MemoryStream();
+            for (int offset = 0; offset < uncompressed.Length; offset += 8) {
+                chunk.WriteByte(0x00);
+                int count = Math.Min(8, uncompressed.Length - offset);
+                chunk.Write(uncompressed, offset, count);
+            }
+            byte[] chunkBytes = chunk.ToArray();
+            ushort header = checked((ushort)(0xB000 | (chunkBytes.Length - 1)));
+            compressed.WriteByte((byte)header);
+            compressed.WriteByte((byte)(header >> 8));
+            compressed.Write(chunkBytes, 0, chunkBytes.Length);
+            return compressed.ToArray();
+        }
+
+        private static void WriteVbaDirectoryRecord(BinaryWriter writer,
+            ushort id, byte[] value) {
+            writer.Write(id);
+            writer.Write(checked((uint)value.Length));
+            writer.Write(value);
         }
 
         private static byte[] ConvertVbaStorageToCompressed(byte[] sourceBytes) {

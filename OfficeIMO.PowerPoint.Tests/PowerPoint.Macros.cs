@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -63,10 +64,33 @@ namespace OfficeIMO.Tests {
                 byte[] binary = reopened.ToBytes(PowerPointFileFormat.Ppt);
                 using PowerPointPresentation projected =
                     PowerPointPresentation.Load(new MemoryStream(binary));
+                Assert.True(projected.HasVbaProject,
+                    string.Join(Environment.NewLine, projected.LegacyPptImportDiagnostics
+                        .Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
                 Assert.Equal(project, projected.GetVbaProjectBytes());
             } finally {
                 if (File.Exists(pptm)) File.Delete(pptm);
             }
+        }
+
+        [Fact]
+        public void PublicMacroApi_RejectsCorruptVbaHeadersAndDirectories() {
+            byte[] badHeader = CreateVbaTestProject("BadHeader", "Sub Main(): End Sub",
+                corruptProjectHeader: true);
+            byte[] badDirectory = CreateVbaTestProject("BadDirectory", "Sub Main(): End Sub",
+                corruptDirectory: true);
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+
+            InvalidDataException headerError = Assert.Throws<InvalidDataException>(() =>
+                presentation.SetVbaProject(badHeader));
+            InvalidDataException directoryError = Assert.Throws<InvalidDataException>(() =>
+                presentation.SetVbaProject(badDirectory));
+
+            Assert.Contains("_VBA_PROJECT", headerError.Message,
+                StringComparison.Ordinal);
+            Assert.Contains("dir", directoryError.Message,
+                StringComparison.Ordinal);
+            Assert.False(presentation.HasVbaProject);
         }
     }
 }

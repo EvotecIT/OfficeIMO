@@ -134,6 +134,17 @@ internal static class PowerPointBenchmarkSemanticValidator {
         A.Table table = slide.Descendants<A.Table>().SingleOrDefault()
             ?? throw new InvalidOperationException(
                 $"{operation} slide {index + 1} lost its benchmark table.");
+        P.GraphicFrame frame = table.Ancestors<P.GraphicFrame>().Single();
+        A.Offset? offset = frame.Transform?.Offset;
+        A.Extents? extents = frame.Transform?.Extents;
+        const long emusPerPoint = 12700L;
+        if (offset?.X?.Value != 40L * emusPerPoint
+            || offset.Y?.Value != 224L * emusPerPoint
+            || extents?.Cx?.Value != 300L * emusPerPoint
+            || extents.Cy?.Value != 220L * emusPerPoint) {
+            throw new InvalidOperationException(
+                $"{operation} slide {index + 1} table is not positioned at 40,224 with a 300x220 point extent.");
+        }
         string[,] expected = {
             { "Metric", "Current", "Target" },
             { "Quality", (92 + index % 7).ToString(CultureInfo.InvariantCulture), "98" },

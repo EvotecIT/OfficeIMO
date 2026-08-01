@@ -1,10 +1,13 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 
 namespace OfficeIMO.Tests {
     public class PowerPointReviewCommentMutationTests {
@@ -144,5 +147,60 @@ namespace OfficeIMO.Tests {
                 reopened.GetModernComments(reopened.Slides[0])).Author.Initials);
             Assert.Empty(reopened.ValidateDocument());
         }
+
+        [Fact]
+        public void ModernCommentMutation_RemovesUnusedAuthorMetadata() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var alice = new PowerPointCommentAuthor("Alice", "A");
+            var bob = new PowerPointCommentAuthor("Bob", "B");
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, alice, "Review");
+            PowerPointModernCommentReply reply = comment.AddReply(alice, "Reply");
+
+            comment.SetAuthor(bob);
+            Assert.Equal(new[] { "Alice", "Bob" }, GetModernAuthorNames(presentation));
+            reply.SetAuthor(bob);
+            Assert.Equal(new[] { "Bob" }, GetModernAuthorNames(presentation));
+
+            comment.Remove();
+            Assert.Empty(GetModernAuthorNames(presentation));
+            Assert.DoesNotContain(presentation.OpenXmlDocument.PresentationPart!.Parts,
+                pair => pair.OpenXmlPart is PowerPointAuthorsPart);
+            Assert.Empty(presentation.GetModernComments(slide));
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ModernCommentText_PreservesParagraphsBreaksAndBlankLines() {
+            var comment = new P188.Comment();
+            var body = new P188.TextBodyType(new A.BodyProperties(),
+                new A.ListStyle());
+            body.Append(
+                new A.Paragraph(new A.Run(new A.Text("First")),
+                    new A.Break(), new A.Run(new A.Text("Second"))),
+                new A.Paragraph(new A.Run(new A.Text("Third"))));
+            comment.Append(body);
+
+            Assert.Equal("First\nSecond\nThird",
+                PowerPointPresentation.GetModernCommentText(comment));
+
+            PowerPointPresentation.SetModernCommentText(comment,
+                "Alpha\r\n\r\nBeta");
+
+            Assert.Equal(3, body.Elements<A.Paragraph>().Count());
+            Assert.Equal("Alpha\n\nBeta",
+                PowerPointPresentation.GetModernCommentText(comment));
+        }
+
+        private static string[] GetModernAuthorNames(
+            PowerPointPresentation presentation) => presentation.OpenXmlDocument
+                .PresentationPart!.Parts.Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointAuthorsPart>()
+                .SelectMany(part => part.AuthorList?.Elements<P188.Author>()
+                    ?? Enumerable.Empty<P188.Author>())
+                .Select(author => author.Name?.Value ?? string.Empty)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray();
     }
 }

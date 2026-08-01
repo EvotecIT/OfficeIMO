@@ -242,15 +242,32 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Reassigns the comment to an existing or newly created author.</summary>
         public void SetAuthor(PowerPointCommentAuthor author) {
             if (author == null) throw new ArgumentNullException(nameof(author));
-            RequireAttached().AuthorId = _presentation.GetOrCreateModernCommentAuthor(author).Id?.Value;
+            P188.Comment attached = RequireAttached();
+            string? previousAuthorId = attached.AuthorId?.Value;
+            string? targetAuthorId = _presentation.GetOrCreateModernCommentAuthor(author).Id?.Value;
+            if (string.Equals(previousAuthorId, targetAuthorId,
+                    StringComparison.OrdinalIgnoreCase)) return;
+            attached.AuthorId = targetAuthorId;
+            _presentation.RemoveModernCommentAuthorIfUnused(previousAuthorId);
         }
 
         /// <summary>Removes the comment and all of its replies.</summary>
         public void Remove() {
-            RequireAttached();
+            P188.Comment attached = RequireAttached();
+            string?[] authorIds = attached.Descendants<P188.CommentReply>()
+                .Select(reply => reply.AuthorId?.Value)
+                .Concat(new[] { attached.AuthorId?.Value })
+                .Where(authorId => !string.IsNullOrWhiteSpace(authorId))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
             _comment.Remove();
-            if (_part.CommentList == null || _part.CommentList.Elements<P188.Comment>().Any()) return;
-            _slide.SlidePart.DeletePart(_part);
+            if (_part.CommentList == null
+                || !_part.CommentList.Elements<P188.Comment>().Any()) {
+                _slide.SlidePart.DeletePart(_part);
+            }
+            foreach (string? authorId in authorIds) {
+                _presentation.RemoveModernCommentAuthorIfUnused(authorId);
+            }
         }
 
         private P188.Comment RequireAttached() {
@@ -315,15 +332,22 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Reassigns the reply to an existing or newly created author.</summary>
         public void SetAuthor(PowerPointCommentAuthor author) {
             if (author == null) throw new ArgumentNullException(nameof(author));
-            RequireAttached().AuthorId = _presentation.GetOrCreateModernCommentAuthor(author).Id?.Value;
+            P188.CommentReply attached = RequireAttached();
+            string? previousAuthorId = attached.AuthorId?.Value;
+            string? targetAuthorId = _presentation.GetOrCreateModernCommentAuthor(author).Id?.Value;
+            if (string.Equals(previousAuthorId, targetAuthorId,
+                    StringComparison.OrdinalIgnoreCase)) return;
+            attached.AuthorId = targetAuthorId;
+            _presentation.RemoveModernCommentAuthorIfUnused(previousAuthorId);
         }
 
         /// <summary>Removes this reply from its thread.</summary>
         public void Remove() {
-            RequireAttached();
+            string? authorId = RequireAttached().AuthorId?.Value;
             P188.CommentReplyList? list = _reply.Parent as P188.CommentReplyList;
             _reply.Remove();
             if (list != null && !list.Elements<P188.CommentReply>().Any()) list.Remove();
+            _presentation.RemoveModernCommentAuthorIfUnused(authorId);
         }
 
         private P188.CommentReply RequireAttached() {
@@ -502,14 +526,55 @@ namespace OfficeIMO.PowerPoint {
                     author.Initials?.Value, author.UserId?.Value, author.ProviderId?.Value);
         }
 
-        internal static P188.TextBodyType CreateModernCommentTextBody(string text) =>
-            new P188.TextBodyType(new A.BodyProperties(), new A.ListStyle(),
-                new A.Paragraph(new A.Run(new A.Text(text))));
+        internal void RemoveModernCommentAuthorIfUnused(string? authorId) {
+            if (string.IsNullOrWhiteSpace(authorId)) return;
+            bool inUse = _slides.SelectMany(slide => slide.SlidePart.Parts
+                    .Select(pair => pair.OpenXmlPart)
+                    .OfType<PowerPointCommentPart>())
+                .SelectMany(part => part.CommentList?.Elements<P188.Comment>()
+                    ?? Enumerable.Empty<P188.Comment>())
+                .Any(comment => string.Equals(comment.AuthorId?.Value, authorId,
+                        StringComparison.OrdinalIgnoreCase)
+                    || comment.Descendants<P188.CommentReply>().Any(reply =>
+                        string.Equals(reply.AuthorId?.Value, authorId,
+                            StringComparison.OrdinalIgnoreCase)));
+            if (inUse) return;
 
-        internal static string GetModernCommentText(DocumentFormat.OpenXml.OpenXmlElement element) =>
-            string.Concat(element.GetFirstChild<P188.TextBodyType>()?
-                .Descendants<A.Text>().Select(item => item.Text)
-                ?? Enumerable.Empty<string>());
+            foreach (PowerPointAuthorsPart part in _presentationPart.Parts
+                         .Select(pair => pair.OpenXmlPart)
+                         .OfType<PowerPointAuthorsPart>().ToArray()) {
+                P188.Author? author = part.AuthorList?.Elements<P188.Author>()
+                    .FirstOrDefault(candidate => string.Equals(
+                        candidate.Id?.Value, authorId,
+                        StringComparison.OrdinalIgnoreCase));
+                author?.Remove();
+                if (part.AuthorList == null
+                    || !part.AuthorList.Elements<P188.Author>().Any()) {
+                    _presentationPart.DeletePart(part);
+                }
+            }
+        }
+
+        internal static P188.TextBodyType CreateModernCommentTextBody(string text) {
+            var body = new P188.TextBodyType(new A.BodyProperties(),
+                new A.ListStyle());
+            body.Append(CreateModernCommentParagraphs(text));
+            return body;
+        }
+
+        internal static string GetModernCommentText(DocumentFormat.OpenXml.OpenXmlElement element) {
+            A.Paragraph[] paragraphs = element.GetFirstChild<P188.TextBodyType>()?
+                .Elements<A.Paragraph>().ToArray() ?? Array.Empty<A.Paragraph>();
+            return string.Join("\n", paragraphs.Select(paragraph => {
+                var builder = new System.Text.StringBuilder();
+                foreach (DocumentFormat.OpenXml.OpenXmlElement item in
+                         paragraph.Descendants()) {
+                    if (item is A.Text text) builder.Append(text.Text);
+                    else if (item is A.Break) builder.Append('\n');
+                }
+                return builder.ToString();
+            }));
+        }
 
         internal static void SetModernCommentText(DocumentFormat.OpenXml.OpenXmlElement element,
             string text) {
@@ -522,8 +587,16 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
             body.RemoveAllChildren<A.Paragraph>();
-            body.Append(new A.Paragraph(new A.Run(new A.Text(text))));
+            body.Append(CreateModernCommentParagraphs(text));
         }
+
+        private static A.Paragraph[] CreateModernCommentParagraphs(string text) =>
+            text.Replace("\r\n", "\n").Replace('\r', '\n')
+                .Split(new[] { '\n' }, StringSplitOptions.None)
+                .Select(line => string.IsNullOrEmpty(line)
+                    ? new A.Paragraph()
+                    : new A.Paragraph(new A.Run(new A.Text(line))))
+                .ToArray();
 
         internal static P188.CommentStatus ToModernStatus(PowerPointModernCommentStatus status) {
             switch (status) {

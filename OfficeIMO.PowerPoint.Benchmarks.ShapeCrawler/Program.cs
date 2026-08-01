@@ -163,7 +163,10 @@ internal static class ShapeCrawlerBaselineRunner {
 
         if (index % 3 == 0) {
             shapes.AddTable(40, 224, 3, 4);
-            ITable table = shapes.Last().Table
+            IShape tableShape = shapes.Last();
+            tableShape.Width = 300;
+            tableShape.Height = 220;
+            ITable table = tableShape.Table
                 ?? throw new InvalidOperationException("ShapeCrawler did not expose the added table.");
             string[,] values = {
                 { "Metric", "Current", "Target" },

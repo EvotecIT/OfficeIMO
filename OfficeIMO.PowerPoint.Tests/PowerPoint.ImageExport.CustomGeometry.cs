@@ -54,6 +54,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_RejectsFilledMultiContourEvenOddGeometry() {
+            OfficeShape geometry = OfficeShape.Path(
+                OfficePathCommand.MoveTo(0, 0),
+                OfficePathCommand.LineTo(100, 0),
+                OfficePathCommand.LineTo(100, 100),
+                OfficePathCommand.Close(),
+                OfficePathCommand.MoveTo(25, 25),
+                OfficePathCommand.LineTo(75, 25),
+                OfficePathCommand.LineTo(75, 75),
+                OfficePathCommand.Close());
+            geometry.FillColor = OfficeColor.FromRgb(14, 165, 233);
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+
+            NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
+                slide.AddCustomGeometryPoints(geometry, 10, 10, 100, 100));
+            Assert.Contains("even-odd", error.Message,
+                StringComparison.OrdinalIgnoreCase);
+
+            geometry.FillRule = OfficeFillRule.NonZero;
+            Assert.NotNull(slide.AddCustomGeometryPoints(geometry,
+                10, 10, 100, 100));
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsCombinedCustomGeometryStrokeOpacity() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),

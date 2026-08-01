@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -26,6 +27,13 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException(
                     $"Custom geometry supports at most {MaximumCustomGeometryCommands} path commands.",
                     nameof(geometry));
+            }
+            if (geometry.FillColor.HasValue
+                && geometry.FillRule == OfficeFillRule.EvenOdd
+                && commands.Count(command => command.Kind
+                    == OfficePathCommandKind.MoveTo) > 1) {
+                throw new NotSupportedException(
+                    "DrawingML custom geometry cannot faithfully encode an even-odd fill across multiple contours. Use a non-zero fill rule, remove the fill, or split the contours into separate shapes.");
             }
 
             PowerPointAutoShape result = AddShape(
