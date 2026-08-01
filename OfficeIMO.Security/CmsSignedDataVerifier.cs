@@ -75,6 +75,7 @@ public static class CmsSignedDataVerifier {
                         isDetached: false,
                         decoded.SignedContentType?.Id,
                         encapsulatedContent: null,
+                        authenticodeIndirectData: null,
                         Array.Empty<CmsSignerVerificationResult>(),
                         containerFindings);
                 }
@@ -112,11 +113,14 @@ public static class CmsSignedDataVerifier {
                         options));
                 }
 
+                AuthenticodeIndirectDataInfo? authenticode = TryReadAuthenticodeIndirectData(
+                    verifiable.SignedContentType?.Id, content, containerFindings);
                 return new CmsVerificationResult(
                     parsed: true,
                     isDetached,
                     verifiable.SignedContentType?.Id,
                     isDetached ? null : content,
+                    authenticode,
                     signerResults,
                     containerFindings);
             } finally {
@@ -132,6 +136,7 @@ public static class CmsSignedDataVerifier {
                 isDetached: false,
                 contentTypeOid: null,
                 encapsulatedContent: null,
+                authenticodeIndirectData: null,
                 Array.Empty<CmsSignerVerificationResult>(),
                 containerFindings);
         }
@@ -187,14 +192,6 @@ public static class CmsSignedDataVerifier {
             }
         }
 
-        CertificateValidationResult certificateValidation = CertificateChainValidator.Validate(
-            platformSigner,
-            platformEmbedded,
-            options.CertificateValidation,
-            findings,
-            "CMS signer",
-            CertificateUsagePurpose.CmsSigner,
-            signerIndex);
         DateTimeOffset? signingTime = ReadSigningTime(signer.SignedAttributes, signerIndex, findings);
         IReadOnlyList<Rfc3161TimestampVerificationResult> timestamps = options.ValidateTimestamps
             ? VerifyTimestamps(signer, options, signerIndex, findings)
@@ -208,6 +205,16 @@ public static class CmsSignedDataVerifier {
             .Where(static value => value.HasValue)
             .OrderByDescending(static value => value)
             .FirstOrDefault();
+        CertificateValidationOptions signerOptions = ResolveSignerCertificateValidation(
+            options.CertificateValidation, timestamps);
+        CertificateValidationResult certificateValidation = CertificateChainValidator.Validate(
+            platformSigner,
+            platformEmbedded,
+            signerOptions,
+            findings,
+            "CMS signer",
+            CertificateUsagePurpose.CmsSigner,
+            signerIndex);
 
         return new CmsSignerVerificationResult(
             signerIndex,
@@ -226,6 +233,58 @@ public static class CmsSignedDataVerifier {
             timestampTime,
             timestamps,
             findings);
+    }
+
+    internal static CertificateValidationOptions ResolveSignerCertificateValidation(
+        CertificateValidationOptions source,
+        IReadOnlyList<Rfc3161TimestampVerificationResult> timestamps) {
+        DateTime? verificationTime = source.VerificationTime;
+        if (verificationTime == null) {
+            verificationTime = timestamps
+                .Where(static result => result.Status == SecurityValidationStatus.Valid && result.Timestamp.HasValue)
+                .Select(static result => (DateTime?)result.Timestamp!.Value.UtcDateTime)
+                .OrderBy(static value => value)
+                .FirstOrDefault();
+        }
+        var result = new CertificateValidationOptions {
+            ValidateChain = source.ValidateChain,
+            RevocationMode = source.RevocationMode,
+            RevocationFlag = source.RevocationFlag,
+            VerificationFlags = source.VerificationFlags,
+            DisableCertificateDownloads = source.DisableCertificateDownloads,
+            VerificationTime = verificationTime,
+            UrlRetrievalTimeout = source.UrlRetrievalTimeout,
+            ChainEvaluator = source.ChainEvaluator
+        };
+        result.ExtraCertificates.AddRange(source.ExtraCertificates);
+        return result;
+    }
+
+    private static AuthenticodeIndirectDataInfo? TryReadAuthenticodeIndirectData(
+        string? contentTypeOid,
+        byte[]? content,
+        List<SecurityFinding> findings) {
+        const string SpcIndirectDataContentOid = "1.3.6.1.4.1.311.2.1.4";
+        if (!string.Equals(contentTypeOid, SpcIndirectDataContentOid, StringComparison.Ordinal) || content == null) {
+            return null;
+        }
+        try {
+            Asn1Sequence sequence = Asn1Sequence.GetInstance(Asn1Object.FromByteArray(content));
+            if (sequence.Count != 2) throw new InvalidDataException("SPC indirect data must contain two values.");
+            Org.BouncyCastle.Asn1.X509.DigestInfo digestInfo =
+                Org.BouncyCastle.Asn1.X509.DigestInfo.GetInstance(sequence[1]);
+            byte[] digest = digestInfo.Digest.GetOctets();
+            if (digest.Length == 0 || digest.Length > 1024) {
+                throw new InvalidDataException("The signed subject digest length is invalid.");
+            }
+            return new AuthenticodeIndirectDataInfo(digestInfo.DigestAlgorithm.Algorithm.Id, digest);
+        } catch (Exception exception) when (IsValidationException(exception)) {
+            findings.Add(new SecurityFinding(
+                SecurityFindingSeverity.Error,
+                "AuthenticodeIndirectDataMalformed",
+                "The Authenticode SPC indirect-data content could not be decoded: " + exception.Message));
+            return null;
+        }
     }
 
     private static SecurityValidationStatus ValidateDigest(

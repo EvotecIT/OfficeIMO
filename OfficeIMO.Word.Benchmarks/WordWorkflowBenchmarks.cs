@@ -15,6 +15,7 @@ public class WordWorkflowBenchmarks {
     private Dictionary<string, string> _mergeValues = null!;
     private string _sourcePath = string.Empty;
     private string _targetPath = string.Empty;
+    private string _macroPath = string.Empty;
     private string _temporaryDirectory = string.Empty;
 
     [Params(100, 1000)]
@@ -26,6 +27,7 @@ public class WordWorkflowBenchmarks {
         Directory.CreateDirectory(_temporaryDirectory);
         _sourcePath = Path.Combine(_temporaryDirectory, "source.docx");
         _targetPath = Path.Combine(_temporaryDirectory, "target.docx");
+        _macroPath = Path.Combine(_temporaryDirectory, "macro.docm");
         _mergeValues = new Dictionary<string, string>(ItemCount, StringComparer.OrdinalIgnoreCase);
 
         using (WordDocument fields = WordDocument.Create()) {
@@ -57,6 +59,13 @@ public class WordWorkflowBenchmarks {
             }
             source.Save();
             target.Save();
+        }
+
+        byte[] macroProject = new byte[ItemCount * 1024];
+        new Random(31 + ItemCount).NextBytes(macroProject);
+        using (WordDocument macro = WordDocument.Create(_macroPath)) {
+            macro.AddMacro(macroProject);
+            macro.Save();
         }
 
         ValidateWorkflowResults();
@@ -92,12 +101,17 @@ public class WordWorkflowBenchmarks {
     [Benchmark]
     public int CompareStructure() => WordDocumentComparer.CompareStructure(_sourcePath, _targetPath).Findings.Count;
 
+    [Benchmark]
+    public long InspectMacroSignatures() =>
+        WordDocument.InspectMacroProjectSignatures(_macroPath).MacroProjectLength ?? 0;
+
     private void ValidateWorkflowResults() {
         EnsureEqual(nameof(UpdateFields), ItemCount, UpdateFields());
         EnsureEqual(nameof(ExecuteMailMerge), ItemCount, ExecuteMailMerge());
         EnsureEqual(nameof(LoadDocument), ItemCount, LoadDocument());
         ValidateHtmlOutput(nameof(ExportHtml), ExportHtmlDocument());
         ValidateHtmlOutput(nameof(ExportLoadedHtml), _loadedHtmlDocument.ToHtmlResult().RequireValue());
+        EnsureEqual(nameof(InspectMacroSignatures), ItemCount * 1024L, InspectMacroSignatures());
 
         WordComparisonResult comparison = WordDocumentComparer.CompareStructure(_sourcePath, _targetPath);
         if (!comparison.HasChanges ||
@@ -108,6 +122,12 @@ public class WordWorkflowBenchmarks {
     }
 
     private static void EnsureEqual(string benchmark, int expected, int actual) {
+        if (actual != expected) {
+            throw new InvalidOperationException(benchmark + " validation returned " + actual + "; expected " + expected + ".");
+        }
+    }
+
+    private static void EnsureEqual(string benchmark, long expected, long actual) {
         if (actual != expected) {
             throw new InvalidOperationException(benchmark + " validation returned " + actual + "; expected " + expected + ".");
         }

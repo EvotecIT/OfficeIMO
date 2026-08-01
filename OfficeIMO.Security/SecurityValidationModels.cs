@@ -188,6 +188,22 @@ public sealed class CmsSignerVerificationResult {
     public IReadOnlyList<SecurityFinding> Findings { get; }
 }
 
+/// <summary>Digest embedded in an Authenticode SPC indirect-data content object.</summary>
+public sealed class AuthenticodeIndirectDataInfo {
+    private readonly byte[] _digest;
+
+    internal AuthenticodeIndirectDataInfo(string digestAlgorithmOid, byte[] digest) {
+        DigestAlgorithmOid = digestAlgorithmOid;
+        _digest = (byte[])digest.Clone();
+    }
+
+    /// <summary>Gets the digest-algorithm object identifier requested from the subject interface package.</summary>
+    public string DigestAlgorithmOid { get; }
+
+    /// <summary>Gets a clone of the signed subject digest.</summary>
+    public byte[] Digest => (byte[])_digest.Clone();
+}
+
 /// <summary>Neutral CMS SignedData verification result.</summary>
 public sealed class CmsVerificationResult {
     internal CmsVerificationResult(
@@ -195,12 +211,14 @@ public sealed class CmsVerificationResult {
         bool isDetached,
         string? contentTypeOid,
         byte[]? encapsulatedContent,
+        AuthenticodeIndirectDataInfo? authenticodeIndirectData,
         IReadOnlyList<CmsSignerVerificationResult> signers,
         IReadOnlyList<SecurityFinding> findings) {
         Parsed = parsed;
         IsDetached = isDetached;
         ContentTypeOid = contentTypeOid;
         EncapsulatedContent = encapsulatedContent;
+        AuthenticodeIndirectData = authenticodeIndirectData;
         Signers = signers;
         Findings = findings;
     }
@@ -213,6 +231,8 @@ public sealed class CmsVerificationResult {
     public string? ContentTypeOid { get; }
     /// <summary>Cloned encapsulated content, when present.</summary>
     public byte[]? EncapsulatedContent { get; }
+    /// <summary>Gets the signed Authenticode subject digest when the encapsulated content uses SPC indirect data.</summary>
+    public AuthenticodeIndirectDataInfo? AuthenticodeIndirectData { get; }
     /// <summary>Signer results in encoded order.</summary>
     public IReadOnlyList<CmsSignerVerificationResult> Signers { get; }
     /// <summary>Container-level findings.</summary>

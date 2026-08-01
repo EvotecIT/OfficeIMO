@@ -21,7 +21,9 @@ namespace OfficeIMO.Tests {
         public void Test_DigitalSignature_PackageAndMacroProjectCapabilitiesAreExplicitlySeparate() {
             Assert.True(WordSigningCapabilities.Package.IsSupported);
             Assert.Equal(WordSigningCapabilityKind.OpcPackage, WordSigningCapabilities.Package.Kind);
-            Assert.False(WordSigningCapabilities.MacroProject.IsSupported);
+            Assert.Equal(
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows),
+                WordSigningCapabilities.MacroProject.IsSupported);
             Assert.Equal(WordSigningCapabilityKind.VbaMacroProject, WordSigningCapabilities.MacroProject.Kind);
         }
 

@@ -278,6 +278,45 @@ public sealed class CmsSecurityTests {
         Assert.Equal(expectedStatus, status);
     }
 
+    [Fact]
+    public void CmsSignerTrustUsesEarliestValidTimestampUnlessCallerOverridesTime() {
+        DateTimeOffset earlier = DateTimeOffset.UtcNow.AddYears(-2);
+        DateTimeOffset later = earlier.AddMinutes(5);
+        var timestamps = new[] {
+            CreateTimestampResult(SecurityValidationStatus.Valid, later),
+            CreateTimestampResult(SecurityValidationStatus.Valid, earlier),
+            CreateTimestampResult(SecurityValidationStatus.Invalid, earlier.AddYears(-1))
+        };
+        var source = new CertificateValidationOptions();
+
+        CertificateValidationOptions resolved =
+            CmsSignedDataVerifier.ResolveSignerCertificateValidation(source, timestamps);
+
+        Assert.Equal(earlier.UtcDateTime, resolved.VerificationTime);
+        Assert.Null(source.VerificationTime);
+
+        DateTime explicitTime = DateTime.UtcNow.AddDays(-3);
+        source.VerificationTime = explicitTime;
+        CertificateValidationOptions explicitResult =
+            CmsSignedDataVerifier.ResolveSignerCertificateValidation(source, timestamps);
+        Assert.Equal(explicitTime, explicitResult.VerificationTime);
+    }
+
+    private static Rfc3161TimestampVerificationResult CreateTimestampResult(
+        SecurityValidationStatus status,
+        DateTimeOffset timestamp) =>
+        new Rfc3161TimestampVerificationResult(
+            status,
+            timestamp,
+            policyOid: null,
+            messageImprintAlgorithmOid: null,
+            tsaCertificate: null,
+            certificateValidation: new CertificateValidationResult(
+                SecurityValidationStatus.Valid,
+                SecurityValidationStatus.NotPerformed,
+                Array.Empty<string>()),
+            findings: Array.Empty<SecurityFinding>());
+
     private static CmsVerificationOptions TrustSelfSigned() {
         var options = new CmsVerificationOptions();
         options.CertificateValidation.ChainEvaluator = static (_, _) => true;

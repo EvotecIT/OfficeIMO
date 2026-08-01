@@ -548,6 +548,68 @@ jobs:
             **/*.trx
             TestResults/visual-baselines/**
 
+  word-vba-office-sip:
+    name: 'Word VBA / Microsoft OfficeSips'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore Word tests
+        run: dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
+
+      - name: Install OfficeSips and run isolated interoperability proof
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $downloadUrl = 'https://download.microsoft.com/download/c53e473c-3060-4ee9-ac5c-0ddbbeced4e5/OfficeSips_x64_16-0-19416-43425.exe'
+          $expectedSha256 = '96335D8AFBED13919E6BD31CF38974FB4EE2A534734A5E5736E1A40D032D2456'
+          $downloadPath = Join-Path $env:RUNNER_TEMP 'OfficeSips_x64.exe'
+          $extractRoot = Join-Path $env:RUNNER_TEMP 'OfficeSips'
+          $outerDirectory = Join-Path $extractRoot 'outer'
+          $toolsDirectory = Join-Path $extractRoot 'tools'
+          New-Item -ItemType Directory -Force -Path $outerDirectory, $toolsDirectory | Out-Null
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath
+          $actualSha256 = (Get-FileHash -LiteralPath $downloadPath -Algorithm SHA256).Hash
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "OfficeSips download checksum mismatch: $actualSha256"
+          }
+          & 7z.exe x $downloadPath "-o$outerDirectory" -y | Out-Null
+          $cabPath = Get-ChildItem -LiteralPath $outerDirectory -Filter *.cab -Recurse |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $cabPath) { throw 'OfficeSips cabinet was not found in the verified download.' }
+          & expand.exe '-F:*' $cabPath $toolsDirectory | Out-Null
+          $sipPath = Join-Path $toolsDirectory 'msosipx.dll'
+          $clearPath = Join-Path $toolsDirectory 'offclearsig.exe'
+          if (-not (Test-Path -LiteralPath $sipPath) -or -not (Test-Path -LiteralPath $clearPath)) {
+            throw 'The verified OfficeSips archive does not contain msosipx.dll and offclearsig.exe.'
+          }
+          $signToolPath = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $signToolPath) { throw 'The Windows SDK SignTool.exe was not found.' }
+          try {
+            & regsvr32.exe /s $sipPath
+            $env:OFFICEIMO_RUN_VBA_SIP_INTEROP = '1'
+            $env:OFFICEIMO_VBA_SIP_DIRECTORY = $toolsDirectory
+            $env:OFFICEIMO_SIGNTOOL_PATH = $signToolPath
+            dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj `
+              --configuration $env:BUILD_CONFIGURATION `
+              --framework net8.0 `
+              --no-restore `
+              --filter 'FullyQualifiedName~MacroSigningInteroperatesWithMicrosoftOfficeSipAndDetectsTampering' `
+              --logger "console;verbosity=$env:TEST_VERBOSITY"
+          } finally {
+            & regsvr32.exe /u /s $sipPath
+          }
+
   test-ubuntu-matrix:
     name: 'Ubuntu ${{ matrix.framework }} / ${{ matrix.partition }}'
     runs-on: ubuntu-24.04

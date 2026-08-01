@@ -601,7 +601,7 @@ public sealed class ReleasePackagingGuardrails {
         string roadmap = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "ROADMAP.md"));
         Assert.Contains("# OfficeIMO roadmap", roadmap, StringComparison.Ordinal);
         Assert.Contains("It contains open work only", roadmap, StringComparison.Ordinal);
-        Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Word", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Excel", roadmap, StringComparison.Ordinal);
         Assert.Contains("## PDF, HTML, and image rendering", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Markdown and text formats", roadmap, StringComparison.Ordinal);
@@ -610,7 +610,7 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("## Browser and agent surfaces", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("cross-platform package signing", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Add VBA macro-project signing as a separate explicit capability", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("VBA macro-project signing", roadmap, StringComparison.Ordinal);
         Assert.Contains("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
         Assert.Contains("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
         Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
