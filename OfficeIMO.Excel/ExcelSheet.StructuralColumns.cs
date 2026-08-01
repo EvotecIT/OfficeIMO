@@ -89,11 +89,30 @@ namespace OfficeIMO.Excel {
             ValidateColumnConnectionParameters(firstColumn, count, deleting);
             if (!deleting) ValidateColumnCommentVmlAnchorCapacity(firstColumn, count);
             if (!deleting) {
-                int maximumUsedColumn = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
+                int maximumCellColumn = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
                     .Select(cell => cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0)
                     .DefaultIfEmpty(0).Max();
+                int maximumDefinedColumn = InspectMutationPlanElements(WorksheetRoot.Descendants<Column>(), budget)
+                    .Select(column => checked((int)(column.Max?.Value ?? column.Min?.Value ?? 0U)))
+                    .DefaultIfEmpty(0).Max();
+                int maximumPageBreakColumn = InspectMutationPlanElements(
+                        WorksheetRoot.Descendants<ColumnBreaks>().SelectMany(columnBreaks => columnBreaks.Elements<Break>()),
+                        budget)
+                    .Select(pageBreak => checked((int)(pageBreak.Id?.Value ?? 0U)))
+                    .DefaultIfEmpty(0).Max();
+                int maximumDrawingColumn = InspectMutationPlanElements(
+                        _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.ColumnId>()
+                            ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Spreadsheet.ColumnId>(),
+                        budget)
+                    .Select(column => int.TryParse(column.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBased)
+                        ? zeroBased + 1
+                        : 0)
+                    .DefaultIfEmpty(0).Max();
+                int maximumUsedColumn = Math.Max(
+                    Math.Max(maximumCellColumn, maximumDefinedColumn),
+                    Math.Max(maximumPageBreakColumn, maximumDrawingColumn));
                 if (maximumUsedColumn >= firstColumn && (long)maximumUsedColumn + count > A1.MaxColumns) {
-                    throw new InvalidOperationException("Column insertion would move worksheet content beyond the Excel column limit.");
+                    throw new InvalidOperationException("Column insertion would move worksheet content or column metadata beyond the Excel column limit.");
                 }
             }
             foreach (CellFormula formula in InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget).Where(item =>
@@ -151,6 +170,7 @@ namespace OfficeIMO.Excel {
             RewriteColumnDefinitions(firstColumn, lastColumn, count, deleting);
             RemapColumnConnectionParameters(firstColumn, count, deleting, cancellationToken);
             _excelDocument.RewriteColumnMutationReferences(this, firstColumn, count, deleting);
+            RemapColumnPageBreaks(firstColumn, count, deleting);
             RemapColumnCommentVml(firstColumn, count, deleting);
             _excelDocument.CleanupCalculationArtifacts(save: false, ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
             ResetMutationCaches();

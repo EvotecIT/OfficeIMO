@@ -720,6 +720,9 @@ namespace OfficeIMO.Excel {
             if (reference.Kind != ExcelReferenceKind.Cell && reference.Kind != ExcelReferenceKind.Range) {
                 throw new ArgumentException("AutoFilter ranges require a cell or rectangular range reference.", nameof(range));
             }
+            if (reference.IsQualified) {
+                throw new ArgumentException("Worksheet AutoFilter ranges must be local, unqualified references.", nameof(range));
+            }
             reference.GetBounds(out _, out int firstColumn, out _, out int lastColumn);
             uint width = checked((uint)(lastColumn - firstColumn + 1));
             if (columnId >= width) throw new ArgumentOutOfRangeException(nameof(columnId), "AutoFilter column offset must be inside the filter range.");

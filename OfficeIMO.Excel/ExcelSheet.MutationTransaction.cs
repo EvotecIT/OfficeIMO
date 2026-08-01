@@ -71,6 +71,57 @@ namespace OfficeIMO.Excel {
                     snapshot._restore.Add(() => restore(clone));
                 }
 
+                TPart RestorePartRelationship<TPart>(
+                    OpenXmlPartContainer parent,
+                    string relationshipId) where TPart : OpenXmlPart, IFixedContentTypePart {
+                    foreach (IdPartPair pair in parent.Parts) {
+                        if (!string.Equals(pair.RelationshipId, relationshipId, StringComparison.Ordinal)) continue;
+                        return pair.OpenXmlPart as TPart
+                            ?? throw new InvalidOperationException(
+                                $"Relationship '{relationshipId}' was restored with an incompatible package-part type.");
+                    }
+                    return parent.AddNewPart<TPart>(relationshipId);
+                }
+
+                void AddPartRoot<TPart, TRoot>(
+                    OpenXmlPartContainer parent,
+                    TPart part,
+                    TRoot? root,
+                    Action<TPart, TRoot> restoreRoot)
+                    where TPart : OpenXmlPart, IFixedContentTypePart
+                    where TRoot : OpenXmlPartRootElement {
+                    if (root == null) return;
+                    string relationshipId = parent.GetIdOfPart(part);
+                    string xml = root.OuterXml;
+                    characters = checked(characters + xml.Length);
+                    if (characters > maximumCharacters) {
+                        throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
+                    }
+                    TRoot clone = (TRoot)root.CloneNode(true);
+                    snapshot._restore.Add(() => restoreRoot(
+                        RestorePartRelationship<TPart>(parent, relationshipId),
+                        (TRoot)clone.CloneNode(true)));
+                }
+
+                void AddPartPayload<TPart>(
+                    OpenXmlPartContainer parent,
+                    TPart part) where TPart : OpenXmlPart, IFixedContentTypePart {
+                    string relationshipId = parent.GetIdOfPart(part);
+                    using Stream source = part.GetStream(FileMode.Open, FileAccess.Read);
+                    using var buffer = new MemoryStream();
+                    source.CopyTo(buffer);
+                    byte[] bytes = buffer.ToArray();
+                    characters = checked(characters + bytes.Length);
+                    if (characters > maximumCharacters) {
+                        throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
+                    }
+                    snapshot._restore.Add(() => {
+                        TPart restoredPart = RestorePartRelationship<TPart>(parent, relationshipId);
+                        using var restore = new MemoryStream(bytes, writable: false);
+                        restoredPart.FeedData(restore);
+                    });
+                }
+
                 AddRoot(workbookPart.Workbook, value => workbookPart.Workbook = value);
                 AddRoot(workbookPart.ConnectionsPart?.Connections, value => workbookPart.ConnectionsPart!.Connections = value);
                 AddRoot(workbookPart.WorkbookStylesPart?.Stylesheet, value => workbookPart.WorkbookStylesPart!.Stylesheet = value);
@@ -107,9 +158,26 @@ namespace OfficeIMO.Excel {
 
                 foreach (WorksheetPart worksheetPart in workbookPart.WorksheetParts) {
                     AddRoot(worksheetPart.Worksheet, value => worksheetPart.Worksheet = value);
-                    AddRoot(worksheetPart.WorksheetCommentsPart?.Comments, value => worksheetPart.WorksheetCommentsPart!.Comments = value);
+                    WorksheetCommentsPart? commentsPart = worksheetPart.WorksheetCommentsPart;
+                    if (commentsPart != null) {
+                        if (commentsPart.Comments == null) AddPartPayload(worksheetPart, commentsPart);
+                        else {
+                            AddPartRoot(
+                                worksheetPart,
+                                commentsPart,
+                                commentsPart.Comments,
+                                (part, value) => part.Comments = value);
+                        }
+                    }
                     foreach (WorksheetThreadedCommentsPart part in worksheetPart.WorksheetThreadedCommentsParts) {
-                        AddRoot(part.ThreadedComments, value => part.ThreadedComments = value);
+                        if (part.ThreadedComments == null) AddPartPayload(worksheetPart, part);
+                        else {
+                            AddPartRoot(
+                                worksheetPart,
+                                part,
+                                part.ThreadedComments,
+                                (restoredPart, value) => restoredPart.ThreadedComments = value);
+                        }
                     }
                     AddDrawingRoots(worksheetPart.DrawingsPart);
                     foreach (TableDefinitionPart part in worksheetPart.TableDefinitionParts) {
@@ -127,17 +195,10 @@ namespace OfficeIMO.Excel {
                     PivotTableCacheRecordsPart? records = part.PivotTableCacheRecordsPart;
                     AddRoot(records?.PivotCacheRecords, value => records!.PivotCacheRecords = value);
                 }
-                foreach (VmlDrawingPart part in workbookPart.WorksheetParts.SelectMany(sheet => sheet.VmlDrawingParts)) {
-                    using Stream source = part.GetStream(FileMode.Open, FileAccess.Read);
-                    using var buffer = new MemoryStream();
-                    source.CopyTo(buffer);
-                    byte[] bytes = buffer.ToArray();
-                    characters = checked(characters + bytes.Length);
-                    if (characters > maximumCharacters) throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
-                    snapshot._restore.Add(() => {
-                        using var restore = new MemoryStream(bytes, writable: false);
-                        part.FeedData(restore);
-                    });
+                foreach (WorksheetPart worksheetPart in workbookPart.WorksheetParts) {
+                    foreach (VmlDrawingPart part in worksheetPart.VmlDrawingParts) {
+                        AddPartPayload(worksheetPart, part);
+                    }
                 }
                 var relationshipBaselines = new Dictionary<OpenXmlPartContainer, HashSet<string>>();
                 var pending = new Stack<OpenXmlPartContainer>();

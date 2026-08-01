@@ -202,9 +202,12 @@ namespace OfficeIMO.Excel {
         private void EnsureNoIntersectingOwnedStructures(
             ExcelReference range,
             string message,
-            MutationPlanScanBudget? budget = null) {
+            MutationPlanScanBudget? budget = null,
+            Table? excludedTable = null) {
             bool conflict = InspectMutationPlanElements(_worksheetPart.TableDefinitionParts, budget)
-                    .Any(part => ExcelReference.TryParse(part.Table?.Reference?.Value, out ExcelReference? table) && table!.Intersects(range))
+                    .Any(part => !ReferenceEquals(part.Table, excludedTable)
+                        && ExcelReference.TryParse(part.Table?.Reference?.Value, out ExcelReference? table)
+                        && table!.Intersects(range))
                 || InspectMutationPlanElements(WorksheetRoot.Descendants<MergeCell>(), budget)
                     .Any(merge => ExcelReference.TryParse(merge.Reference?.Value, out ExcelReference? merged) && merged!.Intersects(range))
                 || InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget).Any(formula =>

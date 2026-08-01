@@ -68,13 +68,16 @@ namespace OfficeIMO.Excel {
                 if (targetBounds.r2 - targetBounds.r1 + 1 < Math.Max(1, headerRows + totalsRows)) {
                     throw new InvalidOperationException("The resized table must retain its configured header and totals rows.");
                 }
-                foreach (TableDefinitionPart otherPart in _worksheetPart.TableDefinitionParts) {
-                    Table? other = otherPart.Table;
-                    if (ReferenceEquals(other, table) || !ExcelReference.TryParse(other?.Reference?.Value, out ExcelReference? otherRange)) continue;
+                bool rangeChanged = targetBounds.r1 != currentBounds.r1
+                    || targetBounds.c1 != currentBounds.c1
+                    || targetBounds.r2 != currentBounds.r2
+                    || targetBounds.c2 != currentBounds.c2;
+                if (rangeChanged) {
                     string targetText = A1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + A1.CellReference(targetBounds.r2, targetBounds.c2);
-                    if (ExcelReference.Parse(targetText).Intersects(otherRange!)) {
-                        throw new InvalidOperationException($"Table resize would overlap table '{other!.DisplayName?.Value ?? other.Name?.Value}'.");
-                    }
+                    EnsureNoIntersectingOwnedStructures(
+                        ExcelReference.Parse(targetText),
+                        "Table resize would overlap another table, merged cells, an array or data-table formula, or PivotTable output.",
+                        excludedTable: table);
                 }
 
                 TableColumns columns = table.TableColumns ??= new TableColumns();

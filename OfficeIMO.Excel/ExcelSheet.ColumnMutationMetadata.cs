@@ -9,6 +9,64 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>Remaps zero-based worksheet AutoFilter criteria through a complete-column edit.</summary>
+        internal void RemapWorksheetAutoFilterColumns(int firstColumn, int count, bool deleting) {
+            AutoFilter? autoFilter = WorksheetRoot.GetFirstChild<AutoFilter>();
+            if (autoFilter?.Reference?.Value is not string filterReference
+                || !ExcelReference.TryParse(filterReference, out ExcelReference? parsed)) return;
+            parsed!.GetBounds(out _, out int filterFirstColumn, out _, out int filterLastColumn);
+            int lastDeletedColumn = firstColumn + count - 1;
+            if (!deleting) {
+                if (firstColumn <= filterFirstColumn || firstColumn > filterLastColumn) return;
+                uint insertionOffset = checked((uint)(firstColumn - filterFirstColumn));
+                foreach (FilterColumn filterColumn in autoFilter.Elements<FilterColumn>()) {
+                    if (filterColumn.ColumnId?.Value is uint id && id >= insertionOffset) {
+                        filterColumn.ColumnId = id + checked((uint)count);
+                    }
+                }
+                return;
+            }
+
+            int overlapStart = Math.Max(firstColumn, filterFirstColumn);
+            int overlapEnd = Math.Min(lastDeletedColumn, filterLastColumn);
+            if (overlapStart > overlapEnd) return;
+            uint removedStart = checked((uint)(overlapStart - filterFirstColumn));
+            uint removedEnd = checked((uint)(overlapEnd - filterFirstColumn));
+            uint removedCount = removedEnd - removedStart + 1U;
+            foreach (FilterColumn filterColumn in autoFilter.Elements<FilterColumn>().ToList()) {
+                uint id = filterColumn.ColumnId?.Value ?? uint.MaxValue;
+                if (id >= removedStart && id <= removedEnd) filterColumn.Remove();
+                else if (id > removedEnd) filterColumn.ColumnId = id - removedCount;
+            }
+        }
+
+        private void RemapColumnPageBreaks(int firstColumn, int count, bool deleting) {
+            int lastDeletedColumn = firstColumn + count - 1;
+            foreach (ColumnBreaks columnBreaks in WorksheetRoot.Descendants<ColumnBreaks>().ToList()) {
+                bool changed = false;
+                foreach (Break pageBreak in columnBreaks.Elements<Break>().ToList()) {
+                    if (pageBreak.Id?.Value is not uint columnId || columnId == 0U) continue;
+                    int column = checked((int)columnId);
+                    if (deleting && column >= firstColumn && column <= lastDeletedColumn) {
+                        pageBreak.Remove();
+                        changed = true;
+                    } else if (column >= firstColumn) {
+                        pageBreak.Id = checked((uint)(deleting ? column - count : column + count));
+                        changed = true;
+                    }
+                }
+                if (!changed) continue;
+                uint breakCount = (uint)columnBreaks.Elements<Break>().Count();
+                if (breakCount == 0U) {
+                    columnBreaks.Remove();
+                } else {
+                    columnBreaks.Count = breakCount;
+                    columnBreaks.ManualBreakCount = (uint)columnBreaks.Elements<Break>()
+                        .Count(pageBreak => pageBreak.ManualPageBreak?.Value == true);
+                }
+            }
+        }
+
         private void ValidateColumnCommentVmlAnchorCapacity(int firstColumn, int count) {
             XNamespace x = "urn:schemas-microsoft-com:office:excel";
             foreach (VmlDrawingPart vmlPart in _worksheetPart.VmlDrawingParts) {

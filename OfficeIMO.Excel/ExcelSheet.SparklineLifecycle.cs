@@ -52,7 +52,8 @@ namespace OfficeIMO.Excel {
                 foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>().ToList()) {
                     Sparkline[] all = group.Descendants<Sparkline>().ToArray();
                     Sparkline[] matches = all.Where(sparkline => SparklineLocationIntersects(sparkline, target)).ToArray();
-                    if (matches.Length == 0 || group.Type?.Value == type) continue;
+                    SparklineTypeValues currentType = group.Type?.Value ?? SparklineTypeValues.Line;
+                    if (matches.Length == 0 || currentType == type) continue;
                     if (matches.Length == all.Length) {
                         group.Type = type;
                     } else {

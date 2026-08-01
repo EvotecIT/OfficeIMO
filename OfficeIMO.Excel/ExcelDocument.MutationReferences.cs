@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
             ExcelReference? Transform(ExcelReference reference) =>
                 TransformColumnReference(reference, firstColumn, lastDeletedColumn, count, deleting);
 
+            editedSheet.RemapWorksheetAutoFilterColumns(firstColumn, count, deleting);
             int editedSheetIndex = RewriteMutationReferencesAcrossPackage(editedSheet, Transform);
             RewriteCalculationChainColumns(editedSheetIndex, firstColumn, count, deleting);
             RewriteDrawingColumns(editedSheet.WorksheetPart.DrawingsPart?.WorksheetDrawing, firstColumn, count, deleting);
