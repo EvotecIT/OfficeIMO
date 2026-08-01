@@ -11,6 +11,7 @@ namespace OfficeIMO.Word {
         private const int LcsCellLimit = 1_000_000;
         private const int MaxComparisonAlignmentWindow = 256;
         private const long MaxComparisonTextWorkUnits = 64_000_000;
+        private const long MaxComparisonDisclosureWorkUnits = 64_000_000;
         private const int MaxBoundedTextSimilaritySamples = 64;
         private const int MaxBoundedTextSimilarityAnchors = 8;
         private const int BoundedTextSimilarityAnchorLength = 8;
@@ -83,8 +84,15 @@ namespace OfficeIMO.Word {
             options ??= WordComparisonOptions.Default;
 
             WordComparisonResult result = new(sourceLabel, targetLabel);
+            var numberingStyleCatalogs = new ParagraphNumberingStyleCatalogCache();
+            AnalyzeKnownComparisonLimitations(
+                source,
+                target,
+                result,
+                options,
+                new ComparisonWorkBudget(MaxComparisonDisclosureWorkUnits),
+                numberingStyleCatalogs);
             var comparisonWorkBudget = new ComparisonWorkBudget(MaxComparisonTextWorkUnits);
-            AnalyzeKnownComparisonLimitations(source, target, result, options, comparisonWorkBudget);
             AnalyzeParagraphs(source, target, result, options, comparisonWorkBudget);
             if (options.CompareFields) {
                 AnalyzeFields(source, target, result, options);
@@ -103,7 +111,7 @@ namespace OfficeIMO.Word {
             }
 
             if (options.CompareLists) {
-                AnalyzeLists(source, target, result, options);
+                AnalyzeLists(source, target, result, options, numberingStyleCatalogs);
             }
 
             if (options.CompareComments) {

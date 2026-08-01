@@ -56,8 +56,8 @@ namespace OfficeIMO.Word {
             WordFieldEvaluationReason reason) {
             if (status == WordFieldUpdateStatus.ParseError) return "FieldInstructionInvalid";
             if (status == WordFieldUpdateStatus.Unsupported) return "FieldEvaluationUnsupported";
-            if (isLocked) return "FieldLocked";
             if (reason == WordFieldEvaluationReason.ContainingResultReplaced) return "FieldContainingResultReplaced";
+            if (isLocked) return "FieldLocked";
             if (status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) return "FieldRefreshDelegated";
             if (status == WordFieldUpdateStatus.Skipped) return "FieldSourceUnavailable";
             return GetBasis(fieldType, status, isLocked, reason) == WordFieldEvaluationBasis.ExplicitBreakEstimate

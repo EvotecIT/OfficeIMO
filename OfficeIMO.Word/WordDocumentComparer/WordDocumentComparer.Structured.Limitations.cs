@@ -9,7 +9,8 @@ namespace OfficeIMO.Word {
             WordDocument target,
             WordComparisonResult result,
             WordComparisonOptions options,
-            ComparisonWorkBudget comparisonWorkBudget) {
+            ComparisonWorkBudget comparisonWorkBudget,
+            ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
             MainDocumentPart? sourcePart = source._wordprocessingDocument.MainDocumentPart;
             MainDocumentPart? targetPart = target._wordprocessingDocument.MainDocumentPart;
             if (sourcePart == null || targetPart == null) return;
@@ -31,8 +32,8 @@ namespace OfficeIMO.Word {
                     result,
                     "EffectiveFormatting.NumberingLevelStyles",
                     "List definitions and paragraph numbering are compared, but numbering-level style inheritance is not folded into effective run or paragraph formatting.",
-                    ContainsNumberingFormatting(sourcePart, comparisonWorkBudget),
-                    ContainsNumberingFormatting(targetPart, comparisonWorkBudget));
+                    ContainsNumberingFormatting(sourcePart, comparisonWorkBudget, numberingStyleCatalogs),
+                    ContainsNumberingFormatting(targetPart, comparisonWorkBudget, numberingStyleCatalogs));
             }
 
             if (options.CompareRevisions) {
@@ -167,9 +168,14 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static bool ContainsNumberingFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
-            ScanComparisonElements(mainPart, comparisonWorkBudget, element =>
-                element is Paragraph paragraph && ResolveParagraphNumberingProperties(paragraph, mainPart) != null);
+        private static bool ContainsNumberingFormatting(
+            MainDocumentPart mainPart,
+            ComparisonWorkBudget comparisonWorkBudget,
+            ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
+            ParagraphNumberingStyleCatalog styleCatalog = numberingStyleCatalogs.GetOrCreate(mainPart);
+            return ScanComparisonElements(mainPart, comparisonWorkBudget, element =>
+                element is Paragraph paragraph && ResolveParagraphNumberingProperties(paragraph, styleCatalog) != null);
+        }
 
         private static bool ContainsMoveMarkup(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
             ScanComparisonElements(mainPart, comparisonWorkBudget, element =>

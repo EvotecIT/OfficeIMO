@@ -87,7 +87,8 @@ namespace OfficeIMO.Tests {
                 " TOC ",
                 "outer stale ",
                 "nested toc stale",
-                " outer tail");
+                " outer tail",
+                innerLocked: true);
 
             WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
@@ -2721,13 +2722,14 @@ namespace OfficeIMO.Tests {
             string innerInstruction,
             string outerPrefix,
             string innerResult,
-            string outerSuffix) {
+            string outerSuffix,
+            bool innerLocked = false) {
             paragraph.Append(
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                 new Run(new FieldCode { Text = outerInstruction, Space = SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text(outerPrefix) { Space = SpaceProcessingModeValues.Preserve }),
-                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin, FieldLock = innerLocked }),
                 new Run(new FieldCode { Text = innerInstruction, Space = SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text(innerResult) { Space = SpaceProcessingModeValues.Preserve }),

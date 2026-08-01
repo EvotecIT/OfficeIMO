@@ -546,6 +546,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_ChargesEveryPackageTransformPassToDigestWorkBudget() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTransformDigestWorkBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph(new string('x', 4096));
+                document.Save();
+            }
+            long documentPartLength;
+            using (ZipArchive archive = ZipFile.OpenRead(filePath)) {
+                documentPartLength = archive.GetEntry("word/document.xml")!.Length;
+            }
+            string transforms =
+                "<Transforms>" +
+                "<Transform Algorithm=\"" + SignedXml.XmlDsigC14NTransformUrl + "\" />" +
+                "<Transform Algorithm=\"" + SignedXml.XmlDsigC14NTransformUrl + "\" />" +
+                "</Transforms>";
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo>" +
+                "<SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                "<Reference URI=\"/word/document.xml\">" + transforms +
+                "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue></Reference>" +
+                "</SignedInfo></Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                MaxTotalDigestBytes = checked(documentPartLength * 2)
+            });
+
+            WordSignaturePartInfo part = Assert.Single(validation.SignatureInfo.SignatureParts);
+            Assert.True(part.HasParseError);
+            Assert.Empty(part.SignedReferences);
+            Assert.Contains(part.UnsupportedDetails, detail => detail.Contains("aggregate digest-work limit", StringComparison.Ordinal));
+            Assert.False(validation.IsValidUnderPolicy);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_CountsAllSignedInfoReferencesBeforeCryptographicValidation() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSignedInfoReferenceLimit.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -800,6 +836,30 @@ namespace OfficeIMO.Tests {
             Assert.False(result.Succeeded);
             Assert.Contains(result.Details, detail => detail.Contains("authenticated references", System.StringComparison.OrdinalIgnoreCase));
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+        }
+
+        [Theory]
+        [InlineData("idPackageObject")]
+        [InlineData("idSignatureTime")]
+        public void Test_DigitalSignature_SigningRejectsReservedInternalSignatureIdsAtomically(string signatureId) {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureReservedId.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Reserved signature identifiers");
+                document.Save();
+            }
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult result = WordDocument.TrySignPackage(
+                filePath,
+                certificate,
+                new WordPackageSigningOptions { SignatureId = signatureId });
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Details, detail => detail.Contains("reserved", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+            using WordprocessingDocument preserved = WordprocessingDocument.Open(filePath, false);
+            Assert.Null(preserved.DigitalSignatureOriginPart);
         }
 
         [Fact]

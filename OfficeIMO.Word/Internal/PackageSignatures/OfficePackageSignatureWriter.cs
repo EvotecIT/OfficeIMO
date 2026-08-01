@@ -69,6 +69,8 @@ namespace OfficeIMO.Word {
     internal static class OfficePackageSignatureWriter {
         private const string DigitalSignatureNamespace = "http://schemas.openxmlformats.org/package/2006/digital-signature";
         private const string ObjectReferenceType = "http://www.w3.org/2000/09/xmldsig#Object";
+        private const string PackageObjectId = "idPackageObject";
+        private const string SignatureTimePropertyId = "idSignatureTime";
 
         internal static OfficePackageSigningResult Sign(
             string filePath,
@@ -285,7 +287,7 @@ namespace OfficeIMO.Word {
                 ds + "SignatureProperties",
                 new XElement(
                     ds + "SignatureProperty",
-                    new XAttribute("Id", "idSignatureTime"),
+                    new XAttribute("Id", SignatureTimePropertyId),
                     new XAttribute("Target", "#" + signatureId),
                     new XElement(
                         opc + "SignatureTime",
@@ -295,7 +297,7 @@ namespace OfficeIMO.Word {
             XmlDocument objectDocument = CreateXmlDocument();
             objectDocument.LoadXml(new XElement("Root", manifest, signatureProperties).ToString(SaveOptions.DisableFormatting));
             var packageObject = new DataObject {
-                Id = "idPackageObject",
+                Id = PackageObjectId,
                 Data = objectDocument.DocumentElement!.ChildNodes
             };
 
@@ -307,7 +309,7 @@ namespace OfficeIMO.Word {
             signedXml.SignedInfo!.CanonicalizationMethod = SignedXml.XmlDsigC14NTransformUrl;
             signedXml.SignedInfo.SignatureMethod = ResolveSignatureMethod(options.HashAlgorithm);
             signedXml.AddObject(packageObject);
-            signedXml.AddReference(new Reference("#idPackageObject") {
+            signedXml.AddReference(new Reference("#" + PackageObjectId) {
                 Type = ObjectReferenceType,
                 DigestMethod = options.HashAlgorithm
             });
@@ -527,6 +529,10 @@ namespace OfficeIMO.Word {
                 ? "OfficeIMOSignature" + Guid.NewGuid().ToString("N")
                 : signatureId!.Trim();
             XmlConvert.VerifyNCName(resolved);
+            if (string.Equals(resolved, PackageObjectId, StringComparison.Ordinal) ||
+                string.Equals(resolved, SignatureTimePropertyId, StringComparison.Ordinal)) {
+                throw new ArgumentException("SignatureId is reserved for an internal OPC signature node.", nameof(signatureId));
+            }
             return resolved;
         }
 

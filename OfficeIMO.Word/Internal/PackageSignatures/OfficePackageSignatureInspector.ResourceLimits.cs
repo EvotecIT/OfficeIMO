@@ -33,13 +33,23 @@ namespace OfficeIMO.Word {
             if (archive == null) return;
 
             long signatureDigestBytes = 0;
+            XNamespace ds = "http://www.w3.org/2000/09/xmldsig#";
             foreach (XElement reference in references) {
                 string? targetPartUri = NormalizePackagePartReference((string?)reference.Attribute("URI"));
                 if (targetPartUri == null || !archive.TryGetPartLength(targetPartUri, out long partLength)) continue;
-                if (partLength > long.MaxValue - signatureDigestBytes) {
+                long transformCount = reference
+                    .Element(ds + "Transforms")?
+                    .Elements(ds + "Transform")
+                    .LongCount() ?? 0;
+                long workPasses = checked(transformCount + 1);
+                if (partLength > 0 && workPasses > long.MaxValue / partLength) {
                     throw new InvalidDataException("Authenticated package references exceed the " + digestWorkBudget.MaxBytes + " byte aggregate digest-work limit.");
                 }
-                signatureDigestBytes += partLength;
+                long referenceDigestBytes = partLength * workPasses;
+                if (referenceDigestBytes > long.MaxValue - signatureDigestBytes) {
+                    throw new InvalidDataException("Authenticated package references exceed the " + digestWorkBudget.MaxBytes + " byte aggregate digest-work limit.");
+                }
+                signatureDigestBytes += referenceDigestBytes;
             }
             digestWorkBudget.Reserve(signatureDigestBytes);
         }

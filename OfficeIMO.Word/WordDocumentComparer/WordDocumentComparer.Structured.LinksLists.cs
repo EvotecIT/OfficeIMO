@@ -24,10 +24,15 @@ namespace OfficeIMO.Word {
                 result);
         }
 
-        private static void AnalyzeLists(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeLists(
+            WordDocument source,
+            WordDocument target,
+            WordComparisonResult result,
+            WordComparisonOptions options,
+            ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
             AddFeatureRangeFindings(
-                GetListSnapshots(source, options),
-                GetListSnapshots(target, options),
+                GetListSnapshots(source, options, numberingStyleCatalogs),
+                GetListSnapshots(target, options, numberingStyleCatalogs),
                 WordComparisonScope.List,
                 "list",
                 "List item",
@@ -144,7 +149,10 @@ namespace OfficeIMO.Word {
             return snapshots;
         }
 
-        private static List<ListSnapshot> GetListSnapshots(WordDocument document, WordComparisonOptions options) {
+        private static List<ListSnapshot> GetListSnapshots(
+            WordDocument document,
+            WordComparisonOptions options,
+            ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
             if (mainPart == null) {
                 return new List<ListSnapshot>();
@@ -152,13 +160,14 @@ namespace OfficeIMO.Word {
 
             var snapshots = new List<ListSnapshot>();
             Numbering? numberingDefinitions = mainPart.NumberingDefinitionsPart?.Numbering;
+            ParagraphNumberingStyleCatalog styleCatalog = numberingStyleCatalogs.GetOrCreate(mainPart);
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(root.Root, GetFeatureOrderBase(root.LocationKind))) {
                     if (ordered.Element is not Paragraph paragraph) {
                         continue;
                     }
 
-                    NumberingProperties? numbering = ResolveParagraphNumberingProperties(paragraph, mainPart);
+                    NumberingProperties? numbering = ResolveParagraphNumberingProperties(paragraph, styleCatalog);
                     if (numbering == null) {
                         continue;
                     }
@@ -255,46 +264,6 @@ namespace OfficeIMO.Word {
 
             previousParagraph = paragraph;
             previousCell = cell;
-        }
-
-        private static NumberingProperties? ResolveParagraphNumberingProperties(Paragraph paragraph, MainDocumentPart mainPart) {
-            NumberingProperties? directNumbering = paragraph.ParagraphProperties?.NumberingProperties;
-            if (directNumbering != null) {
-                return directNumbering;
-            }
-
-            string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            Style[] styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .ToArray();
-            var pendingStyleIds = new Stack<string>();
-            if (!string.IsNullOrWhiteSpace(styleId)) {
-                pendingStyleIds.Push(styleId!);
-            } else {
-                foreach (Style defaultStyle in styles.Where(item =>
-                             item.Type?.Value == StyleValues.Paragraph &&
-                             item.Default?.Value == true &&
-                             !string.IsNullOrWhiteSpace(item.StyleId?.Value))) {
-                    pendingStyleIds.Push(defaultStyle.StyleId!.Value!);
-                }
-            }
-
-            ILookup<string, Style> stylesById = styles
-                .Where(item => !string.IsNullOrWhiteSpace(item.StyleId?.Value))
-                .ToLookup(item => item.StyleId!.Value!, StringComparer.Ordinal);
-            var visited = new HashSet<string>(StringComparer.Ordinal);
-            while (pendingStyleIds.Count > 0) {
-                string currentStyleId = pendingStyleIds.Pop();
-                if (!visited.Add(currentStyleId)) continue;
-                foreach (Style style in stylesById[currentStyleId]) {
-                    NumberingProperties? numbering = style.StyleParagraphProperties?.NumberingProperties;
-                    if (numbering != null) return numbering;
-                    string? baseStyleId = style.BasedOn?.Val?.Value;
-                    if (!string.IsNullOrWhiteSpace(baseStyleId)) pendingStyleIds.Push(baseStyleId!);
-                }
-            }
-
-            return null;
         }
 
         private static string GetBookmarkLocationSignature(BookmarkStart bookmarkStart, WordComparisonOptions options) {
