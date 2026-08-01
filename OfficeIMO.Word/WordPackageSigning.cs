@@ -124,6 +124,9 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the maximum authenticated XML signature references created per signature. Defaults to 4,096.</summary>
         public int MaxSignedReferences { get; set; } = 4096;
 
+        /// <summary>Gets or sets the maximum encoded bytes for the generated XML signature part. Defaults to 16 MiB.</summary>
+        public long MaxSignatureBytes { get; set; } = 16L * 1024 * 1024;
+
         /// <summary>Gets or sets the maximum signer and additional certificates embedded in the created signature. Defaults to 64.</summary>
         public int MaxCertificates { get; set; } = 64;
 
@@ -147,6 +150,7 @@ namespace OfficeIMO.Word {
                 MaxPartBytes = MaxPartBytes,
                 MaxTotalDigestBytes = MaxTotalDigestBytes,
                 MaxSignedReferences = MaxSignedReferences,
+                MaxSignatureBytes = MaxSignatureBytes,
                 MaxCertificates = MaxCertificates,
                 MaxCertificateBytes = MaxCertificateBytes,
                 MaxTotalCertificateBytes = MaxTotalCertificateBytes

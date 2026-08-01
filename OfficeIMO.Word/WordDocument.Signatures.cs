@@ -195,6 +195,7 @@ namespace OfficeIMO.Word {
                 MaxPartBytes = signingOptions.MaxPartBytes,
                 MaxSignedReferences = signingOptions.MaxSignedReferences,
                 MaxTotalDigestBytes = signingOptions.MaxTotalDigestBytes,
+                MaxSignatureBytes = signingOptions.MaxSignatureBytes,
                 MaxCertificates = signingOptions.MaxCertificates,
                 MaxCertificateBytes = signingOptions.MaxCertificateBytes,
                 MaxTotalCertificateBytes = Math.Max(

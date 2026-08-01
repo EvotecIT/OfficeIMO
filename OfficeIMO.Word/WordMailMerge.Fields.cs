@@ -439,33 +439,10 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            foreach (var paragraph in EnumerateParagraphs(root)) {
-                List<Run>? fieldRuns = null;
-                foreach (var run in EnumerateParagraphOwnedRuns(paragraph)) {
-                    var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
-                    if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-                        fieldRuns = new List<Run> { run };
-                        continue;
-                    }
-
-                    if (fieldRuns == null) {
-                        continue;
-                    }
-
-                    fieldRuns.Add(run);
-                    if (fieldChar?.FieldCharType?.Value != FieldCharValues.End) {
-                        continue;
-                    }
-
-                    string instruction = string.Concat(fieldRuns
-                        .SelectMany(item => item.Elements<FieldCode>())
-                        .Select(code => code.Text));
-                    string? name = TryGetMergeFieldName(instruction);
-                    if (!string.IsNullOrWhiteSpace(name)) {
-                        yield return name!;
-                    }
-
-                    fieldRuns = null;
+            foreach (string instruction in EnumerateComplexFieldInstructions(root)) {
+                string? name = TryGetMergeFieldName(instruction);
+                if (!string.IsNullOrWhiteSpace(name)) {
+                    yield return name!;
                 }
             }
         }
@@ -499,32 +476,30 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            foreach (var paragraph in EnumerateParagraphs(root)) {
-                List<Run>? fieldRuns = null;
-                foreach (var run in EnumerateParagraphOwnedRuns(paragraph)) {
-                    var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
+            foreach (string instruction in EnumerateComplexFieldInstructions(root)) {
+                if (!string.IsNullOrWhiteSpace(instruction)) {
+                    yield return instruction;
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateComplexFieldInstructions(OpenXmlElement root) {
+            foreach (Paragraph paragraph in EnumerateParagraphs(root)) {
+                var activeFields = new List<List<string>>();
+                foreach (Run run in EnumerateParagraphOwnedRuns(paragraph)) {
+                    FieldChar? fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-                        fieldRuns = new List<Run> { run };
+                        activeFields.Add(new List<string>());
                         continue;
                     }
 
-                    if (fieldRuns == null) {
-                        continue;
-                    }
+                    if (activeFields.Count == 0) continue;
+                    List<string> currentInstruction = activeFields[activeFields.Count - 1];
+                    currentInstruction.AddRange(run.Elements<FieldCode>().Select(code => code.Text));
+                    if (fieldChar?.FieldCharType?.Value != FieldCharValues.End) continue;
 
-                    fieldRuns.Add(run);
-                    if (fieldChar?.FieldCharType?.Value != FieldCharValues.End) {
-                        continue;
-                    }
-
-                    string instruction = string.Concat(fieldRuns
-                        .SelectMany(item => item.Elements<FieldCode>())
-                        .Select(code => code.Text));
-                    if (!string.IsNullOrWhiteSpace(instruction)) {
-                        yield return instruction;
-                    }
-
-                    fieldRuns = null;
+                    activeFields.RemoveAt(activeFields.Count - 1);
+                    yield return string.Concat(currentInstruction);
                 }
             }
         }

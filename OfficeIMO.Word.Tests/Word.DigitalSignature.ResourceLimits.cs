@@ -6,6 +6,50 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void Test_DigitalSignature_DeduplicatesAdditionalCertificatesBeforeWriting() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureDuplicateCertificates.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Duplicate signing certificates");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            using X509Certificate2 additional = CreateSelfSignedSigningCertificate("CN=OfficeIMO Duplicate Additional Certificate");
+            WordPackageSigningResult result = WordDocument.SignPackage(
+                filePath,
+                signer,
+                new WordPackageSigningOptions {
+                    AdditionalCertificates = Enumerable.Repeat(additional, 64).ToArray(),
+                    MaxCertificates = 2
+                });
+
+            Assert.True(result.Succeeded);
+            Assert.True(result.CreatedSignatureReadbackSucceeded);
+            Assert.DoesNotContain(result.ValidationReport!.Diagnostics, diagnostic =>
+                diagnostic.Code == "SignatureResourceLimitExceeded");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_RejectsGeneratedSignatureOutsideConfiguredLimitAtomically() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureGeneratedXmlLimit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Generated signature XML limit");
+                document.Save();
+            }
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult result = WordDocument.TrySignPackage(
+                filePath,
+                certificate,
+                new WordPackageSigningOptions { MaxSignatureBytes = 512 });
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Details, detail => detail.Contains("signature XML exceeds", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_BoundsAggregateLocalReferenceDigestWork() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureLocalReferenceDigestBudget.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

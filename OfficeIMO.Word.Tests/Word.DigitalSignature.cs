@@ -754,6 +754,7 @@ namespace OfficeIMO.Tests {
                 MaxPartBytes = 384L * 1024 * 1024,
                 MaxTotalDigestBytes = 640L * 1024 * 1024,
                 MaxSignedReferences = 8000,
+                MaxSignatureBytes = 24L * 1024 * 1024,
                 MaxCertificates = 96,
                 MaxCertificateBytes = 6L * 1024 * 1024,
                 MaxTotalCertificateBytes = 80L * 1024 * 1024
@@ -768,6 +769,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(signingOptions.MaxPartBytes, validationOptions.MaxPartBytes);
             Assert.Equal(signingOptions.MaxTotalDigestBytes, validationOptions.MaxTotalDigestBytes);
             Assert.Equal(signingOptions.MaxSignedReferences, validationOptions.MaxSignedReferences);
+            Assert.Equal(signingOptions.MaxSignatureBytes, validationOptions.MaxSignatureBytes);
             Assert.Equal(signingOptions.MaxCertificates, validationOptions.MaxCertificates);
             Assert.Equal(signingOptions.MaxCertificateBytes, validationOptions.MaxCertificateBytes);
             Assert.Equal(signingOptions.MaxTotalCertificateBytes * 48, validationOptions.MaxTotalCertificateBytes);

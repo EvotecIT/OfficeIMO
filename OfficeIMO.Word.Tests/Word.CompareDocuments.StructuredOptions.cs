@@ -309,6 +309,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsConditionalTableLimitFromDefaultTableStyle() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_default_conditional_table_source.docx");
+            CreateDocumentWithDefaultConditionalTableStyle(sourcePath);
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_default_conditional_table_target.docx");
+            CreateDocumentWithDefaultConditionalTableStyle(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ConditionalTableStyles" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureOptionsCanDisableImageFindings() {
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -610,6 +625,29 @@ namespace OfficeIMO.Tests {
             Table table = mainPart.Document.Body!.Elements<Table>().Single();
             table.TableProperties ??= new TableProperties();
             table.TableProperties.TableStyle = new TableStyle { Val = "OfficeIMOTableDerived" };
+            mainPart.Document.Save();
+        }
+
+        private static void CreateDocumentWithDefaultConditionalTableStyle(string path) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Default styled cell";
+                document.Save();
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Styles styles = mainPart.StyleDefinitionsPart!.Styles!;
+            Style defaultTableStyle = styles.Elements<Style>().First(style =>
+                style.Type?.Value == StyleValues.Table && style.Default?.Value == true);
+            defaultTableStyle.Append(new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Fill = "D9EAF7" })) {
+                Type = TableStyleOverrideValues.FirstRow
+            });
+            styles.Save();
+
+            Table table = mainPart.Document.Body!.Elements<Table>().Single();
+            table.TableProperties?.TableStyle?.Remove();
             mainPart.Document.Save();
         }
     }

@@ -27,6 +27,7 @@ namespace OfficeIMO.Word {
         public long MaxPartBytes { get; set; } = 256L * 1024 * 1024;
         public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;
         public int MaxSignedReferences { get; set; } = 4096;
+        public long MaxSignatureBytes { get; set; } = 16L * 1024 * 1024;
         public int MaxCertificates { get; set; } = 64;
         public long MaxCertificateBytes { get; set; } = 4L * 1024 * 1024;
         public long MaxTotalCertificateBytes { get; set; } = 64L * 1024 * 1024;
@@ -83,6 +84,7 @@ namespace OfficeIMO.Word {
             if (options.MaxPartBytes <= 0) return Failed(fullPath, "MaxPartBytes must be greater than zero.");
             if (options.MaxTotalDigestBytes <= 0) return Failed(fullPath, "MaxTotalDigestBytes must be greater than zero.");
             if (options.MaxSignedReferences <= 0) return Failed(fullPath, "MaxSignedReferences must be greater than zero.");
+            if (options.MaxSignatureBytes <= 0) return Failed(fullPath, "MaxSignatureBytes must be greater than zero.");
             if (options.MaxCertificates <= 0) return Failed(fullPath, "MaxCertificates must be greater than zero.");
             if (options.MaxCertificateBytes <= 0) return Failed(fullPath, "MaxCertificateBytes must be greater than zero.");
             if (options.MaxTotalCertificateBytes <= 0) return Failed(fullPath, "MaxTotalCertificateBytes must be greater than zero.");
@@ -96,13 +98,13 @@ namespace OfficeIMO.Word {
                 if (!certificate.HasPrivateKey) return Failed(fullPath, "The signing certificate must include a private key.");
                 using RSA? signingKey = certificate.GetRSAPrivateKey();
                 if (signingKey == null) return Failed(fullPath, "OPC package signing requires an RSA certificate with an accessible private key.");
-                ValidateSigningCertificates(certificate, options);
+                IReadOnlyList<X509Certificate2> signingCertificates = ValidateSigningCertificates(certificate, options);
 
                 stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
                 File.Copy(fullPath, stagingPath, overwrite: false);
                 PrepareDigitalSignatureMetadata(stagingPath);
                 byte[] packageBytes = File.ReadAllBytes(stagingPath);
-                SigningPayload payload = CreateSignature(packageBytes, certificate, signingKey, options);
+                SigningPayload payload = CreateSignature(packageBytes, signingCertificates, signingKey, options);
                 SignaturePartWriteResult write = AddSignaturePart(stagingPath, payload.SignatureXml);
                 EnsureSignedPackageWithinLimits(stagingPath, options);
                 OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, fullPath);
@@ -138,9 +140,9 @@ namespace OfficeIMO.Word {
             using var archive = new OfficePackageSignatureArchive(File.ReadAllBytes(packagePath), options.MaxPackageParts);
         }
 
-        private static void ValidateSigningCertificates(X509Certificate2 signer, OfficePackageSigningOptions options) {
+        private static IReadOnlyList<X509Certificate2> ValidateSigningCertificates(X509Certificate2 signer, OfficePackageSigningOptions options) {
             var thumbprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int certificateCount = 0;
+            var certificates = new List<X509Certificate2>();
             long totalCertificateBytes = 0;
 
             ValidateCertificate(signer);
@@ -151,10 +153,10 @@ namespace OfficeIMO.Word {
             }
 
             void ValidateCertificate(X509Certificate2 certificate) {
-                string identity = certificate.Thumbprint ?? Convert.ToBase64String(certificate.RawData);
+                string identity = GetCertificateIdentity(certificate);
                 if (!thumbprints.Add(identity)) return;
-                certificateCount++;
-                if (certificateCount > options.MaxCertificates) {
+                certificates.Add(certificate);
+                if (certificates.Count > options.MaxCertificates) {
                     throw new InvalidDataException("The signing certificate set exceeds the " + options.MaxCertificates + " certificate limit.");
                 }
                 long certificateBytes = certificate.RawData.LongLength;
@@ -166,7 +168,12 @@ namespace OfficeIMO.Word {
                 }
                 totalCertificateBytes += certificateBytes;
             }
+
+            return certificates;
         }
+
+        private static string GetCertificateIdentity(X509Certificate2 certificate) =>
+            certificate.Thumbprint ?? Convert.ToBase64String(certificate.RawData);
 
         private static void PrepareDigitalSignatureMetadata(string packagePath) {
             using WordprocessingDocument package = WordprocessingDocument.Open(packagePath, true);
@@ -183,7 +190,7 @@ namespace OfficeIMO.Word {
         [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Package signing never uses the XSLT XML DSig transform and does not compile dynamic XSLT code.")]
         private static SigningPayload CreateSignature(
             byte[] packageBytes,
-            X509Certificate2 certificate,
+            IReadOnlyList<X509Certificate2> signingCertificates,
             RSA signingKey,
             OfficePackageSigningOptions options) {
             using var package = new OfficePackageSignatureArchive(packageBytes, options.MaxPackageParts);
@@ -275,12 +282,9 @@ namespace OfficeIMO.Word {
             });
 
             var keyInfo = new KeyInfo();
-            var x509Data = new KeyInfoX509Data(certificate);
-            if (options.AdditionalCertificates != null) {
-                foreach (X509Certificate2 additional in options.AdditionalCertificates) {
-                    if (additional == null || string.Equals(additional.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase)) continue;
-                    x509Data.AddCertificate(additional);
-                }
+            var x509Data = new KeyInfoX509Data(signingCertificates[0]);
+            for (int certificateIndex = 1; certificateIndex < signingCertificates.Count; certificateIndex++) {
+                x509Data.AddCertificate(signingCertificates[certificateIndex]);
             }
             keyInfo.AddClause(x509Data);
             signedXml.KeyInfo = keyInfo;
@@ -288,7 +292,7 @@ namespace OfficeIMO.Word {
 
             XmlElement signature = signedXml.GetXml();
             signatureDocument.AppendChild(signatureDocument.ImportNode(signature, deep: true));
-            using var output = new MemoryStream();
+            using var output = new SignatureBoundedMemoryStream(options.MaxSignatureBytes);
             using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
                 Encoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                 Indent = false,
@@ -516,6 +520,35 @@ namespace OfficeIMO.Word {
         private static bool IsSigningException(Exception exception) =>
             exception is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or
                 InvalidDataException or CryptographicException or XmlException or NotSupportedException;
+
+        private sealed class SignatureBoundedMemoryStream : MemoryStream {
+            private readonly long _maxLength;
+
+            internal SignatureBoundedMemoryStream(long maxLength) {
+                _maxLength = maxLength;
+            }
+
+            public override void Write(byte[] buffer, int offset, int count) {
+                EnsureWithinLimit(checked(Position + count));
+                base.Write(buffer, offset, count);
+            }
+
+            public override void WriteByte(byte value) {
+                EnsureWithinLimit(checked(Position + 1));
+                base.WriteByte(value);
+            }
+
+            public override void SetLength(long value) {
+                EnsureWithinLimit(value);
+                base.SetLength(value);
+            }
+
+            private void EnsureWithinLimit(long length) {
+                if (length > _maxLength) {
+                    throw new InvalidDataException("The generated signature XML exceeds the " + _maxLength + " byte signing limit.");
+                }
+            }
+        }
 
         private readonly struct SigningPayload {
             internal SigningPayload(byte[] signatureXml, int signedPartCount, int relationshipSelectorCount) {

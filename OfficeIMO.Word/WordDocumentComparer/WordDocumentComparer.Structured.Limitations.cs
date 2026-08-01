@@ -135,10 +135,15 @@ namespace OfficeIMO.Word {
                 .Select(tableStyle => tableStyle.Val?.Value)
                 .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
                 .Select(styleId => styleId!), StringComparer.OrdinalIgnoreCase);
+            Style[] styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .ToArray();
+            if (content.OfType<Table>().Any(table => table.TableProperties?.TableStyle?.Val?.Value == null)) {
+                AddDefaultStyleIds(styles, StyleValues.Table, usedTableStyleIds);
+            }
             if (usedTableStyleIds.Count == 0) return false;
 
-            Dictionary<string, Style> stylesById = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+            Dictionary<string, Style> stylesById = styles
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
                 .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);

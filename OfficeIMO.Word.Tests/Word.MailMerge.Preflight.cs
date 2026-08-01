@@ -125,6 +125,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_PreflightKeepsOuterFieldsAroundNestedInlineContentControls() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" NEXTIF \"Status\" = \"Active\" ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                CreatePreflightInlineComplexField(" MERGEFIELD InnerControl "),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            document.AddParagraph()._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Outer ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                CreatePreflightInlineComplexField(" MERGEFIELD InnerMerge "),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(
+                document,
+                mergeFieldNames: new[] { "InnerControl", "InnerMerge" });
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "InnerControl", "InnerMerge" });
+
+            Assert.Equal(new[] { "InnerControl", "InnerMerge", "Outer" }, inspection.MergeFieldNames);
+            Assert.Contains(inspection.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMailMergeControlField &&
+                issue.Name == "NEXTIF");
+            Assert.Contains(inspection.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue &&
+                issue.Name == "Outer");
+            Assert.False(preflight.CanBindTemplate);
+        }
+
+        [Fact]
         public void Test_MailMerge_PreflightTemplateSeesTableCellTemplateMarkersAfterSaveLoad() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergePreflightTableCellMarkers.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -322,6 +355,16 @@ namespace OfficeIMO.Tests {
             return new SimpleField(new Run(new Text("Placeholder"))) {
                 Instruction = " MERGEFIELD  \"" + name + "\" "
             };
+        }
+
+        private static SdtRun CreatePreflightInlineComplexField(string instruction) {
+            return new SdtRun(
+                new SdtContentRun(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(instruction)),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("nested placeholder")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
         }
 
         private static Paragraph CreatePreflightComplexFieldParagraph(string instruction, string result) {
