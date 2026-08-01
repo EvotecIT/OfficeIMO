@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Xml.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 
 namespace OfficeIMO.Tests {
@@ -43,6 +47,7 @@ namespace OfficeIMO.Tests {
             string? version = null;
             List<string> issues = new();
             List<string> outputFiles = new();
+            List<string> deferredPackageOutputs = new();
 
             try {
                 application = Activator.CreateInstance(applicationType!);
@@ -72,7 +77,27 @@ namespace OfficeIMO.Tests {
                 }
 
                 if (options != null) {
-                    RunOptionalValidationSteps(fullPath, document, pages, pageCount, options, issues, outputFiles);
+                    RunOptionalValidationSteps(fullPath, document, pages,
+                        pageCount, options, issues, outputFiles,
+                        deferredPackageOutputs);
+                }
+
+                if (deferredPackageOutputs.Count > 0) {
+                    TryInvokeMethod(document, "Close");
+                    ReleaseComObject(pages);
+                    pages = null;
+                    ReleaseComObject(document);
+                    document = null;
+                    TryInvokeMethod(application, "Quit");
+                    ReleaseComObject(documents);
+                    documents = null;
+                    ReleaseComObject(application);
+                    application = null;
+
+                    foreach (string path in deferredPackageOutputs) {
+                        AddVerifiedOutputFile(path, "round-tripped VSDX",
+                            issues, outputFiles);
+                    }
                 }
 
                 return new VisioDesktopValidationResult(
@@ -108,13 +133,14 @@ namespace OfficeIMO.Tests {
             int pageCount,
             VisioDesktopValidationOptions options,
             IList<string> issues,
-            IList<string> outputFiles) {
+            IList<string> outputFiles,
+            IList<string> deferredPackageOutputs) {
             if (options.SaveCopy) {
                 string saveCopyPath = GetSaveCopyPath(inputPath, options);
                 try {
                     PrepareOutputFile(saveCopyPath);
                     InvokeMethod(document, "SaveAs", saveCopyPath);
-                    AddVerifiedOutputFile(saveCopyPath, "round-tripped VSDX", issues, outputFiles);
+                    deferredPackageOutputs.Add(saveCopyPath);
                 } catch (Exception exception) {
                     issues.Add($"Microsoft Visio could not save a round-tripped VSDX copy: {GetRootMessage(exception)}");
                 }
@@ -212,7 +238,98 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
+            if (!WaitForReadableFile(file.FullName, out string readinessIssue)) {
+                issues.Add($"Microsoft Visio created an inaccessible {description}: {readinessIssue}");
+                return;
+            }
+
+            if (!ValidateOutputFile(file.FullName, out string validationIssue)) {
+                issues.Add($"Microsoft Visio created an invalid {description}: {validationIssue}");
+                return;
+            }
+
             outputFiles.Add(file.FullName);
+        }
+
+        private static bool WaitForReadableFile(string path, out string issue) {
+            const int attempts = 40;
+            for (int attempt = 0; attempt < attempts; attempt++) {
+                try {
+                    using (new FileStream(path, FileMode.Open, FileAccess.Read,
+                               FileShare.Read)) {
+                    }
+                    issue = string.Empty;
+                    return true;
+                } catch (IOException exception) when (attempt + 1 < attempts) {
+                    issue = exception.Message;
+                    Thread.Sleep(50);
+                } catch (UnauthorizedAccessException exception) when (
+                    attempt + 1 < attempts) {
+                    issue = exception.Message;
+                    Thread.Sleep(50);
+                } catch (Exception exception) {
+                    issue = exception.Message;
+                    return false;
+                }
+            }
+
+            issue = $"The file remained locked after {attempts * 50} ms: {path}";
+            return false;
+        }
+
+        internal static bool ValidateOutputFile(string path, out string issue) {
+            try {
+                string extension = Path.GetExtension(path).ToLowerInvariant();
+                switch (extension) {
+                    case ".vsdx":
+                        IReadOnlyList<string> packageIssues = VisioValidator.Validate(path);
+                        if (packageIssues.Count > 0) {
+                            issue = string.Join(" | ", packageIssues.Take(5));
+                            return false;
+                        }
+                        break;
+                    case ".png":
+                        if (!OfficePngReader.TryDecode(File.ReadAllBytes(path),
+                                out OfficeRasterImage? image)
+                            || image == null || image.Width <= 0 || image.Height <= 0) {
+                            issue = "PNG data is missing, corrupt, or dimensionless: " + path;
+                            return false;
+                        }
+                        break;
+                    case ".svg":
+                        using (FileStream stream = File.OpenRead(path)) {
+                            XDocument svg = XDocument.Load(stream,
+                                LoadOptions.PreserveWhitespace);
+                            if (!string.Equals(svg.Root?.Name.LocalName, "svg",
+                                    StringComparison.OrdinalIgnoreCase)) {
+                                issue = "SVG root element was not found: " + path;
+                                return false;
+                            }
+                        }
+                        break;
+                    case ".pdf":
+                        byte[] pdf = File.ReadAllBytes(path);
+                        if (pdf.Length < 8
+                            || !Encoding.ASCII.GetString(pdf, 0, 5)
+                                .Equals("%PDF-", StringComparison.Ordinal)
+                            || Encoding.ASCII.GetString(pdf,
+                                    Math.Max(0, pdf.Length - Math.Min(1024, pdf.Length)),
+                                    Math.Min(1024, pdf.Length))
+                                .IndexOf("%%EOF", StringComparison.Ordinal) < 0) {
+                            issue = "PDF signature or end marker is missing: " + path;
+                            return false;
+                        }
+                        break;
+                    default:
+                        issue = "Unsupported desktop validation output extension: " + extension;
+                        return false;
+                }
+                issue = string.Empty;
+                return true;
+            } catch (Exception exception) {
+                issue = GetRootMessage(exception);
+                return false;
+            }
         }
 
         private static bool TryGetApplicationType(out Type? applicationType) {

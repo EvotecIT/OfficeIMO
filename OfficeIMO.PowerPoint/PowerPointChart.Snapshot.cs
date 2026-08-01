@@ -560,7 +560,8 @@ namespace OfficeIMO.PowerPoint {
                 HeightPoints,
                 bubbleSizeMode,
                 bubbleScalePercent,
-                ReadChartLayout(chart, kind));
+                ReadChartLayout(chart, kind),
+                ReadSharedTextStyle(chart));
         }
 
         private static OfficeChartLayout ReadChartLayout(

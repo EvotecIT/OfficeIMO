@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Outcome of an opt-in PowerPoint Desktop reference render.</summary>
@@ -75,28 +76,41 @@ namespace OfficeIMO.PowerPoint {
             string fullOutput = Path.GetFullPath(outputDirectory);
             Directory.CreateDirectory(fullOutput);
             ClearExistingSlideImages(fullOutput);
+            int expectedSlideCount;
+            try {
+                using PowerPointPresentation source = PowerPointPresentation.Load(
+                    fullPath, new PowerPointLoadOptions {
+                        AccessMode = DocumentAccessMode.ReadOnly
+                    });
+                expectedSlideCount = source.Slides.Count;
+            } catch (Exception ex) {
+                return new PowerPointReferenceRenderResult(
+                    PowerPointReferenceRenderStatus.Failed,
+                    "PowerPoint Desktop reference rendering could not inspect the source package: "
+                    + GetRootMessage(ex));
+            }
             object? application = null;
             object? presentations = null;
             object? presentation = null;
             try {
                 application = Activator.CreateInstance(powerPointType);
                 if (application == null) throw new InvalidOperationException("PowerPoint application could not be created.");
+                TrySetProperty(application, "AutomationSecurity", 3);
                 presentations = GetProperty(application, "Presentations");
                 presentation = InvokeMethod(presentations, "Open", fullPath, -1, 0, 0);
                 InvokeMethod(presentation, "Export", fullOutput, "PNG", 0, 0);
                 InvokeMethod(presentation, "Close");
-                presentation = null;
                 InvokeMethod(application, "Quit");
-                application = null;
                 string[] images = GetSlideImagesInOrder(fullOutput);
-                return images.Length == 0
+                return !ValidateSlideImages(images, expectedSlideCount,
+                        out string validationMessage)
                     ? new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Failed,
-                        "PowerPoint Desktop completed without producing PNG slide images.")
+                        validationMessage)
                     : new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Succeeded,
                         "PowerPoint Desktop exported " + images.Length + " slide image(s).", images);
             } catch (Exception ex) {
                 return new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Failed,
-                    "PowerPoint Desktop reference rendering failed: " + ex.Message);
+                    "PowerPoint Desktop reference rendering failed: " + GetRootMessage(ex));
             } finally {
                 TryClosePresentation(presentation);
                 TryQuitApplication(application);
@@ -126,6 +140,33 @@ namespace OfficeIMO.PowerPoint {
                 .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
+        internal static bool ValidateSlideImages(IReadOnlyList<string> imagePaths,
+            int expectedSlideCount, out string message) {
+            if (expectedSlideCount < 0) {
+                throw new ArgumentOutOfRangeException(nameof(expectedSlideCount));
+            }
+            if (imagePaths.Count != expectedSlideCount) {
+                message = "PowerPoint Desktop exported " + imagePaths.Count
+                    + " PNG slide image(s); expected " + expectedSlideCount + ".";
+                return false;
+            }
+            for (int index = 0; index < imagePaths.Count; index++) {
+                string path = imagePaths[index];
+                if (!File.Exists(path)) {
+                    message = "PowerPoint Desktop did not create the expected slide image: " + path;
+                    return false;
+                }
+                byte[] bytes = File.ReadAllBytes(path);
+                if (!OfficePngReader.TryDecode(bytes, out OfficeRasterImage? image)
+                    || image == null || image.Width <= 0 || image.Height <= 0) {
+                    message = "PowerPoint Desktop created an invalid PNG slide image: " + path;
+                    return false;
+                }
+            }
+            message = string.Empty;
+            return true;
+        }
+
         private static bool TryGetSlideNumber(string path, out int number) {
             number = 0;
             string name = Path.GetFileNameWithoutExtension(path);
@@ -141,6 +182,25 @@ namespace OfficeIMO.PowerPoint {
         private static void TryQuitApplication(object? application) {
             if (application == null) return;
             try { InvokeMethod(application, "Quit"); } catch { }
+        }
+
+        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Late-bound COM members are supplied by installed PowerPoint Desktop and are outside the managed trimming graph.")]
+        private static void TrySetProperty(object target, string name,
+            object value) {
+            try {
+                target.GetType().InvokeMember(name, BindingFlags.SetProperty,
+                    null, target, new[] { value });
+            } catch {
+                // Older PowerPoint versions may not expose every quiet/security automation property.
+            }
+        }
+
+        private static string GetRootMessage(Exception exception) {
+            Exception root = exception is TargetInvocationException invocation
+                && invocation.InnerException != null
+                ? invocation.InnerException
+                : exception;
+            return root.Message;
         }
 
         [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Late-bound COM members are supplied by installed PowerPoint Desktop and are outside the managed trimming graph.")]

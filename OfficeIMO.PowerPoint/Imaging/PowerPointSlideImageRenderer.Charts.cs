@@ -75,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
                 new OfficeChartData(snapshot.Data.Categories, series),
                 width,
                 height,
-                style: null,
+                style: snapshot.Style,
                 layout: snapshot.Layout,
                 bubbleScalePercent: snapshot.BubbleScalePercent,
                 bubbleSizeMode: snapshot.BubbleSizeMode);

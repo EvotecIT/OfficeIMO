@@ -6,6 +6,7 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
@@ -335,6 +336,11 @@ namespace OfficeIMO.PowerPoint {
                 packageFoundationDetails);
             Add(features, "Structure", "Sections", PowerPointFeatureSupportLevel.Editable, GetSections().Count, null,
                 "Sections can be authored, inspected, renamed, moved, and synchronized with slides.");
+            PowerPointCustomShow[] customShows = CustomShows.ToArray();
+            Add(features, "Presentation", "Custom shows", PowerPointFeatureSupportLevel.Editable,
+                customShows.Length, null,
+                "Named slide sequences can be authored, inspected, renamed, reordered, and removed while linked actions remain synchronized.",
+                customShows.Select(show => $"{show.Name}: {show.Slides.Count} slide(s)").ToList());
             Add(features, "Content", "Text boxes", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTextBoxes), null,
                 "Text boxes, runs, common formatting, markdown import, hyperlinks, and replacement are editable.");
             Add(features, "Content", "Tables", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTables), null,
@@ -407,15 +413,26 @@ namespace OfficeIMO.PowerPoint {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            var vbaDetails = DescribeVbaProjectParts(allParts);
+            OpenXmlPart[] vbaParts = FindVbaProjectParts(allParts);
+            var vbaDetails = vbaParts
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            bool hasEditableVbaProject = vbaParts.Length == 1
+                && ReferenceEquals(vbaParts[0], _presentationPart.VbaProjectPart)
+                && IsValidEditableVbaProject(_presentationPart.VbaProjectPart);
+            PowerPointFeatureSupportLevel vbaSupportLevel = vbaParts.Length == 0 || hasEditableVbaProject
+                ? PowerPointFeatureSupportLevel.Editable
+                : PowerPointFeatureSupportLevel.Preserved;
             var webExtensionDetails = DescribeWebExtensionParts(allParts);
             var signatureDetails = DescribeDigitalSignatureParts(allParts);
             if (_document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                 signatureDetails.Add("Extended application properties contain digital signature metadata.");
             }
 
-            Add(features, "Review", "Comments", PowerPointFeatureSupportLevel.Preserved, commentDetails.Count, null,
-                "Comment package metadata is detected as preserve-only review content.",
+            Add(features, "Review", "Comments", PowerPointFeatureSupportLevel.Editable, commentDetails.Count, null,
+                "Classic comments and modern threaded comments/replies can be created, edited, reassigned, and removed; classic comments also round-trip through binary PPT.",
                 commentDetails);
             Add(features, "Compatibility", "Custom XML parts", PowerPointFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
@@ -437,8 +454,12 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Compatibility", "ActiveX controls", PowerPointFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
                 "ActiveX metadata and native control storage are detected and retained as preserve-only advanced presentation content.",
                 activeXControlDetails);
-            Add(features, "Compatibility", "VBA macros", PowerPointFeatureSupportLevel.Preserved, vbaDetails.Count, null,
-                "VBA project parts are detected as preserve-only macro content; OfficeIMO does not edit or sign VBA modules.",
+            Add(features, "Compatibility", "VBA macros",
+                vbaSupportLevel,
+                vbaDetails.Count, null,
+                vbaSupportLevel == PowerPointFeatureSupportLevel.Editable
+                    ? "VBA project compound storages can be inspected, added, replaced, removed, and preserved through macro-enabled saves; OfficeIMO does not edit or sign VBA modules."
+                    : "Unrecognized or malformed VBA project parts are preserved as package content but cannot be safely mutated through the VBA project API.",
                 vbaDetails);
             Add(features, "Compatibility", "Web extensions and task panes", PowerPointFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
                 "Office add-in and task-pane package metadata is detected as preserve-only advanced content.",
@@ -974,13 +995,46 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
         }
 
-        private static List<string> DescribeVbaProjectParts(IEnumerable<OpenXmlPart> parts) {
+        private static OpenXmlPart[] FindVbaProjectParts(IEnumerable<OpenXmlPart> parts) {
             return parts
                 .Where(part => string.Equals(part.ContentType, "application/vnd.ms-office.vbaProject", StringComparison.OrdinalIgnoreCase))
-                .Select(DescribePart)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+                .ToArray();
+        }
+
+        private static bool IsValidEditableVbaProject(VbaProjectPart? part) {
+            if (part == null) {
+                return false;
+            }
+
+            try {
+                using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                if (stream.CanSeek && stream.Length > DefaultMaximumVbaProjectBytes) {
+                    return false;
+                }
+
+                using var copy = new MemoryStream();
+                var buffer = new byte[81920];
+                long total = 0L;
+                while (true) {
+                    int read = stream.Read(buffer, 0, buffer.Length);
+                    if (read <= 0) {
+                        break;
+                    }
+
+                    total += read;
+                    if (total > DefaultMaximumVbaProjectBytes) {
+                        return false;
+                    }
+
+                    copy.Write(buffer, 0, read);
+                }
+
+                return LegacyPptVbaProjectCodec.IsValidProject(copy.ToArray(), out _);
+            } catch (IOException) {
+                return false;
+            } catch (InvalidDataException) {
+                return false;
+            }
         }
 
         private static List<string> DescribeActiveXControlParts(IEnumerable<OpenXmlPart> parts) {

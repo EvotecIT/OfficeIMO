@@ -138,6 +138,15 @@ public sealed partial class PdfEmbeddedFontFamily {
                 return false;
             }
 
+            if (TryReadSystemFontNameMetadata(path,
+                    out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces) &&
+                metadataFaces != null &&
+                metadataFaces.Count > 0 &&
+                !metadataFaces.Exists(metadata =>
+                    IsMetadataFamilyMatch(metadata, normalizedMetadataFamily))) {
+                return false;
+            }
+
             byte[] fileData = System.IO.File.ReadAllBytes(path);
             System.Collections.Generic.List<byte[]> fontPrograms = ExtractTrueTypeFontPrograms(fileData);
             var found = new System.Collections.Generic.List<SystemFontFaceCandidate>();
@@ -501,8 +510,19 @@ public sealed partial class PdfEmbeddedFontFamily {
                 return false;
             }
 
+            return TryReadTrueTypeNameTable(data, nameTable.Offset,
+                nameTable.Length, out metadata);
+        } catch (System.Exception exception) when (exception is System.NotSupportedException) {
+            return false;
+        }
+    }
+
+    private static bool TryReadTrueTypeNameTable(byte[] data, int offset,
+        int tableLength, out TrueTypeNameMetadata? metadata) {
+        metadata = null;
+        try {
+            EnsureRange(data, offset, tableLength);
             var names = new System.Collections.Generic.Dictionary<int, TrueTypeNameValue>();
-            int offset = nameTable.Offset;
             int count = ReadUInt16(data, offset + 2);
             int stringOffset = offset + ReadUInt16(data, offset + 4);
             for (int i = 0; i < count; i++) {

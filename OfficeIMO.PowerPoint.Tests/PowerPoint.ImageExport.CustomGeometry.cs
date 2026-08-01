@@ -10,6 +10,69 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
+        public void PowerPointSlide_AuthorsSharedCustomGeometryThroughPublicApi() {
+            OfficeShape sharedPath = OfficeShape.Path(
+                OfficePathCommand.MoveTo(0, 50),
+                OfficePathCommand.QuadraticBezierTo(25, 0, 50, 25),
+                OfficePathCommand.CubicBezierTo(70, 45, 82, 100, 100, 50),
+                OfficePathCommand.LineTo(76, 100),
+                OfficePathCommand.LineTo(24, 100),
+                OfficePathCommand.Close());
+            sharedPath.FillColor = OfficeColor.FromRgb(14, 165, 233);
+            sharedPath.StrokeColor = OfficeColor.FromRgb(12, 74, 110);
+            sharedPath.StrokeWidth = 2.25D;
+
+            using var stream = new System.IO.MemoryStream();
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+                presentation.SlideSize.SetSizePoints(180, 140);
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
+                    sharedPath, 30, 20, 120, 100, "Shared freeform");
+                Assert.Equal("Shared freeform", shape.Name);
+                Assert.Null(shape.ShapeType);
+                Assert.Equal("0EA5E9", shape.FillColor);
+                Assert.Equal("0C4A6E", shape.OutlineColor);
+                Assert.Equal(2.25D, shape.OutlineWidthPoints);
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
+                Assert.Single(reopened.Slides[0].Shapes));
+            Assert.Null(authored.ShapeType);
+            OfficeImageExportResult svg = reopened.Slides[0].ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = reopened.Slides[0].ExportImage(OfficeImageExportFormat.Png);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<path", svgText, StringComparison.Ordinal);
+            Assert.Contains("Q", svgText, StringComparison.Ordinal);
+            Assert.Contains("C", svgText, StringComparison.Ordinal);
+            Assert.Contains("#0EA5E9", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(CountPixelsNear(image!, OfficeColor.FromRgb(14, 165, 233)) > 100);
+        }
+
+        [Fact]
+        public void PowerPointSlide_AuthorsSharedPolygonAndRejectsNonFreeformDescriptors() {
+            OfficeShape polygon = OfficeShape.Polygon(
+                new OfficePoint(0, 0),
+                new OfficePoint(100, 0),
+                new OfficePoint(75, 100),
+                new OfficePoint(25, 100));
+            polygon.FillColor = OfficeColor.FromRgb(34, 197, 94);
+
+            using var stream = new System.IO.MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddCustomGeometryCm(
+                polygon, 1, 1, 4, 3, "Shared polygon");
+            Assert.Null(shape.ShapeType);
+            Assert.Throws<ArgumentException>(() => slide.AddCustomGeometryPoints(
+                OfficeShape.Rectangle(10, 10), 0, 0, 10, 10));
+        }
+
+        [Fact]
         public void PowerPointSlide_ProjectsCustomGeometryThroughSharedDrawingPath() {
             using var stream = new System.IO.MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

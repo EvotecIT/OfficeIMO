@@ -8,6 +8,45 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public class PowerPointLegacyPptChartWriteTests {
+        [Theory]
+        [InlineData(PowerPointClassicAnimationBuildType.ChartBySeries)]
+        [InlineData(PowerPointClassicAnimationBuildType.ChartByCategory)]
+        [InlineData(PowerPointClassicAnimationBuildType.ChartByElementInSeries)]
+        [InlineData(PowerPointClassicAnimationBuildType.ChartByElementInCategory)]
+        public void ClassicChartAnimationBuildsSurviveStaticLegacyChartProjection(
+            PowerPointClassicAnimationBuildType buildType) {
+            var data = new OfficeChartData(new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Revenue", new[] { 12D, 19D, 27D }),
+                    new OfficeChartSeries("Plan", new[] { 15D, 18D, 24D })
+                });
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointChart chart = slide.AddChartPoints(
+                    OfficeChartKind.ColumnClustered, data, 30D, 20D, 240D, 150D);
+                slide.AddClassicAnimation(chart, PowerPointClassicAnimationEffect.Fade,
+                    new PowerPointClassicAnimationOptions { BuildType = buildType });
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
+            }
+
+            LegacyPptShape legacyShape = Assert.Single(
+                Assert.Single(LegacyPptPresentation.Load(bytes).Slides).Shapes);
+            Assert.Equal(LegacyPptShapeKind.Picture, legacyShape.Kind);
+            Assert.Equal((LegacyPptAnimationBuildType)buildType,
+                legacyShape.Animation!.BuildType);
+
+            using PowerPointPresentation projected = PowerPointPresentation.Load(
+                new MemoryStream(bytes, writable: false));
+            PowerPointClassicAnimation animation = Assert.Single(
+                projected.Slides[0].ClassicAnimations);
+            Assert.Equal(buildType, animation.BuildType);
+            Assert.IsType<PowerPointPicture>(Assert.Single(projected.Slides[0].Shapes));
+        }
+
         [Fact]
         public void NativeWriter_ExplicitlyConvertsChartToStaticPngPicture() {
             var data = new OfficeChartData(new[] { "Q1", "Q2", "Q3" },

@@ -7,6 +7,7 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Internal;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
@@ -162,11 +163,26 @@ namespace OfficeIMO.PowerPoint {
             var data = new OfficeChartData(powerPointSnapshot.Data.Categories, series);
             snapshot = new OfficeChartSnapshot(powerPointSnapshot.Name, powerPointSnapshot.Title, kind, data,
                 powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints,
-                style: null,
+                style: powerPointSnapshot.Style,
                 layout: powerPointSnapshot.Layout,
                 bubbleScalePercent: powerPointSnapshot.BubbleScalePercent,
                 bubbleSizeMode: powerPointSnapshot.BubbleSizeMode);
             return true;
+        }
+
+        private static OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
+            string? bodyFont = chart.Descendants<C.TextProperties>()
+                .SelectMany(properties => properties.Descendants<A.LatinFont>())
+                .Select(font => font.Typeface?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            string? titleFont = chart.GetFirstChild<C.Title>()?
+                .Descendants<A.LatinFont>()
+                .Select(font => font.Typeface?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            return bodyFont == null && titleFont == null
+                ? null
+                : new OfficeChartStyle(fontFamily: bodyFont,
+                    titleFontFamily: titleFont);
         }
 
         private static HashSet<uint> GetHiddenLegendSeriesIndexes(C.Chart chart) {

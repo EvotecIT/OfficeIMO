@@ -36,16 +36,6 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Add a memory-bounded edit path for large existing workbooks with configurable budgets and deterministic cancellation.
 - [ ] Keep XLSX/XLSB/CSV performance evidence competitive on macOS, Linux, and Windows without platform-specific claims unsupported by the cross-platform matrix.
 
-## PowerPoint and Visio
-
-- [ ] Broaden PowerPoint editing, template-layout, chart/table, animation-preservation, and source-producer corpus coverage through the existing presentation API.
-- [ ] Add fixture-backed PowerPoint authoring only where current demand justifies it, including shape/text/chart animations, broader SmartArt and custom geometry, advanced chart families, comment/reply mutation, OLE, macros, and custom shows.
-- [ ] Establish repeatable PowerPoint create/save, open/edit/save, image-export, and PDF-export baselines for small, normal, and large decks before setting regression budgets.
-- [ ] Improve Visio dense layout, label placement, routing, graph and data-driven diagrams, and editable existing-diagram workflows.
-- [ ] Expand the Visio stencil platform while preserving package licensing and unsupported content explicitly.
-- [ ] Keep generated Visio galleries structurally validated and visually reviewed across representative diagram families.
-- [ ] Harden optional desktop-reference validation without making Microsoft Office or Visio a runtime dependency.
-
 ## PDF, HTML, and image rendering
 
 - [ ] Expand arbitrary-producer PDF rendering for Type 3/CFF fonts, ICC and currently unsupported color spaces, advanced patterns, and incomplete optional-content cases while keeping every fallback diagnosed and bounded.

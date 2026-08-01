@@ -1,0 +1,72 @@
+using System;
+using System.IO;
+using OfficeIMO.PowerPoint;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public partial class PowerPointLegacyPptTests {
+        [Fact]
+        public void PublicMacroApi_AddsReplacesRemovesAndBoundsVbaProject() {
+            byte[] original = CreateVbaTestProject("OriginalModule",
+                "Sub OriginalMacro()\nEnd Sub");
+            byte[] replacement = CreateVbaTestProject("ReplacementModule",
+                "Sub ReplacementMacro()\nEnd Sub");
+
+            using var presentation = PowerPointPresentation.Create();
+            Assert.False(presentation.HasVbaProject);
+            Assert.Null(presentation.GetVbaProjectBytes());
+            Assert.False(presentation.RemoveVbaProject());
+
+            presentation.SetVbaProject(original);
+            Assert.True(presentation.HasVbaProject);
+            Assert.Equal(original, presentation.GetVbaProjectBytes());
+            Assert.Contains(presentation.InspectFeatures().EditableFeatures,
+                feature => feature.Name == "VBA macros" && feature.Count == 1);
+
+            using var replacementStream = new MemoryStream(replacement,
+                writable: false);
+            replacementStream.Position = Math.Min(7, replacement.Length);
+            presentation.SetVbaProject(replacementStream);
+            Assert.Equal(Math.Min(7, replacement.Length), replacementStream.Position);
+            Assert.Equal(replacement, presentation.GetVbaProjectBytes());
+
+            Assert.Throws<InvalidDataException>(() =>
+                presentation.GetVbaProjectBytes(replacement.Length - 1));
+            Assert.Throws<InvalidDataException>(() =>
+                presentation.SetVbaProject(replacement, replacement.Length - 1));
+            Assert.Throws<InvalidDataException>(() =>
+                presentation.SetVbaProject(new byte[] { 1, 2, 3, 4 }));
+
+            Assert.True(presentation.RemoveVbaProject());
+            Assert.False(presentation.HasVbaProject);
+            Assert.Null(presentation.GetVbaProjectBytes());
+        }
+
+        [Fact]
+        public void PublicMacroApi_RoundTripsMacroEnabledAndLegacyDestinations() {
+            string pptm = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-MacroApi-" + Guid.NewGuid().ToString("N") + ".pptm");
+            byte[] project = CreateVbaTestProject("RoundTripModule",
+                "Sub RoundTripMacro()\nEnd Sub");
+            try {
+                using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create(pptm)) {
+                    presentation.AddSlide().AddTitle("Macro-enabled deck");
+                    presentation.SetVbaProject(project);
+                    presentation.Save();
+                }
+
+                using PowerPointPresentation reopened =
+                    PowerPointPresentation.Load(pptm);
+                Assert.Equal(project, reopened.GetVbaProjectBytes());
+
+                byte[] binary = reopened.ToBytes(PowerPointFileFormat.Ppt);
+                using PowerPointPresentation projected =
+                    PowerPointPresentation.Load(new MemoryStream(binary));
+                Assert.Equal(project, projected.GetVbaProjectBytes());
+            } finally {
+                if (File.Exists(pptm)) File.Delete(pptm);
+            }
+        }
+    }
+}

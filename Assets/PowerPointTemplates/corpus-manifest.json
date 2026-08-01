@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft Office PowerPoint 16",
+  "artifacts": [
+    {
+      "file": "PowerPointBlank.pptx",
+      "sha256": "95d543567988bd0f4699f8386a5874b9a06bde332585c63f8d62b7f82586eb88",
+      "focus": ["blank template", "master and layout preservation"]
+    },
+    {
+      "file": "PowerPointWithTablesAndCharts.pptx",
+      "sha256": "c085185372a2c989fb63ee227485e522a848a59279956190032d29b46f5b237c",
+      "focus": ["tables", "charts", "pictures", "multi-layout editing"]
+    },
+    {
+      "file": "PowerPointWithTitle.pptx",
+      "sha256": "2514e6fbf73d008c1d97a574ddf10a4f6201908bdfb30f1c49d968f2811af93e",
+      "focus": ["title placeholder", "theme and layout inheritance"]
+    },
+    {
+      "file": "Tables.pptx",
+      "sha256": "cf21f272893014502f9cee95f1aa90fde6a90fe61c7607a8bf2910e33d641fa0",
+      "focus": ["PowerPoint-authored tables", "table style preservation"]
+    },
+    {
+      "file": "TransitionsThemes.pptx",
+      "sha256": "8d154526a4f217f089ebf51c6e8535a2be0aa06ba3613b136fb1646d29bb521e",
+      "focus": ["transitions", "themes", "extension preservation"]
+    }
+  ]
+}

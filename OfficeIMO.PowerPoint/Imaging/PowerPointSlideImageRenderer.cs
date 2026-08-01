@@ -122,6 +122,8 @@ namespace OfficeIMO.PowerPoint {
                     AddTable(drawing, table, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointChart chart) {
                     AddChart(drawing, chart, diagnostics, mapping, colorScheme);
+                } else if (shape is PowerPointSmartArt smartArt) {
+                    AddSmartArt(drawing, smartArt, diagnostics, mapping);
                 } else if (shape is PowerPointTextBox textBox) {
                     AddTextBox(drawing, textBox, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointAutoShape autoShape) {

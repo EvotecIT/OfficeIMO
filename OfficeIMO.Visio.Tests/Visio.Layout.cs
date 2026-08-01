@@ -529,11 +529,26 @@ namespace OfficeIMO.Tests {
             VisioConnector crossing = page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
 
             Assert.True(ConnectorPathIntersectsBounds(crossing, GetConnectorLabelBounds(labeled)));
+            Assert.Contains(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false,
+                CheckConnectorLabelOverlaps = false
+            }), issue =>
+                issue.Kind == "ConnectorLabelCrossesConnector" &&
+                issue.ConnectorId == labeled.Id &&
+                issue.OtherConnectorId == crossing.Id);
 
             page.ResolveConnectorLabelOverlaps(step: 0.18D, maxAttempts: 8);
 
             Assert.NotEqual(3, labeled.LabelPlacement!.AbsolutePinX!.Value);
             Assert.False(ConnectorPathIntersectsBounds(crossing, GetConnectorLabelBounds(labeled)));
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false,
+                CheckConnectorLabelOverlaps = false
+            }), issue => issue.Kind == "ConnectorLabelCrossesConnector");
         }
 
         [Fact]

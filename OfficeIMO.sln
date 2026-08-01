@@ -346,6 +346,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Latex.Pdf", "Offi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Pdf.Benchmarks", "OfficeIMO.Pdf.Benchmarks\OfficeIMO.Pdf.Benchmarks.csproj", "{F0ABCF0D-01C1-4D74-B840-78D0D67E7158}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.PowerPoint.Benchmarks", "OfficeIMO.PowerPoint.Benchmarks\OfficeIMO.PowerPoint.Benchmarks.csproj", "{E98A2407-9B37-429F-B9DD-9E4CEE696148}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Email", "OfficeIMO.Reader.Email\OfficeIMO.Reader.Email.csproj", "{827DCC08-592F-464E-989D-0E2122B045B0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Excel", "OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj", "{F8EE5B20-9E16-4B8A-8B37-59B025426851}"
@@ -402,6 +404,18 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Debug|x64.Build.0 = Debug|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Debug|x86.Build.0 = Debug|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Release|x64.ActiveCfg = Release|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Release|x64.Build.0 = Release|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Release|x86.ActiveCfg = Release|Any CPU
+		{E98A2407-9B37-429F-B9DD-9E4CEE696148}.Release|x86.Build.0 = Release|Any CPU
 		{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}.Debug|x64.ActiveCfg = Debug|Any CPU

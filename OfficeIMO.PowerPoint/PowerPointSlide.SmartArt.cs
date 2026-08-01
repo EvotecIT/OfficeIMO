@@ -64,8 +64,14 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointSmartArtType.BasicProcess:
                 case PowerPointSmartArtType.BasicHierarchy:
                 case PowerPointSmartArtType.BasicCycle:
-                default:
+                case PowerPointSmartArtType.BasicList:
+                case PowerPointSmartArtType.BasicMatrix:
+                case PowerPointSmartArtType.BasicPyramid:
+                case PowerPointSmartArtType.BasicRelationship:
                     return AddSemanticSmartArtParts(type, nodeTexts);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type,
+                        "Unsupported SmartArt type.");
             }
         }
 
@@ -130,7 +136,12 @@ namespace OfficeIMO.PowerPoint {
             };
             Dgm.LayoutNode node = new() { Name = "node" };
             Dgm.Shape nodeShape = new() {
-                Type = type == PowerPointSmartArtType.BasicCycle ? "ellipse" : "rect",
+                Type = type == PowerPointSmartArtType.BasicCycle
+                    || type == PowerPointSmartArtType.BasicRelationship
+                    ? "ellipse"
+                    : type == PowerPointSmartArtType.BasicPyramid
+                        ? "trapezoid"
+                        : "rect",
                 Blip = string.Empty
             };
             nodeShape.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
@@ -196,6 +207,14 @@ namespace OfficeIMO.PowerPoint {
                     return "urn:officeimo:smartart:hierarchy";
                 case PowerPointSmartArtType.BasicCycle:
                     return "urn:officeimo:smartart:cycle";
+                case PowerPointSmartArtType.BasicList:
+                    return "urn:officeimo:smartart:list";
+                case PowerPointSmartArtType.BasicMatrix:
+                    return "urn:officeimo:smartart:matrix";
+                case PowerPointSmartArtType.BasicPyramid:
+                    return "urn:officeimo:smartart:pyramid";
+                case PowerPointSmartArtType.BasicRelationship:
+                    return "urn:officeimo:smartart:relationship";
                 default:
                     return "urn:microsoft.com/office/officeart/2005/8/layout/default";
             }
@@ -205,7 +224,11 @@ namespace OfficeIMO.PowerPoint {
             switch (type) {
                 case PowerPointSmartArtType.BasicHierarchy: return "hierarchy";
                 case PowerPointSmartArtType.BasicCycle: return "cycle";
-                default: return "list";
+                case PowerPointSmartArtType.BasicList: return "list";
+                case PowerPointSmartArtType.BasicMatrix: return "matrix";
+                case PowerPointSmartArtType.BasicPyramid: return "pyramid";
+                case PowerPointSmartArtType.BasicRelationship: return "relationship";
+                default: return "process";
             }
         }
 

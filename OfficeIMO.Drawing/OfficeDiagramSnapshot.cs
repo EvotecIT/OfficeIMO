@@ -13,7 +13,19 @@ public enum OfficeDiagramKind {
     Hierarchy,
 
     /// <summary>Circular sequence nodes.</summary>
-    Cycle
+    Cycle,
+
+    /// <summary>Vertically ordered list nodes.</summary>
+    List,
+
+    /// <summary>Balanced row-and-column matrix nodes.</summary>
+    Matrix,
+
+    /// <summary>Stacked pyramid levels ordered from apex to base.</summary>
+    Pyramid,
+
+    /// <summary>Central concept with surrounding related nodes.</summary>
+    Relationship
 }
 
 /// <summary>Dependency-free semantic diagram data for static rendering and export.</summary>

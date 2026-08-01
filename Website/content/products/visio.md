@@ -24,11 +24,11 @@ OfficeIMO.Visio lets you generate and modify `.vsdx` diagrams from pure .NET cod
 
 - **Create, load, and save VSDX files** — round-trip the Visio Open XML format
 - **Diagram builders** — create flowcharts, architecture diagrams, networks, dependencies, swimlanes, org charts, timelines, sequences, and generic graphs
-- **Stencils and catalogs** — use generated catalogs, installed Visio stencils, or external `.vssx` and `.vstx` packs
+- **Stencils and catalogs** — use generated catalogs, installed Visio stencils, or external `.vssx` and `.vstx` packs while retaining caller-supplied license, attribution, and unsupported-master state
 - **Connectors with metadata** — connect shapes with labels, hyperlinks, Shape Data, waypoints, and routing hints
 - **Fluent and low-level APIs** — chain common diagrams or edit individual pages, shapes, connectors, and masters
 - **Headless image export** — render SVG, PNG, JPEG, TIFF, and WebP previews without Microsoft Visio
-- **Validation** — inspect generated and loaded diagrams for package and model issues
+- **Validation** — inspect generated and loaded diagrams for package, model, overlap, routing, and connector-label issues
 
 ## Diagram types you can automate
 

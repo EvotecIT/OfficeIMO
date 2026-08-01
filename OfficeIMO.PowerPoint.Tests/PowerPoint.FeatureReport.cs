@@ -1420,7 +1420,9 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
-                    Assert.Empty(report.FindFeatures("VBA macros"));
+                    PowerPointFeatureFinding macros = Assert.Single(report.FindFeatures("VBA macros"));
+                    Assert.Equal(PowerPointFeatureSupportLevel.Editable, macros.SupportLevel);
+                    Assert.Equal(0, macros.Count);
                     Assert.Same(report, report.EnsureNoAdvancedFeatures());
                 }
             } finally {
@@ -1736,7 +1738,9 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
-                    Assert.Empty(report.FindFeatures("Comments"));
+                    PowerPointFeatureFinding comments = Assert.Single(report.FindFeatures("Comments"));
+                    Assert.Equal(PowerPointFeatureSupportLevel.Editable, comments.SupportLevel);
+                    Assert.Equal(0, comments.Count);
                     Assert.Same(report, report.EnsureNoAdvancedFeatures());
                 }
             } finally {

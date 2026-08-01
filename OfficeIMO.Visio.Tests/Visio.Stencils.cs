@@ -470,6 +470,22 @@ namespace OfficeIMO.Tests {
                 enumerableType,
                 typeof(string)
             }));
+            Assert.NotNull(typeof(VisioStencilShape).GetConstructor(new[] {
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(double),
+                typeof(double),
+                enumerableType,
+                enumerableType,
+                enumerableType,
+                typeof(string),
+                typeof(VisioMeasurementUnit?),
+                typeof(string),
+                typeof(VisioStencilPreviewImage),
+                typeof(IEnumerable<VisioStencilConnectionPoint>)
+            }));
             Assert.Contains(
                 typeof(VisioStencilCatalogBuilder).GetMethods().Where(method => method.Name == nameof(VisioStencilCatalogBuilder.AddWithMetadata)),
                 method => method.GetParameters().Length == 10);
@@ -515,6 +531,41 @@ namespace OfficeIMO.Tests {
             VisioDocument loadedDocument = VisioDocument.Load(filePath);
             Assert.Equal(new[] { "api", "queue" }, loadedDocument.Pages[0].Shapes.Select(shape => shape.Id));
             Assert.Single(loadedDocument.Pages[0].Connectors);
+        }
+
+        [Fact]
+        public void StencilCatalogManifestPreservesLicensingAndUnsupportedState() {
+            VisioStencilCatalog source = VisioStencilCatalog.Create(
+                "Licensed package", builder => builder.AddWithMetadata(
+                    "external.unsupported",
+                    "Unsupported package master",
+                    "VendorMaster",
+                    "External",
+                    1.8,
+                    0.9,
+                    keywords: new[] { "vendor" },
+                    aliases: null,
+                    tags: new[] { "package", "generic" },
+                    iconNameU: "VendorMaster",
+                    defaultUnit: VisioMeasurementUnit.Inches,
+                    sourcePackagePath: "vendor.vssx",
+                    previewImage: null,
+                    sourceConnectionPoints: null,
+                    isSupported: false,
+                    sourceLicense: "Vendor license - redistribution prohibited",
+                    sourceAttribution: "Example Vendor"));
+
+            using MemoryStream manifest = new();
+            source.Save(manifest);
+            manifest.Position = 0;
+            VisioStencilShape loaded = Assert.Single(
+                VisioStencilCatalog.Load(manifest).Shapes);
+
+            Assert.False(loaded.IsSupported);
+            Assert.Equal("Vendor license - redistribution prohibited",
+                loaded.SourceLicense);
+            Assert.Equal("Example Vendor", loaded.SourceAttribution);
+            Assert.Null(loaded.SourcePackagePath);
         }
 
         [Fact]
@@ -775,13 +826,19 @@ namespace OfficeIMO.Tests {
             VisioStencilCatalog withGeneric = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
                 IncludeUnsupportedMasters = true,
                 Category = "Template Masters",
-                MasterNames = new[] { "FancyCloud" }
+                MasterNames = new[] { "FancyCloud" },
+                SourceLicense = "Vendor-EULA",
+                SourceAttribution = "Template Vendor"
             });
 
             Assert.Single(supportedOnly.Shapes);
             Assert.Equal("Rectangle", supportedOnly.Shapes[0].MasterNameU);
+            Assert.True(supportedOnly.Shapes[0].IsSupported);
             Assert.Single(withGeneric.Shapes);
             Assert.Equal("FancyCloud", withGeneric.Shapes[0].MasterNameU);
+            Assert.False(withGeneric.Shapes[0].IsSupported);
+            Assert.Equal("Vendor-EULA", withGeneric.Shapes[0].SourceLicense);
+            Assert.Equal("Template Vendor", withGeneric.Shapes[0].SourceAttribution);
             Assert.Contains("generic", withGeneric.Shapes[0].Tags);
             Assert.Contains(withGeneric.Search("vstx"), shape => shape.MasterNameU == "FancyCloud");
         }

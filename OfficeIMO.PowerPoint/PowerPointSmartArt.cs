@@ -54,12 +54,22 @@ namespace OfficeIMO.PowerPoint {
                 string category = ((string?)properties?.Attribute("loCatId")
                     ?? (string?)properties?.Attribute("loTypeId")
                     ?? string.Empty).ToLowerInvariant();
-                OfficeDiagramKind kind = category.IndexOf("hierarchy",
-                        StringComparison.Ordinal) >= 0
-                    ? OfficeDiagramKind.Hierarchy
-                    : category.IndexOf("cycle", StringComparison.Ordinal) >= 0
-                        ? OfficeDiagramKind.Cycle
-                        : OfficeDiagramKind.Process;
+                OfficeDiagramKind kind;
+                if (category.IndexOf("hierarchy", StringComparison.Ordinal) >= 0) {
+                    kind = OfficeDiagramKind.Hierarchy;
+                } else if (category.IndexOf("cycle", StringComparison.Ordinal) >= 0) {
+                    kind = OfficeDiagramKind.Cycle;
+                } else if (category.IndexOf("matrix", StringComparison.Ordinal) >= 0) {
+                    kind = OfficeDiagramKind.Matrix;
+                } else if (category.IndexOf("pyramid", StringComparison.Ordinal) >= 0) {
+                    kind = OfficeDiagramKind.Pyramid;
+                } else if (category.IndexOf("relationship", StringComparison.Ordinal) >= 0) {
+                    kind = OfficeDiagramKind.Relationship;
+                } else if (category.IndexOf("list", StringComparison.Ordinal) >= 0) {
+                    kind = OfficeDiagramKind.List;
+                } else {
+                    kind = OfficeDiagramKind.Process;
+                }
                 snapshot = new OfficeDiagramSnapshot(Name, kind, nodes,
                     WidthPoints, HeightPoints);
                 return true;

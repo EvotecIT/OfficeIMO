@@ -5,6 +5,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Tests.Pdf;
@@ -189,6 +190,61 @@ namespace OfficeIMO.Tests {
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
+        }
+
+        [Fact]
+        public void AddSmartArtRejectsUndefinedLayoutKind() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                slide.AddSmartArt((PowerPointSmartArtType)int.MaxValue,
+                    new[] { "Discover", "Deliver" }));
+
+            Assert.Equal("type", exception.ParamName);
+            Assert.Empty(slide.SmartArts);
+        }
+
+        [Theory]
+        [InlineData(PowerPointSmartArtType.BasicList, OfficeDiagramKind.List)]
+        [InlineData(PowerPointSmartArtType.BasicMatrix, OfficeDiagramKind.Matrix)]
+        [InlineData(PowerPointSmartArtType.BasicPyramid, OfficeDiagramKind.Pyramid)]
+        [InlineData(PowerPointSmartArtType.BasicRelationship, OfficeDiagramKind.Relationship)]
+        public void BroaderSemanticSmartArtLayoutsRoundTripAndRender(
+            PowerPointSmartArtType type, OfficeDiagramKind expectedKind) {
+            using var stream = new MemoryStream();
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+                presentation.SlideSize.SetSizePoints(360, 220);
+                PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(type,
+                    new[] { "Discover", "Build", "Validate", "Ship" },
+                    PowerPointUnits.FromPoints(20),
+                    PowerPointUnits.FromPoints(20),
+                    PowerPointUnits.FromPoints(320),
+                    PowerPointUnits.FromPoints(180));
+                Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
+                    out OfficeDiagramSnapshot snapshot));
+                Assert.Equal(expectedKind, snapshot.Kind);
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            PowerPointSmartArt authored = Assert.Single(reopened.Slides[0].SmartArts);
+            Assert.True(authored.TryGetOfficeDiagramSnapshot(
+                out OfficeDiagramSnapshot reopenedSnapshot));
+            Assert.Equal(expectedKind, reopenedSnapshot.Kind);
+            Assert.Equal(new[] { "Discover", "Build", "Validate", "Ship" },
+                authored.GetNodeTexts());
+            OfficeImageExportResult png = reopened.Slides[0].ExportImage(
+                OfficeImageExportFormat.Png);
+            Assert.DoesNotContain(png.Diagnostics,
+                diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Warning
+                    || diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes,
+                out OfficeRasterImage? raster));
+            Assert.Equal(360, raster!.Width);
+            Assert.Equal(220, raster.Height);
+            Assert.Empty(reopened.ValidateDocument());
         }
 
         [Fact]
@@ -393,6 +449,35 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(new[] { "Slide1.png", "Slide2.PNG", "Slide10.png" },
                     images.Select(Path.GetFileName));
+            } finally {
+                if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void DesktopReferenceLaneRequiresACompleteValidPngSet() {
+            string output = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO.PowerPointReferenceValidation", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(output);
+            try {
+                string first = Path.Combine(output, "Slide1.png");
+                string second = Path.Combine(output, "Slide2.png");
+                File.WriteAllBytes(first, VisualBaselineTestSupport.CreateRgbPng(
+                    2, 1, new byte[] { 10, 20, 30, 40, 50, 60 }));
+                File.WriteAllBytes(second, VisualBaselineTestSupport.CreateRgbPng(
+                    1, 1, new byte[] { 70, 80, 90 }));
+
+                Assert.True(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
+                    new[] { first, second }, 2, out string completeMessage),
+                    completeMessage);
+                Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
+                    new[] { first }, 2, out string incompleteMessage));
+                Assert.Contains("expected 2", incompleteMessage, StringComparison.Ordinal);
+
+                File.WriteAllText(second, "not a PNG");
+                Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
+                    new[] { first, second }, 2, out string invalidMessage));
+                Assert.Contains("invalid PNG", invalidMessage, StringComparison.Ordinal);
             } finally {
                 if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
             }

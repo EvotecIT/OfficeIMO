@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using Xunit;
 
@@ -77,6 +78,34 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             Assert.Throws<FileNotFoundException>(() => VisioDesktopBaselineValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void DesktopValidatorRejectsStructurallyInvalidReferenceOutputs() {
+            string directory = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-VisioDesktopOutputValidation-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try {
+                string png = Path.Combine(directory, "valid.png");
+                File.WriteAllBytes(png, VisualBaselineTestSupport.CreateRgbPng(
+                    1, 1, new byte[] { 12, 34, 56 }));
+                Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    png, out string validIssue), validIssue);
+
+                string invalidPng = Path.Combine(directory, "invalid.png");
+                File.WriteAllText(invalidPng, "not a PNG");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    invalidPng, out string invalidIssue));
+                Assert.Contains("PNG", invalidIssue, StringComparison.Ordinal);
+
+                string invalidSvg = Path.Combine(directory, "invalid.svg");
+                File.WriteAllText(invalidSvg, "<html />");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    invalidSvg, out string svgIssue));
+                Assert.Contains("SVG root", svgIssue, StringComparison.Ordinal);
+            } finally {
+                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            }
         }
 
         private static bool IsDesktopValidationRequested() =>
