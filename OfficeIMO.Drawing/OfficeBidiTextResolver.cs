@@ -56,12 +56,18 @@ public static class OfficeBidiTextResolver {
         OfficeTextDirection lastDirection = resolvedBase;
         int lastLevel = states.Peek().Level;
         IReadOnlyList<string> elements = OfficeTextElements.Split(text);
+        OfficeTextDirection?[] firstStrongIsolateDirections = ResolveFirstStrongIsolateDirections(elements, cancellationToken);
         for (int index = 0; index < elements.Count; index++) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             string element = elements[index];
             if (element.Length == 1 && OfficeTextElements.ContainsBidiControl(element)) {
                 Flush(runs, value, lastDirection, lastLevel);
-                TryApplyControl(elements, ref index, element[0], states, ref overflow, ref lastDirection);
+                TryApplyControl(
+                    element[0],
+                    firstStrongIsolateDirections[index],
+                    states,
+                    ref overflow,
+                    ref lastDirection);
                 lastLevel = ResolveLevel(states.Peek().Level, lastDirection);
                 continue;
             }
@@ -155,9 +161,8 @@ public static class OfficeBidiTextResolver {
     }
 
     private static bool TryApplyControl(
-        IReadOnlyList<string> elements,
-        ref int index,
         char control,
+        OfficeTextDirection? firstStrongIsolateDirection,
         Stack<DirectionalState> states,
         ref BidiOverflowState overflow,
         ref OfficeTextDirection lastDirection) {
@@ -184,7 +189,7 @@ public static class OfficeBidiTextResolver {
             case '\u2066': Push(states, OfficeTextDirection.LeftToRight, false, true, ref overflow); return true;
             case '\u2067': Push(states, OfficeTextDirection.RightToLeft, false, true, ref overflow); return true;
             case '\u2068':
-                Push(states, ResolveFirstStrongIsolateDirection(elements, index + 1, states.Peek().Direction), false, true, ref overflow);
+                Push(states, firstStrongIsolateDirection ?? states.Peek().Direction, false, true, ref overflow);
                 return true;
             case '\u2069':
                 if (overflow.OverflowIsolateCount > 0) {
@@ -259,27 +264,52 @@ public static class OfficeBidiTextResolver {
         }
     }
 
-    private static OfficeTextDirection ResolveFirstStrongIsolateDirection(
+    private static OfficeTextDirection?[] ResolveFirstStrongIsolateDirections(
         IReadOnlyList<string> elements,
-        int start,
-        OfficeTextDirection fallback) {
-        int nested = 0;
-        for (int index = start; index < elements.Count; index++) {
-            if (elements[index].Length == 1) {
-                char control = elements[index][0];
-                if (control is '\u2066' or '\u2067' or '\u2068') { nested++; continue; }
-                if (control == '\u2069') {
-                    if (nested == 0) break;
-                    nested--;
+        CancellationToken cancellationToken) {
+        var directions = new OfficeTextDirection?[elements.Count];
+        var isolates = new Stack<FirstStrongIsolateFrame>();
+        int overflowDepth = 0;
+        for (int index = 0; index < elements.Count; index++) {
+            if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+            string element = elements[index];
+            if (element.Length == 1) {
+                char control = element[0];
+                if (control is '\u2066' or '\u2067' or '\u2068') {
+                    if (overflowDepth > 0 || isolates.Count >= MaximumEmbeddingDepth) {
+                        overflowDepth++;
+                    } else {
+                        isolates.Push(new FirstStrongIsolateFrame(control == '\u2068' ? index : -1));
+                    }
                     continue;
                 }
-                if (OfficeTextElements.ContainsBidiControl(elements[index])) continue;
+                if (control == '\u2069') {
+                    if (overflowDepth > 0) {
+                        overflowDepth--;
+                    } else if (isolates.Count > 0) {
+                        StoreFirstStrongDirection(isolates.Pop(), directions);
+                    }
+                    continue;
+                }
+                if (OfficeTextElements.ContainsBidiControl(element)) continue;
             }
-            if (nested > 0) continue;
-            OfficeTextDirection direction = OfficeTextElements.ResolveBaseDirection(elements[index]);
-            if (direction != OfficeTextDirection.Auto) return direction;
+
+            if (overflowDepth > 0 || isolates.Count == 0 || isolates.Peek().SourceIndex < 0 || isolates.Peek().Direction.HasValue) {
+                continue;
+            }
+
+            OfficeTextDirection direction = OfficeTextElements.ResolveBaseDirection(element);
+            if (direction != OfficeTextDirection.Auto) isolates.Peek().Direction = direction;
         }
-        return fallback;
+
+        while (isolates.Count > 0) StoreFirstStrongDirection(isolates.Pop(), directions);
+        return directions;
+    }
+
+    private static void StoreFirstStrongDirection(
+        FirstStrongIsolateFrame isolate,
+        OfficeTextDirection?[] directions) {
+        if (isolate.SourceIndex >= 0) directions[isolate.SourceIndex] = isolate.Direction;
     }
 
     private static OfficeTextDirection ResolveElementDirection(
@@ -332,6 +362,14 @@ public static class OfficeBidiTextResolver {
         internal int OverflowEmbeddingCount;
         internal int OverflowIsolateCount;
         internal int ValidIsolateCount;
+    }
+
+    private sealed class FirstStrongIsolateFrame {
+        internal FirstStrongIsolateFrame(int sourceIndex) {
+            SourceIndex = sourceIndex;
+        }
+        internal int SourceIndex { get; }
+        internal OfficeTextDirection? Direction { get; set; }
     }
 
     private readonly struct VisualElement<T> {

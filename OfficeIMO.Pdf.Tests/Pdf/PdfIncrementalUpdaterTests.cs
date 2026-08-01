@@ -142,6 +142,20 @@ public class PdfIncrementalUpdaterTests {
         Assert.Equal("Updated title", PdfInspector.Inspect(updated).Metadata.Title);
     }
 
+    [Theory]
+    [InlineData(99, null)]
+    [InlineData(6, "<< /Type /Metadata >>")]
+    public void SynchronizeMetadata_RejectsUnreadableExistingMetadataReferences(
+        int metadataObjectNumber,
+        string? metadataObjectBody) {
+        byte[] original = BuildMetadataPdfWithCatalogGeneration(metadataObjectNumber, metadataObjectBody);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfIncrementalUpdater.SynchronizeMetadata(original, title: "Must not replace existing metadata"));
+
+        Assert.Contains("does not resolve to a readable stream", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void UpdateMetadata_UsesTheActiveTrailerRootInsteadOfThePreviousRevisionRoot() {
         byte[] original = PdfDocument.Create()
@@ -166,14 +180,22 @@ public class PdfIncrementalUpdaterTests {
         Assert.Equal("Active root retained", PdfInspector.Inspect(updated).Metadata.Title);
     }
 
-    private static byte[] BuildMetadataPdfWithCatalogGeneration() {
+    private static byte[] BuildMetadataPdfWithCatalogGeneration(
+        int? metadataObjectNumber = null,
+        string? metadataObjectBody = null) {
+        string metadataEntry = metadataObjectNumber.HasValue
+            ? " /Metadata " + metadataObjectNumber.Value.ToString(CultureInfo.InvariantCulture) + " 0 R"
+            : string.Empty;
         var entries = new List<(int ObjectNumber, int Generation, string Body)> {
-            (1, 2, "<< /Type /Catalog /Pages 2 0 R >>"),
+            (1, 2, "<< /Type /Catalog /Pages 2 0 R" + metadataEntry + " >>"),
             (2, 0, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>"),
             (3, 0, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>"),
             (4, 0, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
             (5, 0, BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Metadata generation) Tj ET")))
         };
+        if (metadataObjectNumber.HasValue && metadataObjectBody is not null) {
+            entries.Add((metadataObjectNumber.Value, 0, metadataObjectBody));
+        }
 
         var builder = new StringBuilder();
         builder.AppendLine("%PDF-1.7");
@@ -185,7 +207,10 @@ public class PdfIncrementalUpdaterTests {
         }
 
         builder.AppendLine("trailer");
-        builder.AppendLine("<< /Root 1 2 R /Size 6 >>");
+        int size = entries.Max(static entry => entry.ObjectNumber) + 1;
+        builder.Append("<< /Root 1 2 R /Size ")
+            .Append(size.ToString(CultureInfo.InvariantCulture))
+            .AppendLine(" >>");
         builder.AppendLine("startxref");
         builder.AppendLine("123");
         builder.AppendLine("%%EOF");

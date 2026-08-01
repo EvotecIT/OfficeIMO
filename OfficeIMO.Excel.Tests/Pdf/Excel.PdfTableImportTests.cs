@@ -236,6 +236,60 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_SaveTablesAsExcel_MergesHeaderlessPageContinuationsUsingPrimaryColumns() {
+        var rows = new List<string[]> { new[] { "Item", "Quantity" } };
+        for (int index = 1; index <= 30; index++) {
+            rows.Add(new[] {
+                "Entry " + index.ToString(CultureInfo.InvariantCulture),
+                index.ToString(CultureInfo.InvariantCulture)
+            });
+        }
+
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            })
+            .Table(rows, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                RepeatHeaderRowCount = 0,
+                ColumnWidthPoints = new List<double?> { 160, 80 },
+                CellPaddingX = 5,
+                CellPaddingY = 3
+            })
+            .ToBytes();
+
+        PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions {
+                AutoFitColumns = false,
+                ContinuationGeometryTolerancePoints = 8D
+            });
+
+        string details = string.Join("; ", logical.Pages.SelectMany((page, pageIndex) => page.Tables.Select((table, tableIndex) => {
+            PdfCore.PdfLogicalTableData data = PdfCore.PdfLogicalTableAnalysis.Extract(table);
+            return $"P{page.PageNumber}/T{tableIndex}: {table.YTop:0.##}-{table.YBottom:0.##}, {table.DetectionKind}, header={data.Structure.HasHeaderRow}, columns={string.Join("|", data.Columns)}, geometry={string.Join("|", table.Columns.Select(column => $"{column.From:0.##}-{column.To:0.##}"))}, rows={data.Rows.Count}";
+        })));
+        Assert.True(report.Entries.Count == 1, details);
+        PdfExcelTableImportEntry entry = report.Entries[0];
+        Assert.True(entry.SourceTableCount > 1);
+        Assert.Equal(30, entry.RowCount);
+        Assert.Equal(0, entry.SuppressedRepeatedHeaderRows);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        ExcelTableInfo table = Assert.Single(reader.GetTables());
+        Assert.Equal(new[] { "Item", "Quantity" }, table.Columns.Select(column => column.Name).ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal("Entry 1", values[1, 0]);
+        Assert.Equal("Entry 30", values[30, 0]);
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsExcel_WritesBooleanPercentageDateAndNumericColumnsAsTypedCells() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
@@ -359,6 +413,33 @@ public partial class Excel {
         object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
         Assert.Equal("Due Date", values[0, 2]);
         Assert.Equal(new DateTime(2026, 7, 31), Convert.ToDateTime(values[2, 2], CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void PdfTables_PositionedCellRecoveryProcessesBandsNotCoveredByOtherTables() {
+        static PdfCore.TextLayoutEngine.TextLine Row(double y, string left, double leftAdvance, string right) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, leftAdvance),
+                new(right, "F1", 10, 220, y, 30)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 250, left + " " + right, spans);
+        }
+
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { Row(700, "Code", 80, "Total") },
+            new() { Row(680, "A-100", 80, "12") },
+            new() { Row(660, "B-200", 80, "14") },
+            new() { Row(300, "Name", 30, "Qty") },
+            new() { Row(280, "Alpha", 90, "2") },
+            new() { Row(260, "Beta", 150, "14") }
+        };
+
+        List<PdfCore.StructuredTable> tables = PdfCore.TableDetector.DetectTablesFromBands(bands);
+
+        Assert.Contains(tables, table => table.Kind == "band-group" && table.Rows[0][0] == "Code");
+        PdfCore.StructuredTable recovered = Assert.Single(tables, table => table.Kind == "positioned-cells-bounded");
+        Assert.Equal(new[] { "Name", "Qty" }, recovered.Rows[0]);
+        Assert.Equal(new[] { "Beta", "14" }, recovered.Rows[2]);
     }
 
     [Fact]

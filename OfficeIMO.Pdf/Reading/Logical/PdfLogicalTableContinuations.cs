@@ -57,8 +57,8 @@ internal static class PdfLogicalTableContinuations {
 
         bool previousHasHeader = previous.Data.Structure.HasHeaderRow;
         bool currentHasHeader = current.Data.Structure.HasHeaderRow;
-        if (previousHasHeader != currentHasHeader) return false;
-        return !previousHasHeader || HeadersEqual(previous.Data.Columns, current.Data.Columns);
+        if (!currentHasHeader) return true;
+        return previousHasHeader && HeadersEqual(previous.Data.Columns, current.Data.Columns);
     }
 
     private static bool IsAtBottomEdge(PdfLogicalTable table, PdfLogicalPage page) =>

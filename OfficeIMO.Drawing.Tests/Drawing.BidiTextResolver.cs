@@ -33,6 +33,20 @@ public partial class Drawing {
     }
 
     [Fact]
+    public void BidiTextResolver_ResolvesDeepFsiInputWithLinearPreprocessing() {
+        const int isolateCount = 10_000;
+        string nested = new string('\u2068', isolateCount) + "שלום" + new string('\u2069', isolateCount);
+
+        IReadOnlyList<OfficeBidiTextRun> runs = OfficeBidiTextResolver.ResolveRuns(
+            nested,
+            OfficeTextDirection.LeftToRight);
+
+        OfficeBidiTextRun run = Assert.Single(runs);
+        Assert.Equal("שלום", run.Text);
+        Assert.Equal(OfficeTextDirection.RightToLeft, run.Direction);
+    }
+
+    [Fact]
     public void BidiTextResolver_PreservesNestedIsolateEmbeddingLevels() {
         string logical = "A\u2067שלום abc\u2069B";
 

@@ -58,10 +58,24 @@ internal static class TableDetector {
                 if (table != null && table.Rows.Count >= 2) tables.Add(table);
             }
         }
-        if (tables.Count == 0) {
-            tables.AddRange(DetectPositionedCellTables(nonLeaderBands.SelectMany(static band => band).ToList()));
-        }
+        List<TextLayoutEngine.TextLine> unmatchedLines = nonLeaderBands
+            .SelectMany(static band => band)
+            .Where(line => !IsCoveredByDetectedTable(line, tables))
+            .Take(MaximumPositionedRecoveryLines)
+            .ToList();
+        tables.AddRange(DetectPositionedCellTables(unmatchedLines));
         return tables;
+    }
+
+    private static bool IsCoveredByDetectedTable(
+        TextLayoutEngine.TextLine line,
+        List<StructuredTable> tables) {
+        for (int index = 0; index < tables.Count; index++) {
+            double top = Math.Max(tables[index].YTop, tables[index].YBottom);
+            double bottom = Math.Min(tables[index].YTop, tables[index].YBottom);
+            if (line.Y <= top + 0.001D && line.Y >= bottom - 0.001D) return true;
+        }
+        return false;
     }
 
     internal static List<StructuredTable> DetectPositionedCellTables(IReadOnlyList<TextLayoutEngine.TextLine> lines) {

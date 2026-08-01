@@ -203,9 +203,12 @@ internal static partial class PdfIncrementalUpdater {
         PdfDictionary streamDictionary;
         int metadataObjectNumber;
         int metadataGeneration;
-        if (metadataReference is not null &&
-            PdfObjectLookup.TryGet(objects, metadataReference, out PdfIndirectObject? metadataObject) &&
-            metadataObject.Value is PdfStream metadataStream) {
+        if (metadataReference is not null) {
+            if (!PdfObjectLookup.TryGet(objects, metadataReference, out PdfIndirectObject? metadataObject) ||
+                metadataObject.Value is not PdfStream metadataStream) {
+                throw new InvalidOperationException("The existing XMP metadata reference does not resolve to a readable stream.");
+            }
+
             if (existingXmp is null || existingXmp.RawXml is null || !existingXmp.IsWellFormedXml || existingXmp.HasUnsupportedFilters) {
                 throw new InvalidOperationException("The existing XMP metadata stream cannot be decoded and preserved safely.");
             }
