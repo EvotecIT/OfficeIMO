@@ -67,15 +67,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ValidateColumnCommentVmlAnchorCapacity(int firstColumn, int count) {
+        private void ValidateColumnCommentVmlAnchorCapacity(
+            int firstColumn,
+            int count,
+            MutationPlanScanBudget? budget = null) {
             XNamespace x = "urn:schemas-microsoft-com:office:excel";
-            foreach (VmlDrawingPart vmlPart in _worksheetPart.VmlDrawingParts) {
+            foreach (VmlDrawingPart vmlPart in InspectMutationPlanElements(_worksheetPart.VmlDrawingParts, budget)) {
                 XDocument document = LoadOrCreateVmlDocument(vmlPart);
-                foreach (XElement clientData in document.Descendants(x + "ClientData")
-                    .Where(element => string.Equals(
-                        element.Attribute("ObjectType")?.Value,
-                        "Note",
-                        StringComparison.OrdinalIgnoreCase))) {
+                foreach (XElement clientData in InspectMutationPlanElements(document.Descendants(), budget)
+                    .Where(element => element.Name == x + "ClientData"
+                        && string.Equals(
+                            element.Attribute("ObjectType")?.Value,
+                            "Note",
+                            StringComparison.OrdinalIgnoreCase))) {
                     VmlAnchorPlacement placement = GetVmlAnchorPlacement(clientData, x);
                     if (placement == VmlAnchorPlacement.Absolute
                         || !TryParseVmlAnchor(clientData.Element(x + "Anchor"), out int[] values)) continue;
@@ -110,13 +114,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ValidateColumnConnectionParameters(int firstColumn, int count, bool deleting) {
+        private void ValidateColumnConnectionParameters(
+            int firstColumn,
+            int count,
+            bool deleting,
+            MutationPlanScanBudget? budget = null) {
             Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
             if (connections == null) return;
 
-            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in connections.Elements<Connection>()) {
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart, budget);
+            foreach (Connection connection in InspectMutationPlanElements(connections.Elements<Connection>(), budget)) {
+                foreach (Parameter parameter in InspectMutationPlanElements(connection.Descendants<Parameter>(), budget)) {
                     if (parameter.Cell?.Value is not string reference
                         || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
                         || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)) continue;

@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
                 dynamic?.Val?.Value,
                 dynamic?.MaxVal?.Value,
                 color?.FormatId?.Value,
-                color?.CellColor?.Value,
+                color == null ? (bool?)null : color.CellColor?.Value ?? true,
                 icon?.IconSet?.InnerText,
                 icon?.IconId?.Value);
         }

@@ -147,7 +147,14 @@ namespace OfficeIMO.Excel {
                     cancellationToken => {
                         cancellationToken.ThrowIfCancellationRequested();
                         ExcelStructuralMutationPlan current = PlanRangeTransfer(source.ToString(), destination.ToString(), move, transpose, effective);
-                        ApplyRangeTransfer(source, destination.Start.Row, destination.Start.Column, move, transpose, cancellationToken);
+                        ApplyRangeTransfer(
+                            source,
+                            destination.Start.Row,
+                            destination.Start.Column,
+                            move,
+                            transpose,
+                            effective.MaximumSnapshotCharacters,
+                            cancellationToken);
                         return current.AffectedCells;
                     });
             });
@@ -159,7 +166,7 @@ namespace OfficeIMO.Excel {
             bool inserting,
             MutationPlanScanBudget? budget = null) {
             ValidateWorkbookSharedFormulasForStructuralEdit();
-            ValidateStructuralVmlControlSafety();
+            ValidateStructuralVmlControlSafety(budget);
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
             EnsureNoIntersectingOwnedStructures(
                 GetCellShiftBand(affected, direction),
@@ -290,7 +297,14 @@ namespace OfficeIMO.Excel {
             target.Remove();
         }
 
-        private void ApplyRangeTransfer(ExcelReference source, int destinationRow, int destinationColumn, bool move, bool transpose, CancellationToken cancellationToken) {
+        private void ApplyRangeTransfer(
+            ExcelReference source,
+            int destinationRow,
+            int destinationColumn,
+            bool move,
+            bool transpose,
+            long maximumImageSnapshotBytes,
+            CancellationToken cancellationToken) {
             source.GetBounds(out int sr1, out int sc1, out int sr2, out int sc2);
             int sourceRows = sr2 - sr1 + 1;
             int sourceColumns = sc2 - sc1 + 1;
@@ -303,10 +317,10 @@ namespace OfficeIMO.Excel {
                     TryGetCellCoordinates(cell, out int row, out int column);
                     return (Row: row, Column: column, Cell: (Cell)cell.CloneNode(true));
                 }).ToList();
-            List<RangeTransferImageSnapshot> imageSnapshots = Images
-                .Where(image => !image.HasAbsoluteAnchor && source.Contains(image.RowIndex, image.ColumnIndex))
-                .Select(image => new RangeTransferImageSnapshot(image))
-                .ToList();
+            List<RangeTransferImageSnapshot> imageSnapshots = CaptureRangeTransferImageSnapshots(
+                Images.Where(image => !image.HasAbsoluteAnchor && source.Contains(image.RowIndex, image.ColumnIndex)),
+                move,
+                maximumImageSnapshotBytes);
 
             if (move) {
                 RemoveRangeMoveDestinationComments(
@@ -366,7 +380,7 @@ namespace OfficeIMO.Excel {
                     }
                     copy = AddImageToRange(
                         A1.CellReference(targetRow, targetColumn) + ":" + A1.CellReference(targetRow, targetColumn),
-                        image.Bytes,
+                        image.Bytes!,
                         image.ContentType,
                         transpose ? image.OffsetYPixels : image.OffsetXPixels,
                         transpose ? image.OffsetXPixels : image.OffsetYPixels,
@@ -388,7 +402,7 @@ namespace OfficeIMO.Excel {
                     copy = AddImage(
                         targetRow,
                         targetColumn,
-                        image.Bytes,
+                        image.Bytes!,
                         image.ContentType,
                         transpose ? image.HeightPixels : image.WidthPixels,
                         transpose ? image.WidthPixels : image.HeightPixels,
@@ -451,10 +465,31 @@ namespace OfficeIMO.Excel {
             return rowsFit && columnsFit;
         }
 
+        private static List<RangeTransferImageSnapshot> CaptureRangeTransferImageSnapshots(
+            IEnumerable<ExcelImage> images,
+            bool move,
+            long maximumBytes) {
+            var snapshots = new List<RangeTransferImageSnapshot>();
+            long remainingBytes = maximumBytes;
+            foreach (ExcelImage image in images) {
+                byte[]? bytes = null;
+                if (!move) {
+                    if (!image.TryReadBytes(remainingBytes, out byte[] capturedBytes)) {
+                        throw new InvalidOperationException(
+                            $"Range-transfer image snapshots exceed MaximumSnapshotCharacters ({maximumBytes}).");
+                    }
+                    bytes = capturedBytes;
+                    remainingBytes = checked(remainingBytes - capturedBytes.LongLength);
+                }
+                snapshots.Add(new RangeTransferImageSnapshot(image, bytes));
+            }
+            return snapshots;
+        }
+
         private sealed class RangeTransferImageSnapshot {
-            internal RangeTransferImageSnapshot(ExcelImage image) {
+            internal RangeTransferImageSnapshot(ExcelImage image, byte[]? bytes) {
                 Image = image;
-                Bytes = image.ToBytes();
+                Bytes = bytes;
                 ContentType = image.ContentType;
                 Name = image.Name;
                 Title = image.Title;
@@ -482,7 +517,7 @@ namespace OfficeIMO.Excel {
             }
 
             internal ExcelImage Image { get; }
-            internal byte[] Bytes { get; }
+            internal byte[]? Bytes { get; }
             internal string ContentType { get; }
             internal string Name { get; }
             internal string Title { get; }
@@ -551,7 +586,7 @@ namespace OfficeIMO.Excel {
             Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
             if (connections == null) return;
 
-            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
+            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart, budget);
             foreach (Connection connection in InspectMutationPlanElements(connections.Elements<Connection>(), budget)) {
                 foreach (Parameter parameter in InspectMutationPlanElements(connection.Descendants<Parameter>(), budget)) {
                     if (parameter.Cell?.Value is not string value

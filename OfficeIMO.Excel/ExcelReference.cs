@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel {
             }
 
             string value = text!.Trim();
-            SplitQualifier(value, out string? qualifier, out string address);
+            if (!TrySplitQualifier(value, out string? qualifier, out string address)) return false;
             if (address.Length == 0) return false;
 
             return style == ExcelReferenceStyle.A1
@@ -507,7 +507,7 @@ namespace OfficeIMO.Excel {
             return offset == 0 ? prefix.ToString() : prefix + "[" + offset.ToString(CultureInfo.InvariantCulture) + "]";
         }
 
-        private static void SplitQualifier(string value, out string? qualifier, out string address) {
+        private static bool TrySplitQualifier(string value, out string? qualifier, out string address) {
             int separator = -1;
             bool quoted = false;
             for (int index = 0; index < value.Length; index++) {
@@ -518,11 +518,55 @@ namespace OfficeIMO.Excel {
                     }
                     quoted = !quoted;
                 } else if (value[index] == '!' && !quoted) {
+                    if (separator >= 0) {
+                        qualifier = null;
+                        address = value;
+                        return false;
+                    }
                     separator = index;
                 }
             }
+            if (quoted) {
+                qualifier = null;
+                address = value;
+                return false;
+            }
             qualifier = separator < 0 ? null : value.Substring(0, separator);
             address = separator < 0 ? value : value.Substring(separator + 1);
+            return qualifier == null || IsValidQualifier(qualifier);
+        }
+
+        private static bool IsValidQualifier(string qualifier) {
+            if (qualifier.Length == 0) return false;
+            if (qualifier[0] == '\'') {
+                if (qualifier.Length < 3 || qualifier[qualifier.Length - 1] != '\'') return false;
+                for (int index = 1; index < qualifier.Length - 1; index++) {
+                    if (qualifier[index] != '\'') continue;
+                    if (index + 1 >= qualifier.Length - 1 || qualifier[index + 1] != '\'') return false;
+                    index++;
+                }
+                return true;
+            }
+            if (qualifier.IndexOf('\'') >= 0 || qualifier.Any(char.IsWhiteSpace)) return false;
+
+            int workbookStart = qualifier.IndexOf('[');
+            int workbookEnd = qualifier.IndexOf(']');
+            if ((workbookStart < 0) != (workbookEnd < 0)) return false;
+            if (workbookStart >= 0
+                && (workbookStart != 0
+                    || workbookEnd <= workbookStart + 1
+                    || workbookEnd == qualifier.Length - 1
+                    || qualifier.IndexOf('[', workbookStart + 1) >= 0
+                    || qualifier.IndexOf(']', workbookEnd + 1) >= 0)) return false;
+
+            string sheetNames = workbookEnd >= 0 ? qualifier.Substring(workbookEnd + 1) : qualifier;
+            if (sheetNames.IndexOfAny(new[] { '!', '[', ']', '/', '\\', '?', '*' }) >= 0) return false;
+            int rangeSeparator = sheetNames.IndexOf(':');
+            return rangeSeparator < 0
+                ? sheetNames.Length > 0
+                : rangeSeparator > 0
+                    && rangeSeparator < sheetNames.Length - 1
+                    && sheetNames.IndexOf(':', rangeSeparator + 1) < 0;
         }
 
         private static bool ReadDollar(string value, ref int index) {

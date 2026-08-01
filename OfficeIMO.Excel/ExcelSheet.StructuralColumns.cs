@@ -85,9 +85,9 @@ namespace OfficeIMO.Excel {
                 "Structural column edits",
                 budget == null ? null : new Action(budget.Consume));
             ValidateWorkbookSharedFormulasForStructuralEdit();
-            ValidateStructuralVmlControlSafety();
-            ValidateColumnConnectionParameters(firstColumn, count, deleting);
-            if (!deleting) ValidateColumnCommentVmlAnchorCapacity(firstColumn, count);
+            ValidateStructuralVmlControlSafety(budget);
+            ValidateColumnConnectionParameters(firstColumn, count, deleting, budget);
+            if (!deleting) ValidateColumnCommentVmlAnchorCapacity(firstColumn, count, budget);
             if (!deleting) {
                 int maximumCellColumn = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
                     .Select(cell => cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0)
@@ -149,7 +149,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<(int Row, int Column, string Name)> pendingHeaders = AdjustTableSchemasForColumnMutation(firstColumn, lastColumn, count, deleting);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
-                foreach (Row row in sheetData.Elements<Row>()) {
+                foreach (Row row in sheetData.Elements<Row>().ToList()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     List<Cell> cells = row.Elements<Cell>().ToList();
                     if (deleting) {

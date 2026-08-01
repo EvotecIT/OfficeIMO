@@ -748,54 +748,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ValidateStructuralVmlControlSafety() {
-            IEnumerable<VmlDrawingPart> workbookVmlParts =
-                WorkbookPartRoot.WorksheetParts.SelectMany(part => part.VmlDrawingParts)
-                    .Concat(WorkbookPartRoot.DialogsheetParts.SelectMany(part => part.VmlDrawingParts))
-                    .Concat(WorkbookPartRoot.ChartsheetParts.SelectMany(part => part.VmlDrawingParts))
-                    .Distinct();
-            if (WorkbookPartRoot.WorksheetParts.Any(worksheetPart =>
-                    worksheetPart.Worksheet?.Descendants<Controls>().Any() == true
-                    || worksheetPart.ControlPropertiesParts.Any())
-                || ContainsUnsupportedVmlFormControl(workbookVmlParts)) {
-                throw new InvalidOperationException(
-                    "Cannot structurally edit a workbook containing form controls because their anchors and cross-sheet links cannot yet be remapped safely.");
-            }
-            if (WorksheetRoot.Descendants<OleObjects>().Any()
-                || _worksheetPart.EmbeddedObjectParts.Any()) {
-                throw new InvalidOperationException(
-                    "Cannot structurally edit a worksheet containing embedded OLE objects because their VML anchors cannot yet be remapped safely.");
-            }
-            if (_worksheetPart.SingleCellTablePart != null) {
-                throw new InvalidOperationException(
-                    "Cannot edit rows on a worksheet containing single-cell XML mappings because their mapped references cannot yet be remapped safely.");
-            }
-            if (WorkbookPartRoot.MacroSheetParts.Any()
-                || WorkbookPartRoot.InternationalMacroSheetParts.Any()) {
-                throw new InvalidOperationException(
-                    "Cannot edit rows in a workbook containing Excel 4.0 macro sheets because their formulas cannot yet be remapped safely.");
-            }
-            if (WorkbookPartRoot.WorkbookRevisionHeaderPart != null) {
-                throw new InvalidOperationException(
-                    "Cannot edit rows while legacy workbook revision tracking is present because revision-log references cannot yet be remapped safely.");
-            }
-        }
-
-        private bool ContainsUnsupportedVmlFormControl(IEnumerable<VmlDrawingPart> vmlParts) {
-            XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
-            foreach (VmlDrawingPart vmlPart in vmlParts) {
-                XDocument document = LoadOrCreateVmlDocument(vmlPart);
-                foreach (XElement clientData in document.Descendants(excelNamespace + "ClientData")) {
-                    string? objectType = clientData.Attribute("ObjectType")?.Value;
-                    if (!string.Equals(objectType, "Note", StringComparison.OrdinalIgnoreCase)) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
         private void ValidateCommentVmlAnchorCapacity(int firstRow, int count) {
             XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
             foreach (VmlDrawingPart vmlPart in _worksheetPart.VmlDrawingParts) {
