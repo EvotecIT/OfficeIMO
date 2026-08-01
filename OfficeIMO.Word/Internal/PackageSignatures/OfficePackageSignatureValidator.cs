@@ -94,7 +94,7 @@ namespace OfficeIMO.Word {
                     findings));
                 XmlElement? signatureValue = ReadSignatureValue(document, findings, signaturePartInfo.Uri);
                 WordSignatureValidationState cryptographicStatus;
-                X509Certificate2? signer = null;
+                IReadOnlyList<X509Certificate2> matchingSigners = Array.Empty<X509Certificate2>();
 
                 if (!options.ValidateCryptographicSignature) {
                     cryptographicStatus = WordSignatureValidationState.NotChecked;
@@ -112,14 +112,15 @@ namespace OfficeIMO.Word {
                         options.MaxTotalDigestBytes,
                         signaturePartInfo.Uri,
                         findings,
-                        out signer);
+                        out matchingSigners);
                 }
 
                 WordSignatureValidationState timestampStatus;
+                IReadOnlyList<XmlElement> timestampTokens = GetXadesTimestampTokens(signatureElement);
                 try {
                     if (options.ValidateTimestamps && signatureValue != null) {
                         ValidateTimestampTokens(
-                            document,
+                            timestampTokens,
                             signatureValue,
                             options,
                             signaturePartInfo.Uri,
@@ -129,6 +130,7 @@ namespace OfficeIMO.Word {
 
                     timestampStatus = ResolveTimestampStatus(
                         document,
+                        timestampTokens.Count,
                         options,
                         timestampResults,
                         signaturePartInfo.Uri,
@@ -145,7 +147,7 @@ namespace OfficeIMO.Word {
                 CertificateValidationResult? certificateValidation = null;
                 WordSignatureValidationState certificateStatus;
                 WordSignatureValidationState revocationStatus;
-                if (signer == null) {
+                if (matchingSigners.Count == 0) {
                     certificateStatus = certificates.Count == 0
                         ? WordSignatureValidationState.NotPresent
                         : WordSignatureValidationState.NotChecked;
@@ -154,11 +156,11 @@ namespace OfficeIMO.Word {
                     CertificateValidationOptions signerOptions = ResolveSignerCertificateValidation(
                         options.CertificateValidation,
                         timestampResults);
-                    CertificateTrustValidationResult trust = CertificateValidator.Validate(
-                        signer,
-                        certificates.Where(certificate => !ReferenceEquals(certificate, signer)),
+                    CertificateTrustValidationResult trust = SelectSignerTrust(
+                        matchingSigners,
+                        certificates,
                         signerOptions,
-                        CertificateValidationPurpose.DocumentSigning);
+                        revocationCheckRequired);
                     certificateValidation = trust.Validation;
                     certificateStatus = MapStatus(trust.Validation.ChainStatus);
                     revocationStatus = MapStatus(trust.Validation.RevocationStatus);
@@ -242,8 +244,8 @@ namespace OfficeIMO.Word {
             long maxTotalDigestBytes,
             string signaturePartUri,
             List<WordSignatureValidationFinding> findings,
-            out X509Certificate2? signer) {
-            signer = null;
+            out IReadOnlyList<X509Certificate2> matchingSigners) {
+            matchingSigners = Array.Empty<X509Certificate2>();
             if (!HasSupportedSignedInfoCanonicalizationMethod(signatureElement, out string? unsupportedCanonicalization)) {
                 findings.Add(Finding(
                     "UnsupportedSignedInfoCanonicalizationMethod",
@@ -282,23 +284,53 @@ namespace OfficeIMO.Word {
                 certificates.Count,
                 maxTotalDigestBytes);
 
+            var matches = new List<X509Certificate2>();
             foreach (X509Certificate2 candidate in certificates) {
                 try {
                     using AsymmetricAlgorithm? publicKey = GetPublicKey(candidate);
                     if (publicKey == null || !signedXml.CheckSignature(publicKey)) continue;
-                    signer = candidate;
-                    findings.Add(Finding("XmlSignatureValid", WordSignatureValidationState.Passed,
-                        "XML DSig signature-value and signed-object validation passed.", signaturePartUri));
-                    return WordSignatureValidationState.Passed;
+                    matches.Add(candidate);
                 } catch (CryptographicException) {
                     // Try the remaining embedded or related certificate candidates.
                 }
+            }
+
+            if (matches.Count > 0) {
+                matchingSigners = matches;
+                findings.Add(Finding("XmlSignatureValid", WordSignatureValidationState.Passed,
+                    "XML DSig signature-value and signed-object validation passed.", signaturePartUri));
+                return WordSignatureValidationState.Passed;
             }
 
             findings.Add(Finding("XmlSignatureInvalid", WordSignatureValidationState.Failed,
                 "XML DSig signature-value or signed-object validation failed for every supplied certificate.", signaturePartUri));
             return WordSignatureValidationState.Failed;
         }
+
+        private static CertificateTrustValidationResult SelectSignerTrust(
+            IReadOnlyList<X509Certificate2> matchingSigners,
+            IReadOnlyList<X509Certificate2> certificates,
+            CertificateValidationOptions options,
+            bool revocationCheckRequired) {
+            CertificateTrustValidationResult? fallback = null;
+            foreach (X509Certificate2 signer in matchingSigners) {
+                CertificateTrustValidationResult trust = CertificateValidator.Validate(
+                    signer,
+                    certificates.Where(certificate => !ReferenceEquals(certificate, signer)),
+                    options,
+                    CertificateValidationPurpose.DocumentSigning);
+                fallback ??= trust;
+                if (IsSignerTrustAccepted(trust.Validation, revocationCheckRequired)) return trust;
+            }
+            return fallback!;
+        }
+
+        private static bool IsSignerTrustAccepted(
+            CertificateValidationResult validation,
+            bool revocationCheckRequired) =>
+            validation.ChainStatus == SecurityValidationStatus.Valid &&
+            validation.RevocationStatus != SecurityValidationStatus.Invalid &&
+            (!revocationCheckRequired || validation.RevocationStatus == SecurityValidationStatus.Valid);
 
         private static bool HasOnlySupportedSignedInfoReferenceTransforms(
             XmlElement signatureElement,
@@ -461,185 +493,6 @@ namespace OfficeIMO.Word {
                     "The " + source + " value could not be decoded: " + exception.Message,
                     signaturePartUri));
             }
-        }
-
-        private static void ValidateTimestampTokens(
-            XmlDocument document,
-            XmlElement signatureValue,
-            WordSignatureValidationOptions options,
-            string signaturePartUri,
-            List<Rfc3161TimestampVerificationResult> results,
-            List<WordSignatureValidationFinding> findings) {
-            IReadOnlyList<XmlElement> tokens = GetXadesTimestampTokens(document);
-            if (tokens.Count > options.MaxTimestampTokens) {
-                throw new InvalidDataException("The XML signature exceeds the " + options.MaxTimestampTokens + " timestamp-token limit.");
-            }
-            foreach (XmlElement tokenElement in tokens) {
-                byte[] encoded;
-                try {
-                    if (tokenElement.InnerText.Length > GetMaxBase64EncodedCharacters(options.MaxTimestampBytes)) {
-                        throw new InvalidDataException("An embedded RFC 3161 timestamp token exceeds the " + options.MaxTimestampBytes + " byte limit.");
-                    }
-                    encoded = Convert.FromBase64String(tokenElement.InnerText);
-                    if (encoded.LongLength > options.MaxTimestampBytes) {
-                        throw new InvalidDataException("An embedded RFC 3161 timestamp token exceeds the " + options.MaxTimestampBytes + " byte limit.");
-                    }
-                } catch (FormatException exception) {
-                    findings.Add(Finding("TimestampMalformed", WordSignatureValidationState.Failed,
-                        "An embedded RFC 3161 timestamp token is not valid base64: " + exception.Message,
-                        signaturePartUri));
-                    continue;
-                }
-                byte[] timestampedData;
-                try {
-                    timestampedData = CanonicalizeTimestampedSignatureValue(signatureValue, tokenElement);
-                } catch (NotSupportedException exception) {
-                    findings.Add(Finding("TimestampCanonicalizationUnsupported", WordSignatureValidationState.Unsupported,
-                        exception.Message, signaturePartUri));
-                    continue;
-                }
-                Rfc3161TimestampVerificationResult result = Rfc3161TimestampVerifier.Verify(
-                    encoded,
-                    timestampedData,
-                    options.TimestampCertificateValidation,
-                    options.MaxTimestampBytes,
-                    options.MaxCertificates);
-                results.Add(result);
-                foreach (SecurityFinding finding in result.Findings) {
-                    findings.Add(Finding(finding.Code, MapStatus(result.Status), finding.Message, signaturePartUri));
-                }
-            }
-        }
-
-        private static IReadOnlyList<XmlElement> GetXadesTimestampTokens(XmlDocument document) =>
-            document.GetElementsByTagName("EncapsulatedTimeStamp", "*")
-                .OfType<XmlElement>()
-                .Where(IsXadesTimestampToken)
-                .ToArray();
-
-        private static bool IsXadesTimestampToken(XmlElement token) {
-            if (!XadesNamespaces.Contains(token.NamespaceURI)) return false;
-            for (XmlElement? ancestor = token.ParentNode as XmlElement; ancestor != null; ancestor = ancestor.ParentNode as XmlElement) {
-                if (ancestor.LocalName.Equals("SignatureTimeStamp", StringComparison.Ordinal) &&
-                    string.Equals(ancestor.NamespaceURI, token.NamespaceURI, StringComparison.Ordinal)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static byte[] CanonicalizeTimestampedSignatureValue(XmlElement signatureValue, XmlElement tokenElement) {
-            XmlElement? timestampProperty = tokenElement;
-            while (timestampProperty != null && !timestampProperty.LocalName.Equals("SignatureTimeStamp", StringComparison.Ordinal)) {
-                timestampProperty = timestampProperty.ParentNode as XmlElement;
-            }
-            string algorithm = timestampProperty?
-                .ChildNodes
-                .OfType<XmlElement>()
-                .FirstOrDefault(element => element.LocalName.Equals("CanonicalizationMethod", StringComparison.Ordinal))?
-                .GetAttribute("Algorithm") ?? SignedXml.XmlDsigC14NTransformUrl;
-
-            Transform transform;
-            switch (algorithm) {
-                case SignedXml.XmlDsigC14NTransformUrl:
-                    transform = new XmlDsigC14NTransform();
-                    break;
-                case SignedXml.XmlDsigC14NWithCommentsTransformUrl:
-                    transform = new XmlDsigC14NWithCommentsTransform();
-                    break;
-                case SignedXml.XmlDsigExcC14NTransformUrl:
-                    transform = new XmlDsigExcC14NTransform();
-                    break;
-                case SignedXml.XmlDsigExcC14NWithCommentsTransformUrl:
-                    transform = new XmlDsigExcC14NTransform(includeComments: true);
-                    break;
-                default:
-                    throw new NotSupportedException("XAdES timestamp canonicalization method " + algorithm + " is not supported.");
-            }
-
-            var input = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
-            XmlElement imported = (XmlElement)input.ImportNode(signatureValue, deep: true);
-            var namespaceNames = new HashSet<string>(StringComparer.Ordinal);
-            for (XmlElement? ancestor = signatureValue; ancestor != null; ancestor = ancestor.ParentNode as XmlElement) {
-                foreach (XmlAttribute attribute in ancestor.Attributes) {
-                    if (attribute.Prefix != "xmlns" && attribute.Name != "xmlns") continue;
-                    if (!namespaceNames.Add(attribute.Name) || imported.HasAttribute(attribute.Name)) continue;
-                    imported.Attributes.Append((XmlAttribute)input.ImportNode(attribute, deep: true));
-                }
-            }
-            input.AppendChild(imported);
-            transform.LoadInput(input);
-            using Stream canonical = (Stream)transform.GetOutput(typeof(Stream));
-            using var output = new MemoryStream();
-            canonical.CopyTo(output);
-            return output.ToArray();
-        }
-
-        private static WordSignatureValidationState ResolveTimestampStatus(
-            XmlDocument document,
-            WordSignatureValidationOptions options,
-            IReadOnlyList<Rfc3161TimestampVerificationResult> timestampResults,
-            string signaturePartUri,
-            List<WordSignatureValidationFinding> findings) {
-            if (!options.ValidateTimestamps) return WordSignatureValidationState.NotChecked;
-            int declaredTokenCount = GetXadesTimestampTokens(document).Count;
-            if (timestampResults.Any(result => result.Status == SecurityValidationStatus.Invalid)) {
-                return WordSignatureValidationState.Failed;
-            }
-            if (declaredTokenCount > timestampResults.Count) {
-                if (findings.Any(finding => finding.Code == "TimestampMalformed")) {
-                    findings.Add(Finding("TimestampValidationFailed", WordSignatureValidationState.Failed,
-                        "At least one embedded RFC 3161 timestamp token could not be decoded or validated.",
-                        signaturePartUri));
-                    return WordSignatureValidationState.Failed;
-                }
-                if (findings.Any(finding => finding.Code == "TimestampCanonicalizationUnsupported")) {
-                    return WordSignatureValidationState.Unsupported;
-                }
-                findings.Add(Finding("TimestampValidationFailed", WordSignatureValidationState.Failed,
-                    "At least one embedded RFC 3161 timestamp token could not be decoded or validated.",
-                    signaturePartUri));
-                return WordSignatureValidationState.Failed;
-            }
-            if (timestampResults.Count > 0) {
-                if (timestampResults.All(result => result.Status == SecurityValidationStatus.Valid)) return WordSignatureValidationState.Passed;
-                return WordSignatureValidationState.Unsupported;
-            }
-
-            bool hasClaimedTime = document.GetElementsByTagName("SignatureTime", "*").Count > 0 ||
-                                  document.GetElementsByTagName("SigningTime", "*").Count > 0;
-            if (hasClaimedTime) {
-                findings.Add(Finding("ClaimedSigningTimeNotTrusted", WordSignatureValidationState.NotPresent,
-                    "The signature contains a claimed signing time but no RFC 3161 timestamp-authority token.",
-                    signaturePartUri));
-            }
-            return WordSignatureValidationState.NotPresent;
-        }
-
-        private static CertificateValidationOptions ResolveSignerCertificateValidation(
-            CertificateValidationOptions source,
-            IReadOnlyList<Rfc3161TimestampVerificationResult> timestamps) {
-            DateTime? verificationTime = source.VerificationTime;
-            if (verificationTime == null) {
-                verificationTime = timestamps
-                    .Where(result => result.Status == SecurityValidationStatus.Valid && result.Timestamp.HasValue)
-                    .Select(result => (DateTime?)result.Timestamp!.Value.UtcDateTime)
-                    .OrderBy(value => value)
-                    .FirstOrDefault();
-            }
-
-            var result = new CertificateValidationOptions {
-                ValidateChain = source.ValidateChain,
-                RevocationMode = source.RevocationMode,
-                RevocationFlag = source.RevocationFlag,
-                VerificationFlags = source.VerificationFlags,
-                DisableCertificateDownloads = source.DisableCertificateDownloads,
-                VerificationTime = verificationTime,
-                UrlRetrievalTimeout = source.UrlRetrievalTimeout,
-                ChainEvaluator = source.ChainEvaluator
-            };
-            result.ExtraCertificates.AddRange(source.ExtraCertificates);
-            return result;
         }
 
         private static XmlElement? ReadSignatureValue(

@@ -1432,6 +1432,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_IgnoresXadesTimestampForAnotherSignatureTarget() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnrelatedXadesTimestamp.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unrelated XAdES timestamp object");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer);
+            AddUnrelatedXadesTimestampObject(filePath);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "TimestampMalformed");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_SelectsTrustedCertificateFromEveryMatchingPublicKeyCandidate() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureMatchingCertificateCandidates.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Matching signer certificate candidates");
+                document.Save();
+            }
+
+            using RSA signingKey = RSA.Create(2048);
+            using X509Certificate2 rejectedCertificate = CreateSelfSignedSigningCertificate(
+                signingKey,
+                "CN=OfficeIMO Rejected Matching Signer");
+            using X509Certificate2 acceptedCertificate = CreateSelfSignedSigningCertificate(
+                signingKey,
+                "CN=OfficeIMO Accepted Matching Signer");
+            WordDocument.SignPackage(filePath, rejectedCertificate);
+            AppendEmbeddedSignerCertificate(filePath, acceptedCertificate);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var evaluatedSubjects = new List<string>();
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = (certificate, _) => {
+                evaluatedSubjects.Add(certificate.Subject);
+                return certificate.Subject.Contains("Accepted Matching Signer", StringComparison.Ordinal);
+            };
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CertificateChainStatus);
+            Assert.True(validation.IsValidUnderPolicy, string.Join(Environment.NewLine, validation.Findings));
+            Assert.Contains(evaluatedSubjects, subject => subject.Contains("Rejected Matching Signer", StringComparison.Ordinal));
+            Assert.Contains(evaluatedSubjects, subject => subject.Contains("Accepted Matching Signer", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ReportsUnsupportedTimestampCanonicalizationWithoutFailure() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnsupportedTimestampCanonicalization.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -1720,6 +1782,10 @@ namespace OfficeIMO.Tests {
 
         private static X509Certificate2 CreateSelfSignedSigningCertificate(string subjectName = "CN=OfficeIMO Package Signing Test") {
             using RSA rsa = RSA.Create(2048);
+            return CreateSelfSignedSigningCertificate(rsa, subjectName);
+        }
+
+        private static X509Certificate2 CreateSelfSignedSigningCertificate(RSA rsa, string subjectName) {
             var request = new CertificateRequest(
                 subjectName,
                 rsa,
@@ -1800,6 +1866,61 @@ namespace OfficeIMO.Tests {
             unrelated.InnerText = "not-an-rfc3161-token";
             dataObject.AppendChild(unrelated);
             signatureXml.DocumentElement!.AppendChild(dataObject);
+
+            using Stream destination = signatureEntry.Open();
+            destination.SetLength(0);
+            signatureXml.Save(destination);
+        }
+
+        private static void AddUnrelatedXadesTimestampObject(string filePath) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
+                entry.FullName.Contains("_xmlsignatures", StringComparison.OrdinalIgnoreCase) &&
+                entry.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) &&
+                !entry.FullName.Contains("_rels", StringComparison.OrdinalIgnoreCase));
+            var signatureXml = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            using (Stream source = signatureEntry.Open()) {
+                signatureXml.Load(source);
+            }
+
+            const string xadesNamespace = "http://uri.etsi.org/01903/v1.3.2#";
+            XmlElement dataObject = signatureXml.CreateElement("ds", "Object", SignedXml.XmlDsigNamespaceUrl);
+            XmlElement qualifyingProperties = signatureXml.CreateElement("xades", "QualifyingProperties", xadesNamespace);
+            qualifyingProperties.SetAttribute("Target", "#UnrelatedNestedSignature");
+            XmlElement unsignedProperties = signatureXml.CreateElement("xades", "UnsignedProperties", xadesNamespace);
+            XmlElement unsignedSignatureProperties = signatureXml.CreateElement("xades", "UnsignedSignatureProperties", xadesNamespace);
+            XmlElement signatureTimeStamp = signatureXml.CreateElement("xades", "SignatureTimeStamp", xadesNamespace);
+            XmlElement token = signatureXml.CreateElement("xades", "EncapsulatedTimeStamp", xadesNamespace);
+            token.InnerText = "not-valid-base64!";
+            signatureTimeStamp.AppendChild(token);
+            unsignedSignatureProperties.AppendChild(signatureTimeStamp);
+            unsignedProperties.AppendChild(unsignedSignatureProperties);
+            qualifyingProperties.AppendChild(unsignedProperties);
+            dataObject.AppendChild(qualifyingProperties);
+            signatureXml.DocumentElement!.AppendChild(dataObject);
+
+            using Stream destination = signatureEntry.Open();
+            destination.SetLength(0);
+            signatureXml.Save(destination);
+        }
+
+        private static void AppendEmbeddedSignerCertificate(string filePath, X509Certificate2 certificate) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
+                entry.FullName.Contains("_xmlsignatures", StringComparison.OrdinalIgnoreCase) &&
+                entry.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) &&
+                !entry.FullName.Contains("_rels", StringComparison.OrdinalIgnoreCase));
+            var signatureXml = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            using (Stream source = signatureEntry.Open()) {
+                signatureXml.Load(source);
+            }
+
+            var namespaceManager = new XmlNamespaceManager(signatureXml.NameTable);
+            namespaceManager.AddNamespace("ds", SignedXml.XmlDsigNamespaceUrl);
+            XmlElement x509Data = (XmlElement)signatureXml.SelectSingleNode("/ds:Signature/ds:KeyInfo/ds:X509Data", namespaceManager)!;
+            XmlElement encodedCertificate = signatureXml.CreateElement("ds", "X509Certificate", SignedXml.XmlDsigNamespaceUrl);
+            encodedCertificate.InnerText = Convert.ToBase64String(certificate.Export(X509ContentType.Cert));
+            x509Data.AppendChild(encodedCertificate);
 
             using Stream destination = signatureEntry.Open();
             destination.SetLength(0);

@@ -31,10 +31,11 @@ namespace OfficeIMO.Word.Html {
                             ThrowExportLimitExceeded(options, "WordElementLimitExceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
                         }
                         if (countOutputContent && !inspected.OmitOutputContent) {
-                            long elementCharacters = element is OpenXmlLeafTextElement textElement
+                            long elementCharacters = element is OpenXmlLeafTextElement textElement && ShouldCountOutputLeafText(element)
                                 ? textElement.Text?.Length ?? 0
                                 : 0;
                             foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                                if (!ShouldCountOutputAttribute(element, attribute)) continue;
                                 elementCharacters = SaturatingAdd(elementCharacters, attribute.Value?.Length ?? 0);
                             }
                             outputConstructionCharacters = SaturatingAdd(outputConstructionCharacters, elementCharacters);
@@ -68,6 +69,14 @@ namespace OfficeIMO.Word.Html {
 
         private static long SaturatingAdd(long left, long right) =>
             left > long.MaxValue - right ? long.MaxValue : left + right;
+
+        private static bool ShouldCountOutputLeafText(OpenXmlElement element) =>
+            element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode;
+
+        private static bool ShouldCountOutputAttribute(OpenXmlElement element, OpenXmlAttribute attribute) =>
+            element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode &&
+            (element is not DocumentFormat.OpenXml.Wordprocessing.SimpleField ||
+             !attribute.LocalName.Equals("instr", StringComparison.Ordinal));
 
         private static bool IsOutputContentRoot(OpenXmlElement root, WordToHtmlOptions options) =>
             (root is not DocumentFormat.OpenXml.Wordprocessing.Header && root is not DocumentFormat.OpenXml.Wordprocessing.Footer || options.ExportHeadersAndFooters) &&
