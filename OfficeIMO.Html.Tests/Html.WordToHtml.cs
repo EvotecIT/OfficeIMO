@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
             doc.AddParagraph().AddImage(assetPath, 20, 20);
-            var options = new WordToHtmlOptions { MaxOutputCharacters = 100 };
+            var options = new WordToHtmlOptions { MaxOutputCharacters = 4096 };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
 
@@ -152,17 +152,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_WordToHtml_RejectsInlineSvgBeforeParsingPastOutputBudget() {
+        public void Test_WordToHtml_RejectsInlineSvgDocumentBeforeParsingPastOutputBudget() {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(AppContext.BaseDirectory, "Images", "Sample.svg");
-            doc.AddParagraph(new string('x', 256));
+            doc.AddParagraph(new string('x', 32));
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             var options = new WordToHtmlOptions { MaxOutputCharacters = new FileInfo(assetPath).Length };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
-            Assert.Contains("Sample.svg", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("document.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_RejectsLargeTextBeforeConstructingHtmlDom() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph(new string('x', 8192));
+            var options = new WordToHtmlOptions { MaxOutputCharacters = 256 };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Contains("document.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
             Assert.True(exception.Actual > exception.Limit);
         }
 

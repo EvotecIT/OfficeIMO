@@ -246,6 +246,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsThemeLimitationFromDefaultParagraphStyle() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_default_style_theme_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Unstyled default-themed text");
+                document.Save();
+            }
+            SetDefaultParagraphStyleThemeColor(sourcePath, ThemeColorValues.Accent1);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_default_style_theme_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Unstyled default-themed text");
+                document.Save();
+            }
+            SetDefaultParagraphStyleThemeColor(targetPath, ThemeColorValues.Accent2);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureReportsNumberingLimitationFromUsedParagraphStyle() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_style_numbering_source.docx");
             CreateDocumentWithStyleInheritedNumbering(sourcePath);
@@ -512,6 +536,16 @@ namespace OfficeIMO.Tests {
             RunPropertiesBaseStyle runProperties = runDefaults.RunPropertiesBaseStyle
                 ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
             runProperties.RunFonts = new RunFonts { AsciiTheme = themeFont, HighAnsiTheme = themeFont };
+            styles.Save();
+        }
+
+        private static void SetDefaultParagraphStyleThemeColor(string path, ThemeColorValues themeColor) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Styles styles = wordDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style style = styles.Elements<Style>().First(item =>
+                item.Type?.Value == StyleValues.Paragraph && item.Default?.Value == true);
+            style.StyleRunProperties ??= new StyleRunProperties();
+            style.StyleRunProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color { ThemeColor = themeColor };
             styles.Save();
         }
 

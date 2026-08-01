@@ -17,15 +17,35 @@ namespace OfficeIMO.Word.Html {
             bool hasRevisions = false;
             bool hasRevisionText = false;
             bool hasComments = false;
+            long outputConstructionCharacters = 0;
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
             if (mainPart != null) {
                 foreach ((OpenXmlElement Root, string PartUri) root in EnumerateExportRoots(
                     mainPart,
                     options.IncludeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null)) {
+                    bool countOutputContent = IsOutputContentRoot(root.Root);
                     foreach (OpenXmlElement element in EnumerateRootAndDescendants(root.Root)) {
                         elements++;
                         if (elements > options.MaxDocumentElements) {
                             ThrowExportLimitExceeded(options, "WordElementLimitExceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
+                        }
+                        if (countOutputContent) {
+                            long elementCharacters = element is OpenXmlLeafTextElement textElement
+                                ? textElement.Text?.Length ?? 0
+                                : 0;
+                            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                                elementCharacters = SaturatingAdd(elementCharacters, attribute.Value?.Length ?? 0);
+                            }
+                            outputConstructionCharacters = SaturatingAdd(outputConstructionCharacters, elementCharacters);
+                            if (outputConstructionCharacters > options.MaxOutputCharacters) {
+                                ThrowExportLimitExceeded(
+                                    options,
+                                    "WordHtmlOutputLimitExceeded",
+                                    "Word text and attribute content exceeds the configured HTML output-character limit before DOM construction.",
+                                    root.PartUri,
+                                    outputConstructionCharacters,
+                                    options.MaxOutputCharacters);
+                            }
                         }
                         if (!hasFields && element is DocumentFormat.OpenXml.Wordprocessing.SimpleField or DocumentFormat.OpenXml.Wordprocessing.FieldChar or DocumentFormat.OpenXml.Wordprocessing.FieldCode) {
                             hasFields = true;
@@ -44,6 +64,17 @@ namespace OfficeIMO.Word.Html {
             }
             return new ExportInspection(hasFields, hasRevisions, hasRevisionText, hasComments);
         }
+
+        private static long SaturatingAdd(long left, long right) =>
+            left > long.MaxValue - right ? long.MaxValue : left + right;
+
+        private static bool IsOutputContentRoot(OpenXmlElement root) =>
+            root is not DocumentFormat.OpenXml.Wordprocessing.Styles &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.Numbering &&
+            root is not DocumentFormat.OpenXml.Drawing.Theme &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.Fonts &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.Settings &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.WebSettings;
 
         private static IEnumerable<OpenXmlElement> EnumerateRootAndDescendants(OpenXmlElement root) {
             yield return root;

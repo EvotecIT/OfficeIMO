@@ -73,8 +73,18 @@ namespace OfficeIMO.Word {
                 if (!string.IsNullOrWhiteSpace(styleId)) usedStyleIds.Add(styleId!);
             }
 
-            IEnumerable<Style> styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>());
+            Style[] styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .ToArray();
+            if (content.OfType<Paragraph>().Any(paragraph => paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value == null)) {
+                AddDefaultStyleIds(styles, StyleValues.Paragraph, usedStyleIds);
+            }
+            if (content.OfType<Run>().Any(run => run.RunProperties?.RunStyle?.Val?.Value == null)) {
+                AddDefaultStyleIds(styles, StyleValues.Character, usedStyleIds);
+            }
+            if (content.OfType<Table>().Any(table => table.TableProperties?.TableStyle?.Val?.Value == null)) {
+                AddDefaultStyleIds(styles, StyleValues.Table, usedStyleIds);
+            }
             Dictionary<string, Style> stylesById = styles
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
                 .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
@@ -90,6 +100,18 @@ namespace OfficeIMO.Word {
                 }
             }
             return false;
+        }
+
+        private static void AddDefaultStyleIds(
+            IEnumerable<Style> styles,
+            StyleValues styleType,
+            HashSet<string> styleIds) {
+            foreach (Style style in styles.Where(style =>
+                         style.Type?.Value == styleType &&
+                         style.Default?.Value == true &&
+                         !string.IsNullOrWhiteSpace(style.StyleId?.Value))) {
+                styleIds.Add(style.StyleId!.Value!);
+            }
         }
 
         private static bool IsThemeAttribute(OpenXmlAttribute attribute) =>

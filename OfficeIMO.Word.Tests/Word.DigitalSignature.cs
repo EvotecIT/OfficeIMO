@@ -906,8 +906,7 @@ namespace OfficeIMO.Tests {
                 System.Convert.ToBase64String(certificate.Export(X509ContentType.Cert))));
             signatureXml = signatureXml.Replace(
                 "<SignatureValue>",
-                "<Object><X509Certificate>!</X509Certificate><X509Certificate>!</X509Certificate></Object><SignatureValue>",
-                System.StringComparison.Ordinal);
+                "<Object><X509Certificate>!</X509Certificate><X509Certificate>!</X509Certificate></Object><SignatureValue>");
             AddDigitalSignatureMetadata(filePath, Encoding.UTF8.GetBytes(signatureXml));
 
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
