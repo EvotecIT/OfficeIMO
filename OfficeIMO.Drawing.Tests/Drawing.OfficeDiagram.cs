@@ -50,4 +50,19 @@ public partial class DrawingTests {
         Assert.Equal(180, raster.Height);
         Assert.Contains(raster.GetPixels(), channel => channel != 255);
     }
+
+    [Fact]
+    public void OfficeDiagramDrawingRenderer_CanOmitStandaloneCanvasBackground() {
+        var snapshot = new OfficeDiagramSnapshot("Embedded process",
+            OfficeDiagramKind.Process, new[] { "Start", "Finish" }, 320D, 180D);
+
+        OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot,
+            includeBackground: false);
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.X == 0D && shape.Y == 0D
+            && shape.Shape.Width == snapshot.WidthPoints
+            && shape.Shape.Height == snapshot.HeightPoints
+            && shape.Shape.FillColor == OfficeColor.White);
+    }
 }

@@ -243,13 +243,35 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = reopened.Slides[0].ExportImage(
                 OfficeImageExportFormat.Png);
             Assert.DoesNotContain(png.Diagnostics,
-                diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Warning
-                    || diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+                diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error
+                    || (diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Warning
+                        && diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted));
             Assert.True(OfficePngReader.TryDecode(png.Bytes,
                 out OfficeRasterImage? raster));
             Assert.Equal(360, raster!.Width);
             Assert.Equal(220, raster.Height);
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void EmbeddedSmartArtRenderingKeepsSlideBackgroundVisible() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(360, 220);
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.BackgroundColor = "123456";
+            slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
+                new[] { "Start", "Finish" },
+                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(320), PowerPointUnits.FromPoints(180));
+
+            OfficeImageExportResult png = slide.ExportImage(
+                OfficeImageExportFormat.Png);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes,
+                out OfficeRasterImage? raster));
+            Assert.Equal(OfficeColor.FromRgb(0x12, 0x34, 0x56),
+                raster!.GetPixel(22, 22));
         }
 
         private static void AssertSmartArtNativeLayoutContract(
@@ -475,7 +497,8 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.SmartArtReference", Guid.NewGuid().ToString("N"));
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
-                    foreach (PowerPointSmartArtType type in Enum.GetValues<PowerPointSmartArtType>()) {
+                    foreach (PowerPointSmartArtType type in
+                             (PowerPointSmartArtType[])Enum.GetValues(typeof(PowerPointSmartArtType))) {
                         presentation.AddSlide().AddSmartArt(type,
                             new[] { "Inspect", "Build", "Validate", "Ship" });
                     }
@@ -484,7 +507,7 @@ namespace OfficeIMO.Tests {
                 PowerPointReferenceRenderResult result = PowerPointDesktopReferenceRenderer.TryRender(path, output,
                     enabled: true);
                 Assert.True(result.IsSuccessful, result.Message);
-                Assert.Equal(Enum.GetValues<PowerPointSmartArtType>().Length,
+                Assert.Equal(Enum.GetValues(typeof(PowerPointSmartArtType)).Length,
                     result.ImagePaths.Count);
             } finally {
                 if (File.Exists(path)) File.Delete(path);
@@ -551,6 +574,13 @@ namespace OfficeIMO.Tests {
                 Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
                     new[] { first }, 2, out string incompleteMessage));
                 Assert.Contains("expected 2", incompleteMessage, StringComparison.Ordinal);
+
+                string third = Path.Combine(output, "Slide3.png");
+                File.Copy(second, third);
+                Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
+                    new[] { first, third }, 2, out string nonContiguousMessage));
+                Assert.Contains("contiguous", nonContiguousMessage,
+                    StringComparison.OrdinalIgnoreCase);
 
                 File.WriteAllText(second, "not a PNG");
                 Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(

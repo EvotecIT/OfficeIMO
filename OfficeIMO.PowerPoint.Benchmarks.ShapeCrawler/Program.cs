@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.PowerPoint.Benchmarks;
 using ShapeCrawler;
 
 return ShapeCrawlerBaselineRunner.Run(args);
@@ -152,8 +153,8 @@ internal static class ShapeCrawlerBaselineRunner {
         subtitle.SetFontColor("475569");
         string[] colors = { "DBEAFE", "DCFCE7", "FEF3C7", "FCE7F3" };
         for (int card = 0; card < 4; card++) {
-            shapes.AddShape(40 + card * 220, 120, 190, 72, Geometry.Rectangle,
-                $"Metric {card + 1}");
+            shapes.AddShape(40 + card * 220, 120, 190, 72,
+                Geometry.Rectangle);
             IShape panel = shapes.Last();
             panel.Fill?.SetColor(colors[(card + index) % colors.Length]);
             panel.Outline?.SetHexColor("CBD5E1");
@@ -185,8 +186,8 @@ internal static class ShapeCrawlerBaselineRunner {
             }
         } else {
             for (int row = 0; row < 3; row++) {
-                shapes.AddShape(40, 224 + row * 72, 300, 54, Geometry.Rectangle,
-                    $"Detail {row + 1}");
+                shapes.AddShape(40, 224 + row * 72, 300, 54,
+                    Geometry.Rectangle);
                 IShape panel = shapes.Last();
                 panel.Fill?.SetColor(row % 2 == 0 ? "FFFFFF" : "F8FAFC");
                 panel.Outline?.SetHexColor("CBD5E1");
@@ -247,6 +248,8 @@ internal static class ShapeCrawlerBaselineRunner {
         using var packageStream = new MemoryStream(package, writable: false);
         using PresentationDocument document = PresentationDocument.Open(
             packageStream, false);
+        PowerPointBenchmarkSemanticValidator.Validate(document,
+            fixture.SlideCount, operation);
         string[] validationErrors = new OpenXmlValidator().Validate(document)
             .Select(error => error.Description ?? error.ToString()
                 ?? string.Empty)

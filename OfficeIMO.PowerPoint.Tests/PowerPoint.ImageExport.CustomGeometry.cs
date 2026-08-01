@@ -82,6 +82,82 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_AuthorsCombinedCustomGeometryFillOpacity() {
+            OfficeShape polygon = OfficeShape.Polygon(
+                new OfficePoint(0, 0),
+                new OfficePoint(100, 0),
+                new OfficePoint(50, 100));
+            polygon.FillColor = OfficeColor.FromRgba(14, 165, 233, 128);
+            polygon.FillOpacity = 0.5D;
+
+            using var stream = new System.IO.MemoryStream();
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
+                    polygon, 20, 20, 120, 80);
+                Assert.Equal(75, shape.FillTransparency);
+                A.Alpha alpha = shape.Element.Descendants<A.SolidFill>().First()
+                    .Descendants<A.Alpha>().Single();
+                Assert.InRange(alpha.Val!.Value, 25097, 25099);
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
+                Assert.Single(reopened.Slides[0].Shapes));
+            Assert.Equal(75, authored.FillTransparency);
+        }
+
+        [Fact]
+        public void PowerPointShape_OutlineOpacityPreservesSchemeColorChoice() {
+            using var stream = new System.IO.MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(
+                20, 20, 120, 80);
+            shape.OutlineColor = "112233";
+            A.SolidFill solid = shape.Element.Descendants<A.Outline>().Single()
+                .GetFirstChild<A.SolidFill>()!;
+            solid.RemoveAllChildren();
+            var scheme = new A.SchemeColor { Val = A.SchemeColorValues.Accent1 };
+            solid.Append(scheme);
+
+            shape.SetOutlineOpacity(0.4D);
+
+            Assert.Same(scheme, Assert.Single(solid.ChildElements));
+            Assert.Equal(40000, scheme.GetFirstChild<A.Alpha>()!.Val!.Value);
+            Assert.Null(solid.RgbColorModelHex);
+
+            shape.SetOutlineOpacity(null);
+            Assert.Same(scheme, Assert.Single(solid.ChildElements));
+            Assert.Null(scheme.GetFirstChild<A.Alpha>());
+        }
+
+        [Fact]
+        public void PowerPointShape_FillTransparencyPreservesSchemeColorChoice() {
+            using var stream = new System.IO.MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(
+                20, 20, 120, 80);
+            shape.FillColor = "112233";
+            A.SolidFill solid = shape.Element.Descendants<ShapeProperties>().Single()
+                .GetFirstChild<A.SolidFill>()!;
+            solid.RemoveAllChildren();
+            var scheme = new A.SchemeColor { Val = A.SchemeColorValues.Accent2 };
+            solid.Append(scheme);
+
+            shape.FillTransparency = 60;
+
+            Assert.Same(scheme, Assert.Single(solid.ChildElements));
+            Assert.Equal(40000, scheme.GetFirstChild<A.Alpha>()!.Val!.Value);
+            Assert.Equal(60, shape.FillTransparency);
+            Assert.Null(solid.RgbColorModelHex);
+
+            shape.FillTransparency = null;
+            Assert.Same(scheme, Assert.Single(solid.ChildElements));
+            Assert.Null(scheme.GetFirstChild<A.Alpha>());
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsSharedPolygonAndRejectsNonFreeformDescriptors() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),

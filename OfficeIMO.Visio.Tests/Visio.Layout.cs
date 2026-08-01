@@ -552,6 +552,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectorLabelPathAnalysisIgnoresUnroutedDynamicConnectors() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(
+                Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("DynamicRoute", 7, 5);
+            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
+            VisioShape top = page.AddRectangle(3, 4.5, 0.8, 0.5, "Top");
+            VisioShape bottom = page.AddRectangle(3, 0.5, 0.8, 0.5, "Bottom");
+            VisioConnector labeled = page.AddConnector(left, right,
+                    ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
+            labeled.Label = "approval";
+            VisioConnector dynamic = page.AddConnector(top, bottom,
+                ConnectorKind.Dynamic, VisioSide.Bottom, VisioSide.Top);
+
+            Assert.Empty(dynamic.Waypoints);
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(
+                new VisioDiagramQualityOptions {
+                    CheckShapeOverlaps = false,
+                    CheckConnectorShapeIntersections = false,
+                    CheckConnectorLabelShapeOverlaps = false,
+                    CheckConnectorLabelOverlaps = false
+                }), issue => issue.Kind == "ConnectorLabelCrossesConnector"
+                    && issue.OtherConnectorId == dynamic.Id);
+        }
+
+        [Fact]
         public void PolishDiagramMovesConnectorLabelsAwayFromConnectorPaths() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("PolishLabelConnectors", 7, 5);

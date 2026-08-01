@@ -27,7 +27,7 @@ The baseline run also motivated two immediate fixes: shared path filling no long
 
 ## Optional ShapeCrawler comparison
 
-ShapeCrawler 0.79.4 was run on the same machine and runtime with the same slide dimensions, background/style pattern, editable text, vector panels, tables, two-series clustered bar charts, and every-tenth-slide edit cadence. Both lanes reopen every output and run Open XML validation outside the measured interval. Shape counts still differ because each library exposes compound table and chart content differently, so compare the complete workflow rather than raw shape totals.
+ShapeCrawler 0.79.4 was run on the same machine and runtime with the same slide dimensions, background/style pattern, editable text, vector panels, tables, two-series clustered bar charts, and every-tenth-slide edit cadence. Both lanes compile and use the same semantic validator outside the measured interval to verify expected text, styling, table contents, chart data, and edit markers before running Open XML validation. Shape counts still differ because each library exposes compound table and chart content differently, so compare the complete workflow rather than raw shape totals.
 
 | Scale | Workflow | OfficeIMO elapsed | ShapeCrawler elapsed | OfficeIMO allocated | ShapeCrawler allocated |
 | --- | --- | ---: | ---: | ---: | ---: |

@@ -1751,6 +1751,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_PreservesUnrecognizedCommentMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Comment metadata boundary");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    AddExtendedPart(document.PresentationPart!,
+                        "http://schemas.microsoft.com/office/2017/10/relationships/person",
+                        "application/vnd.openxmlformats-officedocument.presentationml.person+xml",
+                        "<person xmlns=\"urn:officeimo:test\" />");
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(
+                           filePath, new PowerPointLoadOptions {
+                               AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                           })) {
+                    PowerPointFeatureFinding comments = Assert.Single(
+                        presentation.InspectFeatures().FindFeatures("Comments"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                        comments.SupportLevel);
+                    Assert.Equal(1, comments.Count);
+                    Assert.Contains(comments.Details, detail =>
+                        detail.Contains("person", StringComparison.OrdinalIgnoreCase));
+                }
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsUnsupportedTransitionMarkup() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

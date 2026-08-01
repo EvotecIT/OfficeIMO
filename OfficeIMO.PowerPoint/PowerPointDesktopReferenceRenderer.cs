@@ -152,6 +152,12 @@ namespace OfficeIMO.PowerPoint {
             }
             for (int index = 0; index < imagePaths.Count; index++) {
                 string path = imagePaths[index];
+                if (!TryGetSlideNumber(path, out int slideNumber)
+                    || slideNumber != index + 1) {
+                    message = "PowerPoint Desktop did not export the contiguous slide image Slide"
+                        + (index + 1) + ".png; found " + Path.GetFileName(path) + ".";
+                    return false;
+                }
                 if (!File.Exists(path)) {
                     message = "PowerPoint Desktop did not create the expected slide image: " + path;
                     return false;

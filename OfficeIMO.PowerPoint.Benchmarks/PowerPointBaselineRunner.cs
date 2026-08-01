@@ -154,6 +154,8 @@ internal static class PowerPointBaselineRunner {
                     $"{operation} produced {presentation.Slides.Count} slides; expected {fixture.SlideCount}.");
             }
             OpenXmlValidator validator = new();
+            PowerPointBenchmarkSemanticValidator.Validate(
+                presentation.OpenXmlDocument, fixture.SlideCount, operation);
             string[] errors = validator.Validate(presentation.OpenXmlDocument)
                 .Select(error => error.Description ?? error.ToString() ?? string.Empty).ToArray();
             if (errors.Length > 0) {

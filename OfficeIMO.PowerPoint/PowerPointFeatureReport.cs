@@ -398,7 +398,21 @@ namespace OfficeIMO.PowerPoint {
                 "Linked package relationships outside hyperlink markup are detected as preserve-only package metadata.",
                 externalPackageRelationshipDetails);
 
-            var commentDetails = DescribeCommentParts(allParts);
+            OpenXmlPart[] commentParts = allParts.Where(IsCommentPart).ToArray();
+            var commentDetails = commentParts
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            bool hasUnsupportedCommentParts = commentParts.Any(part =>
+                part is not SlideCommentsPart
+                && part is not CommentAuthorsPart
+                && part is not PowerPointCommentPart
+                && part is not PowerPointAuthorsPart);
+            PowerPointFeatureSupportLevel commentSupportLevel =
+                hasUnsupportedCommentParts
+                    ? PowerPointFeatureSupportLevel.Preserved
+                    : PowerPointFeatureSupportLevel.Editable;
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             PowerPointOleObject[] editableOleObjects = Slides
                 .SelectMany(slide => slide.OleObjects).ToArray();
@@ -431,8 +445,10 @@ namespace OfficeIMO.PowerPoint {
                 signatureDetails.Add("Extended application properties contain digital signature metadata.");
             }
 
-            Add(features, "Review", "Comments", PowerPointFeatureSupportLevel.Editable, commentDetails.Count, null,
-                "Classic comments and modern threaded comments/replies can be created, edited, reassigned, and removed; classic comments also round-trip through binary PPT.",
+            Add(features, "Review", "Comments", commentSupportLevel, commentDetails.Count, null,
+                hasUnsupportedCommentParts
+                    ? "Recognized classic and modern comments are editable, but this package also contains comment-related metadata that OfficeIMO preserves without exposing for mutation."
+                    : "Classic comments and modern threaded comments/replies can be created, edited, reassigned, and removed; classic comments also round-trip through binary PPT.",
                 commentDetails);
             Add(features, "Compatibility", "Custom XML parts", PowerPointFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
@@ -1133,15 +1149,6 @@ namespace OfficeIMO.PowerPoint {
                     part.Uri.OriginalString.IndexOf("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) >= 0
                     || part.ContentType.IndexOf("digital-signature", StringComparison.OrdinalIgnoreCase) >= 0
                     || part.ContentType.IndexOf("xmlsignature", StringComparison.OrdinalIgnoreCase) >= 0)
-                .Select(DescribePart)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-
-        private static List<string> DescribeCommentParts(IEnumerable<OpenXmlPart> parts) {
-            return parts
-                .Where(IsCommentPart)
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)

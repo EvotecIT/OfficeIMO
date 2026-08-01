@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -33,7 +35,9 @@ namespace OfficeIMO.PowerPoint {
             get {
                 ShapeProperties? props = GetShapeProperties();
                 A.SolidFill? solid = props?.GetFirstChild<A.SolidFill>();
-                A.RgbColorModelHex? color = solid?.RgbColorModelHex;
+                OpenXmlCompositeElement? color = solid == null
+                    ? null
+                    : GetSolidFillColorChoice(solid);
                 A.Alpha? alpha = color?.GetFirstChild<A.Alpha>();
                 int? val = alpha?.Val?.Value;
                 if (val == null) {
@@ -45,36 +49,54 @@ namespace OfficeIMO.PowerPoint {
                 if (value is < 0 or > 100) {
                     throw new ArgumentOutOfRangeException(nameof(value), "Transparency must be between 0 and 100.");
                 }
-
-                ShapeProperties? props = GetShapeProperties(create: value != null);
-                if (props == null) {
-                    return;
-                }
-
-                A.SolidFill? solid = props.GetFirstChild<A.SolidFill>();
-                if (solid == null) {
-                    if (value == null) {
-                        return;
-                    }
-                    solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
-                    InsertShapePropertyChild(props, solid);
-                }
-
-                A.RgbColorModelHex? rgb = solid.RgbColorModelHex ?? new A.RgbColorModelHex { Val = "FFFFFF" };
-                solid.RgbColorModelHex ??= rgb;
-                A.Alpha? alpha = rgb.GetFirstChild<A.Alpha>();
-                if (value == null) {
-                    alpha?.Remove();
-                    return;
-                }
-
-                if (alpha == null) {
-                    alpha = new A.Alpha();
-                    rgb.Append(alpha);
-                }
-                alpha.Val = 100000 - value.Value * 1000;
+                SetFillOpacity(value == null ? null : 1D - value.Value / 100D);
             }
         }
+
+        internal void SetFillOpacity(double? opacity) {
+            if (opacity.HasValue &&
+                (double.IsNaN(opacity.Value) || double.IsInfinity(opacity.Value)
+                    || opacity.Value < 0D || opacity.Value > 1D)) {
+                throw new ArgumentOutOfRangeException(nameof(opacity),
+                    "Opacity must be between 0 and 1.");
+            }
+
+            ShapeProperties? props = GetShapeProperties(create: opacity != null);
+            if (props == null) return;
+            A.SolidFill? solid = props.GetFirstChild<A.SolidFill>();
+            if (solid == null) {
+                if (opacity == null) return;
+                solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
+                InsertShapePropertyChild(props, solid);
+            }
+
+            OpenXmlCompositeElement? color = GetSolidFillColorChoice(solid);
+            if (opacity == null) {
+                color?.GetFirstChild<A.Alpha>()?.Remove();
+                return;
+            }
+            if (color == null) {
+                color = new A.RgbColorModelHex { Val = "FFFFFF" };
+                solid.Append(color);
+            }
+
+            A.Alpha? alpha = color.GetFirstChild<A.Alpha>();
+            alpha ??= new A.Alpha();
+            alpha.Val = checked((int)Math.Round(opacity.Value * 100000D,
+                MidpointRounding.AwayFromZero));
+            if (alpha.Parent == null) color.Append(alpha);
+        }
+
+        private static OpenXmlCompositeElement? GetSolidFillColorChoice(
+            A.SolidFill solid) => solid.ChildElements
+                .OfType<OpenXmlCompositeElement>()
+                .FirstOrDefault(element =>
+                    element is A.RgbColorModelPercentage
+                    || element is A.RgbColorModelHex
+                    || element is A.HslColor
+                    || element is A.SystemColor
+                    || element is A.SchemeColor
+                    || element is A.PresetColor);
 
         /// <summary>
         ///     Gets or sets rotation in degrees.

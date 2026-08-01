@@ -13,16 +13,25 @@ public static class OfficeDiagramDrawingRenderer {
     };
 
     /// <summary>Renders a semantic diagram into a fixed-size vector drawing.</summary>
-    public static OfficeDrawing Render(OfficeDiagramSnapshot snapshot) {
+    public static OfficeDrawing Render(OfficeDiagramSnapshot snapshot) =>
+        Render(snapshot, includeBackground: true);
+
+    /// <summary>Renders a semantic diagram into a fixed-size vector drawing.</summary>
+    /// <param name="snapshot">Diagram content and layout kind.</param>
+    /// <param name="includeBackground">Whether to add the standalone white canvas background.</param>
+    public static OfficeDrawing Render(OfficeDiagramSnapshot snapshot,
+        bool includeBackground) {
         if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
         var drawing = new OfficeDrawing(snapshot.WidthPoints,
             snapshot.HeightPoints);
-        drawing.AddShape(new OfficeShape {
-            Kind = OfficeShapeKind.Rectangle,
-            Width = snapshot.WidthPoints,
-            Height = snapshot.HeightPoints,
-            FillColor = OfficeColor.White
-        }, 0D, 0D);
+        if (includeBackground) {
+            drawing.AddShape(new OfficeShape {
+                Kind = OfficeShapeKind.Rectangle,
+                Width = snapshot.WidthPoints,
+                Height = snapshot.HeightPoints,
+                FillColor = OfficeColor.White
+            }, 0D, 0D);
+        }
 
         List<NodeBox> nodes = snapshot.Kind switch {
             OfficeDiagramKind.Hierarchy => LayoutHierarchy(snapshot),

@@ -29,7 +29,7 @@ That command creates one validated PPTX, PNG and SVG renders for all nine slides
 | `OpenImageExport` | Open the corpus and export every slide as a non-empty PNG with valid dimensions. |
 | `OpenPdfExport` | Open the corpus and export a PDF with one page for every slide. |
 
-The scales contain 3, 30, and 120 slides. Slides use editable text, vector shapes, tables, and charts. Package lanes reopen the result, check slide and shape counts, and run Open XML validation. Export lanes verify every image and PDF page count. Validation runs outside the timed interval but in the same probe, so an invalid or incomplete result cannot be reported as a fast result.
+The scales contain 3, 30, and 120 slides. Slides use editable text, vector shapes, tables, and charts. Package lanes reopen the result and verify the expected text, background and card fills, table values and header styling, chart categories and series values, edit markers, slide and shape counts, and Open XML validity. Export lanes verify every image and PDF page count. Validation runs outside the timed interval but in the same probe, so an invalid or incomplete result cannot be reported as a fast result.
 
 ## Interpret the result
 
@@ -37,4 +37,4 @@ Compare like with like: the same runtime, architecture, build configuration, sca
 
 Do not add budgets from a single run. Capture repeatable baselines on Windows and at least one non-Windows environment, inspect variance, then set headroom that catches regressions without failing on normal machine noise.
 
-The current evidence and interpretation are recorded in [BASELINE.md](BASELINE.md). `OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler` is an opt-in comparison project outside the normal solution. It mirrors the editable slide dimensions, styling, text/vector/table/two-series-chart mix, edit cadence, and package validation used by the OfficeIMO create/save and open/edit/save lanes; keep its third-party dependency isolated from product and routine benchmark builds.
+The current evidence and interpretation are recorded in [BASELINE.md](BASELINE.md). `OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler` is an opt-in comparison project outside the normal solution. It mirrors the editable slide dimensions, styling, text/vector/table/two-series-chart mix, and edit cadence used by the OfficeIMO create/save and open/edit/save lanes. Both producers compile the same semantic validator, while the third-party dependency remains isolated from product and routine benchmark builds.

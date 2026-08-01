@@ -154,20 +154,23 @@ namespace OfficeIMO.PowerPoint {
                 InsertOutlineChild(outline, solid);
             }
 
-            A.RgbColorModelHex rgb = solid.RgbColorModelHex
-                ?? new A.RgbColorModelHex { Val = "FFFFFF" };
-            solid.RgbColorModelHex ??= rgb;
-            A.Alpha? alpha = rgb.GetFirstChild<A.Alpha>();
+            OpenXmlCompositeElement? color = GetSolidFillColorChoice(solid);
             if (opacity == null) {
-                alpha?.Remove();
+                color?.GetFirstChild<A.Alpha>()?.Remove();
                 return;
             }
 
+            if (color == null) {
+                color = new A.RgbColorModelHex { Val = "FFFFFF" };
+                solid.Append(color);
+            }
+
+            A.Alpha? alpha = color.GetFirstChild<A.Alpha>();
             alpha ??= new A.Alpha();
             alpha.Val = checked((int)Math.Round(opacity.Value * 100000D,
                 MidpointRounding.AwayFromZero));
             if (alpha.Parent == null) {
-                rgb.Append(alpha);
+                color.Append(alpha);
             }
         }
 

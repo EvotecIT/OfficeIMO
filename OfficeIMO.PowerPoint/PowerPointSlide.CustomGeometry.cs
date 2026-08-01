@@ -175,9 +175,10 @@ namespace OfficeIMO.PowerPoint {
             properties.RemoveAllChildren<A.NoFill>();
             if (geometry.FillColor is OfficeColor fill) {
                 result.FillColor = fill.ToRgbHex();
-                if (fill.A < byte.MaxValue) {
-                    result.FillTransparency = (int)Math.Round(
-                        (byte.MaxValue - fill.A) * 100D / byte.MaxValue);
+                double fillOpacity = CombineOpacity(fill.A,
+                    geometry.FillOpacity);
+                if (fillOpacity < 1D) {
+                    result.SetFillOpacity(fillOpacity);
                 }
             } else {
                 A.CustomGeometry customGeometry = properties.GetFirstChild<A.CustomGeometry>()
@@ -188,15 +189,21 @@ namespace OfficeIMO.PowerPoint {
             result.OutlineColor = geometry.StrokeColor?.ToRgbHex();
             if (geometry.StrokeColor is OfficeColor stroke) {
                 result.OutlineWidthPoints = geometry.StrokeWidth;
-                double declaredOpacity = geometry.StrokeOpacity ?? 1D;
-                double clampedOpacity = declaredOpacity < 0D ? 0D
-                    : declaredOpacity > 1D ? 1D
-                    : declaredOpacity;
-                double combinedOpacity = stroke.A / (double)byte.MaxValue * clampedOpacity;
+                double combinedOpacity = CombineOpacity(stroke.A,
+                    geometry.StrokeOpacity);
                 if (combinedOpacity < 1D) {
                     result.SetOutlineOpacity(combinedOpacity);
                 }
             }
+        }
+
+        private static double CombineOpacity(byte colorAlpha,
+            double? declaredOpacity) {
+            double opacity = declaredOpacity ?? 1D;
+            double clampedOpacity = opacity < 0D ? 0D
+                : opacity > 1D ? 1D
+                : opacity;
+            return colorAlpha / (double)byte.MaxValue * clampedOpacity;
         }
     }
 }

@@ -281,6 +281,7 @@ namespace OfficeIMO.Visio {
                 foreach (KeyValuePair<VisioConnector, List<Point>> path in
                          connectorPaths) {
                     if (ReferenceEquals(label.Connector, path.Key) ||
+                        !HasDeterministicRoute(path.Key) ||
                         !PathIntersectsBounds(path.Value, label.Bounds)) {
                         continue;
                     }

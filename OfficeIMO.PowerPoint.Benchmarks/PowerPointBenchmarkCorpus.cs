@@ -133,8 +133,7 @@ internal static class PowerPointBenchmarkCorpus {
                     15D + index, 20D + index, 26D + index, 32D + index
                 })
             });
-        PowerPointChart chart = slide.AddChartPoints(
-            OfficeChartKind.BarClustered, data, 390, 214, 500, 260);
-        chart.SetTitle("Quarterly trajectory");
+        slide.AddChartPoints(OfficeChartKind.BarClustered, data,
+            390, 214, 500, 260);
     }
 }
