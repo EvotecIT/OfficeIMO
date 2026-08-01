@@ -14,7 +14,13 @@ namespace OfficeIMO.Security;
 public static class CmsSignedDataVerifier {
     /// <summary>Verifies an encapsulated CMS SignedData object.</summary>
     public static CmsVerificationResult Verify(byte[] encodedCms, CmsVerificationOptions? options = null) =>
-        VerifyCore(encodedCms, null, detachedContentSupplied: false, options);
+        VerifyCore(encodedCms, null, detachedContentSupplied: false, options, timestampBudget: null);
+
+    internal static CmsVerificationResult Verify(
+        byte[] encodedCms,
+        CmsVerificationOptions options,
+        TimestampVerificationBudget timestampBudget) =>
+        VerifyCore(encodedCms, null, detachedContentSupplied: false, options, timestampBudget);
 
     /// <summary>Verifies a detached CMS SignedData object against the exact supplied content bytes.</summary>
     public static CmsVerificationResult VerifyDetached(
@@ -26,14 +32,15 @@ public static class CmsSignedDataVerifier {
 #else
         ArgumentNullException.ThrowIfNull(detachedContent);
 #endif
-        return VerifyCore(encodedCms, detachedContent, detachedContentSupplied: true, options);
+        return VerifyCore(encodedCms, detachedContent, detachedContentSupplied: true, options, timestampBudget: null);
     }
 
     private static CmsVerificationResult VerifyCore(
         byte[] encodedCms,
         byte[]? detachedContent,
         bool detachedContentSupplied,
-        CmsVerificationOptions? options) {
+        CmsVerificationOptions? options,
+        TimestampVerificationBudget? timestampBudget) {
 #if NETSTANDARD2_0 || NET472
         if (encodedCms == null) throw new ArgumentNullException(nameof(encodedCms));
 #else
@@ -107,8 +114,8 @@ public static class CmsSignedDataVerifier {
             var platformEmbedded = CreatePlatformCertificates(embedded, containerFindings);
             try {
                 var signerResults = new List<CmsSignerVerificationResult>(signers.Count);
-                TimestampVerificationBudget? timestampBudget = options.ValidateTimestamps
-                    ? new TimestampVerificationBudget(options)
+                TimestampVerificationBudget? effectiveTimestampBudget = options.ValidateTimestamps
+                    ? timestampBudget ?? new TimestampVerificationBudget(options)
                     : null;
                 for (int index = 0; index < signers.Count; index++) {
                     signerResults.Add(VerifySigner(
@@ -119,7 +126,7 @@ public static class CmsSignedDataVerifier {
                         embedded,
                         platformEmbedded,
                         options,
-                        timestampBudget));
+                        effectiveTimestampBudget));
                 }
 
                 AuthenticodeIndirectDataInfo? authenticode = TryReadAuthenticodeIndirectData(
@@ -411,7 +418,7 @@ public static class CmsSignedDataVerifier {
             new[] { finding });
     }
 
-    private sealed class TimestampVerificationBudget {
+    internal sealed class TimestampVerificationBudget {
         private readonly int _maximumTokens;
         private readonly long _maximumTokenBytes;
         private readonly long _maximumTotalBytes;

@@ -6,6 +6,16 @@ using OfficeIMO.Security;
 
 namespace OfficeIMO.Word {
     internal static class WordMacroProjectSignatureInspector {
+        internal sealed class InspectionBudget {
+            internal InspectionBudget(WordMacroProjectSignatureInspectionOptions options) {
+                TimestampBudget = options.ValidateCms && options.CmsVerification.ValidateTimestamps
+                    ? new CmsSignedDataVerifier.TimestampVerificationBudget(options.CmsVerification)
+                    : null;
+            }
+
+            internal CmsSignedDataVerifier.TimestampVerificationBudget? TimestampBudget { get; }
+        }
+
         internal const string LegacyRelationship = "http://schemas.microsoft.com/office/2006/relationships/vbaProjectSignature";
         internal const string AgileRelationship = "http://schemas.microsoft.com/office/2014/relationships/vbaProjectSignatureAgile";
         internal const string AgileRelationshipCompatibility = "http://schemas.microsoft.com/office/2006/relationships/vbaProjectSignatureAgile";
@@ -17,9 +27,18 @@ namespace OfficeIMO.Word {
 
         internal static WordMacroProjectSignatureInfo Inspect(
             string filePath,
-            WordMacroProjectSignatureInspectionOptions? options = null) {
+            WordMacroProjectSignatureInspectionOptions? options = null) =>
+            Inspect(filePath, options, operationBudget: null, profileFilter: null, validateCmsOverride: null);
+
+        internal static WordMacroProjectSignatureInfo Inspect(
+            string filePath,
+            WordMacroProjectSignatureInspectionOptions? options,
+            InspectionBudget? operationBudget,
+            WordMacroProjectSignatureProfile? profileFilter = null,
+            bool? validateCmsOverride = null) {
             options ??= new WordMacroProjectSignatureInspectionOptions();
             ValidateOptions(options);
+            operationBudget ??= new InspectionBudget(options);
 
             string fullPath = NormalizePath(filePath);
             bool macroEnabled = IsMacroEnabledPath(fullPath);
@@ -70,7 +89,7 @@ namespace OfficeIMO.Word {
                     discoveredVbaHash = HashPart(vbaPart, options.MaxMacroProjectBytes, out long vbaLength);
                     discoveredVbaLength = vbaLength;
                     IReadOnlyList<WordMacroProjectSignaturePartInfo> signatures = InspectSignatureRelationships(
-                        package, vbaPart, options, findings);
+                        package, vbaPart, options, operationBudget, profileFilter, validateCmsOverride, findings);
                     return new WordMacroProjectSignatureInfo(fullPath, macroEnabled, true,
                         discoveredVbaUri.ToString(), discoveredVbaLength, discoveredVbaHash, signatures, findings);
                 }
@@ -112,6 +131,9 @@ namespace OfficeIMO.Word {
             Package package,
             PackagePart vbaPart,
             WordMacroProjectSignatureInspectionOptions options,
+            InspectionBudget operationBudget,
+            WordMacroProjectSignatureProfile? profileFilter,
+            bool? validateCmsOverride,
             ICollection<WordMacroProjectSignatureFinding> findings) {
             var signatures = new List<WordMacroProjectSignaturePartInfo>();
             var profiles = new HashSet<WordMacroProjectSignatureProfile>();
@@ -125,6 +147,7 @@ namespace OfficeIMO.Word {
                 if (!TryGetProfile(relationship.RelationshipType, out WordMacroProjectSignatureProfile profile)) {
                     continue;
                 }
+                if (profileFilter.HasValue && profile != profileFilter.Value) continue;
                 if (relationship.TargetMode != TargetMode.Internal) {
                     findings.Add(Finding("MacroSignatureExternalTarget", WordSignatureValidationState.Failed,
                         "A VBA signature relationship targets an external resource.", profile));
@@ -153,7 +176,7 @@ namespace OfficeIMO.Word {
                 }
 
                 signatures.Add(InspectSignaturePart(signaturePart, relationship.RelationshipType,
-                    profile, encodedPart, options));
+                    profile, encodedPart, options, operationBudget, validateCmsOverride));
             }
 
             signatures.Sort((left, right) => left.Profile.CompareTo(right.Profile));
@@ -165,7 +188,9 @@ namespace OfficeIMO.Word {
             string relationshipType,
             WordMacroProjectSignatureProfile profile,
             byte[] encodedPart,
-            WordMacroProjectSignatureInspectionOptions options) {
+            WordMacroProjectSignatureInspectionOptions options,
+            InspectionBudget operationBudget,
+            bool? validateCmsOverride) {
             long length = encodedPart.LongLength;
             var findings = new List<WordMacroProjectSignatureFinding>();
             string expectedContentType = GetExpectedContentType(profile);
@@ -174,7 +199,7 @@ namespace OfficeIMO.Word {
                     "The " + profile + " signature part content type is '" + part.ContentType +
                     "' instead of '" + expectedContentType + "'.", profile));
             }
-            if (!options.ValidateCms) {
+            if (!(validateCmsOverride ?? options.ValidateCms)) {
                 return CreatePartInfo(profile, part, relationshipType, length, false,
                     WordSignatureValidationState.NotChecked, WordSignatureValidationState.NotChecked,
                     WordSignatureValidationState.NotChecked, WordSignatureValidationState.NotChecked,
@@ -191,7 +216,9 @@ namespace OfficeIMO.Word {
                     null, null, findings);
             }
 
-            CmsVerificationResult cms = CmsSignedDataVerifier.Verify(cmsBytes, options.CmsVerification);
+            CmsVerificationResult cms = operationBudget.TimestampBudget == null
+                ? CmsSignedDataVerifier.Verify(cmsBytes, options.CmsVerification)
+                : CmsSignedDataVerifier.Verify(cmsBytes, options.CmsVerification, operationBudget.TimestampBudget);
             CmsSignerVerificationResult? signer = cms.Signers.FirstOrDefault();
             foreach (SecurityFinding finding in cms.Findings.Concat(cms.Signers.SelectMany(item => item.Findings))) {
                 findings.Add(Finding(finding.Code, Map(finding.Severity), finding.Message, profile));

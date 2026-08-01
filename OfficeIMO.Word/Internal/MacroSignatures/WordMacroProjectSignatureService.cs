@@ -11,10 +11,11 @@ namespace OfficeIMO.Word {
             options ??= new WordMacroProjectSignatureValidationOptions();
             dependencies ??= WordMacroProjectSigningDependencies.Default;
             ValidateValidationOptions(options);
+            var inspectionBudget = new WordMacroProjectSignatureInspector.InspectionBudget(options.Inspection);
 
             string fullPath = NormalizePath(filePath);
             if (!File.Exists(fullPath)) {
-                return ValidateSnapshot(fullPath, fullPath, options, dependencies);
+                return ValidateSnapshot(fullPath, fullPath, options, dependencies, inspectionBudget);
             }
             string snapshotDirectory = Path.Combine(
                 Path.GetTempPath(),
@@ -23,7 +24,7 @@ namespace OfficeIMO.Word {
             try {
                 Directory.CreateDirectory(snapshotDirectory);
                 WordPackageSnapshot.CopyBounded(fullPath, snapshotPath, options.Inspection.PackageSecurity.MaxPackageBytes);
-                return ValidateSnapshot(fullPath, snapshotPath, options, dependencies);
+                return ValidateSnapshot(fullPath, snapshotPath, options, dependencies, inspectionBudget);
             } finally {
                 OfficeFileCommit.DeleteIfExists(snapshotPath);
                 try {
@@ -40,9 +41,11 @@ namespace OfficeIMO.Word {
             string originalPath,
             string snapshotPath,
             WordMacroProjectSignatureValidationOptions options,
-            WordMacroProjectSigningDependencies dependencies) {
+            WordMacroProjectSigningDependencies dependencies,
+            WordMacroProjectSignatureInspector.InspectionBudget inspectionBudget) {
             WordMacroProjectSignatureInfo snapshotInfo =
-                WordMacroProjectSignatureInspector.Inspect(snapshotPath, options.Inspection);
+                WordMacroProjectSignatureInspector.Inspect(
+                    snapshotPath, options.Inspection, inspectionBudget);
             WordMacroProjectSignatureInfo info = WithFilePath(snapshotInfo, originalPath);
 
             var findings = CollectInspectionFindings(info);
@@ -114,7 +117,9 @@ namespace OfficeIMO.Word {
             ValidateSigningOptions(options);
 
             string fullPath = NormalizePath(filePath);
-            WordMacroProjectSignatureInfo sourceInfo = WordMacroProjectSignatureInspector.Inspect(fullPath, options.Inspection);
+            var inspectionBudget = new WordMacroProjectSignatureInspector.InspectionBudget(options.Inspection);
+            WordMacroProjectSignatureInfo sourceInfo = WordMacroProjectSignatureInspector.Inspect(
+                fullPath, options.Inspection, inspectionBudget, validateCmsOverride: false);
             var findings = new List<WordMacroProjectSignatureFinding>();
             findings.AddRange(sourceInfo.Findings);
             if (!sourceInfo.IsMacroEnabledFormat || !sourceInfo.HasMacroProject ||
@@ -151,6 +156,7 @@ namespace OfficeIMO.Word {
             }
 
             string stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
+            string validationSnapshotPath = string.Empty;
             try {
                 WordPackageSnapshot.CopyBounded(
                     fullPath,
@@ -193,7 +199,8 @@ namespace OfficeIMO.Word {
                         return SigningResult(fullPath, ToolWasAvailable(sign), false, false, null, findings);
                     }
                     WordMacroProjectSignatureInfo profileReadback =
-                        WordMacroProjectSignatureInspector.Inspect(stagingPath, options.Inspection);
+                        WordMacroProjectSignatureInspector.Inspect(
+                            stagingPath, options.Inspection, inspectionBudget, profile);
                     WordMacroProjectSignaturePartInfo? createdProfile = profileReadback.Signatures
                         .FirstOrDefault(signature => signature.Profile == profile);
                     if (createdProfile == null || !createdProfile.CmsParsed ||
@@ -209,12 +216,26 @@ namespace OfficeIMO.Word {
                         "The " + profile + " VBA signature was created and verified before the next profile.", profile));
                 }
 
-                using var validatedStagingLock = new FileStream(
+                validationSnapshotPath = OfficeFileCommit.CreateStagingPath(fullPath);
+                WordPackageSnapshot.CopyBounded(
                     stagingPath,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read | FileShare.Delete);
-                WordMacroProjectSignatureValidationResult stagedValidation = Validate(stagingPath, options, dependencies);
+                    validationSnapshotPath,
+                    options.Inspection.PackageSecurity.MaxPackageBytes);
+                string validatedPackageHash = WordPackageSnapshot.ComputeSha256(
+                    validationSnapshotPath,
+                    options.Inspection.PackageSecurity.MaxPackageBytes);
+                WordMacroProjectSignatureValidationResult stagedValidation = ValidateSnapshot(
+                    fullPath, validationSnapshotPath, options, dependencies, inspectionBudget);
+                if (!string.Equals(
+                    validatedPackageHash,
+                    WordPackageSnapshot.ComputeSha256(
+                        validationSnapshotPath,
+                        options.Inspection.PackageSecurity.MaxPackageBytes),
+                    StringComparison.Ordinal)) {
+                    findings.Add(Finding("MacroValidatedSnapshotChanged", WordSignatureValidationState.Failed,
+                        "The bounded VBA validation snapshot changed during policy validation; the original file was not replaced."));
+                    return SigningResult(fullPath, true, false, true, stagedValidation, findings);
+                }
                 findings.AddRange(stagedValidation.Findings.Where(finding =>
                     !findings.Any(existing => existing.Code == finding.Code && existing.Profile == finding.Profile)));
                 WordMacroProjectSignatureInfo stagedInfo = stagedValidation.SignatureInfo;
@@ -244,6 +265,12 @@ namespace OfficeIMO.Word {
                         WordPackageSnapshot.ComputeSha256(
                             displacedPath,
                             options.Inspection.PackageSecurity.MaxPackageBytes),
+                        StringComparison.Ordinal),
+                    installedPath => string.Equals(
+                        validatedPackageHash,
+                        WordPackageSnapshot.ComputeSha256(
+                            installedPath,
+                            options.Inspection.PackageSecurity.MaxPackageBytes),
                         StringComparison.Ordinal))) {
                     stagingPath = string.Empty;
                     findings.Add(Finding("SourcePackageChangedDuringSigning", WordSignatureValidationState.Failed,
@@ -251,7 +278,7 @@ namespace OfficeIMO.Word {
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
                 }
                 stagingPath = string.Empty;
-                WordMacroProjectSignatureInfo committedInfo = WordMacroProjectSignatureInspector.Inspect(fullPath, options.Inspection);
+                WordMacroProjectSignatureInfo committedInfo = WithFilePath(stagedInfo, fullPath);
                 var committedValidation = new WordMacroProjectSignatureValidationResult(
                     committedInfo, stagedValidation.IsSupported, stagedValidation.ContentBindingStatus,
                     stagedValidation.Findings) {
@@ -266,6 +293,7 @@ namespace OfficeIMO.Word {
                 return SigningResult(fullPath, true, false, false, null, findings);
             } finally {
                 OfficeFileCommit.DeleteIfExists(stagingPath);
+                OfficeFileCommit.DeleteIfExists(validationSnapshotPath);
             }
         }
 
