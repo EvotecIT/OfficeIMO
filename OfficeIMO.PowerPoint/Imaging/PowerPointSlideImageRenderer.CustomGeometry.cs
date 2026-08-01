@@ -23,42 +23,85 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            if (!TryCreateCustomGeometryShape(customGeometry, width, height, out OfficeShape? drawingShape) || drawingShape == null) {
-                AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint custom geometry shape because its paths use commands, guides, or formulas that are not yet projected through OfficeIMO.Drawing.");
+            if (!TryCreateCustomGeometryShapes(customGeometry, width, height,
+                    out List<CustomGeometryPathProjection>? projections)
+                    || projections == null) {
+                AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint custom geometry shape because its paths use commands, guides, formulas, or per-path styling that are not yet projected faithfully through OfficeIMO.Drawing.");
                 return true;
             }
 
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
-            ApplyShapeTransform(drawingShape, shape, width, height);
-            drawing.AddShape(drawingShape, left, top);
+            foreach (CustomGeometryPathProjection projection in projections) {
+                OfficeShape drawingShape = projection.Shape;
+                ApplyShapeStyle(drawingShape, shape, colorScheme, mapping,
+                    diagnostics);
+                if (!projection.HasFill) {
+                    drawingShape.FillColor = null;
+                    drawingShape.FillGradient = null;
+                    drawingShape.FillRadialGradient = null;
+                }
+                if (!projection.HasStroke) {
+                    drawingShape.StrokeColor = null;
+                    drawingShape.StrokeGradient = null;
+                    drawingShape.StrokeRadialGradient = null;
+                    drawingShape.StrokeWidth = 0D;
+                    drawingShape.StrokeStartMarker = null;
+                    drawingShape.StrokeEndMarker = null;
+                }
+                ApplyShapeTransform(drawingShape, shape, width, height);
+                drawing.AddShape(drawingShape, left, top);
+            }
             return true;
         }
 
-        private static bool TryCreateCustomGeometryShape(A.CustomGeometry customGeometry, double width, double height, out OfficeShape? drawingShape) {
-            drawingShape = null;
+        private static bool TryCreateCustomGeometryShapes(
+            A.CustomGeometry customGeometry, double width, double height,
+            out List<CustomGeometryPathProjection>? projections) {
+            projections = null;
             A.PathList? pathList = customGeometry.PathList;
             if (pathList == null) {
                 return false;
             }
 
-            var commands = new List<OfficePathCommand>();
+            var resolved = new List<CustomGeometryPathProjection>();
             foreach (A.Path path in pathList.Elements<A.Path>()) {
+                A.PathFillModeValues? fillMode = path.Fill?.Value;
+                if (fillMode.HasValue
+                    && fillMode.Value != A.PathFillModeValues.None
+                    && fillMode.Value != A.PathFillModeValues.Norm) {
+                    return false;
+                }
+
+                var commands = new List<OfficePathCommand>();
                 if (!TryAppendCustomGeometryPath(customGeometry, path, width, height, commands)) {
+                    return false;
+                }
+
+                try {
+                    resolved.Add(new CustomGeometryPathProjection(
+                        OfficeShape.Path(width, height, commands),
+                        fillMode != A.PathFillModeValues.None,
+                        path.Stroke?.Value != false));
+                } catch (ArgumentException) {
                     return false;
                 }
             }
 
-            if (commands.Count == 0) {
-                return false;
+            if (resolved.Count == 0) return false;
+            projections = resolved;
+            return true;
+        }
+
+        private sealed class CustomGeometryPathProjection {
+            internal CustomGeometryPathProjection(OfficeShape shape,
+                bool hasFill, bool hasStroke) {
+                Shape = shape;
+                HasFill = hasFill;
+                HasStroke = hasStroke;
             }
 
-            try {
-                drawingShape = OfficeShape.Path(commands);
-                return true;
-            } catch (ArgumentException) {
-                drawingShape = null;
-                return false;
-            }
+            internal OfficeShape Shape { get; }
+            internal bool HasFill { get; }
+            internal bool HasStroke { get; }
         }
 
         private static bool TryAppendCustomGeometryPath(A.CustomGeometry customGeometry, A.Path path, double width, double height, List<OfficePathCommand> commands) {

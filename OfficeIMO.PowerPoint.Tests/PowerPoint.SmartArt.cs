@@ -1,9 +1,12 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -54,6 +57,77 @@ namespace OfficeIMO.Tests {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
                 }
+            }
+        }
+
+        [Fact]
+        public void ImportedSmartArtPreservesEveryNodeParagraphInSemanticExports() {
+            string filePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create(filePath)) {
+                    PowerPointSmartArt authored = presentation.AddSlide()
+                        .AddSmartArt();
+                    authored.SetNodeText(0, "First paragraph");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document =
+                       PresentationDocument.Open(filePath, true)) {
+                    DiagramDataPart dataPart = document.PresentationPart!
+                        .SlideParts.Single().DiagramDataParts.Single();
+                    XDocument data;
+                    using (Stream input = dataPart.GetStream(
+                               FileMode.Open, FileAccess.Read)) {
+                        data = XDocument.Load(input);
+                    }
+                    XNamespace dgm =
+                        "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+                    XNamespace a =
+                        "http://schemas.openxmlformats.org/drawingml/2006/main";
+                    XElement textBody = data.Descendants(dgm + "pt")
+                        .Where(point => point.Attribute("type") == null)
+                        .Select(point => point.Element(dgm + "t")
+                            ?? point.Element(dgm + "txBody"))
+                        .First(body => body != null)!;
+                    textBody.Add(new XElement(a + "p",
+                        new XElement(a + "r",
+                            new XElement(a + "t", "Second paragraph")),
+                        new XElement(a + "endParaRPr",
+                            new XAttribute("lang", "en-US"))));
+                    using Stream output = dataPart.GetStream(
+                        FileMode.Create, FileAccess.Write);
+                    data.Save(output);
+                }
+
+                using PowerPointPresentation imported =
+                    PowerPointPresentation.Load(filePath);
+                PowerPointSmartArt smartArt = Assert.Single(
+                    imported.Slides[0].SmartArts);
+                Assert.Equal(1, smartArt.NodeCount);
+                Assert.Equal("First paragraph\nSecond paragraph",
+                    smartArt.GetNodeText(0));
+                Assert.Equal("First paragraph\nSecond paragraph",
+                    Assert.Single(smartArt.GetNodeTexts()));
+                Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
+                    out OfficeDiagramSnapshot snapshot));
+                Assert.Equal("First paragraph\nSecond paragraph",
+                    Assert.Single(snapshot.Nodes));
+
+                OfficeImageExportResult svg = imported.Slides[0].ExportImage(
+                    OfficeImageExportFormat.Svg);
+                string svgText = Encoding.UTF8.GetString(svg.Bytes);
+                Assert.Contains("First paragraph", svgText,
+                    StringComparison.Ordinal);
+                Assert.Contains("Second paragraph", svgText,
+                    StringComparison.Ordinal);
+
+                smartArt.SetNodeText(0, "Replacement");
+                Assert.Equal("Replacement", smartArt.GetNodeText(0));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
             }
         }
     }

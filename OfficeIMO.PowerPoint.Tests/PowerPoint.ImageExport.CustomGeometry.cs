@@ -235,6 +235,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointShape_FillTransparencyPreservesThemeFillReference() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SetThemeColorForAllMasters(
+                PowerPointThemeColor.Accent2, "123456");
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                20, 20, 120, 80);
+            Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
+            var scheme = new A.SchemeColor {
+                Val = A.SchemeColorValues.Accent2
+            };
+            openXmlShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.FillReference(scheme) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+
+            shape.FillTransparency = 40;
+
+            Assert.Null(openXmlShape.ShapeProperties!
+                .GetFirstChild<A.SolidFill>());
+            Assert.Same(scheme, openXmlShape.ShapeStyle.FillReference!
+                .GetFirstChild<A.SchemeColor>());
+            Assert.Equal(60000, scheme.GetFirstChild<A.Alpha>()!.Val!.Value);
+            Assert.Equal(40, shape.FillTransparency);
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions {
+                    IncludeSlideBackground = false
+                });
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), item =>
+                    item.X == 20D && item.Y == 20D);
+            OfficeColor renderedFill = Assert.IsType<OfficeColor>(
+                rendered.Shape.FillColor);
+            Assert.Equal((byte)0x12, renderedFill.R);
+            Assert.Equal((byte)0x34, renderedFill.G);
+            Assert.Equal((byte)0x56, renderedFill.B);
+            Assert.Equal((byte)153, renderedFill.A);
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsSharedPolygonAndRejectsNonFreeformDescriptors() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),
@@ -516,6 +565,84 @@ namespace OfficeIMO.Tests {
             Assert.True(CountPixelsNear(image!, OfficeColor.FromRgb(244, 114, 182)) > 100);
         }
 
+        [Fact]
+        public void PowerPointSlide_CustomGeometryPreservesDeclaredPathCanvas() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(180, 140);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape freeform = slide.AddShapePoints(
+                A.ShapeTypeValues.Rectangle, 30, 24, 80, 60);
+            freeform.FillColor = "0EA5E9";
+            freeform.Rotation = 25D;
+
+            Shape shape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<Shape>().Last();
+            ShapeProperties properties = shape.ShapeProperties!;
+            A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()!;
+            properties.RemoveAllChildren<A.PresetGeometry>();
+            properties.InsertAfter(CreateInsetCustomGeometry(), transform);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), element =>
+                    Math.Abs(element.X - 30D) < 0.000001D
+                    && Math.Abs(element.Y - 24D) < 0.000001D);
+
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            Assert.Equal(80D, rendered.Shape.Width);
+            Assert.Equal(60D, rendered.Shape.Height);
+            AssertCustomGeometryPointNear(rendered.Shape.PathCommands[0].Point,
+                20D, 15D);
+            OfficePoint center = rendered.Shape.Transform!.Value.TransformPoint(
+                new OfficePoint(40D, 30D));
+            AssertCustomGeometryPointNear(center, 40D, 30D);
+        }
+
+        [Fact]
+        public void PowerPointSlide_CustomGeometryHonorsPerPathFillAndStroke() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(180, 140);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape freeform = slide.AddShapePoints(
+                A.ShapeTypeValues.Rectangle, 20, 20, 120, 80);
+            freeform.FillColor = "22C55E";
+            freeform.OutlineColor = "1E3A8A";
+            freeform.OutlineWidthPoints = 3D;
+
+            Shape shape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<Shape>().Last();
+            ShapeProperties properties = shape.ShapeProperties!;
+            A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()!;
+            properties.RemoveAllChildren<A.PresetGeometry>();
+            properties.InsertAfter(CreatePerPathStyledCustomGeometry(), transform);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            OfficeDrawingShape[] rendered = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>()
+                .Where(element => element.X == 20D && element.Y == 20D)
+                .ToArray();
+            OfficeImageExportResult svg = slide.ExportImage(
+                OfficeImageExportFormat.Svg);
+
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            Assert.Equal(2, rendered.Length);
+            Assert.Null(rendered[0].Shape.FillColor);
+            Assert.Equal(OfficeColor.FromRgb(30, 58, 138),
+                rendered[0].Shape.StrokeColor);
+            Assert.Equal(OfficeColor.FromRgb(34, 197, 94),
+                rendered[1].Shape.FillColor);
+            Assert.Null(rendered[1].Shape.StrokeColor);
+            Assert.Equal(0D, rendered[1].Shape.StrokeWidth);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Equal(2, svgText.Split(new[] { "<path" },
+                StringSplitOptions.None).Length - 1);
+            Assert.Contains("fill=\"none\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("stroke=\"none\"", svgText, StringComparison.Ordinal);
+        }
+
         private static A.CustomGeometry CreateDiamondCustomGeometry() {
             return new A.CustomGeometry(
                 new A.PathList(
@@ -527,6 +654,47 @@ namespace OfficeIMO.Tests {
                         new A.CloseShapePath()) {
                         Width = 100000L,
                         Height = 100000L
+                    }));
+        }
+
+        private static A.CustomGeometry CreateInsetCustomGeometry() {
+            return new A.CustomGeometry(
+                new A.PathList(
+                    new A.Path(
+                        new A.MoveTo(new A.Point { X = "25000", Y = "25000" }),
+                        new A.LineTo(new A.Point { X = "75000", Y = "25000" }),
+                        new A.LineTo(new A.Point { X = "75000", Y = "75000" }),
+                        new A.LineTo(new A.Point { X = "25000", Y = "75000" }),
+                        new A.CloseShapePath()) {
+                        Width = 100000L,
+                        Height = 100000L
+                    }));
+        }
+
+        private static A.CustomGeometry CreatePerPathStyledCustomGeometry() {
+            return new A.CustomGeometry(
+                new A.PathList(
+                    new A.Path(
+                        new A.MoveTo(new A.Point { X = "10000", Y = "10000" }),
+                        new A.LineTo(new A.Point { X = "90000", Y = "10000" }),
+                        new A.LineTo(new A.Point { X = "90000", Y = "40000" }),
+                        new A.LineTo(new A.Point { X = "10000", Y = "40000" }),
+                        new A.CloseShapePath()) {
+                        Width = 100000L,
+                        Height = 100000L,
+                        Fill = A.PathFillModeValues.None,
+                        Stroke = true
+                    },
+                    new A.Path(
+                        new A.MoveTo(new A.Point { X = "10000", Y = "60000" }),
+                        new A.LineTo(new A.Point { X = "90000", Y = "60000" }),
+                        new A.LineTo(new A.Point { X = "90000", Y = "90000" }),
+                        new A.LineTo(new A.Point { X = "10000", Y = "90000" }),
+                        new A.CloseShapePath()) {
+                        Width = 100000L,
+                        Height = 100000L,
+                        Fill = A.PathFillModeValues.Norm,
+                        Stroke = false
                     }));
         }
 

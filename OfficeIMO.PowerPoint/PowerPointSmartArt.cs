@@ -24,14 +24,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets the number of editable SmartArt nodes.
         /// </summary>
-        public int NodeCount => LoadNodeParagraphsWithPart().paras.Count;
+        public int NodeCount => LoadNodeTextBodiesWithPart().textBodies.Count;
 
         /// <summary>Gets all editable SmartArt node texts in data-model order.</summary>
         public IReadOnlyList<string> GetNodeTexts() {
-            var (_, _, paras, _) = LoadNodeParagraphsWithPart();
-            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
-            return paras.Select(paragraph => string.Concat(paragraph.Descendants(a + "t")
-                .Select(text => (string?)text ?? string.Empty))).ToList().AsReadOnly();
+            var (_, ns, textBodies, _) = LoadNodeTextBodiesWithPart();
+            return textBodies.Select(body => ReadNodeText(body, ns.a))
+                .ToList().AsReadOnly();
         }
 
         /// <summary>
@@ -41,10 +40,9 @@ namespace OfficeIMO.PowerPoint {
         public bool TryGetOfficeDiagramSnapshot(
             out OfficeDiagramSnapshot snapshot) {
             try {
-                var (xdoc, ns, paras, _) = LoadNodeParagraphsWithPart();
-                IReadOnlyList<string> nodes = paras.Select(paragraph =>
-                        string.Concat(paragraph.Descendants(ns.a + "t")
-                            .Select(text => (string?)text ?? string.Empty)))
+                var (xdoc, ns, textBodies, _) = LoadNodeTextBodiesWithPart();
+                IReadOnlyList<string> nodes = textBodies
+                    .Select(body => ReadNodeText(body, ns.a))
                     .Where(text => !string.IsNullOrWhiteSpace(text))
                     .ToArray();
                 XElement? properties = xdoc.Descendants(ns.dgm + "prSet")
@@ -83,49 +81,63 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets the text of an editable SmartArt node.
         /// </summary>
         public string GetNodeText(int index) {
-            var (_, _, paras, _) = LoadNodeParagraphsWithPart();
-            if (index < 0 || index >= paras.Count) {
+            var (_, ns, textBodies, _) = LoadNodeTextBodiesWithPart();
+            if (index < 0 || index >= textBodies.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
-            return string.Concat(paras[index].Descendants(a + "t").Select(t => (string?)t ?? string.Empty));
+            return ReadNodeText(textBodies[index], ns.a);
         }
 
         /// <summary>
         ///     Replaces the text of an editable SmartArt node.
         /// </summary>
         public void SetNodeText(int index, string text) {
-            var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
-            if (index < 0 || index >= paras.Count) {
+            var (xdoc, ns, textBodies, dataPart) =
+                LoadNodeTextBodiesWithPart();
+            if (index < 0 || index >= textBodies.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            XElement paragraph = paras[index];
+            List<XElement> paragraphs = textBodies[index].Elements(ns.a + "p")
+                .ToList();
+            XElement paragraph = paragraphs[0];
             paragraph.RemoveNodes();
             paragraph.Add(new XElement(ns.a + "r",
                 new XElement(ns.a + "t", text ?? string.Empty)));
             paragraph.Add(new XElement(ns.a + "endParaRPr", new XAttribute("lang", "en-US")));
+            for (int paragraphIndex = 1;
+                 paragraphIndex < paragraphs.Count; paragraphIndex++) {
+                paragraphs[paragraphIndex].Remove();
+            }
             SaveDiagramData(dataPart, xdoc);
         }
 
-        private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns, List<XElement> paras, DiagramDataPart dataPart)
-            LoadNodeParagraphsWithPart() {
+        private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns,
+            List<XElement> textBodies, DiagramDataPart dataPart)
+            LoadNodeTextBodiesWithPart() {
             DiagramDataPart dataPart = GetDiagramDataPart();
             XDocument xdoc = LoadDiagramXDocument(dataPart);
             XNamespace dgm = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
             XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
 
-            List<XElement> paras = xdoc
+            List<XElement> textBodies = xdoc
                 .Descendants(dgm + "pt")
                 .Where(point => point.Attribute("type") == null)
-                .Select(point => (point.Element(dgm + "t") ?? point.Element(dgm + "txBody"))?.Element(a + "p"))
-                .Where(paragraph => paragraph != null)
+                .Select(point => point.Element(dgm + "t")
+                    ?? point.Element(dgm + "txBody"))
+                .Where(body => body?.Elements(a + "p").Any() == true)
                 .Cast<XElement>()
                 .ToList();
 
-            return (xdoc, (dgm, a), paras, dataPart);
+            return (xdoc, (dgm, a), textBodies, dataPart);
         }
+
+        private static string ReadNodeText(XElement textBody, XNamespace a) =>
+            string.Join("\n", textBody.Elements(a + "p")
+                .Select(paragraph => string.Concat(paragraph
+                    .Descendants(a + "t")
+                    .Select(text => (string?)text ?? string.Empty))));
 
         private DiagramDataPart GetDiagramDataPart() {
             Dgm.RelationshipIds relationshipIds = GraphicFrame.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>()

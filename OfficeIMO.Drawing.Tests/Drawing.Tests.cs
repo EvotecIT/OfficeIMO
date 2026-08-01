@@ -1563,6 +1563,21 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeShapePathCanPreserveDeclaredCoordinateCanvas() {
+        OfficeShape shape = OfficeShape.Path(100, 80,
+            OfficePathCommand.MoveTo(25, 20),
+            OfficePathCommand.LineTo(75, 20),
+            OfficePathCommand.LineTo(75, 60),
+            OfficePathCommand.LineTo(25, 60),
+            OfficePathCommand.Close());
+
+        Assert.Equal(100D, shape.Width);
+        Assert.Equal(80D, shape.Height);
+        Assert.Equal(new OfficePoint(25, 20), shape.PathCommands[0].Point);
+        Assert.Equal(new OfficePoint(75, 60), shape.PathCommands[2].Point);
+    }
+
+    [Fact]
     public void OfficeDrawingPathMarkersRenderThroughSharedSvgAndRasterExporters() {
         var drawing = new OfficeDrawing(130, 90);
         var shape = OfficeShape.Path(

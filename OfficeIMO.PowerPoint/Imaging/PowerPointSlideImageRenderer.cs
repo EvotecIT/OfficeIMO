@@ -477,11 +477,30 @@ namespace OfficeIMO.PowerPoint {
             color = default;
             DocumentFormat.OpenXml.Presentation.ShapeProperties? properties = GetOpenXmlShapeProperties(source);
             if (properties != null) {
-                OfficeColor? resolvedColor = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
+                OfficeColor? resolvedColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
+                    properties.GetFirstChild<A.SolidFill>(), colorScheme);
                 if (resolvedColor.HasValue) {
                     color = resolvedColor.Value;
                     return true;
                 }
+                if (HasExplicitShapeFill(properties)) return false;
+            }
+
+            A.FillReference? fillReference =
+                GetOpenXmlShapeStyle(source)?.FillReference;
+            A.FormatScheme? formatScheme = source.OwnerSlide == null
+                ? null
+                : GetSlideFormatScheme(source.OwnerSlide);
+            OpenXmlElement? themeFill = ResolveThemeShapeFill(formatScheme,
+                fillReference?.Index?.Value);
+            A.SolidFill? themeSolid = themeFill as A.SolidFill
+                ?? themeFill?.GetFirstChild<A.SolidFill>();
+            OfficeColor? themeColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
+                themeSolid, colorScheme,
+                fillReference?.GetFirstChild<A.SchemeColor>());
+            if (themeColor.HasValue) {
+                color = themeColor.Value;
+                return true;
             }
 
             return TryParseOfficeColor(source.FillColor, out color);

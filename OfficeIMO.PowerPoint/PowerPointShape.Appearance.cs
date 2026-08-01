@@ -36,7 +36,7 @@ namespace OfficeIMO.PowerPoint {
                 ShapeProperties? props = GetShapeProperties();
                 A.SolidFill? solid = props?.GetFirstChild<A.SolidFill>();
                 OpenXmlCompositeElement? color = solid == null
-                    ? null
+                    ? GetShapeStyleFillColorChoice(createPlaceholder: false)
                     : GetColorChoice(solid);
                 A.Alpha? alpha = color?.GetFirstChild<A.Alpha>();
                 int? val = alpha?.Val?.Value;
@@ -65,6 +65,12 @@ namespace OfficeIMO.PowerPoint {
             if (props == null) return;
             A.SolidFill? solid = props.GetFirstChild<A.SolidFill>();
             if (solid == null) {
+                OpenXmlCompositeElement? styleColor =
+                    GetShapeStyleFillColorChoice(createPlaceholder: opacity != null);
+                if (styleColor != null) {
+                    SetFillColorAlpha(styleColor, opacity);
+                    return;
+                }
                 if (opacity == null) return;
                 solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
                 InsertShapePropertyChild(props, solid);
@@ -80,8 +86,34 @@ namespace OfficeIMO.PowerPoint {
                 solid.Append(color);
             }
 
-            A.Alpha? alpha = color.GetFirstChild<A.Alpha>();
-            alpha ??= new A.Alpha();
+            SetFillColorAlpha(color, opacity);
+        }
+
+        private OpenXmlCompositeElement? GetShapeStyleFillColorChoice(
+            bool createPlaceholder) {
+            A.FillReference? reference = Element switch {
+                Shape shape => shape.ShapeStyle?.FillReference,
+                ConnectionShape connector => connector.ShapeStyle?.FillReference,
+                _ => null
+            };
+            if (reference == null) return null;
+
+            OpenXmlCompositeElement? color = GetColorChoice(reference);
+            if (color == null && createPlaceholder) {
+                color = new A.SchemeColor { Val = A.SchemeColorValues.PhColor };
+                reference.Append(color);
+            }
+            return color;
+        }
+
+        private static void SetFillColorAlpha(OpenXmlCompositeElement color,
+            double? opacity) {
+            if (!opacity.HasValue) {
+                color.GetFirstChild<A.Alpha>()?.Remove();
+                return;
+            }
+
+            A.Alpha? alpha = color.GetFirstChild<A.Alpha>() ?? new A.Alpha();
             alpha.Val = checked((int)Math.Round(opacity.Value * 100000D,
                 MidpointRounding.AwayFromZero));
             if (alpha.Parent == null) color.Append(alpha);
