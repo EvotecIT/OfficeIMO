@@ -1161,6 +1161,7 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
 
             Assert.Equal(WordSignatureValidationState.Failed, validation.SignedPartDigestStatus);
+            Assert.False(Assert.Single(validation.Signatures).IsValidUnderPolicy);
             Assert.False(validation.IsValidUnderPolicy);
         }
 
@@ -1326,6 +1327,43 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordSignatureValidationState.Passed, signature.TimestampStatus);
             Assert.Equal(OfficeIMO.Security.SecurityValidationStatus.Valid, Assert.Single(signature.TimestampTokens).Status);
             Assert.True(validation.IsValidUnderPolicy, string.Join(System.Environment.NewLine, validation.Findings));
+        }
+
+        [Theory]
+        [InlineData(SignedXml.XmlDsigExcC14NTransformUrl, "WithoutComments")]
+        [InlineData(SignedXml.XmlDsigExcC14NWithCommentsTransformUrl, "WithComments")]
+        public void Test_DigitalSignature_HonorsExclusiveCanonicalizationInclusiveNamespacesForTimestamp(
+            string canonicalizationAlgorithm,
+            string fileSuffix) {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTimestampInclusiveNamespaces" + fileSuffix + ".docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Timestamped OPC package signature with an inclusive prefix list");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer, new WordPackageSigningOptions {
+                SignatureId = "OfficeIMOTimestampedInclusiveNamespacesSignature"
+            });
+            AddRfc3161Timestamp(
+                filePath,
+                timestampCorrectSignatureValue: true,
+                canonicalizationAlgorithm: canonicalizationAlgorithm,
+                inclusiveNamespacesPrefixList: "proof");
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            options.TimestampCertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            WordSignaturePartValidationResult signature = Assert.Single(validation.Signatures);
+            Assert.Equal(WordSignatureValidationState.Passed, signature.TimestampStatus);
+            Assert.Equal(OfficeIMO.Security.SecurityValidationStatus.Valid, Assert.Single(signature.TimestampTokens).Status);
+            Assert.True(signature.IsValidUnderPolicy, string.Join(System.Environment.NewLine, signature.Findings));
         }
 
         [Fact]
@@ -1805,7 +1843,8 @@ namespace OfficeIMO.Tests {
             string filePath,
             bool timestampCorrectSignatureValue,
             string? timestampTokenText = null,
-            string? canonicalizationAlgorithm = null) {
+            string? canonicalizationAlgorithm = null,
+            string? inclusiveNamespacesPrefixList = null) {
             using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
             ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
                 entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
@@ -1820,8 +1859,11 @@ namespace OfficeIMO.Tests {
             namespaceManager.AddNamespace("ds", "http://www.w3.org/2000/09/xmldsig#");
             XmlElement signature = signatureXml.DocumentElement!;
             XmlElement signatureValue = (XmlElement)signature.SelectSingleNode("ds:SignatureValue", namespaceManager)!;
+            if (!string.IsNullOrWhiteSpace(inclusiveNamespacesPrefixList)) {
+                signatureValue.SetAttribute("xmlns:proof", "urn:officeimo:timestamp-proof");
+            }
             byte[] timestampedValue = timestampCorrectSignatureValue
-                ? CanonicalizeSignatureValue(signatureValue, canonicalizationAlgorithm)
+                ? CanonicalizeSignatureValue(signatureValue, canonicalizationAlgorithm, inclusiveNamespacesPrefixList)
                 : Encoding.UTF8.GetBytes("not the XML signature value");
             byte[] timestampToken = CreateRfc3161TimestampToken(timestampedValue);
 
@@ -1834,6 +1876,14 @@ namespace OfficeIMO.Tests {
             if (!string.IsNullOrWhiteSpace(canonicalizationAlgorithm)) {
                 XmlElement canonicalizationMethod = signatureXml.CreateElement("ds", "CanonicalizationMethod", SignedXml.XmlDsigNamespaceUrl);
                 canonicalizationMethod.SetAttribute("Algorithm", canonicalizationAlgorithm);
+                if (!string.IsNullOrWhiteSpace(inclusiveNamespacesPrefixList)) {
+                    XmlElement inclusiveNamespaces = signatureXml.CreateElement(
+                        "ec",
+                        "InclusiveNamespaces",
+                        SignedXml.XmlDsigExcC14NTransformUrl);
+                    inclusiveNamespaces.SetAttribute("PrefixList", inclusiveNamespacesPrefixList);
+                    canonicalizationMethod.AppendChild(inclusiveNamespaces);
+                }
                 signatureTimeStamp.AppendChild(canonicalizationMethod);
             }
             XmlElement encapsulated = signatureXml.CreateElement("xades", "EncapsulatedTimeStamp", qualifyingProperties.NamespaceURI);
@@ -1996,14 +2046,24 @@ namespace OfficeIMO.Tests {
             signatureXml.Save(destination);
         }
 
-        private static byte[] CanonicalizeSignatureValue(XmlElement signatureValue, string? algorithm) {
+        private static byte[] CanonicalizeSignatureValue(
+            XmlElement signatureValue,
+            string? algorithm,
+            string? inclusiveNamespacesPrefixList = null) {
             var input = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
             XmlElement imported = (XmlElement)input.ImportNode(signatureValue, deep: true);
             imported.SetAttribute("xmlns", SignedXml.XmlDsigNamespaceUrl);
             input.AppendChild(imported);
-            Transform transform = algorithm == SignedXml.XmlDsigExcC14NTransformUrl
-                ? new XmlDsigExcC14NTransform()
-                : new XmlDsigC14NTransform();
+            Transform transform;
+            if (algorithm == SignedXml.XmlDsigExcC14NTransformUrl ||
+                algorithm == SignedXml.XmlDsigExcC14NWithCommentsTransformUrl) {
+                transform = new XmlDsigExcC14NTransform(
+                    includeComments: algorithm == SignedXml.XmlDsigExcC14NWithCommentsTransformUrl) {
+                    InclusiveNamespacesPrefixList = inclusiveNamespacesPrefixList
+                };
+            } else {
+                transform = new XmlDsigC14NTransform();
+            }
             transform.LoadInput(input);
             using Stream canonical = (Stream)transform.GetOutput(typeof(Stream));
             using var output = new MemoryStream();

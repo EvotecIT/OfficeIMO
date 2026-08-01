@@ -93,11 +93,20 @@ namespace OfficeIMO.Word {
             while (timestampProperty != null && !timestampProperty.LocalName.Equals("SignatureTimeStamp", StringComparison.Ordinal)) {
                 timestampProperty = timestampProperty.ParentNode as XmlElement;
             }
-            string algorithm = timestampProperty?
+            XmlElement? canonicalizationMethod = timestampProperty?
                 .ChildNodes
                 .OfType<XmlElement>()
-                .FirstOrDefault(element => element.LocalName.Equals("CanonicalizationMethod", StringComparison.Ordinal))?
-                .GetAttribute("Algorithm") ?? SignedXml.XmlDsigC14NTransformUrl;
+                .FirstOrDefault(element =>
+                    element.LocalName.Equals("CanonicalizationMethod", StringComparison.Ordinal) &&
+                    element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl);
+            string algorithm = canonicalizationMethod?.GetAttribute("Algorithm") ?? SignedXml.XmlDsigC14NTransformUrl;
+            string? inclusiveNamespacesPrefixList = canonicalizationMethod?
+                .ChildNodes
+                .OfType<XmlElement>()
+                .FirstOrDefault(element =>
+                    element.LocalName.Equals("InclusiveNamespaces", StringComparison.Ordinal) &&
+                    element.NamespaceURI == SignedXml.XmlDsigExcC14NTransformUrl)?
+                .GetAttribute("PrefixList");
 
             Transform transform;
             switch (algorithm) {
@@ -108,10 +117,14 @@ namespace OfficeIMO.Word {
                     transform = new XmlDsigC14NWithCommentsTransform();
                     break;
                 case SignedXml.XmlDsigExcC14NTransformUrl:
-                    transform = new XmlDsigExcC14NTransform();
+                    transform = new XmlDsigExcC14NTransform {
+                        InclusiveNamespacesPrefixList = inclusiveNamespacesPrefixList
+                    };
                     break;
                 case SignedXml.XmlDsigExcC14NWithCommentsTransformUrl:
-                    transform = new XmlDsigExcC14NTransform(includeComments: true);
+                    transform = new XmlDsigExcC14NTransform(includeComments: true) {
+                        InclusiveNamespacesPrefixList = inclusiveNamespacesPrefixList
+                    };
                     break;
                 default:
                     throw new NotSupportedException("XAdES timestamp canonicalization method " + algorithm + " is not supported.");

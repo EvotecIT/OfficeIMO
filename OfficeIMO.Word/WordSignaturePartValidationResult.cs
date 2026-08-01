@@ -82,9 +82,14 @@ namespace OfficeIMO.Word {
         /// <summary>Gets stable validation findings for this signature part.</summary>
         public IReadOnlyList<WordSignatureValidationFinding> Findings { get; }
 
-        /// <summary>Gets whether signature math and signer trust passed without a failed revocation or timestamp check.</summary>
+        /// <summary>Gets whether signature math, package-reference digests, and signer trust passed without a failed revocation or timestamp check.</summary>
         public bool IsValidUnderPolicy =>
             CryptographicStatus == WordSignatureValidationState.Passed &&
+            SignaturePart.SignedReferences.Count > 0 &&
+            SignaturePart.SignedReferences.All(reference =>
+                reference.IsPackagePartReference &&
+                reference.TargetPartExists == true &&
+                reference.DigestVerificationStatus == WordSignatureValidationState.Passed) &&
             CertificateChainStatus == WordSignatureValidationState.Passed &&
             RevocationStatus != WordSignatureValidationState.Failed &&
             (!RevocationCheckRequired || RevocationStatus == WordSignatureValidationState.Passed) &&
