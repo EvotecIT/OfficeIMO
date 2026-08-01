@@ -200,25 +200,38 @@ namespace OfficeIMO.Tests {
             string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "DigitalSignatures", "signed-valid.docx"));
             using WordDocument document = WordDocument.Load(sourcePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
+            bool defaultChainEvaluated = false;
             bool? defaultDisableCertificateDownloads = null;
             var defaultOptions = new WordSignatureValidationOptions();
             defaultOptions.CertificateValidation.ChainEvaluator = (_, chain) => {
-                defaultDisableCertificateDownloads = chain.ChainPolicy.DisableCertificateDownloads;
+                defaultChainEvaluated = true;
+                defaultDisableCertificateDownloads = ReadDisableCertificateDownloads(chain.ChainPolicy);
                 return true;
             };
-            document.ValidateSignatures(defaultOptions);
+            WordSignatureValidationReport defaultValidation = document.ValidateSignatures(defaultOptions);
 
+            bool optInChainEvaluated = false;
             bool? optedInDisableCertificateDownloads = null;
             var optInOptions = new WordSignatureValidationOptions();
             optInOptions.CertificateValidation.DisableCertificateDownloads = false;
             optInOptions.CertificateValidation.ChainEvaluator = (_, chain) => {
-                optedInDisableCertificateDownloads = chain.ChainPolicy.DisableCertificateDownloads;
+                optInChainEvaluated = true;
+                optedInDisableCertificateDownloads = ReadDisableCertificateDownloads(chain.ChainPolicy);
                 return true;
             };
             document.ValidateSignatures(optInOptions);
 
-            Assert.True(defaultDisableCertificateDownloads);
-            Assert.False(optedInDisableCertificateDownloads);
+            if (typeof(X509ChainPolicy).GetProperty("DisableCertificateDownloads") != null) {
+                Assert.True(defaultChainEvaluated);
+                Assert.True(optInChainEvaluated);
+                Assert.True(defaultDisableCertificateDownloads);
+                Assert.False(optedInDisableCertificateDownloads);
+            } else {
+                Assert.False(defaultChainEvaluated);
+                Assert.True(optInChainEvaluated);
+                Assert.Contains(defaultValidation.Diagnostics, finding =>
+                    finding.Code == "CertificateDownloadPolicyUnavailable");
+            }
         }
 
         [Fact]
@@ -1614,6 +1627,12 @@ namespace OfficeIMO.Tests {
             using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadWrite);
             store.Add(certificate);
+        }
+
+        private static bool? ReadDisableCertificateDownloads(X509ChainPolicy policy) {
+            System.Reflection.PropertyInfo? property = typeof(X509ChainPolicy).GetProperty("DisableCertificateDownloads");
+            object? value = property?.GetValue(policy, null);
+            return value is bool result ? result : null;
         }
 
         private static void RemoveCertificateFromCurrentUserStore(string? thumbprint) {
