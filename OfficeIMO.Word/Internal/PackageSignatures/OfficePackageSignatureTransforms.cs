@@ -6,6 +6,11 @@ using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Word {
+    /// <summary>Reports that bounded OPC archive inspection stopped at a caller-owned resource limit.</summary>
+    internal sealed class OfficePackageSignatureResourceLimitException : IOException {
+        internal OfficePackageSignatureResourceLimitException(string message) : base(message) { }
+    }
+
     /// <summary>Bounded OPC archive reader and transform-aware signature digest engine.</summary>
     internal sealed class OfficePackageSignatureArchive : IDisposable {
         internal const string RelationshipTransformAlgorithm = "http://schemas.openxmlformats.org/package/2006/RelationshipTransform";
@@ -25,7 +30,8 @@ namespace OfficeIMO.Word {
             _stream = new MemoryStream(packageBytes, writable: false);
             _archive = new ZipArchive(_stream, ZipArchiveMode.Read, leaveOpen: false);
             if (_archive.Entries.Count > maxParts) {
-                throw new InvalidDataException("The OPC package contains more than " + maxParts + " ZIP entries.");
+                throw new OfficePackageSignatureResourceLimitException(
+                    "The OPC package contains more than " + maxParts + " ZIP entries.");
             }
 
             _entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);

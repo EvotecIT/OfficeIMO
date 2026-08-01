@@ -13,7 +13,8 @@ namespace OfficeIMO.Word {
             bool hasApplicationSignatureMetadata,
             IReadOnlyList<WordSignaturePartInfo> signatureParts,
             IReadOnlyList<string> unsupportedDetails,
-            IReadOnlyList<string> details) {
+            IReadOnlyList<string> details,
+            bool inspectionResourceLimitExceeded = false) {
             HasDigitalSignatureOriginPart = hasDigitalSignatureOriginPart;
             OriginPartUri = originPartUri;
             OriginRelationshipId = originRelationshipId;
@@ -21,6 +22,7 @@ namespace OfficeIMO.Word {
             SignatureParts = signatureParts;
             UnsupportedDetails = unsupportedDetails;
             Details = details;
+            InspectionResourceLimitExceeded = inspectionResourceLimitExceeded;
         }
 
         /// <summary>
@@ -63,6 +65,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<string> Details { get; }
 
+        /// <summary>Gets whether bounded inspection stopped before package-part traversal at a caller-owned resource limit.</summary>
+        internal bool InspectionResourceLimitExceeded { get; }
+
         /// <summary>
         /// Gets a count suitable for feature-report findings.
         /// </summary>
@@ -79,7 +84,8 @@ namespace OfficeIMO.Word {
                 packageInfo.HasApplicationSignatureMetadata,
                 packageInfo.SignatureParts.Select(WordSignaturePartInfo.FromPackagePart).ToArray(),
                 packageInfo.UnsupportedDetails,
-                packageInfo.Details);
+                packageInfo.Details,
+                packageInfo.InspectionResourceLimitExceeded);
         }
     }
 

@@ -60,7 +60,8 @@ namespace OfficeIMO.Word {
                 .ToArray();
             if (content.SelectMany(element => element.GetAttributes()).Any(IsThemeAttribute)) return true;
             if (content.OfType<Run>().Any() &&
-                ContainsThemeAttribute(mainPart.StyleDefinitionsPart?.Styles?.DocDefaults)) return true;
+                (ContainsThemeAttribute(mainPart.StyleDefinitionsPart?.Styles?.DocDefaults) ||
+                 ContainsThemeAttribute(mainPart.StylesWithEffectsPart?.Styles?.DocDefaults))) return true;
 
             var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (OpenXmlElement element in content) {
@@ -85,21 +86,14 @@ namespace OfficeIMO.Word {
             if (content.OfType<Table>().Any(table => table.TableProperties?.TableStyle?.Val?.Value == null)) {
                 AddDefaultStyleIds(styles, StyleValues.Table, usedStyleIds);
             }
-            Dictionary<string, Style> stylesById = styles
+            ILookup<string, Style> stylesById = styles
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
-            var inspectedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string usedStyleId in usedStyleIds) {
-                string? currentStyleId = usedStyleId;
-                while (!string.IsNullOrWhiteSpace(currentStyleId) && inspectedStyleIds.Add(currentStyleId!)) {
-                    if (!stylesById.TryGetValue(currentStyleId!, out Style? style)) break;
-                    if (new[] { style }.Concat(style.Descendants())
-                        .SelectMany(element => element.GetAttributes()).Any(IsThemeAttribute)) return true;
-                    currentStyleId = style.BasedOn?.Val?.Value;
-                }
-            }
-            return false;
+                .ToLookup(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase);
+            return ContainsStyleShape(
+                usedStyleIds,
+                stylesById,
+                style => new[] { style }.Concat(style.Descendants())
+                    .SelectMany(element => element.GetAttributes()).Any(IsThemeAttribute));
         }
 
         private static void AddDefaultStyleIds(
@@ -143,17 +137,29 @@ namespace OfficeIMO.Word {
             }
             if (usedTableStyleIds.Count == 0) return false;
 
-            Dictionary<string, Style> stylesById = styles
+            ILookup<string, Style> stylesById = styles
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                .ToLookup(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase);
+            return ContainsStyleShape(
+                usedTableStyleIds,
+                stylesById,
+                style => style.Elements<TableStyleProperties>().Any());
+        }
+
+        private static bool ContainsStyleShape(
+            IEnumerable<string> initialStyleIds,
+            ILookup<string, Style> stylesById,
+            Func<Style, bool> containsShape) {
+            var pendingStyleIds = new Stack<string>(initialStyleIds);
             var inspectedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string usedStyleId in usedTableStyleIds) {
-                string? currentStyleId = usedStyleId;
-                while (!string.IsNullOrWhiteSpace(currentStyleId) && inspectedStyleIds.Add(currentStyleId!)) {
-                    if (!stylesById.TryGetValue(currentStyleId!, out Style? style)) break;
-                    if (style.Elements<TableStyleProperties>().Any()) return true;
-                    currentStyleId = style.BasedOn?.Val?.Value;
+            while (pendingStyleIds.Count > 0) {
+                string styleId = pendingStyleIds.Pop();
+                if (!inspectedStyleIds.Add(styleId)) continue;
+
+                foreach (Style style in stylesById[styleId]) {
+                    if (containsShape(style)) return true;
+                    string? baseStyleId = style.BasedOn?.Val?.Value;
+                    if (!string.IsNullOrWhiteSpace(baseStyleId)) pendingStyleIds.Push(baseStyleId!);
                 }
             }
             return false;

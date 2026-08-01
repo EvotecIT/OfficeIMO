@@ -726,7 +726,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_DigitalSignature_ArchivePartLimitDisablesFallbackDigestInspection() {
+        public void Test_DigitalSignature_ArchivePartLimitStopsInspectionBeforePackageTraversal() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureArchivePartLimit.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Bounded archive failure must stop digest work");
@@ -740,10 +740,13 @@ namespace OfficeIMO.Tests {
                 MaxPackageParts = 1
             });
 
-            WordSignatureReferenceInfo reference = Assert.Single(Assert.Single(validation.SignatureInfo.SignatureParts).SignedReferences);
-            Assert.Equal(WordSignatureValidationState.Unsupported, reference.DigestVerificationStatus);
-            Assert.Contains("bounded OPC archive", reference.DigestVerificationDetail!, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(validation.SignatureInfo.SignatureParts);
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+
+            WordSignatureValidationReport permissive = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                MaxPackageParts = 10000
+            });
+            Assert.Single(permissive.SignatureInfo.SignatureParts);
         }
 
         [Fact]

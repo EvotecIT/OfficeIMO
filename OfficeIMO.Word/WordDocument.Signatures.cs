@@ -110,6 +110,13 @@ namespace OfficeIMO.Word {
                 options.MaxCertificateBytes,
                 options.MaxTotalCertificateBytes);
             WordSignatureValidationReport structural = WordSignatureValidationReport.From(signatureInfo);
+            if (signatureInfo.InspectionResourceLimitExceeded) {
+                return WordSignatureValidationReport.WithValidationFailure(
+                    structural,
+                    "SignatureResourceLimitExceeded",
+                    signatureInfo.UnsupportedDetails.FirstOrDefault() ??
+                    "Digital-signature inspection stopped at the configured package resource limit.");
+            }
             if (!signatureInfo.HasSignatures || validationOriginPart == null) {
                 return structural;
             }

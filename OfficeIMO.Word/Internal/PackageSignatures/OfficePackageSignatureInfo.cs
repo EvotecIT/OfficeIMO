@@ -27,7 +27,8 @@ namespace OfficeIMO.Word {
             bool hasApplicationSignatureMetadata,
             IReadOnlyList<OfficePackageSignaturePartInfo> signatureParts,
             IReadOnlyList<string> unsupportedDetails,
-            IReadOnlyList<string> details) {
+            IReadOnlyList<string> details,
+            bool inspectionResourceLimitExceeded = false) {
             HasDigitalSignatureOriginPart = hasDigitalSignatureOriginPart;
             OriginPartUri = originPartUri;
             OriginRelationshipId = originRelationshipId;
@@ -35,6 +36,7 @@ namespace OfficeIMO.Word {
             SignatureParts = signatureParts;
             UnsupportedDetails = unsupportedDetails;
             Details = details;
+            InspectionResourceLimitExceeded = inspectionResourceLimitExceeded;
         }
 
         /// <summary>Gets whether any package signature metadata was found.</summary>
@@ -60,6 +62,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets human-readable package details suitable for feature reports.</summary>
         public IReadOnlyList<string> Details { get; }
+
+        /// <summary>Gets whether inspection stopped before package-part traversal at a caller-owned resource limit.</summary>
+        internal bool InspectionResourceLimitExceeded { get; }
     }
 
     /// <summary>
@@ -240,6 +245,19 @@ namespace OfficeIMO.Word {
             if (packageBytes != null) {
                 try {
                     signatureArchive = new OfficePackageSignatureArchive(packageBytes, maxPackageParts);
+                } catch (OfficePackageSignatureResourceLimitException ex) {
+                    digestInspectionUnavailableDetail = "Digest inspection was not performed because the bounded OPC archive could not be opened: " + ex.Message;
+                    unsupportedDetails.Add(digestInspectionUnavailableDetail);
+                    details.Add("Digital-signature inspection stopped before Open XML package-part traversal because the bounded OPC archive could not be opened.");
+                    return new OfficePackageSignatureInfo(
+                        originPart != null,
+                        originPart?.Uri.ToString(),
+                        originRelationshipId: null,
+                        hasApplicationSignatureMetadata,
+                        Array.Empty<OfficePackageSignaturePartInfo>(),
+                        unsupportedDetails,
+                        details,
+                        inspectionResourceLimitExceeded: true);
                 } catch (Exception ex) when (ex is IOException || ex is InvalidDataException) {
                     digestInspectionUnavailableDetail = "Digest inspection was not performed because the bounded OPC archive could not be opened: " + ex.Message;
                     unsupportedDetails.Add(digestInspectionUnavailableDetail);
