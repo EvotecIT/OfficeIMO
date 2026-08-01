@@ -194,9 +194,17 @@ namespace OfficeIMO.Word {
                 MaxPackageParts = signingOptions.MaxPackageParts,
                 MaxPartBytes = signingOptions.MaxPartBytes,
                 MaxSignedReferences = signingOptions.MaxSignedReferences,
-                MaxTotalDigestBytes = signingOptions.MaxTotalDigestBytes
+                MaxTotalDigestBytes = signingOptions.MaxTotalDigestBytes,
+                MaxCertificates = signingOptions.MaxCertificates,
+                MaxCertificateBytes = signingOptions.MaxCertificateBytes,
+                MaxTotalCertificateBytes = Math.Max(
+                    WordSignatureValidationOptions.DefaultMaxTotalCertificateBytes,
+                    MultiplyLimit(signingOptions.MaxTotalCertificateBytes, Math.Max(1, signatureCount)))
             };
         }
+
+        private static long MultiplyLimit(long value, int multiplier) =>
+            value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
 
         private byte[] CreateSignatureValidationSnapshot(long maxPackageBytes) {
             if (_ownedPackageStream == null) {

@@ -27,6 +27,9 @@ namespace OfficeIMO.Word {
         public long MaxPartBytes { get; set; } = 256L * 1024 * 1024;
         public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;
         public int MaxSignedReferences { get; set; } = 4096;
+        public int MaxCertificates { get; set; } = 64;
+        public long MaxCertificateBytes { get; set; } = 4L * 1024 * 1024;
+        public long MaxTotalCertificateBytes { get; set; } = 64L * 1024 * 1024;
     }
 
     /// <summary>Result of an attempted Open Packaging Convention package-signing operation.</summary>
@@ -80,6 +83,9 @@ namespace OfficeIMO.Word {
             if (options.MaxPartBytes <= 0) return Failed(fullPath, "MaxPartBytes must be greater than zero.");
             if (options.MaxTotalDigestBytes <= 0) return Failed(fullPath, "MaxTotalDigestBytes must be greater than zero.");
             if (options.MaxSignedReferences <= 0) return Failed(fullPath, "MaxSignedReferences must be greater than zero.");
+            if (options.MaxCertificates <= 0) return Failed(fullPath, "MaxCertificates must be greater than zero.");
+            if (options.MaxCertificateBytes <= 0) return Failed(fullPath, "MaxCertificateBytes must be greater than zero.");
+            if (options.MaxTotalCertificateBytes <= 0) return Failed(fullPath, "MaxTotalCertificateBytes must be greater than zero.");
             long packageLength = new FileInfo(fullPath).Length;
             if (packageLength > options.MaxPackageBytes) {
                 return Failed(fullPath, "The package exceeds the " + options.MaxPackageBytes + " byte signing limit.");
@@ -90,6 +96,7 @@ namespace OfficeIMO.Word {
                 if (!certificate.HasPrivateKey) return Failed(fullPath, "The signing certificate must include a private key.");
                 using RSA? signingKey = certificate.GetRSAPrivateKey();
                 if (signingKey == null) return Failed(fullPath, "OPC package signing requires an RSA certificate with an accessible private key.");
+                ValidateSigningCertificates(certificate, options);
 
                 stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
                 File.Copy(fullPath, stagingPath, overwrite: false);
@@ -129,6 +136,36 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("The signed package exceeds the " + options.MaxPackageBytes + " byte signing limit.");
             }
             using var archive = new OfficePackageSignatureArchive(File.ReadAllBytes(packagePath), options.MaxPackageParts);
+        }
+
+        private static void ValidateSigningCertificates(X509Certificate2 signer, OfficePackageSigningOptions options) {
+            var thumbprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int certificateCount = 0;
+            long totalCertificateBytes = 0;
+
+            ValidateCertificate(signer);
+            if (options.AdditionalCertificates != null) {
+                foreach (X509Certificate2 additional in options.AdditionalCertificates) {
+                    if (additional != null) ValidateCertificate(additional);
+                }
+            }
+
+            void ValidateCertificate(X509Certificate2 certificate) {
+                string identity = certificate.Thumbprint ?? Convert.ToBase64String(certificate.RawData);
+                if (!thumbprints.Add(identity)) return;
+                certificateCount++;
+                if (certificateCount > options.MaxCertificates) {
+                    throw new InvalidDataException("The signing certificate set exceeds the " + options.MaxCertificates + " certificate limit.");
+                }
+                long certificateBytes = certificate.RawData.LongLength;
+                if (certificateBytes > options.MaxCertificateBytes) {
+                    throw new InvalidDataException("A signing certificate exceeds the " + options.MaxCertificateBytes + " byte limit.");
+                }
+                if (certificateBytes > options.MaxTotalCertificateBytes - totalCertificateBytes) {
+                    throw new InvalidDataException("The signing certificate set exceeds the " + options.MaxTotalCertificateBytes + " byte aggregate certificate limit.");
+                }
+                totalCertificateBytes += certificateBytes;
+            }
         }
 
         private static void PrepareDigitalSignatureMetadata(string packagePath) {

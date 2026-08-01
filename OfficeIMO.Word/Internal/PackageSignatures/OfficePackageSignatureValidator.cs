@@ -24,6 +24,12 @@ namespace OfficeIMO.Word {
             SignedXml.XmlDsigExcC14NWithCommentsTransformUrl,
             SignedXml.XmlDsigEnvelopedSignatureTransformUrl
         };
+        private static readonly HashSet<string> SupportedSignedInfoCanonicalizationMethods = new(StringComparer.Ordinal) {
+            SignedXml.XmlDsigC14NTransformUrl,
+            SignedXml.XmlDsigC14NWithCommentsTransformUrl,
+            SignedXml.XmlDsigExcC14NTransformUrl,
+            SignedXml.XmlDsigExcC14NWithCommentsTransformUrl
+        };
 
         internal static IReadOnlyList<WordSignaturePartValidationResult> Validate(
             DigitalSignatureOriginPart? originPart,
@@ -67,6 +73,7 @@ namespace OfficeIMO.Word {
             var findings = new List<WordSignatureValidationFinding>();
             var timestampResults = new List<Rfc3161TimestampVerificationResult>();
             var certificates = new List<X509Certificate2>();
+            bool revocationCheckRequired = options.CertificateValidation.RevocationMode != X509RevocationMode.NoCheck;
             try {
                 byte[] signatureBytes = archive.ReadPart(signaturePartInfo.Uri, options.MaxSignatureBytes);
                 XmlDocument document = LoadXml(signatureBytes, options.MaxSignatureBytes);
@@ -164,6 +171,7 @@ namespace OfficeIMO.Word {
                     cryptographicStatus,
                     certificateStatus,
                     revocationStatus,
+                    revocationCheckRequired,
                     timestampStatus,
                     certificateValidation,
                     timestampResults.ToArray(),
@@ -176,6 +184,7 @@ namespace OfficeIMO.Word {
                     WordSignatureValidationState.Failed,
                     WordSignatureValidationState.NotChecked,
                     WordSignatureValidationState.NotChecked,
+                    revocationCheckRequired,
                     WordSignatureValidationState.NotChecked,
                     null,
                     timestampResults.ToArray(),
@@ -188,6 +197,7 @@ namespace OfficeIMO.Word {
                     WordSignatureValidationState.Failed,
                     WordSignatureValidationState.NotChecked,
                     WordSignatureValidationState.NotChecked,
+                    revocationCheckRequired,
                     WordSignatureValidationState.NotChecked,
                     null,
                     timestampResults.ToArray(),
@@ -226,6 +236,14 @@ namespace OfficeIMO.Word {
             List<WordSignatureValidationFinding> findings,
             out X509Certificate2? signer) {
             signer = null;
+            if (!HasSupportedSignedInfoCanonicalizationMethod(signatureElement, out string? unsupportedCanonicalization)) {
+                findings.Add(Finding(
+                    "UnsupportedSignedInfoCanonicalizationMethod",
+                    WordSignatureValidationState.Unsupported,
+                    "SignedInfo canonicalization method '" + unsupportedCanonicalization + "' is outside the supported canonicalization profile.",
+                    signaturePartUri));
+                return WordSignatureValidationState.Unsupported;
+            }
             if (!HasOnlySupportedSignedInfoReferenceTransforms(signatureElement, out string? unsupportedTransform)) {
                 findings.Add(Finding(
                     "UnsupportedSignedInfoTransform",
@@ -305,6 +323,28 @@ namespace OfficeIMO.Word {
             return true;
         }
 
+        private static bool HasSupportedSignedInfoCanonicalizationMethod(
+            XmlElement signatureElement,
+            out string? unsupportedCanonicalization) {
+            XmlElement? signedInfo = signatureElement.ChildNodes
+                .OfType<XmlElement>()
+                .FirstOrDefault(element =>
+                    element.LocalName == "SignedInfo" &&
+                    element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl);
+            XmlElement? canonicalization = signedInfo?.ChildNodes
+                .OfType<XmlElement>()
+                .FirstOrDefault(element =>
+                    element.LocalName == "CanonicalizationMethod" &&
+                    element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl);
+            string algorithm = canonicalization?.GetAttribute("Algorithm").Trim() ?? string.Empty;
+            if (SupportedSignedInfoCanonicalizationMethods.Contains(algorithm)) {
+                unsupportedCanonicalization = null;
+                return true;
+            }
+            unsupportedCanonicalization = algorithm;
+            return false;
+        }
+
         private static AsymmetricAlgorithm? GetPublicKey(X509Certificate2 certificate) {
             AsymmetricAlgorithm? publicKey = certificate.GetRSAPublicKey();
             publicKey ??= certificate.GetECDsaPublicKey();
@@ -337,11 +377,11 @@ namespace OfficeIMO.Word {
             OfficePackageCertificateByteBudget certificateByteBudget,
             List<WordSignatureValidationFinding> findings) {
             var result = new List<X509Certificate2>();
-            XmlNodeList embedded = signatureXml.GetElementsByTagName("X509Certificate", SignedXml.XmlDsigNamespaceUrl);
+            IReadOnlyList<XmlElement> embedded = GetEmbeddedSignerCertificateElements(signatureXml);
             if (embedded.Count > maxCertificates) {
                 throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
             }
-            foreach (XmlElement element in embedded.OfType<XmlElement>()) {
+            foreach (XmlElement element in embedded) {
                 TryAddCertificate(element.InnerText, "embedded X509Certificate", maxCertificateBytes, certificateByteBudget, result, findings, signaturePart.Uri.ToString());
             }
 
@@ -368,6 +408,19 @@ namespace OfficeIMO.Word {
                 }
             }
             return result;
+        }
+
+        private static IReadOnlyList<XmlElement> GetEmbeddedSignerCertificateElements(XmlDocument signatureXml) {
+            XmlElement? signature = signatureXml.DocumentElement;
+            if (signature == null) return Array.Empty<XmlElement>();
+            return signature.ChildNodes
+                .OfType<XmlElement>()
+                .Where(element => element.LocalName == "KeyInfo" && element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl)
+                .SelectMany(keyInfo => keyInfo.ChildNodes.OfType<XmlElement>())
+                .Where(element => element.LocalName == "X509Data" && element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl)
+                .SelectMany(x509Data => x509Data.ChildNodes.OfType<XmlElement>())
+                .Where(element => element.LocalName == "X509Certificate" && element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl)
+                .ToArray();
         }
 
         private static void TryAddCertificate(
@@ -660,6 +713,7 @@ namespace OfficeIMO.Word {
                 WordSignatureValidationState.Failed,
                 WordSignatureValidationState.NotChecked,
                 WordSignatureValidationState.NotChecked,
+                false,
                 WordSignatureValidationState.NotChecked,
                 null,
                 Array.Empty<Rfc3161TimestampVerificationResult>(),

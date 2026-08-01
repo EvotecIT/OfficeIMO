@@ -3,6 +3,7 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Word {
     /// <summary>Trust, revocation, timestamp, and resource policy for OPC XML-signature validation.</summary>
     public sealed class WordSignatureValidationOptions {
+        internal const long DefaultMaxTotalCertificateBytes = 64L * 1024 * 1024;
         /// <summary>Gets signer certificate-chain and revocation policy.</summary>
         public CertificateValidationOptions CertificateValidation { get; } = new CertificateValidationOptions();
 
@@ -43,7 +44,7 @@ namespace OfficeIMO.Word {
         public long MaxCertificateBytes { get; set; } = 4L * 1024 * 1024;
 
         /// <summary>Gets or sets the maximum aggregate certificate bytes decoded or read across all signature parts. Defaults to 64 MiB.</summary>
-        public long MaxTotalCertificateBytes { get; set; } = 64L * 1024 * 1024;
+        public long MaxTotalCertificateBytes { get; set; } = DefaultMaxTotalCertificateBytes;
 
         /// <summary>Gets or sets the maximum RFC 3161 timestamp-token count per signature. Defaults to 16.</summary>
         public int MaxTimestampTokens { get; set; } = 16;

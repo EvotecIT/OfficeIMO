@@ -39,6 +39,7 @@ namespace OfficeIMO.Word {
             WordSignatureValidationState cryptographicStatus,
             WordSignatureValidationState certificateChainStatus,
             WordSignatureValidationState revocationStatus,
+            bool revocationCheckRequired,
             WordSignatureValidationState timestampStatus,
             CertificateValidationResult? certificateValidation,
             IReadOnlyList<Rfc3161TimestampVerificationResult> timestampTokens,
@@ -47,6 +48,7 @@ namespace OfficeIMO.Word {
             CryptographicStatus = cryptographicStatus;
             CertificateChainStatus = certificateChainStatus;
             RevocationStatus = revocationStatus;
+            RevocationCheckRequired = revocationCheckRequired;
             TimestampStatus = timestampStatus;
             CertificateValidation = certificateValidation;
             TimestampTokens = timestampTokens;
@@ -65,6 +67,9 @@ namespace OfficeIMO.Word {
         /// <summary>Gets signer certificate revocation status under caller policy.</summary>
         public WordSignatureValidationState RevocationStatus { get; }
 
+        /// <summary>Gets whether caller policy required a conclusive signer revocation check.</summary>
+        public bool RevocationCheckRequired { get; }
+
         /// <summary>Gets combined RFC 3161 timestamp-token status.</summary>
         public WordSignatureValidationState TimestampStatus { get; }
 
@@ -82,6 +87,7 @@ namespace OfficeIMO.Word {
             CryptographicStatus == WordSignatureValidationState.Passed &&
             CertificateChainStatus == WordSignatureValidationState.Passed &&
             RevocationStatus != WordSignatureValidationState.Failed &&
+            (!RevocationCheckRequired || RevocationStatus == WordSignatureValidationState.Passed) &&
             TimestampStatus != WordSignatureValidationState.Failed &&
             TimestampStatus != WordSignatureValidationState.Unsupported;
     }

@@ -376,17 +376,21 @@ namespace OfficeIMO.Word {
                     .Select(reference => reference.DigestVerificationDetail)
                     .Where(detail => !string.IsNullOrWhiteSpace(detail))
                     .Select(detail => detail!));
-                subjectNames.AddRange(xml.Descendants(ds + "X509SubjectName")
+                IReadOnlyList<XElement> x509DataElements = GetSignerX509DataElements(xml, ds);
+                subjectNames.AddRange(x509DataElements.SelectMany(element => element.Elements(ds + "X509SubjectName"))
                     .Select(element => element.Value.Trim())
                     .Where(value => value.Length > 0)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
-                int embeddedCertificateCount = xml.Descendants(ds + "X509Certificate").Count();
+                IReadOnlyList<XElement> embeddedCertificates = x509DataElements
+                    .SelectMany(element => element.Elements(ds + "X509Certificate"))
+                    .ToArray();
+                int embeddedCertificateCount = embeddedCertificates.Count;
                 int relatedCertificateCount = signaturePart.Parts.Count(relationship => IsSignatureCertificatePart(relationship.OpenXmlPart));
                 if (embeddedCertificateCount + relatedCertificateCount > maxCertificates) {
                     throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
                 }
-                subjectNames.AddRange(ReadEmbeddedCertificateSubjects(xml, ds, signaturePart.Uri.ToString(), maxCertificateBytes, certificateByteBudget, unsupportedDetails));
+                subjectNames.AddRange(ReadEmbeddedCertificateSubjects(embeddedCertificates, signaturePart.Uri.ToString(), maxCertificateBytes, certificateByteBudget, unsupportedDetails));
                 subjectNames.AddRange(ReadRelatedCertificateSubjects(signaturePart, maxCertificateBytes, certificateByteBudget, unsupportedDetails));
                 timestamps = timestamps
                     .OrderBy(timestamp => timestamp.Kind, StringComparer.OrdinalIgnoreCase)
@@ -531,120 +535,6 @@ namespace OfficeIMO.Word {
             }
 
             return value!.Trim();
-        }
-
-        private static IEnumerable<string> ReadEmbeddedCertificateSubjects(
-            XDocument xml,
-            XNamespace ds,
-            string signaturePartUri,
-            long maxCertificateBytes,
-            OfficePackageCertificateByteBudget certificateByteBudget,
-            List<string> unsupportedDetails) {
-            foreach (XElement element in xml.Descendants(ds + "X509Certificate")) {
-                string certificateText = element.Value.Trim();
-                if (certificateText.Length == 0) {
-                    continue;
-                }
-
-                byte[] rawCertificate;
-                try {
-                    if (certificateText.Length > GetMaxBase64EncodedCharacters(maxCertificateBytes)) {
-                        throw new InvalidDataException("The embedded X509Certificate exceeds the " + maxCertificateBytes + " byte limit.");
-                    }
-                    rawCertificate = Convert.FromBase64String(certificateText);
-                    if (rawCertificate.LongLength > maxCertificateBytes) {
-                        throw new InvalidDataException("The embedded X509Certificate exceeds the " + maxCertificateBytes + " byte limit.");
-                    }
-                    certificateByteBudget.Reserve(rawCertificate.LongLength);
-                } catch (FormatException ex) {
-                    unsupportedDetails.Add("Unable to parse X509Certificate in XML signature part " + signaturePartUri + ": " + ex.Message);
-                    continue;
-                }
-
-                string? subject = ReadCertificateSubject(rawCertificate, "embedded X509Certificate in XML signature part " + signaturePartUri, unsupportedDetails);
-                if (!string.IsNullOrWhiteSpace(subject)) {
-                    yield return subject!;
-                }
-            }
-        }
-
-        private static IEnumerable<string> ReadRelatedCertificateSubjects(
-            XmlSignaturePart signaturePart,
-            long maxCertificateBytes,
-            OfficePackageCertificateByteBudget certificateByteBudget,
-            List<string> unsupportedDetails) {
-            foreach (IdPartPair relationship in signaturePart.Parts) {
-                OpenXmlPart relatedPart = relationship.OpenXmlPart;
-                if (!IsSignatureCertificatePart(relatedPart)) {
-                    continue;
-                }
-
-                byte[] rawCertificate;
-                try {
-                    using Stream stream = relatedPart.GetStream(FileMode.Open, FileAccess.Read);
-                    if (stream.CanSeek && stream.Length > maxCertificateBytes) {
-                        throw new InvalidDataException("The signature certificate part exceeds the " + maxCertificateBytes + " byte limit.");
-                    }
-                    using var memoryStream = new MemoryStream();
-                    CopyBounded(stream, memoryStream, maxCertificateBytes);
-                    rawCertificate = memoryStream.ToArray();
-                    certificateByteBudget.Reserve(rawCertificate.LongLength);
-                } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException) {
-                    unsupportedDetails.Add("Unable to read signature certificate part " + relatedPart.Uri + ": " + ex.Message);
-                    continue;
-                }
-
-                string? subject = ReadCertificateSubject(rawCertificate, "signature certificate part " + relatedPart.Uri, unsupportedDetails);
-                if (!string.IsNullOrWhiteSpace(subject)) {
-                    yield return subject!;
-                }
-            }
-        }
-
-        private static bool IsSignatureCertificatePart(OpenXmlPart part) {
-            return part.RelationshipType.EndsWith("/digital-signature/certificate", StringComparison.OrdinalIgnoreCase) ||
-                   part.Uri.ToString().EndsWith(".cer", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static string? ReadCertificateSubject(byte[] rawCertificate, string source, List<string> unsupportedDetails) {
-            try {
-                using X509Certificate2 certificate = LoadCertificate(rawCertificate);
-                string subjectName = certificate.SubjectName.Name ?? certificate.Subject;
-                if (!string.IsNullOrWhiteSpace(subjectName)) {
-                    return subjectName.Trim();
-                }
-            } catch (CryptographicException ex) {
-                unsupportedDetails.Add("Unable to parse X509 certificate from " + source + ": " + ex.Message);
-            }
-
-            return null;
-        }
-
-        private static X509Certificate2 LoadCertificate(byte[] rawCertificate) {
-#if NET9_0_OR_GREATER
-            return X509CertificateLoader.LoadCertificate(rawCertificate);
-#else
-            return new X509Certificate2(rawCertificate);
-#endif
-        }
-
-        private static long GetMaxBase64EncodedCharacters(long maxDecodedBytes) {
-            return maxDecodedBytes > (long.MaxValue / 4L) * 3L
-                ? long.MaxValue
-                : ((maxDecodedBytes + 2L) / 3L) * 4L;
-        }
-
-        private static void CopyBounded(Stream source, Stream destination, long maxBytes) {
-            byte[] buffer = new byte[81920];
-            long total = 0;
-            int read;
-            while ((read = source.Read(buffer, 0, buffer.Length)) > 0) {
-                total += read;
-                if (total > maxBytes) {
-                    throw new InvalidDataException("The signature certificate part exceeds the " + maxBytes + " byte limit.");
-                }
-                destination.Write(buffer, 0, read);
-            }
         }
 
         private static OfficePackageSignatureReferenceInfo InspectSignedReference(

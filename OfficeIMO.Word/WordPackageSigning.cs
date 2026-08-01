@@ -124,6 +124,15 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the maximum authenticated XML signature references created per signature. Defaults to 4,096.</summary>
         public int MaxSignedReferences { get; set; } = 4096;
 
+        /// <summary>Gets or sets the maximum signer and additional certificates embedded in the created signature. Defaults to 64.</summary>
+        public int MaxCertificates { get; set; } = 64;
+
+        /// <summary>Gets or sets the maximum encoded bytes for one embedded certificate. Defaults to 4 MiB.</summary>
+        public long MaxCertificateBytes { get; set; } = 4L * 1024 * 1024;
+
+        /// <summary>Gets or sets the maximum aggregate encoded certificate bytes embedded in the created signature. Defaults to 64 MiB.</summary>
+        public long MaxTotalCertificateBytes { get; set; } = 64L * 1024 * 1024;
+
         internal OfficePackageSigningOptions ToPackageOptions() {
             return new OfficePackageSigningOptions {
                 PartUris = PartUris,
@@ -137,7 +146,10 @@ namespace OfficeIMO.Word {
                 MaxPackageBytes = MaxPackageBytes,
                 MaxPartBytes = MaxPartBytes,
                 MaxTotalDigestBytes = MaxTotalDigestBytes,
-                MaxSignedReferences = MaxSignedReferences
+                MaxSignedReferences = MaxSignedReferences,
+                MaxCertificates = MaxCertificates,
+                MaxCertificateBytes = MaxCertificateBytes,
+                MaxTotalCertificateBytes = MaxTotalCertificateBytes
             };
         }
     }

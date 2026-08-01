@@ -26,6 +26,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_RequiredIndeterminateRevocationIsNotValidUnderPolicy() {
+            var signaturePart = new WordSignaturePartInfo(
+                "/_xmlsignatures/sig1.xml",
+                "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml",
+                null,
+                0,
+                null,
+                Array.Empty<string>(),
+                Array.Empty<WordSignatureReferenceInfo>(),
+                Array.Empty<WordSignatureTimestampInfo>(),
+                Array.Empty<string>(),
+                null,
+                Array.Empty<string>());
+            var result = new WordSignaturePartValidationResult(
+                signaturePart,
+                WordSignatureValidationState.Passed,
+                WordSignatureValidationState.Passed,
+                WordSignatureValidationState.NotChecked,
+                revocationCheckRequired: true,
+                WordSignatureValidationState.NotPresent,
+                null,
+                Array.Empty<OfficeIMO.Security.Rfc3161TimestampVerificationResult>(),
+                Array.Empty<WordSignatureValidationFinding>());
+
+            Assert.True(result.RevocationCheckRequired);
+            Assert.False(result.IsValidUnderPolicy);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_MissingPart_ReturnsNull() {
             string tempFile = Path.GetTempFileName();
             using (WordDocument document = WordDocument.Create(tempFile)) {
@@ -724,7 +753,10 @@ namespace OfficeIMO.Tests {
                 MaxPackageParts = 12000,
                 MaxPartBytes = 384L * 1024 * 1024,
                 MaxTotalDigestBytes = 640L * 1024 * 1024,
-                MaxSignedReferences = 8000
+                MaxSignedReferences = 8000,
+                MaxCertificates = 96,
+                MaxCertificateBytes = 6L * 1024 * 1024,
+                MaxTotalCertificateBytes = 80L * 1024 * 1024
             };
 
             WordSignatureValidationOptions validationOptions = WordDocument.CreateSigningReadbackOptions(
@@ -736,6 +768,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(signingOptions.MaxPartBytes, validationOptions.MaxPartBytes);
             Assert.Equal(signingOptions.MaxTotalDigestBytes, validationOptions.MaxTotalDigestBytes);
             Assert.Equal(signingOptions.MaxSignedReferences, validationOptions.MaxSignedReferences);
+            Assert.Equal(signingOptions.MaxCertificates, validationOptions.MaxCertificates);
+            Assert.Equal(signingOptions.MaxCertificateBytes, validationOptions.MaxCertificateBytes);
+            Assert.Equal(signingOptions.MaxTotalCertificateBytes * 48, validationOptions.MaxTotalCertificateBytes);
             Assert.Equal(48, validationOptions.MaxSignatureParts);
         }
 
@@ -756,6 +791,30 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.Succeeded);
             Assert.Contains(result.Details, detail => detail.Contains("authenticated references", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_SigningRejectsCertificateCountOutsideConfiguredLimitAtomically() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSigningCertificateLimit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signing certificate limit");
+                document.Save();
+            }
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            using X509Certificate2 additional = CreateSelfSignedSigningCertificate("CN=OfficeIMO Additional Certificate");
+            WordPackageSigningResult result = WordDocument.TrySignPackage(
+                filePath,
+                signer,
+                new WordPackageSigningOptions {
+                    AdditionalCertificates = new[] { additional },
+                    MaxCertificates = 1
+                });
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Details, detail => detail.Contains("certificate limit", System.StringComparison.OrdinalIgnoreCase));
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
         }
 
@@ -833,6 +892,29 @@ namespace OfficeIMO.Tests {
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
             Assert.Contains(validation.SignatureInfo.SignatureParts, part =>
                 part.ParseError?.Contains("aggregate certificate limit", System.StringComparison.OrdinalIgnoreCase) == true);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidationIgnoresCertificateNamedBusinessDataOutsideKeyInfo() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCertificateBusinessData.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Certificate-like business data");
+                document.Save();
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            string signatureXml = Encoding.UTF8.GetString(CreateSignatureXmlWithCertificates(
+                System.Convert.ToBase64String(certificate.Export(X509ContentType.Cert))));
+            signatureXml = signatureXml.Replace(
+                "<SignatureValue>",
+                "<Object><X509Certificate>!</X509Certificate><X509Certificate>!</X509Certificate></Object><SignatureValue>",
+                System.StringComparison.Ordinal);
+            AddDigitalSignatureMetadata(filePath, Encoding.UTF8.GetBytes(signatureXml));
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions { MaxCertificates = 1 });
+
+            Assert.Null(Assert.Single(validation.SignatureInfo.SignatureParts).ParseError);
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
         }
 
         [Fact]
@@ -1123,6 +1205,27 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(WordSignatureValidationState.Unsupported, validation.CryptographicStatus);
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "UnsupportedSignedInfoTransform");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_RejectsUnsupportedSignedInfoCanonicalizationBeforeCryptographicValidation() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnsupportedSignedInfoCanonicalization.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unsupported SignedInfo canonicalization");
+                document.Save();
+            }
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, certificate);
+            SetSignedInfoCanonicalizationMethod(filePath, SignedXml.XmlDsigXsltTransformUrl);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures();
+
+            Assert.Equal(WordSignatureValidationState.Unsupported, validation.CryptographicStatus);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "UnsupportedSignedInfoCanonicalizationMethod");
         }
 
         [Fact]
@@ -1611,10 +1714,10 @@ namespace OfficeIMO.Tests {
             appPart.Properties.Save();
         }
 
-        private static X509Certificate2 CreateSelfSignedSigningCertificate() {
+        private static X509Certificate2 CreateSelfSignedSigningCertificate(string subjectName = "CN=OfficeIMO Package Signing Test") {
             using RSA rsa = RSA.Create(2048);
             var request = new CertificateRequest(
-                "CN=OfficeIMO Package Signing Test",
+                subjectName,
                 rsa,
                 HashAlgorithmName.SHA256,
                 RSASignaturePadding.Pkcs1);
@@ -1739,6 +1842,29 @@ namespace OfficeIMO.Tests {
             transform.SetAttribute("Algorithm", SignedXml.XmlDsigXsltTransformUrl);
             transforms.AppendChild(transform);
             reference.PrependChild(transforms);
+
+            using Stream destination = signatureEntry.Open();
+            destination.SetLength(0);
+            signatureXml.Save(destination);
+        }
+
+        private static void SetSignedInfoCanonicalizationMethod(string filePath, string algorithm) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
+                entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
+                entry.FullName.EndsWith(".xml", System.StringComparison.OrdinalIgnoreCase) &&
+                !entry.FullName.Contains("_rels", System.StringComparison.OrdinalIgnoreCase));
+            var signatureXml = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            using (Stream source = signatureEntry.Open()) {
+                signatureXml.Load(source);
+            }
+
+            var namespaceManager = new XmlNamespaceManager(signatureXml.NameTable);
+            namespaceManager.AddNamespace("ds", SignedXml.XmlDsigNamespaceUrl);
+            XmlElement canonicalization = (XmlElement)signatureXml.SelectSingleNode(
+                "/ds:Signature/ds:SignedInfo/ds:CanonicalizationMethod",
+                namespaceManager)!;
+            canonicalization.SetAttribute("Algorithm", algorithm);
 
             using Stream destination = signatureEntry.Open();
             destination.SetLength(0);
