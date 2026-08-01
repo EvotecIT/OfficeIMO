@@ -14,15 +14,6 @@ namespace OfficeIMO.Visio {
     public partial class VisioDocument {
         private const int MaximumLoadedFontFamilyCharacters = 256;
 
-        /// <summary>
-        /// Loads an existing <c>.vsdx</c> file into a <see cref="VisioDocument"/>.
-        /// </summary>
-        /// <param name="filePath">Path to the <c>.vsdx</c> file.</param>
-        private static VisioDocument LoadCore(string filePath) {
-            using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return LoadCore(package, filePath);
-        }
-
         private static VisioDocument LoadCore(Package package, string? filePath) {
             VisioDocument document = new() { _filePath = filePath };
             Dictionary<int, string> faceNamesById = new();

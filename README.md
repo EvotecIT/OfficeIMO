@@ -182,8 +182,9 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy binary sup
 - [x] Flowchart, block, architecture, network, topology, swimlane, org-chart, sequence, timeline, dependency, and graph builders
 - [x] Loaded-diagram editing, layout, selection, validation, package checks, desktop compatibility proof, and visual-quality analysis
 - [x] Headless PNG, JPEG, TIFF, lossless WebP, and SVG export for individual pages plus document-wide batch export
+- [x] Searchable PDF conversion through `OfficeIMO.Visio.Pdf`, with explicit semantic-fallback diagnostics
 
-_Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX model and renderers are first-party.
+_Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX model and renderers are first-party, while PDF conversion reuses the shared Reader/PDF projection.
 
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
@@ -523,6 +524,14 @@ _Dependency footprint:_ only OfficeIMO PowerPoint, PDF, and Drawing packages.
 - [x] Feature reports for advanced geometry, charts, SmartArt, media, animations, masters, and unsupported transitions
 
 _Dependency footprint:_ only OfficeIMO PowerPoint and OpenDocument packages.
+
+#### [OfficeIMO.Visio.Pdf](OfficeIMO.Visio.Pdf/README.md)
+
+- [x] Document-shaped `ToPdf`, `ToPdfDocument`, and path/stream save entry points
+- [x] Searchable diagram text and topology through the shared Reader projection
+- [x] Explicit preview-versus-semantic-fallback diagnostics without claiming native Visio rendering fidelity
+
+_Dependency footprint:_ OfficeIMO Visio, Reader.Visio, Reader.Pdf, and PDF; conversion behavior remains owned by the shared Reader/PDF pipeline.
 
 #### [OfficeIMO.OpenDocument.Odt.Pdf](OfficeIMO.OpenDocument.Odt.Pdf/README.md)
 

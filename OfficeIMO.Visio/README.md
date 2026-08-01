@@ -45,6 +45,10 @@ document.Save();
 
 ## Editing existing diagrams
 
+`Load` materializes an editable diagram. File and stream entry points accept the
+same `VisioLoadOptions`; asynchronous overloads consistently place options
+before the cancellation token.
+
 ```csharp
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;

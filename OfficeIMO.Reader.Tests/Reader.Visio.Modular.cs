@@ -11,6 +11,16 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderVisioModularTests {
     [Fact]
+    public void DocumentReaderVisio_MapsOnlyExplicitReaderInputLimitsIntoVisioLoads() {
+        Assert.Null(VisioReaderAdapter.CreateLoadOptions(new ReaderOptions()));
+
+        VisioLoadOptions mapped = Assert.IsType<VisioLoadOptions>(
+            VisioReaderAdapter.CreateLoadOptions(new ReaderOptions { MaxInputBytes = 700L * 1024L * 1024L }));
+
+        Assert.Equal(700L * 1024L * 1024L, mapped.MaxInputBytes);
+    }
+
+    [Fact]
     public void DocumentReaderVisio_ReadVisio_EmitsPageChunkWithShapeDataTable() {
         using MemoryStream stream = BuildSampleVisio();
 

@@ -16,7 +16,7 @@ internal static partial class VisioReaderAdapter {
         var effectiveVisioOptions = ReaderVisioOptionsCloner.CloneOrDefault(visioOptions);
         ReaderInputLimits.EnforceFileSize(visioPath, effectiveReaderOptions.MaxInputBytes);
         SourceMetadata source = BuildSourceMetadataFromPath(visioPath, effectiveReaderOptions.ComputeHashes);
-        VisioDocument document = VisioDocument.Load(visioPath);
+        VisioDocument document = VisioDocument.Load(visioPath, CreateLoadOptions(effectiveReaderOptions));
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectiveVisioOptions, cancellationToken);
     }
 
@@ -42,7 +42,7 @@ internal static partial class VisioReaderAdapter {
                 parseStream.Position = 0;
             }
 
-            VisioDocument document = VisioDocument.Load(parseStream);
+            VisioDocument document = VisioDocument.Load(parseStream, CreateLoadOptions(effectiveReaderOptions));
             return BuildDocumentResult(document, source, effectiveReaderOptions, effectiveVisioOptions, cancellationToken);
         } finally {
             if (ownsParseStream) {
@@ -54,13 +54,12 @@ internal static partial class VisioReaderAdapter {
     /// <summary>
     /// Converts an already loaded Visio document into the shared OfficeIMO read result envelope.
     /// </summary>
-    public static OfficeDocumentReadResult ReadDocument(VisioDocument document, string sourceName = "document.vsdx", ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
+    public static OfficeDocumentReadResult ReadDocument(VisioDocument document, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveVisioOptions = ReaderVisioOptionsCloner.CloneOrDefault(visioOptions);
-        var logicalSourceName = NormalizeLogicalSourceName(sourceName, "document.vsdx");
+        var logicalSourceName = NormalizeLogicalSourceName(sourceName ?? document.FilePath, "document.vsdx");
         var source = new SourceMetadata {
             Path = logicalSourceName,
             SourceId = BuildSourceId(logicalSourceName)
@@ -86,7 +85,7 @@ internal static partial class VisioReaderAdapter {
     /// <summary>
     /// Converts an already loaded Visio document into shape-data tables in source order.
     /// </summary>
-    public static IReadOnlyList<ReaderTable> ReadTables(VisioDocument document, string sourceName = "document.vsdx", ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
+    public static IReadOnlyList<ReaderTable> ReadTables(VisioDocument document, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
         return DocumentReaderEngine.ExtractTables(Read(document, sourceName, readerOptions, visioOptions, cancellationToken), cancellationToken);
     }
 
@@ -107,7 +106,7 @@ internal static partial class VisioReaderAdapter {
     /// <summary>
     /// Converts an already loaded Visio document into shape-data table export payloads in source order.
     /// </summary>
-    public static IReadOnlyList<ReaderTableExportBundle> ReadTableExports(VisioDocument document, string sourceName = "document.vsdx", ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, bool indentedJson = false, CancellationToken cancellationToken = default) {
+    public static IReadOnlyList<ReaderTableExportBundle> ReadTableExports(VisioDocument document, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, bool indentedJson = false, CancellationToken cancellationToken = default) {
         return DocumentReaderEngine.ExportTables(ReadTables(document, sourceName, readerOptions, visioOptions, cancellationToken), indentedJson, cancellationToken);
     }
 
@@ -128,7 +127,7 @@ internal static partial class VisioReaderAdapter {
     /// <summary>
     /// Converts an already loaded Visio document into the shared OfficeIMO read result JSON envelope.
     /// </summary>
-    public static string ReadDocumentJson(VisioDocument document, string sourceName = "document.vsdx", ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, bool indented = false, CancellationToken cancellationToken = default) {
+    public static string ReadDocumentJson(VisioDocument document, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, bool indented = false, CancellationToken cancellationToken = default) {
         return OfficeDocumentReadResultJson.Serialize(ReadDocument(document, sourceName, readerOptions, visioOptions, cancellationToken), indented);
     }
 

@@ -74,8 +74,10 @@ var chunks = reader.ReadFolder("Architecture",
 ### Read topology and geometry
 
 ```csharp
-OfficeDocumentReadResult document =
-    VisioReaderAdapter.ReadDocument("network.vsdx");
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddVisioHandler()
+    .Build();
+OfficeDocumentReadResult document = reader.ReadDocument("network.vsdx");
 
 foreach (ReaderVisual topology in document.Visuals) {
     Console.WriteLine($"Page {topology.Location.Page}: {topology.Content}");
@@ -87,6 +89,13 @@ foreach (OfficeDocumentPage page in document.Pages) {
 ```
 
 The topology visual is deterministic JSON describing page shapes and connector edges. Shared regions and page dimensions are expressed in points. A configured reader uses the same native mapping through `reader.ReadDocument("network.vsdx")`.
+
+An already loaded `VisioDocument` can use the same projection without being
+serialized and reopened:
+
+```csharp
+OfficeDocumentReadResult document = diagram.ToOfficeDocumentReadResult();
+```
 
 ## What it emits
 
