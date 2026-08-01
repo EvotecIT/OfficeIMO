@@ -36,8 +36,8 @@ namespace OfficeIMO.PowerPoint {
             get {
                 A.SolidFill? solid = GetOutline()?.GetFirstChild<A.SolidFill>();
                 OpenXmlCompositeElement? color = solid == null
-                    ? null
-                    : GetSolidFillColorChoice(solid);
+                    ? GetShapeStyleLineColorChoice(createPlaceholder: false)
+                    : GetColorChoice(solid);
                 int? alpha = color?.GetFirstChild<A.Alpha>()?.Val?.Value;
                 return alpha == null
                     ? null
@@ -148,14 +148,18 @@ namespace OfficeIMO.PowerPoint {
 
             A.SolidFill? solid = outline.GetFirstChild<A.SolidFill>();
             if (solid == null) {
-                if (opacity == null) {
+                OpenXmlCompositeElement? styleColor =
+                    GetShapeStyleLineColorChoice(createPlaceholder: opacity != null);
+                if (styleColor != null) {
+                    SetColorAlpha(styleColor, opacity);
                     return;
                 }
+                if (opacity == null) return;
                 solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
                 InsertOutlineChild(outline, solid);
             }
 
-            OpenXmlCompositeElement? color = GetSolidFillColorChoice(solid);
+            OpenXmlCompositeElement? color = GetColorChoice(solid);
             if (opacity == null) {
                 color?.GetFirstChild<A.Alpha>()?.Remove();
                 return;
@@ -166,13 +170,38 @@ namespace OfficeIMO.PowerPoint {
                 solid.Append(color);
             }
 
-            A.Alpha? alpha = color.GetFirstChild<A.Alpha>();
-            alpha ??= new A.Alpha();
+            SetColorAlpha(color, opacity);
+        }
+
+        private OpenXmlCompositeElement? GetShapeStyleLineColorChoice(
+            bool createPlaceholder) {
+            A.LineReference? reference = Element switch {
+                Shape shape => shape.ShapeStyle?.LineReference,
+                ConnectionShape connector => connector.ShapeStyle?.LineReference,
+                Picture picture => picture.ShapeStyle?.LineReference,
+                _ => null
+            };
+            if (reference == null) return null;
+
+            OpenXmlCompositeElement? color = GetColorChoice(reference);
+            if (color == null && createPlaceholder) {
+                color = new A.SchemeColor { Val = A.SchemeColorValues.PhColor };
+                reference.Append(color);
+            }
+            return color;
+        }
+
+        private static void SetColorAlpha(OpenXmlCompositeElement color,
+            double? opacity) {
+            if (!opacity.HasValue) {
+                color.GetFirstChild<A.Alpha>()?.Remove();
+                return;
+            }
+
+            A.Alpha? alpha = color.GetFirstChild<A.Alpha>() ?? new A.Alpha();
             alpha.Val = checked((int)Math.Round(opacity.Value * 100000D,
                 MidpointRounding.AwayFromZero));
-            if (alpha.Parent == null) {
-                color.Append(alpha);
-            }
+            if (alpha.Parent == null) color.Append(alpha);
         }
 
         private static void InsertOutlineChild(A.Outline outline, OpenXmlElement child) {

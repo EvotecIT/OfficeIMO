@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
                 A.SolidFill? solid = props?.GetFirstChild<A.SolidFill>();
                 OpenXmlCompositeElement? color = solid == null
                     ? null
-                    : GetSolidFillColorChoice(solid);
+                    : GetColorChoice(solid);
                 A.Alpha? alpha = color?.GetFirstChild<A.Alpha>();
                 int? val = alpha?.Val?.Value;
                 if (val == null) {
@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
                 InsertShapePropertyChild(props, solid);
             }
 
-            OpenXmlCompositeElement? color = GetSolidFillColorChoice(solid);
+            OpenXmlCompositeElement? color = GetColorChoice(solid);
             if (opacity == null) {
                 color?.GetFirstChild<A.Alpha>()?.Remove();
                 return;
@@ -87,8 +87,8 @@ namespace OfficeIMO.PowerPoint {
             if (alpha.Parent == null) color.Append(alpha);
         }
 
-        private static OpenXmlCompositeElement? GetSolidFillColorChoice(
-            A.SolidFill solid) => solid.ChildElements
+        private static OpenXmlCompositeElement? GetColorChoice(
+            OpenXmlCompositeElement parent) => parent.ChildElements
                 .OfType<OpenXmlCompositeElement>()
                 .FirstOrDefault(element =>
                     element is A.RgbColorModelPercentage

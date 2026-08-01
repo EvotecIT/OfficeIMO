@@ -200,11 +200,73 @@ internal static class PowerPointBaselineRunner {
             }
         }
         if (result.PdfBytes != null) {
-            PdfCore.PdfDocumentInfo info = PdfCore.PdfDocument.Open(result.PdfBytes).Inspect();
-            if (info.PageCount != fixture.SlideCount) {
-                throw new InvalidOperationException(
-                    $"PDF export produced {info.PageCount} pages; expected {fixture.SlideCount}.");
+            ValidateRenderedCorpusPdf(result.PdfBytes, fixture);
+        }
+    }
+
+    private static void ValidateRenderedCorpusPdf(byte[] pdf,
+        PowerPointBenchmarkFixture fixture) {
+        PdfCore.PdfReadDocument parsed = PdfCore.PdfReadDocument.Open(pdf);
+        if (parsed.Pages.Count != fixture.SlideCount) {
+            throw new InvalidOperationException(
+                $"PDF export produced {parsed.Pages.Count} pages; expected {fixture.SlideCount}.");
+        }
+        for (int index = 0; index < parsed.Pages.Count; index++) {
+            string text = parsed.Pages[index].ExtractText();
+            RequirePdfText(text, $"Operational review {index + 1}", index);
+            RequirePdfText(text, "OfficeIMO.PowerPoint performance corpus", index);
+            if (index % 3 == 0) {
+                foreach (string expected in new[] {
+                             "Metric", "Current", "Target", "Quality",
+                             "Coverage", "Latency"
+                         }) {
+                    RequirePdfText(text, expected, index);
+                }
             }
+            if (index % 5 == 0) {
+                foreach (string expected in new[] {
+                             "Actual", "Target", "Q1", "Q2", "Q3", "Q4"
+                         }) {
+                    RequirePdfText(text, expected, index);
+                }
+            }
+        }
+
+        IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
+            PdfCore.PdfDocument.Open(pdf).Read.RenderPages(options:
+                new PdfCore.PdfPageRenderOptions {
+                    Dpi = 72D,
+                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    MaxPages = fixture.SlideCount,
+                    ContinueOnError = false,
+                    MaxTotalOutputBytes = Math.Max(256L * 1024L * 1024L,
+                        fixture.SlideCount * 4L * 1024L * 1024L)
+                });
+        if (rendered.Count != fixture.SlideCount) {
+            throw new InvalidOperationException(
+                $"PDF validation rendered {rendered.Count} pages; expected {fixture.SlideCount}.");
+        }
+        for (int index = 0; index < rendered.Count; index++) {
+            PdfCore.PdfPageRenderResult page = rendered[index];
+            if (!page.Succeeded || page.Bytes == null) {
+                throw new InvalidOperationException(
+                    $"PDF export page {index + 1} could not be rendered: "
+                    + string.Join(" | ", page.Diagnostics));
+            }
+            if (!OfficePngReader.TryDecode(page.Bytes,
+                    out OfficeRasterImage? raster) || raster == null) {
+                throw new InvalidOperationException(
+                    $"PDF export page {index + 1} produced an undecodable validation image.");
+            }
+            ValidateRenderedCorpusImage(raster, index);
+        }
+    }
+
+    private static void RequirePdfText(string text, string expected,
+        int slideIndex) {
+        if (text.IndexOf(expected, StringComparison.Ordinal) < 0) {
+            throw new InvalidOperationException(
+                $"PDF export page {slideIndex + 1} lost expected content '{expected}'.");
         }
     }
 

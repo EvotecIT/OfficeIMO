@@ -160,6 +160,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointShape_OutlineTransparencyPreservesThemeLineReference() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SetThemeColorForAllMasters(
+                PowerPointThemeColor.Accent2, "123456");
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                20, 20, 120, 80);
+            shape.OutlineWidthPoints = 2D;
+            Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            var scheme = new A.SchemeColor {
+                Val = A.SchemeColorValues.Accent2
+            };
+            openXmlShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(scheme) { Index = 1U },
+                new A.FillReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+
+            shape.OutlineTransparency = 40;
+
+            A.Outline outline = openXmlShape.ShapeProperties!
+                .GetFirstChild<A.Outline>()!;
+            Assert.Null(outline.GetFirstChild<A.SolidFill>());
+            Assert.Same(scheme, openXmlShape.ShapeStyle.LineReference!
+                .GetFirstChild<A.SchemeColor>());
+            Assert.Equal(60000, scheme.GetFirstChild<A.Alpha>()!.Val!.Value);
+            Assert.Equal(40, shape.OutlineTransparency);
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions {
+                    IncludeSlideBackground = false
+                });
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), item =>
+                    item.X == 20D && item.Y == 20D);
+            OfficeColor renderedStroke = Assert.IsType<OfficeColor>(
+                rendered.Shape.StrokeColor);
+            Assert.Equal((byte)0x12, renderedStroke.R);
+            Assert.Equal((byte)0x34, renderedStroke.G);
+            Assert.Equal((byte)0x56, renderedStroke.B);
+            Assert.Equal((byte)153, renderedStroke.A);
+        }
+
+        [Fact]
         public void PowerPointShape_FillTransparencyPreservesSchemeColorChoice() {
             using var stream = new System.IO.MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

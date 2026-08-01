@@ -75,23 +75,37 @@ public static class OfficeDiagramDrawingRenderer {
     private static List<NodeBox> LayoutHierarchy(
         OfficeDiagramSnapshot snapshot) {
         int count = snapshot.Nodes.Count;
-        int levels = checked((int)Math.Floor(Math.Log(count, 2D)) + 1);
-        double levelHeight = snapshot.HeightPoints / levels;
-        var result = new List<NodeBox>(count);
-        for (int index = 0; index < count; index++) {
-            int level = checked((int)Math.Floor(Math.Log(index + 1, 2D)));
-            int firstIndex = (1 << level) - 1;
-            int nodesOnLevel = Math.Min(1 << level, count - firstIndex);
-            int position = index - firstIndex;
-            double cellWidth = snapshot.WidthPoints / nodesOnLevel;
-            double nodeWidth = Math.Min(Math.Max(12D, cellWidth * 0.62D),
-                Math.Max(1D, cellWidth - 8D));
-            double nodeHeight = Math.Min(Math.Max(10D, levelHeight * 0.48D),
-                Math.Max(1D, levelHeight - 8D));
+        double rootBandHeight = snapshot.HeightPoints * 0.44D;
+        double rootWidth = Math.Min(snapshot.WidthPoints * 0.36D,
+            Math.Max(1D, snapshot.WidthPoints - 8D));
+        double rootHeight = Math.Min(snapshot.HeightPoints * 0.24D,
+            Math.Max(1D, rootBandHeight - 8D));
+        var result = new List<NodeBox>(count) {
+            new NodeBox((snapshot.WidthPoints - rootWidth) / 2D,
+                snapshot.HeightPoints * 0.22D - rootHeight / 2D,
+                rootWidth, rootHeight)
+        };
+        if (count == 1) return result;
+
+        int childCount = count - 1;
+        int columns = Math.Max(1, Math.Min(4, childCount));
+        int rows = checked((childCount + columns - 1) / columns);
+        double childRegionTop = snapshot.HeightPoints * 0.5D;
+        double childRegionHeight = snapshot.HeightPoints * 0.45D;
+        double cellWidth = snapshot.WidthPoints / columns;
+        double cellHeight = childRegionHeight / rows;
+        double childWidth = Math.Min(cellWidth * 0.7744D,
+            Math.Max(1D, cellWidth - 8D));
+        double childHeight = Math.Min(snapshot.HeightPoints * 0.24D,
+            Math.Min(cellHeight * 0.82D, Math.Max(1D, cellHeight - 8D)));
+        for (int childIndex = 0; childIndex < childCount; childIndex++) {
+            int column = childIndex % columns;
+            int row = childIndex / columns;
             result.Add(new NodeBox(
-                position * cellWidth + (cellWidth - nodeWidth) / 2D,
-                level * levelHeight + (levelHeight - nodeHeight) / 2D,
-                nodeWidth, nodeHeight));
+                column * cellWidth + (cellWidth - childWidth) / 2D,
+                childRegionTop + row * cellHeight
+                    + (cellHeight - childHeight) / 2D,
+                childWidth, childHeight));
         }
         return result;
     }
@@ -213,7 +227,7 @@ public static class OfficeDiagramDrawingRenderer {
         if (nodes.Count < 2) return;
         if (kind == OfficeDiagramKind.Hierarchy) {
             for (int index = 1; index < nodes.Count; index++) {
-                AddConnector(drawing, nodes[(index - 1) / 2], nodes[index], false);
+                AddConnector(drawing, nodes[0], nodes[index], false);
             }
             return;
         }

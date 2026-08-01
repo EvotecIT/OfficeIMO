@@ -187,6 +187,19 @@ namespace OfficeIMO.PowerPoint {
                 : null;
         }
 
+        private static OpenXmlElement? ResolveThemeShapeLine(
+            A.FormatScheme? formatScheme, uint? index) {
+            if (formatScheme == null || !index.HasValue || index.Value < 1U) {
+                return null;
+            }
+            OpenXmlElementList styles = formatScheme
+                .GetFirstChild<A.LineStyleList>()?.ChildElements ?? default;
+            uint styleIndex = index.Value - 1U;
+            return styleIndex < unchecked((uint)styles.Count)
+                ? styles[unchecked((int)styleIndex)]
+                : null;
+        }
+
         private static bool TryResolveGradientStops(A.GradientFill gradient,
             A.ColorScheme? colorScheme,
             A.SchemeColor? placeholderColor,

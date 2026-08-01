@@ -491,11 +491,34 @@ namespace OfficeIMO.PowerPoint {
             color = default;
             DocumentFormat.OpenXml.Presentation.ShapeProperties? properties = GetOpenXmlShapeProperties(source);
             if (properties != null) {
-                OfficeColor? resolvedColor = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), colorScheme);
+                A.Outline? outline = properties.GetFirstChild<A.Outline>();
+                OfficeColor? resolvedColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
+                    outline?.GetFirstChild<A.SolidFill>(), colorScheme);
                 if (resolvedColor.HasValue) {
                     color = resolvedColor.Value;
                     return true;
                 }
+                if (outline?.ChildElements.Any(child => child is A.NoFill
+                        or A.SolidFill or A.GradientFill or A.PatternFill) == true) {
+                    return false;
+                }
+            }
+
+            A.LineReference? lineReference =
+                GetOpenXmlShapeStyle(source)?.LineReference;
+            A.FormatScheme? formatScheme = source.OwnerSlide == null
+                ? null
+                : GetSlideFormatScheme(source.OwnerSlide);
+            OpenXmlElement? themeLine = ResolveThemeShapeLine(formatScheme,
+                lineReference?.Index?.Value);
+            A.SolidFill? themeSolid = themeLine as A.SolidFill
+                ?? themeLine?.GetFirstChild<A.SolidFill>();
+            OfficeColor? themeColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
+                themeSolid, colorScheme,
+                lineReference?.GetFirstChild<A.SchemeColor>());
+            if (themeColor.HasValue) {
+                color = themeColor.Value;
+                return true;
             }
 
             return TryParseOfficeColor(source.OutlineColor, out color);

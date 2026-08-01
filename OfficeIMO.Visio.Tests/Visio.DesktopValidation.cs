@@ -3,6 +3,7 @@ using System.IO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using Xunit;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests {
     public class VisioDesktopValidation {
@@ -55,6 +56,7 @@ namespace OfficeIMO.Tests {
             options.SaveCopyPath = roundTripPath;
             options.ExportDirectory = directory;
             options.ExportFileNamePrefix = "proof";
+            options.ExportFormats.Add(VisioDesktopExportFormat.Pdf);
 
             VisioDesktopValidationResult result = VisioDesktopBaselineValidator.Validate(filePath, options);
 
@@ -67,9 +69,12 @@ namespace OfficeIMO.Tests {
             Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Issues));
             Assert.Contains(roundTripPath, result.OutputFiles);
             string svgPath = Path.Combine(directory, "proof-page1.svg");
+            string pdfPath = Path.Combine(directory, "proof-page1.pdf");
             Assert.Contains(svgPath, result.OutputFiles);
+            Assert.Contains(pdfPath, result.OutputFiles);
             Assert.True(new FileInfo(roundTripPath).Length > 0);
             Assert.True(new FileInfo(svgPath).Length > 0);
+            Assert.True(new FileInfo(pdfPath).Length > 0);
             Assert.Empty(VisioValidator.Validate(roundTripPath));
         }
 
@@ -103,6 +108,25 @@ namespace OfficeIMO.Tests {
                 Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
                     invalidSvg, out string svgIssue));
                 Assert.Contains("SVG root", svgIssue, StringComparison.Ordinal);
+
+                string validPdf = Path.Combine(directory, "valid.pdf");
+                byte[] pdf = PdfCore.PdfDocument.Create()
+                    .Paragraph(paragraph => paragraph.Text("Desktop proof"))
+                    .ToBytes();
+                File.WriteAllBytes(validPdf, pdf);
+                Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    validPdf, out string validPdfIssue, expectedPdfPageCount: 1),
+                    validPdfIssue);
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    validPdf, out string pageCountIssue, expectedPdfPageCount: 2));
+                Assert.Contains("expected 2", pageCountIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string invalidPdf = Path.Combine(directory, "invalid.pdf");
+                File.WriteAllBytes(invalidPdf, pdf.Take(pdf.Length / 2).ToArray());
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    invalidPdf, out string invalidPdfIssue));
+                Assert.NotEmpty(invalidPdfIssue);
             } finally {
                 if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
             }

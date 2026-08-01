@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests {
     internal static class VisioDesktopBaselineValidator {
@@ -158,7 +158,10 @@ namespace OfficeIMO.Tests {
                     try {
                         PrepareOutputFile(exportPath);
                         Export(document, firstPage, pageCount, format, exportPath);
-                        AddVerifiedOutputFile(exportPath, format + " export", issues, outputFiles);
+                        AddVerifiedOutputFile(exportPath, format + " export", issues,
+                            outputFiles, format == VisioDesktopExportFormat.Pdf
+                                ? pageCount
+                                : null);
                     } catch (Exception exception) {
                         issues.Add($"Microsoft Visio could not export {format}: {GetRootMessage(exception)}");
                     }
@@ -231,7 +234,9 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static void AddVerifiedOutputFile(string path, string description, IList<string> issues, IList<string> outputFiles) {
+        private static void AddVerifiedOutputFile(string path, string description,
+            IList<string> issues, IList<string> outputFiles,
+            int? expectedPdfPageCount = null) {
             FileInfo file = new(path);
             if (!file.Exists || file.Length == 0) {
                 issues.Add($"Microsoft Visio created an empty or missing {description}: {path}");
@@ -243,7 +248,8 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            if (!ValidateOutputFile(file.FullName, out string validationIssue)) {
+            if (!ValidateOutputFile(file.FullName, out string validationIssue,
+                    expectedPdfPageCount)) {
                 issues.Add($"Microsoft Visio created an invalid {description}: {validationIssue}");
                 return;
             }
@@ -277,7 +283,8 @@ namespace OfficeIMO.Tests {
             return false;
         }
 
-        internal static bool ValidateOutputFile(string path, out string issue) {
+        internal static bool ValidateOutputFile(string path, out string issue,
+            int? expectedPdfPageCount = null) {
             try {
                 string extension = Path.GetExtension(path).ToLowerInvariant();
                 switch (extension) {
@@ -309,14 +316,16 @@ namespace OfficeIMO.Tests {
                         break;
                     case ".pdf":
                         byte[] pdf = File.ReadAllBytes(path);
-                        if (pdf.Length < 8
-                            || !Encoding.ASCII.GetString(pdf, 0, 5)
-                                .Equals("%PDF-", StringComparison.Ordinal)
-                            || Encoding.ASCII.GetString(pdf,
-                                    Math.Max(0, pdf.Length - Math.Min(1024, pdf.Length)),
-                                    Math.Min(1024, pdf.Length))
-                                .IndexOf("%%EOF", StringComparison.Ordinal) < 0) {
-                            issue = "PDF signature or end marker is missing: " + path;
+                        PdfCore.PdfReadDocument parsed =
+                            PdfCore.PdfReadDocument.Open(pdf);
+                        if (parsed.Pages.Count < 1) {
+                            issue = "PDF page tree is empty: " + path;
+                            return false;
+                        }
+                        if (expectedPdfPageCount.HasValue
+                            && parsed.Pages.Count != expectedPdfPageCount.Value) {
+                            issue = $"PDF contains {parsed.Pages.Count} pages; expected "
+                                + expectedPdfPageCount.Value + ": " + path;
                             return false;
                         }
                         break;

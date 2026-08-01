@@ -27,9 +27,9 @@ That command creates one validated PPTX, PNG and SVG renders for all nine slides
 | `CreateSave` | Create the full editable corpus and serialize a valid PPTX package. |
 | `OpenEditSave` | Open the corpus, add a review marker to every tenth slide, and serialize a valid edited PPTX package. |
 | `OpenImageExport` | Open the corpus and export every slide as a decodable PNG with no unexpected diagnostics and verified visible content, including representative table and chart regions. |
-| `OpenPdfExport` | Open the corpus and export a PDF with one page for every slide. |
+| `OpenPdfExport` | Open the corpus and export a parseable PDF whose per-page text and rendered pixels preserve representative slide, table, and chart content. |
 
-The scales contain 3, 30, and 120 slides. Slides use editable text, vector shapes, tables, and charts. Package lanes reopen the result and verify the expected text, background and card fills, table values and header styling, chart categories and series values, edit markers, slide and shape counts, and Open XML validity. Export lanes verify every image and PDF page count. Validation runs outside the timed interval but in the same probe, so an invalid or incomplete result cannot be reported as a fast result.
+The scales contain 3, 30, and 120 slides. Slides use editable text, vector shapes, tables, and charts. Package lanes reopen the result and verify the expected text, background and card fills, table values and header styling, chart categories and series values, edit markers, slide and shape counts, and Open XML validity. Export lanes decode or parse every output and verify representative visible content, including table and chart regions. Validation runs outside the timed interval but in the same probe, so an invalid or incomplete result cannot be reported as a fast result.
 
 ## Interpret the result
 
