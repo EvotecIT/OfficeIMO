@@ -90,7 +90,8 @@ namespace OfficeIMO.Tests {
             string repositoryRoot = LocateRepositoryRootForPremiumGapTests();
             string roadmapPath = Path.Combine(repositoryRoot, "Docs", "ROADMAP.md");
             string roadmap = File.ReadAllText(roadmapPath);
-            Assert.DoesNotContain("## Word", roadmap, StringComparison.Ordinal);
+            Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
+            Assert.Contains("Add VBA macro-project signing as a separate explicit capability", roadmap, StringComparison.Ordinal);
 
             string compatibilityPath = Path.Combine(repositoryRoot, "OfficeIMO.Word", "COMPATIBILITY.md");
             string compatibility = File.ReadAllText(compatibilityPath);
