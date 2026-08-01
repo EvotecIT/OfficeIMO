@@ -31,11 +31,15 @@ namespace OfficeIMO.Excel {
                     ?? throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
                 string oldName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
                 string oldDisplayName = table.DisplayName?.Value ?? oldName;
-                if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)) {
+                bool stableNameMatches = string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase);
+                if (stableNameMatches
+                    && string.Equals(oldDisplayName, newName, StringComparison.OrdinalIgnoreCase)) {
                     result = oldName;
                     return;
                 }
-                string resolved = EnsureValidUniqueTableName(newName, validationMode);
+                string resolved = stableNameMatches
+                    ? oldName
+                    : EnsureValidUniqueTableName(newName, validationMode);
                 table.Name = resolved;
                 table.DisplayName = resolved;
                 table.Save();

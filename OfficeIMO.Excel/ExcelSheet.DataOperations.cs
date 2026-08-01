@@ -673,7 +673,7 @@ namespace OfficeIMO.Excel {
 
         private static AutoFilter GetOrReplaceWorksheetAutoFilter(Worksheet worksheet, string range) {
             AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
-            if (autoFilter != null && string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
+            if (autoFilter != null && AutoFilterRangesMatch(autoFilter.Reference?.Value, range)) {
                 return autoFilter;
             }
             autoFilter?.Remove();
@@ -687,6 +687,21 @@ namespace OfficeIMO.Excel {
             if (conditionalFormatting != null) worksheet.InsertBefore(autoFilter, conditionalFormatting);
             else worksheet.InsertAfter(autoFilter, sheetData);
             return autoFilter;
+        }
+
+        private static bool AutoFilterRangesMatch(string? existingRange, string requestedRange) {
+            if (!ExcelReference.TryParse(existingRange, out ExcelReference? existing)
+                || !ExcelReference.TryParse(requestedRange, out ExcelReference? requested)
+                || existing!.IsQualified
+                || requested!.IsQualified) {
+                return false;
+            }
+            existing.GetBounds(out int existingR1, out int existingC1, out int existingR2, out int existingC2);
+            requested.GetBounds(out int requestedR1, out int requestedC1, out int requestedR2, out int requestedC2);
+            return existingR1 == requestedR1
+                && existingC1 == requestedC1
+                && existingR2 == requestedR2
+                && existingC2 == requestedC2;
         }
 
         private static string ValidateAutoFilterColumnOffset(string range, uint columnId) {

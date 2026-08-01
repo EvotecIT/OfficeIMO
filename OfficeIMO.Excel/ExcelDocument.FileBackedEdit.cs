@@ -55,16 +55,20 @@ namespace OfficeIMO.Excel {
                     CopyFileBackedSource(source, packageStream, maximumBytes, resolved, cancellationToken);
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 if (resolved.PackageSecurity != null) {
                     packageStream.Position = 0;
                     OfficePackageSecurityInspector.Validate(packageStream, resolved.PackageSecurity);
+                    cancellationToken.ThrowIfCancellationRequested();
                 }
 
                 packageStream.Position = 0;
                 bool normalized = ExcelPackageUtilities.NormalizeContentTypes(packageStream, leaveOpen: true);
+                cancellationToken.ThrowIfCancellationRequested();
                 packageStream.Position = 0;
                 bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
                 package = SpreadsheetDocument.Open(packageStream, !readOnly, CreateOpenSettings(resolved.OpenSettings));
+                cancellationToken.ThrowIfCancellationRequested();
                 ExcelDocument document = CreateDocument(
                     package,
                     filePath,
@@ -78,6 +82,7 @@ namespace OfficeIMO.Excel {
                     unchangedPackageBytes: null,
                     persistenceMode: resolved.PersistenceMode);
                 document._usesFileBackedPackage = true;
+                cancellationToken.ThrowIfCancellationRequested();
                 package = null;
                 packageStream = null;
                 return document;

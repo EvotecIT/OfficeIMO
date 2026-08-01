@@ -217,13 +217,14 @@ moving, and structural edits; they are distinct from floating drawing images.
 ### File-backed editing for large workbooks
 
 ```csharp
+const long packageBudget = 2L * 1024 * 1024 * 1024;
 using var document = ExcelDocument.OpenFileBacked(
     "large-report.xlsx",
-    new ExcelLoadOptions { MaxInputBytes = 2L * 1024 * 1024 * 1024 },
+    new ExcelLoadOptions { MaxInputBytes = packageBudget },
     cancellationToken);
 
 document["Data"].CellValue(2, 2, "Updated");
-document.Save();
+document.Save(new ExcelSaveOptions { MaxTemporaryPackageBytes = packageBudget });
 ```
 
 `OpenFileBacked` stages the editable Open XML package in an owner-only temporary

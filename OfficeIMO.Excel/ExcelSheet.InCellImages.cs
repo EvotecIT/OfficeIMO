@@ -59,6 +59,13 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetInCellImageCore(int row, int column, Stream imageStream, string contentType, string altText) {
+            Cell cell = GetCell(row, column);
+            if (cell.ValueMetaIndex != null
+                && TryReplaceExclusiveInCellImage(cell, imageStream, contentType, altText)) {
+                SetInCellImageCellValue(cell);
+                return;
+            }
+
             WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
             CellMetadataPart metadataPart = workbookPart.CellMetadataPart ?? workbookPart.AddNewPart<CellMetadataPart>();
             Metadata metadata = metadataPart.Metadata ??= new Metadata();
@@ -102,19 +109,16 @@ namespace OfficeIMO.Excel {
             var metadataBlock = new MetadataBlock(new MetadataRecord { TypeIndex = typeIndex, Val = futureIndex });
             valueMetadata.Append(metadataBlock);
             valueMetadata.Count = (uint)valueMetadata.Elements<MetadataBlock>().Count();
-            Cell cell = GetCell(row, column);
+            SetInCellImageCellValue(cell);
             cell.ValueMetaIndex = valueMetadata.Count;
-            cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
-            cell.CellValue = new CellValue("#VALUE!");
-            cell.CellFormula = null;
-            cell.InlineString = null;
             metadata.Save();
         }
 
         internal void CopyInCellImagesTo(ExcelSheet targetSheet) {
+            if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) return;
             bool copied = false;
             foreach (Cell sourceCell in WorksheetRoot.Descendants<Cell>()) {
-                if (!TryResolveInCellImage(sourceCell, out OpenXmlPart? imagePart, out string altText)
+                if (!lookup!.TryResolve(sourceCell, out OpenXmlPart? imagePart, out string altText)
                     || imagePart == null
                     || sourceCell.CellReference?.Value is not string cellReference) {
                     continue;
@@ -136,18 +140,34 @@ namespace OfficeIMO.Excel {
             if (maximumTotalImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumTotalImageBytes));
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 var result = new List<ExcelInCellImage>();
+                if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) {
+                    return new ReadOnlyCollection<ExcelInCellImage>(result);
+                }
+                var payloads = new Dictionary<OpenXmlPart, byte[]>();
                 long total = 0;
                 foreach (Cell cell in WorksheetRoot.Descendants<Cell>()) {
-                    if (!TryResolveInCellImage(cell, out OpenXmlPart? imagePart, out string altText) || imagePart == null) continue;
-                    using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-                    if (source.CanSeek && checked(total + source.Length) > maximumTotalImageBytes) {
+                    if (!lookup!.TryResolve(cell, out OpenXmlPart? imagePart, out string altText) || imagePart == null) continue;
+                    bool sharedPayload = payloads.TryGetValue(imagePart, out byte[]? payload);
+                    if (!sharedPayload) {
+                        using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+                        if (source.CanSeek && checked(total + source.Length) > maximumTotalImageBytes) {
+                            throw new InvalidOperationException($"In-cell image payloads exceed maximumTotalImageBytes ({maximumTotalImageBytes}).");
+                        }
+                        using var buffer = new MemoryStream();
+                        source.CopyTo(buffer);
+                        payload = buffer.ToArray();
+                        payloads.Add(imagePart, payload);
+                    }
+                    byte[] resolvedPayload = payload!;
+                    total = checked(total + resolvedPayload.LongLength);
+                    if (total > maximumTotalImageBytes) {
                         throw new InvalidOperationException($"In-cell image payloads exceed maximumTotalImageBytes ({maximumTotalImageBytes}).");
                     }
-                    using var buffer = new MemoryStream();
-                    source.CopyTo(buffer);
-                    total = checked(total + buffer.Length);
-                    if (total > maximumTotalImageBytes) throw new InvalidOperationException($"In-cell image payloads exceed maximumTotalImageBytes ({maximumTotalImageBytes}).");
-                    result.Add(new ExcelInCellImage(cell.CellReference?.Value ?? string.Empty, imagePart.ContentType, altText, buffer.ToArray()));
+                    result.Add(new ExcelInCellImage(
+                        cell.CellReference?.Value ?? string.Empty,
+                        imagePart.ContentType,
+                        altText,
+                        sharedPayload ? (byte[])resolvedPayload.Clone() : resolvedPayload));
                 }
                 return new ReadOnlyCollection<ExcelInCellImage>(result);
             });
@@ -179,50 +199,19 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveInCellImage(Cell cell, out OpenXmlPart? imagePart, out string altText) {
-            imagePart = null;
-            altText = string.Empty;
-            uint metadataIndex = cell.ValueMetaIndex?.Value ?? 0U;
-            Metadata? metadata = _excelDocument.WorkbookPartRoot.CellMetadataPart?.Metadata;
-            ValueMetadata? valueMetadata = metadata?.GetFirstChild<ValueMetadata>();
-            if (metadataIndex == 0U || metadata == null || valueMetadata == null) return false;
-            MetadataBlock? block = valueMetadata.Elements<MetadataBlock>().ElementAtOrDefault((int)metadataIndex - 1);
-            MetadataRecord? record = block?.Elements<MetadataRecord>().FirstOrDefault();
-            if (record == null || !IsRichValueMetadataType(metadata, record.TypeIndex?.Value ?? 0U)) return false;
-            FutureMetadata? future = metadata.Elements<FutureMetadata>()
-                .FirstOrDefault(item => string.Equals(item.Name?.Value, RichValueMetadataName, StringComparison.OrdinalIgnoreCase));
-            FutureMetadataBlock? futureBlock = future?.Elements<FutureMetadataBlock>().ElementAtOrDefault((int)(record.Val?.Value ?? uint.MaxValue));
-            OpenXmlElement? valueBlock = futureBlock?.Descendants<Rich.RichValueBlock>().FirstOrDefault()
-                ?? futureBlock?.Descendants().FirstOrDefault(element =>
-                    string.Equals(element.LocalName, "rvb", StringComparison.Ordinal));
-            uint valueIndex = uint.MaxValue;
-            if (valueBlock is Rich.RichValueBlock typedBlock) {
-                valueIndex = typedBlock.I?.Value ?? uint.MaxValue;
-            } else if (valueBlock != null) {
-                uint.TryParse(valueBlock.GetAttribute("i", string.Empty).Value,
-                    System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out valueIndex);
+            if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) {
+                imagePart = null;
+                altText = string.Empty;
+                return false;
             }
-            WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
-            RdRichValuePart? valuePart = workbookPart.RdRichValueParts.FirstOrDefault();
-            Rich.RichValue? value = valuePart?.RichValueData?.Elements<Rich.RichValue>().ElementAtOrDefault((int)valueIndex);
-            RdRichValueStructurePart? structurePart = workbookPart.GetPartsOfType<RdRichValueStructurePart>().FirstOrDefault();
-            Rich.RichValueStructure? structure = structurePart?.RichValueStructures?.Elements<Rich.RichValueStructure>().ElementAtOrDefault((int)(value?.S?.Value ?? uint.MaxValue));
-            if (!string.Equals(structure?.T?.Value, "_localImage", StringComparison.OrdinalIgnoreCase)) return false;
-            List<Rich.Key> keys = structure!.Elements<Rich.Key>().ToList();
-            List<Rich.Value> values = value!.Elements<Rich.Value>().ToList();
-            int identifierIndex = keys.FindIndex(key => string.Equals(key.N?.Value, "_rvRel:LocalImageIdentifier", StringComparison.OrdinalIgnoreCase));
-            int textIndex = keys.FindIndex(key => string.Equals(key.N?.Value, "Text", StringComparison.OrdinalIgnoreCase));
-            if (identifierIndex < 0 || identifierIndex >= values.Count || !uint.TryParse(values[identifierIndex].Text, out uint relationIndex)) return false;
-            if (textIndex >= 0 && textIndex < values.Count) altText = values[textIndex].Text;
-            ExtendedPart? relationshipPart = workbookPart.Parts.Select(pair => pair.OpenXmlPart).OfType<ExtendedPart>()
-                .FirstOrDefault(part => string.Equals(part.RelationshipType, RichValueRelRelationshipType, StringComparison.Ordinal));
-            if (relationshipPart == null) return false;
-            RichRel.RichValueRelRelationship? relationship = LoadRichValueRelationships(relationshipPart)
-                .Elements<RichRel.RichValueRelRelationship>().ElementAtOrDefault((int)relationIndex);
-            if (relationship?.Id?.Value is not string relationshipId) return false;
-            try { imagePart = relationshipPart.GetPartById(relationshipId); } catch (ArgumentOutOfRangeException) { return false; }
-            return imagePart != null && imagePart.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+            return lookup!.TryResolve(cell, out imagePart, out altText);
+        }
+
+        private static void SetInCellImageCellValue(Cell cell) {
+            cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
+            cell.CellValue = new CellValue("#VALUE!");
+            cell.CellFormula = null;
+            cell.InlineString = null;
         }
 
         private static uint EnsureRichValueMetadataType(Metadata metadata) {

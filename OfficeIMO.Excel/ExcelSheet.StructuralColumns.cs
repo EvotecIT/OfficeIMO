@@ -161,21 +161,25 @@ namespace OfficeIMO.Excel {
                     bool rowChanged = false;
                     if (deleting) {
                         foreach (Cell cell in cells) {
-                            int column = cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0;
+                            string? reference = cell.CellReference?.Value;
+                            int column = reference == null ? 0 : GetColumnIndex(reference);
                             if (column >= firstColumn && column <= lastColumn) {
                                 cell.Remove();
                                 rowChanged = true;
                             } else if (column > lastColumn) {
-                                cell.CellReference = A1.CellReference((int)(row.RowIndex?.Value ?? 0U), column - count);
+                                int cellRow = A1.ParseCellRef(reference!).Row;
+                                cell.CellReference = A1.CellReference(cellRow, column - count);
                                 rowChanged = true;
                             }
                         }
                     } else {
                         foreach (Cell cell in cells.OrderByDescending(cell =>
                             cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0)) {
-                            int column = cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0;
+                            string? reference = cell.CellReference?.Value;
+                            int column = reference == null ? 0 : GetColumnIndex(reference);
                             if (column >= firstColumn) {
-                                cell.CellReference = A1.CellReference((int)(row.RowIndex?.Value ?? 0U), checked(column + count));
+                                int cellRow = A1.ParseCellRef(reference!).Row;
+                                cell.CellReference = A1.CellReference(cellRow, checked(column + count));
                                 rowChanged = true;
                             }
                         }
@@ -212,7 +216,9 @@ namespace OfficeIMO.Excel {
                         var added = new TableColumn { Id = nextId++, Name = name };
                         TableColumn? before = columns.Elements<TableColumn>().ElementAtOrDefault(offset + index);
                         if (before == null) columns.Append(added); else columns.InsertBefore(added, before);
-                        pendingHeaders.Add((r1, firstColumn + index, name));
+                        if ((table.HeaderRowCount?.Value ?? 1U) > 0U) {
+                            pendingHeaders.Add((r1, firstColumn + index, name));
+                        }
                     }
                     AutoFilter? filter = table.GetFirstChild<AutoFilter>();
                     if (filter != null) {
