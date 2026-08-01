@@ -2,6 +2,7 @@
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -125,6 +126,8 @@ namespace OfficeIMO.Word {
             appPart.Properties.Save();
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Package signing selects a closed RSA and canonicalization algorithm set in code; it does not resolve algorithm implementations from caller-supplied XML.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Package signing never uses the XSLT XML DSig transform and does not compile dynamic XSLT code.")]
         private static SigningPayload CreateSignature(
             byte[] packageBytes,
             X509Certificate2 certificate,

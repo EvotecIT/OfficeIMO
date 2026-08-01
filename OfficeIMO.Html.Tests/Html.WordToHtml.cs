@@ -122,6 +122,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_Base64ImageBudgetAccumulatesWithoutReserializingTheDocument() {
+            using var doc = WordDocument.Create();
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            long imageBytes = new FileInfo(assetPath).Length;
+            long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
+            var options = new WordToHtmlOptions { MaxOutputCharacters = imageDataUriCharacters + 512L };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Contains("OfficeIMO.png", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+            Assert.True(exception.Actual > imageDataUriCharacters * 2L);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_PlainParagraphHonorsRequestedRunFontStyles() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Plain font contract");
+
+            string html = doc.ToHtml(new WordToHtmlOptions {
+                FontFamily = "OfficeIMO Contract Font",
+                IncludeFontStyles = true
+            });
+
+            Assert.Contains("<span style=\"font-family:&quot;OfficeIMO Contract Font&quot;\">Plain font contract</span>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_WordToHtml_RejectsInlineSvgBeforeParsingPastOutputBudget() {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(AppContext.BaseDirectory, "Images", "Sample.svg");

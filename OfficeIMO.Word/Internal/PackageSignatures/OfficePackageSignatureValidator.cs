@@ -2,6 +2,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Security;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
@@ -185,6 +186,8 @@ namespace OfficeIMO.Word {
             }
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "OPC signature validation accepts only the explicitly handled XML DSig algorithms; their implementations are referenced directly by OfficeIMO and preserved for trimmed applications.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "OfficeIMO does not enable the XSLT XML DSig transform; OPC signature validation is limited to the statically supported transform set and does not compile dynamic XSLT code.")]
         private static WordSignatureValidationState ValidateSignedXml(
             XmlDocument document,
             XmlElement signatureElement,

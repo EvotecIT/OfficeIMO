@@ -48,7 +48,7 @@ TOC, caption-list, and index refresh have their own explicit methods and diagnos
 
 ## Package signatures
 
-Use `WordDocument.SignPackage(...)` or its non-throwing `TrySignPackage(...)` form with a certificate that has an accessible private key. `WordPackageSigningOptions` selects parts, relationship selectors, digest algorithm, embedded chain certificates, claimed signing time, and input budgets. Load the package and call `ValidateSignatures(WordSignatureValidationOptions)` to apply caller-selected certificate trust, revocation, timestamp-authority, and resource policy.
+Use `WordDocument.SignPackage(...)` or its non-throwing `TrySignPackage(...)` form with an RSA certificate that has an accessible private key. Package-signature creation is RSA-only; certificates backed by ECDSA, DSA, or other private-key algorithms are reported as unsupported. `WordPackageSigningOptions` selects parts, relationship selectors, digest algorithm, embedded chain certificates, claimed signing time, and input budgets. Load the package and call `ValidateSignatures(WordSignatureValidationOptions)` to apply caller-selected certificate trust, revocation, timestamp-authority, and resource policy.
 
 `WordSigningCapabilities.Package` and `WordSigningCapabilities.MacroProject` deliberately report two different contracts. A valid OPC package signature does not sign VBA source, and preserving a signed VBA project does not create or renew its signature.
 

@@ -60,6 +60,12 @@ namespace OfficeIMO.Word {
                     null,
                     "LegacyDocWriteUnsupported",
                     exception.Message);
+            } catch (WordSignatureSavePolicyException exception) {
+                return new LegacyDocWriteAssessment(
+                    false,
+                    null,
+                    "LegacyDocWriteUnsupported",
+                    exception.Message);
             }
         }
     }

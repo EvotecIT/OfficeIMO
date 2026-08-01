@@ -51,6 +51,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_WriteAssessment_ReportsSignedDocumentSavePolicyWithoutThrowing() {
+            string path = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            using (WordDocument created = WordDocument.Create(path)) {
+                created.AddParagraph("Signed assessment body");
+                created.Save();
+            }
+            AddDigitalSignatureMetadata(path, CreateSignatureXml());
+
+            using WordDocument signed = WordDocument.Load(path);
+            LegacyDocWriteAssessment assessment = signed.AssessLegacyDocWrite();
+
+            Assert.False(assessment.IsSupported);
+            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
+            Assert.Null(assessment.EncodedByteCount);
+            Assert.Contains("AllowSignatureInvalidation", assessment.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void LegacyDoc_Convert_DocxToDocAndBack_RoundTripsSupportedContent() {
             string docxPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
             string docPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
