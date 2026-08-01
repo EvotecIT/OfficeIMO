@@ -288,8 +288,39 @@ namespace OfficeIMO.Excel {
         private bool SameQualifier(ExcelReference other) =>
             string.Equals(NormalizeQualifierForComparison(Qualifier), NormalizeQualifierForComparison(other.Qualifier), StringComparison.OrdinalIgnoreCase);
 
+        internal static bool TryGetThreeDimensionalSheetRange(
+            string? qualifier,
+            out string firstSheetName,
+            out string lastSheetName) {
+            firstSheetName = string.Empty;
+            lastSheetName = string.Empty;
+            string value = qualifier?.Trim() ?? string.Empty;
+            if (value.Length == 0) return false;
+
+            int quotedSeparator = value.IndexOf("':'", StringComparison.Ordinal);
+            if (quotedSeparator >= 0) {
+                firstSheetName = UnquoteQualifierToken(value.Substring(0, quotedSeparator + 1));
+                lastSheetName = UnquoteQualifierToken(value.Substring(quotedSeparator + 2));
+            } else {
+                string normalized = UnquoteQualifierToken(value);
+                int separator = normalized.IndexOf(':');
+                if (separator <= 0 || separator != normalized.LastIndexOf(':')) return false;
+                firstSheetName = normalized.Substring(0, separator);
+                lastSheetName = normalized.Substring(separator + 1);
+            }
+
+            return firstSheetName.Length > 0
+                && lastSheetName.Length > 0
+                && !firstSheetName.StartsWith("[", StringComparison.Ordinal)
+                && !lastSheetName.StartsWith("[", StringComparison.Ordinal);
+        }
+
         private static string NormalizeQualifierForComparison(string? qualifier) {
-            string result = qualifier?.Trim() ?? string.Empty;
+            return UnquoteQualifierToken(qualifier?.Trim() ?? string.Empty);
+        }
+
+        private static string UnquoteQualifierToken(string value) {
+            string result = value.Trim();
             if (result.Length >= 2 && result[0] == '\'' && result[result.Length - 1] == '\'') {
                 result = result.Substring(1, result.Length - 2).Replace("''", "'");
             }

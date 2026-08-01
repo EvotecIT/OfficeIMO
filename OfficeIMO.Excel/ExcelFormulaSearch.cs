@@ -38,11 +38,17 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>Searches formula text, function calls, or parsed references on this worksheet.</summary>
         public IReadOnlyList<ExcelFormulaCellInfo> SearchFormulas(ExcelFormulaSearchOptions options) =>
-            SearchFormulaCells(GetFormulaCells(), options);
+            SearchFormulaCells(
+                GetFormulaCells(),
+                options,
+                string.IsNullOrWhiteSpace(options?.Reference)
+                    ? Array.Empty<string>()
+                    : _excelDocument.GetSheetNames());
 
         internal static IReadOnlyList<ExcelFormulaCellInfo> SearchFormulaCells(
             IEnumerable<ExcelFormulaCellInfo> formulas,
-            ExcelFormulaSearchOptions options) {
+            ExcelFormulaSearchOptions options,
+            IReadOnlyList<string> workbookSheetNames) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             options.Validate();
             ExcelReference? target = null;
@@ -63,7 +69,7 @@ namespace OfficeIMO.Excel {
                     && !ContainsFunction(formula.Formula, options.Function!, comparison)) {
                     continue;
                 }
-                if (target != null && !ContainsIntersectingReference(formula, target)) {
+                if (target != null && !ContainsIntersectingReference(formula, target, workbookSheetNames)) {
                     continue;
                 }
 
@@ -73,17 +79,65 @@ namespace OfficeIMO.Excel {
             return new ReadOnlyCollection<ExcelFormulaCellInfo>(matches);
         }
 
-        private static bool ContainsIntersectingReference(ExcelFormulaCellInfo formula, ExcelReference target) {
+        private static bool ContainsIntersectingReference(
+            ExcelFormulaCellInfo formula,
+            ExcelReference target,
+            IReadOnlyList<string> workbookSheetNames) {
             foreach (ExcelFormulaReferenceSyntax syntax in formula.SyntaxTree.Nodes.OfType<ExcelFormulaReferenceSyntax>()) {
                 ExcelReference candidate = syntax.Reference;
-                string candidateQualifier = NormalizeQualifier(candidate.Qualifier ?? formula.SheetName);
-                string targetQualifier = NormalizeQualifier(target.Qualifier ?? formula.SheetName);
-                if (!string.Equals(candidateQualifier, targetQualifier, StringComparison.OrdinalIgnoreCase)) continue;
+                string candidateQualifier = candidate.Qualifier ?? formula.SheetName;
+                string targetQualifier = target.Qualifier ?? formula.SheetName;
+                if (!QualifiersOverlap(candidateQualifier, targetQualifier, workbookSheetNames)) continue;
                 candidate.GetBounds(out int cr1, out int cc1, out int cr2, out int cc2);
                 target.GetBounds(out int tr1, out int tc1, out int tr2, out int tc2);
                 if (cr1 <= tr2 && cr2 >= tr1 && cc1 <= tc2 && cc2 >= tc1) return true;
             }
             return false;
+        }
+
+        private static bool QualifiersOverlap(
+            string candidateQualifier,
+            string targetQualifier,
+            IReadOnlyList<string> workbookSheetNames) {
+            if (TryResolveQualifierSheetSpan(candidateQualifier, workbookSheetNames, out int candidateFirst, out int candidateLast)
+                && TryResolveQualifierSheetSpan(targetQualifier, workbookSheetNames, out int targetFirst, out int targetLast)) {
+                return candidateFirst <= targetLast && candidateLast >= targetFirst;
+            }
+            return string.Equals(
+                NormalizeQualifier(candidateQualifier),
+                NormalizeQualifier(targetQualifier),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryResolveQualifierSheetSpan(
+            string qualifier,
+            IReadOnlyList<string> workbookSheetNames,
+            out int first,
+            out int last) {
+            first = last = -1;
+            if (ExcelReference.TryGetThreeDimensionalSheetRange(
+                    qualifier,
+                    out string firstSheetName,
+                    out string lastSheetName)) {
+                int firstIndex = FindSheetIndex(workbookSheetNames, firstSheetName);
+                int lastIndex = FindSheetIndex(workbookSheetNames, lastSheetName);
+                if (firstIndex < 0 || lastIndex < 0) return false;
+                first = Math.Min(firstIndex, lastIndex);
+                last = Math.Max(firstIndex, lastIndex);
+                return true;
+            }
+
+            int index = FindSheetIndex(workbookSheetNames, NormalizeQualifier(qualifier));
+            if (index < 0) return false;
+            first = last = index;
+            return true;
+        }
+
+        private static int FindSheetIndex(IReadOnlyList<string> workbookSheetNames, string sheetName) {
+            for (int index = 0; index < workbookSheetNames.Count; index++) {
+                if (SheetNameLookup.Matches(workbookSheetNames[index], sheetName)) return index;
+            }
+            return -1;
         }
 
         private static bool ContainsFunction(string formula, string requested, StringComparison comparison) {
@@ -156,6 +210,11 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>Searches formula text, function calls, or parsed references across the workbook.</summary>
         public IReadOnlyList<ExcelFormulaCellInfo> SearchFormulas(ExcelFormulaSearchOptions options) =>
-            ExcelSheet.SearchFormulaCells(InspectFormulas().Formulas, options);
+            ExcelSheet.SearchFormulaCells(
+                InspectFormulas().Formulas,
+                options,
+                string.IsNullOrWhiteSpace(options?.Reference)
+                    ? Array.Empty<string>()
+                    : GetSheetNames());
     }
 }

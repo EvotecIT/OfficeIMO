@@ -31,8 +31,8 @@ namespace OfficeIMO.Excel {
                 foreach (ExcelFormulaReferenceSyntax referenceNode in ExcelFormulaSyntaxTree.Parse(formula.Text)
                     .Nodes.OfType<ExcelFormulaReferenceSyntax>()) {
                     consumeScannedElement?.Invoke();
-                    if (TryGetThreeDimensionalSheetRange(
-                            referenceNode.Reference,
+                    if (ExcelReference.TryGetThreeDimensionalSheetRange(
+                            referenceNode.Reference.Qualifier,
                             out string firstSheetName,
                             out string lastSheetName)
                         && TryFindSheetIndex(sheets, firstSheetName, out int firstSheetIndex)
@@ -243,41 +243,6 @@ namespace OfficeIMO.Excel {
                 .Where(IsMutationFormulaLeaf)) {
                 if (!string.IsNullOrEmpty(leaf.Text)) yield return leaf.Text;
             }
-        }
-
-        private static bool TryGetThreeDimensionalSheetRange(
-            ExcelReference reference,
-            out string firstSheetName,
-            out string lastSheetName) {
-            firstSheetName = string.Empty;
-            lastSheetName = string.Empty;
-            string qualifier = reference.Qualifier?.Trim() ?? string.Empty;
-            if (qualifier.Length == 0) return false;
-
-            int quotedSeparator = qualifier.IndexOf("':'", StringComparison.Ordinal);
-            if (quotedSeparator >= 0) {
-                firstSheetName = UnquoteMutationSheetToken(qualifier.Substring(0, quotedSeparator + 1));
-                lastSheetName = UnquoteMutationSheetToken(qualifier.Substring(quotedSeparator + 2));
-            } else {
-                string normalized = UnquoteMutationSheetToken(qualifier);
-                int separator = normalized.IndexOf(':');
-                if (separator <= 0 || separator != normalized.LastIndexOf(':')) return false;
-                firstSheetName = normalized.Substring(0, separator);
-                lastSheetName = normalized.Substring(separator + 1);
-            }
-
-            return firstSheetName.Length > 0
-                && lastSheetName.Length > 0
-                && !firstSheetName.StartsWith("[", StringComparison.Ordinal)
-                && !lastSheetName.StartsWith("[", StringComparison.Ordinal);
-        }
-
-        private static string UnquoteMutationSheetToken(string value) {
-            string result = value.Trim();
-            if (result.Length >= 2 && result[0] == '\'' && result[result.Length - 1] == '\'') {
-                result = result.Substring(1, result.Length - 2).Replace("''", "'");
-            }
-            return result;
         }
 
         private static bool TryFindSheetIndex(

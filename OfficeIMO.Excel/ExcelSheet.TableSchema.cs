@@ -86,6 +86,7 @@ namespace OfficeIMO.Excel {
                 }
                 int headerRows = (int)(table.HeaderRowCount?.Value ?? 1U);
                 int totalsRows = (int)(table.TotalsRowCount?.Value ?? 0U);
+                if (table.TotalsRowShown?.Value == true) totalsRows = Math.Max(1, totalsRows);
                 if (targetBounds.r2 - targetBounds.r1 + 1 < Math.Max(1, headerRows + totalsRows)) {
                     throw new InvalidOperationException("The resized table must retain its configured header and totals rows.");
                 }

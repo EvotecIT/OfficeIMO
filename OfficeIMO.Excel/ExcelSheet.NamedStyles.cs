@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -158,7 +159,7 @@ namespace OfficeIMO.Excel {
             return index;
         }
 
-        private static uint ReplaceOrAppendNamedStyleFormat(
+        private uint ReplaceOrAppendNamedStyleFormat(
             Stylesheet stylesheet,
             CellStyle? style,
             CellFormat replacement) {
@@ -172,10 +173,16 @@ namespace OfficeIMO.Excel {
                     uint detachedId = (uint)styleFormats.Count();
                     styleFormats.Append(replacement);
                     styleFormats.Count = detachedId + 1U;
+                    RemapAppliedNamedStyleFormats(
+                        stylesheet.CellFormats!,
+                        styleFormats.Elements<CellFormat>().ElementAt((int)formatId),
+                        replacement,
+                        formatId,
+                        detachedId);
                     return detachedId;
                 }
                 CellFormat previous = styleFormats.Elements<CellFormat>().ElementAt((int)formatId);
-                ReplaceAppliedNamedStyleFormats(stylesheet.CellFormats!, previous, replacement, formatId);
+                ReplaceAppliedNamedStyleFormats(stylesheet.CellFormats!, previous, replacement, formatId, formatId);
                 styleFormats.ReplaceChild(replacement, previous);
                 styleFormats.Count = (uint)styleFormats.Count();
                 return formatId;
@@ -191,17 +198,63 @@ namespace OfficeIMO.Excel {
             CellFormats cellFormats,
             CellFormat previousStyle,
             CellFormat replacementStyle,
-            uint formatId) {
+            uint previousFormatId,
+            uint replacementFormatId) {
             var previousApplied = (CellFormat)previousStyle.CloneNode(true);
-            previousApplied.FormatId = formatId;
+            previousApplied.FormatId = previousFormatId;
             string previousXml = previousApplied.OuterXml;
             foreach (CellFormat applied in cellFormats.Elements<CellFormat>().ToList()) {
                 if (!string.Equals(applied.OuterXml, previousXml, StringComparison.Ordinal)) continue;
                 var replacement = (CellFormat)replacementStyle.CloneNode(true);
-                replacement.FormatId = formatId;
+                replacement.FormatId = replacementFormatId;
                 cellFormats.ReplaceChild(replacement, applied);
             }
             cellFormats.Count = (uint)cellFormats.Count();
+        }
+
+        private void RemapAppliedNamedStyleFormats(
+            CellFormats cellFormats,
+            CellFormat previousStyle,
+            CellFormat replacementStyle,
+            uint previousFormatId,
+            uint replacementFormatId) {
+            var previousApplied = (CellFormat)previousStyle.CloneNode(true);
+            previousApplied.FormatId = previousFormatId;
+            string previousXml = previousApplied.OuterXml;
+            var replacements = new Dictionary<uint, uint>();
+            List<CellFormat> existingFormats = cellFormats.Elements<CellFormat>().ToList();
+            for (int index = 0; index < existingFormats.Count; index++) {
+                if (!string.Equals(existingFormats[index].OuterXml, previousXml, StringComparison.Ordinal)) continue;
+                var replacement = (CellFormat)replacementStyle.CloneNode(true);
+                replacement.FormatId = replacementFormatId;
+                replacements[(uint)index] = FindOrAppendFormat(cellFormats, replacement);
+            }
+            if (replacements.Count == 0) return;
+
+            foreach (WorksheetPart worksheetPart in _excelDocument.WorkbookPartRoot.WorksheetParts) {
+                Worksheet? worksheet = worksheetPart.Worksheet;
+                if (worksheet == null) continue;
+                bool changed = false;
+                foreach (Cell cell in worksheet.Descendants<Cell>()) {
+                    if (cell.StyleIndex?.Value is not uint styleIndex
+                        || !replacements.TryGetValue(styleIndex, out uint replacementIndex)) continue;
+                    cell.StyleIndex = replacementIndex;
+                    changed = true;
+                }
+                foreach (Row row in worksheet.Descendants<Row>()) {
+                    if (row.StyleIndex?.Value is not uint styleIndex
+                        || !replacements.TryGetValue(styleIndex, out uint replacementIndex)) continue;
+                    row.StyleIndex = replacementIndex;
+                    changed = true;
+                }
+                foreach (Column column in worksheet.Descendants<Column>()) {
+                    if (column.Style?.Value is not uint styleIndex
+                        || !replacements.TryGetValue(styleIndex, out uint replacementIndex)) continue;
+                    column.Style = replacementIndex;
+                    changed = true;
+                }
+                if (changed) worksheet.Save();
+            }
         }
     }
 }
