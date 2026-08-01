@@ -61,6 +61,13 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException(
                     $"{operation} cannot preserve partially overlapping range metadata '{referenceText}'. Edit the complete metadata range first.");
             }
+            foreach (string referenceText in EnumerateMutationPivotSourceReferences(editedSheet)) {
+                consumeScannedElement?.Invoke();
+                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                    || !IsUnsafePartialMutationReference(reference!, sr1, sc1, sr2, sc2, cellShiftDirection)) continue;
+                throw new InvalidOperationException(
+                    $"{operation} cannot preserve partially overlapping pivot cache source '{referenceText}'. Edit the complete pivot source range first.");
+            }
         }
 
         private static bool IsUnsafePartialMutationReference(
@@ -96,6 +103,21 @@ namespace OfficeIMO.Excel {
                             yield return item;
                         }
                     }
+                }
+            }
+        }
+
+        private IEnumerable<string> EnumerateMutationPivotSourceReferences(ExcelSheet editedSheet) {
+            foreach (PivotTableCacheDefinitionPart cachePart in WorkbookPartRoot.PivotTableCacheDefinitionParts) {
+                foreach (WorksheetSource source in cachePart.PivotCacheDefinition?.Descendants<WorksheetSource>() ?? Enumerable.Empty<WorksheetSource>()) {
+                    if (string.IsNullOrWhiteSpace(source.Id?.Value)
+                        && string.Equals(source.Sheet?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
+                        && source.Reference?.Value is string reference) yield return reference;
+                }
+                foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.Descendants<RangeSet>() ?? Enumerable.Empty<RangeSet>()) {
+                    if (string.IsNullOrWhiteSpace(rangeSet.Id?.Value)
+                        && string.Equals(rangeSet.Sheet?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
+                        && rangeSet.Reference?.Value is string reference) yield return reference;
                 }
             }
         }

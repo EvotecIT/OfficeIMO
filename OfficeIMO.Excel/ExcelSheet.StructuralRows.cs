@@ -713,10 +713,13 @@ namespace OfficeIMO.Excel {
             }
 
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+            foreach (Connection connection in connections.Elements<Connection>()) {
                 foreach (Parameter parameter in connection.Descendants<Parameter>()) {
-                    ValidateReferenceListDoesNotOverflow(parameter.Cell?.Value, firstRow, count);
+                    if (parameter.Cell?.Value is string text
+                        && ExcelReference.TryParse(text, out ExcelReference? reference)
+                        && ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) {
+                        ValidateReferenceListDoesNotOverflow(text, firstRow, count);
+                    }
                 }
             }
         }
@@ -728,10 +731,11 @@ namespace OfficeIMO.Excel {
             }
 
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+            foreach (Connection connection in connections.Elements<Connection>()) {
                 foreach (Parameter parameter in connection.Descendants<Parameter>()) {
                     if (parameter.Cell?.Value is not string reference
+                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
+                        || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)
                         || !TryParseReference(reference, out var bounds)
                         || bounds.r1 < firstDeletedRow
                         || bounds.r1 > lastDeletedRow) {

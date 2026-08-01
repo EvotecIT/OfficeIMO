@@ -210,6 +210,13 @@ namespace OfficeIMO.Excel {
                     ExcelReference? rewritten = transform(parsed!);
                     source.Reference = rewritten?.ToString() ?? "#REF!";
                 }
+                foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.Descendants<RangeSet>() ?? Enumerable.Empty<RangeSet>()) {
+                    if (!string.Equals(rangeSet.Sheet?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
+                        || !string.IsNullOrWhiteSpace(rangeSet.Id?.Value)
+                        || !ExcelReference.TryParse(rangeSet.Reference?.Value, out ExcelReference? parsed)) continue;
+                    ExcelReference? rewritten = transform(parsed!);
+                    rangeSet.Reference = rewritten?.ToString() ?? "#REF!";
+                }
                 cachePart.PivotCacheDefinition?.Save();
             }
             return editedSheetIndex;

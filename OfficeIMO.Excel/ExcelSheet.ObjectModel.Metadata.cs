@@ -187,30 +187,23 @@ namespace OfficeIMO.Excel {
             }
 
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            if (connectionIds.Count == 0) {
-                return;
-            }
-
             bool changed = false;
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+            foreach (Connection connection in connections.Elements<Connection>()) {
                 cancellationToken.ThrowIfCancellationRequested();
                 foreach (Parameter parameter in connection.Descendants<Parameter>()) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (parameter.Cell?.Value is not string reference
-                        || !TryRemapShiftedReferenceListRows(
-                            reference,
-                            firstAffectedRow,
-                            rowDelta,
-                            lastDeletedRow,
-                            out List<string> remappedReferences)) {
+                    if (parameter.Cell?.Value is not string referenceText
+                        || !ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                        || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)
+                        || !TryRemapConnectionParameterRows(
+                            reference!, firstAffectedRow, rowDelta, lastDeletedRow, out ExcelReference? remappedReference)) {
                         continue;
                     }
 
-                    if (remappedReferences.Count == 0) {
+                    if (remappedReference == null) {
                         parameter.Remove();
                     } else {
-                        parameter.Cell = remappedReferences[0];
+                        parameter.Cell = remappedReference.ToString();
                     }
                     changed = true;
                 }
@@ -235,6 +228,33 @@ namespace OfficeIMO.Excel {
                 .Select(part => part.QueryTable?.ConnectionId?.Value)
                 .Where(id => id.HasValue)
                 .Select(id => id!.Value));
+        }
+
+        private bool ConnectionParameterTargetsCurrentSheet(
+            Connection connection,
+            ExcelReference reference,
+            HashSet<uint> worksheetConnectionIds) {
+            if (reference.IsQualified) {
+                return IsCurrentSheetQualifier(reference.Qualifier!, Name);
+            }
+            return connection.Id?.Value is uint id && worksheetConnectionIds.Contains(id);
+        }
+
+        private static bool TryRemapConnectionParameterRows(
+            ExcelReference reference,
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow,
+            out ExcelReference? remapped) {
+            reference.GetBounds(out int r1, out int c1, out int r2, out int c2);
+            if (!TryRemapShiftedReferenceRows((r1, c1, r2, c2), firstAffectedRow, rowDelta, lastDeletedRow, out var bounds)) {
+                remapped = reference;
+                return false;
+            }
+            remapped = bounds == null
+                ? null
+                : reference.WithCoordinates(reference.Kind, bounds.Value.r1, bounds.Value.c1, bounds.Value.r2, bounds.Value.c2);
+            return true;
         }
 
         private bool RemapShiftedTables(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {

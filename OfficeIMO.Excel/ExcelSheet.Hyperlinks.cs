@@ -421,5 +421,26 @@ namespace OfficeIMO.Excel {
                 existing.Remove();
             }
         }
+
+        private void RemoveRangeMoveDestinationHyperlinks(
+            ExcelReference source,
+            int destinationFirstRow,
+            int destinationFirstColumn,
+            int destinationLastRow,
+            int destinationLastColumn) {
+            Hyperlinks? hyperlinks = WorksheetRoot.GetFirstChild<Hyperlinks>();
+            if (hyperlinks == null) return;
+            ExcelReference destination = ExcelReference.Parse(
+                A1.CellReference(destinationFirstRow, destinationFirstColumn) + ":" +
+                A1.CellReference(destinationLastRow, destinationLastColumn));
+            foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().ToList()) {
+                if (hyperlink.Reference?.Value is not string referenceText
+                    || !ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                    || !reference!.Intersects(destination)
+                    || reference.Intersects(source)) continue;
+                RemoveHyperlinksByReference(hyperlinks, referenceText);
+            }
+            if (!hyperlinks.Elements<Hyperlink>().Any()) hyperlinks.Remove();
+        }
     }
 }

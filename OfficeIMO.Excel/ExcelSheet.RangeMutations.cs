@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel {
                     TryGetCellCoordinates(cell, out int row, out int column)
                     && source.Contains(row, column));
                 int images = InspectMutationPlanElements(Images, budget)
-                    .Count(image => source.Contains(image.RowIndex, image.ColumnIndex));
+                    .Count(image => !image.HasAbsoluteAnchor && source.Contains(image.RowIndex, image.ColumnIndex));
                 var impacts = new List<ExcelMutationImpact> {
                     new ExcelMutationImpact("cells", existing, "Existing cells, formulas, and styles will be transferred.")
                 };
@@ -159,6 +159,7 @@ namespace OfficeIMO.Excel {
             bool inserting,
             MutationPlanScanBudget? budget = null) {
             ValidateWorkbookSharedFormulasForStructuralEdit();
+            ValidateStructuralVmlControlSafety();
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
             EnsureNoIntersectingOwnedStructures(
                 GetCellShiftBand(affected, direction),
@@ -302,12 +303,18 @@ namespace OfficeIMO.Excel {
                     return (Row: row, Column: column, Cell: (Cell)cell.CloneNode(true));
                 }).ToList();
             List<RangeTransferImageSnapshot> imageSnapshots = Images
-                .Where(image => source.Contains(image.RowIndex, image.ColumnIndex))
+                .Where(image => !image.HasAbsoluteAnchor && source.Contains(image.RowIndex, image.ColumnIndex))
                 .Select(image => new RangeTransferImageSnapshot(image))
                 .ToList();
 
             if (move) {
                 RemoveRangeMoveDestinationComments(
+                    source,
+                    destinationRow,
+                    destinationColumn,
+                    destinationRow + destinationRows - 1,
+                    destinationColumn + destinationColumns - 1);
+                RemoveRangeMoveDestinationHyperlinks(
                     source,
                     destinationRow,
                     destinationColumn,
@@ -519,12 +526,11 @@ namespace OfficeIMO.Excel {
 
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
             bool changed = false;
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+            foreach (Connection connection in connections.Elements<Connection>()) {
                 foreach (Parameter parameter in connection.Descendants<Parameter>()) {
                     if (parameter.Cell?.Value is not string value
                         || !ExcelReference.TryParse(value, out ExcelReference? reference)
-                        || reference!.IsQualified && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) continue;
+                        || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
                     ExcelReference mapped = ExcelDocument.TransformMovedRangeReference(
                         reference!, source, destinationRow, destinationColumn, transpose);
                     string rewritten = mapped.ToString();
@@ -545,12 +551,11 @@ namespace OfficeIMO.Excel {
             if (connections == null) return;
 
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in InspectMutationPlanElements(connections.Elements<Connection>(), budget)
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+            foreach (Connection connection in InspectMutationPlanElements(connections.Elements<Connection>(), budget)) {
                 foreach (Parameter parameter in InspectMutationPlanElements(connection.Descendants<Parameter>(), budget)) {
                     if (parameter.Cell?.Value is not string value
                         || !ExcelReference.TryParse(value, out ExcelReference? reference)
-                        || reference!.IsQualified && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) continue;
+                        || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
                     ExcelReference? mapped;
                     try {
                         mapped = ExcelDocument.TransformCellShiftReference(reference!, affected, direction, inserting);
@@ -576,12 +581,11 @@ namespace OfficeIMO.Excel {
 
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
             bool changed = false;
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+            foreach (Connection connection in connections.Elements<Connection>()) {
                 foreach (Parameter parameter in connection.Descendants<Parameter>()) {
                     if (parameter.Cell?.Value is not string value
                         || !ExcelReference.TryParse(value, out ExcelReference? reference)
-                        || reference!.IsQualified && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) continue;
+                        || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
                     ExcelReference? mapped = ExcelDocument.TransformCellShiftReference(
                         reference!, affected, direction, inserting);
                     if (mapped == null) {

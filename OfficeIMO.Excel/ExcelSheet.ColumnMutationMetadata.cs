@@ -115,11 +115,11 @@ namespace OfficeIMO.Excel {
             if (connections == null) return;
 
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+            foreach (Connection connection in connections.Elements<Connection>()) {
                 foreach (Parameter parameter in connection.Descendants<Parameter>()) {
                     if (parameter.Cell?.Value is not string reference
-                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)) continue;
+                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
+                        || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)) continue;
                     ExcelReference? mapped;
                     try {
                         mapped = ExcelDocument.TransformColumnReference(
@@ -150,12 +150,12 @@ namespace OfficeIMO.Excel {
 
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
             bool changed = false;
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+            foreach (Connection connection in connections.Elements<Connection>()) {
                 foreach (Parameter parameter in connection.Descendants<Parameter>()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (parameter.Cell?.Value is not string reference
-                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)) continue;
+                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
+                        || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)) continue;
                     ExcelReference? mapped = ExcelDocument.TransformColumnReference(
                         parsed!,
                         firstColumn,

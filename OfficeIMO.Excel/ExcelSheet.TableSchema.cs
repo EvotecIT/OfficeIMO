@@ -42,6 +42,9 @@ namespace OfficeIMO.Excel {
                 _excelDocument.ReserveTableName(resolved);
                 _excelDocument.RewriteTableNameReferences(oldName, resolved);
                 WorksheetRoot.Save();
+                _excelDocument.CleanupCalculationArtifacts(
+                    save: false,
+                    ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
                 result = resolved;
             });
             return result!;
@@ -117,6 +120,7 @@ namespace OfficeIMO.Excel {
 
                 string normalizedRange = A1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + A1.CellReference(targetBounds.r2, targetBounds.c2);
                 table.Reference = normalizedRange;
+                if (rangeChanged) RemapTableResizeSortReferences(table, currentBounds, targetBounds);
                 AutoFilter? filter = table.GetFirstChild<AutoFilter>();
                 if (filter != null) {
                     int filterLastRow = Math.Max(targetBounds.r1, targetBounds.r2 - totalsRows);
@@ -139,6 +143,14 @@ namespace OfficeIMO.Excel {
                 if (renameMap.Count > 0) _excelDocument.RewriteTableColumnReferences(tableName, renameMap, table);
                 table.Save();
                 WorksheetRoot.Save();
+                bool schemaChanged = rangeChanged
+                    || existing.Count != names.Length
+                    || renames.Count > 0;
+                if (schemaChanged) {
+                    _excelDocument.CleanupCalculationArtifacts(
+                        save: false,
+                        ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
+                }
                 result = new ReadOnlyCollection<ExcelTableColumnInfo>(names
                     .Select((name, index) => new ExcelTableColumnInfo(index + 1, name))
                     .ToArray());
@@ -177,6 +189,32 @@ namespace OfficeIMO.Excel {
                 result[index] = name;
             }
             return result;
+        }
+
+        private static void RemapTableResizeSortReferences(
+            Table table,
+            (int r1, int c1, int r2, int c2) currentBounds,
+            (int r1, int c1, int r2, int c2) targetBounds) {
+            foreach (OpenXmlElement element in table.Descendants().Where(element =>
+                string.Equals(element.LocalName, "sortState", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(element.LocalName, "sortCondition", StringComparison.OrdinalIgnoreCase))) {
+                OpenXmlAttribute? referenceAttribute = element.GetAttributes()
+                    .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "ref", StringComparison.OrdinalIgnoreCase));
+                if (referenceAttribute == null
+                    || !ExcelReference.TryParse(referenceAttribute.Value.Value, out ExcelReference? reference)) continue;
+                reference!.GetBounds(out int r1, out int c1, out int r2, out int c2);
+                if (r1 < currentBounds.r1 || c1 < currentBounds.c1
+                    || r2 > currentBounds.r2 || c2 > currentBounds.c2) continue;
+                int mappedR1 = Math.Min(r1, targetBounds.r2);
+                int mappedC1 = Math.Min(c1, targetBounds.c2);
+                int mappedR2 = r2 == currentBounds.r2 ? targetBounds.r2 : r2;
+                int mappedC2 = c2 == currentBounds.c2 ? targetBounds.c2 : c2;
+                element.SetAttribute(new OpenXmlAttribute(
+                    referenceAttribute.Value.Prefix,
+                    referenceAttribute.Value.LocalName,
+                    referenceAttribute.Value.NamespaceUri,
+                    reference.WithCoordinates(reference.Kind, mappedR1, mappedC1, mappedR2, mappedC2).ToString()));
+            }
         }
     }
 
