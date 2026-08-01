@@ -10,6 +10,15 @@ public sealed class OfflineAddressBookSearchTests {
     }
 
     [Fact]
+    public void QueryTermsCannotBeReplacedAfterTheCheckpointSignatureIsCaptured() {
+        var query = new OfflineAddressBookSearchQuery(new[] { "needle" });
+
+        Assert.Throws<NotSupportedException>(() =>
+            ((IList<string>)query.Terms)[0] = "different");
+        Assert.Equal("needle", Assert.Single(query.Terms));
+    }
+
+    [Fact]
     public void SearchesSemanticFieldsAndReturnsBoundedSummaries() {
         using (var stream = new MemoryStream(new OabV4Fixture().Build(), writable: false))
         using (OfflineAddressBookSession session = OfflineAddressBookSession.Open(stream, "synthetic.oab")) {

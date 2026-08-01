@@ -47,7 +47,7 @@ public sealed class EmailStoreContentQuery {
             throw new ArgumentException("A content-search term cannot exceed 1,024 characters.", nameof(terms));
         }
 
-        Terms = normalized;
+        Terms = Array.AsReadOnly(normalized);
         Fields = fields;
         MatchMode = matchMode;
         MetadataFilter = metadataFilter;

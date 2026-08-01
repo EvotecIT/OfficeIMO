@@ -622,6 +622,125 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ResumableUploadReconcilesACommittedChunkWhenResponseBufferingFails() {
+            const int total = 16;
+            bool committed = false;
+            int statusQueries = 0;
+            using var http = new HttpClient(new Handler(request => {
+                if (request.Method == HttpMethod.Post) {
+                    var initiated = Json("{}");
+                    initiated.Headers.Location = new Uri("https://upload.googleapis.com/ambiguous-read");
+                    return initiated;
+                }
+
+                string range = request.Content!.Headers.GetValues("Content-Range").Single();
+                if (range == $"bytes */{total}") {
+                    statusQueries++;
+                    return committed
+                        ? new HttpResponseMessage(HttpStatusCode.OK) {
+                            Content = new StringContent("{\"id\":\"reconciled-1\",\"version\":\"2\"}",
+                                Encoding.UTF8, "application/json"),
+                        }
+                        : new HttpResponseMessage((HttpStatusCode)308) {
+                            Content = new StringContent(string.Empty),
+                        };
+                }
+
+                committed = true;
+                return new HttpResponseMessage(HttpStatusCode.Created) {
+                    Content = new ThrowingReadContent(),
+                };
+            }));
+            using var client = new GoogleDriveClient(Session(http,
+                new List<GoogleWorkspaceOperationReceipt>()));
+
+            GoogleDriveFile file = await client.UploadResumableAsync(
+                new byte[total], new GoogleDriveUploadOptions { Name = "ambiguous.bin" });
+
+            Assert.Equal("reconciled-1", file.Id);
+            Assert.Equal(1, statusQueries);
+        }
+
+        [Fact]
+        public async Task ResumableUploadReconcilesACommittedChunkWhenElapsedBudgetExpiresAfterResponse() {
+            const int total = 16;
+            bool committed = false;
+            int statusQueries = 0;
+            using var http = new HttpClient(new Handler(async request => {
+                if (request.Method == HttpMethod.Post) {
+                    var initiated = Json("{}");
+                    initiated.Headers.Location = new Uri("https://upload.googleapis.com/ambiguous-timeout");
+                    return initiated;
+                }
+
+                string range = request.Content!.Headers.GetValues("Content-Range").Single();
+                if (range == $"bytes */{total}") {
+                    statusQueries++;
+                    return new HttpResponseMessage(HttpStatusCode.OK) {
+                        Content = new StringContent("{\"id\":\"reconciled-timeout\",\"version\":\"2\"}",
+                            Encoding.UTF8, "application/json"),
+                    };
+                }
+
+                committed = true;
+                await Task.Delay(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
+                return new HttpResponseMessage(HttpStatusCode.Created) {
+                    Content = new StringContent("{\"id\":\"already-created\",\"version\":\"2\"}",
+                        Encoding.UTF8, "application/json"),
+                };
+            }));
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            var sessionOptions = new GoogleWorkspaceSessionOptions {
+                HttpClient = http,
+                ExpectedAccount = "test@example.com",
+                MaxRetryCount = 0,
+                MaxRetryElapsedTime = TimeSpan.FromMilliseconds(50),
+                OperationReceiptSink = receipts.Add,
+            };
+            sessionOptions.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                sessionOptions.ExpectedAccount!, context.RequiredScopes, context.Target,
+                context.AdapterExpectedRevision ?? GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                context.MaxRetryCount, context.MaxRetryElapsedTime, context.RateLimitPolicy,
+                GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            using var client = new GoogleDriveClient(new GoogleWorkspaceSession(
+                new StaticAccessTokenCredentialSource("token"), sessionOptions));
+
+            GoogleDriveFile file = await client.UploadResumableAsync(
+                new byte[total], new GoogleDriveUploadOptions { Name = "ambiguous-timeout.bin" });
+
+            Assert.True(committed);
+            Assert.Equal("reconciled-timeout", file.Id);
+            Assert.Equal(1, statusQueries);
+        }
+
+        [Theory]
+        [InlineData("not-a-range-15")]
+        [InlineData("bytes=0-16")]
+        [InlineData("bytes=1-15")]
+        public async Task ResumableUploadRejectsMalformedOrOutOfBoundsConfirmedRange(string confirmedRange) {
+            const int total = 16;
+            using var http = new HttpClient(new Handler(request => {
+                if (request.Method == HttpMethod.Post) {
+                    var initiated = Json("{}");
+                    initiated.Headers.Location = new Uri("https://upload.googleapis.com/invalid-range");
+                    return initiated;
+                }
+
+                var status = new HttpResponseMessage((HttpStatusCode)308) {
+                    Content = new StringContent(string.Empty),
+                };
+                status.Headers.TryAddWithoutValidation("Range", confirmedRange);
+                return status;
+            }));
+            using var client = new GoogleDriveClient(Session(http,
+                new List<GoogleWorkspaceOperationReceipt>()));
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                client.UploadResumableStreamAsync(new MemoryStream(new byte[total]), total,
+                    new GoogleDriveUploadOptions { Name = "invalid-range.bin" }));
+        }
+
+        [Fact]
         public async Task ResumableUploadRejectsSourceMutationBeforeReportingSuccess() {
             const int total = 16;
             using var http = new HttpClient(new Handler(request => {
@@ -747,6 +866,26 @@ namespace OfficeIMO.Tests {
                 Assert.False(Directory.Exists(parent));
             } finally {
                 if (Directory.Exists(parent)) Directory.Delete(parent, recursive: true);
+            }
+        }
+
+        [Fact]
+        public async Task DurableDownloadRemovesNewDestinationWhenInitialCheckpointCannotBePersisted() {
+            using var http = new HttpClient(new Handler(_ =>
+                Json("{\"id\":\"file-1\",\"version\":\"7\",\"size\":\"3\"}")));
+            string path = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-download-uncheckpointed-" + Guid.NewGuid().ToString("N") + ".bin");
+            try {
+                using var client = new GoogleDriveClient(Session(http,
+                    new List<GoogleWorkspaceOperationReceipt>()));
+
+                await Assert.ThrowsAsync<StopAfterCheckpointException>(() =>
+                    client.DownloadToFileAsync("file-1", path,
+                        checkpointSink: (_, _) => throw new StopAfterCheckpointException()));
+
+                Assert.False(File.Exists(path));
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
             }
         }
 
@@ -921,15 +1060,18 @@ namespace OfficeIMO.Tests {
             GoogleDriveDownloadCheckpoint? saved = null;
             byte[] replacement = Encoding.UTF8.GetBytes("unrelated content");
             try {
+                using var stopAfterPersist = new CancellationTokenSource();
                 using (var first = new GoogleDriveClient(Session(http,
                            new List<GoogleWorkspaceOperationReceipt>()))) {
-                    await Assert.ThrowsAsync<StopAfterCheckpointException>(() =>
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                         first.DownloadToFileAsync("file-1", path,
                             checkpointSink: (checkpoint, _) => {
                                 saved = checkpoint;
-                                throw new StopAfterCheckpointException();
+                                stopAfterPersist.Cancel();
+                                return Task.CompletedTask;
                             },
-                            chunkSize: 256 * 1024));
+                            chunkSize: 256 * 1024,
+                            cancellationToken: stopAfterPersist.Token));
                 }
 
                 File.Delete(path);
@@ -957,15 +1099,18 @@ namespace OfficeIMO.Tests {
             string alias = path + ".alias";
             GoogleDriveDownloadCheckpoint? saved = null;
             try {
+                using var stopAfterPersist = new CancellationTokenSource();
                 using (var first = new GoogleDriveClient(Session(http,
                            new List<GoogleWorkspaceOperationReceipt>()))) {
-                    await Assert.ThrowsAsync<StopAfterCheckpointException>(() =>
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                         first.DownloadToFileAsync("file-1", path,
                             checkpointSink: (checkpoint, _) => {
                                 saved = checkpoint;
-                                throw new StopAfterCheckpointException();
+                                stopAfterPersist.Cancel();
+                                return Task.CompletedTask;
                             },
-                            chunkSize: 256 * 1024));
+                            chunkSize: 256 * 1024,
+                            cancellationToken: stopAfterPersist.Token));
                 }
 
                 CreateHardLinkForTest(path, alias);

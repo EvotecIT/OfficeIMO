@@ -108,6 +108,15 @@ public sealed class EmailStoreContentSearchTests {
     }
 
     [Fact]
+    public void QueryTermsCannotBeReplacedAfterTheCheckpointSignatureIsCaptured() {
+        var query = new EmailStoreContentQuery(new[] { "needle" });
+
+        Assert.Throws<NotSupportedException>(() =>
+            ((IList<string>)query.Terms)[0] = "different");
+        Assert.Equal("needle", Assert.Single(query.Terms));
+    }
+
+    [Fact]
     public void SearchesSemanticRtfTextInsteadOfControlSource() {
         string root = CreateCorpus();
         try {

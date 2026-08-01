@@ -99,7 +99,12 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             }
             output.Position = offset;
             GoogleDriveDownloadCheckpoint state = GoogleDriveDownloadCheckpoint.Create(fileId, version, total, offset, chunkSize, destinationIdentity, contentFingerprint);
-            await PersistDownloadCheckpointAsync(fullPath, output, state, checkpointSink, cancellationToken).ConfigureAwait(false);
+            try {
+                await PersistDownloadCheckpointAsync(fullPath, output, state, checkpointSink, cancellationToken).ConfigureAwait(false);
+            } catch (Exception exception) when (checkpoint == null) {
+                RemoveUncheckpointedDestination(fullPath, output, state, exception);
+                throw;
+            }
             while (offset < total) {
                 cancellationToken.ThrowIfCancellationRequested(); long end = Math.Min(total - 1, offset + chunkSize - 1); long expected = end - offset + 1;
                 byte[] bytes = await Transport.SendBytesAsync(token, HttpMethod.Get,
@@ -170,6 +175,23 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(path, stream);
             if (checkpointSink != null) await checkpointSink(checkpoint, cancellationToken).ConfigureAwait(false);
             GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(path, stream);
+        }
+        private static void RemoveUncheckpointedDestination(string path, FileStream stream,
+            GoogleDriveDownloadCheckpoint checkpoint, Exception checkpointException) {
+            try {
+                GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(path, stream);
+                if (stream.Length != 0) {
+                    checkpointException.Data["OfficeIMO.GoogleWorkspace.UnpersistedDownloadCheckpoint"] = checkpoint.Value;
+                    return;
+                }
+
+                stream.Dispose();
+                File.Delete(path);
+            } catch (Exception cleanupException) {
+                checkpointException.Data["OfficeIMO.GoogleWorkspace.UnpersistedDownloadCheckpoint"] = checkpoint.Value;
+                checkpointException.Data["OfficeIMO.GoogleWorkspace.DownloadCleanupFailure"] =
+                    cleanupException.GetType().FullName ?? cleanupException.GetType().Name;
+            }
         }
         private static int ReadChunk(Stream stream, byte[] buffer, int wanted, CancellationToken cancellationToken) {
             int total = 0;

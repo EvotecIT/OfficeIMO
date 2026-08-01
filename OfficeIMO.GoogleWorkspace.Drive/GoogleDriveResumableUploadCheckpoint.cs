@@ -138,7 +138,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
                     return new GoogleDriveResumableUploadResult(file, state);
                 }
-                long offset = ResolveNextOffset(status, state.ConfirmedBytes);
+                long offset = ResolveNextOffset(status, state.ConfirmedBytes, length);
                 int chunkSize = NormalizeChunkSize(options.ResumableChunkSize);
                 var buffer = new byte[chunkSize];
                 int noProgressResponses = 0;
@@ -156,7 +156,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     bool completed = status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created;
                     if (completed) offset = length;
                     else {
-                        long nextOffset = ResolveNextOffset(status, offset);
+                        long nextOffset = ResolveNextOffset(status, offset, length);
                         if (nextOffset <= offset) {
                             if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress for the resumable upload chunk.");
                         } else {

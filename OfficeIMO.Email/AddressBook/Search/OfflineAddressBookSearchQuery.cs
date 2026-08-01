@@ -47,7 +47,7 @@ public sealed class OfflineAddressBookSearchQuery {
             throw new ArgumentException("An address-book search term cannot exceed 1,024 characters.", nameof(terms));
         }
 
-        Terms = normalized;
+        Terms = Array.AsReadOnly(normalized);
         Fields = fields;
         MatchMode = matchMode;
         AddressListId = string.IsNullOrWhiteSpace(addressListId) ? null : addressListId;

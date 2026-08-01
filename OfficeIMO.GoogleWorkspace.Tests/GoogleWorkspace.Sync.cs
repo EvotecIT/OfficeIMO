@@ -39,6 +39,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("drive-next", result.NextCheckpoint.SharedDriveChangeTokens["drive-a"]);
             Assert.Equal("user-start", checkpoint.UserChangeToken);
             Assert.Equal("drive-start", checkpoint.SharedDriveChangeTokens["drive-a"]);
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<GoogleWorkspaceTrackedChange>)result.Changes)[0] = result.Changes[0]);
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<GoogleWorkspaceChangeSourceResult>)result.Sources)[0] = result.Sources[0]);
             Assert.All(changeUris.Where(uri => !uri.Contains("driveId=drive-a", StringComparison.Ordinal)),
                 uri => Assert.Contains("includeItemsFromAllDrives=false", uri, StringComparison.Ordinal));
             Assert.All(changeUris.Where(uri => uri.Contains("driveId=drive-a", StringComparison.Ordinal)),
@@ -136,6 +140,27 @@ namespace OfficeIMO.Tests {
             }, result.Items.Select(item => item.Status));
             Assert.True(result.HasConflicts);
             Assert.True(result.NeedsApproval);
+        }
+
+        [Fact]
+        public async Task SyncPlanAndApplyResultCollectionsCannotBeReplacedAfterReview() {
+            GoogleWorkspaceSyncItem original = Item("original", GoogleWorkspaceSyncItemKind.SourceChange,
+                "reviewed");
+            GoogleWorkspaceSyncItem replacement = Item("replacement",
+                GoogleWorkspaceSyncItemKind.RemoteChange, "substituted");
+            var source = new[] { original };
+            GoogleWorkspaceSyncPlan plan = GoogleWorkspaceSyncPlan.Create(source, Policy());
+            source[0] = replacement;
+
+            Assert.Same(original, Assert.Single(plan.Items));
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<GoogleWorkspaceSyncItem>)plan.Items)[0] = replacement);
+
+            GoogleWorkspaceSyncApplyResult result = await GoogleWorkspaceSyncExecutor.ApplyAsync(
+                plan, (_, _) => Task.CompletedTask);
+            GoogleWorkspaceSyncItemResult resultItem = Assert.Single(result.Items);
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<GoogleWorkspaceSyncItemResult>)result.Items)[0] = resultItem);
         }
 
         [Theory]

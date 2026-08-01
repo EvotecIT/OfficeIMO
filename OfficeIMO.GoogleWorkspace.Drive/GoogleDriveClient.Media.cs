@@ -123,7 +123,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                             return response.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
                         }
 
-                        long nextOffset = ResolveNextOffset(response, offset);
+                        long nextOffset = ResolveNextOffset(response, offset, content.LongLength);
                         if (nextOffset <= offset) {
                             if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress for the resumable upload chunk.");
                         } else {
@@ -139,7 +139,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                             return status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
                         }
 
-                        long nextOffset = ResolveNextOffset(status, offset);
+                        long nextOffset = ResolveNextOffset(status, offset, content.LongLength);
                         if (nextOffset <= offset) {
                             if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress while reconciling the resumable upload.");
                         } else {
@@ -162,7 +162,10 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 return (int)apiException.ResponseStatusCode >= 500;
             }
 
-            return exception is HttpRequestException || exception is TaskCanceledException;
+            return exception is HttpRequestException
+                || exception is IOException
+                || exception is TimeoutException
+                || exception is TaskCanceledException;
         }
 
         public async Task<byte[]> DownloadAsync(
@@ -310,12 +313,19 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             }, GoogleDriveJsonSerializerContext.Default.GoogleDriveFilePayload);
         }
 
-        private static long ResolveNextOffset(GoogleWorkspaceHttpResponse response, long fallback) {
+        private static long ResolveNextOffset(GoogleWorkspaceHttpResponse response, long fallback, long total) {
             string? range = response.GetHeader("Range");
             if (string.IsNullOrWhiteSpace(range)) return fallback;
-            int dash = range!.LastIndexOf('-');
-            if (dash < 0 || !long.TryParse(range.Substring(dash + 1), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long end)) {
-                return fallback;
+            const string prefix = "bytes=0-";
+            string normalized = range!.Trim();
+            if (!normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                || !long.TryParse(normalized.Substring(prefix.Length),
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out long end)
+                || end < 0
+                || end >= total) {
+                throw new InvalidDataException("Google Drive returned an invalid resumable upload Range header.");
             }
 
             return end + 1;

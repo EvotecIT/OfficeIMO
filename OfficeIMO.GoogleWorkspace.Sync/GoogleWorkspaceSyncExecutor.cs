@@ -33,7 +33,9 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
     }
 
     public sealed class GoogleWorkspaceSyncApplyResult {
-        internal GoogleWorkspaceSyncApplyResult(IReadOnlyList<GoogleWorkspaceSyncItemResult> items, bool wasCanceled) { Items = items; WasCanceled = wasCanceled; }
+        internal GoogleWorkspaceSyncApplyResult(IReadOnlyList<GoogleWorkspaceSyncItemResult> items, bool wasCanceled) {
+            Items = Array.AsReadOnly(items.ToArray()); WasCanceled = wasCanceled;
+        }
         public IReadOnlyList<GoogleWorkspaceSyncItemResult> Items { get; }
         public bool WasCanceled { get; }
         public bool HasFailures => Items.Any(item => item.Status == GoogleWorkspaceSyncApplyStatus.Failed);
