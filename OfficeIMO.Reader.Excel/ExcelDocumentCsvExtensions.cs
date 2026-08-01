@@ -17,6 +17,7 @@ public static class ExcelDocumentCsvExtensions {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (csv == null) throw new ArgumentNullException(nameof(csv));
+        cancellationToken.ThrowIfCancellationRequested();
         ExcelCsvImportOptions resolved = ResolveOptions(options);
         using DbDataReader reader = csv.CreateDataReader(resolved.ReaderOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
@@ -31,7 +32,8 @@ public static class ExcelDocumentCsvExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         ExcelCsvImportOptions resolved = ResolveOptions(options);
-        using DbDataReader reader = CsvDocument.OpenDataReader(path, resolved.LoadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenDataReader(path, loadOptions, resolved.ReaderOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
@@ -43,7 +45,8 @@ public static class ExcelDocumentCsvExtensions {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         ExcelCsvImportOptions resolved = ResolveOptions(options);
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream, resolved.LoadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenDataReader(stream, loadOptions, resolved.ReaderOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
@@ -58,7 +61,8 @@ public static class ExcelDocumentCsvExtensions {
         ExcelCsvImportOptions resolved = ResolveOptions(options);
         Encoding encoding = resolved.LoadOptions.Encoding ?? new UTF8Encoding(false);
         using var stream = new MemoryStream(encoding.GetBytes(text), writable: false);
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream, resolved.LoadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenDataReader(stream, loadOptions, resolved.ReaderOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
@@ -125,5 +129,17 @@ public static class ExcelDocumentCsvExtensions {
         if (resolved.StartRow < 1) throw new ArgumentOutOfRangeException(nameof(options), "StartRow must be at least 1.");
         if (resolved.StartColumn < 1) throw new ArgumentOutOfRangeException(nameof(options), "StartColumn must be at least 1.");
         return resolved;
+    }
+
+    internal static CancellationTokenSource CreateLinkedLoadOptions(
+        ExcelCsvImportOptions options,
+        CancellationToken cancellationToken,
+        out CsvLoadOptions loadOptions) {
+        var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            options.LoadOptions.CancellationToken);
+        loadOptions = options.LoadOptions.Clone();
+        loadOptions.CancellationToken = linkedCancellation.Token;
+        return linkedCancellation;
     }
 }

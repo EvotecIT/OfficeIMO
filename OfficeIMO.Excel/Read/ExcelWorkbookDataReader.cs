@@ -98,7 +98,8 @@ namespace OfficeIMO.Excel {
                     MaxPackageBytes = options.MaxInputBytes,
                     MaxCells = options.MaxXlsbCells,
                     MaxSharedStrings = options.MaxSharedStringItems,
-                    ReportPreservedRecords = false
+                    ReportPreservedRecords = false,
+                    CancellationToken = options.CancellationToken
                 }
             };
 

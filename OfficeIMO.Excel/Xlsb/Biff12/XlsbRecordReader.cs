@@ -9,13 +9,16 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         internal static IReadOnlyList<XlsbRecord> ReadAll(
             Stream stream,
             int maxRecordBytes = DefaultMaxRecordBytes,
-            XlsbRecordReadBudget? budget = null) {
+            XlsbRecordReadBudget? budget = null,
+            System.Threading.CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("The BIFF12 stream must be readable.", nameof(stream));
             if (maxRecordBytes < 0) throw new ArgumentOutOfRangeException(nameof(maxRecordBytes));
 
             var records = new List<XlsbRecord>();
-            while (TryRead(stream, maxRecordBytes, out XlsbRecord record)) {
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!TryRead(stream, maxRecordBytes, out XlsbRecord record)) break;
                 budget?.Consume();
                 records.Add(record);
             }

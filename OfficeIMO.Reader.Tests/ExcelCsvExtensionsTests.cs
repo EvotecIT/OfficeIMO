@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using System.Threading;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 using OfficeIMO.Reader.Csv;
@@ -9,6 +10,26 @@ using Xunit;
 namespace OfficeIMO.Reader.Tests;
 
 public class ExcelCsvExtensionsTests {
+    [Fact]
+    public void CsvImportChecksMethodCancellationBeforeCreatingReaders() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var loadOptions = new CsvLoadOptions();
+        var options = new ExcelCsvImportOptions { LoadOptions = loadOptions };
+        CsvDocument csv = CsvDocument.Parse("Name\r\nAlpha");
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+        ExcelSheet sheet = document.AddWorksheet("Existing");
+
+        Assert.Throws<OperationCanceledException>(() =>
+            document.ImportCsv(csv, options, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() =>
+            sheet.ImportCsvText("Name\r\nAlpha", options, cancellation.Token));
+
+        Assert.False(loadOptions.CancellationToken.CanBeCanceled);
+        Assert.Single(document.Sheets);
+    }
+
     [Fact]
     public void EmptyCsvImportReturnsAnEmptyRange() {
         using var stream = new MemoryStream();

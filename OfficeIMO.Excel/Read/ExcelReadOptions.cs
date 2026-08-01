@@ -219,5 +219,11 @@ namespace OfficeIMO.Excel {
             Execution.OperationThresholds["ReadRangeStream"] = 100_000;
             Execution.OperationThresholds["ReadRows"] = 20_000;
         }
+
+        internal ExcelReadOptions WithCancellationToken(CancellationToken cancellationToken) {
+            var clone = (ExcelReadOptions)MemberwiseClone();
+            clone.CancellationToken = cancellationToken;
+            return clone;
+        }
     }
 }

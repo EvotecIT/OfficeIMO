@@ -911,6 +911,21 @@ public partial class Excel {
     }
 
     [Fact]
+    public void Load_XlsbImportObservesConfiguredCancellation() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => ExcelDocument.Load(
+            GetDataReaderXlsbFixture("basic-values-formula.xlsb"),
+            new ExcelLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                XlsbImportOptions = new Xlsb.XlsbImportOptions {
+                    CancellationToken = cancellation.Token
+                }
+            }));
+    }
+
+    [Fact]
     public void OpenDataReader_LegacyXlsObservesCancellationWhileBufferingInput() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Cancel.{Guid.NewGuid():N}.xls");
         try {

@@ -5,6 +5,7 @@ using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Read;
 using OfficeIMO.Excel.Xlsb.Styles;
 using System.IO.Compression;
+using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb {
     /// <summary>Reads workbook metadata and worksheet values from BIFF12 package parts.</summary>
@@ -79,6 +80,7 @@ namespace OfficeIMO.Excel.Xlsb {
             if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
             XlsbImportOptions resolved = options ?? new XlsbImportOptions();
             resolved.Validate();
+            CancellationToken cancellationToken = resolved.CancellationToken;
 
             if (!XlsbPackageDetector.TryFindWorkbookPart(packageBytes, out string? workbookPartName)
                 || string.IsNullOrWhiteSpace(workbookPartName)) {
@@ -93,12 +95,12 @@ namespace OfficeIMO.Excel.Xlsb {
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
             var parts = new XlsbPackagePartReader(archive, resolved);
             var recordBudget = new XlsbRecordReadBudget(resolved.MaxRecordCount);
-            IReadOnlyDictionary<string, XlsbPackageRelationship> relationships = parts.ReadRelationships(workbookPartName!);
+            IReadOnlyDictionary<string, XlsbPackageRelationship> relationships = parts.ReadRelationships(workbookPartName!, cancellationToken);
             IReadOnlyList<string> sharedStrings = ReadSharedStrings(parts, workbookPartName!, relationships,
                 resolved, workbook, recordBudget);
             workbook.Stylesheet = ReadStyles(parts, workbookPartName!, relationships, resolved,
                 workbook, recordBudget);
-            ParseWorkbookPart(parts.ReadPart(workbookPartName!), workbookPartName!, resolved, workbook,
+            ParseWorkbookPart(parts.ReadPart(workbookPartName!, cancellationToken), workbookPartName!, resolved, workbook,
                 recordBudget);
 
             if (workbook.Worksheets.Count == 0) {
@@ -114,6 +116,7 @@ namespace OfficeIMO.Excel.Xlsb {
             int totalMergedRanges = 0;
             int totalHyperlinks = 0;
             foreach (XlsbWorksheet worksheet in workbook.Worksheets) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!relationships.TryGetValue(worksheet.RelationshipId, out XlsbPackageRelationship? relationship)
                     || relationship.IsExternal
                     || !relationship.Type.EndsWith(WorksheetRelationshipSuffix, StringComparison.Ordinal)) {
@@ -122,9 +125,9 @@ namespace OfficeIMO.Excel.Xlsb {
 
                 string sheetPartName = XlsbPackagePartReader.ResolveTarget(workbookPartName!, relationship.Target);
                 worksheet.PartName = sheetPartName;
-                IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = parts.ReadRelationships(sheetPartName);
+                IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = parts.ReadRelationships(sheetPartName, cancellationToken);
                 ParseWorksheetPart(
-                    parts.ReadPart(sheetPartName),
+                    parts.ReadPart(sheetPartName, cancellationToken),
                     sheetPartName,
                     worksheet,
                     worksheetRelationships,
@@ -161,6 +164,7 @@ namespace OfficeIMO.Excel.Xlsb {
             }
 
             foreach (XlsbRecord record in records) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 switch (record.Type) {
                     case BrtBeginBook:
                     case BrtEndBook:
@@ -386,7 +390,7 @@ namespace OfficeIMO.Excel.Xlsb {
             if (relationship == null) return null;
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            return XlsbStylesheetReader.Read(parts.ReadPart(partName), partName, options, workbook,
+            return XlsbStylesheetReader.Read(parts.ReadPart(partName, options.CancellationToken), partName, options, workbook,
                 recordBudget);
         }
 
@@ -404,12 +408,13 @@ namespace OfficeIMO.Excel.Xlsb {
             if (relationship == null) return Array.Empty<string>();
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            IReadOnlyList<XlsbRecord> records = ReadRecords(parts.ReadPart(partName), options,
+            IReadOnlyList<XlsbRecord> records = ReadRecords(parts.ReadPart(partName, options.CancellationToken), options,
                 recordBudget);
             var values = new List<string>();
             bool hasBegin = false;
             bool hasEnd = false;
             foreach (XlsbRecord record in records) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 switch (record.Type) {
                     case BrtBeginSst:
                         hasBegin = true;
@@ -480,6 +485,7 @@ namespace OfficeIMO.Excel.Xlsb {
             uint declaredMergeCount = 0;
             int actualMergeCount = 0;
             foreach (XlsbRecord record in records) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 switch (record.Type) {
                     case BrtBeginSheet:
                     case BrtEndSheet:
@@ -968,7 +974,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private static IReadOnlyList<XlsbRecord> ReadRecords(byte[] bytes, XlsbImportOptions options,
             XlsbRecordReadBudget budget) {
             using var stream = new MemoryStream(bytes, writable: false);
-            return XlsbRecordReader.ReadAll(stream, options.MaxRecordBytes, budget);
+            return XlsbRecordReader.ReadAll(stream, options.MaxRecordBytes, budget, options.CancellationToken);
         }
 
         private static void PreserveRecord(

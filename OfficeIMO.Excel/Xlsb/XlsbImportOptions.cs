@@ -39,7 +39,11 @@ namespace OfficeIMO.Excel.Xlsb {
         /// <summary>Gets or sets whether unknown records are listed in the import preservation report.</summary>
         public bool ReportPreservedRecords { get; set; } = true;
 
+        /// <summary>Gets or sets the token observed while reading and projecting workbook records.</summary>
+        public System.Threading.CancellationToken CancellationToken { get; set; }
+
         internal void Validate() {
+            CancellationToken.ThrowIfCancellationRequested();
             if (MaxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPartBytes));
             if (MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
             if (MaxRecordBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRecordBytes));

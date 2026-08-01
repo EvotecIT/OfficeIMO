@@ -94,6 +94,15 @@ and writer pipelines. Replace `ImportDelimitedFile`, `FromCsv`,
 `ExcelCsvImportResult`. Use `SaveAsCsv` and `SaveAsExcel` for destination-shaped
 conversion entry points.
 
+The same cleanup removes the alternate `ImportDelimitedText` and `TableToCsv`
+entry points. Use `ImportCsvText` and the worksheet `ToCsv` / `SaveAsCsv`
+methods instead. Calls that passed `ToCsv` arguments positionally should use
+the current `headersInFirstRow`, `csvOptions`, `readOptions`, and
+`cancellationToken` parameter names. Replace old import-result properties
+`TableName`, `RowCount`, `ColumnCount`, `Delimiter`, and `Warnings` with the
+current `ExcelCsvImportResult.SheetName` and `Range`; inspect the configured CSV
+reader options or the resulting worksheet/table when those details are needed.
+
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
 The shared `OfficeRenderingProfile` and Excel structural row mutation methods `PlanInsertRows(...)` and `PlanDeleteRows(...)` are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy, and use a mutation plan when an application must inspect workbook impact before applying a row change.

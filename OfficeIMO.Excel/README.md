@@ -341,7 +341,7 @@ document.Save("report.xlsx", new ExcelSaveOptions {
 ```csharp
 using var document = ExcelDocument.Load(
     "incoming.xlsx",
-    new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+    new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
 ExcelFeatureReport report = document.InspectFeatures();
 

@@ -112,7 +112,7 @@ namespace OfficeIMO.Excel {
                 httpOptions,
                 linkedCancellation.Token,
                 effectiveOptions.MaxInputBytes).ConfigureAwait(false);
-            return OpenDataReader(bytes, effectiveOptions);
+            return OpenDataReader(bytes, effectiveOptions.WithCancellationToken(linkedCancellation.Token));
         }
     }
 }
