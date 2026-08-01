@@ -66,7 +66,10 @@ namespace OfficeIMO.Word {
             MaxEncodedBytes = 16L * 1024 * 1024,
             MaxContentBytes = 16L * 1024 * 1024,
             MaxSigners = 1,
-            MaxCertificates = 64
+            MaxCertificates = 64,
+            MaxTimestampTokens = 8,
+            MaxTimestampTokenBytes = 16L * 1024 * 1024,
+            MaxTotalTimestampBytes = 32L * 1024 * 1024
         };
     }
 
@@ -259,9 +262,6 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets or sets an optional RFC 3161 timestamp-authority URL.</summary>
         public Uri? TimestampAuthorityUrl { get; set; }
-
-        /// <summary>Gets or sets whether all legacy, agile, and V3 profiles must be created. Defaults to true.</summary>
-        public bool RequireAllProfiles { get; set; } = true;
 
         /// <summary>Gets or sets how existing OPC package signatures are handled. The default blocks VBA signing.</summary>
         public WordSignedDocumentSavePolicy ExistingPackageSignaturePolicy { get; set; } = WordSignedDocumentSavePolicy.Block;

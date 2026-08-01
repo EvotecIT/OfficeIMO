@@ -48,7 +48,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var element = htmlDoc.CreateElement(tagName);
+            var element = CreateOutputElement(htmlDoc, tagName);
             var kind = string.Equals(tagName, "header", StringComparison.OrdinalIgnoreCase) ? "header" : "footer";
             element.SetAttribute("class", $"word-{kind} word-{kind}-{type}");
             element.SetAttribute("data-section-index", sectionIndex.ToString(CultureInfo.InvariantCulture));

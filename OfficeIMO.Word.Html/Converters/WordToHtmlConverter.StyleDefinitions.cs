@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Html {
                 return string.Join(" ", props.Select(kv => kv.Key + ':' + kv.Value + ';'));
             }
 
-            var styleElement = htmlDoc.CreateElement("style");
+            var styleElement = CreateOutputElement(htmlDoc, "style");
             var sb = new StringBuilder();
 
             foreach (var s in paragraphStyles) {

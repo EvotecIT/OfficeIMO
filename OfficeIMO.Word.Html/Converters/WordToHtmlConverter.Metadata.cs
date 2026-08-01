@@ -12,12 +12,12 @@ namespace OfficeIMO.Word.Html {
             CancellationToken cancellationToken) {
             ApplyDocumentShellMetadata(document, htmlDoc);
 
-            var charset = htmlDoc.CreateElement("meta");
+            var charset = CreateOutputElement(htmlDoc, "meta");
             charset.SetAttribute("charset", "UTF-8");
             head.AppendChild(charset);
 
             var props = document.BuiltinDocumentProperties;
-            var title = htmlDoc.CreateElement("title");
+            var title = CreateOutputElement(htmlDoc, "title");
             var titleText = string.IsNullOrEmpty(props?.Title) ? "Document" : props!.Title!;
             title.TextContent = titleText;
             head.AppendChild(title);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Word.Html {
             foreach (var (name, content) in options.AdditionalMetaTags) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(name)) {
-                    var meta = htmlDoc.CreateElement("meta");
+                    var meta = CreateOutputElement(htmlDoc, "meta");
                     meta.SetAttribute("name", name);
                     if (!string.IsNullOrEmpty(content)) {
                         meta.SetAttribute("content", content);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Word.Html {
             foreach (var (rel, href) in options.AdditionalLinkTags) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(rel) && !string.IsNullOrEmpty(href)) {
-                    var link = htmlDoc.CreateElement("link");
+                    var link = CreateOutputElement(htmlDoc, "link");
                     link.SetAttribute("rel", rel);
                     link.SetAttribute("href", href);
                     head.AppendChild(link);
@@ -59,7 +59,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (options.IncludeDefaultCss) {
-                var style = htmlDoc.CreateElement("style");
+                var style = CreateOutputElement(htmlDoc, "style");
                 style.TextContent = WordHtmlResources.DefaultCss;
                 head.AppendChild(style);
             }
@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Html {
 
         private static void AddMeta(IDocument htmlDoc, IElement head, string name, string? value) {
             if (!string.IsNullOrEmpty(value)) {
-                var meta = htmlDoc.CreateElement("meta");
+                var meta = CreateOutputElement(htmlDoc, "meta");
                 meta.SetAttribute("name", name);
                 meta.SetAttribute("content", value);
                 head.AppendChild(meta);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var meta = htmlDoc.CreateElement("meta");
+            var meta = CreateOutputElement(htmlDoc, "meta");
             meta.SetAttribute("name", "word:custom:" + name);
             meta.SetAttribute("content", value);
             meta.SetAttribute("data-word-custom-property", name);

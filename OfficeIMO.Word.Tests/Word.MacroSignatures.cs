@@ -131,6 +131,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MacroSignatureValidationUsesOneImmutablePackageSnapshot() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureValidationSnapshot.docm");
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            AddMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.V3, certificate);
+            byte[] replacement = File.ReadAllBytes(CreateMacroEnabledTestDocument("MacroSignatureReplacement.docm"));
+            var platform = new SnapshotRecordingMacroSigningPlatform(() => File.WriteAllBytes(filePath, replacement));
+            var dependencies = new WordMacroProjectSigningDependencies(
+                new RecordingMacroToolRunner(_ => Success()), platform);
+            var options = new WordMacroProjectSignatureValidationOptions();
+            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+
+            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
+                filePath, options, dependencies);
+
+            Assert.True(result.IsValidUnderPolicy, string.Join(" | ", result.Findings.Select(
+                finding => finding.Code + ": " + finding.Message)));
+            Assert.Equal(Path.GetFullPath(filePath), result.SignatureInfo.FilePath);
+            Assert.Equal(2, platform.Paths.Count);
+            Assert.Equal(platform.Paths[0], platform.Paths[1]);
+            Assert.NotEqual(Path.GetFullPath(filePath), platform.Paths[0]);
+        }
+
+        [Fact]
+        public void MacroSignatureValidationAcceptsValidHighestProfileWithMalformedLowerProfile() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureProfilePrecedence.docm");
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            AddRawMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.Legacy, new byte[48]);
+            AddMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.V3, certificate);
+            var options = new WordMacroProjectSignatureValidationOptions();
+            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            var dependencies = new WordMacroProjectSigningDependencies(
+                new RecordingMacroToolRunner(_ => Success()),
+                new TestMacroSigningPlatform(isWindows: true));
+
+            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
+                filePath, options, dependencies);
+
+            Assert.True(result.IsValidUnderPolicy, string.Join(" | ", result.Findings.Select(
+                finding => finding.Code + ": " + finding.Message)));
+            Assert.Contains(result.Findings, finding =>
+                finding.Profile == WordMacroProjectSignatureProfile.Legacy &&
+                finding.Code == "MacroSignatureContainerMalformed");
+        }
+
+        [Fact]
         public void MacroSignatureValidationEnforcesV3AndTimestampPolicyBeforeAcceptance() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignaturePolicy.docm");
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
@@ -595,6 +640,33 @@ namespace OfficeIMO.Tests {
                 string digestAlgorithmOid,
                 byte[] expectedDigest) =>
                 new WordMacroProjectContentBindingResult(true, true, "simulated Office SIP digest match");
+        }
+
+        private sealed class SnapshotRecordingMacroSigningPlatform : IWordMacroProjectPlatform {
+            private readonly Action _mutateOriginal;
+
+            internal SnapshotRecordingMacroSigningPlatform(Action mutateOriginal) =>
+                _mutateOriginal = mutateOriginal;
+
+            internal List<string> Paths { get; } = new List<string>();
+            public bool IsWindows => true;
+
+            public bool TryGetSubjectInterfacePackage(string filePath, out Guid subjectGuid, out string detail) {
+                Paths.Add(filePath);
+                _mutateOriginal();
+                subjectGuid = new Guid("6E64D5BD-CEB0-4B66-B4A0-15AC71775C48");
+                detail = "simulated Microsoft Office SIP";
+                return true;
+            }
+
+            public WordMacroProjectContentBindingResult ValidateContentBinding(
+                string filePath,
+                string digestAlgorithmOid,
+                byte[] expectedDigest) {
+                Paths.Add(filePath);
+                return new WordMacroProjectContentBindingResult(true, true,
+                    "simulated Office SIP digest match on immutable snapshot");
+            }
         }
 
         private sealed class RecordingMacroToolRunner : IWordMacroProjectToolRunner {

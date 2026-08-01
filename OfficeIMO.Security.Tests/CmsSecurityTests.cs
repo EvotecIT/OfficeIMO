@@ -164,6 +164,43 @@ public sealed class CmsSecurityTests {
     }
 
     [Fact]
+    public void Verification_BoundsTimestampTokensAcrossTheCmsOperation() {
+        byte[] content = Encoding.UTF8.GetBytes("CMS timestamp budget");
+        using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO Timestamp Budget");
+        byte[] encoded = CmsSignedDataSigner.SignEncapsulated(content, certificate);
+        var signedData = new Org.BouncyCastle.Cms.CmsSignedData(encoded);
+        Org.BouncyCastle.Cms.SignerInformation signer =
+            signedData.GetSignerInfos().GetSigners().Single();
+        var timestampValues = new Org.BouncyCastle.Asn1.Asn1EncodableVector();
+        timestampValues.Add(new Org.BouncyCastle.Asn1.DerSequence());
+        timestampValues.Add(new Org.BouncyCastle.Asn1.DerSequence());
+        timestampValues.Add(new Org.BouncyCastle.Asn1.DerSequence());
+        Org.BouncyCastle.Asn1.DerObjectIdentifier timestampOid =
+            Org.BouncyCastle.Asn1.Pkcs.PkcsObjectIdentifiers.IdAASignatureTimeStampToken;
+        var timestampAttribute = new Org.BouncyCastle.Asn1.Cms.Attribute(
+            timestampOid,
+            new Org.BouncyCastle.Asn1.DerSet(timestampValues));
+        var unsignedAttributes = new Org.BouncyCastle.Asn1.Cms.AttributeTable(
+            new Dictionary<Org.BouncyCastle.Asn1.DerObjectIdentifier, object> {
+                [timestampOid] = timestampAttribute
+            });
+        Org.BouncyCastle.Cms.SignerInformation withTimestamps =
+            Org.BouncyCastle.Cms.SignerInformation.ReplaceUnsignedAttributes(signer, unsignedAttributes);
+        Org.BouncyCastle.Cms.CmsSignedData repeated = Org.BouncyCastle.Cms.CmsSignedData.ReplaceSigners(
+            signedData,
+            new Org.BouncyCastle.Cms.SignerInformationStore(new[] { withTimestamps }));
+        CmsVerificationOptions options = TrustSelfSigned();
+        options.MaxTimestampTokens = 2;
+
+        CmsVerificationResult result = CmsSignedDataVerifier.Verify(repeated.GetEncoded(), options);
+
+        CmsSignerVerificationResult verifiedSigner = Assert.Single(result.Signers);
+        Assert.Equal(SecurityValidationStatus.Invalid, verifiedSigner.TimestampStatus);
+        Assert.Contains(verifiedSigner.Findings,
+            finding => finding.Code == "CmsTimestampCountLimitExceeded");
+    }
+
+    [Fact]
     public void Verification_AcceptsEcdsaCmsProducedByAnIndependentGenerator() {
         byte[] content = Encoding.UTF8.GetBytes("ECDSA interoperability");
         using X509Certificate2 certificate = CreateEcdsaCertificate("OfficeIMO ECDSA Signer");

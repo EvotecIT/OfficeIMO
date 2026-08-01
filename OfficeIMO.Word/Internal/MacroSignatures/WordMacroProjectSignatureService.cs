@@ -13,7 +13,39 @@ namespace OfficeIMO.Word {
             dependencies ??= WordMacroProjectSigningDependencies.Default;
             ValidateValidationOptions(options);
 
-            WordMacroProjectSignatureInfo info = WordMacroProjectSignatureInspector.Inspect(filePath, options.Inspection);
+            string fullPath = NormalizePath(filePath);
+            if (!File.Exists(fullPath)) {
+                return ValidateSnapshot(fullPath, fullPath, options, dependencies);
+            }
+            string snapshotDirectory = Path.Combine(
+                Path.GetTempPath(),
+                "OfficeIMO-Word-MacroValidation-" + Guid.NewGuid().ToString("N"));
+            string snapshotPath = Path.Combine(snapshotDirectory, "snapshot" + Path.GetExtension(fullPath));
+            try {
+                Directory.CreateDirectory(snapshotDirectory);
+                CopyValidationSnapshot(fullPath, snapshotPath, options.Inspection.PackageSecurity.MaxPackageBytes);
+                return ValidateSnapshot(fullPath, snapshotPath, options, dependencies);
+            } finally {
+                OfficeFileCommit.DeleteIfExists(snapshotPath);
+                try {
+                    if (Directory.Exists(snapshotDirectory)) Directory.Delete(snapshotDirectory);
+                } catch (IOException) {
+                    // The bounded snapshot file was already removed; cleanup races are non-fatal.
+                } catch (UnauthorizedAccessException) {
+                    // A transient scanner handle must not replace the structured validation result.
+                }
+            }
+        }
+
+        private static WordMacroProjectSignatureValidationResult ValidateSnapshot(
+            string originalPath,
+            string snapshotPath,
+            WordMacroProjectSignatureValidationOptions options,
+            WordMacroProjectSigningDependencies dependencies) {
+            WordMacroProjectSignatureInfo snapshotInfo =
+                WordMacroProjectSignatureInspector.Inspect(snapshotPath, options.Inspection);
+            WordMacroProjectSignatureInfo info = WithFilePath(snapshotInfo, originalPath);
+
             var findings = CollectInspectionFindings(info);
             if (!CanValidate(info, findings)) {
                 return Result(info, dependencies.Platform.IsWindows,
@@ -24,7 +56,7 @@ namespace OfficeIMO.Word {
                     "Native VBA content-binding validation requires Windows and Microsoft's registered Office SIP."));
                 return Result(info, false, WordSignatureValidationState.Unsupported, findings, options);
             }
-            if (!dependencies.Platform.TryGetSubjectInterfacePackage(info.FilePath, out _, out string sipDetail)) {
+            if (!dependencies.Platform.TryGetSubjectInterfacePackage(snapshotPath, out _, out string sipDetail)) {
                 findings.Add(Finding("MicrosoftOfficeSipUnavailable", WordSignatureValidationState.Unsupported, sipDetail));
                 return Result(info, false, WordSignatureValidationState.Unsupported, findings, options);
             }
@@ -44,7 +76,7 @@ namespace OfficeIMO.Word {
                 return Result(info, true, WordSignatureValidationState.NotChecked, findings, options);
             }
             WordMacroProjectContentBindingResult binding = dependencies.Platform.ValidateContentBinding(
-                info.FilePath, selected.SignedContentDigestAlgorithmOid!, expectedDigest);
+                snapshotPath, selected.SignedContentDigestAlgorithmOid!, expectedDigest);
             if (!binding.IsSupported) {
                 findings.Add(Finding("MacroContentBindingUnsupported", WordSignatureValidationState.Unsupported,
                     binding.Detail, selected.Profile));
@@ -59,6 +91,41 @@ namespace OfficeIMO.Word {
                 binding.Detail, selected.Profile));
             return Result(info, true, WordSignatureValidationState.Passed, findings, options);
         }
+
+        private static void CopyValidationSnapshot(string sourcePath, string snapshotPath, long maximumBytes) {
+            using var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (source.Length > maximumBytes) {
+                throw new ArgumentException(
+                    $"The macro-enabled Word package length {source.Length} exceeds the configured limit of {maximumBytes} bytes.",
+                    nameof(sourcePath));
+            }
+            using var destination = new FileStream(snapshotPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            byte[] buffer = new byte[81920];
+            long copied = 0;
+            int read;
+            while ((read = source.Read(buffer, 0, buffer.Length)) > 0) {
+                copied += read;
+                if (copied > maximumBytes) {
+                    throw new ArgumentException(
+                        $"The macro-enabled Word package exceeds the configured limit of {maximumBytes} bytes.",
+                        nameof(sourcePath));
+                }
+                destination.Write(buffer, 0, read);
+            }
+        }
+
+        private static WordMacroProjectSignatureInfo WithFilePath(
+            WordMacroProjectSignatureInfo source,
+            string filePath) =>
+            new WordMacroProjectSignatureInfo(
+                filePath,
+                source.IsMacroEnabledFormat,
+                source.HasMacroProject,
+                source.MacroProjectPartUri,
+                source.MacroProjectLength,
+                source.MacroProjectSha256,
+                source.Signatures,
+                source.Findings);
 
         internal static WordMacroProjectSigningResult TrySign(
             string filePath,
@@ -168,7 +235,7 @@ namespace OfficeIMO.Word {
                         "The encoded VBA project changed while signatures were staged; the original file was not replaced."));
                     return SigningResult(fullPath, true, false, false, stagedValidation, findings);
                 }
-                if (options.RequireAllProfiles && !HasAllProfiles(stagedInfo)) {
+                if (!HasAllProfiles(stagedInfo)) {
                     findings.Add(Finding("MacroSignatureProfilesIncomplete", WordSignatureValidationState.Failed,
                         "Signing did not produce the required legacy, agile, and V3 VBA signature parts."));
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
@@ -225,7 +292,9 @@ namespace OfficeIMO.Word {
                 info.HasMacroProject && info.HasSignatures &&
                 (!options.RequireV3Signature || info.HasV3Signature) &&
                 cmsAccepted &&
-                !findings.Any(finding => finding.State == WordSignatureValidationState.Failed);
+                !findings.Any(finding =>
+                    finding.State == WordSignatureValidationState.Failed &&
+                    (!finding.Profile.HasValue || selected == null || finding.Profile == selected.Profile));
             return result;
         }
 

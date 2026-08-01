@@ -39,9 +39,9 @@ namespace OfficeIMO.Word.Html {
                     return;
                 }
 
-                var colGroup = htmlDoc.CreateElement("colgroup");
+                var colGroup = CreateOutputElement(htmlDoc, "colgroup");
                 foreach (var (type, width) in columns) {
-                    var col = htmlDoc.CreateElement("col");
+                    var col = CreateOutputElement(htmlDoc, "col");
                     var widthCss = GetWidthCss(type, width);
                     if (!string.IsNullOrEmpty(widthCss)) {
                         col.SetAttribute("style", $"width:{widthCss}");

@@ -97,6 +97,12 @@ public sealed class CmsVerificationOptions {
     public int MaxSigners { get; set; } = 32;
     /// <summary>Maximum embedded certificate count. Defaults to 256.</summary>
     public int MaxCertificates { get; set; } = 256;
+    /// <summary>Maximum RFC 3161 timestamp-token count across all CMS signers. Defaults to 32.</summary>
+    public int MaxTimestampTokens { get; set; } = 32;
+    /// <summary>Maximum encoded bytes for one RFC 3161 timestamp token. Defaults to 16 MiB.</summary>
+    public long MaxTimestampTokenBytes { get; set; } = 16L * 1024 * 1024;
+    /// <summary>Maximum aggregate encoded timestamp-token bytes across all CMS signers. Defaults to 64 MiB.</summary>
+    public long MaxTotalTimestampBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Whether signature timestamp tokens should be verified. Defaults to true.</summary>
     public bool ValidateTimestamps { get; set; } = true;
     /// <summary>Certificate-chain policy shared by signers and timestamp authorities.</summary>

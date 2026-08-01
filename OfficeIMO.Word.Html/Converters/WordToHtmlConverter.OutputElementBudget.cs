@@ -1,7 +1,25 @@
 using AngleSharp.Dom;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
+        private static readonly ConditionalWeakTable<IDocument, OutputElementBudget> OutputElementBudgets =
+            new ConditionalWeakTable<IDocument, OutputElementBudget>();
+
+        private static void RegisterOutputElementBudget(
+            IDocument owner,
+            WordToHtmlOptions options,
+            long initialOutputCharacters) {
+            OutputElementBudgets.Add(owner, new OutputElementBudget(options, initialOutputCharacters));
+        }
+
+        private static IElement CreateOutputElement(IDocument owner, string tagName) {
+            if (!OutputElementBudgets.TryGetValue(owner, out OutputElementBudget? budget)) {
+                throw new InvalidOperationException("The HTML output element budget was not initialized.");
+            }
+            return budget.CreateElement(owner, tagName);
+        }
+
         private sealed class OutputElementBudget {
             private readonly WordToHtmlOptions _options;
             private long _minimumOutputCharacters;

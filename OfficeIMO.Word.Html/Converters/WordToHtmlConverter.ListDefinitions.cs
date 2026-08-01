@@ -58,7 +58,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var styleElement = htmlDoc.CreateElement("style");
+            var styleElement = CreateOutputElement(htmlDoc, "style");
             styleElement.SetAttribute("data-word-list-definitions", "true");
             var sb = new StringBuilder();
             foreach (var definition in listDefinitions.OrderBy(definition => definition.ClassName, StringComparer.Ordinal)) {

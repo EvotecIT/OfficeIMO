@@ -4,7 +4,7 @@ using System.Globalization;
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         IElement CreateCheckBoxInput(IDocument htmlDoc, WordCheckBox checkBox) {
-            var input = htmlDoc.CreateElement("input");
+            var input = CreateOutputElement(htmlDoc, "input");
             input.SetAttribute("type", "checkbox");
             input.SetAttribute("disabled", string.Empty);
 
@@ -18,12 +18,12 @@ namespace OfficeIMO.Word.Html {
         }
 
         IElement CreateDropDownListSelect(IDocument htmlDoc, WordDropDownList dropDownList) {
-            var select = htmlDoc.CreateElement("select");
+            var select = CreateOutputElement(htmlDoc, "select");
             select.SetAttribute("disabled", string.Empty);
             ApplyContentControlMetadata(select, dropDownList.Alias, dropDownList.Tag);
 
             foreach (var item in dropDownList.Items) {
-                var option = htmlDoc.CreateElement("option");
+                var option = CreateOutputElement(htmlDoc, "option");
                 option.SetAttribute("value", item);
                 option.TextContent = item;
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.Html {
         IEnumerable<INode> CreateComboBoxNodes(IDocument htmlDoc, WordComboBox comboBox, int formListIndex) {
             string listId = "word-combo-" + formListIndex.ToString(CultureInfo.InvariantCulture);
 
-            var input = htmlDoc.CreateElement("input");
+            var input = CreateOutputElement(htmlDoc, "input");
             input.SetAttribute("type", "text");
             input.SetAttribute("disabled", string.Empty);
             input.SetAttribute("list", listId);
@@ -50,10 +50,10 @@ namespace OfficeIMO.Word.Html {
             ApplyContentControlMetadata(input, comboBox.Alias, comboBox.Tag);
             yield return input;
 
-            var dataList = htmlDoc.CreateElement("datalist");
+            var dataList = CreateOutputElement(htmlDoc, "datalist");
             dataList.SetAttribute("id", listId);
             foreach (var item in comboBox.Items) {
-                var option = htmlDoc.CreateElement("option");
+                var option = CreateOutputElement(htmlDoc, "option");
                 option.SetAttribute("value", item);
                 dataList.AppendChild(option);
             }
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         IElement CreateDatePickerInput(IDocument htmlDoc, WordDatePicker datePicker) {
-            var input = htmlDoc.CreateElement("input");
+            var input = CreateOutputElement(htmlDoc, "input");
             input.SetAttribute("type", "date");
             input.SetAttribute("disabled", string.Empty);
             if (datePicker.Date.HasValue) {
@@ -74,14 +74,14 @@ namespace OfficeIMO.Word.Html {
 
         IElement CreateStructuredDocumentTagInput(IDocument htmlDoc, WordStructuredDocumentTag structuredDocumentTag) {
             if (HasLineBreaks(structuredDocumentTag.Text)) {
-                var textArea = htmlDoc.CreateElement("textarea");
+                var textArea = CreateOutputElement(htmlDoc, "textarea");
                 textArea.SetAttribute("disabled", string.Empty);
                 textArea.TextContent = structuredDocumentTag.Text ?? string.Empty;
                 ApplyContentControlMetadata(textArea, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
                 return textArea;
             }
 
-            var input = htmlDoc.CreateElement("input");
+            var input = CreateOutputElement(htmlDoc, "input");
             input.SetAttribute("type", "text");
             input.SetAttribute("disabled", string.Empty);
             if (!string.IsNullOrEmpty(structuredDocumentTag.Text)) {

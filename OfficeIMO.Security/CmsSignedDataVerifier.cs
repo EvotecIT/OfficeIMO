@@ -41,6 +41,11 @@ public static class CmsSignedDataVerifier {
 #endif
         options ??= new CmsVerificationOptions();
         SecurityLimits.EnsureBufferWithinLimit(encodedCms, options.MaxEncodedBytes, nameof(encodedCms));
+        SecurityLimits.EnsureCountWithinLimit(0, options.MaxTimestampTokens, nameof(options.MaxTimestampTokens));
+        SecurityLimits.EnsureBufferWithinLimit(Array.Empty<byte>(), options.MaxTimestampTokenBytes,
+            nameof(options.MaxTimestampTokenBytes));
+        SecurityLimits.EnsureBufferWithinLimit(Array.Empty<byte>(), options.MaxTotalTimestampBytes,
+            nameof(options.MaxTotalTimestampBytes));
         if (detachedContent != null) {
             SecurityLimits.EnsureBufferWithinLimit(detachedContent, options.MaxContentBytes, nameof(detachedContent));
         }
@@ -102,6 +107,9 @@ public static class CmsSignedDataVerifier {
             var platformEmbedded = CreatePlatformCertificates(embedded, containerFindings);
             try {
                 var signerResults = new List<CmsSignerVerificationResult>(signers.Count);
+                TimestampVerificationBudget? timestampBudget = options.ValidateTimestamps
+                    ? new TimestampVerificationBudget(options)
+                    : null;
                 for (int index = 0; index < signers.Count; index++) {
                     signerResults.Add(VerifySigner(
                         signers[index],
@@ -110,7 +118,8 @@ public static class CmsSignedDataVerifier {
                         verifiable,
                         embedded,
                         platformEmbedded,
-                        options));
+                        options,
+                        timestampBudget));
                 }
 
                 AuthenticodeIndirectDataInfo? authenticode = TryReadAuthenticodeIndirectData(
@@ -149,7 +158,8 @@ public static class CmsSignedDataVerifier {
         CmsSignedData signedData,
         IReadOnlyList<BcX509Certificate> embedded,
         IReadOnlyList<X509Certificate2> platformEmbedded,
-        CmsVerificationOptions options) {
+        CmsVerificationOptions options,
+        TimestampVerificationBudget? timestampBudget) {
         var findings = new List<SecurityFinding>();
         BcX509Certificate? bcSigner = signedData.GetCertificates()
             .EnumerateMatches(signer.SignerID)
@@ -194,7 +204,7 @@ public static class CmsSignedDataVerifier {
 
         DateTimeOffset? signingTime = ReadSigningTime(signer.SignedAttributes, signerIndex, findings);
         IReadOnlyList<Rfc3161TimestampVerificationResult> timestamps = options.ValidateTimestamps
-            ? VerifyTimestamps(signer, options, signerIndex, findings)
+            ? VerifyTimestamps(signer, options, timestampBudget!, signerIndex, findings)
             : Array.Empty<Rfc3161TimestampVerificationResult>();
         SecurityValidationStatus timestampStatus = options.ValidateTimestamps
             ? AggregateTimestampStatus(timestamps)
@@ -335,6 +345,7 @@ public static class CmsSignedDataVerifier {
     private static IReadOnlyList<Rfc3161TimestampVerificationResult> VerifyTimestamps(
         SignerInformation signer,
         CmsVerificationOptions options,
+        TimestampVerificationBudget budget,
         int signerIndex,
         List<SecurityFinding> findings) {
         AttributeTable? unsignedAttributes = signer.UnsignedAttributes;
@@ -343,12 +354,20 @@ public static class CmsSignedDataVerifier {
         foreach (Org.BouncyCastle.Asn1.Cms.Attribute attribute in unsignedAttributes) {
             if (!attribute.AttrType.Equals(PkcsObjectIdentifiers.IdAASignatureTimeStampToken)) continue;
             for (int index = 0; index < attribute.AttrValues.Count; index++) {
+                if (!budget.TryReserveToken(out string? limitCode, out string? limitMessage)) {
+                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
+                    return results;
+                }
                 byte[] encoded = attribute.AttrValues[index].GetEncoded();
+                if (!budget.TryReserveBytes(encoded.LongLength, out limitCode, out limitMessage)) {
+                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
+                    return results;
+                }
                 Rfc3161TimestampVerificationResult result = Rfc3161TimestampVerifier.Verify(
                     encoded,
                     signer.GetSignature(),
                     options.CertificateValidation,
-                    Math.Min(options.MaxEncodedBytes, 16L * 1024 * 1024),
+                    options.MaxTimestampTokenBytes,
                     options.MaxCertificates);
                 results.Add(result);
                 foreach (SecurityFinding finding in result.Findings) {
@@ -357,6 +376,69 @@ public static class CmsSignedDataVerifier {
             }
         }
         return results;
+    }
+
+    private static Rfc3161TimestampVerificationResult CreateTimestampLimitResult(
+        string code,
+        string message,
+        int signerIndex,
+        List<SecurityFinding> signerFindings) {
+        var finding = new SecurityFinding(SecurityFindingSeverity.Error, code, message, signerIndex);
+        signerFindings.Add(finding);
+        return new Rfc3161TimestampVerificationResult(
+            SecurityValidationStatus.Invalid,
+            null,
+            null,
+            null,
+            null,
+            new CertificateValidationResult(
+                SecurityValidationStatus.Indeterminate,
+                SecurityValidationStatus.NotPerformed,
+                Array.Empty<string>()),
+            new[] { finding });
+    }
+
+    private sealed class TimestampVerificationBudget {
+        private readonly int _maximumTokens;
+        private readonly long _maximumTokenBytes;
+        private readonly long _maximumTotalBytes;
+        private int _tokens;
+        private long _totalBytes;
+
+        internal TimestampVerificationBudget(CmsVerificationOptions options) {
+            _maximumTokens = options.MaxTimestampTokens;
+            _maximumTokenBytes = options.MaxTimestampTokenBytes;
+            _maximumTotalBytes = options.MaxTotalTimestampBytes;
+        }
+
+        internal bool TryReserveToken(out string? code, out string? message) {
+            if (_tokens >= _maximumTokens) {
+                code = "CmsTimestampCountLimitExceeded";
+                message = $"CMS timestamp tokens exceed the configured aggregate limit of {_maximumTokens}.";
+                return false;
+            }
+            _tokens++;
+            code = null;
+            message = null;
+            return true;
+        }
+
+        internal bool TryReserveBytes(long encodedBytes, out string? code, out string? message) {
+            if (encodedBytes > _maximumTokenBytes) {
+                code = "CmsTimestampSizeLimitExceeded";
+                message = $"An encoded CMS timestamp token exceeds the configured limit of {_maximumTokenBytes} bytes.";
+                return false;
+            }
+            if (encodedBytes > _maximumTotalBytes - _totalBytes) {
+                code = "CmsTimestampTotalSizeLimitExceeded";
+                message = $"Encoded CMS timestamp tokens exceed the configured aggregate limit of {_maximumTotalBytes} bytes.";
+                return false;
+            }
+            _totalBytes += encodedBytes;
+            code = null;
+            message = null;
+            return true;
+        }
     }
 
     private static DateTimeOffset? ReadSigningTime(

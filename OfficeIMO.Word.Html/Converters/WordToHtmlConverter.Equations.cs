@@ -17,31 +17,31 @@ namespace OfficeIMO.Word.Html {
             bool isHtmlMarkedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase);
             INode node = htmlDocument.CreateTextNode(text);
             if (run.Bold) {
-                var strong = htmlDocument.CreateElement("strong");
+                var strong = CreateOutputElement(htmlDocument, "strong");
                 strong.AppendChild(node);
                 node = strong;
             }
             if (run.Italic) {
-                var emphasis = htmlDocument.CreateElement("em");
+                var emphasis = CreateOutputElement(htmlDocument, "em");
                 emphasis.AppendChild(node);
                 node = emphasis;
             }
             if ((run.Strike || run.DoubleStrike) && !isHtmlDeletedText) {
-                var strike = htmlDocument.CreateElement("s");
+                var strike = CreateOutputElement(htmlDocument, "s");
                 strike.AppendChild(node);
                 node = strike;
             }
             if (run.Underline != null && !isHtmlInsertedText) {
-                var underline = htmlDocument.CreateElement("u");
+                var underline = CreateOutputElement(htmlDocument, "u");
                 underline.AppendChild(node);
                 node = underline;
             }
             if (run.VerticalTextAlignment == VerticalPositionValues.Superscript) {
-                var superscript = htmlDocument.CreateElement("sup");
+                var superscript = CreateOutputElement(htmlDocument, "sup");
                 superscript.AppendChild(node);
                 node = superscript;
             } else if (run.VerticalTextAlignment == VerticalPositionValues.Subscript) {
-                var subscript = htmlDocument.CreateElement("sub");
+                var subscript = CreateOutputElement(htmlDocument, "sub");
                 subscript.AppendChild(node);
                 node = subscript;
             }
@@ -62,20 +62,20 @@ namespace OfficeIMO.Word.Html {
             if (options.IncludeFontStyles) {
                 string? font = run.FontFamily ?? options.FontFamily;
                 if (!string.IsNullOrEmpty(font)) {
-                    var span = htmlDocument.CreateElement("span");
+                    var span = CreateOutputElement(htmlDocument, "span");
                     span.SetAttribute("style", $"font-family:{QuoteCssString(font!)}");
                     span.AppendChild(node);
                     node = span;
                 }
             }
             if (run.FontSize != null) {
-                var span = htmlDocument.CreateElement("span");
+                var span = CreateOutputElement(htmlDocument, "span");
                 span.SetAttribute("style", $"font-size:{run.FontSize.Value}pt");
                 span.AppendChild(node);
                 node = span;
             }
             if (run.CapsStyle == CapsStyle.SmallCaps || run.CapsStyle == CapsStyle.Caps) {
-                var span = htmlDocument.CreateElement("span");
+                var span = CreateOutputElement(htmlDocument, "span");
                 span.SetAttribute("style", run.CapsStyle == CapsStyle.SmallCaps
                     ? "font-variant:small-caps"
                     : "text-transform:uppercase");
@@ -103,14 +103,14 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
                 if (styles.Count > 0) {
-                    var span = htmlDocument.CreateElement("span");
+                    var span = CreateOutputElement(htmlDocument, "span");
                     span.SetAttribute("style", string.Join(";", styles));
                     span.AppendChild(node);
                     node = span;
                 }
             }
             if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
-                var span = htmlDocument.CreateElement("span");
+                var span = CreateOutputElement(htmlDocument, "span");
                 span.SetAttribute("class", GetSafeStyleClassName(run.CharacterStyleId));
                 span.AppendChild(node);
                 node = span;
@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.Html {
             }
             string? language = NormalizeRunLanguage(run.Language, documentLanguage);
             if (!string.IsNullOrEmpty(language)) {
-                var span = htmlDocument.CreateElement("span");
+                var span = CreateOutputElement(htmlDocument, "span");
                 span.SetAttribute("lang", language);
                 span.AppendChild(node);
                 node = span;
@@ -136,11 +136,11 @@ namespace OfficeIMO.Word.Html {
             handled = true;
             IElement semanticNode;
             if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.OrdinalIgnoreCase)) {
-                semanticNode = htmlDocument.CreateElement("del");
+                semanticNode = CreateOutputElement(htmlDocument, "del");
             } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase)) {
-                semanticNode = htmlDocument.CreateElement("ins");
+                semanticNode = CreateOutputElement(htmlDocument, "ins");
             } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase)) {
-                semanticNode = htmlDocument.CreateElement("mark");
+                semanticNode = CreateOutputElement(htmlDocument, "mark");
                 string? normalizedRunBackground = includeRunHighlightStyles
                     ? NormalizeSixDigitHexColor(WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run))
                     : null;
@@ -160,11 +160,11 @@ namespace OfficeIMO.Word.Html {
                     semanticNode.SetAttribute("style", "background-color:transparent");
                 }
             } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
-                semanticNode = htmlDocument.CreateElement("cite");
+                semanticNode = CreateOutputElement(htmlDocument, "cite");
             } else if (string.Equals(run.CharacterStyleId, "HtmlDfn", StringComparison.OrdinalIgnoreCase)) {
-                semanticNode = htmlDocument.CreateElement("dfn");
+                semanticNode = CreateOutputElement(htmlDocument, "dfn");
             } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
-                semanticNode = htmlDocument.CreateElement("time");
+                semanticNode = CreateOutputElement(htmlDocument, "time");
                 bool hasImportedDateTime = HtmlSemanticMetadata.TryGetTimeDateTime(run, out string dateTime);
                 if (!hasImportedDateTime) {
                     dateTime = text;
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word.Html {
                 }
                 semanticNode.SetAttribute("datetime", dateTime);
             } else if (string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {
-                semanticNode = htmlDocument.CreateElement("code");
+                semanticNode = CreateOutputElement(htmlDocument, "code");
             } else {
                 handled = false;
                 return node;
@@ -193,7 +193,7 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            IElement anchor = htmlDocument.CreateElement("a");
+            IElement anchor = CreateOutputElement(htmlDocument, "a");
             anchor.SetAttribute("href", href);
             if (!string.IsNullOrEmpty(hyperlink.Tooltip)) {
                 anchor.SetAttribute("title", hyperlink.Tooltip);

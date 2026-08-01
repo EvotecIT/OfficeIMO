@@ -24,16 +24,11 @@ namespace OfficeIMO.Word.Html {
             long embeddedImageBytes = 0;
             long embeddedImageOutputCharacters = 0;
             long? embeddedImageBudgetBaselineCharacters = null;
-            OutputElementBudget outputElementBudget = null!;
 
             long MeasureCurrentHtmlCharacters() {
                 using var countingWriter = new CountingHtmlWriter();
                 htmlDoc.DocumentElement.ToHtml(countingWriter, HtmlMarkupFormatter.Instance);
                 return countingWriter.CharacterCount;
-            }
-
-            IElement CreateOutputElement(IDocument owner, string tagName) {
-                return outputElementBudget.CreateElement(owner, tagName);
             }
 
             long GetBase64ImageOutputCharacters(long imageBytes, string mime) {
@@ -127,12 +122,13 @@ namespace OfficeIMO.Word.Html {
             var head = htmlDoc.Head ?? throw new InvalidOperationException("HTML document missing head element.");
             var body = htmlDoc.Body ?? throw new InvalidOperationException("HTML document missing body element.");
 
+            RegisterOutputElementBudget(htmlDoc, options, MeasureCurrentHtmlCharacters());
+
             AppendHeadMetadata(document, htmlDoc, head, options, CancellationToken.None);
 
             if (!string.IsNullOrEmpty(options.FontFamily)) {
                 body.SetAttribute("style", $"font-family:{options.FontFamily}");
             }
-            outputElementBudget = new OutputElementBudget(options, MeasureCurrentHtmlCharacters());
 
             Stack<IElement> listStack = new Stack<IElement>();
             Stack<IElement> itemStack = new Stack<IElement>();
@@ -1292,6 +1288,7 @@ namespace OfficeIMO.Word.Html {
                 options.MaxOutputCharacters,
                 actual => ThrowExportLimitExceeded(options, "WordHtmlOutputLimitExceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
             htmlDoc.DocumentElement.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
+            OutputElementBudgets.Remove(htmlDoc);
             return outputWriter.ToString();
         }
 

@@ -30,8 +30,8 @@ namespace OfficeIMO.Word.Html {
                         footnoteMap[id] = number;
                         footnotes.Add((number, note));
                     }
-                    var sup = htmlDoc.CreateElement("sup");
-                    var a = htmlDoc.CreateElement("a");
+                    var sup = CreateOutputElement(htmlDoc, "sup");
+                    var a = CreateOutputElement(htmlDoc, "a");
                     a.SetAttribute("href", $"#fn{number}");
                     a.SetAttribute("id", $"fnref{number}");
                     a.TextContent = number.ToString();
@@ -55,8 +55,8 @@ namespace OfficeIMO.Word.Html {
                         endnoteMap[id] = number;
                         endnotes.Add((number, note));
                     }
-                    var sup = htmlDoc.CreateElement("sup");
-                    var a = htmlDoc.CreateElement("a");
+                    var sup = CreateOutputElement(htmlDoc, "sup");
+                    var a = CreateOutputElement(htmlDoc, "a");
                     a.SetAttribute("href", $"#en{number}");
                     a.SetAttribute("id", $"enref{number}");
                     a.TextContent = number.ToString();
@@ -127,7 +127,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             string text = string.Join(string.Empty, noteParagraphs ?? Enumerable.Empty<string?>());
-            var abbr = htmlDoc.CreateElement("abbr");
+            var abbr = CreateOutputElement(htmlDoc, "abbr");
             abbr.SetAttribute("title", text);
             var lastNode = nodes[nodes.Count - 1];
             abbr.AppendChild(lastNode);
@@ -145,14 +145,14 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var footSection = htmlDoc.CreateElement("section");
+            var footSection = CreateOutputElement(htmlDoc, "section");
             footSection.SetAttribute("class", "footnotes");
-            var hr = htmlDoc.CreateElement("hr");
+            var hr = CreateOutputElement(htmlDoc, "hr");
             footSection.AppendChild(hr);
-            var ol = htmlDoc.CreateElement("ol");
+            var ol = CreateOutputElement(htmlDoc, "ol");
             foreach (var (number, note) in footnotes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var li = htmlDoc.CreateElement("li");
+                var li = CreateOutputElement(htmlDoc, "li");
                 li.SetAttribute("id", $"fn{number}");
                 AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1).Select(r => r.Text));
                 ol.AppendChild(li);
@@ -171,14 +171,14 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var endSection = htmlDoc.CreateElement("section");
+            var endSection = CreateOutputElement(htmlDoc, "section");
             endSection.SetAttribute("class", "endnotes");
-            var hr = htmlDoc.CreateElement("hr");
+            var hr = CreateOutputElement(htmlDoc, "hr");
             endSection.AppendChild(hr);
-            var ol = htmlDoc.CreateElement("ol");
+            var ol = CreateOutputElement(htmlDoc, "ol");
             foreach (var (number, note) in endnotes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var li = htmlDoc.CreateElement("li");
+                var li = CreateOutputElement(htmlDoc, "li");
                 li.SetAttribute("id", $"en{number}");
                 AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1).Select(r => r.Text));
                 ol.AppendChild(li);
@@ -194,7 +194,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             foreach (var text in paragraphs) {
-                var p = htmlDoc.CreateElement("p");
+                var p = CreateOutputElement(htmlDoc, "p");
                 p.TextContent = text ?? string.Empty;
                 li.AppendChild(p);
             }

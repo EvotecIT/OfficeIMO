@@ -5,7 +5,7 @@ using System.Globalization;
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         private IElement CreateSectionElement(IDocument htmlDoc, WordSection section, int index, bool isFirstSection) {
-            var element = htmlDoc.CreateElement("section");
+            var element = CreateOutputElement(htmlDoc, "section");
             element.SetAttribute("class", "word-section");
             element.SetAttribute("data-word-section", (index + 1).ToString(CultureInfo.InvariantCulture));
             element.SetAttribute("data-page-orientation", FormatOrientation(section.PageOrientation));
