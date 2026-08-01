@@ -124,15 +124,7 @@ namespace OfficeIMO.Word {
         /// <param name="options">Optional package-signing settings.</param>
         /// <returns>A signing result with structural, cryptographic, digest, and certificate-policy validation readback.</returns>
         public static WordPackageSigningResult SignPackage(string filePath, X509Certificate2 certificate, WordPackageSigningOptions? options = null) {
-            WordPackageSigningResult result = TrySignPackage(filePath, certificate, options);
-            if (!result.Succeeded ||
-                result.ValidationReport?.IsStructurallyValid != true ||
-                result.ValidationReport.CryptographicStatus != WordSignatureValidationState.Passed ||
-                result.ValidationReport.SignedPartDigestStatus != WordSignatureValidationState.Passed) {
-                throw new WordPackageSigningException(result);
-            }
-
-            return result;
+            return RequireSuccessfulSigningReadback(TrySignPackage(filePath, certificate, options));
         }
 
         /// <summary>
@@ -148,14 +140,11 @@ namespace OfficeIMO.Word {
             string certificateThumbprint,
             WordPackageCertificateStoreOptions? certificateOptions = null,
             WordPackageSigningOptions? signingOptions = null) {
-            WordPackageSigningResult result = TrySignPackage(filePath, certificateThumbprint, certificateOptions, signingOptions);
-            if (!result.Succeeded ||
-                result.ValidationReport?.IsStructurallyValid != true ||
-                result.ValidationReport.CryptographicStatus != WordSignatureValidationState.Passed ||
-                result.ValidationReport.SignedPartDigestStatus != WordSignatureValidationState.Passed) {
-                throw new WordPackageSigningException(result);
-            }
+            return RequireSuccessfulSigningReadback(TrySignPackage(filePath, certificateThumbprint, certificateOptions, signingOptions));
+        }
 
+        private static WordPackageSigningResult RequireSuccessfulSigningReadback(WordPackageSigningResult result) {
+            if (!result.CreatedSignatureReadbackSucceeded) throw new WordPackageSigningException(result);
             return result;
         }
 

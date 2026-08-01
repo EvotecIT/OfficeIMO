@@ -153,6 +153,8 @@ namespace OfficeIMO.Word {
             SignedRelationshipSelectorCount = packageResult.SignedRelationshipSelectorCount;
             SignatureCount = packageResult.SignatureCount;
             SignaturePartUri = packageResult.SignaturePartUri;
+            CreatedSignatureValidation = validationReport?.Signatures.FirstOrDefault(signature =>
+                string.Equals(signature.SignaturePart.Uri, packageResult.SignaturePartUri, StringComparison.OrdinalIgnoreCase));
             Details = details;
             ValidationReport = validationReport;
         }
@@ -178,11 +180,36 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the generated signature part URI when signing succeeded.</summary>
         public string? SignaturePartUri { get; }
 
-        /// <summary>Gets cryptographic, digest, certificate, revocation, and timestamp validation readback for the signed package when signing succeeded.</summary>
+        /// <summary>Gets validation readback for the signature created by this signing operation.</summary>
+        public WordSignaturePartValidationResult? CreatedSignatureValidation { get; }
+
+        /// <summary>Gets aggregate cryptographic, digest, certificate, revocation, and timestamp validation readback for every signature in the package.</summary>
         public WordSignatureValidationReport? ValidationReport { get; }
 
         /// <summary>Gets deterministic signing details or failure reasons.</summary>
         public IReadOnlyList<string> Details { get; }
+
+        internal bool CreatedSignatureReadbackSucceeded {
+            get {
+                WordSignaturePartValidationResult? validation = CreatedSignatureValidation;
+                WordSignaturePartInfo? signaturePart = validation?.SignaturePart;
+                if (!Succeeded ||
+                    validation?.CryptographicStatus != WordSignatureValidationState.Passed ||
+                    signaturePart == null ||
+                    signaturePart.HasParseError ||
+                    string.IsNullOrWhiteSpace(signaturePart.SignatureMethodAlgorithm) ||
+                    signaturePart.SignedReferences.Count == 0) {
+                    return false;
+                }
+
+                return signaturePart.SignedReferences.All(reference =>
+                    reference.IsPackagePartReference &&
+                    reference.TargetPartExists == true &&
+                    !string.IsNullOrWhiteSpace(reference.DigestMethodAlgorithm) &&
+                    reference.HasDigestValue &&
+                    reference.DigestVerificationStatus == WordSignatureValidationState.Passed);
+            }
+        }
 
         internal static WordPackageSigningResult Failed(string filePath, bool isSupported, IReadOnlyList<string> details) {
             return new WordPackageSigningResult(
@@ -199,6 +226,7 @@ namespace OfficeIMO.Word {
             SignedRelationshipSelectorCount = 0;
             SignatureCount = 0;
             SignaturePartUri = null;
+            CreatedSignatureValidation = null;
             Details = details.ToArray();
             ValidationReport = null;
         }

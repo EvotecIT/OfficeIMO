@@ -848,6 +848,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_SignPackageValidatesCreatedSignatureIndependentlyOfExistingInvalidSignature() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCountersignedInvalidSignature.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Countersign a package containing an invalid signature");
+                document.Save();
+            }
+            AddDigitalSignatureMetadata(filePath, CreateSignatureXml(digestValue: "T2ZmaWNlSU1P"));
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult result = WordDocument.SignPackage(filePath, certificate);
+
+            Assert.True(result.Succeeded);
+            Assert.Equal(2, result.SignatureCount);
+            Assert.NotNull(result.ValidationReport);
+            Assert.NotEqual(WordSignatureValidationState.Passed, result.ValidationReport!.CryptographicStatus);
+            WordSignaturePartValidationResult created = Assert.IsType<WordSignaturePartValidationResult>(result.CreatedSignatureValidation);
+            Assert.Equal(result.SignaturePartUri, created.SignaturePart.Uri, ignoreCase: true);
+            Assert.Equal(WordSignatureValidationState.Passed, created.CryptographicStatus);
+            Assert.NotEmpty(created.SignaturePart.SignedReferences);
+            Assert.All(created.SignaturePart.SignedReferences, reference => {
+                Assert.True(reference.IsPackagePartReference);
+                Assert.True(reference.TargetPartExists);
+                Assert.Equal(WordSignatureValidationState.Passed, reference.DigestVerificationStatus);
+            });
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidatesEmbeddedRfc3161TimestampAuthorityToken() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTimestamped.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
