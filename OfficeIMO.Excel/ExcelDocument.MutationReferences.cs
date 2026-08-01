@@ -212,11 +212,13 @@ namespace OfficeIMO.Excel {
                     transform);
             }
             foreach (PivotTableCacheDefinitionPart cachePart in WorkbookPartRoot.PivotTableCacheDefinitionParts) {
+                bool cacheSourceChanged = false;
                 foreach (WorksheetSource source in cachePart.PivotCacheDefinition?.Descendants<WorksheetSource>() ?? Enumerable.Empty<WorksheetSource>()) {
                     if (!string.Equals(source.Sheet?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
                         || !ExcelReference.TryParse(source.Reference?.Value, out ExcelReference? parsed)) continue;
                     ExcelReference? rewritten = transform(parsed!);
                     source.Reference = rewritten?.ToString() ?? "#REF!";
+                    cacheSourceChanged = true;
                 }
                 foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.Descendants<RangeSet>() ?? Enumerable.Empty<RangeSet>()) {
                     if (!string.Equals(rangeSet.Sheet?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
@@ -224,8 +226,11 @@ namespace OfficeIMO.Excel {
                         || !ExcelReference.TryParse(rangeSet.Reference?.Value, out ExcelReference? parsed)) continue;
                     ExcelReference? rewritten = transform(parsed!);
                     rangeSet.Reference = rewritten?.ToString() ?? "#REF!";
+                    cacheSourceChanged = true;
                 }
-                cachePart.PivotCacheDefinition?.Save();
+                if (cacheSourceChanged) {
+                    ExcelSheet.InvalidatePivotCacheAfterStructuralEdit(cachePart, recordCount: null);
+                }
             }
             return editedSheetIndex;
         }

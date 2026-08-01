@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_NamedStyleRedefinition_DetachesSharedStyleFormat() {
+        public void Test_NamedStyleRedefinition_RejectsAmbiguousSharedStyleFormat() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Source");
@@ -141,13 +141,14 @@ namespace OfficeIMO.Tests {
             stylesheet.CellStyles.Append(alias);
             stylesheet.CellStyles.Count = (uint)stylesheet.CellStyles.Count();
 
-            ExcelNamedStyleInfo redefined = sheet.DefineNamedStyle("Alias", 1, 1);
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                sheet.DefineNamedStyle("Alias", 1, 1));
 
-            Assert.NotEqual(normalFormatId, redefined.FormatId);
+            Assert.Contains("shares its base format", exception.Message);
             Assert.Equal(normalFormatId, normal.FormatId!.Value);
             Assert.Equal(normalFormatXml, stylesheet.CellStyleFormats.Elements<CellFormat>()
                 .ElementAt((int)normalFormatId).OuterXml);
-            Assert.Equal(redefined.FormatId, alias.FormatId!.Value);
+            Assert.Equal(normalFormatId, alias.FormatId!.Value);
             Assert.Empty(document.ValidateOpenXml());
         }
     }

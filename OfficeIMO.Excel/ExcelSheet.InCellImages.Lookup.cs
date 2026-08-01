@@ -210,6 +210,129 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private bool TryRemoveExclusiveInCellImage(Cell cell) {
+            if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)
+                || !lookup!.TryResolveSlot(cell.ValueMetaIndex?.Value ?? 0U, out InCellImageSlot slot)
+                || !IsExclusiveInCellImageSlot(lookup, slot)) {
+                return false;
+            }
+            string? relationshipId = lookup.Relationships[slot.RelationshipIndex].Id?.Value;
+            if (relationshipId == null) return false;
+            OpenXmlPart imagePart;
+            try {
+                imagePart = lookup.RelationshipPart.GetPartById(relationshipId);
+            } catch (ArgumentOutOfRangeException) {
+                return false;
+            }
+            Rich.RichValueData? valuesRoot = slot.Value.Ancestors<Rich.RichValueData>().FirstOrDefault();
+            FutureMetadata? futureRoot = lookup.FutureBlocks[slot.FutureIndex].Ancestors<FutureMetadata>().FirstOrDefault();
+            ValueMetadata? valueMetadata = lookup.Metadata.GetFirstChild<ValueMetadata>();
+
+            foreach (Rich.RichValue value in lookup.RichValues) {
+                uint structureIndex = value.S?.Value ?? uint.MaxValue;
+                if (structureIndex > int.MaxValue) continue;
+                Rich.RichValueStructure? structure = lookup.Structures.ElementAtOrDefault((int)structureIndex);
+                if (TryGetImageRelationshipIndex(value, structure, out int index, out _)
+                    && index > slot.RelationshipIndex) {
+                    SetImageRelationshipIndex(value, structure!, index - 1);
+                }
+            }
+            lookup.RelationshipPart.DeletePart(imagePart);
+            var relationships = new RichRel.RichValueRels(lookup.Relationships
+                .Where((_, index) => index != slot.RelationshipIndex)
+                .Select(item => item.CloneNode(true)));
+            if (relationships.Elements<RichRel.RichValueRelRelationship>().Any()) {
+                SaveExtendedRoot(lookup.RelationshipPart, relationships);
+            } else {
+                _excelDocument.WorkbookPartRoot.DeletePart(lookup.RelationshipPart);
+            }
+
+            foreach (FutureMetadataBlock block in lookup.FutureBlocks) {
+                if (TryGetRichValueIndex(block, out uint index) && index > (uint)slot.ValueIndex) {
+                    SetRichValueIndex(block, index - 1U);
+                }
+            }
+            slot.Value.Remove();
+            if (valuesRoot != null) {
+                if (valuesRoot.Elements<Rich.RichValue>().Any()) {
+                    valuesRoot.Count = (uint)valuesRoot.Elements<Rich.RichValue>().Count();
+                    valuesRoot.Save();
+                } else {
+                    RdRichValuePart? valuePart = _excelDocument.WorkbookPartRoot.RdRichValueParts
+                        .FirstOrDefault(part => ReferenceEquals(part.RichValueData, valuesRoot));
+                    if (valuePart != null) _excelDocument.WorkbookPartRoot.DeletePart(valuePart);
+                }
+            }
+
+            foreach (MetadataBlock block in lookup.MetadataBlocks) {
+                foreach (MetadataRecord record in block.Elements<MetadataRecord>()) {
+                    if (IsRichValueMetadataType(lookup.Metadata, record.TypeIndex?.Value ?? 0U)
+                        && record.Val?.Value is uint index
+                        && index > (uint)slot.FutureIndex) {
+                        record.Val = index - 1U;
+                    }
+                }
+            }
+            lookup.FutureBlocks[slot.FutureIndex].Remove();
+            if (futureRoot != null) {
+                if (futureRoot.Elements<FutureMetadataBlock>().Any()) {
+                    futureRoot.Count = (uint)futureRoot.Elements<FutureMetadataBlock>().Count();
+                } else {
+                    futureRoot.Remove();
+                }
+            }
+
+            int removedMetadataIndex = checked((int)slot.MetadataIndex - 1);
+            lookup.MetadataBlocks[removedMetadataIndex].Remove();
+            if (valueMetadata != null) {
+                if (valueMetadata.Elements<MetadataBlock>().Any()) {
+                    valueMetadata.Count = (uint)valueMetadata.Elements<MetadataBlock>().Count();
+                } else {
+                    valueMetadata.Remove();
+                }
+            }
+            foreach (WorksheetPart worksheetPart in _excelDocument.WorkbookPartRoot.WorksheetParts) {
+                bool changed = false;
+                foreach (Cell candidate in worksheetPart.Worksheet?.Descendants<Cell>() ?? Enumerable.Empty<Cell>()) {
+                    if (candidate.ValueMetaIndex?.Value == slot.MetadataIndex) {
+                        ClearCellValueMetadata(candidate);
+                        changed = true;
+                    } else if (candidate.ValueMetaIndex?.Value is uint index && index > slot.MetadataIndex) {
+                        candidate.ValueMetaIndex = index - 1U;
+                        changed = true;
+                    }
+                }
+                if (changed) worksheetPart.Worksheet?.Save();
+            }
+            lookup.Metadata.Save();
+            return true;
+        }
+
+        private static void SetRichValueIndex(FutureMetadataBlock block, uint valueIndex) {
+            OpenXmlElement? valueBlock = block.Descendants<Rich.RichValueBlock>().FirstOrDefault()
+                ?? block.Descendants().FirstOrDefault(element => string.Equals(element.LocalName, "rvb", StringComparison.Ordinal));
+            if (valueBlock is Rich.RichValueBlock typedBlock) typedBlock.I = valueIndex;
+            else valueBlock?.SetAttribute(new OpenXmlAttribute(
+                "i",
+                string.Empty,
+                valueIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        private static void SetImageRelationshipIndex(
+            Rich.RichValue value,
+            Rich.RichValueStructure structure,
+            int relationshipIndex) {
+            List<Rich.Key> keys = structure.Elements<Rich.Key>().ToList();
+            List<Rich.Value> values = value.Elements<Rich.Value>().ToList();
+            int identifierIndex = keys.FindIndex(key => string.Equals(
+                key.N?.Value,
+                "_rvRel:LocalImageIdentifier",
+                StringComparison.OrdinalIgnoreCase));
+            if (identifierIndex >= 0 && identifierIndex < values.Count) {
+                values[identifierIndex].Text = relationshipIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+
         private bool IsExclusiveInCellImageSlot(InCellImageLookup lookup, InCellImageSlot slot) {
             int cellReferences = _excelDocument.WorkbookPartRoot.WorksheetParts
                 .SelectMany(part => part.Worksheet?.Descendants<Cell>() ?? Enumerable.Empty<Cell>())

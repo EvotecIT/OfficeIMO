@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
@@ -79,6 +80,44 @@ namespace OfficeIMO.Excel {
 
             if (removed.Count > 0 || moved.Count > 0) {
                 RemapCommentVmlShapes(removed, moved);
+            }
+        }
+
+        private void ValidateRangeMoveCommentVmlAnchors(
+            ExcelReference source,
+            ExcelReference destination,
+            MutationPlanScanBudget? budget) {
+            VmlDrawingPart? vmlPart = TryGetCommentVmlPart();
+            if (vmlPart == null) return;
+            XDocument document = LoadOrCreateVmlDocument(vmlPart);
+            XElement? root = document.Root;
+            if (root == null) return;
+            XNamespace v = XNamespace.Get("urn:schemas-microsoft-com:vml");
+            XNamespace x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
+            int rowDelta = destination.Start.Row - source.Start.Row;
+            int columnDelta = destination.Start.Column - source.Start.Column;
+            foreach (XElement shape in root.Elements(v + "shape")) {
+                budget?.Consume();
+                XElement? clientData = shape.Element(x + "ClientData");
+                if (clientData == null
+                    || GetVmlAnchorPlacement(clientData, x) == VmlAnchorPlacement.Absolute
+                    || !TryParseVmlCoordinate(clientData.Element(x + "Row")?.Value, out int zeroBasedRow)
+                    || !TryParseVmlCoordinate(clientData.Element(x + "Column")?.Value, out int zeroBasedColumn)
+                    || !source.Contains(zeroBasedRow + 1, zeroBasedColumn + 1)
+                    || !TryParseVmlAnchor(clientData.Element(x + "Anchor"), out int[] values)) {
+                    continue;
+                }
+                if ((long)values[0] + columnDelta < 0
+                    || (long)values[4] + columnDelta < 0
+                    || (long)values[2] + rowDelta < 0
+                    || (long)values[6] + rowDelta < 0
+                    || (long)values[0] + columnDelta >= A1.MaxColumns
+                    || (long)values[4] + columnDelta >= A1.MaxColumns
+                    || (long)values[2] + rowDelta >= A1.MaxRows
+                    || (long)values[6] + rowDelta >= A1.MaxRows) {
+                    throw new InvalidOperationException(
+                        "Range move would place a legacy comment VML anchor outside worksheet limits.");
+                }
             }
         }
 

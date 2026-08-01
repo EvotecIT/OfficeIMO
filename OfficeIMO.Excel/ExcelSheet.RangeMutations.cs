@@ -223,7 +223,10 @@ namespace OfficeIMO.Excel {
                 EnsureNoIntersectingOwnedStructures(source, "Move and transpose cannot split owned table, merge, array, data-table, or PivotTable structures.", budget);
             }
             EnsureNoIntersectingOwnedStructures(destination, "Range-transfer destination cannot overwrite owned table, merge, array, data-table, or PivotTable structures.", budget);
-            if (move) ValidateRangeMoveHyperlinks(source, destination, budget);
+            if (move) {
+                ValidateRangeMoveHyperlinks(source, destination, budget);
+                ValidateRangeMoveCommentVmlAnchors(source, destination, budget);
+            }
             foreach (Cell cell in InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
                 .Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))) {
                 CellFormulaValues? type = cell.CellFormula?.FormulaType?.Value;
@@ -273,20 +276,43 @@ namespace OfficeIMO.Excel {
             IEnumerable<(Cell Cell, int Row, int Column)> ordered = direction is ExcelCellShiftDirection.Right or ExcelCellShiftDirection.Down
                 ? cells.OrderByDescending(item => direction == ExcelCellShiftDirection.Right ? item.Column : item.Row)
                 : cells.OrderBy(item => direction == ExcelCellShiftDirection.Left ? item.Column : item.Row);
+            var changedRows = new HashSet<Row>();
             foreach ((Cell cell, int row, int column) in ordered) {
                 cancellationToken.ThrowIfCancellationRequested();
+                Row? originalRow = cell.Ancestors<Row>().FirstOrDefault();
+                bool changed = false;
                 bool inRowBand = row >= r1 && row <= r2;
                 bool inColumnBand = column >= c1 && column <= c2;
-                if (direction == ExcelCellShiftDirection.Right && inRowBand && column >= c1) cell.CellReference = A1.CellReference(row, column + columns);
-                else if (direction == ExcelCellShiftDirection.Down && inColumnBand && row >= r1) MoveCellTo(cell, row + rows, column);
-                else if (direction == ExcelCellShiftDirection.Left && inRowBand) {
-                    if (column >= c1 && column <= c2) cell.Remove();
-                    else if (column > c2) cell.CellReference = A1.CellReference(row, column - columns);
-                } else if (direction == ExcelCellShiftDirection.Up && inColumnBand) {
-                    if (row >= r1 && row <= r2) cell.Remove();
-                    else if (row > r2) MoveCellTo(cell, row - rows, column);
+                if (direction == ExcelCellShiftDirection.Right && inRowBand && column >= c1) {
+                    cell.CellReference = A1.CellReference(row, column + columns);
+                    changed = true;
+                } else if (direction == ExcelCellShiftDirection.Down && inColumnBand && row >= r1) {
+                    MoveCellTo(cell, row + rows, column);
+                    changed = true;
                 }
+                else if (direction == ExcelCellShiftDirection.Left && inRowBand) {
+                    if (column >= c1 && column <= c2) {
+                        cell.Remove();
+                        changed = true;
+                    } else if (column > c2) {
+                        cell.CellReference = A1.CellReference(row, column - columns);
+                        changed = true;
+                    }
+                } else if (direction == ExcelCellShiftDirection.Up && inColumnBand) {
+                    if (row >= r1 && row <= r2) {
+                        cell.Remove();
+                        changed = true;
+                    } else if (row > r2) {
+                        MoveCellTo(cell, row - rows, column);
+                        changed = true;
+                    }
+                }
+                if (!changed) continue;
+                if (originalRow != null) changedRows.Add(originalRow);
+                Row? destinationRow = cell.Ancestors<Row>().FirstOrDefault();
+                if (destinationRow != null) changedRows.Add(destinationRow);
             }
+            foreach (Row row in changedRows) row.Spans = null;
             foreach (Row row in WorksheetRoot.Descendants<Row>().Where(row => !row.Elements<Cell>().Any()).ToList()) row.Remove();
             _excelDocument.RewriteCellShiftReferences(this, affected, direction, inserting);
             RewriteDrawingCellShift(affected, direction, inserting);

@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_NamedStyleRedefinition_RetargetsAppliedCellsAfterSharedFormatDetachment() {
+        public void Test_NamedStyleRedefinition_LeavesAmbiguousSharedConsumersUnchanged() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet first = document.AddWorksheet("First");
             ExcelSheet second = document.AddWorksheet("Second");
@@ -44,16 +44,16 @@ namespace OfficeIMO.Tests {
             uint oldAppliedIndex = first.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B2").StyleIndex!.Value;
 
-            ExcelNamedStyleInfo redefined = first.DefineNamedStyle("Alias", 1, 1);
+            Assert.Throws<InvalidOperationException>(() => first.DefineNamedStyle("Alias", 1, 1));
 
             foreach (Cell applied in new[] {
                 first.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B2"),
                 second.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "C3")
             }) {
-                Assert.NotEqual(oldAppliedIndex, applied.StyleIndex!.Value);
+                Assert.Equal(oldAppliedIndex, applied.StyleIndex!.Value);
                 CellFormat appliedFormat = stylesheet.CellFormats!.Elements<CellFormat>()
                     .ElementAt((int)applied.StyleIndex.Value);
-                Assert.Equal(redefined.FormatId, appliedFormat.FormatId!.Value);
+                Assert.Equal(normalFormatId, appliedFormat.FormatId!.Value);
             }
             Assert.Equal(normalFormatId, normal.FormatId!.Value);
             Assert.Equal(normalFormatXml, stylesheet.CellStyleFormats.Elements<CellFormat>()

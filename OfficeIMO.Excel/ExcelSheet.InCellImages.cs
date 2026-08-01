@@ -189,8 +189,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 Cell? cell = TryGetExistingCell(row, column);
                 if (cell == null || !TryResolveInCellImage(cell, out _, out _)) return;
-                cell.ValueMetaIndex = null;
-                cell.RemoveAttribute("vm", string.Empty);
+                if (!TryRemoveExclusiveInCellImage(cell)) ClearCellValueMetadata(cell);
                 cell.CellValue = null;
                 cell.DataType = null;
                 cell.InlineString = null;

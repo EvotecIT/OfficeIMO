@@ -733,8 +733,15 @@ namespace OfficeIMO.Excel {
             values[2] += rowDelta;
             values[4] += columnDelta;
             values[6] += rowDelta;
-            if (values[0] < 0 || values[2] < 0 || values[4] < 0 || values[6] < 0) {
-                return false;
+            if (values[0] < 0
+                || values[2] < 0
+                || values[4] < 0
+                || values[6] < 0
+                || values[0] >= A1.MaxColumns
+                || values[4] >= A1.MaxColumns
+                || values[2] >= A1.MaxRows
+                || values[6] >= A1.MaxRows) {
+                throw new InvalidOperationException("Moving the comment would place its VML anchor outside worksheet limits.");
             }
 
             anchor!.Value = string.Join(
