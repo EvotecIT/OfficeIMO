@@ -180,6 +180,37 @@ namespace OfficeIMO.Shared.Tests {
             }
         }
 
+        [Fact]
+        public void GuardedAtomicCommit_PreservesSaveThatRacesWithRollback() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporary = Path.Combine(root, "artifact.staged.bin");
+            byte[] expectedOriginal = { 1, 2, 3, 4 };
+            byte[] staged = { 9, 8, 7 };
+            byte[] newerSave = { 5, 6, 7, 8 };
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, expectedOriginal);
+            File.WriteAllBytes(temporary, staged);
+
+            try {
+                bool committed = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+                    temporary,
+                    destination,
+                    displaced => {
+                        Assert.Equal(expectedOriginal, File.ReadAllBytes(displaced));
+                        File.WriteAllBytes(destination, newerSave);
+                        return false;
+                    });
+
+                Assert.False(committed);
+                Assert.Equal(newerSave, File.ReadAllBytes(destination));
+                Assert.False(File.Exists(temporary));
+                Assert.Single(Directory.GetFiles(root));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
 #if NET6_0_OR_GREATER
         [Fact]
         public void CommitTemporaryFile_PreservesRestrictiveUnixMode() {

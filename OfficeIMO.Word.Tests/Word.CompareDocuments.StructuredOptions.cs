@@ -285,6 +285,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsNumberingInheritedFromDefaultParagraphStyleWithEffects() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_default_effects_numbering_source.docx");
+            CreateDocumentWithDefaultEffectsNumbering(sourcePath);
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_default_effects_numbering_target.docx");
+            CreateDocumentWithDefaultEffectsNumbering(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.NumberingLevelStyles" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureReportsConditionalTableLimitOnlyForUsedConditionalStyleChain() {
             string plainSourcePath = Path.Combine(_directoryWithFiles, "compare_structure_plain_table_style_source.docx");
             CreateDocumentWithComparisonTableStyle(plainSourcePath, includeConditionalBaseStyle: false);
@@ -589,6 +604,30 @@ namespace OfficeIMO.Tests {
             paragraph.ParagraphProperties = new ParagraphProperties(
                 new ParagraphStyleId { Val = "OfficeIMOStyleNumbering" });
             mainPart.Document.Save();
+        }
+
+        private static void CreateDocumentWithDefaultEffectsNumbering(string path) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Default style-numbered paragraph");
+                document.Save();
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Style regularDefault = mainPart.StyleDefinitionsPart!.Styles!.Elements<Style>().First(style =>
+                style.Type?.Value == StyleValues.Paragraph && style.Default?.Value == true);
+            string defaultStyleId = regularDefault.StyleId?.Value ?? "Normal";
+            StylesWithEffectsPart effectsPart = mainPart.StylesWithEffectsPart ?? mainPart.AddNewPart<StylesWithEffectsPart>();
+            effectsPart.Styles = new Styles(new Style(
+                new StyleParagraphProperties(
+                    new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = 1 }))) {
+                Type = StyleValues.Paragraph,
+                StyleId = defaultStyleId,
+                Default = true
+            });
+            effectsPart.Styles.Save();
         }
 
         private static void CreateDocumentWithComparisonTableStyle(string path, bool includeConditionalBaseStyle) {

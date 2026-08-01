@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -264,6 +265,8 @@ namespace OfficeIMO.Drawing.Internal {
             string backupPath = CreateTemporaryPath(fullTargetPath);
             string displacedPath = CreateTemporaryPath(fullTargetPath);
             bool targetContainsTemporary = false;
+            bool preserveDisplacedPath = false;
+            string installedTemporaryIdentity = string.Empty;
             try {
 #if NET6_0_OR_GREATER
                 if (!OperatingSystem.IsWindows()) {
@@ -272,6 +275,7 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
                 ExecuteWithRetry(() => File.Replace(temporaryPath, fullTargetPath, backupPath));
                 targetContainsTemporary = true;
+                installedTemporaryIdentity = ComputeFileIdentity(fullTargetPath);
                 if (destinationMatchesExpected(backupPath) &&
                     (installedFileMatchesExpected == null || installedFileMatchesExpected(fullTargetPath))) {
                     DeleteIfExists(backupPath);
@@ -279,27 +283,65 @@ namespace OfficeIMO.Drawing.Internal {
                     return true;
                 }
 
-                ExecuteWithRetry(() => File.Replace(backupPath, fullTargetPath, displacedPath));
-                targetContainsTemporary = false;
-                DeleteIfExists(displacedPath);
+                RestoreDisplacedDestinationWithoutLosingConcurrentSave(
+                    fullTargetPath,
+                    backupPath,
+                    displacedPath,
+                    installedTemporaryIdentity,
+                    ref targetContainsTemporary,
+                    ref preserveDisplacedPath);
                 return false;
             } catch (Exception commitException) {
                 if (targetContainsTemporary && File.Exists(backupPath) && File.Exists(fullTargetPath)) {
                     try {
-                        ExecuteWithRetry(() => File.Replace(backupPath, fullTargetPath, displacedPath));
-                        targetContainsTemporary = false;
+                        RestoreDisplacedDestinationWithoutLosingConcurrentSave(
+                            fullTargetPath,
+                            backupPath,
+                            displacedPath,
+                            installedTemporaryIdentity,
+                            ref targetContainsTemporary,
+                            ref preserveDisplacedPath);
                     } catch (Exception rollbackException) {
                         throw new IOException(
                             "The guarded atomic commit failed and the displaced destination could not be restored. " +
-                            "Its backup remains at '" + backupPath + "'.",
+                            "Its recoverable files remain at '" + backupPath + "' and '" + displacedPath + "'.",
                             new AggregateException(commitException, rollbackException));
                     }
                 }
                 throw;
             } finally {
                 if (!targetContainsTemporary) DeleteIfExists(backupPath);
-                DeleteIfExists(displacedPath);
+                if (!preserveDisplacedPath) DeleteIfExists(displacedPath);
             }
+        }
+
+        private static void RestoreDisplacedDestinationWithoutLosingConcurrentSave(
+            string targetPath,
+            string backupPath,
+            string displacedPath,
+            string installedTemporaryIdentity,
+            ref bool targetContainsTemporary,
+            ref bool preserveDisplacedPath) {
+            ExecuteWithRetry(() => File.Replace(backupPath, targetPath, displacedPath));
+            targetContainsTemporary = false;
+            if (installedTemporaryIdentity.Length == 0 ||
+                string.Equals(installedTemporaryIdentity, ComputeFileIdentity(displacedPath), StringComparison.Ordinal)) {
+                DeleteIfExists(displacedPath);
+                return;
+            }
+
+            // A different writer replaced or rewrote the target while the caller was checking the
+            // displaced destination. Put that newer save back instead of silently overwriting it.
+            preserveDisplacedPath = true;
+            ExecuteWithRetry(() => File.Replace(displacedPath, targetPath, backupPath));
+            preserveDisplacedPath = false;
+            DeleteIfExists(backupPath);
+        }
+
+        private static string ComputeFileIdentity(string path) {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+            using SHA256 sha256 = SHA256.Create();
+            return Convert.ToBase64String(sha256.ComputeHash(stream));
         }
 
         private static void CommitTemporaryFileCore(

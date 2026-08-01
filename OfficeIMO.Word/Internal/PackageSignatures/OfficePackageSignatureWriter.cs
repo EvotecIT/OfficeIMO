@@ -226,48 +226,57 @@ namespace OfficeIMO.Word {
             XNamespace ds = SignedXml.XmlDsigNamespaceUrl;
             XNamespace opc = DigitalSignatureNamespace;
             var manifest = new XElement(ds + "Manifest");
+            int authenticatedReferenceCount = checked(partUris.Count + 1);
+            if (authenticatedReferenceCount > options.MaxSignedReferences) {
+                throw new InvalidDataException("The package signature would contain more than " + options.MaxSignedReferences + " authenticated references.");
+            }
+            int remainingRelationshipSelectors = options.MaxSignedReferences - authenticatedReferenceCount;
+            long totalDigestBytes = 0;
             foreach (string partUri in partUris) {
                 if (!package.TryGetContentType(partUri, out string contentType)) {
                     throw new InvalidDataException("The OPC package does not declare a content type for " + partUri + ".");
                 }
+                ReserveDigestBytes(package, partUri, options, ref totalDigestBytes);
                 manifest.Add(CreateReference(partUri + "?ContentType=" + Uri.EscapeDataString(contentType), options.HashAlgorithm));
             }
 
             int relationshipSelectorCount = 0;
             if (options.IncludePackageRelationships) {
-                XElement? packageRelationships = CreateRelationshipReference(package, "/_rels/.rels", options);
+                XElement? packageRelationships = CreateRelationshipReference(
+                    package,
+                    "/_rels/.rels",
+                    options,
+                    ref remainingRelationshipSelectors,
+                    ref totalDigestBytes,
+                    out int selectorCount);
                 if (packageRelationships != null) {
-                    relationshipSelectorCount += CountRelationshipSelectors(packageRelationships);
+                    relationshipSelectorCount += selectorCount;
                     manifest.Add(packageRelationships);
                 }
             }
             if (options.IncludePartRelationships) {
                 foreach (string partUri in partUris) {
                     string relationshipPartUri = GetRelationshipPartUri(partUri);
-                    XElement? partRelationships = CreateRelationshipReference(package, relationshipPartUri, options);
+                    XElement? partRelationships = CreateRelationshipReference(
+                        package,
+                        relationshipPartUri,
+                        options,
+                        ref remainingRelationshipSelectors,
+                        ref totalDigestBytes,
+                        out int selectorCount);
                     if (partRelationships == null) continue;
-                    relationshipSelectorCount += CountRelationshipSelectors(partRelationships);
+                    relationshipSelectorCount += selectorCount;
                     manifest.Add(partRelationships);
                 }
             }
 
-            int authenticatedReferenceCount = manifest.Elements(ds + "Reference").Count() + 1;
-            if (authenticatedReferenceCount > options.MaxSignedReferences) {
-                throw new InvalidDataException("The package signature would contain more than " + options.MaxSignedReferences + " authenticated references.");
-            }
-
-            long totalDigestBytes = 0;
             foreach (XElement reference in manifest.Elements(ds + "Reference")) {
                 string? referenceUri = ((string?)reference.Attribute("URI"))?.Trim();
                 string targetPartUri = OfficePackageSignatureArchive.NormalizeReferencePartUri(referenceUri)
                     ?? throw new InvalidDataException("The OPC signature Reference is not a package-part URI: " + referenceUri + ".");
-                if (!package.TryGetPartLength(targetPartUri, out long partLength)) {
+                if (!package.TryGetPartLength(targetPartUri, out _)) {
                     throw new FileNotFoundException("The package part selected for signing was not found.", targetPartUri);
                 }
-                if (partLength > options.MaxTotalDigestBytes - totalDigestBytes) {
-                    throw new InvalidDataException("The package parts selected for signing exceed the " + options.MaxTotalDigestBytes + " byte aggregate digest limit.");
-                }
-                totalDigestBytes += partLength;
                 reference.Add(new XElement(ds + "DigestValue", package.ComputeDigestValue(reference, options.MaxPartBytes)));
             }
 
@@ -422,24 +431,37 @@ namespace OfficeIMO.Word {
         private static XElement? CreateRelationshipReference(
             OfficePackageSignatureArchive package,
             string relationshipPartUri,
-            OfficePackageSigningOptions options) {
+            OfficePackageSigningOptions options,
+            ref int remainingRelationshipSelectors,
+            ref long totalDigestBytes,
+            out int selectorCount) {
+            selectorCount = 0;
             if (!package.ContainsPart(relationshipPartUri)) return null;
+            ReserveDigestBytes(package, relationshipPartUri, options, ref totalDigestBytes);
             byte[] bytes = package.ReadPart(relationshipPartUri, options.MaxPartBytes);
-            XDocument relationships;
+            var ids = new List<string>();
             using (var stream = new MemoryStream(bytes, writable: false)) {
                 using XmlReader reader = XmlReader.Create(stream, SafeXmlReaderSettings());
-                relationships = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+                const string relationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+                while (reader.Read()) {
+                    if (reader.NodeType != XmlNodeType.Element ||
+                        reader.LocalName != "Relationship" ||
+                        reader.NamespaceURI != relationshipNamespace) continue;
+                    if (IsSignatureRelationship(reader.GetAttribute("Type"))) continue;
+                    string? id = reader.GetAttribute("Id")?.Trim();
+                    if (string.IsNullOrWhiteSpace(id)) continue;
+                    if (remainingRelationshipSelectors <= 0) {
+                        throw new InvalidDataException(
+                            "The package signature would contain more than " + options.MaxSignedReferences +
+                            " authenticated references and relationship selectors.");
+                    }
+                    remainingRelationshipSelectors--;
+                    selectorCount++;
+                    ids.Add(id!);
+                }
             }
-            XNamespace rel = "http://schemas.openxmlformats.org/package/2006/relationships";
-            string[] ids = relationships.Root?
-                .Elements(rel + "Relationship")
-                .Where(element => !IsSignatureRelationship((string?)element.Attribute("Type")))
-                .Select(element => ((string?)element.Attribute("Id"))?.Trim())
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Select(id => id!)
-                .OrderBy(id => id, StringComparer.Ordinal)
-                .ToArray() ?? Array.Empty<string>();
-            if (ids.Length == 0) return null;
+            if (ids.Count == 0) return null;
+            ids.Sort(StringComparer.Ordinal);
 
             XNamespace ds = SignedXml.XmlDsigNamespaceUrl;
             XNamespace opc = DigitalSignatureNamespace;
@@ -466,10 +488,18 @@ namespace OfficeIMO.Word {
                 new XElement(ds + "DigestMethod", new XAttribute("Algorithm", digestMethod)));
         }
 
-        private static int CountRelationshipSelectors(XElement reference) {
-            XNamespace opc = DigitalSignatureNamespace;
-            return reference.Descendants(opc + "RelationshipReference").Count() +
-                   reference.Descendants(opc + "RelationshipsGroupReference").Count();
+        private static void ReserveDigestBytes(
+            OfficePackageSignatureArchive package,
+            string partUri,
+            OfficePackageSigningOptions options,
+            ref long totalDigestBytes) {
+            if (!package.TryGetPartLength(partUri, out long partLength)) {
+                throw new FileNotFoundException("The package part selected for signing was not found.", partUri);
+            }
+            if (partLength > options.MaxTotalDigestBytes - totalDigestBytes) {
+                throw new InvalidDataException("The package parts selected for signing exceed the " + options.MaxTotalDigestBytes + " byte aggregate digest limit.");
+            }
+            totalDigestBytes += partLength;
         }
 
         private static string GetRelationshipPartUri(string partUri) {

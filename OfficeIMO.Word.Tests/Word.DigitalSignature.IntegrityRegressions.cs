@@ -65,5 +65,43 @@ namespace OfficeIMO.Tests {
             using WordprocessingDocument preserved = WordprocessingDocument.Open(filePath, false);
             Assert.Null(preserved.DigitalSignatureOriginPart);
         }
+
+        [Fact]
+        public void Test_DigitalSignature_SigningBoundsRelationshipSelectorsBeforeSignatureXmlConstruction() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureRelationshipSelectorBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Relationship selector budget");
+                document.Save();
+            }
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                MainDocumentPart mainPart = package.MainDocumentPart!;
+                for (int index = 0; index < 128; index++) {
+                    mainPart.AddExternalRelationship(
+                        "urn:officeimo:relationship-budget",
+                        new System.Uri("https://example.test/resource/" + index, System.UriKind.Absolute),
+                        "rBudget" + index);
+                }
+            }
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult bounded = WordDocument.TrySignPackage(
+                filePath,
+                certificate,
+                new WordPackageSigningOptions { MaxSignedReferences = 32 });
+
+            Assert.False(bounded.Succeeded);
+            Assert.Contains(bounded.Details, detail =>
+                detail.Contains("relationship selectors", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+
+            WordPackageSigningResult permissive = WordDocument.TrySignPackage(
+                filePath,
+                certificate,
+                new WordPackageSigningOptions { MaxSignedReferences = 512 });
+
+            Assert.True(permissive.Succeeded, string.Join(System.Environment.NewLine, permissive.Details));
+            Assert.True(permissive.SignedRelationshipSelectorCount >= 128);
+        }
     }
 }

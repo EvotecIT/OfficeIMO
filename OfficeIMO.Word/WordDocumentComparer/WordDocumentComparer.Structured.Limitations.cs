@@ -8,7 +8,8 @@ namespace OfficeIMO.Word {
             WordDocument source,
             WordDocument target,
             WordComparisonResult result,
-            WordComparisonOptions options) {
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             MainDocumentPart? sourcePart = source._wordprocessingDocument.MainDocumentPart;
             MainDocumentPart? targetPart = target._wordprocessingDocument.MainDocumentPart;
             if (sourcePart == null || targetPart == null) return;
@@ -18,20 +19,20 @@ namespace OfficeIMO.Word {
                     result,
                     "EffectiveFormatting.ThemeResolution",
                     "Theme font and theme color tokens are compared as declared tokens; Office theme resolution and layout-dependent appearance are not evaluated.",
-                    ContainsThemeFormatting(sourcePart),
-                    ContainsThemeFormatting(targetPart));
+                    ContainsThemeFormatting(sourcePart, comparisonWorkBudget),
+                    ContainsThemeFormatting(targetPart, comparisonWorkBudget));
                 AddShapeLimitation(
                     result,
                     "EffectiveFormatting.ConditionalTableStyles",
                     "Conditional table-style regions are compared structurally; the full Word table-style cascade is not folded into effective run or paragraph formatting.",
-                    ContainsConditionalTableStyleFormatting(sourcePart),
-                    ContainsConditionalTableStyleFormatting(targetPart));
+                    ContainsConditionalTableStyleFormatting(sourcePart, comparisonWorkBudget),
+                    ContainsConditionalTableStyleFormatting(targetPart, comparisonWorkBudget));
                 AddShapeLimitation(
                     result,
                     "EffectiveFormatting.NumberingLevelStyles",
                     "List definitions and paragraph numbering are compared, but numbering-level style inheritance is not folded into effective run or paragraph formatting.",
-                    ContainsNumberingFormatting(sourcePart),
-                    ContainsNumberingFormatting(targetPart));
+                    ContainsNumberingFormatting(sourcePart, comparisonWorkBudget),
+                    ContainsNumberingFormatting(targetPart, comparisonWorkBudget));
             }
 
             if (options.CompareRevisions) {
@@ -39,8 +40,8 @@ namespace OfficeIMO.Word {
                     result,
                     "MoveSemantics.RevisionMetadataOnly",
                     "Existing move-from and move-to markup is compared as review metadata; generated redlines use insert/delete revisions and do not synthesize Word move-range semantics.",
-                    ContainsMoveMarkup(sourcePart),
-                    ContainsMoveMarkup(targetPart));
+                    ContainsMoveMarkup(sourcePart, comparisonWorkBudget),
+                    ContainsMoveMarkup(targetPart, comparisonWorkBudget));
             }
         }
 
@@ -54,17 +55,16 @@ namespace OfficeIMO.Word {
             result.AddLimitation(new WordComparisonLimitation(code, message, sourceContainsShape, targetContainsShape));
         }
 
-        private static bool ContainsThemeFormatting(MainDocumentPart mainPart) {
-            OpenXmlElement[] content = EnumerateComparisonRoots(mainPart)
-                .SelectMany(root => new[] { root }.Concat(root.Descendants()))
-                .ToArray();
-            if (content.SelectMany(element => element.GetAttributes()).Any(IsThemeAttribute)) return true;
-            if (content.OfType<Run>().Any() &&
-                (ContainsThemeAttribute(mainPart.StyleDefinitionsPart?.Styles?.DocDefaults) ||
-                 ContainsThemeAttribute(mainPart.StylesWithEffectsPart?.Styles?.DocDefaults))) return true;
-
+        private static bool ContainsThemeFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) {
             var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (OpenXmlElement element in content) {
+            bool hasRunWithoutStyle = false;
+            bool hasParagraphWithoutStyle = false;
+            bool hasTableWithoutStyle = false;
+            if (ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
+                if (element.GetAttributes().Any(IsThemeAttribute)) return true;
+                if (element is Run run && run.RunProperties?.RunStyle?.Val?.Value == null) hasRunWithoutStyle = true;
+                if (element is Paragraph paragraph && paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value == null) hasParagraphWithoutStyle = true;
+                if (element is Table table && table.TableProperties?.TableStyle?.Val?.Value == null) hasTableWithoutStyle = true;
                 string? styleId = element switch {
                     ParagraphStyleId paragraphStyle => paragraphStyle.Val?.Value,
                     RunStyle runStyle => runStyle.Val?.Value,
@@ -72,18 +72,21 @@ namespace OfficeIMO.Word {
                     _ => null
                 };
                 if (!string.IsNullOrWhiteSpace(styleId)) usedStyleIds.Add(styleId!);
-            }
+                return false;
+            })) return true;
+            if (hasRunWithoutStyle &&
+                (ContainsThemeAttribute(mainPart.StyleDefinitionsPart?.Styles?.DocDefaults, comparisonWorkBudget) ||
+                 ContainsThemeAttribute(mainPart.StylesWithEffectsPart?.Styles?.DocDefaults, comparisonWorkBudget))) return true;
 
-            Style[] styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .ToArray();
-            if (content.OfType<Paragraph>().Any(paragraph => paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value == null)) {
+            IReadOnlyList<Style> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
+            if (styleBudgetExhausted) return true;
+            if (hasParagraphWithoutStyle) {
                 AddDefaultStyleIds(styles, StyleValues.Paragraph, usedStyleIds);
             }
-            if (content.OfType<Run>().Any(run => run.RunProperties?.RunStyle?.Val?.Value == null)) {
+            if (hasRunWithoutStyle) {
                 AddDefaultStyleIds(styles, StyleValues.Character, usedStyleIds);
             }
-            if (content.OfType<Table>().Any(table => table.TableProperties?.TableStyle?.Val?.Value == null)) {
+            if (hasTableWithoutStyle) {
                 AddDefaultStyleIds(styles, StyleValues.Table, usedStyleIds);
             }
             ILookup<string, Style> stylesById = styles
@@ -92,8 +95,8 @@ namespace OfficeIMO.Word {
             return ContainsStyleShape(
                 usedStyleIds,
                 stylesById,
-                style => new[] { style }.Concat(style.Descendants())
-                    .SelectMany(element => element.GetAttributes()).Any(IsThemeAttribute));
+                (style, budget) => ScanElementSubtree(style, budget, element => element.GetAttributes().Any(IsThemeAttribute)),
+                comparisonWorkBudget);
         }
 
         private static void AddDefaultStyleIds(
@@ -112,27 +115,24 @@ namespace OfficeIMO.Word {
             attribute.LocalName.EndsWith("Theme", StringComparison.OrdinalIgnoreCase) ||
             attribute.LocalName.Equals("themeColor", StringComparison.OrdinalIgnoreCase);
 
-        private static bool ContainsThemeAttribute(OpenXmlElement? element) =>
-            element != null &&
-            new[] { element }.Concat(element.Descendants())
-                .SelectMany(candidate => candidate.GetAttributes())
-                .Any(IsThemeAttribute);
+        private static bool ContainsThemeAttribute(OpenXmlElement? element, ComparisonWorkBudget comparisonWorkBudget) =>
+            element != null && ScanElementSubtree(element, comparisonWorkBudget, candidate => candidate.GetAttributes().Any(IsThemeAttribute));
 
-        private static bool ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart) {
-            OpenXmlElement[] content = EnumerateComparisonRoots(mainPart)
-                .SelectMany(root => new[] { root }.Concat(root.Descendants()))
-                .ToArray();
-            if (content.OfType<TableStyleProperties>().Any()) return true;
+        private static bool ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) {
+            var usedTableStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            bool hasTableWithoutStyle = false;
+            if (ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
+                if (element is TableStyleProperties) return true;
+                if (element is TableStyle tableStyle && !string.IsNullOrWhiteSpace(tableStyle.Val?.Value)) {
+                    usedTableStyleIds.Add(tableStyle.Val!.Value!);
+                }
+                if (element is Table table && table.TableProperties?.TableStyle?.Val?.Value == null) hasTableWithoutStyle = true;
+                return false;
+            })) return true;
 
-            var usedTableStyleIds = new HashSet<string>(content
-                .OfType<TableStyle>()
-                .Select(tableStyle => tableStyle.Val?.Value)
-                .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
-                .Select(styleId => styleId!), StringComparer.OrdinalIgnoreCase);
-            Style[] styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .ToArray();
-            if (content.OfType<Table>().Any(table => table.TableProperties?.TableStyle?.Val?.Value == null)) {
+            IReadOnlyList<Style> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
+            if (styleBudgetExhausted) return true;
+            if (hasTableWithoutStyle) {
                 AddDefaultStyleIds(styles, StyleValues.Table, usedTableStyleIds);
             }
             if (usedTableStyleIds.Count == 0) return false;
@@ -143,13 +143,15 @@ namespace OfficeIMO.Word {
             return ContainsStyleShape(
                 usedTableStyleIds,
                 stylesById,
-                style => style.Elements<TableStyleProperties>().Any());
+                (style, budget) => ScanElementSubtree(style, budget, element => element is TableStyleProperties),
+                comparisonWorkBudget);
         }
 
         private static bool ContainsStyleShape(
             IEnumerable<string> initialStyleIds,
             ILookup<string, Style> stylesById,
-            Func<Style, bool> containsShape) {
+            Func<Style, ComparisonWorkBudget, bool> containsShape,
+            ComparisonWorkBudget comparisonWorkBudget) {
             var pendingStyleIds = new Stack<string>(initialStyleIds);
             var inspectedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             while (pendingStyleIds.Count > 0) {
@@ -157,7 +159,7 @@ namespace OfficeIMO.Word {
                 if (!inspectedStyleIds.Add(styleId)) continue;
 
                 foreach (Style style in stylesById[styleId]) {
-                    if (containsShape(style)) return true;
+                    if (!comparisonWorkBudget.TryConsume(1) || containsShape(style, comparisonWorkBudget)) return true;
                     string? baseStyleId = style.BasedOn?.Val?.Value;
                     if (!string.IsNullOrWhiteSpace(baseStyleId)) pendingStyleIds.Push(baseStyleId!);
                 }
@@ -165,17 +167,56 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static bool ContainsNumberingFormatting(MainDocumentPart mainPart) =>
-            EnumerateComparisonRoots(mainPart)
-                .SelectMany(root => new[] { root }.Concat(root.Descendants()))
-                .OfType<Paragraph>()
-                .Any(paragraph => ResolveParagraphNumberingProperties(paragraph, mainPart) != null);
+        private static bool ContainsNumberingFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
+            ScanComparisonElements(mainPart, comparisonWorkBudget, element =>
+                element is Paragraph paragraph && ResolveParagraphNumberingProperties(paragraph, mainPart) != null);
 
-        private static bool ContainsMoveMarkup(MainDocumentPart mainPart) =>
-            EnumerateComparisonRoots(mainPart)
-                .SelectMany(root => root.Descendants())
-                .Any(element => element.LocalName.StartsWith("moveFrom", StringComparison.Ordinal) ||
-                                element.LocalName.StartsWith("moveTo", StringComparison.Ordinal));
+        private static bool ContainsMoveMarkup(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
+            ScanComparisonElements(mainPart, comparisonWorkBudget, element =>
+                element.LocalName.StartsWith("moveFrom", StringComparison.Ordinal) ||
+                element.LocalName.StartsWith("moveTo", StringComparison.Ordinal));
+
+        private static bool ScanComparisonElements(
+            MainDocumentPart mainPart,
+            ComparisonWorkBudget comparisonWorkBudget,
+            Func<OpenXmlElement, bool> predicate) {
+            foreach (OpenXmlCompositeElement root in EnumerateComparisonRoots(mainPart)) {
+                if (!comparisonWorkBudget.TryConsume(1) || predicate(root)) return true;
+                foreach (OpenXmlElement element in root.Descendants()) {
+                    if (!comparisonWorkBudget.TryConsume(1) || predicate(element)) return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool ScanElementSubtree(
+            OpenXmlElement root,
+            ComparisonWorkBudget comparisonWorkBudget,
+            Func<OpenXmlElement, bool> predicate) {
+            if (!comparisonWorkBudget.TryConsume(1) || predicate(root)) return true;
+            foreach (OpenXmlElement element in root.Descendants()) {
+                if (!comparisonWorkBudget.TryConsume(1) || predicate(element)) return true;
+            }
+            return false;
+        }
+
+        private static IReadOnlyList<Style> CollectComparisonStyles(
+            MainDocumentPart mainPart,
+            ComparisonWorkBudget comparisonWorkBudget,
+            out bool budgetExhausted) {
+            var styles = new List<Style>();
+            IEnumerable<Style> candidates = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>());
+            foreach (Style style in candidates) {
+                if (!comparisonWorkBudget.TryConsume(1)) {
+                    budgetExhausted = true;
+                    return styles;
+                }
+                styles.Add(style);
+            }
+            budgetExhausted = false;
+            return styles;
+        }
 
         private static IEnumerable<OpenXmlCompositeElement> EnumerateComparisonRoots(MainDocumentPart mainPart) =>
             WordFieldInventory.EnumerateFieldRoots(mainPart).Select(root => root.Root);

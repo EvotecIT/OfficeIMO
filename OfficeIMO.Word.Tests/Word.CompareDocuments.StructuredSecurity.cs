@@ -260,6 +260,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));
         }
 
+        [Fact]
+        public void EffectiveFormattingLimitationScanConsumesSharedComparisonWorkBudget() {
+            string path = Path.Combine(_directoryWithFiles, "compare_structure_limitation_scan_budget.docx");
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Bounded limitation scan");
+                document.Save();
+            }
+
+            using WordDocument loaded = WordDocument.Load(path);
+            object comparisonWorkBudget = CreateComparisonWorkBudget(1);
+            MethodInfo containsThemeFormatting = typeof(WordDocumentComparer).GetMethod(
+                "ContainsThemeFormatting",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Effective-formatting limitation scan was not found.");
+
+            bool conservativelyReported = (bool)(containsThemeFormatting.Invoke(
+                null,
+                new object[] { loaded._wordprocessingDocument.MainDocumentPart!, comparisonWorkBudget })
+                ?? throw new InvalidOperationException("Effective-formatting limitation scan did not return a result."));
+
+            Assert.True(conservativelyReported);
+            Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));
+        }
+
         private static TimeSpan MeasureSimilarity(
             Func<string, string, double> similarity,
             string source,

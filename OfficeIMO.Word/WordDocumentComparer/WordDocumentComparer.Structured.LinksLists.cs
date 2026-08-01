@@ -264,30 +264,34 @@ namespace OfficeIMO.Word {
             }
 
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                return null;
+            Style[] styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .ToArray();
+            var pendingStyleIds = new Stack<string>();
+            if (!string.IsNullOrWhiteSpace(styleId)) {
+                pendingStyleIds.Push(styleId!);
+            } else {
+                foreach (Style defaultStyle in styles.Where(item =>
+                             item.Type?.Value == StyleValues.Paragraph &&
+                             item.Default?.Value == true &&
+                             !string.IsNullOrWhiteSpace(item.StyleId?.Value))) {
+                    pendingStyleIds.Push(defaultStyle.StyleId!.Value!);
+                }
             }
 
-            Styles? styles = mainPart.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
-                return null;
-            }
-
+            ILookup<string, Style> stylesById = styles
+                .Where(item => !string.IsNullOrWhiteSpace(item.StyleId?.Value))
+                .ToLookup(item => item.StyleId!.Value!, StringComparer.Ordinal);
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            while (!string.IsNullOrWhiteSpace(styleId)) {
-                string currentStyleId = styleId!;
-                if (!visited.Add(currentStyleId)) {
-                    break;
+            while (pendingStyleIds.Count > 0) {
+                string currentStyleId = pendingStyleIds.Pop();
+                if (!visited.Add(currentStyleId)) continue;
+                foreach (Style style in stylesById[currentStyleId]) {
+                    NumberingProperties? numbering = style.StyleParagraphProperties?.NumberingProperties;
+                    if (numbering != null) return numbering;
+                    string? baseStyleId = style.BasedOn?.Val?.Value;
+                    if (!string.IsNullOrWhiteSpace(baseStyleId)) pendingStyleIds.Push(baseStyleId!);
                 }
-
-                Style? style = styles.Elements<Style>()
-                    .FirstOrDefault(item => string.Equals(item.StyleId?.Value, currentStyleId, StringComparison.Ordinal));
-                NumberingProperties? numbering = style?.StyleParagraphProperties?.NumberingProperties;
-                if (numbering != null) {
-                    return numbering;
-                }
-
-                styleId = style?.BasedOn?.Val?.Value;
             }
 
             return null;
