@@ -1,4 +1,9 @@
 namespace OfficeIMO.Word {
+    internal enum WordFieldEvaluationReason {
+        Default,
+        ContainingResultReplaced
+    }
+
     /// <summary>Describes the evidence OfficeIMO used to produce or defer a field result.</summary>
     public enum WordFieldEvaluationBasis {
         /// <summary>The field was not evaluated.</summary>
@@ -18,7 +23,15 @@ namespace OfficeIMO.Word {
     }
 
     internal static class WordFieldEvaluationContracts {
-        internal static WordFieldEvaluationBasis GetBasis(WordFieldType? fieldType, WordFieldUpdateStatus status, bool isLocked) {
+        internal static WordFieldEvaluationBasis GetBasis(
+            WordFieldType? fieldType,
+            WordFieldUpdateStatus status,
+            bool isLocked,
+            WordFieldEvaluationReason reason) {
+            if (reason == WordFieldEvaluationReason.ContainingResultReplaced) {
+                return WordFieldEvaluationBasis.NotEvaluated;
+            }
+
             if (!isLocked && status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) {
                 return WordFieldEvaluationBasis.ExternalLayoutRequired;
             }
@@ -36,13 +49,18 @@ namespace OfficeIMO.Word {
                 : WordFieldEvaluationBasis.InvariantDocumentModel;
         }
 
-        internal static string GetDiagnosticCode(WordFieldType? fieldType, WordFieldUpdateStatus status, bool isLocked) {
+        internal static string GetDiagnosticCode(
+            WordFieldType? fieldType,
+            WordFieldUpdateStatus status,
+            bool isLocked,
+            WordFieldEvaluationReason reason) {
             if (status == WordFieldUpdateStatus.ParseError) return "FieldInstructionInvalid";
             if (status == WordFieldUpdateStatus.Unsupported) return "FieldEvaluationUnsupported";
             if (isLocked) return "FieldLocked";
+            if (reason == WordFieldEvaluationReason.ContainingResultReplaced) return "FieldContainingResultReplaced";
             if (status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) return "FieldRefreshDelegated";
             if (status == WordFieldUpdateStatus.Skipped) return "FieldSourceUnavailable";
-            return GetBasis(fieldType, status, isLocked) == WordFieldEvaluationBasis.ExplicitBreakEstimate
+            return GetBasis(fieldType, status, isLocked, reason) == WordFieldEvaluationBasis.ExplicitBreakEstimate
                 ? "FieldUpdatedFromExplicitBreaks"
                 : "FieldUpdatedInvariant";
         }

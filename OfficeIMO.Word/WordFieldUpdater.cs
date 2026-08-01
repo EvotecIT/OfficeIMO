@@ -30,7 +30,8 @@ namespace OfficeIMO.Word {
                         WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType,
                         WordFieldUpdateStatus.Skipped,
                         null,
-                        "Nested field was left unchanged because its containing field result was replaced."));
+                        "Nested field was left unchanged because its containing field result was replaced.",
+                        WordFieldEvaluationReason.ContainingResultReplaced));
                     continue;
                 }
 
@@ -1257,7 +1258,12 @@ namespace OfficeIMO.Word {
                     simpleField.FieldLock?.Value ?? false);
             }
 
-            internal WordFieldUpdateResult ToResult(WordFieldType? fieldType, WordFieldUpdateStatus status, string? resultText, string message) {
+            internal WordFieldUpdateResult ToResult(
+                WordFieldType? fieldType,
+                WordFieldUpdateStatus status,
+                string? resultText,
+                string message,
+                WordFieldEvaluationReason reason = WordFieldEvaluationReason.Default) {
                 return new WordFieldUpdateResult(
                     Index,
                     Representation,
@@ -1268,7 +1274,8 @@ namespace OfficeIMO.Word {
                     status,
                     resultText,
                     message,
-                    IsLocked);
+                    IsLocked,
+                    reason);
             }
 
             internal static MutableFieldCandidate ForComplex(WordFieldInventory.FieldRoot root, ComplexFieldBuilder builder) {

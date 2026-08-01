@@ -135,7 +135,10 @@ namespace OfficeIMO.Word {
         MismatchedRepeatingBlockEnd,
 
         /// <summary>A Word-native mail-merge control field was found that OfficeIMO does not execute.</summary>
-        UnsupportedMailMergeControlField
+        UnsupportedMailMergeControlField,
+
+        /// <summary>A MERGEFIELD contains a nested field and cannot be processed deterministically.</summary>
+        MalformedMergeField
     }
 
     /// <summary>

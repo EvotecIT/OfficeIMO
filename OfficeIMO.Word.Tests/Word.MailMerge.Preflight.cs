@@ -146,6 +146,9 @@ namespace OfficeIMO.Tests {
             WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
                 document,
                 mergeFieldNames: new[] { "InnerControl", "InnerMerge" });
+            WordTemplatePreflightReport fullySupplied = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "InnerControl", "InnerMerge", "Outer" });
 
             Assert.Equal(new[] { "InnerControl", "InnerMerge", "Outer" }, inspection.MergeFieldNames);
             Assert.Contains(inspection.Issues, issue =>
@@ -155,6 +158,10 @@ namespace OfficeIMO.Tests {
                 issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue &&
                 issue.Name == "Outer");
             Assert.False(preflight.CanBindTemplate);
+            Assert.Contains(fullySupplied.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MalformedMergeField);
+            Assert.False(fullySupplied.Can(WordTemplatePreflightCapability.BindMergeFields));
+            Assert.False(fullySupplied.CanBindTemplate);
         }
 
         [Fact]

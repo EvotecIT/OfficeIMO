@@ -455,6 +455,21 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private static IEnumerable<WordMailMergeTemplateIssue> EnumerateMalformedMergeFieldIssues(OpenXmlElement root) {
+            foreach (MergeFieldOccurrence occurrence in DiscoverMergeFieldOccurrences(root)) {
+                if (occurrence.MalformedMessage == null) continue;
+                string instruction = occurrence.SimpleField?.Instruction?.Value
+                    ?? ReadComplexFieldInstruction(occurrence.ComplexRuns!);
+                if (!MergeFieldTypePattern.IsMatch(instruction)) continue;
+
+                string name = TryGetMergeFieldName(instruction) ?? string.Empty;
+                yield return new WordMailMergeTemplateIssue(
+                    WordMailMergeTemplateIssueKind.MalformedMergeField,
+                    name,
+                    occurrence.MalformedMessage);
+            }
+        }
+
         private static IEnumerable<WordMailMergeTemplateIssue> EnumerateUnsupportedMailMergeControlFieldIssues(OpenXmlElement root) {
             foreach (string instruction in EnumerateFieldInstructions(root)) {
                 if (!TryGetUnsupportedMailMergeControlField(instruction, out string? fieldName)) {

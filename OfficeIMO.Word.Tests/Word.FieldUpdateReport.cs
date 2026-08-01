@@ -77,6 +77,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesContainingReplacementReasonForNestedLayoutField() {
+            using WordDocument document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Creator = "Ada";
+            AddNestedComplexFields(
+                document.AddParagraph()._paragraph,
+                " AUTHOR ",
+                " TOC ",
+                "outer stale ",
+                "nested toc stale",
+                " outer tail");
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+            WordFieldUpdateResult nestedToc = Assert.Single(report.Results, result => result.FieldType == WordFieldType.TOC);
+            Assert.Equal(WordFieldUpdateStatus.Skipped, nestedToc.Status);
+            Assert.Equal("FieldContainingResultReplaced", nestedToc.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, nestedToc.EvaluationBasis);
+            Assert.Contains("containing field", nestedToc.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_PreservesParseDiagnosticForLockedMalformedField() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("stale"))) {

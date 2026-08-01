@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using AngleSharp.Html.Parser;
 using OfficeIMO.Word.Html;
 
 namespace OfficeIMO.Word.Benchmarks;
@@ -76,11 +77,7 @@ public class WordWorkflowBenchmarks {
     }
 
     [Benchmark]
-    public int ExportHtml() {
-        using var stream = new MemoryStream(_htmlDocument, writable: false);
-        using WordDocument document = WordDocument.Load(stream);
-        return document.ToHtmlResult().RequireValue().Length;
-    }
+    public int ExportHtml() => ExportHtmlDocument().Length;
 
     [Benchmark]
     public int LoadDocument() {
@@ -99,8 +96,8 @@ public class WordWorkflowBenchmarks {
         EnsureEqual(nameof(UpdateFields), ItemCount, UpdateFields());
         EnsureEqual(nameof(ExecuteMailMerge), ItemCount, ExecuteMailMerge());
         EnsureEqual(nameof(LoadDocument), ItemCount, LoadDocument());
-        EnsurePositive(nameof(ExportHtml), ExportHtml());
-        EnsurePositive(nameof(ExportLoadedHtml), ExportLoadedHtml());
+        ValidateHtmlOutput(nameof(ExportHtml), ExportHtmlDocument());
+        ValidateHtmlOutput(nameof(ExportLoadedHtml), _loadedHtmlDocument.ToHtmlResult().RequireValue());
 
         WordComparisonResult comparison = WordDocumentComparer.CompareStructure(_sourcePath, _targetPath);
         if (!comparison.HasChanges ||
@@ -116,9 +113,22 @@ public class WordWorkflowBenchmarks {
         }
     }
 
-    private static void EnsurePositive(string benchmark, int actual) {
-        if (actual <= 0) {
-            throw new InvalidOperationException(benchmark + " validation returned no output.");
+    private string ExportHtmlDocument() {
+        using var stream = new MemoryStream(_htmlDocument, writable: false);
+        using WordDocument document = WordDocument.Load(stream);
+        return document.ToHtmlResult().RequireValue();
+    }
+
+    private void ValidateHtmlOutput(string benchmark, string html) {
+        var document = new HtmlParser().ParseDocument(html);
+        var paragraphs = document.QuerySelectorAll("p");
+        EnsureEqual(benchmark + " paragraph count", ItemCount, paragraphs.Length);
+        for (int index = 0; index < ItemCount; index++) {
+            string expected = "Paragraph " + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!string.Equals(paragraphs[index].TextContent, expected, StringComparison.Ordinal)) {
+                throw new InvalidOperationException(
+                    benchmark + " paragraph " + index + " returned '" + paragraphs[index].TextContent + "'; expected '" + expected + "'.");
+            }
         }
     }
 
