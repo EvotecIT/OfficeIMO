@@ -38,24 +38,26 @@ var options = new GoogleWorkspaceSessionOptions {
     OperationReceiptSink = receipts.Add,
 };
 options.OperationPolicyProvider = context => {
-    bool unversioned = context.RevisionPreconditionKind == GoogleWorkspaceRevisionPreconditionKind.Unavailable;
     string expectedRevision = context.RevisionPreconditionKind switch {
         GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
         GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+        GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState => context.AdapterExpectedRevision!,
         GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("API exposes no conditional revision"),
         _ => "\"observed-google-etag\"", // sent as If-Match
     };
-    bool acceptsLoss = context.PotentialDataLoss || unversioned;
+    // Secure baseline: destructive or deliberately unversioned mutations stay blocked.
+    // Applications should accept only specifically approved operations and targets here.
+    bool acceptsLoss = false;
     return new GoogleWorkspaceOperationPolicy(
         options.ExpectedAccount!,
-        new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+        context.RequiredScopes,
         context.Target,
         expectedRevision,
-        options.MaxRetryCount,
-        options.MaxRetryElapsedTime,
-        options.RateLimitPolicy,
+        context.MaxRetryCount,
+        context.MaxRetryElapsedTime,
+        context.RateLimitPolicy,
         acceptsLoss ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
-        acceptsLoss ? "named deletion or deliberately unversioned operation" : null);
+        acceptsLoss ? "application-approved operation and target" : null);
 };
 
 var session = new GoogleWorkspaceSession(

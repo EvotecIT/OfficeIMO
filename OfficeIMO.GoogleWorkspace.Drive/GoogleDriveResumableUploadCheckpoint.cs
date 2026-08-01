@@ -100,9 +100,10 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             if (!content.CanRead || !content.CanSeek) throw new ArgumentException("A readable, seekable stream is required for restart-safe upload.", nameof(content));
             if (length < 0 || length > content.Length) throw new ArgumentOutOfRangeException(nameof(length));
             ValidateUploadOptions(options); report ??= new TranslationReport();
+            string contentType = options.ContentType;
             string sourceFingerprint = ComputeFingerprint(content, length, cancellationToken);
             string metadataJson = SerializeUploadMetadata(options);
-            string metadataFingerprint = ComputeFingerprint(Encoding.UTF8.GetBytes(metadataJson));
+            string metadataFingerprint = CreateUploadMetadataFingerprint(metadataJson, contentType);
             string token = await AcquireTokenAsync(Options.WriteScopes, report, "Google Drive durable resumable upload", cancellationToken).ConfigureAwait(false);
             GoogleDriveResumableUploadCheckpoint state;
             if (checkpoint == null) {
@@ -110,10 +111,10 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceHttpResponse initiation = await Transport.SendRawAsync(token, HttpMethod.Post, initUri,
                     () => new StringContent(metadataJson, Encoding.UTF8, "application/json"),
                     GoogleWorkspaceRequestSafety.NonIdempotent, "Google Drive API", report, cancellationToken,
-                    request => { request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", options.ContentType); request.Headers.TryAddWithoutValidation("X-Upload-Content-Length", length.ToString(System.Globalization.CultureInfo.InvariantCulture)); },
+                    request => { request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", contentType); request.Headers.TryAddWithoutValidation("X-Upload-Content-Length", length.ToString(System.Globalization.CultureInfo.InvariantCulture)); },
                     mutationKind: GoogleWorkspaceMutationKind.Action,
                     revisionPrecondition: GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
-                        CreateResumableInitiationState(metadataJson, length)),
+                        CreateResumableInitiationState(metadataJson, contentType, length)),
                     requiredScopes: Options.WriteScopes).ConfigureAwait(false);
                 string sessionUri = initiation.GetHeader("Location") ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI.");
                 state = GoogleDriveResumableUploadCheckpoint.Create(sessionUri, sourceFingerprint, metadataFingerprint, length, 0);
@@ -145,7 +146,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     while (read < wanted) { int current = await content.ReadAsync(buffer, read, wanted - read, cancellationToken).ConfigureAwait(false); if (current == 0) throw new EndOfStreamException("The upload source changed during transfer."); read += current; }
                     byte[] chunk = read == buffer.Length ? buffer : buffer.Take(read).ToArray();
                     try {
-                        status = await SendResumableChunkAsync(token, state.SessionUri, chunk, options.ContentType,
+                        status = await SendResumableChunkAsync(token, state.SessionUri, chunk, contentType,
                             offset, offset + read - 1, length, report, cancellationToken).ConfigureAwait(false);
                     } catch (Exception exception) when (IsAmbiguousResumableChunkFailure(exception, cancellationToken)) {
                         status = await QueryResumableStatusAsync(token, state.SessionUri, length, report, cancellationToken).ConfigureAwait(false);
@@ -189,6 +190,14 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             long position = stream.Position; try { stream.Position = 0; using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); var buffer = new byte[64 * 1024]; long remaining = length; while (remaining > 0) { cancellationToken.ThrowIfCancellationRequested(); int read = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining)); if (read == 0) throw new EndOfStreamException(); hash.AppendData(buffer, 0, read); remaining -= read; } return ToHex(hash.GetHashAndReset()); } finally { stream.Position = position; }
         }
         private static string ComputeFingerprint(byte[] bytes) { using var hash = SHA256.Create(); return ToHex(hash.ComputeHash(bytes)); }
+        private static string CreateUploadMetadataFingerprint(string metadataJson, string contentType) {
+            using var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
+                writer.Write(metadataJson);
+                writer.Write(contentType);
+            }
+            return ComputeFingerprint(stream.ToArray());
+        }
         private static void EnsureSourceUnchanged(Stream stream, long length, string expected,
             CancellationToken cancellationToken) {
             if (!StringComparer.Ordinal.Equals(expected, ComputeFingerprint(stream, length, cancellationToken))) {

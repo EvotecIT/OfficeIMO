@@ -67,6 +67,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             if (content == null) throw new ArgumentNullException(nameof(content));
             ValidateUploadOptions(options);
             report ??= new TranslationReport();
+            string contentType = options.ContentType;
             string token = await AcquireTokenAsync(Options.WriteScopes, report, "Google Drive resumable upload", cancellationToken).ConfigureAwait(false);
             int chunkSize = NormalizeChunkSize(options.ResumableChunkSize);
             string metadataJson = SerializeUploadMetadata(options);
@@ -81,12 +82,12 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 report,
                 cancellationToken,
                 request => {
-                    request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", options.ContentType);
+                    request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", contentType);
                     request.Headers.TryAddWithoutValidation("X-Upload-Content-Length", content.LongLength.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 },
                 mutationKind: GoogleWorkspaceMutationKind.Action,
                 revisionPrecondition: GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
-                    CreateResumableInitiationState(metadataJson, content.LongLength)),
+                    CreateResumableInitiationState(metadataJson, contentType, content.LongLength)),
                 requiredScopes: Options.WriteScopes).ConfigureAwait(false);
             string sessionUri = GoogleDriveResumableSessionUri.Validate(initiation.GetHeader("Location")
                 ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI."));
@@ -114,7 +115,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
 
                     try {
                         var response = await SendResumableChunkAsync(
-                            token, sessionUri, chunk, options.ContentType, offset, end,
+                            token, sessionUri, chunk, contentType, offset, end,
                             content.LongLength, report, cancellationToken).ConfigureAwait(false);
                         if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
                             create.CompleteSuccess();
@@ -284,8 +285,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 Options.WriteScopes);
 
-        private static string CreateResumableInitiationState(string metadataJson, long length) =>
-            "resumable-session-init:" + HashText(metadataJson) + ":" +
+        private static string CreateResumableInitiationState(string metadataJson, string contentType, long length) =>
+            "resumable-session-init:" + CreateUploadMetadataFingerprint(metadataJson, contentType) + ":" +
             length.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         private static MultipartContent CreateMultipartContent(byte[] content, GoogleDriveUploadOptions options) {

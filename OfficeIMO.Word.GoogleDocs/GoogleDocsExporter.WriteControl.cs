@@ -92,7 +92,12 @@ namespace OfficeIMO.Word.GoogleDocs {
                 cancellationToken,
                 mutationKind: GoogleWorkspaceMutationKind.Update,
                 revisionPrecondition: revisionPrecondition,
-                requiredScopes: GoogleWorkspaceScopeCatalog.DocsAuthoring).ConfigureAwait(false);
+                requiredScopes: GoogleWorkspaceScopeCatalog.DocsAuthoring,
+                potentialDataLoss: payload.Requests.Any(request =>
+                    request.DeleteContentRange != null
+                    || request.DeleteHeader != null
+                    || request.DeleteFooter != null
+                    || request.DeleteNamedRange != null)).ConfigureAwait(false);
             batch.WriteControlState?.Observe(response);
             return response;
         }

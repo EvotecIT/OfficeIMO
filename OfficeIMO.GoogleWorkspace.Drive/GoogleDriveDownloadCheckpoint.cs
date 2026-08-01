@@ -71,6 +71,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 throw new InvalidDataException(
                     $"Google Drive declared {total} bytes, exceeding the configured download limit of {Options.MaxDownloadBytes} bytes.");
             }
+            string token = await AcquireTokenAsync(Options.ReadScopes, report,
+                "Google Drive durable file download", cancellationToken).ConfigureAwait(false);
             long offset; string contentFingerprint;
             string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
@@ -96,7 +98,6 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 offset = checkpoint.ConfirmedBytes; contentFingerprint = checkpoint.PrefixFingerprint;
             }
             output.Position = offset;
-            string token = await AcquireTokenAsync(Options.ReadScopes, report, "Google Drive durable file download", cancellationToken).ConfigureAwait(false);
             GoogleDriveDownloadCheckpoint state = GoogleDriveDownloadCheckpoint.Create(fileId, version, total, offset, chunkSize, destinationIdentity, contentFingerprint);
             await PersistDownloadCheckpointAsync(fullPath, output, state, checkpointSink, cancellationToken).ConfigureAwait(false);
             while (offset < total) {

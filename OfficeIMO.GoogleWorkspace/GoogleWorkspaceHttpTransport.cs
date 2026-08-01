@@ -47,7 +47,8 @@ namespace OfficeIMO.GoogleWorkspace {
             long? maxResponseBytes = null,
             GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
-            IReadOnlyCollection<string>? requiredScopes = null) {
+            IReadOnlyCollection<string>? requiredScopes = null,
+            bool potentialDataLoss = false) {
             return SendAsync<TResponse>(
                 accessToken,
                 method,
@@ -62,7 +63,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 maxResponseBytes,
                 mutationKind,
                 revisionPrecondition,
-                requiredScopes);
+                requiredScopes,
+                potentialDataLoss);
         }
 
         /// <summary>
@@ -82,7 +84,8 @@ namespace OfficeIMO.GoogleWorkspace {
             long? maxResponseBytes = null,
             GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
-            IReadOnlyCollection<string>? requiredScopes = null) {
+            IReadOnlyCollection<string>? requiredScopes = null,
+            bool potentialDataLoss = false) {
             if (requestTypeInfo == null) throw new ArgumentNullException(nameof(requestTypeInfo));
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsync(
@@ -98,7 +101,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 maxResponseBytes,
                 mutationKind,
                 revisionPrecondition,
-                requiredScopes);
+                requiredScopes,
+                potentialDataLoss);
         }
 
         /// <summary>
@@ -117,7 +121,8 @@ namespace OfficeIMO.GoogleWorkspace {
             long? maxResponseBytes = null,
             GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
-            IReadOnlyCollection<string>? requiredScopes = null) {
+            IReadOnlyCollection<string>? requiredScopes = null,
+            bool potentialDataLoss = false) {
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsync(
                 accessToken,
@@ -134,7 +139,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 maxResponseBytes,
                 mutationKind,
                 revisionPrecondition,
-                requiredScopes);
+                requiredScopes,
+                potentialDataLoss);
         }
 
         [RequiresUnreferencedCode("Use the overload that accepts JsonTypeInfo<TResponse> in trimmed applications.")]
@@ -151,7 +157,8 @@ namespace OfficeIMO.GoogleWorkspace {
             long? maxResponseBytes = null,
             GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
-            IReadOnlyCollection<string>? requiredScopes = null) {
+            IReadOnlyCollection<string>? requiredScopes = null,
+            bool potentialDataLoss = false) {
             return SendAsyncCore(
                 accessToken,
                 method,
@@ -165,7 +172,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 maxResponseBytes,
                 mutationKind,
                 revisionPrecondition,
-                requiredScopes);
+                requiredScopes,
+                potentialDataLoss);
         }
 
         /// <summary>
@@ -184,7 +192,8 @@ namespace OfficeIMO.GoogleWorkspace {
             long? maxResponseBytes = null,
             GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
-            IReadOnlyCollection<string>? requiredScopes = null) {
+            IReadOnlyCollection<string>? requiredScopes = null,
+            bool potentialDataLoss = false) {
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsyncCore(
                 accessToken,
@@ -199,7 +208,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 maxResponseBytes,
                 mutationKind,
                 revisionPrecondition,
-                requiredScopes);
+                requiredScopes,
+                potentialDataLoss);
         }
 
         private async Task<TResponse> SendAsyncCore<TResponse>(
@@ -215,7 +225,8 @@ namespace OfficeIMO.GoogleWorkspace {
             long? maxResponseBytes,
             GoogleWorkspaceMutationKind mutationKind,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition,
-            IReadOnlyCollection<string>? requiredScopes) {
+            IReadOnlyCollection<string>? requiredScopes,
+            bool potentialDataLoss) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
             if (method == null) throw new ArgumentNullException(nameof(method));
@@ -225,11 +236,12 @@ namespace OfficeIMO.GoogleWorkspace {
             if (maxResponseBytes.HasValue && maxResponseBytes.Value <= 0) throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
 
             string effectiveUri = AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
+            string visibleTarget = SanitizeDiagnosticTarget(uri);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
             TimeSpan requestTimeout = _options.RequestTimeout;
-            MutationAttempt? mutation = BeginMutation(method, effectiveUri, requestSafety, mutationKind,
-                revisionPrecondition, serviceName, requestId, requiredScopes, retryOptions);
+            MutationAttempt? mutation = BeginMutation(method, visibleTarget, requestSafety, mutationKind,
+                revisionPrecondition, serviceName, requestId, requiredScopes, retryOptions, potentialDataLoss);
 
             try {
                 TResponse result = await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
@@ -251,7 +263,7 @@ namespace OfficeIMO.GoogleWorkspace {
                             responseToken,
                             truncateAtLimit: true).ConfigureAwait(false);
                         string errorBody = Encoding.UTF8.GetString(errorBytes);
-                        throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri,
+                        throw GoogleWorkspaceApiException.Create(serviceName, method, visibleTarget,
                             response.StatusCode, errorBody);
                     }
 
@@ -267,12 +279,12 @@ namespace OfficeIMO.GoogleWorkspace {
                     var result = deserialize(body);
                     if (result == null) {
                         throw new InvalidOperationException(
-                            $"{serviceName} response from '{effectiveUri}' could not be deserialized.");
+                            $"{serviceName} response from '{visibleTarget}' could not be deserialized.");
                     }
 
                     return result;
                     },
-                    retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent); })
+                    retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent, visibleTarget); })
                     .ConfigureAwait(false);
                 CompleteMutationSuccess(mutation);
                 return result;
@@ -297,7 +309,8 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
             Action<HttpResponseMessage>? validateResponse = null,
-            IReadOnlyCollection<string>? requiredScopes = null) {
+            IReadOnlyCollection<string>? requiredScopes = null,
+            bool potentialDataLoss = false) {
             ThrowIfDisposed();
             if (maxResponseBytes.HasValue && maxResponseBytes.Value <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
@@ -305,11 +318,12 @@ namespace OfficeIMO.GoogleWorkspace {
             string effectiveUri = preserveRequestUri
                 ? uri
                 : AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
+            string visibleTarget = SanitizeDiagnosticTarget(uri);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
             TimeSpan requestTimeout = _options.RequestTimeout;
-            MutationAttempt? mutation = BeginMutation(method, effectiveUri, requestSafety, mutationKind,
-                revisionPrecondition, serviceName, requestId, requiredScopes, retryOptions);
+            MutationAttempt? mutation = BeginMutation(method, visibleTarget, requestSafety, mutationKind,
+                revisionPrecondition, serviceName, requestId, requiredScopes, retryOptions, potentialDataLoss);
 
             try {
                 byte[] result = await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
@@ -333,14 +347,14 @@ namespace OfficeIMO.GoogleWorkspace {
                             truncateAtLimit: true).ConfigureAwait(false);
                         string body = Encoding.UTF8.GetString(errorBytes);
                         throw GoogleWorkspaceApiException.Create(serviceName,
-                            method, effectiveUri, response.StatusCode, body);
+                            method, visibleTarget, response.StatusCode, body);
                     }
 
                     validateResponse?.Invoke(response);
                     return await ReadResponseBytesAsync(response.Content,
                         maxResponseBytes, responseToken).ConfigureAwait(false);
                     },
-                    retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent); })
+                    retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent, visibleTarget); })
                     .ConfigureAwait(false);
                 CompleteMutationSuccess(mutation);
                 return result;
@@ -400,7 +414,8 @@ namespace OfficeIMO.GoogleWorkspace {
             string? diagnosticTarget = null,
             GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
-            IReadOnlyCollection<string>? requiredScopes = null) {
+            IReadOnlyCollection<string>? requiredScopes = null,
+            bool potentialDataLoss = false) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
             if (method == null) throw new ArgumentNullException(nameof(method));
@@ -411,12 +426,14 @@ namespace OfficeIMO.GoogleWorkspace {
             string effectiveUri = preserveRequestUri
                 ? uri
                 : AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
-            string visibleTarget = string.IsNullOrWhiteSpace(diagnosticTarget) ? effectiveUri : diagnosticTarget!;
+            string visibleTarget = string.IsNullOrWhiteSpace(diagnosticTarget)
+                ? SanitizeDiagnosticTarget(uri)
+                : diagnosticTarget!;
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
             TimeSpan requestTimeout = _options.RequestTimeout;
             MutationAttempt? mutation = BeginMutation(method, visibleTarget, requestSafety, mutationKind,
-                revisionPrecondition, serviceName, requestId, requiredScopes, retryOptions);
+                revisionPrecondition, serviceName, requestId, requiredScopes, retryOptions, potentialDataLoss);
 
             try {
                 using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
@@ -472,7 +489,7 @@ namespace OfficeIMO.GoogleWorkspace {
         internal DeferredMutation BeginDeferredMutation(HttpMethod method, string target,
             GoogleWorkspaceRequestSafety requestSafety, GoogleWorkspaceMutationKind mutationKind,
             GoogleWorkspaceRevisionPrecondition revisionPrecondition, string serviceName,
-            IReadOnlyCollection<string> requiredScopes) {
+            IReadOnlyCollection<string> requiredScopes, bool potentialDataLoss = false) {
             ThrowIfDisposed();
             if (method == null) throw new ArgumentNullException(nameof(method));
             if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("The mutation target is required.", nameof(target));
@@ -481,7 +498,7 @@ namespace OfficeIMO.GoogleWorkspace {
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
             MutationAttempt mutation = BeginMutation(method, target, requestSafety, mutationKind,
-                revisionPrecondition, serviceName, requestId, requiredScopes, retryOptions)
+                revisionPrecondition, serviceName, requestId, requiredScopes, retryOptions, potentialDataLoss)
                 ?? throw new InvalidOperationException("A deferred mutation must not use safe request semantics.");
             return new DeferredMutation(mutation);
         }
@@ -528,7 +545,8 @@ namespace OfficeIMO.GoogleWorkspace {
         private MutationAttempt? BeginMutation(HttpMethod method, string target,
             GoogleWorkspaceRequestSafety requestSafety, GoogleWorkspaceMutationKind mutationKind,
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition, string service, string? requestId,
-            IReadOnlyCollection<string>? requiredScopes, GoogleWorkspaceRetryOptions retryOptions) {
+            IReadOnlyCollection<string>? requiredScopes, GoogleWorkspaceRetryOptions retryOptions,
+            bool adapterDeclaredPotentialDataLoss) {
             if (requestSafety == GoogleWorkspaceRequestSafety.Safe) return null;
             string? expectedAccount = _options.ExpectedAccount;
             Func<GoogleWorkspaceOperationContext, GoogleWorkspaceOperationPolicy>? policyProvider =
@@ -569,7 +587,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 && revisionPrecondition.Kind != GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState) {
                 throw new InvalidOperationException("An adapter-declared create must use a resource-absent or resumable-session revision precondition.");
             }
-            bool potentialDataLoss = mutationKind == GoogleWorkspaceMutationKind.Delete;
+            bool potentialDataLoss = mutationKind == GoogleWorkspaceMutationKind.Delete
+                || adapterDeclaredPotentialDataLoss;
             var context = new GoogleWorkspaceOperationContext(service, method.Method, target,
                 requestSafety, mutationKind, revisionPrecondition, potentialDataLoss, requestId,
                 Array.AsReadOnly(scopeSnapshot), retryOptions.MaxRetryCount, retryOptions.MaxElapsedTime,
@@ -688,6 +707,13 @@ namespace OfficeIMO.GoogleWorkspace {
 
             internal void CompleteFailure(Exception exception) =>
                 CompleteMutationFailure(_mutation, exception);
+        }
+
+        private static string SanitizeDiagnosticTarget(string uri) {
+            int query = uri.IndexOf('?');
+            int fragment = uri.IndexOf('#');
+            int separator = query < 0 ? fragment : fragment < 0 ? query : Math.Min(query, fragment);
+            return separator < 0 ? uri : uri.Substring(0, separator);
         }
 
         private static string AppendQueryParameter(string uri, string name, string? value) {

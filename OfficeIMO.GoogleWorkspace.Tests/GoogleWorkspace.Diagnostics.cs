@@ -168,6 +168,11 @@ namespace OfficeIMO.Tests {
                 entry.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry
                 && entry.Feature == "ApiRetries"
                 && entry.Severity == TranslationSeverity.Info);
+            Assert.DoesNotContain(entries, entry =>
+                entry.Message.Contains("tenant-user", StringComparison.Ordinal)
+                || (entry.TargetId?.Contains("tenant-user", StringComparison.Ordinal) ?? false)
+                || entry.Message.Contains("fields=id", StringComparison.Ordinal)
+                || (entry.TargetId?.Contains("fields=id", StringComparison.Ordinal) ?? false));
         }
 
         [Fact]

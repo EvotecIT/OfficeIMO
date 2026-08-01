@@ -13,6 +13,51 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public sealed partial class GoogleSlidesTests {
         [Fact]
+        public async Task Exporter_NewDeckPlaceholderDeletionIsNotClassifiedAsCallerDataLoss() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("New deck content");
+            var contexts = new List<GoogleWorkspaceOperationContext>();
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                string uri = request.RequestUri!.AbsoluteUri;
+                if (request.Method == HttpMethod.Post && uri == "https://slides.googleapis.com/v1/presentations") {
+                    return Task.FromResult(Json("{\"presentationId\":\"new-deck\"}"));
+                }
+                if (request.Method == HttpMethod.Get && uri == "https://slides.googleapis.com/v1/presentations/new-deck") {
+                    return Task.FromResult(Json("{\"presentationId\":\"new-deck\",\"revisionId\":\"revision-1\",\"slides\":[{\"objectId\":\"initial-slide\"}]}"));
+                }
+                if (request.Method == HttpMethod.Post && uri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"presentationId\":\"new-deck\",\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}"));
+                }
+                if (request.Method == HttpMethod.Get && request.RequestUri.Host == "www.googleapis.com") {
+                    return Task.FromResult(Json("{\"id\":\"new-deck\",\"name\":\"New deck\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":2}"));
+                }
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = httpClient,
+                ExpectedAccount = "test-account@example.invalid",
+                OperationReceiptSink = _ => { },
+            };
+            options.OperationPolicyProvider = context => {
+                contexts.Add(context);
+                return new GoogleWorkspaceOperationPolicy(
+                    options.ExpectedAccount!, context.RequiredScopes, context.Target,
+                    TestExpectedRevision(context), context.MaxRetryCount,
+                    context.MaxRetryElapsedTime, context.RateLimitPolicy,
+                    GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            };
+            var session = new GoogleWorkspaceSession(
+                new StaticAccessTokenCredentialSource("token"), options);
+
+            GooglePresentationReference result = await presentation.ExportToGoogleSlidesAsync(session);
+
+            Assert.Equal("new-deck", result.PresentationId);
+            GoogleWorkspaceOperationContext batch = Assert.Single(contexts,
+                context => context.MutationKind == GoogleWorkspaceMutationKind.Update);
+            Assert.False(batch.PotentialDataLoss);
+        }
+
+        [Fact]
         public void BatchCompiler_MapsEditableCoreAndDeterministicIds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
