@@ -13,6 +13,10 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Add shared conversion reports and strict no-loss policies wherever an adapter can simplify, omit, rasterize, or preserve unsupported content.
 - [ ] Keep public surfaces small: add reusable capability to the owning core package and keep CLI, PowerShell, website, MCP, Reader, and converter adapters thin.
 
+## Word
+
+- [ ] Add VBA macro-project signing as a separate explicit capability from cross-platform OPC package signing, with certificate-profile, preservation, validation, and interoperability evidence that does not imply VBA source editing.
+
 ## Excel
 
 - [ ] Build one reusable reference syntax tree and rewriter for formulas, names, tables, charts, pivots, print definitions, and structural edits.
