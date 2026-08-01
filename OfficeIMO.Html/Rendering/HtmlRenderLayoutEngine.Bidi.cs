@@ -185,7 +185,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string element = elements[index];
             double advance = hasContextualWidths ? contextualWidths[index] : MeasureText(element, font);
             right -= advance;
-            result.Add(new InlinePaintSegment(element, right, Math.Max(0.01D, advance), group.LogicalOrder));
+            result.Add(new InlinePaintSegment(
+                OfficeBidiTextResolver.MirrorText(element),
+                right,
+                Math.Max(0.01D, advance),
+                group.LogicalOrder));
         }
     }
 

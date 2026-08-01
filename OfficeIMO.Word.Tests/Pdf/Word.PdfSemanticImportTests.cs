@@ -149,7 +149,9 @@ public partial class Word {
         Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfOutlineHierarchyNotReconstructed");
         Assert.Contains(conversion.Report.Warnings, warning =>
             warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
-            warning.Severity == PdfCore.PdfConversionWarningSeverity.Information);
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);
@@ -213,10 +215,69 @@ public partial class Word {
         Assert.Contains(conversion.Report.Warnings, warning =>
             warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
-            warning.Details.TryGetValue("OutsideDetectedTableCount", out string? count) &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
             int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
         Assert.True(conversion.HasLoss);
         Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void PdfSemanticImport_PureDetectedTableBordersAreRepresentedSemantics() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" },
+                new[] { "B", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .ToBytes();
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            count == "0");
+    }
+
+    [Fact]
+    public void PdfSemanticImport_VectorArtworkInsideDetectedTableIsReportedAsLoss() {
+        var shape = OfficeShape.Rectangle(18D, 10D);
+        shape.FillColor = OfficeColor.Blue;
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" },
+                new[] { "B", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .Canvas(canvas => canvas.Shape(shape, 80D, 115D))
+            .ToBytes();
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.True(conversion.HasLoss);
     }
 
     [Fact]

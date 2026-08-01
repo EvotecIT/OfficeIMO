@@ -269,6 +269,7 @@ namespace OfficeIMO.Excel.Pdf {
                 } else if (options.ConvertPercentageColumns && values.All(value => TryParsePercentage(value, options.NumericCulture, out _))) {
                     kinds[columnIndex] = PdfExcelTableColumnKind.Percentage;
                 } else if (options.ConvertNumericColumns &&
+                           !values.Any(static value => LooksLikeAmbiguousNumericDate(value)) &&
                            values.All(PdfCore.PdfLogicalTableAnalysis.LooksLikeNumericValue) &&
                            values.All(value => PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, options.NumericCulture, out _))) {
                     kinds[columnIndex] = PdfExcelTableColumnKind.Number;
@@ -344,6 +345,23 @@ namespace OfficeIMO.Excel.Pdf {
                 out _));
         }
 
+        private static bool LooksLikeAmbiguousNumericDate(string value) {
+            string normalized = value.Trim();
+            char separator = normalized.Contains('/') ? '/'
+                : normalized.Contains('-') ? '-'
+                : normalized.Contains('.') ? '.'
+                : '\0';
+            if (separator == '\0') return false;
+            string[] parts = normalized.Split(separator);
+            return parts.Length == 3 &&
+                parts[2].Length == 4 &&
+                int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int first) &&
+                int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int second) &&
+                int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out _) &&
+                first is >= 1 and <= 12 &&
+                second is >= 1 and <= 12;
+        }
+
         private static IEnumerable<string> TokenizeHeaderWords(string value) {
             var word = new System.Text.StringBuilder();
             for (int index = 0; index < value.Length; index++) {
@@ -374,10 +392,7 @@ namespace OfficeIMO.Excel.Pdf {
             "yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss",
             "yyyy/MM/dd HH:mm", "yyyy/MM/dd HH:mm:ss",
             "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd'T'HH:mm:ss",
-            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK",
-            "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "MM-dd-yyyy", "dd.MM.yyyy",
-            "dd/MM/yyyy HH:mm", "MM/dd/yyyy HH:mm",
-            "dd-MM-yyyy HH:mm", "MM-dd-yyyy HH:mm", "dd.MM.yyyy HH:mm"
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"
         };
 
         private static string GetUniqueColumnName(string? value, int index, ISet<string> usedColumns) {

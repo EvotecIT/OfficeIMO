@@ -836,18 +836,18 @@ namespace OfficeIMO.Word.Pdf {
             if (page.VectorPrimitiveCount > 0) {
                 bool representedByImportedTableSemantics = options.ImportTables &&
                     page.Tables.Count > 0 &&
-                    page.VectorPrimitiveCountOutsideDetectedTables == 0;
+                    page.UnrepresentedVectorPrimitiveCount == 0;
                 AddWarning(
                     options,
                     "PdfVectorGraphicsReconstructedSemantically",
                     "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Vectors",
-                    "PDF vector primitives are not projected as editable Word shapes; table borders and other represented semantics may still be reconstructed.",
+                    "PDF vector primitives are not projected as editable Word shapes; only primitives proven to be represented table borders are treated as reconstructed semantics.",
                     representedByImportedTableSemantics
                         ? PdfCore.PdfConversionWarningSeverity.Information
                         : PdfCore.PdfConversionWarningSeverity.Warning,
                     new Dictionary<string, string> {
                         ["VectorPrimitiveCount"] = page.VectorPrimitiveCount.ToString(CultureInfo.InvariantCulture),
-                        ["OutsideDetectedTableCount"] = page.VectorPrimitiveCountOutsideDetectedTables.ToString(CultureInfo.InvariantCulture)
+                        ["UnrepresentedVectorPrimitiveCount"] = page.UnrepresentedVectorPrimitiveCount.ToString(CultureInfo.InvariantCulture)
                     });
             }
 

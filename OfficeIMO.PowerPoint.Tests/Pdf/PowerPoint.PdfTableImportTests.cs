@@ -169,10 +169,25 @@ public class PowerPointPdfTableImportTests {
         Assert.Equal(4, package.PresentationPart!.SlideParts.Count());
         Assert.All(package.PresentationPart.SlideParts, slidePart => {
             Assert.Single(slidePart.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>());
-            A.Table table = Assert.Single(slidePart.Slide.Descendants<A.Table>());
-            Assert.InRange(table.TableGrid!.Elements<A.GridColumn>().Count(), 1, 2);
-            Assert.Equal(3, table.Elements<A.TableRow>().Count());
+            List<A.Table> slideTables = slidePart.Slide.Descendants<A.Table>().ToList();
+            Assert.InRange(slideTables.Count, 1, 2);
+            Assert.All(slideTables, table =>
+                Assert.InRange(table.TableGrid!.Elements<A.GridColumn>().Count(), 1, 2));
+            Assert.True(
+                slideTables.Count == 1 && slideTables[0].Elements<A.TableRow>().Count() == 3 ||
+                slideTables.Count == 2 && slideTables
+                    .Select(static table => table.Elements<A.TableRow>().Count())
+                    .OrderBy(static count => count)
+                    .SequenceEqual(new[] { 1, 2 }));
         });
+        List<A.Table> hybridTables = package.PresentationPart.SlideParts
+            .SelectMany(part => part.Slide.Descendants<A.Table>())
+            .ToList();
+        Assert.Equal(6, hybridTables.Count);
+        Assert.Contains(hybridTables, table => ContainsRows(table, new[] { "C1", "C2" }));
+        Assert.Contains(hybridTables, table => ContainsRows(table, new[] { "C3", "C4" }));
+        Assert.Contains(hybridTables, table => ContainsRows(table, new[] { "R3C1", "R3C2" }, new[] { "R4C1", "R4C2" }));
+        Assert.Contains(hybridTables, table => ContainsRows(table, new[] { "R3C3", "R3C4" }, new[] { "R4C3", "R4C4" }));
     }
 
     [Fact]

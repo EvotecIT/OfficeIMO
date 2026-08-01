@@ -1662,6 +1662,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_MirrorsPairedPunctuationInSimpleRtlRuns() {
+        const string html = "<p dir='rtl' style='margin:0;width:240px'>(אבג)</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "(אבג)");
+        string visual = string.Concat(group.Visuals
+            .OfType<HtmlRenderText>()
+            .OrderBy(static item => item.X)
+            .Select(static item => item.Text));
+
+        Assert.Equal("(גבא)", visual);
+        Assert.Equal("(אבג)", group.Text);
+    }
+
+    [Fact]
     public void HtmlRenderer_PositionsNestedLtrIsolateRunBeforeItsHebrewRun() {
         const string html = "<p style='margin:0;width:240px'>A\u2067שלום abc\u2069B</p>";
 

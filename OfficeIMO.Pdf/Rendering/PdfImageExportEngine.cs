@@ -4,6 +4,58 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfImageExportEngine {
+    internal static IReadOnlyList<OfficeImageExportResult> Export(
+        Func<CancellationToken, PdfReadDocument> documentFactory,
+        OfficeImageExportFormat format,
+        PdfImageExportOptions options,
+        Func<PdfReadDocument, PdfPageSelection?> selectionFactory,
+        IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null,
+        CancellationToken cancellationToken = default) {
+        var results = new List<OfficeImageExportResult>();
+        ExportEach(
+            documentFactory,
+            format,
+            options,
+            selectionFactory,
+            results.Add,
+            initialDiagnostics,
+            cancellationToken);
+        return results.AsReadOnly();
+    }
+
+    internal static void ExportEach(
+        Func<CancellationToken, PdfReadDocument> documentFactory,
+        OfficeImageExportFormat format,
+        PdfImageExportOptions options,
+        Func<PdfReadDocument, PdfPageSelection?> selectionFactory,
+        OfficeImageExportConsumer consumer,
+        IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(documentFactory, nameof(documentFactory));
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(selectionFactory, nameof(selectionFactory));
+        Guard.NotNull(consumer, nameof(consumer));
+        options.Validate();
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            options.RenderTimeout,
+            cancellationToken);
+        try {
+            PdfReadDocument document = documentFactory(execution.Token);
+            execution.ThrowIfCancellationRequested();
+            ExportEach(
+                document,
+                format,
+                options,
+                selectionFactory(document),
+                consumer,
+                initialDiagnostics,
+                execution.Token);
+            execution.ThrowIfCancellationRequested();
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
     internal static OfficeImageExportResult Export(
         PdfReadPage page,
         OfficeImageExportFormat format,
@@ -165,6 +217,7 @@ internal static class PdfImageExportEngine {
                 consumer,
                 execution.Token,
                 options);
+            execution.ThrowIfCancellationRequested();
         } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
             throw execution.CreateTimeoutException(exception);
         }

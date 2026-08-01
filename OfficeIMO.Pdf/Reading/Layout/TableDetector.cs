@@ -104,7 +104,8 @@ internal static class TableDetector {
             }
 
             inspectedCells += row.Cells.Count;
-            if (group.Count > 0 && !PositionedRowsAlign(group[0], row)) {
+            if (group.Count > 0 &&
+                (!PositionedRowsAlign(group[0], row) || HasLargeVerticalGap(group, row))) {
                 AddPositionedGroup(result, group);
                 group.Clear();
             }
@@ -157,6 +158,22 @@ internal static class TableDetector {
             if (Math.Abs(expected.Cells[index].From - current.Cells[index].From) > 16D) return false;
         }
         return true;
+    }
+
+    private static bool HasLargeVerticalGap(List<PositionedRow> rows, PositionedRow current) {
+        if (rows.Count < 2) return false;
+        double gap = rows[rows.Count - 1].Y - current.Y;
+        if (gap <= 36D) return false;
+
+        var priorGaps = new List<double>(rows.Count - 1);
+        for (int index = 1; index < rows.Count; index++) {
+            double priorGap = rows[index - 1].Y - rows[index].Y;
+            if (priorGap > 0D) priorGaps.Add(priorGap);
+        }
+        if (priorGaps.Count == 0) return gap > 48D;
+        priorGaps.Sort();
+        double median = priorGaps[priorGaps.Count / 2];
+        return gap > Math.Max(36D, median * 2.5D);
     }
 
     private static void AddPositionedGroup(List<StructuredTable> result, List<PositionedRow> rows) {

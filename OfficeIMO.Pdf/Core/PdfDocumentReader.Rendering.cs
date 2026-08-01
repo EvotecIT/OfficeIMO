@@ -13,7 +13,18 @@ public sealed partial class PdfDocumentReader {
         PdfPageSelection? selection = null,
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        return ReadDocument(readOptions).ExportImages(format, options, selection, cancellationToken);
+        return PdfImageExportEngine.Export(
+            token => {
+                token.ThrowIfCancellationRequested();
+                PdfReadDocument document = ReadDocument(readOptions);
+                token.ThrowIfCancellationRequested();
+                return document;
+            },
+            format,
+            options?.Clone() ?? new PdfImageExportOptions(),
+            _ => selection,
+            initialDiagnostics: null,
+            cancellationToken);
     }
 
     /// <summary>Renders all pages or a caller-ordered selection through the managed batch renderer.</summary>

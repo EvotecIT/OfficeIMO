@@ -76,6 +76,30 @@ public partial class Drawing {
         Assert.Equal("abc (גבא) def", visual);
     }
 
+    [Theory]
+    [InlineData("\u200F")]
+    [InlineData("\u061C")]
+    public void BidiTextResolver_UsesTrailingRtlMarksAsStrongNeutralContext(string mark) {
+        IReadOnlyList<OfficeBidiTextRun> runs = OfficeBidiTextResolver.ResolveRuns(
+            "אבג!" + mark,
+            OfficeTextDirection.LeftToRight);
+
+        OfficeBidiTextRun punctuation = Assert.Single(runs, static run => run.Text.Contains("!", StringComparison.Ordinal));
+        Assert.Equal(OfficeTextDirection.RightToLeft, punctuation.Direction);
+        Assert.Equal(1, punctuation.EmbeddingLevel);
+    }
+
+    [Fact]
+    public void BidiTextResolver_UsesTrailingLrmAsStrongNeutralContext() {
+        IReadOnlyList<OfficeBidiTextRun> runs = OfficeBidiTextResolver.ResolveRuns(
+            "abc!\u200E",
+            OfficeTextDirection.RightToLeft);
+
+        OfficeBidiTextRun punctuation = Assert.Single(runs, static run => run.Text.Contains("!", StringComparison.Ordinal));
+        Assert.Equal(OfficeTextDirection.LeftToRight, punctuation.Direction);
+        Assert.Equal(2, punctuation.EmbeddingLevel);
+    }
+
     [Fact]
     public void BidiTextResolver_MirrorsPairedPunctuationAtOddLevels() {
         string visual = OfficeBidiTextResolver.ToVisualOrder(

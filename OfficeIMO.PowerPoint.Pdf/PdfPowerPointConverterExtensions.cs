@@ -305,24 +305,29 @@ public static partial class PowerPointPdfConverterExtensions {
                     PptCore.PowerPointSlide slide = presentation.AddSlide();
                     AddVisualPage(presentation, slide, render);
                     visualEntries.Add(new PdfPowerPointVisualPageEntry(render, slideIndex));
-                    (long left, long top, long width, long height) = GetHybridTableBounds(
+                    bool separateRepeatedHeader = headerRowIncluded && segment.RowStartIndex > 0;
+                    if (separateRepeatedHeader) {
+                        AddHybridTableOverlay(
+                            presentation,
+                            slide,
+                            render,
+                            page!,
+                            extraction.Table,
+                            data,
+                            new TableSegment(0, 0, segment.ColumnStartIndex, segment.ColumnCount),
+                            headerRowIncluded: true,
+                            options);
+                    }
+                    AddHybridTableOverlay(
+                        presentation,
+                        slide,
                         render,
                         page!,
                         extraction.Table,
                         data,
                         segment,
-                        headerRowIncluded,
-                        presentation.SlideSize.WidthPoints,
-                        presentation.SlideSize.HeightPoints);
-                    PptCore.PowerPointTable table = slide.AddTable(
-                        rowCount,
-                        segment.ColumnCount,
-                        options.TableStyle,
-                        left,
-                        top,
-                        width,
-                        height);
-                    PopulateTable(table, extraction.Table, data, segment, headerRowIncluded, options);
+                        headerRowIncluded && !separateRepeatedHeader,
+                        options);
                     tableEntries.Add(new PdfPowerPointTableImportEntry(
                         extraction.PageIndex,
                         extraction.PageNumber,
@@ -361,6 +366,38 @@ public static partial class PowerPointPdfConverterExtensions {
         return new PdfPowerPointConversionResult(
             presentation,
             new PdfPowerPointConversionReport(tableEntries, visualEntries, scope));
+    }
+
+    private static void AddHybridTableOverlay(
+        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointSlide slide,
+        PdfCore.PdfPageRenderResult render,
+        PdfCore.PdfLogicalPage page,
+        PdfCore.PdfLogicalTable sourceTable,
+        PdfCore.PdfLogicalTableData data,
+        TableSegment segment,
+        bool headerRowIncluded,
+        PdfPowerPointImportOptions options) {
+        int rowCount = segment.RowCount + (headerRowIncluded ? 1 : 0);
+        if (rowCount <= 0 || segment.ColumnCount <= 0) return;
+        (long left, long top, long width, long height) = GetHybridTableBounds(
+            render,
+            page,
+            sourceTable,
+            data,
+            segment,
+            headerRowIncluded,
+            presentation.SlideSize.WidthPoints,
+            presentation.SlideSize.HeightPoints);
+        PptCore.PowerPointTable table = slide.AddTable(
+            rowCount,
+            segment.ColumnCount,
+            options.TableStyle,
+            left,
+            top,
+            width,
+            height);
+        PopulateTable(table, sourceTable, data, segment, headerRowIncluded, options);
     }
 
     private static IReadOnlyList<PdfCore.PdfPageRenderResult> RenderPages(

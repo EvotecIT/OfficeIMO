@@ -407,6 +407,14 @@ public static class OfficeBidiTextResolver {
         for (int index = elements.Count - 1; index >= 0; index--) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             string element = elements[index];
+            if (element is "\u200E") {
+                following = OfficeTextDirection.LeftToRight;
+                continue;
+            }
+            if (element is "\u061C" or "\u200F") {
+                following = OfficeTextDirection.RightToLeft;
+                continue;
+            }
             if (element.Length == 1 && OfficeTextElements.ContainsBidiControl(element)) {
                 following = null;
                 continue;

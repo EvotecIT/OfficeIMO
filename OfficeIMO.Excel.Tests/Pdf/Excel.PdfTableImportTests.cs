@@ -470,6 +470,33 @@ public partial class Excel {
         Assert.Equal("3/4", values[2, 0]);
     }
 
+    [Theory]
+    [InlineData("01/02/2025", "03/04/2025")]
+    [InlineData("01-02-2025", "03-04-2025")]
+    [InlineData("01.02.2025", "03.04.2025")]
+    public void PdfTables_SaveTablesAsExcel_KeepsAmbiguousNumericDatesAsText(string value, string secondValue) {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Value", "Label" },
+                new[] { value, "First" },
+                new[] { secondValue, "Second" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 120, 160 }
+            })
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportEntry entry = Assert.Single(LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions { AutoFitColumns = false }).Entries);
+
+        Assert.Equal(PdfExcelTableColumnKind.Text, entry.ColumnKinds[0]);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal(value, values[1, 0]);
+    }
+
     [Fact]
     public void PdfTables_SaveTablesAsExcel_KeepsPositionedCellRecoveryBoundedAndTableOnly() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
@@ -538,6 +565,32 @@ public partial class Excel {
         PdfCore.StructuredTable recovered = Assert.Single(tables, table => table.Kind == "positioned-cells-bounded");
         Assert.Equal(new[] { "Name", "Qty" }, recovered.Rows[0]);
         Assert.Equal(new[] { "Beta", "14" }, recovered.Rows[2]);
+    }
+
+    [Fact]
+    public void PdfTables_PositionedCellRecoverySplitsAlignedTablesAcrossLargeVerticalGaps() {
+        static PdfCore.TextLayoutEngine.TextLine Row(double y, string left, string right) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 60),
+                new(right, "F1", 10, 180, y, 30)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 210, left + " " + right, spans);
+        }
+
+        var lines = new[] {
+            Row(700, "Code", "Qty"),
+            Row(680, "A-100", "12"),
+            Row(660, "B-200", "14"),
+            Row(500, "Name", "Qty"),
+            Row(480, "Alpha", "12"),
+            Row(460, "Beta", "14")
+        };
+
+        List<PdfCore.StructuredTable> tables = PdfCore.TableDetector.DetectPositionedCellTables(lines);
+
+        Assert.Equal(2, tables.Count);
+        Assert.Equal(new[] { "Code", "Qty" }, tables[0].Rows[0]);
+        Assert.Equal(new[] { "Name", "Qty" }, tables[1].Rows[0]);
     }
 
     [Fact]
