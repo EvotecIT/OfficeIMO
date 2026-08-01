@@ -651,23 +651,27 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (X14.SparklineGroup group in WorksheetRoot.Descendants<X14.SparklineGroup>().ToList()) {
+            CleanupEmptySparklineStructures(WorksheetRoot);
+        }
+
+        internal static void CleanupEmptySparklineStructures(Worksheet worksheet) {
+            foreach (X14.SparklineGroup group in worksheet.Descendants<X14.SparklineGroup>().ToList()) {
                 X14.Sparklines? sparklines = group.GetFirstChild<X14.Sparklines>();
                 if (sparklines == null || !sparklines.Elements<X14.Sparkline>().Any()) {
                     group.Remove();
                 }
             }
-            foreach (X14.SparklineGroups groups in WorksheetRoot.Descendants<X14.SparklineGroups>().ToList()) {
+            foreach (X14.SparklineGroups groups in worksheet.Descendants<X14.SparklineGroups>().ToList()) {
                 if (!groups.Elements<X14.SparklineGroup>().Any()) {
                     groups.Remove();
                 }
             }
-            foreach (Extension extension in WorksheetRoot.Descendants<Extension>().ToList()) {
+            foreach (Extension extension in worksheet.Descendants<Extension>().ToList()) {
                 if (!extension.ChildElements.Any()) {
                     extension.Remove();
                 }
             }
-            foreach (ExtensionList extensions in WorksheetRoot.Elements<ExtensionList>().ToList()) {
+            foreach (ExtensionList extensions in worksheet.Elements<ExtensionList>().ToList()) {
                 if (!extensions.Elements<Extension>().Any()) {
                     extensions.Remove();
                 }

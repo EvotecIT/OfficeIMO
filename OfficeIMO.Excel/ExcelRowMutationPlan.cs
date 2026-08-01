@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                int affectedCells = Impacts.FirstOrDefault(item => item.Category == "cells")?.ItemCount ?? 0;
+                int affectedCells = Impacts.FirstOrDefault(item => item.Category == "worksheet-cells")?.ItemCount ?? 0;
                 Result = _owner.ApplyTransactionalMutation(
                     token => _owner.ApplyStructuralRowMutationPlan(Kind, FirstRow, Count, token),
                     affectedCells,

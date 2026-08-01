@@ -560,6 +560,10 @@ namespace OfficeIMO.Excel {
             validation += externalValidationImpacts.Count;
             conditionalFormatting += externalConditionalFormattingImpacts.Count;
             sparklines += externalSparklineImpacts.Count;
+            if (cells > effective.MaximumAffectedCells) {
+                throw new InvalidOperationException(
+                    $"Row mutation affects {cells} cells, exceeding MaximumAffectedCells ({effective.MaximumAffectedCells}).");
+            }
             AddImpact(
                 impacts,
                 "worksheet-cells",

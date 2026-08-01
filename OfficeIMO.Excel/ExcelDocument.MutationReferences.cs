@@ -158,6 +158,7 @@ namespace OfficeIMO.Excel {
                 RewriteMutationHyperlinks(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform);
                 if (ownerIsEdited) {
                     RewriteMutationAddressAttributes(worksheetPart.Worksheet, transform);
+                    RewriteMutationSparklineLocations(worksheetPart.Worksheet, transform);
                     WorksheetCommentsPart? commentsPart = worksheetPart.WorksheetCommentsPart;
                     if (commentsPart?.Comments != null) {
                         RewriteMutationAddressAttributes(commentsPart.Comments, transform);
@@ -177,6 +178,11 @@ namespace OfficeIMO.Excel {
                     RewriteMutationFormulaLeaves(tablePart.Table, editedSheet.Name, ownerIsEdited, transform);
                     if (ownerIsEdited) RewriteMutationAddressAttributes(tablePart.Table, transform);
                     tablePart.Table?.Save();
+                }
+                foreach (QueryTablePart queryPart in worksheetPart.QueryTableParts) {
+                    if (!ownerIsEdited) continue;
+                    RewriteMutationAddressAttributes(queryPart.QueryTable, transform);
+                    queryPart.QueryTable?.Save();
                 }
                 RewriteMutationDrawingReferences(
                     worksheetPart.DrawingsPart,
@@ -426,6 +432,22 @@ namespace OfficeIMO.Excel {
                 if (mapped != null) rewritten.Add(mapped.ToString());
             }
             return string.Join(" ", rewritten);
+        }
+
+        private static void RewriteMutationSparklineLocations(
+            Worksheet? worksheet,
+            Func<ExcelReference, ExcelReference?> transform) {
+            if (worksheet == null) return;
+            foreach (DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline
+                in worksheet.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
+                DocumentFormat.OpenXml.Office.Excel.ReferenceSequence? location = sparkline.ReferenceSequence;
+                if (location?.Text is not string original) continue;
+                string rewritten = RewriteReferenceList(original, transform);
+                if (string.Equals(rewritten, original, StringComparison.Ordinal)) continue;
+                if (rewritten.Length == 0) sparkline.Remove();
+                else location.Text = rewritten;
+            }
+            ExcelSheet.CleanupEmptySparklineStructures(worksheet);
         }
 
         private void RewriteCalculationChainColumns(int editedSheetIndex, int firstColumn, int count, bool deleting) {

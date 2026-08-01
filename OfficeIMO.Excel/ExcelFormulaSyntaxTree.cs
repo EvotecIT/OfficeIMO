@@ -95,6 +95,7 @@ namespace OfficeIMO.Excel {
                 System.Text.RegularExpressions.Match match =
                     ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Match(formula, cursor);
                 if (match.Success && match.Index == cursor
+                    && !IsSpacedFunctionCall(formula, match)
                     && ExcelReference.TryParse(TrimSpill(match.Value), out ExcelReference? reference)) {
                     AddText(nodes, formula, textStart, cursor - textStart);
                     nodes.Add(new ExcelFormulaReferenceSyntax(match.Value, reference!));
@@ -163,9 +164,15 @@ namespace OfficeIMO.Excel {
         public string RewriteNames(Func<string, string?> rewriter) {
             if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
             var builder = new StringBuilder(Text.Length);
+            IReadOnlyList<ExcelSheet.FormulaLexicalBinding> lexicalBindings = ExcelSheet.GetFormulaLexicalBindings(Text);
+            int nodeIndex = 0;
             foreach (ExcelFormulaSyntaxNode node in _nodes) {
-                if (node is ExcelFormulaNameSyntax name) builder.Append(rewriter(name.Name) ?? "#REF!");
+                if (node is ExcelFormulaNameSyntax name
+                    && !lexicalBindings.Any(binding => binding.Shadows(name.Name, nodeIndex, node.Text.Length))) {
+                    builder.Append(rewriter(name.Name) ?? "#REF!");
+                }
                 else builder.Append(node.Text);
+                nodeIndex += node.Text.Length;
             }
             return builder.ToString();
         }
@@ -206,6 +213,24 @@ namespace OfficeIMO.Excel {
         }
 
         private static string TrimSpill(string value) => value.EndsWith("#", StringComparison.Ordinal) ? value.Substring(0, value.Length - 1) : value;
+
+        private static bool IsSpacedFunctionCall(string formula, System.Text.RegularExpressions.Match match) {
+            if (match.Groups["qualifier"].Success
+                || match.Groups["cellEndColumn"].Success
+                || match.Groups["cellSpill"].Success
+                || match.Groups["cellStartColumnAbsolute"].Value.Length > 0
+                || match.Groups["cellStartRowAbsolute"].Value.Length > 0) {
+                return false;
+            }
+
+            int cursor = match.Index + match.Length;
+            int whitespaceStart = cursor;
+            while (cursor < formula.Length && char.IsWhiteSpace(formula[cursor])) cursor++;
+            return cursor > whitespaceStart
+                && cursor < formula.Length
+                && formula[cursor] == '('
+                && ExcelFormulaCapabilities.IsBuiltInFunction(match.Value);
+        }
 
         private static bool TryReadStructuredReference(
             string formula,

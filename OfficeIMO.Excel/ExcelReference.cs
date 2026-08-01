@@ -299,6 +299,20 @@ namespace OfficeIMO.Excel {
         private static ExcelReference FromBounds(int r1, int c1, int r2, int c2, string? qualifier) {
             ValidateCell(r1, c1);
             ValidateCell(r2, c2);
+            if (r1 == 1 && r2 == A1.MaxRows) {
+                return new ExcelReference(
+                    ExcelReferenceKind.WholeColumn,
+                    qualifier,
+                    new ExcelReferencePoint(0, c1, false, false),
+                    new ExcelReferencePoint(0, c2, false, false));
+            }
+            if (c1 == 1 && c2 == A1.MaxColumns) {
+                return new ExcelReference(
+                    ExcelReferenceKind.WholeRow,
+                    qualifier,
+                    new ExcelReferencePoint(r1, 0, false, false),
+                    new ExcelReferencePoint(r2, 0, false, false));
+            }
             var start = new ExcelReferencePoint(r1, c1, false, false);
             var end = new ExcelReferencePoint(r2, c2, false, false);
             return new ExcelReference(r1 == r2 && c1 == c2 ? ExcelReferenceKind.Cell : ExcelReferenceKind.Range, qualifier, start, end);

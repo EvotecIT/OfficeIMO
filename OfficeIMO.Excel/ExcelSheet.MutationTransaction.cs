@@ -193,6 +193,9 @@ namespace OfficeIMO.Excel {
                     foreach (TableDefinitionPart part in worksheetPart.TableDefinitionParts) {
                         AddRoot(part.Table, value => part.Table = value);
                     }
+                    foreach (QueryTablePart part in worksheetPart.QueryTableParts) {
+                        AddRoot(part.QueryTable, value => part.QueryTable = value);
+                    }
                     foreach (PivotTablePart part in worksheetPart.PivotTableParts) {
                         AddRoot(part.PivotTableDefinition, value => part.PivotTableDefinition = value);
                     }
