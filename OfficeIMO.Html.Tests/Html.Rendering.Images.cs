@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
+using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -123,6 +124,44 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.Single(visual.Drawing.Images);
         Assert.Contains("data:image/png;base64", exportedSvg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlImages_UsesCallerCodecWhenManagedSvgParsingFails() {
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg-not-supported-by-managed-reader/>"));
+        string html = "<img id='codec-svg' src='data:image/svg+xml;base64," + data + "' style='width:50px;height:20px'>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 60D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D),
+            ImageCodec = new SvgFallbackCodec()
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlDiagnostic fallback = Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Contains("managed-parse-failed", fallback.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        Assert.Single(Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>()).Drawing.Images);
+    }
+
+    [Fact]
+    public void HtmlImageExport_KeepsCallerCodecInsideTheRenderDeadline() {
+        string data = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
+        string html = "<img src='data:image/tiff;base64," + data + "' style='width:20px;height:20px'>";
+        var timeout = TimeSpan.FromMilliseconds(50D);
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 30D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D),
+            RenderTimeout = timeout,
+            ImageCodec = new SlowFallbackCodec()
+        };
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options));
+
+        Assert.Equal(timeout, exception.Timeout);
     }
 
     [Fact]
@@ -625,6 +664,14 @@ public sealed partial class HtmlRenderingTests {
                 return false;
             }
             image = new OfficeRasterImage(10, 4, OfficeColor.Purple);
+            return true;
+        }
+    }
+
+    private sealed class SlowFallbackCodec : IOfficeRasterImageCodec {
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            Thread.Sleep(100);
+            image = new OfficeRasterImage(2, 2, OfficeColor.Purple);
             return true;
         }
     }

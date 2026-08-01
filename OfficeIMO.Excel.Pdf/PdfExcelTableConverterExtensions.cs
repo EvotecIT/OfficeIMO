@@ -173,6 +173,7 @@ namespace OfficeIMO.Excel.Pdf {
                     tableName: requestedTableName,
                     style: options.TableStyle,
                     includeAutoFilter: options.IncludeAutoFilter);
+                ApplyTypedColumnFormats(sheet, dataTable, columnKinds);
 
                 if (options.AutoFitColumns) {
                     sheet.AutoFitColumns();
@@ -199,6 +200,17 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return results.AsReadOnly();
+        }
+
+        private static void ApplyTypedColumnFormats(
+            ExcelSheet sheet,
+            DataTable table,
+            IReadOnlyList<PdfExcelTableColumnKind> columnKinds) {
+            for (int columnIndex = 0; columnIndex < columnKinds.Count; columnIndex++) {
+                if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Percentage) {
+                    sheet.ColumnStyleByHeader(table.Columns[columnIndex].ColumnName).Percent(decimals: 2);
+                }
+            }
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfExcelTableImportOptions options) {

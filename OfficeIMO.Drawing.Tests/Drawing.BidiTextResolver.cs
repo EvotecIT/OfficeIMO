@@ -56,6 +56,15 @@ public partial class Drawing {
     }
 
     [Fact]
+    public void BidiTextResolver_ResolvesNeutralPunctuationFromBothStrongNeighbors() {
+        string visual = OfficeBidiTextResolver.ToVisualOrder(
+            "abc (אבג) def",
+            OfficeTextDirection.LeftToRight);
+
+        Assert.Equal("abc (גבא) def", visual);
+    }
+
+    [Fact]
     public void BidiTextResolver_ExposesVisualRunOrderWithoutReversingRunText() {
         string logical = "A\u2067שלום abc\u2069B";
 

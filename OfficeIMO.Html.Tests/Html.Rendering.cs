@@ -1648,8 +1648,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         IReadOnlyList<HtmlRenderText> runs = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().OrderBy(run => run.PaintOrder).ToList();
         IReadOnlyList<HtmlRenderText> hebrew = runs.Where(run => run.Text.Length == 1 && "שלום".Contains(run.Text, StringComparison.Ordinal)).ToList();
-        HtmlRenderText left = Assert.Single(runs, run => run.Text == "Left ");
-        HtmlRenderText number = Assert.Single(runs, run => run.Text == "42");
+        HtmlRenderText left = Assert.Single(runs, run => run.Text.Contains("Left", StringComparison.Ordinal));
+        HtmlRenderText number = Assert.Single(runs, run => run.Text.Contains("42", StringComparison.Ordinal));
 
         Assert.Equal("Left שלום 42", string.Concat(runs.Select(run => run.Text)));
         Assert.Equal(4, hebrew.Count);

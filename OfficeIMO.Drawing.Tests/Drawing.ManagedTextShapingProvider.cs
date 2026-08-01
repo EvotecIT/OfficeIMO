@@ -85,7 +85,7 @@ public class DrawingManagedTextShapingProviderTests {
         OfficeTextShapingResult? result = OfficeManagedTextShapingProvider.Instance.ShapeText(request);
 
         Assert.NotNull(result);
-        Assert.Equal(new[] { 5, 4, 0, 1, 2, 3 }, result!.Glyphs.Select(static glyph => glyph.TextIndex));
+        Assert.Equal(new[] { 5, 4, 3, 0, 1, 2 }, result!.Glyphs.Select(static glyph => glyph.TextIndex));
     }
 
     [Fact]

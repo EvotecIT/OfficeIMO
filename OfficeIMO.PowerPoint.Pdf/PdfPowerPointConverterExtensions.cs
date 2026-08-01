@@ -274,13 +274,20 @@ public static partial class PowerPointPdfConverterExtensions {
         ConfigureSlideSize(presentation, rendered);
         var visualEntries = new List<PdfPowerPointVisualPageEntry>(rendered.Count);
         var tableEntries = new List<PdfPowerPointTableImportEntry>();
+        Dictionary<int, IReadOnlyList<PdfCore.PdfLogicalTableExtraction>> tablesByPage =
+            PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows)
+                .GroupBy(static extraction => extraction.PageIndex)
+                .ToDictionary(
+                    static group => group.Key,
+                    static group => (IReadOnlyList<PdfCore.PdfLogicalTableExtraction>)group.ToArray());
 
         for (int pageIndex = 0; pageIndex < rendered.Count; pageIndex++) {
             PdfCore.PdfPageRenderResult render = rendered[pageIndex];
             PdfCore.PdfLogicalPage? page = pageIndex < logical.Pages.Count ? logical.Pages[pageIndex] : null;
-            IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables = page == null
-                ? Array.Empty<PdfCore.PdfLogicalTableExtraction>()
-                : PdfCore.PdfLogicalTableAnalysis.ExtractTables(page, options.MaxRows);
+            IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables =
+                tablesByPage.TryGetValue(pageIndex, out IReadOnlyList<PdfCore.PdfLogicalTableExtraction>? pageTables)
+                    ? pageTables
+                    : Array.Empty<PdfCore.PdfLogicalTableExtraction>();
             bool addedTableSlide = false;
             for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
                 PdfCore.PdfLogicalTableExtraction extraction = tables[tableIndex];

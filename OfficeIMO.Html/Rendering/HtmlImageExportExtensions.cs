@@ -8,36 +8,46 @@ namespace OfficeIMO.Html;
 public static partial class HtmlImageExportExtensions {
     internal static OfficeImageExportResult ExportImage(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
         HtmlRenderOptions resolved = Normalize(options, pageIndex);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved);
-        if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
-        return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, CancellationToken.None);
+        return HtmlRenderEngine.ExecuteWithDeadline(resolved, CancellationToken.None, operationCancellationToken => {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved, operationCancellationToken);
+            if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
+            return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, operationCancellationToken);
+        });
     }
 
     internal static IReadOnlyList<OfficeImageExportResult> ExportImages(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null) {
         HtmlRenderOptions resolved = Normalize(options, 0);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved);
-        var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
-        foreach (HtmlRenderPage page in rendered.Pages) results.Add(RenderPage(page, format, resolved, rendered.DiagnosticReport, CancellationToken.None));
-        return results.AsReadOnly();
+        return HtmlRenderEngine.ExecuteWithDeadline(resolved, CancellationToken.None, operationCancellationToken => {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved, operationCancellationToken);
+            var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
+            foreach (HtmlRenderPage page in rendered.Pages) {
+                results.Add(RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken));
+            }
+            return results.AsReadOnly();
+        });
     }
 
     internal static async Task<OfficeImageExportResult> ExportImageAsync(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
         HtmlRenderOptions resolved = Normalize(options, pageIndex);
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
-        return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, cancellationToken);
+        return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
+            HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
+            operationCancellationToken.ThrowIfCancellationRequested();
+            if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
+            return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, operationCancellationToken);
+        }).ConfigureAwait(false);
     }
 
     internal static async Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
         HtmlRenderOptions resolved = Normalize(options, 0);
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, cancellationToken).ConfigureAwait(false);
-        var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
-        foreach (HtmlRenderPage page in rendered.Pages) {
-            cancellationToken.ThrowIfCancellationRequested();
-            results.Add(RenderPage(page, format, resolved, rendered.DiagnosticReport, cancellationToken));
-        }
-        return results.AsReadOnly();
+        return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
+            HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
+            var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
+            foreach (HtmlRenderPage page in rendered.Pages) {
+                operationCancellationToken.ThrowIfCancellationRequested();
+                results.Add(RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken));
+            }
+            return (IReadOnlyList<OfficeImageExportResult>)results.AsReadOnly();
+        }).ConfigureAwait(false);
     }
 
     private static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {

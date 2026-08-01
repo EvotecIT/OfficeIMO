@@ -337,7 +337,26 @@ public partial class Excel {
             PdfExcelTableColumnKind.Number
         }, report.Entries.SelectMany(entry => entry.ColumnKinds));
 
-        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        byte[] workbookBytes = workbook.ToArray();
+        using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(workbookBytes), false)) {
+            WorksheetPart percentageWorksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single(worksheet =>
+                worksheet.TableDefinitionParts.Any(tablePart =>
+                    string.Equals(tablePart.Table?.Name?.Value, report.Entries[0].TableName, StringComparison.Ordinal)));
+            SheetData sheetData = percentageWorksheet.Worksheet.GetFirstChild<SheetData>()!;
+            Cell percentageCell = GetCell(sheetData, "B2");
+            Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            CellFormat percentageFormat = stylesheet.CellFormats!
+                .Elements<CellFormat>()
+                .ElementAt((int)(percentageCell.StyleIndex?.Value ?? 0U));
+            uint percentageFormatId = percentageFormat.NumberFormatId?.Value ?? 0U;
+            string? percentageFormatCode = stylesheet.NumberingFormats?
+                .Elements<NumberingFormat>()
+                .SingleOrDefault(format => format.NumberFormatId?.Value == percentageFormatId)?
+                .FormatCode?.Value;
+            Assert.Equal("0.00%", percentageFormatCode);
+        }
+
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbookBytes);
         object?[,] statusValues = reader.GetSheet(report.Entries[0].SheetName).ReadRange(report.Entries[0].Range);
         Assert.Equal(true, statusValues[1, 0]);
         Assert.Equal(0.125d, Convert.ToDouble(statusValues[1, 1], CultureInfo.InvariantCulture), 8);

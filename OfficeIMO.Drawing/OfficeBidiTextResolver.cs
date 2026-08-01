@@ -57,6 +57,7 @@ public static class OfficeBidiTextResolver {
         int lastLevel = states.Peek().Level;
         IReadOnlyList<string> elements = OfficeTextElements.Split(text);
         OfficeTextDirection?[] firstStrongIsolateDirections = ResolveFirstStrongIsolateDirections(elements, cancellationToken);
+        OfficeTextDirection?[] followingStrongDirections = ResolveFollowingStrongDirections(elements, cancellationToken);
         for (int index = 0; index < elements.Count; index++) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             string element = elements[index];
@@ -75,7 +76,7 @@ public static class OfficeBidiTextResolver {
             DirectionalState state = states.Peek();
             OfficeTextDirection direction = state.Override
                 ? state.Direction
-                : ResolveElementDirection(element, state.Direction, lastDirection);
+                : ResolveElementDirection(element, state.Direction, lastDirection, followingStrongDirections[index]);
             int level = ResolveLevel(state.Level, direction);
             if (value.Length > 0 && (direction != lastDirection || level != lastLevel)) {
                 Flush(runs, value, lastDirection, lastLevel);
@@ -315,13 +316,45 @@ public static class OfficeBidiTextResolver {
     private static OfficeTextDirection ResolveElementDirection(
         string element,
         OfficeTextDirection embeddingDirection,
-        OfficeTextDirection lastDirection) {
+        OfficeTextDirection lastDirection,
+        OfficeTextDirection? followingStrongDirection) {
         OfficeTextDirection direction = OfficeTextElements.ResolveBaseDirection(element);
         if (direction != OfficeTextDirection.Auto) return direction;
         for (int index = 0; index < element.Length; index++) {
             if (char.IsDigit(element[index])) return OfficeTextDirection.LeftToRight;
         }
-        return lastDirection == OfficeTextDirection.Auto ? embeddingDirection : lastDirection;
+        return followingStrongDirection.HasValue && followingStrongDirection.Value == lastDirection
+            ? lastDirection
+            : embeddingDirection;
+    }
+
+    private static OfficeTextDirection?[] ResolveFollowingStrongDirections(
+        IReadOnlyList<string> elements,
+        CancellationToken cancellationToken) {
+        var directions = new OfficeTextDirection?[elements.Count];
+        OfficeTextDirection? following = null;
+        for (int index = elements.Count - 1; index >= 0; index--) {
+            if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+            string element = elements[index];
+            if (element.Length == 1 && OfficeTextElements.ContainsBidiControl(element)) {
+                following = null;
+                continue;
+            }
+
+            directions[index] = following;
+            OfficeTextDirection direction = OfficeTextElements.ResolveBaseDirection(element);
+            if (direction != OfficeTextDirection.Auto) {
+                following = direction;
+                continue;
+            }
+            for (int characterIndex = 0; characterIndex < element.Length; characterIndex++) {
+                if (char.IsDigit(element[characterIndex])) {
+                    following = OfficeTextDirection.LeftToRight;
+                    break;
+                }
+            }
+        }
+        return directions;
     }
 
     private static OfficeTextDirection ResolveBaseDirectionWithoutFormattingControls(string text) {

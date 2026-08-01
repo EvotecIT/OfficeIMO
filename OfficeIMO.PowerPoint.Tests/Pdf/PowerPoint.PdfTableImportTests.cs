@@ -93,6 +93,37 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocument_ToPowerPointPresentation_HybridPreservesSelectedPageIndexesInTableReports() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 300,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "14" }
+            }, style: new PdfCore.PdfTableStyle { HeaderRowCount = 1, ColumnWidthPoints = new List<double?> { 140, 80 } })
+            .PageBreak()
+            .Table(new[] {
+                new[] { "Name", "Total" },
+                new[] { "Alpha", "20" },
+                new[] { "Beta", "30" }
+            }, style: new PdfCore.PdfTableStyle { HeaderRowCount = 1, ColumnWidthPoints = new List<double?> { 140, 80 } })
+            .ToBytes();
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateHybrid());
+
+        Assert.Equal(new[] { 0, 1 }, result.Report.TableEntries.Select(entry => entry.PageIndex).ToArray());
+        Assert.Equal(new[] { 1, 2 }, result.Report.TableEntries.Select(entry => entry.PageNumber).ToArray());
+        result.Value.Dispose();
+    }
+
+    [Fact]
     public void PdfDocument_ToPowerPointPresentation_HybridSplitsTablesWithinPerSlideCaps() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 520,
