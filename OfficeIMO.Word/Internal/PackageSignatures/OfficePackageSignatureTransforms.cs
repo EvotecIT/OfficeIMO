@@ -98,16 +98,19 @@ namespace OfficeIMO.Word {
             } catch (UriFormatException exception) {
                 return OfficePackageDigestResult.Failed("Digest verification failed because Reference URI content-type encoding is invalid: " + exception.Message);
             }
-            if (declaredContentType != null) {
-                if (!TryGetContentType(targetPartUri, out string actualContentType)) {
-                    return OfficePackageDigestResult.Failed("Digest verification failed because package part " + targetPartUri + " has no resolved OPC content type.");
-                }
-                if (!string.Equals(declaredContentType, actualContentType, StringComparison.OrdinalIgnoreCase)) {
-                    return OfficePackageDigestResult.Failed(
-                        "Digest verification failed because package part " + targetPartUri +
-                        " declares signed content type '" + declaredContentType +
-                        "' but the package resolves it as '" + actualContentType + "'.");
-                }
+            if (string.IsNullOrWhiteSpace(declaredContentType)) {
+                return OfficePackageDigestResult.Failed(
+                    "Digest verification failed because package part " + targetPartUri +
+                    " is not bound to an OPC content type in its Reference URI.");
+            }
+            if (!TryGetContentType(targetPartUri, out string actualContentType)) {
+                return OfficePackageDigestResult.Failed("Digest verification failed because package part " + targetPartUri + " has no resolved OPC content type.");
+            }
+            if (!string.Equals(declaredContentType, actualContentType, StringComparison.OrdinalIgnoreCase)) {
+                return OfficePackageDigestResult.Failed(
+                    "Digest verification failed because package part " + targetPartUri +
+                    " declares signed content type '" + declaredContentType +
+                    "' but the package resolves it as '" + actualContentType + "'.");
             }
 
             string? digestMethod = (string?)reference.Element(ds + "DigestMethod")?.Attribute("Algorithm");
@@ -168,9 +171,11 @@ namespace OfficeIMO.Word {
             } catch (UriFormatException exception) {
                 throw new InvalidDataException("The OPC signature Reference content-type encoding is invalid.", exception);
             }
-            if (declaredContentType != null &&
-                (!TryGetContentType(targetPartUri, out string actualContentType) ||
-                 !string.Equals(declaredContentType, actualContentType, StringComparison.OrdinalIgnoreCase))) {
+            if (string.IsNullOrWhiteSpace(declaredContentType)) {
+                throw new InvalidDataException("The OPC signature Reference must bind the package content type for " + targetPartUri + ".");
+            }
+            if (!TryGetContentType(targetPartUri, out string actualContentType) ||
+                !string.Equals(declaredContentType, actualContentType, StringComparison.OrdinalIgnoreCase)) {
                 throw new InvalidDataException("The OPC signature Reference content type does not match the package content type for " + targetPartUri + ".");
             }
             byte[] input = ApplyTransforms(targetPartUri, reference, maxPartBytes);

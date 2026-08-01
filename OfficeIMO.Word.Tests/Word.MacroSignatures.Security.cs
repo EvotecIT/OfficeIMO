@@ -90,6 +90,25 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Findings, finding => finding.Code == "SourcePackageChangedDuringSigning");
         }
 
+        [Fact]
+        public void MacroSigningDoesNotClaimPreservationWhenValidationSnapshotChanges() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureChangedValidationSnapshot.docm");
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            string toolsDirectory = CreateFakeOfficeSipsDirectory();
+            var runner = new SimulatedOfficeSipsRunner(certificate);
+            var dependencies = new WordMacroProjectSigningDependencies(
+                runner, new ValidationSnapshotMutationMacroSigningPlatform());
+            var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
+            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
+                filePath, certificate.Thumbprint!, options, dependencies);
+
+            Assert.False(result.Succeeded);
+            Assert.False(result.MacroProjectPreserved);
+            Assert.Contains(result.Findings, finding => finding.Code == "MacroValidatedSnapshotChanged");
+        }
+
         private static void AddTimestampedMacroSignatureProfile(
             string filePath,
             WordMacroProjectSignatureProfile profile,
@@ -144,6 +163,25 @@ namespace OfficeIMO.Tests {
                 ReplacedStagingPath = true;
                 return new WordMacroProjectContentBindingResult(true, true,
                     "simulated Office SIP digest match before staged-path replacement");
+            }
+        }
+
+        private sealed class ValidationSnapshotMutationMacroSigningPlatform : IWordMacroProjectPlatform {
+            public bool IsWindows => true;
+
+            public bool TryGetSubjectInterfacePackage(string filePath, out Guid subjectGuid, out string detail) {
+                subjectGuid = new Guid("6E64D5BD-CEB0-4B66-B4A0-15AC71775C48");
+                detail = "simulated Microsoft Office SIP";
+                return true;
+            }
+
+            public WordMacroProjectContentBindingResult ValidateContentBinding(
+                string filePath,
+                string digestAlgorithmOid,
+                byte[] expectedDigest) {
+                File.WriteAllBytes(filePath, new byte[] { 0x01, 0x02, 0x03 });
+                return new WordMacroProjectContentBindingResult(
+                    true, true, "simulated binding before validation-snapshot mutation");
             }
         }
     }

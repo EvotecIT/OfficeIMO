@@ -3,10 +3,31 @@ using OfficeIMO.Word;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Fact]
+        public void Test_DigitalSignature_PackageReferenceRequiresContentTypeBinding() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureMissingContentType.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unsigned content-type mapping");
+                document.Save();
+            }
+            XNamespace ds = "http://www.w3.org/2000/09/xmldsig#";
+            var reference = new XElement(ds + "Reference",
+                new XAttribute("URI", "/word/document.xml"),
+                new XElement(ds + "DigestMethod", new XAttribute("Algorithm", "http://www.w3.org/2001/04/xmlenc#sha256")),
+                new XElement(ds + "DigestValue", ComputePackagePartSha256Digest(filePath, "/word/document.xml")));
+            using var archive = new OfficePackageSignatureArchive(File.ReadAllBytes(filePath));
+
+            OfficePackageDigestResult result = archive.VerifyReference(reference, 16 * 1024 * 1024);
+
+            Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Failed, result.Status);
+            Assert.Contains("not bound to an OPC content type", result.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+
         [Fact]
         public void Test_DigitalSignature_EnvelopedTransformAuthenticatesManifestWhenTargetHasNoSignatureNode() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureNoOpEnvelopedManifest.docx");
@@ -20,7 +41,7 @@ namespace OfficeIMO.Tests {
                 "<SignedInfo><SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
                 "<Reference URI=\"#signed-object\"><Transforms><Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\" /></Transforms>" +
                 "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue></Reference></SignedInfo>" +
-                "<Object Id=\"signed-object\"><Manifest><Reference URI=\"/word/document.xml\">" +
+                "<Object Id=\"signed-object\"><Manifest><Reference URI=\"/word/document.xml?ContentType=application%2Fvnd.openxmlformats-officedocument.wordprocessingml.document.main%2Bxml\">" +
                 "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>" + documentDigest + "</DigestValue>" +
                 "</Reference></Manifest></Object></Signature>");
             AddDigitalSignatureMetadata(filePath, signatureBytes);

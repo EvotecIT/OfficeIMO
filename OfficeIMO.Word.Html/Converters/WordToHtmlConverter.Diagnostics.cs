@@ -31,15 +31,7 @@ namespace OfficeIMO.Word.Html {
                             ThrowExportLimitExceeded(options, "WordElementLimitExceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
                         }
                         if (countOutputContent && !inspected.OmitOutputContent) {
-                            long elementCharacters = element is OpenXmlLeafTextElement textElement && ShouldCountOutputLeafText(element)
-                                ? GetHtmlEncodedLength(textElement.Text, attributeValue: false)
-                                : 0;
-                            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
-                                if (!ShouldCountOutputAttribute(element, attribute, options)) continue;
-                                elementCharacters = SaturatingAdd(
-                                    elementCharacters,
-                                    GetHtmlEncodedLength(attribute.Value, attributeValue: true));
-                            }
+                            long elementCharacters = GetOutputContentCharacters(element, options);
                             outputConstructionCharacters = SaturatingAdd(outputConstructionCharacters, elementCharacters);
                             if (outputConstructionCharacters > options.MaxOutputCharacters) {
                                 ThrowExportLimitExceeded(
@@ -93,6 +85,28 @@ namespace OfficeIMO.Word.Html {
             return length;
         }
 
+        private static long MeasureOutputContentCharacters(OpenXmlElement root, WordToHtmlOptions options) {
+            long characters = 0;
+            foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(root)) {
+                if (inspected.OmitOutputContent) continue;
+                characters = SaturatingAdd(characters, GetOutputContentCharacters(inspected.Element, options));
+            }
+            return characters;
+        }
+
+        private static long GetOutputContentCharacters(OpenXmlElement element, WordToHtmlOptions options) {
+            long characters = element is OpenXmlLeafTextElement textElement && ShouldCountOutputLeafText(element)
+                ? GetHtmlEncodedLength(textElement.Text, attributeValue: false)
+                : 0;
+            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                if (!ShouldCountOutputAttribute(element, attribute, options)) continue;
+                characters = SaturatingAdd(
+                    characters,
+                    GetHtmlEncodedLength(attribute.Value, attributeValue: true));
+            }
+            return characters;
+        }
+
         private static bool ShouldCountOutputLeafText(OpenXmlElement element) =>
             element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode;
 
@@ -124,7 +138,8 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsOutputContentRoot(OpenXmlElement root, WordToHtmlOptions options) =>
-            (root is not DocumentFormat.OpenXml.Wordprocessing.Header && root is not DocumentFormat.OpenXml.Wordprocessing.Footer || options.ExportHeadersAndFooters) &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.Header &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.Footer &&
             (root is not DocumentFormat.OpenXml.Wordprocessing.Footnotes || options.ExportFootnotes) &&
             (root is not DocumentFormat.OpenXml.Wordprocessing.Endnotes || options.ExportEndnotes) &&
             (root is not DocumentFormat.OpenXml.Wordprocessing.Comments || options.ExportComments) &&

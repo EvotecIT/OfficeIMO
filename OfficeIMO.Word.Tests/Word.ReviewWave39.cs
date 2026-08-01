@@ -75,15 +75,21 @@ namespace OfficeIMO.Tests {
                 "DiscoverMergeFieldOccurrences", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("Merge-field discovery helper was not found.");
 
+#if !NET472
             long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
             var occurrences = (IEnumerable)(discover.Invoke(null, new object[] { body })
                 ?? throw new InvalidOperationException("Merge-field discovery did not return a result."));
             int count = occurrences.Cast<object>().Count();
+#if !NET472
             long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
             Assert.Equal(0, count);
+#if !NET472
             Assert.True(allocated < 6L * 1024 * 1024,
                 "Merge-field discovery allocated " + allocated + " bytes for irrelevant elements.");
+#endif
         }
 
         [Fact]

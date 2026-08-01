@@ -124,7 +124,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256", signaturePart.SignatureMethodAlgorithm);
                 Assert.Contains("http://www.w3.org/2001/04/xmlenc#sha256", signaturePart.DigestMethodAlgorithms);
                 WordSignatureReferenceInfo signedReference = Assert.Single(signaturePart.SignedReferences);
-                Assert.Equal("/word/document.xml", signedReference.Uri);
+                Assert.Equal(
+                    "/word/document.xml?ContentType=application%2Fvnd.openxmlformats-officedocument.wordprocessingml.document.main%2Bxml",
+                    signedReference.Uri);
                 Assert.Equal("http://www.w3.org/2001/04/xmlenc#sha256", signedReference.DigestMethodAlgorithm);
                 Assert.True(signedReference.HasDigestValue);
                 Assert.Equal("T2ZmaWNlSU1P", signedReference.DigestValue);
@@ -1902,7 +1904,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateSignatureXml(
-            string referenceUri = "/word/document.xml",
+            string referenceUri = "/word/document.xml?ContentType=application%2Fvnd.openxmlformats-officedocument.wordprocessingml.document.main%2Bxml",
             bool includeDigestValue = true,
             string? digestValue = null,
             string? transformAlgorithm = null,

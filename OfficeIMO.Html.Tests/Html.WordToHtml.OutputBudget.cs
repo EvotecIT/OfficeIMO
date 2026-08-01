@@ -180,5 +180,36 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Visible content", result.RequireValue(), StringComparison.Ordinal);
             Assert.DoesNotContain("font-family", result.RequireValue(), StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetCountsSharedHeaderForEveryExportedSection() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Body");
+            WordSection firstSection = document.Sections[0];
+            firstSection.GetOrCreateHeader(HeaderFooterValues.Default)
+                .AddParagraph(new string('H', 1024));
+            string relationshipId = firstSection._sectionProperties
+                .GetFirstChild<HeaderReference>()!.Id!;
+            for (int index = 0; index < 8; index++) {
+                WordSection section = document.AddSection(SectionMarkValues.NextPage);
+                section._sectionProperties.InsertAt(new HeaderReference {
+                    Type = HeaderFooterValues.Default,
+                    Id = relationshipId
+                }, 0);
+                section.Header.Default = firstSection.Header.Default;
+                section.AddParagraph("Section " + index);
+            }
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    ExportHeadersAndFooters = true,
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = 5_000
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.StartsWith("HeaderFooter:header:default:section-", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(exception.Actual > exception.Limit);
+        }
     }
 }

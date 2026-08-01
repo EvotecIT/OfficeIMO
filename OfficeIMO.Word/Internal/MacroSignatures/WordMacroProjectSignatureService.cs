@@ -246,7 +246,7 @@ namespace OfficeIMO.Word {
                     StringComparison.Ordinal)) {
                     findings.Add(Finding("MacroValidatedSnapshotChanged", WordSignatureValidationState.Failed,
                         "The bounded VBA validation snapshot changed during policy validation; the original file was not replaced."));
-                    return SigningResult(fullPath, true, false, true, stagedValidation, findings);
+                    return SigningResult(fullPath, true, false, false, stagedValidation, findings);
                 }
                 findings.AddRange(stagedValidation.Findings.Where(finding =>
                     !findings.Any(existing => existing.Code == finding.Code && existing.Profile == finding.Profile)));
