@@ -173,10 +173,26 @@ namespace OfficeIMO.Word {
             var input = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
             XmlElement imported = (XmlElement)input.ImportNode(signatureValue, deep: true);
             var namespaceNames = new HashSet<string>(StringComparer.Ordinal);
+            var inheritedXmlAttributeNames = new HashSet<string>(StringComparer.Ordinal);
+            bool includeInheritedXmlAttributes =
+                algorithm == SignedXml.XmlDsigC14NTransformUrl ||
+                algorithm == SignedXml.XmlDsigC14NWithCommentsTransformUrl;
             for (XmlElement? ancestor = signatureValue; ancestor != null; ancestor = ancestor.ParentNode as XmlElement) {
                 foreach (XmlAttribute attribute in ancestor.Attributes) {
-                    if (attribute.Prefix != "xmlns" && attribute.Name != "xmlns") continue;
-                    if (!namespaceNames.Add(attribute.Name) || imported.HasAttribute(attribute.Name)) continue;
+                    if (attribute.Prefix == "xmlns" || attribute.Name == "xmlns") {
+                        if (!namespaceNames.Add(attribute.Name) || imported.HasAttribute(attribute.Name)) continue;
+                        imported.Attributes.Append((XmlAttribute)input.ImportNode(attribute, deep: true));
+                        continue;
+                    }
+                    if (!includeInheritedXmlAttributes ||
+                        attribute.NamespaceURI != "http://www.w3.org/XML/1998/namespace") {
+                        continue;
+                    }
+                    string attributeKey = attribute.NamespaceURI + "\0" + attribute.LocalName;
+                    if (!inheritedXmlAttributeNames.Add(attributeKey) ||
+                        imported.HasAttribute(attribute.LocalName, attribute.NamespaceURI)) {
+                        continue;
+                    }
                     imported.Attributes.Append((XmlAttribute)input.ImportNode(attribute, deep: true));
                 }
             }

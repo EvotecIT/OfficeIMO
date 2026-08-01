@@ -838,6 +838,56 @@ namespace OfficeIMO.Tests {
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
         }
 
+        [Fact]
+        public void Test_DigitalSignature_SigningChargesRelationshipReferencesAgainstConfiguredLimit() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureRelationshipReferenceSource.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Relationship reference budget");
+                document.Save();
+            }
+            string probePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureRelationshipReferenceProbe.docx");
+            string boundaryPath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureRelationshipReferenceBoundary.docx");
+            string exactPath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureRelationshipReferenceExact.docx");
+            File.Copy(sourcePath, probePath);
+            File.Copy(sourcePath, boundaryPath);
+            File.Copy(sourcePath, exactPath);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            var probeOptions = new WordPackageSigningOptions {
+                PartUris = new[] { "/word/document.xml" },
+                IncludePackageRelationships = true,
+                IncludePartRelationships = false
+            };
+            WordPackageSigningResult probe = WordDocument.SignPackage(probePath, certificate, probeOptions);
+            Assert.True(probe.Succeeded);
+            Assert.True(probe.SignedRelationshipSelectorCount > 0);
+            int limitWithoutRelationshipReference = checked(
+                probe.SignedPartCount + probe.SignedRelationshipSelectorCount + 1);
+
+            WordPackageSigningResult boundary = WordDocument.TrySignPackage(
+                boundaryPath,
+                certificate,
+                new WordPackageSigningOptions {
+                    PartUris = probeOptions.PartUris,
+                    IncludePackageRelationships = true,
+                    IncludePartRelationships = false,
+                    MaxSignedReferences = limitWithoutRelationshipReference
+                });
+            WordPackageSigningResult exact = WordDocument.TrySignPackage(
+                exactPath,
+                certificate,
+                new WordPackageSigningOptions {
+                    PartUris = probeOptions.PartUris,
+                    IncludePackageRelationships = true,
+                    IncludePartRelationships = false,
+                    MaxSignedReferences = checked(limitWithoutRelationshipReference + 1)
+                });
+
+            Assert.False(boundary.Succeeded);
+            Assert.Contains(boundary.Details, detail => detail.Contains("authenticated references", StringComparison.OrdinalIgnoreCase));
+            Assert.True(exact.Succeeded, string.Join(Environment.NewLine, exact.Details));
+        }
+
         [Theory]
         [InlineData("idPackageObject")]
         [InlineData("idSignatureTime")]
@@ -1464,6 +1514,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_HonorsInheritedXmlAttributesForInclusiveTimestampCanonicalization() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTimestampInheritedXmlLanguage.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Timestamped OPC signature with inherited XML context");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer, new WordPackageSigningOptions {
+                SignatureId = "OfficeIMOTimestampedInheritedXmlLanguageSignature"
+            });
+            AddRfc3161Timestamp(
+                filePath,
+                timestampCorrectSignatureValue: true,
+                canonicalizationAlgorithm: SignedXml.XmlDsigC14NTransformUrl,
+                inheritedXmlLanguage: "en-GB");
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.DisableCertificateDownloads = false;
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            options.TimestampCertificateValidation.DisableCertificateDownloads = false;
+            options.TimestampCertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignaturePartValidationResult signature = Assert.Single(loaded.ValidateSignatures(options).Signatures);
+
+            Assert.Equal(WordSignatureValidationState.Passed, signature.TimestampStatus);
+            Assert.Equal(OfficeIMO.Security.SecurityValidationStatus.Valid, Assert.Single(signature.TimestampTokens).Status);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_RejectsTimestampWithMismatchedMessageImprint() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureBadTimestamp.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -1942,7 +2025,8 @@ namespace OfficeIMO.Tests {
             bool timestampCorrectSignatureValue,
             string? timestampTokenText = null,
             string? canonicalizationAlgorithm = null,
-            string? inclusiveNamespacesPrefixList = null) {
+            string? inclusiveNamespacesPrefixList = null,
+            string? inheritedXmlLanguage = null) {
             using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
             ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
                 entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
@@ -1957,6 +2041,11 @@ namespace OfficeIMO.Tests {
             namespaceManager.AddNamespace("ds", "http://www.w3.org/2000/09/xmldsig#");
             XmlElement signature = signatureXml.DocumentElement!;
             XmlElement signatureValue = (XmlElement)signature.SelectSingleNode("ds:SignatureValue", namespaceManager)!;
+            if (!string.IsNullOrWhiteSpace(inheritedXmlLanguage)) {
+                XmlAttribute xmlLanguage = signatureXml.CreateAttribute("xml", "lang", "http://www.w3.org/XML/1998/namespace");
+                xmlLanguage.Value = inheritedXmlLanguage!;
+                signature.Attributes.Append(xmlLanguage);
+            }
             if (!string.IsNullOrWhiteSpace(inclusiveNamespacesPrefixList)) {
                 signatureValue.SetAttribute("xmlns:proof", "urn:officeimo:timestamp-proof");
             }
@@ -2150,7 +2239,22 @@ namespace OfficeIMO.Tests {
             string? inclusiveNamespacesPrefixList = null) {
             var input = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
             XmlElement imported = (XmlElement)input.ImportNode(signatureValue, deep: true);
-            imported.SetAttribute("xmlns", SignedXml.XmlDsigNamespaceUrl);
+            var inheritedNames = new HashSet<string>(StringComparer.Ordinal);
+            bool includeInheritedXmlAttributes =
+                string.IsNullOrWhiteSpace(algorithm) ||
+                algorithm == SignedXml.XmlDsigC14NTransformUrl ||
+                algorithm == SignedXml.XmlDsigC14NWithCommentsTransformUrl;
+            for (XmlElement? ancestor = signatureValue; ancestor != null; ancestor = ancestor.ParentNode as XmlElement) {
+                foreach (XmlAttribute attribute in ancestor.Attributes) {
+                    bool isNamespace = attribute.Prefix == "xmlns" || attribute.Name == "xmlns";
+                    bool isInheritedXmlAttribute = includeInheritedXmlAttributes &&
+                        attribute.NamespaceURI == "http://www.w3.org/XML/1998/namespace";
+                    if (!isNamespace && !isInheritedXmlAttribute) continue;
+                    string attributeKey = attribute.NamespaceURI + "\0" + attribute.LocalName;
+                    if (!inheritedNames.Add(attributeKey) || imported.HasAttribute(attribute.LocalName, attribute.NamespaceURI)) continue;
+                    imported.Attributes.Append((XmlAttribute)input.ImportNode(attribute, deep: true));
+                }
+            }
             input.AppendChild(imported);
             Transform transform;
             if (algorithm == SignedXml.XmlDsigExcC14NTransformUrl ||

@@ -463,6 +463,12 @@ namespace OfficeIMO.Word {
                 }
             }
             if (ids.Count == 0) return null;
+            if (remainingRelationshipSelectors <= 0) {
+                throw new InvalidDataException(
+                    "The package signature would contain more than " + options.MaxSignedReferences +
+                    " authenticated references and relationship selectors.");
+            }
+            remainingRelationshipSelectors--;
             ids.Sort(StringComparer.Ordinal);
 
             XNamespace ds = SignedXml.XmlDsigNamespaceUrl;

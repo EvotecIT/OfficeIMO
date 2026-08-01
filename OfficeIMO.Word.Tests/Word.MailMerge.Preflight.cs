@@ -194,6 +194,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_PreflightReadsComplexInstructionFromBeginRun() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(
+                new Run(
+                    new FieldChar { FieldCharType = FieldCharValues.Begin },
+                    new FieldCode(" MERGEFIELD SameRun ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("placeholder")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(
+                document,
+                mergeFieldNames: Array.Empty<string>());
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: Array.Empty<string>());
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string>());
+
+            Assert.Equal(new[] { "SameRun" }, inspection.MergeFieldNames);
+            Assert.Contains(inspection.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue &&
+                issue.Name == "SameRun");
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Equal(WordMailMergeFieldStatus.MissingValue, Assert.Single(execution.Fields).Status);
+        }
+
+        [Fact]
         public void Test_MailMerge_PreflightKeepsOuterFieldsAroundNestedInlineContentControls() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph()._paragraph.Append(

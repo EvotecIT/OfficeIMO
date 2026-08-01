@@ -562,7 +562,9 @@ namespace OfficeIMO.Word {
                 foreach (Run run in EnumerateParagraphOwnedRuns(paragraph)) {
                     FieldChar? fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-                        activeFields.Add(new List<string>());
+                        var instruction = new List<string>();
+                        instruction.AddRange(run.Elements<FieldCode>().Select(code => code.Text));
+                        activeFields.Add(instruction);
                         continue;
                     }
 
