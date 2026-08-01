@@ -10,6 +10,20 @@ namespace OfficeIMO.Reader.Tests;
 
 public class ExcelCsvExtensionsTests {
     [Fact]
+    public void EmptyCsvImportReturnsAnEmptyRange() {
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+
+        ExcelCsvImportResult result = document.ImportCsvText(
+            string.Empty,
+            new ExcelCsvImportOptions { SheetName = "Empty" });
+
+        Assert.Equal("Empty", result.SheetName);
+        Assert.Equal(string.Empty, result.Range);
+        Assert.Equal("A1:A1", document["Empty"].GetUsedRangeA1());
+    }
+
+    [Fact]
     public void WorksheetCsvRoundTripPreservesQuotedAndMultilineFields() {
         const string csv = "Name,Note,Amount\r\nAlpha,\"Hello, \"\"world\"\"\",10.5\r\nBeta,\"Line\r\nbreak\",20\r\n";
         using var stream = new MemoryStream();

@@ -357,6 +357,22 @@ namespace OfficeIMO.Tests {
                     cancellationToken: cancellation.Token));
         }
 
+        [Fact]
+        public async Task ExcelDataReaderHttpLoadObservesReadOptionsCancellationToken() {
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StreamContent(new BlockingReadStream())
+                }));
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAsync<TaskCanceledException>(() =>
+                ExcelDocument.OpenDataReaderAsync(
+                    new Uri("https://example.test/workbook.xlsx"),
+                    new ExcelReadOptions { CancellationToken = cancellation.Token },
+                    new ExcelHttpLoadOptions { HttpMessageHandler = handler }));
+        }
+
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {

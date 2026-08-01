@@ -78,6 +78,10 @@ Replace the removed public reader roots as follows:
 `CsvLoadOptions.Mode`, `CsvLoadMode`, and `CsvDocument.Mode` are no longer
 public. Use `CsvDocument.OpenDataReader` for a forward-only read and
 `CsvDocument.Load` for a materialized model.
+`ExcelDocument.Sheets` now exposes `IReadOnlyList<ExcelSheet>` instead of
+`List<ExcelSheet>`. Enumerate or index the property as before, use the workbook's
+worksheet operations to edit the collection, or call `document.Sheets.ToList()`
+when a detached mutable snapshot is required.
 Excel exposes worksheets as ordered `ExcelWorkbookDataReader` results through
 `NextResult()`. Use `SheetName` or zero-based `SheetIndex` to select one sheet,
 `A1Range` to select a range, `CurrentSheetName` / `CurrentSheetIndex` to identify the

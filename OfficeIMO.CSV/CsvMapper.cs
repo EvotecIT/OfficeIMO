@@ -78,13 +78,7 @@ public static class CsvMappingExtensions
             throw new ArgumentNullException(nameof(document));
         }
 
-        var bindings = CreateAutomaticBindings<T>(document.Header);
-        if (bindings.Length == 0)
-        {
-            throw new CsvException($"No CSV headers match writable properties on {typeof(T).Name}.");
-        }
-
-        return EnumerateAutomaticRows<T>(document, bindings);
+        return EnumerateAutomaticRows<T>(document);
     }
 
     /// <summary>
@@ -169,14 +163,20 @@ public static class CsvMappingExtensions
         return bindings.ToArray();
     }
 
-    private static IEnumerable<T> EnumerateAutomaticRows<T>(
-        CsvDocument document,
-        IReadOnlyList<AutomaticMappingBinding> bindings) where T : new()
+    private static IEnumerable<T> EnumerateAutomaticRows<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        CsvDocument document) where T : new()
     {
+        AutomaticMappingBinding[] bindings = CreateAutomaticBindings<T>(document.Header);
+        if (bindings.Length == 0)
+        {
+            throw new CsvException($"No CSV headers match writable properties on {typeof(T).Name}.");
+        }
+
         foreach (CsvRow row in document.AsEnumerable())
         {
             object instance = new T()!;
-            for (var index = 0; index < bindings.Count; index++)
+            for (var index = 0; index < bindings.Length; index++)
             {
                 AutomaticMappingBinding binding = bindings[index];
                 object? rawValue = row[binding.ColumnIndex];

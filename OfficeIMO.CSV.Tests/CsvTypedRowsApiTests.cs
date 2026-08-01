@@ -26,6 +26,20 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Equal(165258.24m, row.Amount);
     }
 
+    [Fact]
+    public void RowsAs_BindsTheCurrentSchemaWhenEnumerationBegins() {
+        CsvDocument document = CsvDocument.Parse(
+            "Order Id,Sales Channel,Amount\n42,Online,165258.24\n");
+        var rows = document.RowsAs<SalesRow>();
+
+        document.RemoveColumn("Sales Channel");
+
+        SalesRow row = Assert.Single(rows);
+        Assert.Equal(42, row.OrderId);
+        Assert.Equal(string.Empty, row.SalesChannel);
+        Assert.Equal(165258.24m, row.Amount);
+    }
+
     private sealed class SalesRow {
         public int OrderId { get; set; }
         public string SalesChannel { get; set; } = string.Empty;

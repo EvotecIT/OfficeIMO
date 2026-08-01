@@ -145,6 +145,11 @@ public static class ExcelSheetCsvExtensions {
         IDataReader reader,
         ExcelCsvImportOptions options,
         CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (reader.FieldCount == 0) {
+            return new ExcelCsvImportResult(sheet.Name, string.Empty);
+        }
+
         string range = sheet.InsertDataReader(
             reader,
             options.StartRow,

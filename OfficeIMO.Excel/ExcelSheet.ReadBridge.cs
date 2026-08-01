@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct = default) where T : new() {
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);
-            string a1Range = sh.GetUsedRangeA1();
+            string a1Range = sh.GetUsedRangeA1(ct);
             return sh.ReadObjects<T>(a1Range, ct: ct);
         }
 
@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct) where T : new() {
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);
-            string a1Range = sh.GetUsedRangeA1();
+            string a1Range = sh.GetUsedRangeA1(ct);
             foreach (var row in sh.ReadObjectsStream<T>(a1Range, ct)) {
                 yield return row;
             }

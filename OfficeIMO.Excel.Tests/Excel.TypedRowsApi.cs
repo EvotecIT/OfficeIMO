@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;
@@ -35,6 +38,20 @@ public partial class Excel {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void RangeLessTypedRowsObserveCancellationDuringUsedRangeDiscovery() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "OrderId");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            sheet.RowsAs<TypedSalesRow>(ct: cancellation.Token).ToArray());
+        Assert.Throws<OperationCanceledException>(() =>
+            sheet.RowsAsStream<TypedSalesRow>(ct: cancellation.Token).ToArray());
     }
 
     private sealed class TypedSalesRow {
