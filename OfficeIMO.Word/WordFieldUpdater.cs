@@ -167,10 +167,12 @@ namespace OfficeIMO.Word {
                 case WordFieldType.SectionPages:
                     return TryEvaluateSectionPages(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.TOC:
+                    document.Settings.UpdateFieldsOnOpen = true;
                     status = WordFieldUpdateStatus.Skipped;
                     message = "Table of contents refresh was queued for Word to update on open; call WordTableOfContent.RefreshEntries() to generate deterministic OfficeIMO entries.";
                     return false;
                 case WordFieldType.Index:
+                    document.Settings.UpdateFieldsOnOpen = true;
                     status = WordFieldUpdateStatus.Skipped;
                     message = "Index refresh requires Word or another layout-aware application and was left for update on open.";
                     return false;

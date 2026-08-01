@@ -252,6 +252,9 @@ namespace OfficeIMO.Word {
             if (!SetFieldResultText(resultRuns, formattedValue)) {
                 Run endRun = fieldRuns[fieldRuns.Count - 1];
                 Run? sourceRun = fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null);
+                if (!fieldRuns.Any(run => run.GetFirstChild<FieldChar>()?.FieldCharType?.Value == FieldCharValues.Separate)) {
+                    endRun.InsertBeforeSelf(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+                }
                 endRun.InsertBeforeSelf(CreateReplacementRun(formattedValue, sourceRun));
             }
             AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");

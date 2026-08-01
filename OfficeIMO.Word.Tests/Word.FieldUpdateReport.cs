@@ -9,7 +9,7 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class WordFieldUpdateReportTests {
+    public partial class WordFieldUpdateReportTests {
         private readonly string _directoryWithFiles;
 
         public WordFieldUpdateReportTests() {
@@ -74,6 +74,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FieldRefreshDelegated", result.DiagnosticCode);
                 Assert.Equal(WordFieldEvaluationBasis.ExternalLayoutRequired, result.EvaluationBasis);
             });
+            Assert.True(document.Settings.UpdateFieldsOnOpen);
         }
 
         [Fact]

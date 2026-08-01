@@ -24,12 +24,13 @@ namespace OfficeIMO.Word.Html {
                     mainPart,
                     options.IncludeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null)) {
                     bool countOutputContent = IsOutputContentRoot(root.Root, options);
-                    foreach (OpenXmlElement element in EnumerateRootAndDescendants(root.Root)) {
+                    foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(root.Root)) {
+                        OpenXmlElement element = inspected.Element;
                         elements++;
                         if (elements > options.MaxDocumentElements) {
                             ThrowExportLimitExceeded(options, "WordElementLimitExceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
                         }
-                        if (countOutputContent) {
+                        if (countOutputContent && !inspected.OmitOutputContent) {
                             long elementCharacters = element is OpenXmlLeafTextElement textElement
                                 ? textElement.Text?.Length ?? 0
                                 : 0;
@@ -53,7 +54,7 @@ namespace OfficeIMO.Word.Html {
                         if (!hasRevisions && IsRevisionElement(element.LocalName)) {
                             hasRevisions = true;
                         }
-                        if (!hasRevisionText && IsRevisionTextContainer(element)) {
+                        if (!hasRevisionText && inspected.OmitOutputContent) {
                             hasRevisionText = true;
                         }
                         if (!hasComments && element is DocumentFormat.OpenXml.Wordprocessing.Comment) {
@@ -80,9 +81,17 @@ namespace OfficeIMO.Word.Html {
             root is not DocumentFormat.OpenXml.Wordprocessing.Settings &&
             root is not DocumentFormat.OpenXml.Wordprocessing.WebSettings;
 
-        private static IEnumerable<OpenXmlElement> EnumerateRootAndDescendants(OpenXmlElement root) {
-            yield return root;
-            foreach (OpenXmlElement descendant in root.Descendants()) yield return descendant;
+        private static IEnumerable<(OpenXmlElement Element, bool OmitOutputContent)> EnumerateRootAndDescendants(OpenXmlElement root) {
+            var pending = new Stack<(OpenXmlElement Element, bool InOmittedRevision)>();
+            pending.Push((root, false));
+            while (pending.Count > 0) {
+                (OpenXmlElement element, bool inOmittedRevision) = pending.Pop();
+                bool omitOutputContent = inOmittedRevision || IsRevisionTextContainer(element);
+                yield return (element, omitOutputContent);
+                for (int index = element.ChildElements.Count - 1; index >= 0; index--) {
+                    pending.Push((element.ChildElements[index], omitOutputContent));
+                }
+            }
         }
 
         private static IEnumerable<(OpenXmlElement Root, string PartUri)> EnumerateExportRoots(
