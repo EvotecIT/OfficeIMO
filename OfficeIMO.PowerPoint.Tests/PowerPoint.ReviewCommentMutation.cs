@@ -7,6 +7,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 
 namespace OfficeIMO.Tests {
@@ -51,6 +52,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Updated review", projected.Text);
             Assert.Equal(-25, projected.X);
             Assert.Equal(900, projected.Y);
+        }
+
+        [Fact]
+        public void ClassicCommentMutation_RecomputesRetainedAuthorLastIndex() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var alice = new PowerPointCommentAuthor("Alice", "A");
+            var bob = new PowerPointCommentAuthor("Bob", "B");
+            presentation.AddClassicComment(slide, alice, "First");
+            PowerPointClassicComment second = presentation.AddClassicComment(
+                slide, alice, "Second");
+            PowerPointClassicComment third = presentation.AddClassicComment(
+                slide, alice, "Third");
+
+            third.SetAuthor(bob);
+            Assert.Equal(2U, GetClassicAuthor(presentation, "Alice").LastIndex!.Value);
+
+            second.Remove();
+            Assert.Equal(1U, GetClassicAuthor(presentation, "Alice").LastIndex!.Value);
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.NotEmpty(presentation.ToBytes(PowerPointFileFormat.Ppt));
         }
 
         [Fact]
@@ -202,5 +224,11 @@ namespace OfficeIMO.Tests {
                 .Select(author => author.Name?.Value ?? string.Empty)
                 .OrderBy(name => name, StringComparer.Ordinal)
                 .ToArray();
+
+        private static P.CommentAuthor GetClassicAuthor(
+            PowerPointPresentation presentation, string name) => presentation
+                .OpenXmlDocument.PresentationPart!.CommentAuthorsPart!
+                .CommentAuthorList!.Elements<P.CommentAuthor>()
+                .Single(author => author.Name?.Value == name);
     }
 }

@@ -1127,7 +1127,9 @@ namespace OfficeIMO.Tests {
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
             VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
                 IncludeUnsupportedMasters = true,
-                Category = "External"
+                Category = "External",
+                SourceLicense = "Vendor-EULA",
+                SourceAttribution = "Example Vendor"
             });
             Assert.Equal("fancy-cloud", catalog.Get("fancy-cloud").Id);
 
@@ -1141,6 +1143,12 @@ namespace OfficeIMO.Tests {
             Assert.Single(imported);
             Assert.Same(imported[0], cloud.Master);
             Assert.Equal("FancyCloud", cloud.MasterNameU);
+            Assert.False(cloud.Master!.StencilIsSupported);
+            Assert.Equal("Vendor-EULA", cloud.Master.StencilSourceLicense);
+            Assert.Equal("Example Vendor", cloud.Master.StencilSourceAttribution);
+            Assert.Equal("false", cloud.GetUserCellValue(VisioSemanticUserCells.StencilIsSupported));
+            Assert.Equal("Vendor-EULA", cloud.GetUserCellValue(VisioSemanticUserCells.StencilSourceLicense));
+            Assert.Equal("Example Vendor", cloud.GetUserCellValue(VisioSemanticUserCells.StencilSourceAttribution));
             Assert.Empty(VisioValidator.Validate(filePath));
 
             using ZipArchive zip = ZipFile.OpenRead(filePath);
@@ -1153,6 +1161,9 @@ namespace OfficeIMO.Tests {
             XElement masterUserSection = masterDocument.Root!.Element(ns + "PageSheet")!.Elements(ns + "Section").Single(section => (string?)section.Attribute("N") == "User");
             Assert.Equal("1", GetUserCellValue(masterUserSection, ns, "OfficeIMO.PackageBackedMaster"));
             Assert.Equal("fancy-cloud", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilId));
+            Assert.Equal("false", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilIsSupported));
+            Assert.Equal("Vendor-EULA", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilSourceLicense));
+            Assert.Equal("Example Vendor", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilSourceAttribution));
 
             XDocument pageDocument = XDocument.Load(zip.GetEntry("visio/pages/page1.xml")!.Open());
             XElement pageShape = pageDocument.Root!.Element(ns + "Shapes")!.Element(ns + "Shape")!;
@@ -1171,6 +1182,15 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(masterRelationships.Root!.Elements(packageRel + "Relationship").FirstOrDefault(element =>
                 (string?)element.Attribute("Id") == "rIdImage" &&
                 ((string?)element.Attribute("Target"))!.Contains("officeimo-master1-rel1.emf", StringComparison.OrdinalIgnoreCase)));
+
+            VisioDocument reloaded = VisioDocument.Load(filePath);
+            VisioShape reloadedCloud = Assert.Single(reloaded.Pages[0].Shapes);
+            Assert.False(reloadedCloud.Master!.StencilIsSupported);
+            Assert.Equal("Vendor-EULA", reloadedCloud.Master.StencilSourceLicense);
+            Assert.Equal("Example Vendor", reloadedCloud.Master.StencilSourceAttribution);
+            Assert.Equal("false", reloadedCloud.GetUserCellValue(VisioSemanticUserCells.StencilIsSupported));
+            Assert.Equal("Vendor-EULA", reloadedCloud.GetUserCellValue(VisioSemanticUserCells.StencilSourceLicense));
+            Assert.Equal("Example Vendor", reloadedCloud.GetUserCellValue(VisioSemanticUserCells.StencilSourceAttribution));
         }
 
         [Fact]

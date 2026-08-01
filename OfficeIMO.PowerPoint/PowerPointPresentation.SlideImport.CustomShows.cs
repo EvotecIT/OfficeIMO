@@ -457,7 +457,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsCustomShowActionValue(string? action) =>
             action?.StartsWith("ppaction://customshow?id=",
-                StringComparison.Ordinal) == true;
+                StringComparison.OrdinalIgnoreCase) == true;
 
         private static bool TryParseCustomShowAction(
             string? action,

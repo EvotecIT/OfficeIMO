@@ -477,14 +477,20 @@ namespace OfficeIMO.PowerPoint {
 
         internal void RemoveClassicCommentAuthorIfUnused(uint? authorId) {
             if (!authorId.HasValue) return;
-            bool inUse = _slides.Any(slide => slide.SlidePart.SlideCommentsPart?
-                .CommentList?.Elements<P.Comment>()
-                .Any(comment => comment.AuthorId?.Value == authorId.Value) == true);
-            if (inUse) return;
             CommentAuthorsPart? part = _presentationPart.CommentAuthorsPart;
             P.CommentAuthor? author = part?.CommentAuthorList?
                 .Elements<P.CommentAuthor>()
                 .FirstOrDefault(candidate => candidate.Id?.Value == authorId.Value);
+            uint[] survivingIndexes = _slides.SelectMany(slide =>
+                    slide.SlidePart.SlideCommentsPart?.CommentList?
+                        .Elements<P.Comment>() ?? Enumerable.Empty<P.Comment>())
+                .Where(comment => comment.AuthorId?.Value == authorId.Value)
+                .Select(comment => comment.Index?.Value ?? 0U)
+                .ToArray();
+            if (survivingIndexes.Length > 0) {
+                if (author != null) author.LastIndex = survivingIndexes.Max();
+                return;
+            }
             author?.Remove();
             if (part?.CommentAuthorList == null
                 || part.CommentAuthorList.Elements<P.CommentAuthor>().Any()) return;

@@ -16,6 +16,12 @@ namespace OfficeIMO.Visio {
             Set(shape, VisioSemanticUserCells.StencilCategory, stencil.Category);
             Set(shape, VisioSemanticUserCells.StencilCatalog, catalogName);
             Set(shape, VisioSemanticUserCells.StencilSourcePackagePath, NormalizePath(stencil.SourcePackagePath));
+            Set(shape, VisioSemanticUserCells.StencilIsSupported,
+                stencil.IsSupported ? "true" : "false");
+            Set(shape, VisioSemanticUserCells.StencilSourceLicense,
+                stencil.SourceLicense);
+            Set(shape, VisioSemanticUserCells.StencilSourceAttribution,
+                stencil.SourceAttribution);
             Set(shape, VisioSemanticUserCells.StencilKeywords, Join(stencil.Keywords));
             Set(shape, VisioSemanticUserCells.StencilAliases, Join(stencil.Aliases));
             Set(shape, VisioSemanticUserCells.StencilTags, Join(stencil.Tags));
@@ -37,6 +43,9 @@ namespace OfficeIMO.Visio {
             master.StencilCategory = stencil.Category;
             master.StencilCatalogName = string.IsNullOrWhiteSpace(catalogName) ? master.StencilCatalogName : catalogName;
             master.StencilSourcePackagePath = NormalizePath(stencil.SourcePackagePath) ?? master.StencilSourcePackagePath;
+            master.StencilIsSupported = stencil.IsSupported;
+            master.StencilSourceLicense = stencil.SourceLicense;
+            master.StencilSourceAttribution = stencil.SourceAttribution;
             master.StencilKeywords = Normalize(stencil.Keywords);
             master.StencilAliases = Normalize(stencil.Aliases);
             master.StencilTags = Normalize(stencil.Tags);
@@ -61,6 +70,15 @@ namespace OfficeIMO.Visio {
             master.StencilCategory = Get(values, VisioSemanticUserCells.StencilCategory) ?? master.StencilCategory;
             master.StencilCatalogName = Get(values, VisioSemanticUserCells.StencilCatalog) ?? master.StencilCatalogName;
             master.StencilSourcePackagePath = Get(values, VisioSemanticUserCells.StencilSourcePackagePath) ?? master.StencilSourcePackagePath;
+            master.StencilIsSupported = GetBool(values,
+                VisioSemanticUserCells.StencilIsSupported)
+                ?? master.StencilIsSupported;
+            master.StencilSourceLicense = Get(values,
+                VisioSemanticUserCells.StencilSourceLicense)
+                ?? master.StencilSourceLicense;
+            master.StencilSourceAttribution = Get(values,
+                VisioSemanticUserCells.StencilSourceAttribution)
+                ?? master.StencilSourceAttribution;
             master.StencilKeywords = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilKeywords)), master.StencilKeywords);
             master.StencilAliases = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilAliases)), master.StencilAliases);
             master.StencilTags = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilTags)), master.StencilTags);
@@ -82,6 +100,12 @@ namespace OfficeIMO.Visio {
             Add(cells, VisioSemanticUserCells.StencilCategory, master.StencilCategory);
             Add(cells, VisioSemanticUserCells.StencilCatalog, master.StencilCatalogName);
             Add(cells, VisioSemanticUserCells.StencilSourcePackagePath, master.StencilSourcePackagePath);
+            Add(cells, VisioSemanticUserCells.StencilIsSupported,
+                FormatBool(master.StencilIsSupported));
+            Add(cells, VisioSemanticUserCells.StencilSourceLicense,
+                master.StencilSourceLicense);
+            Add(cells, VisioSemanticUserCells.StencilSourceAttribution,
+                master.StencilSourceAttribution);
             Add(cells, VisioSemanticUserCells.StencilKeywords, Join(master.StencilKeywords));
             Add(cells, VisioSemanticUserCells.StencilAliases, Join(master.StencilAliases));
             Add(cells, VisioSemanticUserCells.StencilTags, Join(master.StencilTags));
@@ -120,6 +144,9 @@ namespace OfficeIMO.Visio {
                     string.Equals(name, VisioSemanticUserCells.StencilCategory, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilCatalog, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilSourcePackagePath, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilIsSupported, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilSourceLicense, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilSourceAttribution, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilKeywords, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilAliases, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilTags, StringComparison.OrdinalIgnoreCase) ||
@@ -223,6 +250,12 @@ namespace OfficeIMO.Visio {
                 : null;
         }
 
+        private static bool? GetBool(
+            IReadOnlyDictionary<string, string?> values, string key) {
+            string? value = Get(values, key);
+            return bool.TryParse(value, out bool parsed) ? parsed : null;
+        }
+
         private static string? FormatDouble(double? value) {
             return value.HasValue
                 ? value.Value.ToString("0.######", CultureInfo.InvariantCulture)
@@ -234,6 +267,10 @@ namespace OfficeIMO.Visio {
                 ? value.Value.ToString(CultureInfo.InvariantCulture)
                 : null;
         }
+
+        private static string? FormatBool(bool? value) => value.HasValue
+            ? (value.Value ? "true" : "false")
+            : null;
 
         private static void ApplyConnectionPoints(VisioShape shape, VisioStencilShape stencil) {
             if (shape.ConnectionPoints.Count > 0 ||

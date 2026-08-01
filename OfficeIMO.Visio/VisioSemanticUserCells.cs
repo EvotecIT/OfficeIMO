@@ -28,6 +28,9 @@ namespace OfficeIMO.Visio {
         public const string StencilCategory = "OfficeIMO.StencilCategory";
         public const string StencilCatalog = "OfficeIMO.StencilCatalog";
         public const string StencilSourcePackagePath = "OfficeIMO.StencilSourcePackagePath";
+        public const string StencilIsSupported = "OfficeIMO.StencilIsSupported";
+        public const string StencilSourceLicense = "OfficeIMO.StencilSourceLicense";
+        public const string StencilSourceAttribution = "OfficeIMO.StencilSourceAttribution";
         public const string StencilKeywords = "OfficeIMO.StencilKeywords";
         public const string StencilAliases = "OfficeIMO.StencilAliases";
         public const string StencilTags = "OfficeIMO.StencilTags";

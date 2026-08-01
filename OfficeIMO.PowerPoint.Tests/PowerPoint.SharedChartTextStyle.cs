@@ -63,4 +63,26 @@ public sealed class PowerPointSharedChartTextStyleTests {
         Assert.Equal(OfficeChartStyle.Default.FontFamily,
             snapshot.Style.FontFamily);
     }
+
+    [Fact]
+    public void SharedSnapshot_DoesNotProjectThemeFontTokensAsLiteralFamilies() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(
+            new[] { "Q1", "Q2" },
+            new[] { new OfficeChartSeries("Actual", new[] { 10D, 20D }) });
+        PowerPointChart chart = slide.AddChartPoints(
+            OfficeChartKind.ColumnClustered, data, 40, 40, 500, 300);
+        chart.SetTitle("Trajectory")
+            .SetTitleTextStyle(fontName: "+mj-lt")
+            .SetLegendTextStyle(fontName: "+mn-lt")
+            .SetCategoryAxisLabelTextStyle(fontName: "+mn-lt")
+            .SetValueAxisLabelTextStyle(fontName: "+mn-lt");
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartStyle.Default.FontFamily,
+            snapshot.Style.FontFamily);
+        Assert.Equal(OfficeChartStyle.Default.TitleFontFamily,
+            snapshot.Style.TitleFontFamily);
+    }
 }

@@ -171,24 +171,36 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
-            string[] bodyFonts = chart.Descendants<C.TextProperties>()
+            string?[] bodyTypefaceValues = chart.Descendants<C.TextProperties>()
                 .Where(properties => !properties.Ancestors<C.Title>().Any())
                 .SelectMany(properties => properties.Descendants<A.LatinFont>())
                 .Select(font => font.Typeface?.Value)
                 .Where(value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+            string[] bodyFonts = bodyTypefaceValues
+                .Where(value => !IsThemeFontToken(value))
                 .Select(value => value!)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            string? bodyFont = bodyFonts.Length == 1 ? bodyFonts[0] : null;
-            string? titleFont = chart.GetFirstChild<C.Title>()?
+            string? bodyFont = bodyTypefaceValues.Any(IsThemeFontToken)
+                ? null
+                : bodyFonts.Length == 1 ? bodyFonts[0] : null;
+            string? titleTypeface = chart.GetFirstChild<C.Title>()?
                 .Descendants<A.LatinFont>()
                 .Select(font => font.Typeface?.Value)
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            string? titleFont = IsThemeFontToken(titleTypeface)
+                ? null
+                : titleTypeface;
             return bodyFont == null && titleFont == null
                 ? null
                 : new OfficeChartStyle(fontFamily: bodyFont,
                     titleFontFamily: titleFont);
         }
+
+        private static bool IsThemeFontToken(string? typeface) =>
+            !string.IsNullOrEmpty(typeface)
+            && typeface![0] == '+';
 
         private static HashSet<uint> GetHiddenLegendSeriesIndexes(C.Chart chart) {
             var result = new HashSet<uint>();

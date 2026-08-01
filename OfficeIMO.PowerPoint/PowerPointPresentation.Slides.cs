@@ -160,9 +160,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void RemoveCustomShowLinks(uint customShowId) {
-            string prefix = "ppaction://customshow?id="
-                + customShowId.ToString(
-                    System.Globalization.CultureInfo.InvariantCulture);
             var visited = new HashSet<OpenXmlPart>();
             var pending = new Stack<OpenXmlPart>();
             pending.Push(_presentationPart);
@@ -175,8 +172,9 @@ namespace OfficeIMO.PowerPoint {
                 OpenXmlPartRootElement? root = part.RootElement;
                 if (root == null) continue;
                 A.HyperlinkType[] links = root.Descendants<A.HyperlinkType>()
-                    .Where(link => IsCustomShowAction(
-                        link.Action?.Value, prefix))
+                    .Where(link => TryParseCustomShowAction(
+                            link.Action?.Value, out uint targetId, out _)
+                        && targetId == customShowId)
                     .ToArray();
                 if (links.Length == 0) continue;
                 string[] soundRelationshipIds = links
@@ -194,12 +192,6 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
         }
-
-        private static bool IsCustomShowAction(string? action,
-            string expectedPrefix) => action != null
-            && action.StartsWith(expectedPrefix, StringComparison.Ordinal)
-            && (action.Length == expectedPrefix.Length
-                || action[expectedPrefix.Length] == '&');
 
         private void RemoveInboundSlideLinks(SlidePart targetSlidePart) {
             var visited = new HashSet<OpenXmlPart>();
