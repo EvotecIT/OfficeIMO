@@ -4,10 +4,6 @@
 `OfficeIMO.Visio`. It reuses the shared Visio reader projection and
 `OfficeIMO.Reader.Pdf` engine, including explicit semantic-fallback diagnostics.
 
-```powershell
-dotnet add package OfficeIMO.Visio.Pdf
-```
-
 ```csharp
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Pdf;

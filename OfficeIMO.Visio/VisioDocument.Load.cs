@@ -14,7 +14,10 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Loads an existing .vsdx file into a VisioDocument.
         /// </summary>
-        public static VisioDocument Load(string filePath, VisioLoadOptions? options = null) {
+        public static VisioDocument Load(string filePath) => Load(filePath, options: null);
+
+        /// <summary>Loads an existing .vsdx file with explicit input limits.</summary>
+        public static VisioDocument Load(string filePath, VisioLoadOptions? options) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             string fullPath = Path.GetFullPath(filePath);
@@ -52,9 +55,22 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>Asynchronously loads an existing .vsdx file with optional input limits.</summary>
+        public static Task<VisioDocument> LoadAsync(
+            string filePath,
+            CancellationToken cancellationToken = default) =>
+            LoadAsync(filePath, options: null, cancellationToken);
+
+        /// <summary>Asynchronously loads an existing .vsdx file with explicit input limits.</summary>
+        public static Task<VisioDocument> LoadAsync(
+            string filePath,
+            CancellationToken cancellationToken,
+            VisioLoadOptions? options) =>
+            LoadAsync(filePath, options, cancellationToken);
+
+        /// <summary>Asynchronously loads an existing .vsdx file with optional input limits.</summary>
         public static async Task<VisioDocument> LoadAsync(
             string filePath,
-            VisioLoadOptions? options = null,
+            VisioLoadOptions? options,
             CancellationToken cancellationToken = default) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
@@ -67,9 +83,22 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
+        public static Task<VisioDocument> LoadAsync(
+            Stream stream,
+            CancellationToken cancellationToken = default) =>
+            LoadAsync(stream, options: null, cancellationToken);
+
+        /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with explicit input limits.</summary>
+        public static Task<VisioDocument> LoadAsync(
+            Stream stream,
+            CancellationToken cancellationToken,
+            VisioLoadOptions? options) =>
+            LoadAsync(stream, options, cancellationToken);
+
+        /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
         public static async Task<VisioDocument> LoadAsync(
             Stream stream,
-            VisioLoadOptions? options = null,
+            VisioLoadOptions? options,
             CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
