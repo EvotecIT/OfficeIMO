@@ -27,6 +27,12 @@ namespace OfficeIMO.Excel.Xlsb {
         /// <summary>Gets or sets the maximum number of shared-string items accepted.</summary>
         public int MaxSharedStrings { get; set; } = 1_000_000;
 
+        /// <summary>Gets or sets the maximum UTF-16 character length of one shared-string item.</summary>
+        public int MaxSharedStringItemCharacters { get; set; } = 32_767;
+
+        /// <summary>Gets or sets the aggregate UTF-16 character budget for the shared-string table.</summary>
+        public long MaxSharedStringCharacters { get; set; } = 64L * 1024L * 1024L;
+
         /// <summary>Gets or sets the maximum number of merged ranges accepted from one workbook.</summary>
         public int MaxMergedRanges { get; set; } = 1_048_576;
 
@@ -52,6 +58,8 @@ namespace OfficeIMO.Excel.Xlsb {
             if (MaxCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCells));
             if (MaxRowDefinitions <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRowDefinitions));
             if (MaxSharedStrings <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStrings));
+            if (MaxSharedStringItemCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStringItemCharacters));
+            if (MaxSharedStringCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStringCharacters));
             if (MaxMergedRanges <= 0) throw new ArgumentOutOfRangeException(nameof(MaxMergedRanges));
             if (MaxHyperlinks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxHyperlinks));
             if (MaxStringCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStringCharacters));

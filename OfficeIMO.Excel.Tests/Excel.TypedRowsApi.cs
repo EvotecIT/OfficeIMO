@@ -52,6 +52,14 @@ public partial class Excel {
             sheet.RowsAs<TypedSalesRow>(ct: cancellation.Token).ToArray());
         Assert.Throws<OperationCanceledException>(() =>
             sheet.RowsAsStream<TypedSalesRow>(ct: cancellation.Token).ToArray());
+
+        using var optionsCancellation = new CancellationTokenSource();
+        optionsCancellation.Cancel();
+        var options = new ExcelReadOptions { CancellationToken = optionsCancellation.Token };
+        Assert.Throws<OperationCanceledException>(() =>
+            sheet.RowsAs<TypedSalesRow>(options).ToArray());
+        Assert.Throws<OperationCanceledException>(() =>
+            sheet.RowsAsStream<TypedSalesRow>(options).ToArray());
     }
 
     private sealed class TypedSalesRow {

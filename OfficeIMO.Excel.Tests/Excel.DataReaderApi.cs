@@ -755,6 +755,26 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_ProjectedXlsbEnforcesSharedStringCharacterLimitsDuringImport() {
+        string path = GetDataReaderXlsbFixture("basic-values-formula.xlsb");
+
+        Assert.Throws<InvalidDataException>(() =>
+            ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    A1Range = "A1:B5",
+                    MaxSharedStringItemCharacters = 3
+                }));
+        Assert.Throws<InvalidDataException>(() =>
+            ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    A1Range = "A1:B5",
+                    MaxSharedStringCharacters = 5
+                }));
+    }
+
+    [Fact]
     public void OpenDataReader_PreCancelledLegacyXlsStopsBeforeLoading() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

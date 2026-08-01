@@ -44,10 +44,15 @@ namespace OfficeIMO.Excel {
         public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             ExcelReadOptions? options = null,
             CancellationToken ct = default) where T : new() {
-            using var rdr = _excelDocument.CreateReader(options);
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(this.Name);
-            string a1Range = sh.GetUsedRangeA1(ct);
-            return sh.ReadObjects<T>(a1Range, ct: ct);
+            string a1Range = sh.GetUsedRangeA1(token);
+            return sh.ReadObjects<T>(a1Range, ct: token).ToArray();
         }
 
         /// <summary>
@@ -58,9 +63,14 @@ namespace OfficeIMO.Excel {
             ExcelReadOptions? options = null,
             CancellationToken ct = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            using var rdr = _excelDocument.CreateReader(options);
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(this.Name);
-            return sh.ReadObjects<T>(a1Range, ct: ct);
+            return sh.ReadObjects<T>(a1Range, ct: token).ToArray();
         }
 
         /// <summary>
@@ -93,10 +103,15 @@ namespace OfficeIMO.Excel {
         private IEnumerable<T> RowsAsUsedRangeStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             ExcelReadOptions? options,
             CancellationToken ct) where T : new() {
-            using var rdr = _excelDocument.CreateReader(options);
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(this.Name);
-            string a1Range = sh.GetUsedRangeA1(ct);
-            foreach (var row in sh.ReadObjectsStream<T>(a1Range, ct)) {
+            string a1Range = sh.GetUsedRangeA1(token);
+            foreach (var row in sh.ReadObjectsStream<T>(a1Range, token)) {
                 yield return row;
             }
         }
@@ -105,9 +120,14 @@ namespace OfficeIMO.Excel {
             string a1Range,
             ExcelReadOptions? options,
             CancellationToken ct) where T : new() {
-            using var rdr = _excelDocument.CreateReader(options);
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(this.Name);
-            foreach (var row in sh.ReadObjectsStream<T>(a1Range, ct)) {
+            foreach (var row in sh.ReadObjectsStream<T>(a1Range, token)) {
                 yield return row;
             }
         }

@@ -21,8 +21,9 @@ namespace OfficeIMO.Excel {
         private readonly IReadOnlyList<SheetSelection> _sheets;
         private readonly IReadOnlyList<string> _sheetNames;
         private readonly Func<int, DbDataReader> _openSheet;
-        private readonly IDisposable _owner;
+        private IDisposable _owner;
         private readonly CultureInfo _culture;
+        private readonly CancellationToken _cancellationToken;
         private DbDataReader _current;
         private int _resultIndex;
         private bool _closed;
@@ -31,7 +32,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<SheetSelection> sheets,
             Func<int, DbDataReader> openSheet,
             IDisposable owner,
-            CultureInfo culture) {
+            CultureInfo culture,
+            CancellationToken cancellationToken) {
             if (sheets.Count == 0) {
                 owner.Dispose();
                 throw new InvalidDataException("The workbook contains no readable worksheets.");
@@ -42,7 +44,13 @@ namespace OfficeIMO.Excel {
             _openSheet = openSheet;
             _owner = owner;
             _culture = culture;
+            _cancellationToken = cancellationToken;
             _current = _openSheet(0);
+        }
+
+        internal ExcelWorkbookDataReader OwnLifetime(IDisposable lifetime) {
+            _owner = new CompositeOwner(_owner, lifetime);
+            return this;
         }
 
         internal static ExcelWorkbookDataReader OpenOpenXml(string path, ExcelReadOptions options) =>
@@ -98,6 +106,8 @@ namespace OfficeIMO.Excel {
                     MaxPackageBytes = options.MaxInputBytes,
                     MaxCells = options.MaxXlsbCells,
                     MaxSharedStrings = options.MaxSharedStringItems,
+                    MaxSharedStringItemCharacters = options.MaxSharedStringItemCharacters,
+                    MaxSharedStringCharacters = options.MaxSharedStringCharacters,
                     ReportPreservedRecords = false,
                     CancellationToken = options.CancellationToken
                 }
@@ -226,7 +236,8 @@ namespace OfficeIMO.Excel {
                     sheets,
                     index => OpenOpenXmlSheet(owner, sheets[index].Name, options),
                     lifetime,
-                    options.Culture);
+                    options.Culture,
+                    options.CancellationToken);
             } catch {
                 lifetime.Dispose();
                 throw;
@@ -264,7 +275,8 @@ namespace OfficeIMO.Excel {
                         options,
                         options.CancellationToken),
                     owner,
-                    options.Culture);
+                    options.Culture,
+                    options.CancellationToken);
             } catch {
                 owner.Dispose();
                 throw;
@@ -335,6 +347,7 @@ namespace OfficeIMO.Excel {
 
         public override bool NextResult() {
             ThrowIfClosed();
+            _cancellationToken.ThrowIfCancellationRequested();
             if (_resultIndex + 1 >= _sheetNames.Count) {
                 return false;
             }
@@ -484,6 +497,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
         public override bool Read() {
             ThrowIfClosed();
+            _cancellationToken.ThrowIfCancellationRequested();
             return _current.Read();
         }
         /// <inheritdoc />

@@ -104,15 +104,21 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken = default) {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
-            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 effectiveOptions.CancellationToken);
-            byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(
-                uri,
-                httpOptions,
-                linkedCancellation.Token,
-                effectiveOptions.MaxInputBytes).ConfigureAwait(false);
-            return OpenDataReader(bytes, effectiveOptions.WithCancellationToken(linkedCancellation.Token));
+            try {
+                byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(
+                    uri,
+                    httpOptions,
+                    linkedCancellation.Token,
+                    effectiveOptions.MaxInputBytes).ConfigureAwait(false);
+                return OpenDataReader(bytes, effectiveOptions.WithCancellationToken(linkedCancellation.Token))
+                    .OwnLifetime(linkedCancellation);
+            } catch {
+                linkedCancellation.Dispose();
+                throw;
+            }
         }
     }
 }

@@ -411,6 +411,7 @@ namespace OfficeIMO.Excel.Xlsb {
             IReadOnlyList<XlsbRecord> records = ReadRecords(parts.ReadPart(partName, options.CancellationToken), options,
                 recordBudget);
             var values = new List<string>();
+            long totalSharedStringCharacters = 0;
             bool hasBegin = false;
             bool hasEnd = false;
             foreach (XlsbRecord record in records) {
@@ -429,7 +430,13 @@ namespace OfficeIMO.Excel.Xlsb {
 
                         var cursor = new XlsbBinaryCursor(record.Data);
                         byte flags = cursor.ReadByte();
-                        values.Add(cursor.ReadWideString(options.MaxStringCharacters));
+                        string value = cursor.ReadWideString(options.MaxSharedStringItemCharacters);
+                        if (value.Length > options.MaxSharedStringCharacters - totalSharedStringCharacters) {
+                            throw new InvalidDataException(
+                                $"The XLSB shared-string table exceeds the configured aggregate limit of {options.MaxSharedStringCharacters} characters.");
+                        }
+                        totalSharedStringCharacters += value.Length;
+                        values.Add(value);
                         if ((flags & 0x03) != 0 || cursor.Remaining > 0) {
                             PreserveRecord(options, workbook, partName, record);
                         }
