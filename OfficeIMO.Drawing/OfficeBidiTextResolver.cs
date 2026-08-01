@@ -136,7 +136,9 @@ public static class OfficeBidiTextResolver {
         }
         ReorderByEmbeddingLevel(visualElements, cancellationToken);
         var visual = new StringBuilder(text!.Length);
-        foreach (VisualElement<string> element in visualElements) visual.Append(element.Value);
+        foreach (VisualElement<string> element in visualElements) {
+            visual.Append((element.Level & 1) == 1 ? MirrorText(element.Value) : element.Value);
+        }
         return visual.ToString();
     }
 
@@ -144,7 +146,8 @@ public static class OfficeBidiTextResolver {
         string directionalText,
         IReadOnlyList<T> visibleElements,
         OfficeTextDirection baseDirection,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Func<T, T>? mirrorOddLevel = null) {
         IReadOnlyList<OfficeBidiTextRun> runs = ResolveRuns(directionalText, baseDirection, cancellationToken);
         var visualElements = new List<VisualElement<T>>(visibleElements.Count);
         int elementIndex = 0;
@@ -153,12 +156,33 @@ public static class OfficeBidiTextResolver {
             int count = OfficeTextElements.Split(run.Text).Count;
             if (count > visibleElements.Count - elementIndex) return Array.Empty<T>();
             for (int index = 0; index < count; index++) {
-                visualElements.Add(new VisualElement<T>(visibleElements[elementIndex++], run.EmbeddingLevel));
+                T value = visibleElements[elementIndex++];
+                if ((run.EmbeddingLevel & 1) == 1 && mirrorOddLevel != null) value = mirrorOddLevel(value);
+                visualElements.Add(new VisualElement<T>(value, run.EmbeddingLevel));
             }
         }
         if (elementIndex != visibleElements.Count) return Array.Empty<T>();
         ReorderByEmbeddingLevel(visualElements, cancellationToken);
         return visualElements.Select(static element => element.Value).ToArray();
+    }
+
+    internal static string MirrorText(string value) {
+        if (value.Length == 0) return value;
+        var mirrored = new StringBuilder(value.Length);
+        foreach (string element in OfficeTextElements.Enumerate(value)) {
+            mirrored.Append(element switch {
+                "(" => ")", ")" => "(", "[" => "]", "]" => "[", "{" => "}", "}" => "{", "<" => ">", ">" => "<",
+                "«" => "»", "»" => "«", "‹" => "›", "›" => "‹", "⁅" => "⁆", "⁆" => "⁅",
+                "⁽" => "⁾", "⁾" => "⁽", "₍" => "₎", "₎" => "₍",
+                "⌈" => "⌉", "⌉" => "⌈", "⌊" => "⌋", "⌋" => "⌊", "〈" => "〉", "〉" => "〈",
+                "❨" => "❩", "❩" => "❨", "❪" => "❫", "❫" => "❪", "❬" => "❭", "❭" => "❬",
+                "❮" => "❯", "❯" => "❮", "❰" => "❱", "❱" => "❰", "❲" => "❳", "❳" => "❲",
+                "❴" => "❵", "❵" => "❴", "⟅" => "⟆", "⟆" => "⟅", "⟦" => "⟧", "⟧" => "⟦",
+                "⟨" => "⟩", "⟩" => "⟨", "⟪" => "⟫", "⟫" => "⟪",
+                _ => element
+            });
+        }
+        return mirrored.ToString();
     }
 
     private static bool TryApplyControl(

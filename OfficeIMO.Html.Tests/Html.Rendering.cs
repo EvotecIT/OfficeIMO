@@ -1681,6 +1681,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_CarriesBidiOverridesAcrossInlineFormattingBoundaries() {
+        const string html = "<p style='margin:0'><span>\u202E</span><b>abc</b><span>\u202C</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "abc");
+        HtmlRenderText text = Assert.Single(group.Visuals.OfType<HtmlRenderText>());
+
+        Assert.Equal("cba", text.Text);
+        Assert.Equal("abc", group.Text);
+    }
+
+    [Fact]
     public void HtmlRenderer_ResolvesLogicalTextAlignmentAgainstElementDirection() {
         const string html = "<div style='width:160px'><p id='start' dir='rtl' style='margin:0'>Start</p><p id='end' dir='rtl' style='margin:0;text-align:end'>End</p><p id='left' dir='rtl' style='margin:0;text-align:left'>Left</p></div>";
 

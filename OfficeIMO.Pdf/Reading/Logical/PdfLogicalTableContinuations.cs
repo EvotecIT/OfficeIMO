@@ -20,7 +20,13 @@ internal static class PdfLogicalTableContinuations {
             throw new ArgumentOutOfRangeException(nameof(geometryTolerancePoints));
         }
 
-        IReadOnlyList<PdfLogicalTableExtraction> extractions = PdfLogicalTableAnalysis.ExtractTables(document);
+        int extractionRowLimit = maxRows > 0
+            ? maxRows > int.MaxValue - MaximumRepeatedHeaderRows
+                ? int.MaxValue
+                : maxRows + MaximumRepeatedHeaderRows
+            : 0;
+        IReadOnlyList<PdfLogicalTableExtraction> extractions =
+            PdfLogicalTableAnalysis.ExtractTables(document, extractionRowLimit);
         if (extractions.Count == 0) return Array.Empty<PdfLogicalTableContinuationGroup>();
 
         var groups = new List<PdfLogicalTableContinuationGroup>(extractions.Count);
@@ -102,9 +108,10 @@ internal static class PdfLogicalTableContinuations {
         for (int segmentIndex = 0; segmentIndex < segments.Length; segmentIndex++) {
             IReadOnlyList<IReadOnlyList<string>> rows = segments[segmentIndex].Data.Rows;
             int start = repeatedBodyHeaderRows;
-            if (segmentIndex > 0) suppressedRows += Math.Min(start, rows.Count);
+            int availableRowCount = segments[segmentIndex].Data.TotalRowCount;
+            totalRowCount = checked(totalRowCount + Math.Max(0, availableRowCount - start));
+            if (segmentIndex > 0) suppressedRows += Math.Min(start, availableRowCount);
             for (int rowIndex = start; rowIndex < rows.Count; rowIndex++) {
-                totalRowCount++;
                 if (maxRows <= 0 || allRows.Count < maxRows) allRows.Add(rows[rowIndex]);
             }
         }

@@ -536,17 +536,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class InlineSegment {
-        internal InlineSegment(string text, double width, HtmlInlineRun run, string? logicalText = null) {
+        internal InlineSegment(
+            string text,
+            double width,
+            HtmlInlineRun run,
+            string? logicalText = null,
+            bool bidiResolved = false) {
             Text = text;
             LogicalText = logicalText ?? text;
             Width = width;
             Run = run;
+            BidiResolved = bidiResolved;
         }
 
         internal string Text { get; }
         internal string LogicalText { get; }
         internal double Width { get; }
         internal HtmlInlineRun Run { get; }
+        internal bool BidiResolved { get; }
     }
 
     private static double ResolveTextAscent(HtmlRenderBoxStyle style) {

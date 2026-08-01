@@ -209,6 +209,12 @@ public partial class Excel {
             .ToBytes();
 
         PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        PdfCore.PdfLogicalTableContinuationGroup bounded = Assert.Single(
+            PdfCore.PdfLogicalTableContinuations.Group(logical, 2, true, 64, 4D));
+        Assert.All(bounded.Segments, segment => Assert.InRange(segment.Data.Rows.Count, 0, 6));
+        Assert.Equal(30, bounded.TotalRowCount);
+        Assert.Equal(2, bounded.Rows.Count);
+        Assert.True(bounded.Truncated);
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
             workbook,

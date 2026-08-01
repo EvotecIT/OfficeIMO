@@ -75,7 +75,8 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             contextual,
             logicalElements,
             direction,
-            cancellationToken);
+            cancellationToken,
+            static element => element.WithVisualText(OfficeBidiTextResolver.MirrorText(element.VisualText)));
     }
 
     private static bool TryAddElementGlyphs(
@@ -125,5 +126,8 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         internal string VisualText { get; }
         internal string LogicalText { get; }
         internal int LogicalIndex { get; }
+
+        internal VisualTextElement WithVisualText(string visualText) =>
+            new VisualTextElement(visualText, LogicalText, LogicalIndex);
     }
 }

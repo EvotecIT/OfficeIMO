@@ -18,7 +18,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private IReadOnlyList<InlinePaintSegment> ResolveInlinePaintSegments(InlineSegment segment, double x) {
-        if (!OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
+        if (segment.BidiResolved ||
+            !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
             return new[] { new InlinePaintSegment(segment.Text, x, segment.Width, 0) };
         }
 
@@ -50,6 +51,94 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 run.LogicalOrder));
         }
         return groups;
+    }
+
+    private IReadOnlyList<InlineSegment> ResolveInlineLineSegments(
+        IReadOnlyList<InlineSegment> segments,
+        string paragraphDirection,
+        out bool resolved) {
+        resolved = false;
+        if (segments.Count < 2 || segments.Any(static segment =>
+                segment.Run.AtomicBlock != null ||
+                segment.Run.RunningStringElement != null ||
+                segment.Run.PositionedMarkerElement != null)) {
+            return segments;
+        }
+
+        string directionalText = string.Concat(segments.Select(static segment => segment.Text));
+        if (!OfficeTextElements.ContainsBidiControl(directionalText)) return segments;
+
+        var visibleElements = new List<InlineBidiElement>();
+        for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
+            CheckCancellation();
+            InlineSegment segment = segments[segmentIndex];
+            IReadOnlyList<string> paintElements = OfficeTextElements.Split(segment.Text);
+            IReadOnlyList<string> logicalElements = OfficeTextElements.Split(segment.LogicalText);
+            bool hasContextualWidths = _fonts.TryMeasureTextElements(
+                segment.Text,
+                paintElements,
+                segment.Run.Style.Font.Size,
+                segment.Run.Style.Font.FamilyName,
+                segment.Run.Style.Font.Style,
+                out IReadOnlyList<double> contextualWidths);
+            var widths = new double[paintElements.Count];
+            double visibleWidth = 0D;
+            for (int elementIndex = 0; elementIndex < paintElements.Count; elementIndex++) {
+                string paintText = paintElements[elementIndex];
+                if (OfficeTextElements.ContainsBidiControl(paintText)) continue;
+                double elementWidth = hasContextualWidths
+                    ? contextualWidths[elementIndex]
+                    : MeasureText(paintText, segment.Run.Style.Font);
+                widths[elementIndex] = elementWidth;
+                visibleWidth += elementWidth;
+            }
+
+            double widthScale = visibleWidth > 0D ? segment.Width / visibleWidth : 1D;
+            for (int elementIndex = 0; elementIndex < paintElements.Count; elementIndex++) {
+                string paintText = paintElements[elementIndex];
+                if (OfficeTextElements.ContainsBidiControl(paintText)) continue;
+                string logicalText = elementIndex < logicalElements.Count
+                    ? logicalElements[elementIndex]
+                    : OfficeArabicTextShaper.ToLogicalText(paintText);
+                visibleElements.Add(new InlineBidiElement(
+                    paintText,
+                    logicalText,
+                    segmentIndex,
+                    elementIndex,
+                    Math.Max(0.01D, widths[elementIndex] * widthScale)));
+            }
+        }
+
+        OfficeTextDirection baseDirection = string.Equals(paragraphDirection, "rtl", StringComparison.Ordinal)
+            ? OfficeTextDirection.RightToLeft
+            : OfficeTextDirection.LeftToRight;
+        IReadOnlyList<InlineBidiElement> ordered = OfficeBidiTextResolver.ToVisualOrder(
+            directionalText,
+            visibleElements,
+            baseDirection,
+            _cancellationToken,
+            static element => element.WithText(OfficeBidiTextResolver.MirrorText(element.Text)));
+        if (visibleElements.Count > 0 && ordered.Count == 0) return segments;
+
+        var result = new List<InlineSegment>();
+        int start = 0;
+        while (start < ordered.Count) {
+            int end = start + 1;
+            while (end < ordered.Count && ordered[end].SourceSegmentIndex == ordered[start].SourceSegmentIndex) end++;
+            InlineSegment source = segments[ordered[start].SourceSegmentIndex];
+            string text = string.Concat(ordered.Skip(start).Take(end - start).Select(static element => element.Text));
+            string logicalText = string.Concat(ordered
+                .Skip(start)
+                .Take(end - start)
+                .OrderBy(static element => element.SourceElementIndex)
+                .Select(static element => element.LogicalText));
+            double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
+            result.Add(new InlineSegment(text, segmentWidth, source.Run, logicalText, bidiResolved: true));
+            start = end;
+        }
+
+        resolved = true;
+        return result;
     }
 
     private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, OfficeFontInfo font) {
@@ -97,5 +186,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal bool RightToLeft { get; }
         internal double Width { get; }
         internal int LogicalOrder { get; }
+    }
+
+    private readonly struct InlineBidiElement {
+        internal InlineBidiElement(
+            string text,
+            string logicalText,
+            int sourceSegmentIndex,
+            int sourceElementIndex,
+            double width) {
+            Text = text;
+            LogicalText = logicalText;
+            SourceSegmentIndex = sourceSegmentIndex;
+            SourceElementIndex = sourceElementIndex;
+            Width = width;
+        }
+
+        internal string Text { get; }
+        internal string LogicalText { get; }
+        internal int SourceSegmentIndex { get; }
+        internal int SourceElementIndex { get; }
+        internal double Width { get; }
+
+        internal InlineBidiElement WithText(string text) =>
+            new InlineBidiElement(text, LogicalText, SourceSegmentIndex, SourceElementIndex, Width);
     }
 }

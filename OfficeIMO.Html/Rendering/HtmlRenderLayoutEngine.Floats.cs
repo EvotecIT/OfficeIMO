@@ -256,10 +256,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double offsetX = ResolveLineOffset(paragraphStyle.Alignment, availableWidth, current.Width);
             double lineStart = lineX + offsetX;
             double lineRight = lineX + availableWidth;
-            bool rightToLeftLine = string.Equals(paragraphStyle.Direction, "rtl", StringComparison.Ordinal)
+            IReadOnlyList<InlineSegment> mergedSegments = MergeAdjacentInlineSegments(current.Segments);
+            IReadOnlyList<InlineSegment> paintLineSegments = ResolveInlineLineSegments(
+                mergedSegments,
+                paragraphStyle.Direction,
+                out bool lineBidiResolved);
+            bool rightToLeftLine = !lineBidiResolved
+                && string.Equals(paragraphStyle.Direction, "rtl", StringComparison.Ordinal)
                 && current.Segments.Any(segment => OfficeTextElements.ContainsRightToLeft(segment.Text));
             double cursor = rightToLeftLine ? lineStart + current.Width : lineStart;
-            foreach (InlineSegment segment in MergeAdjacentInlineSegments(current.Segments)) {
+            foreach (InlineSegment segment in paintLineSegments) {
                 double x = rightToLeftLine ? cursor - segment.Width : cursor;
                 if (segment.Run.RunningStringElement != null) {
                     runningStringAssignments.AddRange(ResolveRunningStringAssignments(
@@ -328,7 +334,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             semanticNodeId: segment.Run.SemanticNodeId,
                             textAdvanceWidth: paintSegment.Width));
                     }
-                    HtmlRenderVisual textVisual = OfficeTextElements.ContainsRightToLeft(segment.Text) || OfficeTextElements.ContainsBidiControl(segment.Text)
+                    HtmlRenderVisual textVisual = segment.BidiResolved ||
+                        OfficeTextElements.ContainsRightToLeft(segment.Text) || OfficeTextElements.ContainsBidiControl(segment.Text)
                         ? new HtmlRenderLogicalTextGroup(
                             OfficeTextElements.ContainsBidiControl(segment.LogicalText)
                                 ? string.Concat(OfficeBidiTextResolver.ResolveRuns(segment.LogicalText).Select(static run => run.Text))
