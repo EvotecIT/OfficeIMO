@@ -104,6 +104,15 @@ public partial class Drawing {
     }
 
     [Theory]
+    [InlineData("אב\nג", "בא\nג")]
+    [InlineData("אב\r\nג", "בא\r\nג")]
+    [InlineData("אב\u2028ג", "בא\u2028ג")]
+    [InlineData("אב\u2029ג", "בא\u2029ג")]
+    public void BidiTextResolver_ReordersParagraphsWithoutMovingSeparators(string logical, string expectedVisual) {
+        Assert.Equal(expectedVisual, OfficeBidiTextResolver.ToVisualOrder(logical, OfficeTextDirection.RightToLeft));
+    }
+
+    [Theory]
     [InlineData("\u200F")]
     [InlineData("\u061C")]
     public void BidiTextResolver_UsesTrailingRtlMarksAsStrongNeutralContext(string mark) {

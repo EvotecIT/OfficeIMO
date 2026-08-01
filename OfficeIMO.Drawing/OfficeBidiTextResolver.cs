@@ -46,7 +46,32 @@ public static class OfficeBidiTextResolver {
         OfficeTextDirection baseDirection,
         CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(text)) return Array.Empty<OfficeBidiTextRun>();
-        OfficeTextDirection resolvedBase = ResolveBaseDirection(text!, baseDirection);
+        IReadOnlyList<string> elements = OfficeTextElements.Split(text);
+        if (!elements.Any(static element => IsParagraphBoundary(element))) {
+            return ResolveParagraphRuns(text!, baseDirection, cancellationToken);
+        }
+
+        var runs = new List<OfficeBidiTextRun>();
+        var paragraph = new StringBuilder();
+        foreach (string element in elements) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsParagraphBoundary(element)) {
+                paragraph.Append(element);
+                continue;
+            }
+
+            AppendParagraphRuns(runs, paragraph, baseDirection, cancellationToken);
+            runs.Add(new OfficeBidiTextRun(element, OfficeTextDirection.LeftToRight, 0, runs.Count));
+        }
+        AppendParagraphRuns(runs, paragraph, baseDirection, cancellationToken);
+        return runs.AsReadOnly();
+    }
+
+    private static IReadOnlyList<OfficeBidiTextRun> ResolveParagraphRuns(
+        string text,
+        OfficeTextDirection baseDirection,
+        CancellationToken cancellationToken) {
+        OfficeTextDirection resolvedBase = ResolveBaseDirection(text, baseDirection);
 
         var runs = new List<OfficeBidiTextRun>();
         var value = new StringBuilder();
@@ -93,6 +118,25 @@ public static class OfficeBidiTextResolver {
         Flush(runs, value, lastDirection, lastLevel);
         return runs.AsReadOnly();
     }
+
+    private static void AppendParagraphRuns(
+        List<OfficeBidiTextRun> destination,
+        StringBuilder paragraph,
+        OfficeTextDirection baseDirection,
+        CancellationToken cancellationToken) {
+        if (paragraph.Length == 0) return;
+        foreach (OfficeBidiTextRun run in ResolveParagraphRuns(paragraph.ToString(), baseDirection, cancellationToken)) {
+            destination.Add(new OfficeBidiTextRun(
+                run.Text,
+                run.Direction,
+                run.EmbeddingLevel,
+                destination.Count));
+        }
+        paragraph.Clear();
+    }
+
+    private static bool IsParagraphBoundary(string element) =>
+        element is "\r" or "\n" or "\r\n" or "\u2028" or "\u2029";
 
     /// <summary>
     /// Resolves directional runs in visual placement order while retaining logical text order inside each run.

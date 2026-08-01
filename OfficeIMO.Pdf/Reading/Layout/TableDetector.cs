@@ -178,6 +178,11 @@ internal static class TableDetector {
 
     private static void AddPositionedGroup(List<StructuredTable> result, List<PositionedRow> rows) {
         if (rows.Count < 3 || !LooksLikePositionedTable(rows)) return;
+        if (TryPartitionPositionedRows(rows, out List<PositionedRow>? left, out List<PositionedRow>? right)) {
+            AddPositionedGroup(result, left);
+            AddPositionedGroup(result, right);
+            return;
+        }
         var table = new StructuredTable {
             YTop = rows[0].Y,
             YBottom = rows[rows.Count - 1].Y,
@@ -193,6 +198,58 @@ internal static class TableDetector {
             table.Rows.Add(rows[rowIndex].Cells.Select(static cell => cell.Text).ToArray());
         }
         result.Add(table);
+    }
+
+    private static bool TryPartitionPositionedRows(
+        List<PositionedRow> rows,
+        out List<PositionedRow> left,
+        out List<PositionedRow> right) {
+        left = new List<PositionedRow>();
+        right = new List<PositionedRow>();
+        int columnCount = rows[0].Cells.Count;
+        if (columnCount < 4 || rows.Any(row => row.Cells.Count != columnCount)) return false;
+
+        int bestSplit = -1;
+        double bestRatio = 0D;
+        for (int split = 2; split <= columnCount - 2; split++) {
+            var boundaryGaps = new List<double>(rows.Count);
+            var otherGaps = new List<double>(rows.Count * Math.Max(1, columnCount - 2));
+            foreach (PositionedRow row in rows) {
+                for (int index = 1; index < row.Cells.Count; index++) {
+                    double gap = Math.Max(0D, row.Cells[index].From - row.Cells[index - 1].To);
+                    if (index == split) boundaryGaps.Add(gap);
+                    else otherGaps.Add(gap);
+                }
+            }
+
+            double boundary = Median(boundaryGaps);
+            double typical = Median(otherGaps);
+            if (boundary < Math.Max(72D, typical * 2D)) continue;
+            double ratio = boundary / Math.Max(1D, typical);
+            if (ratio > bestRatio) {
+                bestRatio = ratio;
+                bestSplit = split;
+            }
+        }
+        if (bestSplit < 0) return false;
+
+        foreach (PositionedRow row in rows) {
+            left.Add(new PositionedRow(row.Y, row.Cells.Take(bestSplit).ToList()));
+            right.Add(new PositionedRow(row.Y, row.Cells.Skip(bestSplit).ToList()));
+        }
+        if (LooksLikePositionedTable(left) && LooksLikePositionedTable(right)) return true;
+        left.Clear();
+        right.Clear();
+        return false;
+    }
+
+    private static double Median(List<double> values) {
+        if (values.Count == 0) return 0D;
+        values.Sort();
+        int middle = values.Count / 2;
+        return (values.Count & 1) == 0
+            ? (values[middle - 1] + values[middle]) / 2D
+            : values[middle];
     }
 
     private static bool LooksLikePositionedTable(List<PositionedRow> rows) {

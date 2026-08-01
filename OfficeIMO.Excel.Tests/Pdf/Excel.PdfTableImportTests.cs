@@ -685,6 +685,42 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_PositionedCellRecoveryPartitionsSideBySideTablesOnSharedBaselines() {
+        static PdfCore.TextLayoutEngine.TextLine Row(
+            double y,
+            string leftName,
+            string leftValue,
+            string rightName,
+            string rightValue) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(leftName, "F1", 10, 20, y, 50),
+                new(leftValue, "F1", 10, 160, y, 30),
+                new(rightName, "F1", 10, 460, y, 50),
+                new(rightValue, "F1", 10, 600, y, 30)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(
+                y,
+                20,
+                630,
+                string.Join(" ", leftName, leftValue, rightName, rightValue),
+                spans);
+        }
+
+        var lines = new[] {
+            Row(700, "Code", "Qty", "Name", "Total"),
+            Row(680, "A-100", "2", "Alpha", "12"),
+            Row(660, "B-200", "14", "Beta", "24")
+        };
+
+        List<PdfCore.StructuredTable> tables = PdfCore.TableDetector.DetectPositionedCellTables(lines);
+
+        Assert.Equal(2, tables.Count);
+        Assert.Equal(new[] { "Code", "Qty" }, tables[0].Rows[0]);
+        Assert.Equal(new[] { "Name", "Total" }, tables[1].Rows[0]);
+        Assert.All(tables, table => Assert.Equal("positioned-cells-bounded", table.Kind));
+    }
+
+    [Fact]
     public void PdfTables_PositionedContinuationsMatchStableColumnStartsInsteadOfTextWidths() {
         static PdfCore.PdfLogicalTable Table(double firstWidth, double secondWidth) {
             var table = new PdfCore.StructuredTable {
