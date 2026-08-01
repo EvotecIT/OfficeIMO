@@ -442,6 +442,35 @@ public partial class Excel {
         Assert.Equal("3/4", values[2, 0]);
     }
 
+    [Fact]
+    public void PdfTables_SaveTablesAsExcel_ImportsTimeOnlyValuesWithoutInventingDates() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Time", "Label" },
+                new[] { "09:30", "Morning" },
+                new[] { "14:45", "Afternoon" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 120, 160 }
+            })
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportEntry entry = Assert.Single(LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions { AutoFitColumns = false }).Entries);
+
+        Assert.Equal(PdfExcelTableColumnKind.Time, entry.ColumnKinds[0]);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        DateTime first = Assert.IsType<DateTime>(values[1, 0]);
+        DateTime second = Assert.IsType<DateTime>(values[2, 0]);
+        Assert.Equal(new DateTime(1899, 12, 30), first.Date);
+        Assert.Equal(new DateTime(1899, 12, 30), second.Date);
+        Assert.Equal(TimeSpan.FromHours(9.5D), first.TimeOfDay);
+        Assert.Equal(TimeSpan.FromHours(14.75D), second.TimeOfDay);
+    }
+
     [Theory]
     [InlineData("Vendor")]
     [InlineData("Trend")]

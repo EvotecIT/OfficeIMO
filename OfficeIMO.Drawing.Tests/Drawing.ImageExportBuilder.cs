@@ -488,6 +488,26 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void DirectOrderedBatchProcessorEnforcesTheSharedRenderTimeout() {
+        var timeout = TimeSpan.FromTicks(1);
+        var options = new TestImageExportOptions { RenderTimeout = timeout };
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            OfficeImageExportBatchProcessor.ForEachOrdered(
+                new[] { 1 },
+                1,
+                static (_, _, _) => new OfficeImageExportResult(
+                    OfficeImageExportFormat.Svg,
+                    1,
+                    1,
+                    System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>")),
+                static _ => { },
+                options: options));
+
+        Assert.Equal(timeout, exception.Timeout);
+    }
+
+    [Fact]
     public async Task BatchRenderTimeoutIsCheckedAfterCancellationUnawareDelegatesReturn() {
         var timeout = TimeSpan.FromTicks(1);
         var builder = new UncooperativeTimeoutImageExportBatchBuilder(new TestImageExportOptions())

@@ -29,6 +29,17 @@ namespace OfficeIMO.Word {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            return OfficeImageExportExecutionScope.Run(
+                options,
+                cancellationToken,
+                token => RenderCore(document, format, options, token));
+        }
+
+        private static OfficeImageExportResult RenderCore(
+            WordDocument document,
+            OfficeImageExportFormat format,
+            WordImageExportOptions options,
+            CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             WordDocumentVisualSnapshot snapshot = CreateSnapshot(document, options, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();

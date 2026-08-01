@@ -1712,6 +1712,31 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_DoesNotReorderResolvedBidiTextAgainInDrawingExport() {
+        const string html = "<p style='margin:0'><span>\u202B</span><b>אבג</b><span>\u202C</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "אבג" && item.Visuals.OfType<HtmlRenderText>().Any());
+        HtmlRenderText text = Assert.Single(group.Visuals.OfType<HtmlRenderText>());
+        string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
+
+        Assert.Equal("גבא", text.Text);
+        Assert.Contains("\u202Dגבא\u202C", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u202Dאבג\u202C", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRenderer_ReportsStackedInlineTextOnceInLogicalOutput() {
+        const string html = "<p style='margin:0'><span>\u202B</span>Start <span style='position:relative;z-index:1'>אבג</span> End<span>\u202C</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        Assert.Equal(1, rendered.Text.Split(new[] { "אבג" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public void HtmlRenderer_RetainsLogicalTextOrderAcrossVisuallyReorderedStyledRuns() {
         const string html = "<p style='margin:0'><span>\u202E</span><b>abc</b><i>def</i><span>\u202C</span></p>";
 

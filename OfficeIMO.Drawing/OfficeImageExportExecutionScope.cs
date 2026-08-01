@@ -36,6 +36,23 @@ internal sealed class OfficeImageExportExecutionScope : IDisposable {
         CancellationToken callerCancellationToken) =>
         new OfficeImageExportExecutionScope(timeout, callerCancellationToken);
 
+    internal static TResult Run<TResult>(
+        OfficeImageExportOptions options,
+        CancellationToken callerCancellationToken,
+        Func<CancellationToken, TResult> operation) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (operation == null) throw new ArgumentNullException(nameof(operation));
+        options.ValidateImageExportOptions();
+        using var execution = Start(options.RenderTimeout, callerCancellationToken);
+        try {
+            TResult result = operation(execution.Token);
+            execution.ThrowIfCancellationRequested();
+            return result;
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
     internal void ThrowIfCancellationRequested() {
         _callerCancellationToken.ThrowIfCancellationRequested();
         if (_timer != null && _timer.Elapsed >= _timeout) {

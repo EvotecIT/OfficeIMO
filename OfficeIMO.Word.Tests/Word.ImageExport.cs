@@ -19,6 +19,17 @@ using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 namespace OfficeIMO.Tests {
     public partial class WordImageExportTests {
         [Fact]
+        public void WordDocument_DirectImageExportEnforcesRenderTimeout() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.AddParagraph("Deadline");
+            var options = new WordImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
+
+            Assert.Throws<OfficeImageExportTimeoutException>(() =>
+                document.ExportImage(OfficeImageExportFormat.Svg, options));
+        }
+
+        [Fact]
         public void WordDocument_ExportsFirstPageToPngAndSvgThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);

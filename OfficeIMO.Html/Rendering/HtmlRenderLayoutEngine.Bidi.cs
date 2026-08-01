@@ -160,9 +160,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return result.AsReadOnly();
     }
 
-    private static string ResolveInlineLineLogicalText(IReadOnlyList<InlineSegment> segments) {
+    private string ResolveRootInlineLineLogicalText(
+        IReadOnlyList<InlineSegment> segments,
+        AngleSharp.Dom.IElement? formattingContainer) {
         var text = new StringBuilder();
         foreach (InlineSegment segment in segments) {
+            if (FindNearestInlineStackingElement(segment.Run.OwnerElement, formattingContainer) != null) continue;
             foreach (string element in OfficeTextElements.Enumerate(segment.LogicalText)) {
                 if (!OfficeTextElements.ContainsBidiControl(element)) text.Append(element);
             }

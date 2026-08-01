@@ -10,7 +10,9 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>Boolean cells.</summary>
         Boolean,
         /// <summary>Date or date-time cells.</summary>
-        DateTime
+        DateTime,
+        /// <summary>Time-of-day cells without an invented calendar date.</summary>
+        Time
     }
 
     /// <summary>

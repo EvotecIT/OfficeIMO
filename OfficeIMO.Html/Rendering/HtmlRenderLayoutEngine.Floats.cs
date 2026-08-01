@@ -337,7 +337,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Run.SemanticRole,
                             layoutY: null,
                             semanticNodeId: segment.Run.SemanticNodeId,
-                            textAdvanceWidth: paintSegment.Width));
+                            textAdvanceWidth: paintSegment.Width,
+                            bidiVisualOrderResolved: segment.BidiResolved));
                     }
                     HtmlRenderVisual textVisual = segment.BidiResolved ||
                         OfficeTextElements.ContainsRightToLeft(segment.Text) || OfficeTextElements.ContainsBidiControl(segment.Text)
@@ -367,7 +368,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 List<HtmlRenderVisual> lineVisuals = visuals.GetRange(lineVisualStart, visuals.Count - lineVisualStart);
                 visuals.RemoveRange(lineVisualStart, visuals.Count - lineVisualStart);
                 visuals.Add(new HtmlRenderLogicalTextGroup(
-                    ResolveInlineLineLogicalText(mergedLines[lineIndex]),
+                    ResolveRootInlineLineLogicalText(mergedLines[lineIndex], formattingContainer),
                     lineStart,
                     lineY,
                     Math.Max(0.01D, current.Width),

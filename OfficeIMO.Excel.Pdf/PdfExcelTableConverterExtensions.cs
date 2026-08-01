@@ -210,6 +210,8 @@ namespace OfficeIMO.Excel.Pdf {
             for (int columnIndex = 0; columnIndex < columnKinds.Count; columnIndex++) {
                 if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Percentage) {
                     sheet.ColumnStyleByHeader(table.Columns[columnIndex].ColumnName).Percent(decimals: 2);
+                } else if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Time) {
+                    sheet.ColumnStyleByHeader(table.Columns[columnIndex].ColumnName).Time();
                 }
             }
         }
@@ -268,6 +270,10 @@ namespace OfficeIMO.Excel.Pdf {
                     kinds[columnIndex] = PdfExcelTableColumnKind.Boolean;
                 } else if (options.ConvertPercentageColumns && values.All(value => TryParsePercentage(value, options.NumericCulture, out _))) {
                     kinds[columnIndex] = PdfExcelTableColumnKind.Percentage;
+                } else if (options.ConvertDateTimeColumns &&
+                           HasHeaderWord(columns[columnIndex], "time") &&
+                           values.All(value => TryParseTimeOnly(value, options.NumericCulture, out _))) {
+                    kinds[columnIndex] = PdfExcelTableColumnKind.Time;
                 } else if (options.ConvertNumericColumns &&
                            !values.Any(static value => LooksLikeAmbiguousNumericDate(value)) &&
                            values.All(PdfCore.PdfLogicalTableAnalysis.LooksLikeNumericValue) &&
@@ -287,6 +293,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfExcelTableColumnKind.Number => typeof(decimal),
             PdfExcelTableColumnKind.Percentage => typeof(decimal),
             PdfExcelTableColumnKind.Boolean => typeof(bool),
+            PdfExcelTableColumnKind.Time => typeof(TimeSpan),
             PdfExcelTableColumnKind.DateTime => typeof(DateTime),
             _ => typeof(string)
         };
@@ -298,6 +305,7 @@ namespace OfficeIMO.Excel.Pdf {
                 PdfExcelTableColumnKind.Number when PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, culture, out decimal number) => number,
                 PdfExcelTableColumnKind.Percentage when TryParsePercentage(value, culture, out decimal percentage) => percentage,
                 PdfExcelTableColumnKind.Boolean when TryParseBoolean(value, out bool boolean) => boolean,
+                PdfExcelTableColumnKind.Time when TryParseTimeOnly(value, culture, out TimeSpan time) => time,
                 PdfExcelTableColumnKind.DateTime when DateTime.TryParse(value, culture, DateTimeStyles.AllowWhiteSpaces, out DateTime dateTime) => dateTime,
                 _ => DBNull.Value
             };
@@ -343,6 +351,30 @@ namespace OfficeIMO.Excel.Pdf {
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces,
                 out _));
+        }
+
+        private static bool HasHeaderWord(string columnName, string expected) =>
+            TokenizeHeaderWords(columnName).Any(word => string.Equals(word, expected, StringComparison.Ordinal));
+
+        private static bool TryParseTimeOnly(string value, CultureInfo culture, out TimeSpan result) {
+            string normalized = value.Trim();
+            if (normalized.Length == 0 || normalized.IndexOf(':') < 0) {
+                result = default;
+                return false;
+            }
+            foreach (char current in normalized) {
+                if (char.IsDigit(current) || char.IsWhiteSpace(current) || current is ':' or '.') continue;
+                char upper = char.ToUpperInvariant(current);
+                if (upper is 'A' or 'P' or 'M') continue;
+                result = default;
+                return false;
+            }
+            if (DateTime.TryParse(normalized, culture, DateTimeStyles.AllowWhiteSpaces, out DateTime parsed)) {
+                result = parsed.TimeOfDay;
+                return true;
+            }
+            result = default;
+            return false;
         }
 
         private static bool LooksLikeAmbiguousNumericDate(string value) {

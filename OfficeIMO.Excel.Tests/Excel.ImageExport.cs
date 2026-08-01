@@ -13,6 +13,18 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class ExcelImageExportTests {
         [Fact]
+        public void ExcelRange_DirectImageExportEnforcesRenderTimeout() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("Deadline");
+            sheet.CellValue(1, 1, "Deadline");
+            var options = new ExcelImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
+
+            Assert.Throws<OfficeImageExportTimeoutException>(() =>
+                sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Svg, options));
+        }
+
+        [Fact]
         public void ExcelRange_ExportsPngAndSvgFromVisualSnapshot() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
