@@ -146,7 +146,13 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfLogicalDocument document,
             ExcelDocument workbook,
             PdfExcelTableImportOptions options) {
-            IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables = PdfCore.PdfLogicalTableAnalysis.ExtractTables(document, options.MaxRows);
+            IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
+                document,
+                options.MaxRows,
+                options.MergePageContinuations,
+                options.SuppressRepeatedBodyHeaderRows,
+                options.MaximumContinuationSegments,
+                options.ContinuationGeometryTolerancePoints);
             if (tables.Count == 0) {
                 AddEmptyWorkbookSheet(workbook, options);
                 return Array.Empty<PdfExcelTableImportEntry>();
@@ -154,16 +160,21 @@ namespace OfficeIMO.Excel.Pdf {
 
             var results = new List<PdfExcelTableImportEntry>(tables.Count);
             for (int i = 0; i < tables.Count; i++) {
-                PdfCore.PdfLogicalTableExtraction extraction = tables[i];
-                PdfCore.PdfLogicalTableData data = extraction.Data;
+                PdfCore.PdfLogicalTableContinuationGroup group = tables[i];
+                PdfCore.PdfLogicalTableExtraction extraction = group.Primary;
                 string requestedTableName = BuildTableName(options.TableNamePrefix, extraction, i);
-                DataTable dataTable = ToDataTable(requestedTableName, data, options);
+                (DataTable dataTable, IReadOnlyList<PdfExcelTableColumnKind> columnKinds) = ToDataTable(
+                    requestedTableName,
+                    group.Columns,
+                    group.Rows,
+                    options);
                 ExcelSheet sheet = workbook.AddWorksheet(BuildSheetName(options.SheetNamePrefix, extraction, i), SheetNameValidationMode.Sanitize);
                 string range = sheet.InsertDataTableAsTable(
                     dataTable,
                     tableName: requestedTableName,
                     style: options.TableStyle,
                     includeAutoFilter: options.IncludeAutoFilter);
+                ApplyTypedColumnFormats(sheet, dataTable, columnKinds);
 
                 if (options.AutoFitColumns) {
                     sheet.AutoFitColumns();
@@ -178,13 +189,31 @@ namespace OfficeIMO.Excel.Pdf {
                     sheet.Name,
                     actualTableName,
                     range,
-                    data.Columns.Count,
-                    data.Rows.Count,
-                    data.TotalRowCount,
-                    data.Truncated));
+                    group.Columns.Count,
+                    group.Rows.Count,
+                    group.TotalRowCount,
+                    group.Truncated,
+                    group.Segments.Select(static segment => segment.PageNumber).ToArray(),
+                    group.Segments.Count,
+                    group.SuppressedRepeatedHeaderRows,
+                    group.AdditionalHeaderRowCount,
+                    columnKinds));
             }
 
             return results.AsReadOnly();
+        }
+
+        private static void ApplyTypedColumnFormats(
+            ExcelSheet sheet,
+            DataTable table,
+            IReadOnlyList<PdfExcelTableColumnKind> columnKinds) {
+            for (int columnIndex = 0; columnIndex < columnKinds.Count; columnIndex++) {
+                if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Percentage) {
+                    sheet.ColumnStyleByHeader(table.Columns[columnIndex].ColumnName).Percent(decimals: 2);
+                } else if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Time) {
+                    sheet.ColumnStyleByHeader(table.Columns[columnIndex].ColumnName).Time();
+                }
+            }
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfExcelTableImportOptions options) {
@@ -192,34 +221,29 @@ namespace OfficeIMO.Excel.Pdf {
             sheet.CellValue(1, 1, "No PDF tables detected.");
         }
 
-        private static DataTable ToDataTable(string tableName, PdfCore.PdfLogicalTableData data, PdfExcelTableImportOptions options) {
+        private static (DataTable Table, IReadOnlyList<PdfExcelTableColumnKind> ColumnKinds) ToDataTable(
+            string tableName,
+            IReadOnlyList<string> columns,
+            IReadOnlyList<IReadOnlyList<string>> rows,
+            PdfExcelTableImportOptions options) {
             var table = new DataTable(tableName) {
                 Locale = CultureInfo.InvariantCulture
             };
 
-            bool[] numericColumns = options.ConvertNumericColumns
-                ? PdfCore.PdfLogicalTableAnalysis.DetectParsableNumericColumns(data, options.NumericCulture)
-                : new bool[data.Columns.Count];
+            PdfExcelTableColumnKind[] columnKinds = DetectColumnKinds(columns, rows, options);
             var usedColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < data.Columns.Count; i++) {
-                Type columnType = numericColumns[i] ? typeof(decimal) : typeof(string);
-                table.Columns.Add(GetUniqueColumnName(data.Columns[i], i, usedColumns), columnType);
+            for (int i = 0; i < columns.Count; i++) {
+                AddTypedColumn(table, GetUniqueColumnName(columns[i], i, usedColumns), columnKinds[i]);
             }
 
             table.BeginLoadData();
             try {
-                for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
+                for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
                     DataRow row = table.NewRow();
-                    IReadOnlyList<string> sourceRow = data.Rows[rowIndex];
+                    IReadOnlyList<string> sourceRow = rows[rowIndex];
                     for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
                         string value = columnIndex < sourceRow.Count ? sourceRow[columnIndex] : string.Empty;
-                        if (numericColumns[columnIndex]) {
-                            row[columnIndex] = PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, options.NumericCulture, out decimal number)
-                                ? number
-                                : DBNull.Value;
-                        } else {
-                            row[columnIndex] = value;
-                        }
+                        row[columnIndex] = ConvertValue(value, columnKinds[columnIndex], options.NumericCulture);
                     }
 
                     table.Rows.Add(row);
@@ -228,8 +252,207 @@ namespace OfficeIMO.Excel.Pdf {
                 table.EndLoadData();
             }
 
-            return table;
+            return (table, Array.AsReadOnly(columnKinds));
         }
+
+        private static PdfExcelTableColumnKind[] DetectColumnKinds(
+            IReadOnlyList<string> columns,
+            IReadOnlyList<IReadOnlyList<string>> rows,
+            PdfExcelTableImportOptions options) {
+            var kinds = new PdfExcelTableColumnKind[columns.Count];
+            for (int columnIndex = 0; columnIndex < columns.Count; columnIndex++) {
+                List<string> values = rows
+                    .Select(row => columnIndex < row.Count ? row[columnIndex].Trim() : string.Empty)
+                    .Where(static value => value.Length > 0)
+                    .ToList();
+                if (values.Count == 0) continue;
+                if (options.ConvertBooleanColumns && values.All(static value => TryParseBoolean(value, out _))) {
+                    kinds[columnIndex] = PdfExcelTableColumnKind.Boolean;
+                } else if (options.ConvertPercentageColumns && values.All(value => TryParsePercentage(value, options.NumericCulture, out _))) {
+                    kinds[columnIndex] = PdfExcelTableColumnKind.Percentage;
+                } else if (options.ConvertDateTimeColumns &&
+                           values.All(value => TryParseTimeOnly(value, options.NumericCulture, out _))) {
+                    kinds[columnIndex] = PdfExcelTableColumnKind.Time;
+                } else if (options.ConvertNumericColumns &&
+                           !values.Any(static value => LooksLikeAmbiguousNumericDate(value)) &&
+                           values.All(PdfCore.PdfLogicalTableAnalysis.LooksLikeNumericValue) &&
+                           values.All(value => PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, options.NumericCulture, out _))) {
+                    kinds[columnIndex] = PdfExcelTableColumnKind.Number;
+                } else if (options.ConvertDateTimeColumns &&
+                           HasDateSignal(columns[columnIndex], values) &&
+                           values.All(static value => HasExplicitYear(value)) &&
+                           values.All(value => DateTime.TryParse(value, options.NumericCulture, DateTimeStyles.AllowWhiteSpaces, out _))) {
+                    kinds[columnIndex] = PdfExcelTableColumnKind.DateTime;
+                }
+            }
+
+            return kinds;
+        }
+
+        private static void AddTypedColumn(DataTable table, string columnName, PdfExcelTableColumnKind kind) {
+            switch (kind) {
+                case PdfExcelTableColumnKind.Number:
+                case PdfExcelTableColumnKind.Percentage:
+                    table.Columns.Add(columnName, typeof(decimal));
+                    break;
+                case PdfExcelTableColumnKind.Boolean:
+                    table.Columns.Add(columnName, typeof(bool));
+                    break;
+                case PdfExcelTableColumnKind.Time:
+                    table.Columns.Add(columnName, typeof(TimeSpan));
+                    break;
+                case PdfExcelTableColumnKind.DateTime:
+                    table.Columns.Add(columnName, typeof(DateTime));
+                    break;
+                default:
+                    table.Columns.Add(columnName, typeof(string));
+                    break;
+            }
+        }
+
+        private static object ConvertValue(string value, PdfExcelTableColumnKind kind, CultureInfo culture) {
+            if (kind == PdfExcelTableColumnKind.Text) return value;
+            if (string.IsNullOrWhiteSpace(value)) return DBNull.Value;
+            return kind switch {
+                PdfExcelTableColumnKind.Number when PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, culture, out decimal number) => number,
+                PdfExcelTableColumnKind.Percentage when TryParsePercentage(value, culture, out decimal percentage) => percentage,
+                PdfExcelTableColumnKind.Boolean when TryParseBoolean(value, out bool boolean) => boolean,
+                PdfExcelTableColumnKind.Time when TryParseTimeOnly(value, culture, out TimeSpan time) => time,
+                PdfExcelTableColumnKind.DateTime when DateTime.TryParse(value, culture, DateTimeStyles.AllowWhiteSpaces, out DateTime dateTime) => dateTime,
+                _ => DBNull.Value
+            };
+        }
+
+        private static bool TryParseBoolean(string value, out bool result) {
+            string normalized = value.Trim();
+            if (string.Equals(normalized, "true", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "yes", StringComparison.OrdinalIgnoreCase)) {
+                result = true;
+                return true;
+            }
+            if (string.Equals(normalized, "false", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "no", StringComparison.OrdinalIgnoreCase)) {
+                result = false;
+                return true;
+            }
+            result = false;
+            return false;
+        }
+
+        private static bool TryParsePercentage(string value, CultureInfo culture, out decimal result) {
+            string normalized = value.Trim();
+            if (!normalized.EndsWith("%", StringComparison.Ordinal)) {
+                result = 0m;
+                return false;
+            }
+
+            if (PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(normalized.Substring(0, normalized.Length - 1), culture, out decimal number)) {
+                result = number / 100m;
+                return true;
+            }
+
+            result = 0m;
+            return false;
+        }
+
+        private static bool HasDateSignal(string columnName, IReadOnlyList<string> values) {
+            if (TokenizeHeaderWords(columnName).Any(static word => DateHeaderHints.Contains(word, StringComparer.Ordinal))) return true;
+            return values.All(static value => DateTime.TryParseExact(
+                value.Trim(),
+                UnambiguousDateTimeFormats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces,
+                out _));
+        }
+
+        private static bool TryParseTimeOnly(string value, CultureInfo culture, out TimeSpan result) {
+            string normalized = value.Trim();
+            if (normalized.Length == 0 || normalized.IndexOf(':') < 0) {
+                result = default;
+                return false;
+            }
+            foreach (char current in normalized) {
+                if (char.IsDigit(current) || char.IsWhiteSpace(current) || current is ':' or '.') continue;
+                char upper = char.ToUpperInvariant(current);
+                if (upper is 'A' or 'P' or 'M') continue;
+                result = default;
+                return false;
+            }
+            if (DateTime.TryParse(normalized, culture, DateTimeStyles.AllowWhiteSpaces, out DateTime parsed)) {
+                result = parsed.TimeOfDay;
+                return true;
+            }
+            result = default;
+            return false;
+        }
+
+        private static bool LooksLikeAmbiguousNumericDate(string value) {
+            string normalized = value.Trim();
+            char separator = normalized.Contains('/') ? '/'
+                : normalized.Contains('-') ? '-'
+                : normalized.Contains('.') ? '.'
+                : '\0';
+            if (separator == '\0') return false;
+            string[] parts = normalized.Split(separator);
+            return parts.Length == 3 &&
+                parts[2].Length == 4 &&
+                int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int first) &&
+                int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int second) &&
+                int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out _) &&
+                first is >= 1 and <= 12 &&
+                second is >= 1 and <= 12;
+        }
+
+        private static bool HasExplicitYear(string value) {
+            int digitCount = 0;
+            int number = 0;
+            for (int index = 0; index <= value.Length; index++) {
+                bool isDigit = index < value.Length && char.IsDigit(value[index]);
+                if (isDigit) {
+                    digitCount++;
+                    number = digitCount <= 4 ? number * 10 + (value[index] - '0') : number;
+                    continue;
+                }
+
+                if (digitCount == 4 && number >= 1000) return true;
+                digitCount = 0;
+                number = 0;
+            }
+            return false;
+        }
+
+        private static IEnumerable<string> TokenizeHeaderWords(string value) {
+            var word = new System.Text.StringBuilder();
+            for (int index = 0; index < value.Length; index++) {
+                char current = value[index];
+                if (!char.IsLetterOrDigit(current)) {
+                    if (word.Length > 0) {
+                        yield return word.ToString().ToLowerInvariant();
+                        word.Clear();
+                    }
+                    continue;
+                }
+
+                if (word.Length > 0 && char.IsUpper(current) && char.IsLower(value[index - 1])) {
+                    yield return word.ToString().ToLowerInvariant();
+                    word.Clear();
+                }
+                word.Append(current);
+            }
+            if (word.Length > 0) yield return word.ToString().ToLowerInvariant();
+        }
+
+        private static readonly string[] DateHeaderHints = {
+            "date", "time", "due", "created", "updated", "modified", "issued", "expiry", "expires", "start", "end"
+        };
+
+        private static readonly string[] UnambiguousDateTimeFormats = {
+            "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd",
+            "yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm", "yyyy/MM/dd HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"
+        };
 
         private static string GetUniqueColumnName(string? value, int index, ISet<string> usedColumns) {
             string baseName = string.IsNullOrWhiteSpace(value)

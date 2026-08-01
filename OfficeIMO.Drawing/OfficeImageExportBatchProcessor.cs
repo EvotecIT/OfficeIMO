@@ -73,6 +73,27 @@ public static class OfficeImageExportBatchProcessor {
                     options.MaximumOutputCount);
             }
         }
+        if (options != null) {
+            OfficeImageExportExecutionScope.Run(
+                options,
+                cancellationToken,
+                token => {
+                    ForEachOrderedCore(items, maximumDegreeOfParallelism, render, consumer, token, options);
+                    return true;
+                });
+            return;
+        }
+
+        ForEachOrderedCore(items, maximumDegreeOfParallelism, render, consumer, cancellationToken, options: null);
+    }
+
+    private static void ForEachOrderedCore<T>(
+        IReadOnlyList<T> items,
+        int maximumDegreeOfParallelism,
+        Func<T, int, CancellationToken, OfficeImageExportResult> render,
+        OfficeImageExportConsumer consumer,
+        CancellationToken cancellationToken,
+        OfficeImageExportOptions? options) {
         OfficeImageExportConsumer accept = options == null
             ? consumer
             : CreateGuardedConsumer(options, consumer, cancellationToken);

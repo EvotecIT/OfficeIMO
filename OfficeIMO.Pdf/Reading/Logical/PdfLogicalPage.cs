@@ -19,6 +19,7 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalListItem> listItems,
         IReadOnlyList<PdfLogicalTable> tables,
         int vectorPrimitiveCount,
+        int unrepresentedVectorPrimitiveCount,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLogicalLinkAnnotation> links,
         IReadOnlyList<PdfAnnotation> annotations,
@@ -37,6 +38,7 @@ public sealed class PdfLogicalPage {
         ListItems = listItems;
         Tables = tables;
         VectorPrimitiveCount = vectorPrimitiveCount;
+        UnrepresentedVectorPrimitiveCount = unrepresentedVectorPrimitiveCount;
         Images = images;
         Links = links;
         Annotations = annotations;
@@ -92,6 +94,17 @@ public sealed class PdfLogicalPage {
 
     /// <summary>True when page-level /PieceInfo was present.</summary>
     public bool HasPieceInfo => Geometry.HasPieceInfo;
+
+    internal (double Width, double Height) GetVisualPageSize() {
+        PdfPageBox pageBox = GetVisualBoundaryBox();
+        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, RotationDegrees);
+    }
+
+    internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
+        PdfVisualCoordinateMapper.TransformBounds(GetVisualBoundaryBox(), RotationDegrees, left, bottom, right, top);
+
+    private PdfPageBox GetVisualBoundaryBox() =>
+        CropBox ?? MediaBox ?? new PdfPageBox("MediaBox", 0D, 0D, Width, Height);
 
     /// <summary>Logical elements in extraction order.</summary>
     public IReadOnlyList<IPdfLogicalElement> Elements { get; }
@@ -153,6 +166,8 @@ public sealed class PdfLogicalPage {
 
     /// <summary>Number of visible vector drawing primitives recovered from the source page.</summary>
     public int VectorPrimitiveCount { get; }
+
+    internal int UnrepresentedVectorPrimitiveCount { get; }
 
     /// <summary>Image XObjects referenced by the page.</summary>
     public IReadOnlyList<PdfLogicalImage> Images { get; }
@@ -264,6 +279,8 @@ public sealed class PdfLogicalPage {
             pageActions.Add(readPageActions[i].WithPageNumber(pageNumber));
         }
 
+        (int vectorPrimitiveCount, int unrepresentedVectorPrimitiveCount) =
+            page.GetVisibleVisualPrimitiveCounts(structured.TablesDetailed);
         return new PdfLogicalPage(
             pageNumber,
             size.Width,
@@ -276,7 +293,8 @@ public sealed class PdfLogicalPage {
             BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
             BuildListItems(pageNumber, structured.ListNodes, textBlocks),
             tables.AsReadOnly(),
-            page.GetVisibleVisualPrimitiveCount(),
+            vectorPrimitiveCount,
+            unrepresentedVectorPrimitiveCount,
             images.AsReadOnly(),
             links.AsReadOnly(),
             annotations.AsReadOnly(),

@@ -127,6 +127,37 @@ public static class PdfLogicalTableAnalysis {
         PdfLogicalDocument document,
         int maximumComparisons) {
         Guard.NotNull(document, nameof(document));
+        return AnalyzeExtractionScope(
+            document.Pages,
+            document.OptionalContentGroupCount,
+            maximumComparisons);
+    }
+
+    /// <summary>
+    /// Describes table extraction scope for a selected collection of logical pages.
+    /// Document-level optional-content groups are not attributed to individual pages.
+    /// </summary>
+    /// <param name="pages">Logical pages to inspect.</param>
+    /// <returns>Page-scoped table counts plus visible and interactive content outside detected tables.</returns>
+    public static PdfTableExtractionScopeReport AnalyzeExtractionScope(IReadOnlyList<PdfLogicalPage> pages) {
+        return AnalyzeExtractionScope(pages, DefaultMaximumScopeAnalysisComparisons);
+    }
+
+    /// <summary>
+    /// Describes table extraction scope for selected logical pages while bounding attacker-controlled text/table comparisons.
+    /// Document-level optional-content groups are not attributed to individual pages.
+    /// </summary>
+    public static PdfTableExtractionScopeReport AnalyzeExtractionScope(
+        IReadOnlyList<PdfLogicalPage> pages,
+        int maximumComparisons) {
+        Guard.NotNull(pages, nameof(pages));
+        return AnalyzeExtractionScope(pages, optionalContentGroupCount: 0, maximumComparisons);
+    }
+
+    private static PdfTableExtractionScopeReport AnalyzeExtractionScope(
+        IReadOnlyList<PdfLogicalPage> pages,
+        int optionalContentGroupCount,
+        int maximumComparisons) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
 #pragma warning restore CA1512
@@ -140,12 +171,13 @@ public static class PdfLogicalTableAnalysis {
         int formWidgetCount = 0;
         int annotationCount = 0;
         int pageActionCount = 0;
+        int interactiveMediaAnnotationCount = 0;
         int remainingComparisons = Math.Min(maximumComparisons, DefaultMaximumScopeAnalysisComparisons);
         bool analysisTruncated = false;
         var normalizedRows = new Dictionary<PdfLogicalTable, Dictionary<int, ScopeComparisonText>>();
 
-        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
-            PdfLogicalPage page = document.Pages[pageIndex];
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            PdfLogicalPage page = pages[pageIndex];
             if (page.Tables.Count > 0) {
                 pagesWithTables++;
                 detectedTableCount += page.Tables.Count;
@@ -171,10 +203,12 @@ public static class PdfLogicalTableAnalysis {
             formWidgetCount += page.FormWidgets.Count;
             annotationCount += page.Annotations.Count;
             pageActionCount += page.PageActions.Count;
+            interactiveMediaAnnotationCount += page.Annotations.Count(static annotation =>
+                IsInteractiveMediaAnnotationSubtype(annotation.Subtype));
         }
 
         return new PdfTableExtractionScopeReport(
-            document.Pages.Count,
+            pages.Count,
             pagesWithTables,
             detectedTableCount,
             nonTableTextBlockCount,
@@ -184,8 +218,17 @@ public static class PdfLogicalTableAnalysis {
             formWidgetCount,
             annotationCount,
             pageActionCount,
+            optionalContentGroupCount,
+            interactiveMediaAnnotationCount,
             analysisTruncated);
     }
+
+    private static bool IsInteractiveMediaAnnotationSubtype(string subtype) =>
+        string.Equals(subtype, "Movie", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(subtype, "Sound", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(subtype, "Screen", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(subtype, "RichMedia", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(subtype, "3D", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Detects a simple header row from the first logical table row.

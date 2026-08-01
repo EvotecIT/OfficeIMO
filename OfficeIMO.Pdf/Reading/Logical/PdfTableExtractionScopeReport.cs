@@ -15,6 +15,8 @@ public sealed class PdfTableExtractionScopeReport {
         int formWidgetCount,
         int annotationCount,
         int pageActionCount,
+        int optionalContentGroupCount,
+        int interactiveMediaAnnotationCount,
         bool analysisTruncated) {
         SourcePageCount = sourcePageCount;
         PagesWithTables = pagesWithTables;
@@ -26,6 +28,8 @@ public sealed class PdfTableExtractionScopeReport {
         FormWidgetCount = formWidgetCount;
         AnnotationCount = annotationCount;
         PageActionCount = pageActionCount;
+        OptionalContentGroupCount = optionalContentGroupCount;
+        InteractiveMediaAnnotationCount = interactiveMediaAnnotationCount;
         AnalysisTruncated = analysisTruncated;
     }
 
@@ -68,6 +72,12 @@ public sealed class PdfTableExtractionScopeReport {
     /// <summary>Number of source page actions, which table-only adapters do not import.</summary>
     public int PageActionCount { get; }
 
+    /// <summary>Number of optional-content groups, which table-only adapters do not preserve as editable groups or layers.</summary>
+    public int OptionalContentGroupCount { get; }
+
+    /// <summary>Number of movie, sound, screen, rich-media, or 3D annotations, which table-only adapters do not import as animations or media.</summary>
+    public int InteractiveMediaAnnotationCount { get; }
+
     /// <summary>
     /// True when bounded text/table correlation stopped before every visible text block could be classified.
     /// Exact omission counts describe only blocks classified before the limit was reached.
@@ -86,5 +96,7 @@ public sealed class PdfTableExtractionScopeReport {
         LinkCount > 0 ||
         FormWidgetCount > 0 ||
         AnnotationCount > 0 ||
-        PageActionCount > 0;
+        PageActionCount > 0 ||
+        OptionalContentGroupCount > 0 ||
+        InteractiveMediaAnnotationCount > 0;
 }

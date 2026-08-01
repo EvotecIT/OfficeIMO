@@ -21,6 +21,17 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            return OfficeImageExportExecutionScope.Run(
+                options,
+                cancellationToken,
+                token => RenderCore(slide, format, options, token));
+        }
+
+        private static OfficeImageExportResult RenderCore(
+            PowerPointSlide slide,
+            OfficeImageExportFormat format,
+            PowerPointImageExportOptions options,
+            CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             PowerPointSlideVisualSnapshot snapshot = CreateSnapshot(slide, options);
             cancellationToken.ThrowIfCancellationRequested();

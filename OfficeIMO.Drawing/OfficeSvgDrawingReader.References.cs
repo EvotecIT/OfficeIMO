@@ -88,12 +88,30 @@ public static partial class OfficeSvgDrawingReader {
             if (id.Length > 0) _activeIds.Remove(id);
         }
 
+        internal bool TryEnterLocal(string? value, out string id, out XElement? target) {
+            id = string.Empty;
+            target = null;
+            return TryReadLocalUrlReference(value, out id)
+                && _definitions.TryGetUnique(id, out target)
+                && _activeIds.Count < MaximumElementReferenceDepth
+                && _activeIds.Add(id);
+        }
+
         private static bool TryReadLocalElementReference(string text, out string id) {
             id = string.Empty;
             string normalized = text.Trim();
             if (normalized.Length < 2 || normalized[0] != '#') return false;
             id = normalized.Substring(1);
             return id.Length > 0 && id.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }) < 0;
+        }
+
+        private static bool TryReadLocalUrlReference(string? text, out string id) {
+            id = string.Empty;
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            string normalized = text!.Trim();
+            if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) || normalized[normalized.Length - 1] != ')') return false;
+            string reference = normalized.Substring(4, normalized.Length - 5).Trim().Trim('\'', '"');
+            return TryReadLocalElementReference(reference, out id);
         }
     }
 }

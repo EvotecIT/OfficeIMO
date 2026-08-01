@@ -10,6 +10,17 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class VisioImageExport {
+    [Fact]
+    public void DirectImageExportEnforcesRenderTimeout() {
+        using MemoryStream package = new();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("Deadline").Size(2, 1);
+        var options = new VisioImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
+
+        Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            page.ExportImage(OfficeImageExportFormat.Svg, options));
+    }
+
     [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]

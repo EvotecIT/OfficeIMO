@@ -99,6 +99,58 @@ public class PdfMetadataSynchronizationTests {
     }
 
     [Fact]
+    public void IncrementalSynchronizeMetadata_PreservesPrefixAndCustomXmpSchemas() {
+        var options = new PdfOptions { IncludeXmpMetadata = true }
+            .SetElectronicInvoiceMetadata(new PdfElectronicInvoiceMetadata("ORDER", "invoice.xml", "1.0", "EN 16931"));
+        byte[] source = PdfDocument.Create(options)
+            .Meta(title: "Original", author: "Existing author")
+            .Paragraph(paragraph => paragraph.Text("Append-only synchronized metadata"))
+            .ToBytes();
+
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(
+            source,
+            PdfMutationOperation.SynchronizeMetadata,
+            executionPreference: PdfMutationExecutionPreference.RequireAppendOnly);
+        byte[] updated = PdfIncrementalUpdater.SynchronizeMetadata(
+            source,
+            title: "Incremental title",
+            keywords: "one; two");
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
+        Assert.True(updated.AsSpan(0, source.Length).SequenceEqual(source));
+        Assert.Equal("Incremental title", info.Metadata.Title);
+        Assert.Equal("Incremental title", info.XmpMetadata!.Title);
+        Assert.Equal("Existing author", info.XmpMetadata.Creator);
+        Assert.Equal(new[] { "one", "two" }, info.XmpMetadata.Subjects);
+        Assert.Equal("ORDER", info.XmpMetadata.ElectronicInvoiceDocumentType);
+        Assert.Equal("invoice.xml", info.XmpMetadata.ElectronicInvoiceDocumentFileName);
+        Assert.Contains("Append-only synchronized metadata", PdfTextExtractor.ExtractAllText(updated), StringComparison.Ordinal);
+        Assert.True(info.Security.HasIncrementalUpdates);
+    }
+
+    [Fact]
+    public void TrySynchronizeMetadata_SelectsAppendOnlyForAnExistingRevision() {
+        byte[] source = PdfDocument.Create()
+            .Meta(title: "Original")
+            .Paragraph(paragraph => paragraph.Text("Existing revision body"))
+            .ToBytes();
+        byte[] revised = PdfIncrementalUpdater.UpdateMetadata(source, author: "First revision");
+
+        PdfOperationResult<PdfDocument> result = PdfDocument.Open(revised)
+            .TrySynchronizeMetadata(title: "Second revision", createXmpMetadata: true);
+        PdfDocument updated = result.RequireValue();
+        PdfDocumentInfo info = updated.Inspect();
+
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan!.ExecutionMode);
+        Assert.True(updated.ToBytes().AsSpan(0, revised.Length).SequenceEqual(revised));
+        Assert.Equal("Second revision", info.Metadata.Title);
+        Assert.Equal("Second revision", info.XmpMetadata!.Title);
+        Assert.Equal("First revision", info.XmpMetadata.Creator);
+        Assert.Contains("Existing revision body", updated.Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void XmpSynchronizer_RejectsPacketsWithoutRdfInsteadOfDiscardingThem() {
         var metadata = new PdfMetadata { Title = "Unsafe replacement" };
 

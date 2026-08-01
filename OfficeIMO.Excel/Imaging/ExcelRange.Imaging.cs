@@ -20,8 +20,17 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
             ExcelImageExportOptions resolved = NormalizeOptions(options);
-            ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(Sheet, Address, resolved);
-            return ExcelRangeImageRenderer.Render(snapshot, format, resolved, cancellationToken);
+            return OfficeImageExportExecutionScope.Run(
+                resolved,
+                cancellationToken,
+                token => {
+                    ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(
+                        Sheet,
+                        Address,
+                        resolved,
+                        cancellationToken: token);
+                    return ExcelRangeImageRenderer.Render(snapshot, format, resolved, token);
+                });
         }
 
         /// <summary>

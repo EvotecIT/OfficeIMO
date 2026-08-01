@@ -138,6 +138,16 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         return This;
     }
 
+    /// <summary>Sets the maximum duration allowed for one batch render operation.</summary>
+    public TBuilder WithRenderTimeout(TimeSpan timeout) {
+        if (timeout != System.Threading.Timeout.InfiniteTimeSpan &&
+            (timeout <= TimeSpan.Zero || timeout.TotalMilliseconds > int.MaxValue)) {
+            throw new ArgumentOutOfRangeException(nameof(timeout));
+        }
+        Options.RenderTimeout = timeout;
+        return This;
+    }
+
     /// <summary>
     /// Enables bounded parallel rendering for adapters whose selected items are independent.
     /// Output order remains deterministic.
@@ -243,28 +253,37 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
         TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
-        var tracker = new OfficeImageExportBatchTracker(effective);
-        int completed = 0;
-        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            effective.RenderTimeout,
+            cancellationToken);
+        try {
+            var tracker = new OfficeImageExportBatchTracker(effective);
+            int completed = 0;
+            effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
 
-        void Accept(OfficeImageExportResult result) {
-            cancellationToken.ThrowIfCancellationRequested();
-            result.Require(effective.Policy);
-            tracker.Add(result);
-            consumer(result);
-            completed++;
-            effective.Progress?.Report(new OfficeImageExportProgress(
-                OfficeImageExportProgressStage.Completed,
-                completed,
-                name: result.Name));
+            void Accept(OfficeImageExportResult result) {
+                execution.Token.ThrowIfCancellationRequested();
+                result.Require(effective.Policy);
+                tracker.Add(result);
+                consumer(result);
+                completed++;
+                effective.Progress?.Report(new OfficeImageExportProgress(
+                    OfficeImageExportProgressStage.Completed,
+                    completed,
+                    name: result.Name));
+            }
+
+            if (_exportEach != null) {
+                _exportEach(_format, effective, Accept, execution.Token);
+                execution.ThrowIfCancellationRequested();
+                return;
+            }
+
+            foreach (OfficeImageExportResult result in _export(_format, effective)) Accept(result);
+            execution.ThrowIfCancellationRequested();
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
         }
-
-        if (_exportEach != null) {
-            _exportEach(_format, effective, Accept, cancellationToken);
-            return;
-        }
-
-        foreach (OfficeImageExportResult result in _export(_format, effective)) Accept(result);
     }
 
     /// <summary>Streams results asynchronously when the adapter owns a genuine asynchronous path.</summary>
@@ -274,6 +293,10 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
         TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            effective.RenderTimeout,
+            cancellationToken);
+        CancellationToken operationCancellationToken = execution.Token;
         var tracker = new OfficeImageExportBatchTracker(effective);
         int completed = 0;
         effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
@@ -290,46 +313,54 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
                 name: result.Name));
         }
 
-        if (_exportEachAsync != null) {
-            await _exportEachAsync(_format, effective, AcceptAsync, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        if (_exportAsync != null) {
-            IReadOnlyList<OfficeImageExportResult> asyncResults =
-                await _exportAsync(_format, effective, cancellationToken).ConfigureAwait(false);
-            foreach (OfficeImageExportResult result in asyncResults) await AcceptAsync(result, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        if (_exportEach != null) {
-            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            using var buffer = new OfficeImageExportAsyncBuffer();
-            Task producer = Task.Run(() => {
-                try {
-                    _exportEach(
-                        _format,
-                        effective,
-                        result => buffer.Add(result, linkedCancellation.Token),
-                        linkedCancellation.Token);
-                    buffer.Complete();
-                } catch (Exception exception) {
-                    buffer.Complete(exception);
-                }
-            });
-            try {
-                while (await buffer.ReadAsync(cancellationToken).ConfigureAwait(false) is { } result) {
-                    await AcceptAsync(result, cancellationToken).ConfigureAwait(false);
-                }
-            } finally {
-                linkedCancellation.Cancel();
-                await producer.ConfigureAwait(false);
+        try {
+            if (_exportEachAsync != null) {
+                await _exportEachAsync(_format, effective, AcceptAsync, operationCancellationToken).ConfigureAwait(false);
+                execution.ThrowIfCancellationRequested();
+                return;
             }
-            return;
-        }
 
-        foreach (OfficeImageExportResult result in _export(_format, effective)) {
-            await AcceptAsync(result, cancellationToken).ConfigureAwait(false);
+            if (_exportAsync != null) {
+                IReadOnlyList<OfficeImageExportResult> asyncResults =
+                    await _exportAsync(_format, effective, operationCancellationToken).ConfigureAwait(false);
+                foreach (OfficeImageExportResult result in asyncResults) await AcceptAsync(result, operationCancellationToken).ConfigureAwait(false);
+                execution.ThrowIfCancellationRequested();
+                return;
+            }
+
+            if (_exportEach != null) {
+                using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(operationCancellationToken);
+                using var buffer = new OfficeImageExportAsyncBuffer();
+                Task producer = Task.Run(() => {
+                    try {
+                        _exportEach(
+                            _format,
+                            effective,
+                            result => buffer.Add(result, linkedCancellation.Token),
+                            linkedCancellation.Token);
+                        buffer.Complete();
+                    } catch (Exception exception) {
+                        buffer.Complete(exception);
+                    }
+                });
+                try {
+                    while (await buffer.ReadAsync(operationCancellationToken).ConfigureAwait(false) is { } result) {
+                        await AcceptAsync(result, operationCancellationToken).ConfigureAwait(false);
+                    }
+                } finally {
+                    linkedCancellation.Cancel();
+                    await producer.ConfigureAwait(false);
+                }
+                execution.ThrowIfCancellationRequested();
+                return;
+            }
+
+            foreach (OfficeImageExportResult result in _export(_format, effective)) {
+                await AcceptAsync(result, operationCancellationToken).ConfigureAwait(false);
+            }
+            execution.ThrowIfCancellationRequested();
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
         }
     }
 

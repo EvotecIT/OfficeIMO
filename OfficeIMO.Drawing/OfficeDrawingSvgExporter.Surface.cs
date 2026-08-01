@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -31,7 +32,19 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeSvgSizeUnit sizeUnit,
         IOfficeRasterImageCodec? imageCodec,
         string? resourceIdPrefix) {
+        return ToSvg(drawing, scale, sizeUnit, imageCodec, resourceIdPrefix, CancellationToken.None);
+    }
+
+    /// <summary>Converts a drawing to SVG with bounded cancellation and a safe generated-resource prefix.</summary>
+    public static string ToSvg(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec,
+        string? resourceIdPrefix,
+        CancellationToken cancellationToken) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        cancellationToken.ThrowIfCancellationRequested();
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
         }
@@ -60,12 +73,15 @@ public static partial class OfficeDrawingSvgExporter {
             .Append(Format(drawing.Height))
             .Append("\" role=\"img\">");
 
-        AppendEmbeddedFonts(builder, drawing.Fonts);
+        AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken);
         int gradientId = 0;
         int clipPathId = 0;
-        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId);
+        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
         builder.Append("</svg>");
-        return builder.ToString();
+        cancellationToken.ThrowIfCancellationRequested();
+        string svg = builder.ToString();
+        cancellationToken.ThrowIfCancellationRequested();
+        return svg;
     }
 
     /// <summary>Converts a drawing to UTF-8 SVG bytes with an explicit root size unit.</summary>
@@ -88,6 +104,21 @@ public static partial class OfficeDrawingSvgExporter {
         IOfficeRasterImageCodec? imageCodec,
         string? resourceIdPrefix) =>
         Encoding.UTF8.GetBytes(ToSvg(drawing, scale, sizeUnit, imageCodec, resourceIdPrefix));
+
+    /// <summary>Converts a drawing to cancellable UTF-8 SVG bytes and prefixes generated resource identifiers.</summary>
+    public static byte[] ToSvgBytes(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec,
+        string? resourceIdPrefix,
+        CancellationToken cancellationToken) {
+        string svg = ToSvg(drawing, scale, sizeUnit, imageCodec, resourceIdPrefix, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = Encoding.UTF8.GetBytes(svg);
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
 
     private static string ValidateResourceIdPrefix(string? value) {
         if (string.IsNullOrEmpty(value)) return string.Empty;

@@ -120,12 +120,11 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
         OfficeImageExportFormat format,
         PdfImageExportOptions options,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics) {
-        PdfReadDocument document = source.Get(CancellationToken.None);
         return PdfImageExportEngine.Export(
-            document,
+            source.Get,
             format,
             options,
-            selection.Resolve(document),
+            selection.Resolve,
             initialDiagnostics);
     }
 
@@ -137,12 +136,11 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
         OfficeImageExportConsumer consumer,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics,
         CancellationToken cancellationToken) {
-        PdfReadDocument document = source.Get(cancellationToken);
         PdfImageExportEngine.ExportEach(
-            document,
+            source.Get,
             format,
             options,
-            selection.Resolve(document),
+            selection.Resolve,
             consumer,
             initialDiagnostics,
             cancellationToken);
@@ -193,13 +191,16 @@ public static class PdfImageExportExtensions {
         PdfPageSelection? selection = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));
-        cancellationToken.ThrowIfCancellationRequested();
-        var snapshot = document.GetReadSnapshot();
         return PdfImageExportEngine.Export(
-            snapshot.Document,
+            token => {
+                token.ThrowIfCancellationRequested();
+                PdfReadDocument readDocument = document.GetReadSnapshot().Document;
+                token.ThrowIfCancellationRequested();
+                return readDocument;
+            },
             format,
             options?.Clone() ?? new PdfImageExportOptions(),
-            selection,
+            _ => selection,
             initialDiagnostics: null,
             cancellationToken);
     }
@@ -237,12 +238,16 @@ public static class PdfImageExportExtensions {
         PdfPageSelection? selection = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(conversion, nameof(conversion));
-        cancellationToken.ThrowIfCancellationRequested();
         return PdfImageExportEngine.Export(
-            PdfReadDocument.Open(conversion.ToBytes()),
+            token => {
+                token.ThrowIfCancellationRequested();
+                PdfReadDocument document = PdfReadDocument.Open(conversion.ToBytes());
+                token.ThrowIfCancellationRequested();
+                return document;
+            },
             format,
             options?.Clone() ?? new PdfImageExportOptions(),
-            selection,
+            _ => selection,
             PdfImageExportEngine.MapConversionDiagnostics(conversion),
             cancellationToken);
     }

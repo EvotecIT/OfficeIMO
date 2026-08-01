@@ -88,6 +88,13 @@ public class OfficeImageExportOptions {
     public long MaximumTotalEncodedBytes { get; set; } = DefaultMaximumTotalEncodedBytes;
 
     /// <summary>
+    /// Maximum duration allowed for one render operation. The default is unlimited.
+    /// Cancellation-aware renderers are interrupted at the deadline; legacy renderers that do not
+    /// observe cancellation are rejected when they return after the deadline.
+    /// </summary>
+    public TimeSpan RenderTimeout { get; set; } = System.Threading.Timeout.InfiniteTimeSpan;
+
+    /// <summary>
     /// Maximum concurrent independent renders. Defaults to one because callers must opt in when their
     /// document model can be read concurrently.
     /// </summary>
@@ -136,6 +143,7 @@ public class OfficeImageExportOptions {
         target.MaximumOutputCount = MaximumOutputCount;
         target.MaximumTotalRasterPixels = MaximumTotalRasterPixels;
         target.MaximumTotalEncodedBytes = MaximumTotalEncodedBytes;
+        target.RenderTimeout = RenderTimeout;
         target.MaximumDegreeOfParallelism = MaximumDegreeOfParallelism;
         return target;
     }
@@ -184,6 +192,12 @@ public class OfficeImageExportOptions {
         if (MaximumOutputCount < 1) throw new ArgumentOutOfRangeException(nameof(MaximumOutputCount));
         if (MaximumTotalRasterPixels < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumTotalRasterPixels));
         if (MaximumTotalEncodedBytes < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumTotalEncodedBytes));
+        if (RenderTimeout != System.Threading.Timeout.InfiniteTimeSpan &&
+            (RenderTimeout <= TimeSpan.Zero || RenderTimeout.TotalMilliseconds > int.MaxValue)) {
+            throw new ArgumentOutOfRangeException(
+                nameof(RenderTimeout),
+                "Render timeout must be positive, no greater than Int32.MaxValue milliseconds, or infinite.");
+        }
         if (MaximumDegreeOfParallelism < 1) throw new ArgumentOutOfRangeException(nameof(MaximumDegreeOfParallelism));
     }
 

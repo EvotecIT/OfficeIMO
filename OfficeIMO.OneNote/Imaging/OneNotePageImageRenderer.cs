@@ -13,6 +13,19 @@ internal static class OneNotePageImageRenderer {
         CancellationToken cancellationToken = default) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (options == null) throw new ArgumentNullException(nameof(options));
+        return OfficeImageExportExecutionScope.Run(
+            options,
+            cancellationToken,
+            token => RenderCore(page, format, options, name, source, token));
+    }
+
+    private static OfficeImageExportResult RenderCore(
+        OneNotePage page,
+        OfficeImageExportFormat format,
+        OneNotePageRenderingOptions options,
+        string? name,
+        string? source,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OneNotePageRenderingOptions effective = options.Clone();
         effective.Validate();

@@ -79,7 +79,13 @@ public sealed partial class PdfDocumentReader {
         PdfPageRenderOptions? options = null,
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        return RenderPages(ResolveSelector(selector, readOptions), options, readOptions, cancellationToken);
+        Guard.NotNull(selector, nameof(selector));
+        return PdfPageImageRenderer.RenderPages(
+            _document.GetBytesForOperation,
+            selector,
+            options,
+            ResolveReadOptions(readOptions),
+            cancellationToken);
     }
 
     /// <summary>Runs the understanding pipeline for pages resolved by a document-relative selector.</summary>

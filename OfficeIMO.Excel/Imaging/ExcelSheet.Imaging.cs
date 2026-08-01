@@ -26,9 +26,22 @@ namespace OfficeIMO.Excel {
             ExcelWorksheetImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false)[0];
-            ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
-            return ExcelRangeImageRenderer.Render(snapshot, format, resolved, cancellationToken);
+            return OfficeImageExportExecutionScope.Run(
+                resolved,
+                cancellationToken,
+                token => {
+                    WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(
+                        resolved,
+                        allowMultipleResults: false)[0];
+                    token.ThrowIfCancellationRequested();
+                    ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(
+                        this,
+                        range.Range,
+                        resolved,
+                        range.Diagnostics,
+                        cancellationToken: token);
+                    return ExcelRangeImageRenderer.Render(snapshot, format, resolved, token);
+                });
         }
 
         /// <summary>
