@@ -650,7 +650,12 @@ namespace OfficeIMO.Excel {
             bool isTop,
             bool isPercent) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
-            if (value < 1 || value > 500) throw new ArgumentOutOfRangeException(nameof(value), "Top10 AutoFilter values must be between 1 and 500.");
+            ushort maximumValue = isPercent ? (ushort)100 : (ushort)500;
+            if (value < 1 || value > maximumValue) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    $"Top10 AutoFilter values must be between 1 and {maximumValue}.");
+            }
             range = ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {

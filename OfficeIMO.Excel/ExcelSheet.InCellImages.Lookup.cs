@@ -231,6 +231,16 @@ namespace OfficeIMO.Excel {
                     StringComparison.Ordinal)) != 1) {
                 return false;
             }
+            OpenXmlPart imagePart;
+            try {
+                imagePart = lookup.RelationshipPart.GetPartById(relationshipId);
+            } catch (ArgumentOutOfRangeException) {
+                return false;
+            }
+            OpenXmlPart[] imageParents = imagePart.GetParentParts().ToArray();
+            if (imageParents.Length != 1 || !ReferenceEquals(imageParents[0], lookup.RelationshipPart)) {
+                return false;
+            }
             int relationshipReferences = 0;
             foreach (Rich.RichValue value in lookup.RichValues) {
                 uint structureIndex = value.S?.Value ?? uint.MaxValue;

@@ -150,12 +150,10 @@ namespace OfficeIMO.Excel {
                     bool sharedPayload = payloads.TryGetValue(imagePart, out byte[]? payload);
                     if (!sharedPayload) {
                         using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-                        if (source.CanSeek && checked(total + source.Length) > maximumTotalImageBytes) {
-                            throw new InvalidOperationException($"In-cell image payloads exceed maximumTotalImageBytes ({maximumTotalImageBytes}).");
-                        }
-                        using var buffer = new MemoryStream();
-                        source.CopyTo(buffer);
-                        payload = buffer.ToArray();
+                        payload = ReadInCellImagePayload(
+                            source,
+                            maximumTotalImageBytes - total,
+                            maximumTotalImageBytes);
                         payloads.Add(imagePart, payload);
                     }
                     byte[] resolvedPayload = payload!;
@@ -171,6 +169,18 @@ namespace OfficeIMO.Excel {
                 }
                 return new ReadOnlyCollection<ExcelInCellImage>(result);
             });
+        }
+
+        /// <summary>Reads one image without allowing a non-seekable package stream to exceed the remaining aggregate budget.</summary>
+        internal static byte[] ReadInCellImagePayload(
+            Stream source,
+            long remainingAggregateBytes,
+            long maximumTotalImageBytes) {
+            if (ExcelImageExportLimits.TryReadSourceImageBytes(source, remainingAggregateBytes, out byte[] payload)) {
+                return payload;
+            }
+            throw new InvalidOperationException(
+                $"In-cell image payloads exceed maximumTotalImageBytes ({maximumTotalImageBytes}).");
         }
 
         /// <summary>Removes the in-cell image value from one cell. Shared rich-data assets remain available to copied cells.</summary>
