@@ -1,6 +1,8 @@
 #nullable enable
 
 using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -8,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// Opens an XLSX, XLSM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
         /// Worksheets are exposed in workbook order through <see cref="DbDataReader.NextResult"/>.
         /// </summary>
-        public static DbDataReader OpenDataReader(string path, ExcelReadOptions? options = null) {
+        public static ExcelWorkbookDataReader OpenDataReader(string path, ExcelReadOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
@@ -32,7 +34,7 @@ namespace OfficeIMO.Excel {
         /// <param name="stream">Readable workbook stream positioned at the workbook bytes to read.</param>
         /// <param name="options">Workbook reader options.</param>
         /// <returns>A forward-only reader whose results follow workbook worksheet order.</returns>
-        public static DbDataReader OpenDataReader(Stream stream, ExcelReadOptions? options = null) {
+        public static ExcelWorkbookDataReader OpenDataReader(Stream stream, ExcelReadOptions? options = null) {
             if (stream == null) {
                 throw new ArgumentNullException(nameof(stream));
             }
@@ -60,7 +62,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Opens an in-memory XLSX, XLSM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
         /// </summary>
-        public static DbDataReader OpenDataReader(byte[] bytes, ExcelReadOptions? options = null) {
+        public static ExcelWorkbookDataReader OpenDataReader(byte[] bytes, ExcelReadOptions? options = null) {
             if (bytes == null) {
                 throw new ArgumentNullException(nameof(bytes));
             }
@@ -83,13 +85,31 @@ namespace OfficeIMO.Excel {
         /// Creates a forward-only data reader over this open workbook document.
         /// The returned reader does not close the document.
         /// </summary>
-        public DbDataReader CreateDataReader(ExcelReadOptions? options = null) {
+        public ExcelWorkbookDataReader CreateDataReader(ExcelReadOptions? options = null) {
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             MaterializeDeferredDataSetImport(effectiveOptions.CancellationToken);
             return ExcelWorkbookDataReader.WrapOpenXml(
                 ExcelDocumentReader.Wrap(_spreadSheetDocument, effectiveOptions),
                 effectiveOptions);
+        }
+
+        /// <summary>
+        /// Downloads an HTTP or HTTPS workbook and opens it as a forward-only data reader.
+        /// </summary>
+        public static async Task<ExcelWorkbookDataReader> OpenDataReaderAsync(
+            Uri uri,
+            ExcelReadOptions? options = null,
+            ExcelHttpLoadOptions? httpOptions = null,
+            CancellationToken cancellationToken = default) {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(
+                uri,
+                httpOptions,
+                cancellationToken,
+                effectiveOptions.MaxInputBytes).ConfigureAwait(false);
+            return OpenDataReader(bytes, effectiveOptions);
         }
     }
 }

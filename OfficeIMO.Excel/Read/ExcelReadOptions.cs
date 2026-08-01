@@ -20,6 +20,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? SheetName { get; set; }
 
+        /// <summary>
+        /// Gets or sets the zero-based worksheet index exposed by an Excel data reader.
+        /// Cannot be combined with <see cref="SheetName"/>.
+        /// </summary>
+        public int? SheetIndex { get; set; }
+
+        /// <summary>
+        /// Gets or sets an optional A1 range exposed from each selected worksheet.
+        /// When omitted, the worksheet used range is exposed.
+        /// </summary>
+        public string? A1Range { get; set; }
+
         /// <summary>Gets or sets whether the first row supplies column names.</summary>
         public bool HasHeaderRow { get; set; } = true;
 

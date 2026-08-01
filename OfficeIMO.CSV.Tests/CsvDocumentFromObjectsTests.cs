@@ -251,6 +251,102 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void WriteDataReader_TextWriterRejectsPathOnlyOptions()
+    {
+        using var reader = CreateReader();
+        using var writer = new StringWriter();
+
+        Assert.Throws<ArgumentException>(() => CsvDocument.WriteDataReader(
+            writer,
+            reader,
+            new CsvSaveOptions { Append = true }));
+    }
+
+    [Fact]
+    public void WriteDataReader_StreamOverloadUsesCanonicalWriterAndLeavesStreamOpen()
+    {
+        using var table = new DataTable();
+        table.Columns.Add("Name", typeof(string));
+        table.Rows.Add("Alpha, Beta");
+        using IDataReader reader = table.CreateDataReader();
+        using var destination = new MemoryStream();
+
+        CsvDocument.WriteDataReader(
+            destination,
+            reader,
+            new CsvSaveOptions { NewLine = "\n" });
+
+        Assert.True(destination.CanWrite);
+        Assert.Equal("Name\n\"Alpha, Beta\"\n", System.Text.Encoding.UTF8.GetString(destination.ToArray()));
+    }
+
+    [Fact]
+    public void WriteDataReader_PathOverloadUsesCanonicalCompressionRouting()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.{Guid.NewGuid():N}.csv.gz");
+        try
+        {
+            using var table = new DataTable();
+            table.Columns.Add("Name", typeof(string));
+            table.Rows.Add("Alpha");
+            using IDataReader reader = table.CreateDataReader();
+
+            CsvDocument.WriteDataReader(
+                path,
+                reader,
+                new CsvSaveOptions { CompressionType = CsvCompressionType.GZip, NewLine = "\n" });
+
+            CsvDocument reloaded = CsvDocument.Load(path);
+            Assert.Equal("Alpha", Assert.Single(reloaded.AsEnumerable()).AsString("Name"));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void WriteDataReader_PathOverloadHonorsAppendAndNoClobber()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.{Guid.NewGuid():N}.csv");
+        try
+        {
+            using (var firstTable = new DataTable())
+            {
+                firstTable.Columns.Add("Name", typeof(string));
+                firstTable.Rows.Add("Alpha");
+                using IDataReader first = firstTable.CreateDataReader();
+                CsvDocument.WriteDataReader(path, first, new CsvSaveOptions { NewLine = "\n" });
+            }
+
+            using (var nextTable = new DataTable())
+            {
+                nextTable.Columns.Add("Name", typeof(string));
+                nextTable.Rows.Add("Beta");
+                using IDataReader next = nextTable.CreateDataReader();
+                CsvDocument.WriteDataReader(
+                    path,
+                    next,
+                    new CsvSaveOptions { Append = true, IncludeHeader = false, NewLine = "\n" });
+            }
+
+            Assert.Equal("Name\nAlpha\nBeta\n", File.ReadAllText(path));
+
+            using var rejectedTable = new DataTable();
+            rejectedTable.Columns.Add("Name", typeof(string));
+            using IDataReader rejected = rejectedTable.CreateDataReader();
+            Assert.Throws<IOException>(() => CsvDocument.WriteDataReader(
+                path,
+                rejected,
+                new CsvSaveOptions { NoClobber = true }));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void WriteDataReader_FallsBackWhenGetValuesIsUnsupported()
     {
         using var reader = new ThrowingGetValuesDataReader(

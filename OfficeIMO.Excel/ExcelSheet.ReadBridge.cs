@@ -37,28 +37,71 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Maps the specified A1 range to a sequence of T using header-to-property mapping.
+        /// Reads the sheet's used range as materialized instances of T using header-to-property mapping.
         /// </summary>
-        internal IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, ExcelReadOptions? options = null) where T : new() {
+        /// <param name="options">Optional read options.</param>
+        /// <param name="ct">Cancellation token observed during enumeration.</param>
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            ExcelReadOptions? options = null,
+            CancellationToken ct = default) where T : new() {
+            using var rdr = _excelDocument.CreateReader(options);
+            var sh = rdr.GetSheet(this.Name);
+            string a1Range = sh.GetUsedRangeA1();
+            return sh.ReadObjects<T>(a1Range, ct: ct);
+        }
+
+        /// <summary>
+        /// Reads the specified A1 range as materialized instances of T using header-to-property mapping.
+        /// </summary>
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range,
+            ExcelReadOptions? options = null,
+            CancellationToken ct = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);
-            return sh.ReadObjects<T>(a1Range);
+            return sh.ReadObjects<T>(a1Range, ct: ct);
+        }
+
+        /// <summary>
+        /// Streams the sheet's used range as instances of T using header-to-property mapping.
+        /// Enumerate the returned sequence while the owning ExcelDocument is still open.
+        /// </summary>
+        /// <param name="options">Optional read options.</param>
+        /// <param name="ct">Cancellation token observed during enumeration.</param>
+        public IEnumerable<T> RowsAsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            ExcelReadOptions? options = null,
+            CancellationToken ct = default) where T : new() {
+            return RowsAsUsedRangeStreamIterator<T>(options, ct);
         }
 
         /// <summary>
         /// Streams the specified A1 range as instances of T using header-to-property mapping.
         /// Enumerate the returned sequence while the owning ExcelDocument is still open.
         /// </summary>
-        internal IEnumerable<T> RowsAsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        /// <param name="a1Range">Inclusive A1 range (for example, "A1:C100").</param>
+        /// <param name="options">Optional read options.</param>
+        /// <param name="ct">Cancellation token observed during enumeration.</param>
+        public IEnumerable<T> RowsAsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
             ExcelReadOptions? options = null,
             CancellationToken ct = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            return RowsAsStreamIterator<T>(a1Range, options, ct);
+            return RowsAsRangeStreamIterator<T>(a1Range, options, ct);
         }
 
-        private IEnumerable<T> RowsAsStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        private IEnumerable<T> RowsAsUsedRangeStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            ExcelReadOptions? options,
+            CancellationToken ct) where T : new() {
+            using var rdr = _excelDocument.CreateReader(options);
+            var sh = rdr.GetSheet(this.Name);
+            string a1Range = sh.GetUsedRangeA1();
+            foreach (var row in sh.ReadObjectsStream<T>(a1Range, ct)) {
+                yield return row;
+            }
+        }
+
+        private IEnumerable<T> RowsAsRangeStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
             ExcelReadOptions? options,
             CancellationToken ct) where T : new() {

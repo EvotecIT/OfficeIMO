@@ -1922,6 +1922,14 @@ namespace OfficeIMO.Tests {
                 LegacyXlsCellValueKind.Number,
                 1D,
                 0));
+            selected.AddCell(new LegacyXlsCell(
+                2,
+                2,
+                LegacyXlsCellValueKind.Number,
+                2D,
+                0,
+                isFormula: true,
+                formulaText: null));
             var unselected = new LegacyXlsWorksheet("Unselected", 0, 0, 0);
             unselected.AddCell(new LegacyXlsCell(
                 1,
@@ -1938,6 +1946,15 @@ namespace OfficeIMO.Tests {
                 workbook,
                 new ExcelReadOptions {
                     SheetName = "selected",
+                    A1Range = "A1:A1",
+                    UseCachedFormulaResult = false
+                });
+
+            ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
+                workbook,
+                new ExcelReadOptions {
+                    SheetIndex = 0,
+                    A1Range = "A1:A1",
                     UseCachedFormulaResult = false
                 });
 
@@ -1946,6 +1963,14 @@ namespace OfficeIMO.Tests {
                     workbook,
                     new ExcelReadOptions {
                         SheetName = "unselected",
+                        UseCachedFormulaResult = false
+                    }));
+            Assert.Throws<NotSupportedException>(() =>
+                ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
+                    workbook,
+                    new ExcelReadOptions {
+                        SheetIndex = 0,
+                        A1Range = "B2:B2",
                         UseCachedFormulaResult = false
                     }));
         }

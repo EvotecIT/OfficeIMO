@@ -73,9 +73,22 @@ Replace the removed public reader roots as follows:
 | `CsvDocument.ReadFieldSpans*`, `CsvDocument.ReadRowFieldSpans*`, `CsvFieldSpanAction`, `ICsvFieldSpanVisitor`, `ICsvProjectedFieldSpanVisitor`, and `ICsvRowFieldSpanVisitor` | `CsvDocument.OpenDataReader(...)` for streaming, or `Load(...)` / `Parse(...)` for a materialized document |
 | `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenDataReader(...)` |
 | `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenDataReader(...)` for streaming, or `ExcelDocument.Load(...)` for editing |
-| Concrete Excel reader return types | `DbDataReader` |
+| Concrete `ExcelDocumentReader` / `ExcelSheetReader` use | `ExcelWorkbookDataReader` returned by `ExcelDocument.OpenDataReader(...)` or `workbook.CreateDataReader(...)` |
 
-When configuring a streaming CSV read with `CsvLoadOptions`, set `Mode = CsvLoadMode.Stream`; the options object otherwise retains its in-memory default. Excel exposes worksheets as ordered `DbDataReader` results through `NextResult()`.
+`CsvLoadOptions.Mode`, `CsvLoadMode`, and `CsvDocument.Mode` are no longer
+public. Use `CsvDocument.OpenDataReader` for a forward-only read and
+`CsvDocument.Load` for a materialized model.
+Excel exposes worksheets as ordered `ExcelWorkbookDataReader` results through
+`NextResult()`. Use `SheetName` or zero-based `SheetIndex` to select one sheet,
+`A1Range` to select a range, `CurrentSheetName` / `CurrentSheetIndex` to identify the
+workbook sheet, and `CurrentResultIndex` to identify its position in the selected results.
+
+The Excel/CSV adapter in `OfficeIMO.Reader.Excel` now uses the native CSV reader
+and writer pipelines. Replace `ImportDelimitedFile`, `FromCsv`,
+`ExcelDelimitedImportOptions`, and `ExcelDelimitedImportResult` with
+`ImportCsvFile`, `ImportCsv`, `ExcelCsvImportOptions`, and
+`ExcelCsvImportResult`. Use `SaveAsCsv` and `SaveAsExcel` for destination-shaped
+conversion entry points.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 

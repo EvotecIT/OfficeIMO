@@ -1,165 +1,129 @@
 using System.Data;
+using System.Data.Common;
+using System.Text;
+using System.Threading;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 
 namespace OfficeIMO.Reader.Excel;
 
-/// <summary>Imports CSV and TSV content into Excel workbooks.</summary>
+/// <summary>Imports CSV data through the shared OfficeIMO.CSV reader pipeline.</summary>
 public static class ExcelDocumentCsvExtensions {
-    /// <summary>Imports CSV or TSV text into a worksheet.</summary>
-    public static ExcelDelimitedImportResult ImportDelimitedText(this ExcelDocument document, string text, ExcelDelimitedImportOptions? options = null) {
+    /// <summary>Imports a loaded CSV document into a new worksheet.</summary>
+    public static ExcelCsvImportResult ImportCsv(
+        this ExcelDocument document,
+        CsvDocument csv,
+        ExcelCsvImportOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        options ??= new ExcelDelimitedImportOptions();
-        int recordsToSkip = ValidateRecordsToSkip(options);
-        char delimiter = options.Delimiter ?? DetectDelimiter(text, recordsToSkip);
-        DataTable table = ExcelCsvDataTableBuilder.FromText(
-            text,
-            delimiter,
-            options.HeadersInFirstRow,
-            recordsToSkip,
-            options.Culture,
-            options.ConvertNumbersAndDates);
-        return ImportTable(document, table, delimiter, options);
+        if (csv == null) throw new ArgumentNullException(nameof(csv));
+        ExcelCsvImportOptions resolved = ResolveOptions(options);
+        using DbDataReader reader = csv.CreateDataReader(resolved.ReaderOptions);
+        return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
-    /// <summary>Imports a CSV or TSV file into a worksheet.</summary>
-    public static ExcelDelimitedImportResult ImportDelimitedFile(this ExcelDocument document, string path, ExcelDelimitedImportOptions? options = null) {
+    /// <summary>Opens a CSV file and imports it into a new worksheet.</summary>
+    public static ExcelCsvImportResult ImportCsvFile(
+        this ExcelDocument document,
+        string path,
+        ExcelCsvImportOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        options ??= new ExcelDelimitedImportOptions();
-        int recordsToSkip = ValidateRecordsToSkip(options);
-        char delimiter = options.Delimiter ?? DetectDelimiterFromFile(path, recordsToSkip);
-        DataTable table = ExcelCsvDataTableBuilder.FromFile(
-            path,
-            delimiter,
-            options.HeadersInFirstRow,
-            recordsToSkip,
-            options.Culture,
-            options.ConvertNumbersAndDates);
-        return ImportTable(document, table, delimiter, options);
+        ExcelCsvImportOptions resolved = ResolveOptions(options);
+        using DbDataReader reader = CsvDocument.OpenDataReader(path, resolved.LoadOptions, resolved.ReaderOptions);
+        return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
-    private static ExcelDelimitedImportResult ImportTable(ExcelDocument document, DataTable table, char delimiter, ExcelDelimitedImportOptions options) {
-        table.TableName = string.IsNullOrWhiteSpace(options.SheetName) ? "Import" : options.SheetName!.Trim();
-        var dataSet = new DataSet();
-        dataSet.Tables.Add(table);
-        ExcelDataSetImportResult imported = document.InsertDataSet(
-            dataSet,
-            createTables: false,
-            tableStyle: options.TableStyle,
-            includeHeaders: true,
-            includeAutoFilter: true,
-            autoFit: false)[0];
-
-        string? actualTableName = null;
-        if (options.CreateTable && !string.IsNullOrWhiteSpace(imported.Range)) {
-            ExcelSheet sheet = document[imported.SheetName];
-            string requestedTableName = string.IsNullOrWhiteSpace(options.TableName) ? imported.SheetName : options.TableName!.Trim();
-            sheet.AddTable(imported.Range, hasHeader: true, requestedTableName, options.TableStyle, includeAutoFilter: true);
-            actualTableName = document.GetTables()
-                .FirstOrDefault(item => string.Equals(item.SheetName, imported.SheetName, StringComparison.OrdinalIgnoreCase) &&
-                                        string.Equals(item.Range, imported.Range, StringComparison.OrdinalIgnoreCase))
-                ?.Name;
-        }
-
-        return new ExcelDelimitedImportResult(
-            imported.SheetName,
-            actualTableName,
-            imported.Range,
-            imported.RowCount,
-            imported.ColumnCount,
-            delimiter,
-            Array.Empty<string>());
+    /// <summary>Reads a caller-owned CSV stream and imports it into a new worksheet.</summary>
+    public static ExcelCsvImportResult ImportCsv(
+        this ExcelDocument document,
+        Stream stream,
+        ExcelCsvImportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        ExcelCsvImportOptions resolved = ResolveOptions(options);
+        using DbDataReader reader = CsvDocument.OpenDataReader(stream, resolved.LoadOptions, resolved.ReaderOptions);
+        return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
-    private static int ValidateRecordsToSkip(ExcelDelimitedImportOptions options) {
-        if (options.SkipInitialRecords < 0) {
-            throw new ArgumentOutOfRangeException(nameof(options), "SkipInitialRecords cannot be negative.");
-        }
-
-        return options.SkipInitialRecords;
+    /// <summary>Parses CSV text and imports it into a new worksheet.</summary>
+    public static ExcelCsvImportResult ImportCsvText(
+        this ExcelDocument document,
+        string text,
+        ExcelCsvImportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        ExcelCsvImportOptions resolved = ResolveOptions(options);
+        Encoding encoding = resolved.LoadOptions.Encoding ?? new UTF8Encoding(false);
+        using var stream = new MemoryStream(encoding.GetBytes(text), writable: false);
+        using DbDataReader reader = CsvDocument.OpenDataReader(stream, resolved.LoadOptions, resolved.ReaderOptions);
+        return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
-    private static char DetectDelimiterFromFile(string path, int recordsToSkip) {
-        using var reader = CsvFile.OpenTextReader(path);
-        return DetectDelimiter(ReadFirstLogicalRecord(reader, recordsToSkip));
-    }
-
-    private static char DetectDelimiter(string text, int recordsToSkip) {
-        using var reader = new StringReader(text);
-        return DetectDelimiter(ReadFirstLogicalRecord(reader, recordsToSkip));
-    }
-
-    private static char DetectDelimiter(string record) {
-        var candidates = new[] { ',', ';', '\t', '|' };
-        return candidates
-            .Select(candidate => new { Delimiter = candidate, Count = CountUnquoted(record, candidate) })
-            .OrderByDescending(item => item.Count)
-            .First()
-            .Delimiter;
-    }
-
-    private static string ReadFirstLogicalRecord(TextReader reader, int recordsToSkip) {
-        foreach (string record in ReadLogicalRecords(reader)) {
-            if (record.Length == 0) continue;
-            if (recordsToSkip > 0) {
-                recordsToSkip--;
-                continue;
-            }
-
-            return record;
-        }
-
-        return string.Empty;
-    }
-
-    private static IEnumerable<string> ReadLogicalRecords(TextReader reader) {
-        string? line;
-        while ((line = reader.ReadLine()) != null) {
-            if (IsLogicalRecordComplete(line)) {
-                yield return line;
-                continue;
-            }
-
-            var record = new System.Text.StringBuilder(line);
-            while ((line = reader.ReadLine()) != null) {
-                record.Append('\n').Append(line);
-                if (IsLogicalRecordComplete(record.ToString())) break;
-            }
-
-            yield return record.ToString();
+    /// <summary>Creates a detached Excel workbook from a loaded CSV document.</summary>
+    public static ExcelDocument ToExcelDocument(
+        this CsvDocument csv,
+        ExcelCsvImportOptions? options = null,
+        ExcelCreateOptions? createOptions = null,
+        CancellationToken cancellationToken = default) {
+        if (csv == null) throw new ArgumentNullException(nameof(csv));
+        ExcelDocument document = ExcelDocument.Create(createOptions);
+        try {
+            document.ImportCsv(csv, options, cancellationToken);
+            return document;
+        } catch {
+            document.Dispose();
+            throw;
         }
     }
 
-    private static bool IsLogicalRecordComplete(string record) {
-        bool quoted = false;
-        for (int index = 0; index < record.Length; index++) {
-            if (record[index] != '"') continue;
-            if (quoted && index + 1 < record.Length && record[index + 1] == '"') {
-                index++;
-                continue;
-            }
-
-            quoted = !quoted;
-        }
-
-        return !quoted;
+    /// <summary>Converts a loaded CSV document and saves it as an Excel workbook.</summary>
+    public static void SaveAsExcel(
+        this CsvDocument csv,
+        string path,
+        ExcelCsvImportOptions? importOptions = null,
+        ExcelSaveOptions? saveOptions = null,
+        CancellationToken cancellationToken = default) {
+        if (csv == null) throw new ArgumentNullException(nameof(csv));
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        using ExcelDocument document = csv.ToExcelDocument(importOptions, cancellationToken: cancellationToken);
+        document.Save(path, saveOptions);
     }
 
-    private static int CountUnquoted(string text, char delimiter) {
-        int count = 0;
-        bool quoted = false;
-        for (int index = 0; index < text.Length; index++) {
-            char ch = text[index];
-            if (ch == '"') {
-                if (quoted && index + 1 < text.Length && text[index + 1] == '"') index++;
-                else quoted = !quoted;
-            } else if (ch == delimiter && !quoted) {
-                count++;
-            }
+    /// <summary>Converts a loaded CSV document and saves it to an Excel workbook stream.</summary>
+    public static void SaveAsExcel(
+        this CsvDocument csv,
+        Stream stream,
+        ExcelCsvImportOptions? importOptions = null,
+        ExcelSaveOptions? saveOptions = null,
+        CancellationToken cancellationToken = default) {
+        if (csv == null) throw new ArgumentNullException(nameof(csv));
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        using ExcelDocument document = csv.ToExcelDocument(importOptions, cancellationToken: cancellationToken);
+        document.Save(stream, saveOptions);
+    }
+
+    private static ExcelCsvImportResult ImportIntoNewWorksheet(
+        ExcelDocument document,
+        IDataReader reader,
+        ExcelCsvImportOptions options,
+        CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(options.SheetName)) {
+            throw new ArgumentException("SheetName cannot be empty.", nameof(options));
         }
 
-        return count;
+        ExcelSheet sheet = document.AddWorksheet(options.SheetName.Trim());
+        return ExcelSheetCsvExtensions.ImportCsvCore(sheet, reader, options, cancellationToken);
+    }
+
+    internal static ExcelCsvImportOptions ResolveOptions(ExcelCsvImportOptions? options) {
+        ExcelCsvImportOptions resolved = options ?? new ExcelCsvImportOptions();
+        if (resolved.LoadOptions == null) throw new ArgumentException("LoadOptions cannot be null.", nameof(options));
+        if (resolved.ReaderOptions == null) throw new ArgumentException("ReaderOptions cannot be null.", nameof(options));
+        if (resolved.StartRow < 1) throw new ArgumentOutOfRangeException(nameof(options), "StartRow must be at least 1.");
+        if (resolved.StartColumn < 1) throw new ArgumentOutOfRangeException(nameof(options), "StartColumn must be at least 1.");
+        return resolved;
     }
 }
