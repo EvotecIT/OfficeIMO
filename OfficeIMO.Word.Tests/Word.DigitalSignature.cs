@@ -718,6 +718,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_SigningReadbackReusesConfiguredResourceLimits() {
+            var signingOptions = new WordPackageSigningOptions {
+                MaxPackageBytes = 768L * 1024 * 1024,
+                MaxPackageParts = 12000,
+                MaxPartBytes = 384L * 1024 * 1024,
+                MaxTotalDigestBytes = 640L * 1024 * 1024
+            };
+
+            WordSignatureValidationOptions validationOptions = WordDocument.CreateSigningReadbackOptions(
+                signingOptions,
+                signatureCount: 48);
+
+            Assert.Equal(signingOptions.MaxPackageBytes, validationOptions.MaxPackageBytes);
+            Assert.Equal(signingOptions.MaxPackageParts, validationOptions.MaxPackageParts);
+            Assert.Equal(signingOptions.MaxPartBytes, validationOptions.MaxPartBytes);
+            Assert.Equal(signingOptions.MaxTotalDigestBytes, validationOptions.MaxTotalDigestBytes);
+            Assert.Equal(48, validationOptions.MaxSignatureParts);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_SigningRejectsFinalPackageOutsideConfiguredByteLimitAtomically() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureFinalPackageByteLimit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Final signed-package byte limit");
+                document.Save();
+            }
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult result = WordDocument.TrySignPackage(
+                filePath,
+                certificate,
+                new WordPackageSigningOptions { MaxPackageBytes = originalBytes.LongLength });
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Details, detail => detail.Contains("signed package exceeds", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidationCountsDeclaredEmbeddedCertificates() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCertificateCount.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

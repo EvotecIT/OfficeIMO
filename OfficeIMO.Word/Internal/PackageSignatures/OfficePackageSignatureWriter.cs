@@ -25,6 +25,7 @@ namespace OfficeIMO.Word {
         public int MaxPackageParts { get; set; } = 10000;
         public long MaxPackageBytes { get; set; } = 512L * 1024 * 1024;
         public long MaxPartBytes { get; set; } = 256L * 1024 * 1024;
+        public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;
     }
 
     /// <summary>Result of an attempted Open Packaging Convention package-signing operation.</summary>
@@ -76,6 +77,7 @@ namespace OfficeIMO.Word {
             if (options.MaxPackageParts <= 0) return Failed(fullPath, "MaxPackageParts must be greater than zero.");
             if (options.MaxPackageBytes <= 0) return Failed(fullPath, "MaxPackageBytes must be greater than zero.");
             if (options.MaxPartBytes <= 0) return Failed(fullPath, "MaxPartBytes must be greater than zero.");
+            if (options.MaxTotalDigestBytes <= 0) return Failed(fullPath, "MaxTotalDigestBytes must be greater than zero.");
             long packageLength = new FileInfo(fullPath).Length;
             if (packageLength > options.MaxPackageBytes) {
                 return Failed(fullPath, "The package exceeds the " + options.MaxPackageBytes + " byte signing limit.");
@@ -93,6 +95,7 @@ namespace OfficeIMO.Word {
                 byte[] packageBytes = File.ReadAllBytes(stagingPath);
                 SigningPayload payload = CreateSignature(packageBytes, certificate, signingKey, options);
                 SignaturePartWriteResult write = AddSignaturePart(stagingPath, payload.SignatureXml);
+                EnsureSignedPackageWithinLimits(stagingPath, options);
                 OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, fullPath);
                 stagingPath = string.Empty;
 
@@ -116,6 +119,14 @@ namespace OfficeIMO.Word {
             } finally {
                 if (!string.IsNullOrWhiteSpace(stagingPath)) OfficeFileCommit.DeleteIfExists(stagingPath);
             }
+        }
+
+        private static void EnsureSignedPackageWithinLimits(string packagePath, OfficePackageSigningOptions options) {
+            long packageLength = new FileInfo(packagePath).Length;
+            if (packageLength > options.MaxPackageBytes) {
+                throw new InvalidDataException("The signed package exceeds the " + options.MaxPackageBytes + " byte signing limit.");
+            }
+            using var archive = new OfficePackageSignatureArchive(File.ReadAllBytes(packagePath), options.MaxPackageParts);
         }
 
         private static void PrepareDigitalSignatureMetadata(string packagePath) {
@@ -172,7 +183,18 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            long totalDigestBytes = 0;
             foreach (XElement reference in manifest.Elements(ds + "Reference")) {
+                string? referenceUri = ((string?)reference.Attribute("URI"))?.Trim();
+                string targetPartUri = OfficePackageSignatureArchive.NormalizeReferencePartUri(referenceUri)
+                    ?? throw new InvalidDataException("The OPC signature Reference is not a package-part URI: " + referenceUri + ".");
+                if (!package.TryGetPartLength(targetPartUri, out long partLength)) {
+                    throw new FileNotFoundException("The package part selected for signing was not found.", targetPartUri);
+                }
+                if (partLength > options.MaxTotalDigestBytes - totalDigestBytes) {
+                    throw new InvalidDataException("The package parts selected for signing exceed the " + options.MaxTotalDigestBytes + " byte aggregate digest limit.");
+                }
+                totalDigestBytes += partLength;
                 reference.Add(new XElement(ds + "DigestValue", package.ComputeDigestValue(reference, options.MaxPartBytes)));
             }
 

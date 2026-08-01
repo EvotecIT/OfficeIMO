@@ -118,6 +118,9 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the maximum uncompressed bytes read from one signed part. Defaults to 256 MiB.</summary>
         public long MaxPartBytes { get; set; } = 256L * 1024 * 1024;
 
+        /// <summary>Gets or sets the maximum aggregate uncompressed package-part bytes digested while signing. Defaults to 512 MiB.</summary>
+        public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;
+
         internal OfficePackageSigningOptions ToPackageOptions() {
             return new OfficePackageSigningOptions {
                 PartUris = PartUris,
@@ -129,7 +132,8 @@ namespace OfficeIMO.Word {
                 AdditionalCertificates = AdditionalCertificates,
                 MaxPackageParts = MaxPackageParts,
                 MaxPackageBytes = MaxPackageBytes,
-                MaxPartBytes = MaxPartBytes
+                MaxPartBytes = MaxPartBytes,
+                MaxTotalDigestBytes = MaxTotalDigestBytes
             };
         }
     }

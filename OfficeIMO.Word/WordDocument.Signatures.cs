@@ -160,17 +160,32 @@ namespace OfficeIMO.Word {
         /// <param name="options">Optional package-signing settings.</param>
         /// <returns>A signing result with details and validation readback when available.</returns>
         public static WordPackageSigningResult TrySignPackage(string filePath, X509Certificate2 certificate, WordPackageSigningOptions? options = null) {
-            OfficePackageSigningResult packageResult = OfficePackageSignatureWriter.Sign(filePath, certificate, (options ?? new WordPackageSigningOptions()).ToPackageOptions());
+            WordPackageSigningOptions effectiveOptions = options ?? new WordPackageSigningOptions();
+            OfficePackageSigningResult packageResult = OfficePackageSignatureWriter.Sign(filePath, certificate, effectiveOptions.ToPackageOptions());
             WordSignatureValidationReport? validationReport = null;
 
             if (packageResult.Succeeded) {
                 using WordDocument document = Load(filePath, new WordLoadOptions {
                     AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
                 });
-                validationReport = document.ValidateSignatures();
+                validationReport = document.ValidateSignatures(CreateSigningReadbackOptions(
+                    effectiveOptions,
+                    packageResult.SignatureCount));
             }
 
             return new WordPackageSigningResult(packageResult, validationReport);
+        }
+
+        internal static WordSignatureValidationOptions CreateSigningReadbackOptions(
+            WordPackageSigningOptions signingOptions,
+            int signatureCount) {
+            return new WordSignatureValidationOptions {
+                MaxSignatureParts = Math.Max(32, signatureCount),
+                MaxPackageBytes = signingOptions.MaxPackageBytes,
+                MaxPackageParts = signingOptions.MaxPackageParts,
+                MaxPartBytes = signingOptions.MaxPartBytes,
+                MaxTotalDigestBytes = signingOptions.MaxTotalDigestBytes
+            };
         }
 
         /// <summary>
