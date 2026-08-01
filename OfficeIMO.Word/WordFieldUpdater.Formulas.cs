@@ -113,6 +113,11 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
+            if (!TryValidateNumericPictureProfile(numericPicture, out diagnostic)) {
+                formattedValue = string.Empty;
+                return false;
+            }
+
             string format = TrimFormulaFormatQuotes(numericPicture ?? string.Empty);
             if (format.Length == 0) {
                 formattedValue = string.Empty;

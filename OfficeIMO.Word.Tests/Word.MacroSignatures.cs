@@ -71,10 +71,32 @@ namespace OfficeIMO.Tests {
             };
             WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, options);
 
+            Assert.True(info.HasMacroProject);
+            Assert.NotNull(info.MacroProjectPartUri);
+            Assert.NotNull(info.MacroProjectSha256);
             Assert.Empty(info.Signatures);
             Assert.Contains(info.Findings, finding =>
                 finding.Code == "MacroSignatureInspectionFailed" &&
                 finding.Message.Contains("aggregate VBA signature bytes", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MacroSignatureInspectorRetainsProjectIdentityWhenHashBudgetIsExceeded() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureProjectByteBudget.docm");
+            var options = new WordMacroProjectSignatureInspectionOptions {
+                MaxMacroProjectBytes = 1
+            };
+
+            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, options);
+
+            Assert.True(info.HasMacroProject);
+            Assert.NotNull(info.MacroProjectPartUri);
+            Assert.Null(info.MacroProjectLength);
+            Assert.Null(info.MacroProjectSha256);
+            Assert.Empty(info.Signatures);
+            Assert.Contains(info.Findings, finding =>
+                finding.Code == "MacroSignatureInspectionFailed" &&
+                finding.Message.Contains("byte limit", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]

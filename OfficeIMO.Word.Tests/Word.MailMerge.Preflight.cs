@@ -136,6 +136,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_PreflightRejectsUnsupportedNonzeroNumericPictureSection() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("placeholder"))) {
+                Instruction = " MERGEFIELD Value \\# \"0;*\" "
+            });
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Value" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Value"] = "-1" });
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Contains(preflight.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting &&
+                issue.Name == "Value" &&
+                issue.Message.Contains("dangling fill", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(WordMailMergeFieldStatus.UnsupportedFormatting, Assert.Single(execution.Fields).Status);
+            Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SimpleField>());
+        }
+
+        [Fact]
         public void Test_MailMerge_PreflightKeepsOuterFieldSeparateFromNestedTextBoxParagraph() {
             using WordDocument document = WordDocument.Create();
             WordParagraph outerParagraph = document.AddParagraph();

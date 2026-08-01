@@ -41,35 +41,38 @@ namespace OfficeIMO.Word {
                 return Empty(fullPath, macroEnabled, findings);
             }
 
+            Uri? discoveredVbaUri = null;
+            long? discoveredVbaLength = null;
+            string? discoveredVbaHash = null;
             try {
                 using (FileStream packageStream = File.OpenRead(fullPath)) {
                     OfficePackageSecurityInspector.Validate(packageStream, options.PackageSecurity);
                 }
-                Uri? vbaUri;
                 using (WordprocessingDocument document = WordprocessingDocument.Open(fullPath, false)) {
-                    vbaUri = document.MainDocumentPart?.VbaProjectPart?.Uri;
+                    discoveredVbaUri = document.MainDocumentPart?.VbaProjectPart?.Uri;
                 }
-                if (vbaUri == null) {
+                if (discoveredVbaUri == null) {
                     findings.Add(Finding("MacroProjectNotPresent", WordSignatureValidationState.NotPresent,
                         "The Word package does not contain a VBA project part."));
                     return Empty(fullPath, macroEnabled, findings);
                 }
 
                 using (Package package = Package.Open(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    if (!package.PartExists(vbaUri)) {
+                    if (!package.PartExists(discoveredVbaUri)) {
                         findings.Add(Finding("MacroProjectPartMissing", WordSignatureValidationState.Failed,
                             "The VBA project relationship target is missing from the package."));
                         return new WordMacroProjectSignatureInfo(fullPath, macroEnabled, true,
-                            vbaUri.ToString(), null, null,
+                            discoveredVbaUri.ToString(), null, null,
                             Array.Empty<WordMacroProjectSignaturePartInfo>(), findings);
                     }
 
-                    PackagePart vbaPart = package.GetPart(vbaUri);
-                    string vbaHash = HashPart(vbaPart, options.MaxMacroProjectBytes, out long vbaLength);
+                    PackagePart vbaPart = package.GetPart(discoveredVbaUri);
+                    discoveredVbaHash = HashPart(vbaPart, options.MaxMacroProjectBytes, out long vbaLength);
+                    discoveredVbaLength = vbaLength;
                     IReadOnlyList<WordMacroProjectSignaturePartInfo> signatures = InspectSignatureRelationships(
                         package, vbaPart, options, findings);
                     return new WordMacroProjectSignatureInfo(fullPath, macroEnabled, true,
-                        vbaUri.ToString(), vbaLength, vbaHash, signatures, findings);
+                        discoveredVbaUri.ToString(), discoveredVbaLength, discoveredVbaHash, signatures, findings);
                 }
             } catch (OfficePackageSecurityException exception) {
                 findings.Add(Finding("PackageSecurity" + exception.Rule, WordSignatureValidationState.Failed,
@@ -78,7 +81,13 @@ namespace OfficeIMO.Word {
             } catch (Exception exception) when (IsInspectionException(exception)) {
                 findings.Add(Finding("MacroSignatureInspectionFailed", WordSignatureValidationState.Failed,
                     "The VBA signature package structure could not be inspected. " + exception.Message));
-                return Empty(fullPath, macroEnabled, findings);
+                return PartialOrEmpty(
+                    fullPath,
+                    macroEnabled,
+                    discoveredVbaUri,
+                    discoveredVbaLength,
+                    discoveredVbaHash,
+                    findings);
             }
         }
 
@@ -329,6 +338,18 @@ namespace OfficeIMO.Word {
             IReadOnlyList<WordMacroProjectSignatureFinding> findings) =>
             new WordMacroProjectSignatureInfo(filePath, macroEnabled, false, null, null, null,
                 Array.Empty<WordMacroProjectSignaturePartInfo>(), findings);
+
+        private static WordMacroProjectSignatureInfo PartialOrEmpty(
+            string filePath,
+            bool macroEnabled,
+            Uri? vbaUri,
+            long? vbaLength,
+            string? vbaHash,
+            IReadOnlyList<WordMacroProjectSignatureFinding> findings) =>
+            vbaUri == null
+                ? Empty(filePath, macroEnabled, findings)
+                : new WordMacroProjectSignatureInfo(filePath, macroEnabled, true, vbaUri.ToString(),
+                    vbaLength, vbaHash, Array.Empty<WordMacroProjectSignaturePartInfo>(), findings);
 
         private static string NormalizePath(string filePath) {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A Word package path is required.", nameof(filePath));

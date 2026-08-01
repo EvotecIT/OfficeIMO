@@ -329,7 +329,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)) {
-                if (!WordFieldUpdater.TryFormatFormulaValue(0m, parsed.NumericPictureSwitch, out _, out string? diagnostic)) {
+                if (!WordFieldUpdater.TryValidateNumericPictureProfile(parsed.NumericPictureSwitch, out string? diagnostic)) {
                     message = diagnostic ?? "Merge field numeric picture is outside the deterministic formatting profile.";
                     return false;
                 }
