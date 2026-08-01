@@ -442,5 +442,34 @@ namespace OfficeIMO.Excel {
             }
             if (!hyperlinks.Elements<Hyperlink>().Any()) hyperlinks.Remove();
         }
+
+        private void ValidateRangeMoveHyperlinks(
+            ExcelReference source,
+            ExcelReference destination,
+            MutationPlanScanBudget? budget) {
+            Hyperlinks? hyperlinks = WorksheetRoot.GetFirstChild<Hyperlinks>();
+            if (hyperlinks == null) return;
+            foreach (Hyperlink hyperlink in InspectMutationPlanElements(hyperlinks.Elements<Hyperlink>(), budget)) {
+                if (hyperlink.Reference?.Value is not string referenceText
+                    || !ExcelReference.TryParse(referenceText, out ExcelReference? reference)) continue;
+                bool intersectsSource = reference!.Intersects(source);
+                bool containedInSource = ReferenceIsContainedBy(reference, source);
+                if (intersectsSource && !containedInSource) {
+                    throw new InvalidOperationException(
+                        $"Range move cannot preserve partially overlapping hyperlink '{referenceText}'. Move the complete hyperlink range first.");
+                }
+                if (!intersectsSource
+                    && reference.Intersects(destination)
+                    && !ReferenceIsContainedBy(reference, destination)) {
+                    throw new InvalidOperationException(
+                        $"Range move cannot partially overwrite hyperlink '{referenceText}'. Move to a destination that contains the complete hyperlink range.");
+                }
+            }
+        }
+
+        private static bool ReferenceIsContainedBy(ExcelReference reference, ExcelReference boundary) {
+            reference.GetBounds(out int r1, out int c1, out int r2, out int c2);
+            return boundary.Contains(r1, c1) && boundary.Contains(r2, c2);
+        }
     }
 }

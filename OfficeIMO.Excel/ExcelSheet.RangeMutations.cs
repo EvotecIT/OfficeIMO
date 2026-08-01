@@ -211,6 +211,7 @@ namespace OfficeIMO.Excel {
                 EnsureNoIntersectingOwnedStructures(source, "Move and transpose cannot split owned table, merge, array, data-table, or PivotTable structures.", budget);
             }
             EnsureNoIntersectingOwnedStructures(destination, "Range-transfer destination cannot overwrite owned table, merge, array, data-table, or PivotTable structures.", budget);
+            if (move) ValidateRangeMoveHyperlinks(source, destination, budget);
             foreach (Cell cell in InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
                 .Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))) {
                 CellFormulaValues? type = cell.CellFormula?.FormulaType?.Value;

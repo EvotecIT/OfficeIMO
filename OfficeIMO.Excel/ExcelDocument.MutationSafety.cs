@@ -61,6 +61,13 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException(
                     $"{operation} cannot preserve partially overlapping range metadata '{referenceText}'. Edit the complete metadata range first.");
             }
+            foreach (string referenceText in EnumerateMutationExternalRangeMetadataReferences(editedSheet)) {
+                consumeScannedElement?.Invoke();
+                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                    || !IsUnsafePartialMutationReference(reference!, sr1, sc1, sr2, sc2, cellShiftDirection)) continue;
+                throw new InvalidOperationException(
+                    $"{operation} cannot preserve partially overlapping workbook source range '{referenceText}'. Edit the complete source range first.");
+            }
             foreach (string referenceText in EnumerateMutationPivotSourceReferences(editedSheet)) {
                 consumeScannedElement?.Invoke();
                 if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)
@@ -119,6 +126,22 @@ namespace OfficeIMO.Excel {
                         && string.Equals(rangeSet.Sheet?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
                         && rangeSet.Reference?.Value is string reference) yield return reference;
                 }
+            }
+        }
+
+        private IEnumerable<string> EnumerateMutationExternalRangeMetadataReferences(ExcelSheet editedSheet) {
+            foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
+                foreach (DataReference source in worksheetPart.Worksheet?.Descendants<DataReference>()
+                    ?? Enumerable.Empty<DataReference>()) {
+                    if (string.IsNullOrWhiteSpace(source.Id?.Value)
+                        && string.Equals(source.Sheet?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
+                        && source.Reference?.Value is string reference) yield return reference;
+                }
+            }
+            foreach (WebPublishItem item in WorkbookRoot.Descendants<WebPublishItem>()) {
+                if (item.SourceType?.Value == WebSourceValues.Range
+                    && string.Equals(item.SourceObject?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
+                    && item.SourceRef?.Value is string reference) yield return reference;
             }
         }
 

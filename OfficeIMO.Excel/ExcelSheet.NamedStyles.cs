@@ -165,6 +165,15 @@ namespace OfficeIMO.Excel {
             CellStyleFormats styleFormats = stylesheet.CellStyleFormats!;
             if (style?.FormatId?.Value is uint formatId
                 && formatId < styleFormats.Count()) {
+                bool shared = stylesheet.CellStyles!.Elements<CellStyle>()
+                    .Any(candidate => !ReferenceEquals(candidate, style)
+                        && candidate.FormatId?.Value == formatId);
+                if (shared) {
+                    uint detachedId = (uint)styleFormats.Count();
+                    styleFormats.Append(replacement);
+                    styleFormats.Count = detachedId + 1U;
+                    return detachedId;
+                }
                 CellFormat previous = styleFormats.Elements<CellFormat>().ElementAt((int)formatId);
                 ReplaceAppliedNamedStyleFormats(stylesheet.CellFormats!, previous, replacement, formatId);
                 styleFormats.ReplaceChild(replacement, previous);

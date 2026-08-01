@@ -158,6 +158,39 @@ namespace OfficeIMO.Excel {
 
                 foreach (WorksheetPart worksheetPart in workbookPart.WorksheetParts) {
                     AddRoot(worksheetPart.Worksheet, value => worksheetPart.Worksheet = value);
+                    var hyperlinkRelationships = worksheetPart.HyperlinkRelationships
+                        .Select(relationship => (
+                            relationship.Id,
+                            relationship.Uri,
+                            relationship.IsExternal))
+                        .ToArray();
+                    characters = checked(characters + hyperlinkRelationships.Sum(relationship =>
+                        relationship.Id.Length + relationship.Uri.OriginalString.Length));
+                    if (characters > maximumCharacters) {
+                        throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
+                    }
+                    snapshot._restore.Add(() => {
+                        var baselineIds = new HashSet<string>(
+                            hyperlinkRelationships.Select(relationship => relationship.Id),
+                            StringComparer.Ordinal);
+                        foreach (HyperlinkRelationship relationship in worksheetPart.HyperlinkRelationships.ToList()) {
+                            if (!baselineIds.Contains(relationship.Id)) {
+                                worksheetPart.DeleteReferenceRelationship(relationship);
+                            }
+                        }
+                        foreach (var baseline in hyperlinkRelationships) {
+                            HyperlinkRelationship? current = worksheetPart.HyperlinkRelationships
+                                .FirstOrDefault(relationship => string.Equals(relationship.Id, baseline.Id, StringComparison.Ordinal));
+                            if (current != null
+                                && current.Uri == baseline.Uri
+                                && current.IsExternal == baseline.IsExternal) continue;
+                            if (current != null) worksheetPart.DeleteReferenceRelationship(current);
+                            worksheetPart.AddHyperlinkRelationship(
+                                baseline.Uri,
+                                baseline.IsExternal,
+                                baseline.Id);
+                        }
+                    });
                     WorksheetCommentsPart? commentsPart = worksheetPart.WorksheetCommentsPart;
                     if (commentsPart != null) {
                         if (commentsPart.Comments == null) AddPartPayload(worksheetPart, commentsPart);

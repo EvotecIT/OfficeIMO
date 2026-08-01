@@ -150,14 +150,21 @@ namespace OfficeIMO.Excel {
                 bool local = name.LocalSheetId?.Value is uint localIndex && localIndex == (uint)editedSheetIndex;
                 name.Text = RewriteMutationFormula(name.Text, editedSheet.Name, local, transform);
             }
+            RewriteMutationWebPublishItems(workbook, editedSheet.Name, transform);
             workbook.Save();
             foreach (Sheet sheetElement in sheets) {
                 if (sheetElement.Id?.Value is not string relationshipId || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) continue;
                 bool ownerIsEdited = string.Equals(sheetElement.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase);
                 RewriteMutationFormulaLeaves(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform);
                 RewriteMutationHyperlinks(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform);
+                RewriteMutationDataConsolidationReferences(
+                    worksheetPart.Worksheet,
+                    editedSheet.Name,
+                    transform);
                 if (ownerIsEdited) {
                     RewriteMutationAddressAttributes(worksheetPart.Worksheet, transform);
+                    RewriteMutationViewReferences(worksheetPart.Worksheet, transform);
+                    RewriteMutationScenarioInputs(worksheetPart.Worksheet, transform);
                     RewriteMutationSparklineLocations(worksheetPart.Worksheet, transform);
                     WorksheetCommentsPart? commentsPart = worksheetPart.WorksheetCommentsPart;
                     if (commentsPart?.Comments != null) {
@@ -387,6 +394,7 @@ namespace OfficeIMO.Excel {
             Func<ExcelReference, ExcelReference?> transform) {
             if (root == null) return;
             foreach (OpenXmlElement element in root.Descendants().Prepend(root).ToList()) {
+                if (element is Selection || element is DataReference) continue;
                 bool removeElement = false;
                 foreach (OpenXmlAttribute attribute in element.GetAttributes().Where(item =>
                     string.Equals(item.LocalName, "ref", StringComparison.OrdinalIgnoreCase)
