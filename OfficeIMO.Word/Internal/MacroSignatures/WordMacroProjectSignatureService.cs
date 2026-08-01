@@ -22,8 +22,20 @@ namespace OfficeIMO.Word {
                 "OfficeIMO-Word-MacroValidation-" + Guid.NewGuid().ToString("N"));
             string snapshotPath = Path.Combine(snapshotDirectory, "snapshot" + Path.GetExtension(fullPath));
             try {
-                Directory.CreateDirectory(snapshotDirectory);
-                WordPackageSnapshot.CopyBounded(fullPath, snapshotPath, options.Inspection.PackageSecurity.MaxPackageBytes);
+                try {
+                    Directory.CreateDirectory(snapshotDirectory);
+                    WordPackageSnapshot.CopyBounded(fullPath, snapshotPath, options.Inspection.PackageSecurity.MaxPackageBytes);
+                } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is InvalidDataException) {
+                    WordMacroProjectSignatureInfo info = WordMacroProjectSignatureInspector.Inspect(
+                        fullPath, options.Inspection, inspectionBudget);
+                    var findings = CollectInspectionFindings(info);
+                    if (!findings.Any(finding => finding.State == WordSignatureValidationState.Failed)) {
+                        findings.Add(Finding("MacroValidationSnapshotFailed", WordSignatureValidationState.Failed,
+                            "A bounded immutable validation snapshot could not be created. " + exception.Message));
+                    }
+                    return Result(info, dependencies.Platform.IsWindows,
+                        WordSignatureValidationState.NotChecked, findings, options);
+                }
                 return ValidateSnapshot(fullPath, snapshotPath, options, dependencies, inspectionBudget);
             } finally {
                 OfficeFileCommit.DeleteIfExists(snapshotPath);

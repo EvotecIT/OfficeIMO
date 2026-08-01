@@ -326,17 +326,17 @@ namespace OfficeIMO.Word {
                     element => (string)element.Attribute("ContentType")!,
                     StringComparer.OrdinalIgnoreCase)
                 ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (XElement element in document.Root?.Elements(contentTypes + "Override") ?? Enumerable.Empty<XElement>()) {
+                string partUri = NormalizePartUri((string?)element.Attribute("PartName") ?? string.Empty);
+                string? contentType = (string?)element.Attribute("ContentType");
+                if (partUri.Length == 0 || string.IsNullOrWhiteSpace(contentType) || overrides.ContainsKey(partUri)) continue;
+                overrides.Add(partUri, contentType!);
+            }
 
             foreach (string partUri in _entries.Keys) {
                 if (partUri.Equals("/[Content_Types].xml", StringComparison.OrdinalIgnoreCase)) continue;
-                string? contentType = document.Root?
-                    .Elements(contentTypes + "Override")
-                    .Where(element => string.Equals(
-                        NormalizePartUri((string?)element.Attribute("PartName") ?? string.Empty),
-                        partUri,
-                        StringComparison.OrdinalIgnoreCase))
-                    .Select(element => (string?)element.Attribute("ContentType"))
-                    .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+                overrides.TryGetValue(partUri, out string? contentType);
                 if (contentType == null) {
                     string extension = Path.GetExtension(partUri).TrimStart('.');
                     defaults.TryGetValue(extension, out contentType);

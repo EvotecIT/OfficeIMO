@@ -69,33 +69,39 @@ namespace OfficeIMO.Word {
         }
 
         private static IEnumerable<MergeFieldOccurrence> DiscoverMergeFieldOccurrences(OpenXmlElement root) {
-            var orderByElement = root.Descendants()
-                .Select((element, index) => new { element, index })
-                .ToDictionary(item => item.element, item => item.index);
-            var occurrences = root.Descendants<SimpleField>()
-                .Select(simpleField => MergeFieldOccurrence.ForSimple(
-                    orderByElement[simpleField],
-                    simpleField,
-                    ContainsNestedField(simpleField)
-                        ? "A simple MERGEFIELD contains a nested field and cannot be processed deterministically."
-                        : null))
-                .ToList();
+            var occurrences = new List<MergeFieldOccurrence>();
+            var beginRunOrders = new Dictionary<Run, int>();
+            int order = 0;
+            foreach (OpenXmlElement element in root.Descendants()) {
+                if (element is SimpleField simpleField) {
+                    occurrences.Add(MergeFieldOccurrence.ForSimple(
+                        order,
+                        simpleField,
+                        ContainsNestedField(simpleField)
+                            ? "A simple MERGEFIELD contains a nested field and cannot be processed deterministically."
+                            : null));
+                } else if (element is Run run &&
+                           run.GetFirstChild<FieldChar>()?.FieldCharType?.Value == FieldCharValues.Begin) {
+                    beginRunOrders[run] = order;
+                }
+                order++;
+            }
 
             foreach (var paragraph in EnumerateParagraphs(root)) {
                 var activeFields = new List<ComplexFieldFrame>();
 
-                foreach (var run in EnumerateParagraphOwnedRuns(paragraph).ToList()) {
+                foreach (var run in EnumerateParagraphOwnedRuns(paragraph)) {
                     if (activeFields.Count > 0 && run.Ancestors<SimpleField>().Any()) {
                         foreach (ComplexFieldFrame activeField in activeFields) activeField.HasNestedField = true;
                     }
 
-                    var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
+                    var fieldChar = run.GetFirstChild<FieldChar>();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
                         foreach (ComplexFieldFrame activeField in activeFields) {
                             activeField.Runs.Add(run);
                             activeField.HasNestedField = true;
                         }
-                        activeFields.Add(new ComplexFieldFrame(run, orderByElement[run]));
+                        activeFields.Add(new ComplexFieldFrame(run, beginRunOrders[run]));
                         continue;
                     }
 

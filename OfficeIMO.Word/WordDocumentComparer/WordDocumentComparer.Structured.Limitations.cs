@@ -50,18 +50,33 @@ namespace OfficeIMO.Word {
             WordComparisonResult result,
             string code,
             string message,
-            bool sourceContainsShape,
-            bool targetContainsShape) {
+            ShapeScanResult sourceScan,
+            ShapeScanResult targetScan) {
+            if (sourceScan == ShapeScanResult.ResourceLimitExceeded || targetScan == ShapeScanResult.ResourceLimitExceeded) {
+                result.AddLimitation(new WordComparisonLimitation(
+                    code + ".ResourceLimit",
+                    "The bounded comparison-disclosure scan could not determine this shape for every input; increase or simplify the document before relying on shape-presence evidence.",
+                    false,
+                    false));
+            }
+            bool sourceContainsShape = sourceScan == ShapeScanResult.Present;
+            bool targetContainsShape = targetScan == ShapeScanResult.Present;
             if (!sourceContainsShape && !targetContainsShape) return;
             result.AddLimitation(new WordComparisonLimitation(code, message, sourceContainsShape, targetContainsShape));
         }
 
-        private static bool ContainsThemeFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) {
+        private enum ShapeScanResult {
+            Absent,
+            Present,
+            ResourceLimitExceeded
+        }
+
+        private static ShapeScanResult ContainsThemeFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) {
             var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool hasRunWithoutStyle = false;
             bool hasParagraphWithoutStyle = false;
             bool hasTableWithoutStyle = false;
-            if (ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
+            ShapeScanResult documentScan = ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
                 if (element.GetAttributes().Any(IsThemeAttribute)) return true;
                 if (element is Run run && run.RunProperties?.RunStyle?.Val?.Value == null) hasRunWithoutStyle = true;
                 if (element is Paragraph paragraph && paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value == null) hasParagraphWithoutStyle = true;
@@ -74,13 +89,19 @@ namespace OfficeIMO.Word {
                 };
                 if (!string.IsNullOrWhiteSpace(styleId)) usedStyleIds.Add(styleId!);
                 return false;
-            })) return true;
-            if (hasRunWithoutStyle &&
-                (ContainsThemeAttribute(mainPart.StyleDefinitionsPart?.Styles?.DocDefaults, comparisonWorkBudget) ||
-                 ContainsThemeAttribute(mainPart.StylesWithEffectsPart?.Styles?.DocDefaults, comparisonWorkBudget))) return true;
+            });
+            if (documentScan != ShapeScanResult.Absent) return documentScan;
+            if (hasRunWithoutStyle) {
+                ShapeScanResult defaultStylesScan = ContainsThemeAttribute(
+                    mainPart.StyleDefinitionsPart?.Styles?.DocDefaults, comparisonWorkBudget);
+                if (defaultStylesScan != ShapeScanResult.Absent) return defaultStylesScan;
+                defaultStylesScan = ContainsThemeAttribute(
+                    mainPart.StylesWithEffectsPart?.Styles?.DocDefaults, comparisonWorkBudget);
+                if (defaultStylesScan != ShapeScanResult.Absent) return defaultStylesScan;
+            }
 
             IReadOnlyList<Style> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
-            if (styleBudgetExhausted) return true;
+            if (styleBudgetExhausted) return ShapeScanResult.ResourceLimitExceeded;
             if (hasParagraphWithoutStyle) {
                 AddDefaultStyleIds(styles, StyleValues.Paragraph, usedStyleIds);
             }
@@ -116,27 +137,30 @@ namespace OfficeIMO.Word {
             attribute.LocalName.EndsWith("Theme", StringComparison.OrdinalIgnoreCase) ||
             attribute.LocalName.Equals("themeColor", StringComparison.OrdinalIgnoreCase);
 
-        private static bool ContainsThemeAttribute(OpenXmlElement? element, ComparisonWorkBudget comparisonWorkBudget) =>
-            element != null && ScanElementSubtree(element, comparisonWorkBudget, candidate => candidate.GetAttributes().Any(IsThemeAttribute));
+        private static ShapeScanResult ContainsThemeAttribute(OpenXmlElement? element, ComparisonWorkBudget comparisonWorkBudget) =>
+            element == null
+                ? ShapeScanResult.Absent
+                : ScanElementSubtree(element, comparisonWorkBudget, candidate => candidate.GetAttributes().Any(IsThemeAttribute));
 
-        private static bool ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) {
+        private static ShapeScanResult ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) {
             var usedTableStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool hasTableWithoutStyle = false;
-            if (ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
+            ShapeScanResult documentScan = ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
                 if (element is TableStyleProperties) return true;
                 if (element is TableStyle tableStyle && !string.IsNullOrWhiteSpace(tableStyle.Val?.Value)) {
                     usedTableStyleIds.Add(tableStyle.Val!.Value!);
                 }
                 if (element is Table table && table.TableProperties?.TableStyle?.Val?.Value == null) hasTableWithoutStyle = true;
                 return false;
-            })) return true;
+            });
+            if (documentScan != ShapeScanResult.Absent) return documentScan;
 
             IReadOnlyList<Style> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
-            if (styleBudgetExhausted) return true;
+            if (styleBudgetExhausted) return ShapeScanResult.ResourceLimitExceeded;
             if (hasTableWithoutStyle) {
                 AddDefaultStyleIds(styles, StyleValues.Table, usedTableStyleIds);
             }
-            if (usedTableStyleIds.Count == 0) return false;
+            if (usedTableStyleIds.Count == 0) return ShapeScanResult.Absent;
 
             ILookup<string, Style> stylesById = styles
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
@@ -148,10 +172,10 @@ namespace OfficeIMO.Word {
                 comparisonWorkBudget);
         }
 
-        private static bool ContainsStyleShape(
+        private static ShapeScanResult ContainsStyleShape(
             IEnumerable<string> initialStyleIds,
             ILookup<string, Style> stylesById,
-            Func<Style, ComparisonWorkBudget, bool> containsShape,
+            Func<Style, ComparisonWorkBudget, ShapeScanResult> containsShape,
             ComparisonWorkBudget comparisonWorkBudget) {
             var pendingStyleIds = new Stack<string>(initialStyleIds);
             var inspectedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -160,15 +184,17 @@ namespace OfficeIMO.Word {
                 if (!inspectedStyleIds.Add(styleId)) continue;
 
                 foreach (Style style in stylesById[styleId]) {
-                    if (!comparisonWorkBudget.TryConsume(1) || containsShape(style, comparisonWorkBudget)) return true;
+                    if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
+                    ShapeScanResult styleScan = containsShape(style, comparisonWorkBudget);
+                    if (styleScan != ShapeScanResult.Absent) return styleScan;
                     string? baseStyleId = style.BasedOn?.Val?.Value;
                     if (!string.IsNullOrWhiteSpace(baseStyleId)) pendingStyleIds.Push(baseStyleId!);
                 }
             }
-            return false;
+            return ShapeScanResult.Absent;
         }
 
-        private static bool ContainsNumberingFormatting(
+        private static ShapeScanResult ContainsNumberingFormatting(
             MainDocumentPart mainPart,
             ComparisonWorkBudget comparisonWorkBudget,
             ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
@@ -177,33 +203,37 @@ namespace OfficeIMO.Word {
                 element is Paragraph paragraph && ResolveParagraphNumberingProperties(paragraph, styleCatalog) != null);
         }
 
-        private static bool ContainsMoveMarkup(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
+        private static ShapeScanResult ContainsMoveMarkup(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
             ScanComparisonElements(mainPart, comparisonWorkBudget, element =>
                 element.LocalName.StartsWith("moveFrom", StringComparison.Ordinal) ||
                 element.LocalName.StartsWith("moveTo", StringComparison.Ordinal));
 
-        private static bool ScanComparisonElements(
+        private static ShapeScanResult ScanComparisonElements(
             MainDocumentPart mainPart,
             ComparisonWorkBudget comparisonWorkBudget,
             Func<OpenXmlElement, bool> predicate) {
             foreach (OpenXmlCompositeElement root in EnumerateComparisonRoots(mainPart)) {
-                if (!comparisonWorkBudget.TryConsume(1) || predicate(root)) return true;
+                if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
+                if (predicate(root)) return ShapeScanResult.Present;
                 foreach (OpenXmlElement element in root.Descendants()) {
-                    if (!comparisonWorkBudget.TryConsume(1) || predicate(element)) return true;
+                    if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
+                    if (predicate(element)) return ShapeScanResult.Present;
                 }
             }
-            return false;
+            return ShapeScanResult.Absent;
         }
 
-        private static bool ScanElementSubtree(
+        private static ShapeScanResult ScanElementSubtree(
             OpenXmlElement root,
             ComparisonWorkBudget comparisonWorkBudget,
             Func<OpenXmlElement, bool> predicate) {
-            if (!comparisonWorkBudget.TryConsume(1) || predicate(root)) return true;
+            if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
+            if (predicate(root)) return ShapeScanResult.Present;
             foreach (OpenXmlElement element in root.Descendants()) {
-                if (!comparisonWorkBudget.TryConsume(1) || predicate(element)) return true;
+                if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
+                if (predicate(element)) return ShapeScanResult.Present;
             }
-            return false;
+            return ShapeScanResult.Absent;
         }
 
         private static IReadOnlyList<Style> CollectComparisonStyles(

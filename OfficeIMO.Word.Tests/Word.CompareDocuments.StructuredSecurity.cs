@@ -275,12 +275,12 @@ namespace OfficeIMO.Tests {
                 BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("Effective-formatting limitation scan was not found.");
 
-            bool conservativelyReported = (bool)(containsThemeFormatting.Invoke(
+            object scanResult = containsThemeFormatting.Invoke(
                 null,
                 new object[] { loaded._wordprocessingDocument.MainDocumentPart!, comparisonWorkBudget })
-                ?? throw new InvalidOperationException("Effective-formatting limitation scan did not return a result."));
+                ?? throw new InvalidOperationException("Effective-formatting limitation scan did not return a result.");
 
-            Assert.True(conservativelyReported);
+            Assert.Equal("ResourceLimitExceeded", scanResult.ToString());
             Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));
         }
 
