@@ -251,6 +251,7 @@ namespace OfficeIMO.Word {
             foreach (var root in EnumerateTemplateRoots(document)) {
                 mergeFields.AddRange(EnumerateMergeFieldNames(root));
                 issues.AddRange(EnumerateMalformedMergeFieldIssues(root));
+                issues.AddRange(EnumerateUnsupportedMergeFieldFormattingIssues(root));
                 issues.AddRange(EnumerateUnsupportedMailMergeControlFieldIssues(root));
                 var conditionalInspection = InspectConditionalBlocks(root);
                 conditionalNames.AddRange(conditionalInspection.Names);

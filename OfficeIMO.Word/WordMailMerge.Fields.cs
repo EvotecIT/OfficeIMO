@@ -261,22 +261,8 @@ namespace OfficeIMO.Word {
         }
 
         private static bool TryFormatMergeValue(string instruction, string value, out string formattedValue, out string message) {
-            WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction);
-            if (parsed.Diagnostics.Count > 0) {
+            if (!TryValidateMergeFieldFormattingProfile(instruction, out WordFieldInventory.ParsedFieldInstruction parsed, out message)) {
                 formattedValue = string.Empty;
-                message = "Merge field formatting is unsupported: " + string.Join(" ", parsed.Diagnostics);
-                return false;
-            }
-
-            string? unsupportedSwitch = parsed.Switches.FirstOrDefault(fieldSwitch => {
-                string trimmed = fieldSwitch.TrimStart();
-                return !trimmed.StartsWith(@"\#", StringComparison.Ordinal) &&
-                       !trimmed.StartsWith(@"\@", StringComparison.Ordinal) &&
-                       !trimmed.StartsWith(@"\*", StringComparison.Ordinal);
-            });
-            if (unsupportedSwitch != null) {
-                formattedValue = string.Empty;
-                message = "Merge field switch '" + unsupportedSwitch.Trim() + "' is outside the deterministic formatting profile.";
                 return false;
             }
 
@@ -306,6 +292,44 @@ namespace OfficeIMO.Word {
                 return false;
             }
             formattedValue = textFormatted;
+            message = string.Empty;
+            return true;
+        }
+
+        private static bool TryValidateMergeFieldFormattingProfile(
+            string instruction,
+            out WordFieldInventory.ParsedFieldInstruction parsed,
+            out string message) {
+            parsed = WordFieldInventory.ParseInstruction(instruction);
+            if (parsed.Diagnostics.Count > 0) {
+                message = "Merge field formatting is unsupported: " + string.Join(" ", parsed.Diagnostics);
+                return false;
+            }
+
+            string? unsupportedSwitch = parsed.Switches.FirstOrDefault(fieldSwitch => {
+                string trimmed = fieldSwitch.TrimStart();
+                return !trimmed.StartsWith(@"\#", StringComparison.Ordinal) &&
+                       !trimmed.StartsWith(@"\@", StringComparison.Ordinal) &&
+                       !trimmed.StartsWith(@"\*", StringComparison.Ordinal);
+            });
+            if (unsupportedSwitch != null) {
+                message = "Merge field switch '" + unsupportedSwitch.Trim() + "' is outside the deterministic formatting profile.";
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)) {
+                if (!WordFieldUpdater.TryFormatFormulaValue(0m, parsed.NumericPictureSwitch, out _, out string? diagnostic)) {
+                    message = diagnostic ?? "Merge field numeric picture is outside the deterministic formatting profile.";
+                    return false;
+                }
+            } else if (parsed.Switches.Any(fieldSwitch => fieldSwitch.TrimStart().StartsWith(@"\@", StringComparison.Ordinal))) {
+                if (!WordFieldUpdater.TryFormatDateTime(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), parsed, out _, out message)) return false;
+            }
+
+            if (!WordFieldUpdater.TryApplyReferenceTextFormat(parsed.FormatSwitches, string.Empty, out _, out string? unsupportedFormat)) {
+                message = "Merge field text format '" + unsupportedFormat + "' is outside the deterministic formatting profile.";
+                return false;
+            }
             message = string.Empty;
             return true;
         }
@@ -470,6 +494,26 @@ namespace OfficeIMO.Word {
                     WordMailMergeTemplateIssueKind.MalformedMergeField,
                     name,
                     occurrence.MalformedMessage);
+            }
+        }
+
+        private static IEnumerable<WordMailMergeTemplateIssue> EnumerateUnsupportedMergeFieldFormattingIssues(OpenXmlElement root) {
+            foreach (MergeFieldOccurrence occurrence in DiscoverMergeFieldOccurrences(root)) {
+                if (occurrence.MalformedMessage != null) continue;
+                string instruction = occurrence.SimpleField?.Instruction?.Value
+                    ?? ReadComplexFieldInstruction(occurrence.ComplexRuns!);
+                if (!MergeFieldTypePattern.IsMatch(instruction)) continue;
+
+                string? name = TryGetMergeFieldName(instruction);
+                if (string.IsNullOrWhiteSpace(name) ||
+                    TryValidateMergeFieldFormattingProfile(instruction, out _, out string message)) {
+                    continue;
+                }
+
+                yield return new WordMailMergeTemplateIssue(
+                    WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting,
+                    name!,
+                    message);
             }
         }
 

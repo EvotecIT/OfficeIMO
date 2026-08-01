@@ -21,5 +21,24 @@ namespace OfficeIMO.Tests {
                 diagnostic.Code == "TrackedRevisionTextOmitted" &&
                 diagnostic.LossKind == HtmlConversionLossKind.Omission);
         }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetStopsEmptyParagraphsBeforeDomConstruction() {
+            using WordDocument document = WordDocument.Create();
+            for (int index = 0; index < 1024; index++) {
+                document.AddParagraph();
+            }
+            var options = new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = 512
+            };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
+                () => document.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("GeneratedElement:p", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
     }
 }

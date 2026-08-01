@@ -1,4 +1,6 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
+using System.IO.Compression;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Xunit;
@@ -70,9 +72,7 @@ namespace OfficeIMO.Tests {
                 "<Object Id=\"payload\">" + new string('x', 512) + "</Object></Signature>");
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
-            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
-            });
+            using WordDocument loaded = WordDocument.Load(filePath);
             WordSignatureValidationReport bounded = loaded.ValidateSignatures(new WordSignatureValidationOptions {
                 MaxTotalDigestBytes = 768
             });
@@ -83,6 +83,50 @@ namespace OfficeIMO.Tests {
             Assert.Contains(bounded.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
             Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
             Assert.Contains(allowed.Diagnostics, finding => finding.Code == "XmlSignatureInvalid");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_BoundsAggregatePackageDigestWorkAcrossSignatureParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignaturePackageDigestBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph(new string('x', 4096));
+                document.Save();
+            }
+
+            string documentDigest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            AddDigitalSignatureMetadata(
+                filePath,
+                CreateSignatureXml(digestValue: documentDigest),
+                signatureCount: 2);
+
+            byte[] packageBytes = File.ReadAllBytes(filePath);
+            long documentPartLength;
+            using (var archive = new ZipArchive(new MemoryStream(packageBytes), ZipArchiveMode.Read, leaveOpen: false)) {
+                documentPartLength = archive.GetEntry("word/document.xml")!.Length;
+            }
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
+            OfficePackageSignatureInfo bounded = OfficePackageSignatureInspector.Inspect(
+                package,
+                package.DigitalSignatureOriginPart,
+                hasApplicationSignatureMetadata: true,
+                packageBytes,
+                maxTotalDigestBytes: documentPartLength);
+            OfficePackageSignatureInfo allowed = OfficePackageSignatureInspector.Inspect(
+                package,
+                package.DigitalSignatureOriginPart,
+                hasApplicationSignatureMetadata: true,
+                packageBytes,
+                maxTotalDigestBytes: documentPartLength * 2);
+
+            Assert.Equal(2, bounded.SignatureParts.Count);
+            Assert.Contains(bounded.SignatureParts, part =>
+                part.ParseError?.Contains("aggregate digest-work limit", StringComparison.OrdinalIgnoreCase) == true);
+            Assert.Contains(bounded.UnsupportedDetails, detail =>
+                detail.Contains("aggregate digest-work limit", StringComparison.OrdinalIgnoreCase));
+            Assert.All(allowed.SignatureParts, part => {
+                Assert.Null(part.ParseError);
+                Assert.Single(part.SignedReferences);
+            });
         }
 
         [Fact]

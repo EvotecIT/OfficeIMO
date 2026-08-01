@@ -90,6 +90,7 @@ namespace OfficeIMO.Word {
                 case WordTemplatePreflightCapability.BindMergeFields:
                     return Issues.Where(issue =>
                         issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue ||
+                        issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting ||
                         issue.Kind == WordMailMergeTemplateIssueKind.MalformedMergeField).ToArray();
                 case WordTemplatePreflightCapability.BindConditionalBlocks:
                     return Issues.Where(IsConditionalIssue).ToArray();

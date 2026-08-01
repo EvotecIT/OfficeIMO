@@ -238,6 +238,7 @@ namespace OfficeIMO.Word {
             var unsupportedDetails = new List<string>();
             var details = new List<string>();
             var certificateByteBudget = new OfficePackageCertificateByteBudget(maxTotalCertificateBytes);
+            var digestWorkBudget = new OfficePackageDigestWorkBudget(maxTotalDigestBytes);
             string? originRelationshipId = null;
 
             OfficePackageSignatureArchive? signatureArchive = null;
@@ -287,7 +288,7 @@ namespace OfficeIMO.Word {
                             digestInspectionUnavailableDetail,
                             maxPartBytes,
                             maxSignedReferences,
-                            maxTotalDigestBytes,
+                            digestWorkBudget,
                             maxSignatureBytes,
                             maxCertificates,
                             maxCertificateBytes,
@@ -334,7 +335,7 @@ namespace OfficeIMO.Word {
             string? digestInspectionUnavailableDetail,
             long maxPartBytes,
             int maxSignedReferences,
-            long maxTotalDigestBytes,
+            OfficePackageDigestWorkBudget digestWorkBudget,
             long maxSignatureBytes,
             int maxCertificates,
             long maxCertificateBytes,
@@ -385,7 +386,7 @@ namespace OfficeIMO.Word {
                     authenticatedReferenceCount,
                     signatureArchive,
                     maxSignedReferences,
-                    maxTotalDigestBytes);
+                    digestWorkBudget);
                 signedReferences.AddRange(referencesToInspect
                     .Select(reference => InspectSignedReference(reference, ds, packagePartUris, packageParts, signatureArchive, digestInspectionUnavailableDetail, maxPartBytes, verifyDigests)));
                 timestamps.AddRange(ReadSignatureTimestamps(xml));

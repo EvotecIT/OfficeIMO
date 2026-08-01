@@ -90,6 +90,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_PreflightRejectsFormattingOutsideExecutionProfile() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("placeholder"))) {
+                Instruction = " MERGEFIELD Name \\b \"Dear \" "
+            });
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Name" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" });
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.False(preflight.Can(WordTemplatePreflightCapability.BindMergeFields));
+            Assert.Contains(preflight.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting &&
+                issue.Name == "Name" &&
+                issue.Message.Contains("\\b", StringComparison.Ordinal));
+            Assert.Equal(WordMailMergeFieldStatus.UnsupportedFormatting, Assert.Single(execution.Fields).Status);
+        }
+
+        [Fact]
         public void Test_MailMerge_PreflightKeepsOuterFieldSeparateFromNestedTextBoxParagraph() {
             using WordDocument document = WordDocument.Create();
             WordParagraph outerParagraph = document.AddParagraph();
