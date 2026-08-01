@@ -88,11 +88,12 @@ Excel exposes worksheets as ordered `ExcelWorkbookDataReader` results through
 workbook sheet, and `CurrentResultIndex` to identify its position in the selected results.
 
 The Excel/CSV adapter in `OfficeIMO.Reader.Excel` now uses the native CSV reader
-and writer pipelines. Replace `ImportDelimitedFile`, `FromCsv`,
-`ExcelDelimitedImportOptions`, and `ExcelDelimitedImportResult` with
-`ImportCsvFile`, `ImportCsv`, `ExcelCsvImportOptions`, and
-`ExcelCsvImportResult`. Use `SaveAsCsv` and `SaveAsExcel` for destination-shaped
-conversion entry points.
+and writer pipelines. Replace `ImportDelimitedFile` with `ImportCsvFile`, and
+replace decoded-text `ImportDelimitedText` and worksheet `FromCsv` calls with
+`ImportCsvText`. Use `ImportCsv` when the source is a `CsvDocument` or `Stream`.
+Replace `ExcelDelimitedImportOptions` and `ExcelDelimitedImportResult` with
+`ExcelCsvImportOptions` and `ExcelCsvImportResult`. Use `SaveAsCsv` and
+`SaveAsExcel` for destination-shaped conversion entry points.
 
 Move the removed import-option properties into the CSV parsing and reader
 options owned by `ExcelCsvImportOptions`:
@@ -132,11 +133,41 @@ name, matching the former import behavior. `IncludeHeaders` controls whether the
 reader's resolved field names are written into the worksheet and defaults to
 `true`.
 
-The same cleanup removes the alternate `ImportDelimitedText` and `TableToCsv`
-entry points. Use `ImportCsvText` and the worksheet `ToCsv` / `SaveAsCsv`
-methods instead. Calls that passed `ToCsv` arguments positionally should use
-the current `headersInFirstRow`, `csvOptions`, `readOptions`, and
-`cancellationToken` parameter names. Replace old import-result properties
+For a worksheet `FromCsv` call, move `startRow`, `startColumn`,
+`firstRowIsHeader`, and `includeHeaders` into `ExcelCsvImportOptions`, and pass
+`ct` as the `cancellationToken` argument. Set `CreateTable = false`, the comma
+delimiter, and disabled schema inference when the migration must preserve the
+former `FromCsv` no-table and string-valued parsing behavior:
+
+```csharp
+using OfficeIMO.CSV;
+using OfficeIMO.Reader.Excel;
+
+ExcelCsvImportResult imported = sheet.ImportCsvText(
+    csvText,
+    new ExcelCsvImportOptions {
+        StartRow = startRow,
+        StartColumn = startColumn,
+        IncludeHeaders = includeHeaders,
+        CreateTable = false,
+        LoadOptions = new CsvLoadOptions {
+            Delimiter = ',',
+            DetectDelimiter = false,
+            HasHeaderRow = firstRowIsHeader
+        },
+        ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+    },
+    cancellationToken: ct);
+
+string range = imported.Range;
+```
+
+The former `ExecutionMode` argument has no replacement; the shared import
+pipeline owns its execution strategy. The same cleanup removes `TableToCsv`;
+use the worksheet `ToCsv` / `SaveAsCsv` methods instead. Calls that passed
+`ToCsv` arguments positionally should use the current `headersInFirstRow`,
+`csvOptions`, `readOptions`, and `cancellationToken` parameter names. Replace
+old import-result properties
 `TableName`, `RowCount`, `ColumnCount`, `Delimiter`, and `Warnings` with the
 current `ExcelCsvImportResult.SheetName` and `Range`; inspect the configured CSV
 reader options or the resulting worksheet/table when those details are needed.
