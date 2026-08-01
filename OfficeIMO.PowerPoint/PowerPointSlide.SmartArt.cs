@@ -78,7 +78,7 @@ namespace OfficeIMO.PowerPoint {
         private (string layoutRelId, string colorsRelId, string styleRelId, string dataRelId)
             AddSemanticSmartArtParts(PowerPointSmartArtType type, IReadOnlyList<string> nodeTexts) {
             DiagramLayoutDefinitionPart layoutPart = _slidePart.AddNewPart<DiagramLayoutDefinitionPart>();
-            PopulateSmartArtLayout(layoutPart, type);
+            PopulateSmartArtLayout(layoutPart, type, nodeTexts.Count);
             DiagramColorsPart colorsPart = _slidePart.AddNewPart<DiagramColorsPart>();
             PopulateSmartArtColors(colorsPart);
             DiagramStylePart stylePart = _slidePart.AddNewPart<DiagramStylePart>();
@@ -111,46 +111,9 @@ namespace OfficeIMO.PowerPoint {
                         }) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/diagram" }));
         }
 
-        private static void PopulateSmartArtLayout(DiagramLayoutDefinitionPart part, PowerPointSmartArtType type) {
-            Dgm.LayoutDefinition layout = new() {
-                UniqueId = GetSmartArtLayoutId(type)
-            };
-            layout.AddNamespaceDeclaration("dgm", "http://schemas.openxmlformats.org/drawingml/2006/diagram");
-            layout.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
-            layout.Append(new Dgm.Title { Val = string.Empty });
-            layout.Append(new Dgm.Description { Val = string.Empty });
-            layout.Append(new Dgm.CategoryList(new Dgm.Category {
-                Type = GetSmartArtCategory(type), Priority = 400U
-            }));
-
-            Dgm.LayoutNode layoutNode = new() { Name = "diagram" };
-            Dgm.Shape shape = new() { Blip = string.Empty };
-            shape.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-            shape.Append(new Dgm.AdjustList());
-            layoutNode.Append(shape);
-
-            Dgm.ForEach forEach = new() {
-                Name = "nodes",
-                Axis = new ListValue<EnumValue<Dgm.AxisValues>> { InnerText = "ch" },
-                PointType = new ListValue<EnumValue<Dgm.ElementValues>> { InnerText = "node" }
-            };
-            Dgm.LayoutNode node = new() { Name = "node" };
-            Dgm.Shape nodeShape = new() {
-                Type = type == PowerPointSmartArtType.BasicCycle
-                    || type == PowerPointSmartArtType.BasicRelationship
-                    ? "ellipse"
-                    : type == PowerPointSmartArtType.BasicPyramid
-                        ? "trapezoid"
-                        : "rect",
-                Blip = string.Empty
-            };
-            nodeShape.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-            nodeShape.Append(new Dgm.AdjustList());
-            node.Append(nodeShape);
-            forEach.Append(node);
-            layoutNode.Append(forEach);
-            layout.Append(layoutNode);
-            part.LayoutDefinition = layout;
+        private static void PopulateSmartArtLayout(DiagramLayoutDefinitionPart part,
+            PowerPointSmartArtType type, int nodeCount) {
+            part.LayoutDefinition = CreateSmartArtLayoutDefinition(type, nodeCount);
         }
 
         private static void PopulateSmartArtData(DiagramDataPart part, PowerPointSmartArtType type,
@@ -158,17 +121,25 @@ namespace OfficeIMO.PowerPoint {
             string docId = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
             var pointXml = new StringBuilder();
             var connectionXml = new StringBuilder();
+            var childIds = new List<string>(nodeTexts.Count);
             for (int index = 0; index < nodeTexts.Count; index++) {
-                string childId = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
+                childIds.Add("{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}");
+            }
+            bool usesRootedTopology = type == PowerPointSmartArtType.BasicHierarchy
+                || type == PowerPointSmartArtType.BasicRelationship;
+            for (int index = 0; index < nodeTexts.Count; index++) {
+                string childId = childIds[index];
                 string connectionId = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
                 pointXml.Append("<dgm:pt modelId=\"").Append(childId).Append("\">")
                     .Append("<dgm:prSet phldr=\"0\" />")
                     .Append("<dgm:spPr /><dgm:t><a:bodyPr /><a:lstStyle /><a:p><a:r><a:t>")
                     .Append(SecurityElement.Escape(nodeTexts[index]))
                     .Append("</a:t></a:r><a:endParaRPr lang=\"en-US\" /></a:p></dgm:t></dgm:pt>");
+                string sourceId = usesRootedTopology && index > 0 ? childIds[0] : docId;
+                int sourceOrder = usesRootedTopology && index > 0 ? index - 1 : index;
                 connectionXml.Append("<dgm:cxn modelId=\"").Append(connectionId)
-                    .Append("\" srcId=\"").Append(docId).Append("\" destId=\"").Append(childId)
-                    .Append("\" srcOrd=\"").Append(index).Append("\" destOrd=\"0\" />");
+                    .Append("\" srcId=\"").Append(sourceId).Append("\" destId=\"").Append(childId)
+                    .Append("\" srcOrd=\"").Append(sourceOrder).Append("\" destOrd=\"0\" />");
             }
 
             string xml = $"""
@@ -204,19 +175,19 @@ namespace OfficeIMO.PowerPoint {
         private static string GetSmartArtLayoutId(PowerPointSmartArtType type) {
             switch (type) {
                 case PowerPointSmartArtType.BasicHierarchy:
-                    return "urn:officeimo:smartart:hierarchy";
+                    return "urn:microsoft.com/office/officeart/2005/8/layout/hierarchy1";
                 case PowerPointSmartArtType.BasicCycle:
-                    return "urn:officeimo:smartart:cycle";
+                    return "urn:microsoft.com/office/officeart/2005/8/layout/cycle2";
                 case PowerPointSmartArtType.BasicList:
-                    return "urn:officeimo:smartart:list";
-                case PowerPointSmartArtType.BasicMatrix:
-                    return "urn:officeimo:smartart:matrix";
-                case PowerPointSmartArtType.BasicPyramid:
-                    return "urn:officeimo:smartart:pyramid";
-                case PowerPointSmartArtType.BasicRelationship:
-                    return "urn:officeimo:smartart:relationship";
-                default:
                     return "urn:microsoft.com/office/officeart/2005/8/layout/default";
+                case PowerPointSmartArtType.BasicMatrix:
+                    return "urn:microsoft.com/office/officeart/2005/8/layout/matrix3";
+                case PowerPointSmartArtType.BasicPyramid:
+                    return "urn:microsoft.com/office/officeart/2005/8/layout/pyramid1";
+                case PowerPointSmartArtType.BasicRelationship:
+                    return "urn:microsoft.com/office/officeart/2005/8/layout/radial1";
+                default:
+                    return "urn:microsoft.com/office/officeart/2005/8/layout/process1";
             }
         }
 

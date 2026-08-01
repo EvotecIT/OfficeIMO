@@ -54,6 +54,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_AuthorsCombinedCustomGeometryStrokeOpacity() {
+            OfficeShape polygon = OfficeShape.Polygon(
+                new OfficePoint(0, 0),
+                new OfficePoint(100, 0),
+                new OfficePoint(50, 100));
+            polygon.StrokeColor = OfficeColor.FromRgba(37, 99, 235, 128);
+            polygon.StrokeOpacity = 0.5D;
+            polygon.StrokeWidth = 3D;
+
+            using var stream = new System.IO.MemoryStream();
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
+                    polygon, 20, 20, 120, 80);
+                Assert.Equal(75, shape.OutlineTransparency);
+                A.Alpha alpha = shape.Element.Descendants<A.Outline>().Single()
+                    .Descendants<A.Alpha>().Single();
+                Assert.InRange(alpha.Val!.Value, 25097, 25099);
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
+                Assert.Single(reopened.Slides[0].Shapes));
+            Assert.Equal(75, authored.OutlineTransparency);
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsSharedPolygonAndRejectsNonFreeformDescriptors() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),

@@ -11,6 +11,7 @@ using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Tests.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 using PdfCore = OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -206,6 +207,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData(PowerPointSmartArtType.BasicHierarchy, OfficeDiagramKind.Hierarchy)]
         [InlineData(PowerPointSmartArtType.BasicList, OfficeDiagramKind.List)]
         [InlineData(PowerPointSmartArtType.BasicMatrix, OfficeDiagramKind.Matrix)]
         [InlineData(PowerPointSmartArtType.BasicPyramid, OfficeDiagramKind.Pyramid)]
@@ -235,6 +237,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expectedKind, reopenedSnapshot.Kind);
             Assert.Equal(new[] { "Discover", "Build", "Validate", "Ship" },
                 authored.GetNodeTexts());
+            Dgm.LayoutDefinition layout = Assert.Single(reopened.Slides[0].SlidePart
+                .DiagramLayoutDefinitionParts).LayoutDefinition!;
+            AssertSmartArtNativeLayoutContract(type, layout);
             OfficeImageExportResult png = reopened.Slides[0].ExportImage(
                 OfficeImageExportFormat.Png);
             Assert.DoesNotContain(png.Diagnostics,
@@ -244,6 +249,76 @@ namespace OfficeIMO.Tests {
                 out OfficeRasterImage? raster));
             Assert.Equal(360, raster!.Width);
             Assert.Equal(220, raster.Height);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        private static void AssertSmartArtNativeLayoutContract(
+            PowerPointSmartArtType type, Dgm.LayoutDefinition layout) {
+            Dgm.AlgorithmValues expectedAlgorithm = type switch {
+                PowerPointSmartArtType.BasicHierarchy => Dgm.AlgorithmValues.Composite,
+                PowerPointSmartArtType.BasicList => Dgm.AlgorithmValues.Snake,
+                PowerPointSmartArtType.BasicMatrix => Dgm.AlgorithmValues.Composite,
+                PowerPointSmartArtType.BasicPyramid => Dgm.AlgorithmValues.Composite,
+                PowerPointSmartArtType.BasicRelationship => Dgm.AlgorithmValues.Cycle,
+                _ => throw new ArgumentOutOfRangeException(nameof(type))
+            };
+            Dgm.Algorithm algorithm = Assert.Single(layout.Descendants<Dgm.Algorithm>(),
+                candidate => candidate.Type?.Value == expectedAlgorithm);
+            Assert.NotEmpty(layout.Descendants<Dgm.Constraints>());
+            Assert.NotEmpty(layout.Descendants<Dgm.RuleList>());
+
+            if (type == PowerPointSmartArtType.BasicHierarchy) {
+                Assert.Equal(5, layout.Descendants<Dgm.LayoutNode>().Count(node =>
+                    node.Name?.Value?.StartsWith("hierarchy",
+                        StringComparison.Ordinal) == true));
+                Assert.Equal(4, layout.Descendants<Dgm.Shape>().Count(shape =>
+                    shape.Type?.Value == "roundRect"));
+            } else if (type == PowerPointSmartArtType.BasicMatrix) {
+                Assert.Equal(4, layout.Descendants<Dgm.LayoutNode>().Count(node =>
+                    node.Name?.Value?.StartsWith("matrixNode",
+                        StringComparison.Ordinal) == true));
+                Assert.Equal(4, layout.Descendants<Dgm.Shape>().Count(shape =>
+                    shape.Type?.Value == "roundRect"));
+            } else if (type == PowerPointSmartArtType.BasicPyramid) {
+                Assert.Equal(4, layout.Descendants<Dgm.LayoutNode>().Count(node =>
+                    node.Name?.Value?.StartsWith("level",
+                        StringComparison.Ordinal) == true));
+                Assert.Equal(4, layout.Descendants<Dgm.Shape>().Count(shape =>
+                    shape.Type?.Value == "trapezoid"));
+            } else if (type == PowerPointSmartArtType.BasicRelationship) {
+                Assert.Contains(algorithm.Elements<Dgm.Parameter>(), parameter =>
+                    parameter.Type?.Value == Dgm.ParameterIdValues.CenterShapeMapping
+                    && parameter.Val?.Value == "fNode");
+            } else {
+                Assert.Contains(algorithm.Elements<Dgm.Parameter>(), parameter =>
+                    parameter.Type?.Value == Dgm.ParameterIdValues.FlowDirection
+                    && parameter.Val?.Value == "row");
+            }
+        }
+
+        [Theory]
+        [InlineData(PowerPointSmartArtType.BasicHierarchy)]
+        [InlineData(PowerPointSmartArtType.BasicMatrix)]
+        [InlineData(PowerPointSmartArtType.BasicPyramid)]
+        public void PositionedSmartArtLayoutsProjectEveryAuthoredNode(
+            PowerPointSmartArtType type) {
+            string[] nodeTexts = Enumerable.Range(1, 7)
+                .Select(index => "Node " + index)
+                .ToArray();
+            using var stream = new MemoryStream();
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+                presentation.AddSlide().AddSmartArt(type, nodeTexts);
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            PowerPointSmartArt smartArt = Assert.Single(reopened.Slides[0].SmartArts);
+            Assert.Equal(nodeTexts, smartArt.GetNodeTexts());
+            Dgm.LayoutDefinition layout = Assert.Single(reopened.Slides[0].SlidePart
+                .DiagramLayoutDefinitionParts).LayoutDefinition!;
+            Assert.Equal(nodeTexts.Length, layout.Descendants<Dgm.Shape>().Count(shape =>
+                !string.IsNullOrWhiteSpace(shape.Type?.Value)));
             Assert.Empty(reopened.ValidateDocument());
         }
 
@@ -400,14 +475,17 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.SmartArtReference", Guid.NewGuid().ToString("N"));
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
-                    presentation.AddSlide().AddSmartArt(PowerPointSmartArtType.BasicProcess,
-                        new[] { "Inspect", "Build", "Validate" });
+                    foreach (PowerPointSmartArtType type in Enum.GetValues<PowerPointSmartArtType>()) {
+                        presentation.AddSlide().AddSmartArt(type,
+                            new[] { "Inspect", "Build", "Validate", "Ship" });
+                    }
                     presentation.Save();
                 }
                 PowerPointReferenceRenderResult result = PowerPointDesktopReferenceRenderer.TryRender(path, output,
                     enabled: true);
                 Assert.True(result.IsSuccessful, result.Message);
-                Assert.NotEmpty(result.ImagePaths);
+                Assert.Equal(Enum.GetValues<PowerPointSmartArtType>().Length,
+                    result.ImagePaths.Count);
             } finally {
                 if (File.Exists(path)) File.Delete(path);
                 if (Directory.Exists(output)) Directory.Delete(output, recursive: true);

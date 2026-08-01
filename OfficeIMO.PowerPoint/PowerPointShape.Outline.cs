@@ -30,6 +30,29 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Gets or sets the outline transparency percentage (0-100). 0 is opaque and 100 is fully transparent.
+        /// </summary>
+        public int? OutlineTransparency {
+            get {
+                A.RgbColorModelHex? color = GetOutline()?
+                    .GetFirstChild<A.SolidFill>()?
+                    .RgbColorModelHex;
+                int? alpha = color?.GetFirstChild<A.Alpha>()?.Val?.Value;
+                return alpha == null
+                    ? null
+                    : (int)Math.Round((100000 - alpha.Value) / 1000D);
+            }
+            set {
+                if (value is < 0 or > 100) {
+                    throw new ArgumentOutOfRangeException(nameof(value),
+                        "Transparency must be between 0 and 100.");
+                }
+
+                SetOutlineOpacity(value == null ? null : (100D - value.Value) / 100D);
+            }
+        }
+
+        /// <summary>
         ///     Gets or sets the outline width in points.
         /// </summary>
         public double? OutlineWidthPoints {
@@ -107,6 +130,45 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return outline;
+        }
+
+        internal void SetOutlineOpacity(double? opacity) {
+            if (opacity.HasValue &&
+                (double.IsNaN(opacity.Value) || double.IsInfinity(opacity.Value)
+                    || opacity.Value < 0D || opacity.Value > 1D)) {
+                throw new ArgumentOutOfRangeException(nameof(opacity),
+                    "Opacity must be between 0 and 1.");
+            }
+
+            A.Outline? outline = GetOutline(create: opacity != null);
+            if (outline == null) {
+                return;
+            }
+
+            A.SolidFill? solid = outline.GetFirstChild<A.SolidFill>();
+            if (solid == null) {
+                if (opacity == null) {
+                    return;
+                }
+                solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
+                InsertOutlineChild(outline, solid);
+            }
+
+            A.RgbColorModelHex rgb = solid.RgbColorModelHex
+                ?? new A.RgbColorModelHex { Val = "FFFFFF" };
+            solid.RgbColorModelHex ??= rgb;
+            A.Alpha? alpha = rgb.GetFirstChild<A.Alpha>();
+            if (opacity == null) {
+                alpha?.Remove();
+                return;
+            }
+
+            alpha ??= new A.Alpha();
+            alpha.Val = checked((int)Math.Round(opacity.Value * 100000D,
+                MidpointRounding.AwayFromZero));
+            if (alpha.Parent == null) {
+                rgb.Append(alpha);
+            }
         }
 
         private static void InsertOutlineChild(A.Outline outline, OpenXmlElement child) {

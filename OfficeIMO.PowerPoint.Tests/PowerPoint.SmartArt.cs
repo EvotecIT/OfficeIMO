@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
 
                     DiagramLayoutDefinitionPart layoutPart =
                         (DiagramLayoutDefinitionPart)slidePart.GetPartById(relationships.LayoutPart!);
-                    Assert.Equal("urn:microsoft.com/office/officeart/2005/8/layout/default",
+                    Assert.Equal("urn:microsoft.com/office/officeart/2005/8/layout/process1",
                         layoutPart.LayoutDefinition!.UniqueId!.Value);
                 }
 

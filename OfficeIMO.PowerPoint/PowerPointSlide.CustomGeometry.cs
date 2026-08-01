@@ -186,8 +186,16 @@ namespace OfficeIMO.PowerPoint {
             }
 
             result.OutlineColor = geometry.StrokeColor?.ToRgbHex();
-            if (geometry.StrokeColor != null) {
+            if (geometry.StrokeColor is OfficeColor stroke) {
                 result.OutlineWidthPoints = geometry.StrokeWidth;
+                double declaredOpacity = geometry.StrokeOpacity ?? 1D;
+                double clampedOpacity = declaredOpacity < 0D ? 0D
+                    : declaredOpacity > 1D ? 1D
+                    : declaredOpacity;
+                double combinedOpacity = stroke.A / (double)byte.MaxValue * clampedOpacity;
+                if (combinedOpacity < 1D) {
+                    result.SetOutlineOpacity(combinedOpacity);
+                }
             }
         }
     }
