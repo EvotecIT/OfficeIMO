@@ -232,11 +232,13 @@ namespace OfficeIMO.Word {
             string? originRelationshipId = null;
 
             OfficePackageSignatureArchive? signatureArchive = null;
+            string? digestInspectionUnavailableDetail = null;
             if (packageBytes != null) {
                 try {
                     signatureArchive = new OfficePackageSignatureArchive(packageBytes, maxPackageParts);
                 } catch (Exception ex) when (ex is IOException || ex is InvalidDataException) {
-                    unsupportedDetails.Add("Unable to open the OPC package for transform-aware digest validation: " + ex.Message);
+                    digestInspectionUnavailableDetail = "Digest inspection was not performed because the bounded OPC archive could not be opened: " + ex.Message;
+                    unsupportedDetails.Add(digestInspectionUnavailableDetail);
                 }
             }
 
@@ -260,6 +262,7 @@ namespace OfficeIMO.Word {
                             packagePartUris,
                             packageParts,
                             signatureArchive,
+                            digestInspectionUnavailableDetail,
                             maxPartBytes,
                             maxSignedReferences,
                             maxTotalDigestBytes,
@@ -304,6 +307,7 @@ namespace OfficeIMO.Word {
             HashSet<string> packagePartUris,
             IReadOnlyDictionary<string, OpenXmlPart> packageParts,
             OfficePackageSignatureArchive? signatureArchive,
+            string? digestInspectionUnavailableDetail,
             long maxPartBytes,
             int maxSignedReferences,
             long maxTotalDigestBytes,
@@ -348,7 +352,7 @@ namespace OfficeIMO.Word {
                 IReadOnlyList<XElement> referencesToInspect = GetAuthenticatedReferences(xml, ds, unsupportedDetails);
                 ValidateDigestWorkBudget(referencesToInspect, signatureArchive, maxSignedReferences, maxTotalDigestBytes);
                 signedReferences.AddRange(referencesToInspect
-                    .Select(reference => InspectSignedReference(reference, ds, packagePartUris, packageParts, signatureArchive, maxPartBytes)));
+                    .Select(reference => InspectSignedReference(reference, ds, packagePartUris, packageParts, signatureArchive, digestInspectionUnavailableDetail, maxPartBytes)));
                 timestamps.AddRange(ReadSignatureTimestamps(xml));
                 unsupportedDetails.AddRange(signedReferences
                     .Where(reference => reference.DigestVerificationStatus == OfficePackageSignatureDigestVerificationStatus.Unsupported)
@@ -625,6 +629,7 @@ namespace OfficeIMO.Word {
             HashSet<string> packagePartUris,
             IReadOnlyDictionary<string, OpenXmlPart> packageParts,
             OfficePackageSignatureArchive? signatureArchive,
+            string? digestInspectionUnavailableDetail,
             long maxPartBytes) {
             string? uri = ((string?)reference.Attribute("URI"))?.Trim();
             string? digestMethod = reference.Element(ds + "DigestMethod")?.Attribute("Algorithm")?.Value;
@@ -646,6 +651,7 @@ namespace OfficeIMO.Word {
                 packageParts,
                 reference,
                 signatureArchive,
+                digestInspectionUnavailableDetail,
                 maxPartBytes);
 
             return new OfficePackageSignatureReferenceInfo(
@@ -669,6 +675,7 @@ namespace OfficeIMO.Word {
             IReadOnlyDictionary<string, OpenXmlPart> packageParts,
             XElement reference,
             OfficePackageSignatureArchive? signatureArchive,
+            string? digestInspectionUnavailableDetail,
             long maxPartBytes) {
             if (string.IsNullOrWhiteSpace(targetPartUri) || targetPartExists != true) {
                 return DigestVerificationResult.NotChecked(null);
@@ -681,6 +688,10 @@ namespace OfficeIMO.Word {
             string normalizedTargetPartUri = targetPartUri!;
             string normalizedDigestMethod = digestMethod!;
             string normalizedDigestValue = digestValue!;
+
+            if (!string.IsNullOrWhiteSpace(digestInspectionUnavailableDetail)) {
+                return DigestVerificationResult.Unsupported(digestInspectionUnavailableDetail!);
+            }
 
             if (signatureArchive != null) {
                 OfficePackageDigestResult transformed = signatureArchive.VerifyReference(reference, maxPartBytes);

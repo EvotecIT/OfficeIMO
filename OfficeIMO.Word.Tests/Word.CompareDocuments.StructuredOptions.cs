@@ -261,6 +261,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsConditionalTableLimitOnlyForUsedConditionalStyleChain() {
+            string plainSourcePath = Path.Combine(_directoryWithFiles, "compare_structure_plain_table_style_source.docx");
+            CreateDocumentWithComparisonTableStyle(plainSourcePath, includeConditionalBaseStyle: false);
+            string plainTargetPath = Path.Combine(_directoryWithFiles, "compare_structure_plain_table_style_target.docx");
+            CreateDocumentWithComparisonTableStyle(plainTargetPath, includeConditionalBaseStyle: false);
+
+            WordComparisonResult plain = WordDocumentComparer.CompareStructure(plainSourcePath, plainTargetPath);
+
+            Assert.DoesNotContain(plain.Limitations, limitation => limitation.Code == "EffectiveFormatting.ConditionalTableStyles");
+
+            string conditionalSourcePath = Path.Combine(_directoryWithFiles, "compare_structure_conditional_table_style_source.docx");
+            CreateDocumentWithComparisonTableStyle(conditionalSourcePath, includeConditionalBaseStyle: true);
+            string conditionalTargetPath = Path.Combine(_directoryWithFiles, "compare_structure_conditional_table_style_target.docx");
+            CreateDocumentWithComparisonTableStyle(conditionalTargetPath, includeConditionalBaseStyle: true);
+
+            WordComparisonResult conditional = WordDocumentComparer.CompareStructure(conditionalSourcePath, conditionalTargetPath);
+
+            Assert.Contains(conditional.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ConditionalTableStyles" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureOptionsCanDisableImageFindings() {
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -515,6 +539,43 @@ namespace OfficeIMO.Tests {
             Paragraph paragraph = mainPart.Document.Body!.Elements<Paragraph>().First();
             paragraph.ParagraphProperties = new ParagraphProperties(
                 new ParagraphStyleId { Val = "OfficeIMOStyleNumbering" });
+            mainPart.Document.Save();
+        }
+
+        private static void CreateDocumentWithComparisonTableStyle(string path, bool includeConditionalBaseStyle) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Styled cell";
+                document.Save();
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Styles styles = mainPart.StyleDefinitionsPart!.Styles!;
+            var baseStyle = new Style(new StyleName { Val = "OfficeIMO Table Base" }) {
+                Type = StyleValues.Table,
+                StyleId = "OfficeIMOTableBase",
+                CustomStyle = true
+            };
+            if (includeConditionalBaseStyle) {
+                baseStyle.Append(new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new Shading { Fill = "D9EAF7" })) {
+                    Type = TableStyleOverrideValues.FirstRow
+                });
+            }
+            styles.Append(baseStyle);
+            styles.Append(new Style(
+                new StyleName { Val = "OfficeIMO Table Derived" },
+                new BasedOn { Val = "OfficeIMOTableBase" }) {
+                Type = StyleValues.Table,
+                StyleId = "OfficeIMOTableDerived",
+                CustomStyle = true
+            });
+            styles.Save();
+
+            Table table = mainPart.Document.Body!.Elements<Table>().Single();
+            table.TableProperties ??= new TableProperties();
+            table.TableProperties.TableStyle = new TableStyle { Val = "OfficeIMOTableDerived" };
             mainPart.Document.Save();
         }
     }

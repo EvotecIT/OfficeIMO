@@ -575,6 +575,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_ArchivePartLimitDisablesFallbackDigestInspection() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureArchivePartLimit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Bounded archive failure must stop digest work");
+                document.Save();
+            }
+            AddDigitalSignatureMetadata(filePath, CreateSignatureXml(
+                digestValue: ComputePackagePartSha256Digest(filePath, "/word/document.xml")));
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                MaxPackageParts = 1
+            });
+
+            WordSignatureReferenceInfo reference = Assert.Single(Assert.Single(validation.SignatureInfo.SignatureParts).SignedReferences);
+            Assert.Equal(WordSignatureValidationState.Unsupported, reference.DigestVerificationStatus);
+            Assert.Contains("bounded OPC archive", reference.DigestVerificationDetail!, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidationCountsDeclaredEmbeddedCertificates() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCertificateCount.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -938,6 +959,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_IgnoresTimestampLikeElementsOutsideXades() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnrelatedTimestampElement.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unrelated timestamp-like signed object");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer);
+            AddUnrelatedTimestampLikeObject(filePath);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "TimestampMalformed");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ReportsUnsupportedTimestampCanonicalizationWithoutFailure() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnsupportedTimestampCanonicalization.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unsupported timestamp canonicalization");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer);
+            AddRfc3161Timestamp(
+                filePath,
+                timestampCorrectSignatureValue: true,
+                canonicalizationAlgorithm: "urn:officeimo:unsupported-canonicalization");
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.Unsupported, validation.TimestampStatus);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "TimestampCanonicalizationUnsupported");
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "TimestampValidationFailed");
+        }
+
+        [Fact]
         public void Test_DigitalSignature_TrySignPackageFailsWhenRequestedPartIsMissing() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureMissingRequestedPart.docx");
 
@@ -1255,6 +1330,28 @@ namespace OfficeIMO.Tests {
             qualifyingProperties.AppendChild(unsignedProperties);
             dataObject.AppendChild(qualifyingProperties);
             signature.AppendChild(dataObject);
+
+            using Stream destination = signatureEntry.Open();
+            destination.SetLength(0);
+            signatureXml.Save(destination);
+        }
+
+        private static void AddUnrelatedTimestampLikeObject(string filePath) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
+                entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
+                entry.FullName.EndsWith(".xml", System.StringComparison.OrdinalIgnoreCase) &&
+                !entry.FullName.Contains("_rels", System.StringComparison.OrdinalIgnoreCase));
+            var signatureXml = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            using (Stream source = signatureEntry.Open()) {
+                signatureXml.Load(source);
+            }
+
+            XmlElement dataObject = signatureXml.CreateElement("ds", "Object", SignedXml.XmlDsigNamespaceUrl);
+            XmlElement unrelated = signatureXml.CreateElement("custom", "EncapsulatedTimeStamp", "urn:officeimo:business-data");
+            unrelated.InnerText = "not-an-rfc3161-token";
+            dataObject.AppendChild(unrelated);
+            signatureXml.DocumentElement!.AppendChild(dataObject);
 
             using Stream destination = signatureEntry.Open();
             destination.SetLength(0);

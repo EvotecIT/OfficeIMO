@@ -252,7 +252,7 @@ namespace OfficeIMO.Word {
                     return false;
                 }
             } else if (parsed.Switches.Any(fieldSwitch => fieldSwitch.TrimStart().StartsWith(@"\@", StringComparison.Ordinal))) {
-                if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind, out DateTime dateTime)) {
+                if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out DateTimeOffset dateTime)) {
                     formattedValue = string.Empty;
                     message = "Merge field value '" + value + "' is not an invariant date/time required by the date picture switch.";
                     return false;

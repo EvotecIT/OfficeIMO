@@ -269,6 +269,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_DatePicturePreservesExplicitOffsetWallClock() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(new SimpleField(new Run(new Text("date"))) {
+                Instruction = " MERGEFIELD EventTime \\@ \"yyyy-MM-dd HH:mm zzz\" "
+            }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> {
+                    ["EventTime"] = "2026-07-31T10:00:00+02:00"
+                });
+
+            WordMailMergeFieldResult result = Assert.Single(report.Fields);
+            Assert.Equal(WordMailMergeFieldStatus.Merged, result.Status);
+            Assert.Equal("2026-07-31 10:00 +02:00", result.Value);
+            Assert.Contains("2026-07-31 10:00 +02:00", body.InnerText, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_MailMerge_ExecutionReportIncludesMalformedSimpleAndComplexFields() {
             using WordDocument document = WordDocument.Create();
             Body body = document._document.MainDocumentPart!.Document.Body!;

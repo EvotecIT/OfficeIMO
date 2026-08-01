@@ -122,6 +122,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_RejectsInlineSvgBeforeParsingPastOutputBudget() {
+            using var doc = WordDocument.Create();
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "Images", "Sample.svg");
+            doc.AddParagraph(new string('x', 256));
+            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            var options = new WordToHtmlOptions { MaxOutputCharacters = new FileInfo(assetPath).Length };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Contains("Sample.svg", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_DocumentElementBudgetIncludesCommentsPart() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Small visible body");

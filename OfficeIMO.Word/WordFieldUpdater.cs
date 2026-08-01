@@ -831,6 +831,26 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal static bool TryFormatDateTime(DateTimeOffset source, WordFieldInventory.ParsedFieldInstruction parsed, out string value, out string message) {
+            string? customFormat = GetDateTimeFormatSwitch(parsed.Switches);
+            if (string.IsNullOrWhiteSpace(customFormat)) {
+                value = source.ToString(DefaultDateTimeFormat, CultureInfo.InvariantCulture);
+                message = string.Empty;
+                return true;
+            }
+
+            string normalizedFormat = NormalizeDateTimeFormat(customFormat!);
+            try {
+                value = source.ToString(normalizedFormat, CultureInfo.InvariantCulture);
+                message = string.Empty;
+                return true;
+            } catch (FormatException) {
+                value = string.Empty;
+                message = $"Date/time format switch {customFormat} is not supported for deterministic field refresh.";
+                return false;
+            }
+        }
+
         private static string? GetDateTimeFormatSwitch(IReadOnlyList<string> switches) {
             for (int index = switches.Count - 1; index >= 0; index--) {
                 string fieldSwitch = switches[index].Trim();

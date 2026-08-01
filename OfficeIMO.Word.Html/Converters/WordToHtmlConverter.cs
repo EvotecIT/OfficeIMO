@@ -47,8 +47,21 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            byte[] ReadEmbeddedImageBytes(WordImage image, string source, string? base64Mime = null) {
-                long currentMarkupCharacters = base64Mime == null ? 0 : MeasureCurrentHtmlCharacters();
+            void EnsureInlineImageFitsOutputBudget(long currentMarkupCharacters, long imageBytes, string source) {
+                long projectedCharacters = SaturatingAdd(currentMarkupCharacters, imageBytes);
+                if (projectedCharacters > options.MaxOutputCharacters) {
+                    ThrowExportLimitExceeded(
+                        options,
+                        "WordHtmlOutputLimitExceeded",
+                        "An inline SVG image cannot fit within the configured HTML output-character limit.",
+                        source,
+                        projectedCharacters,
+                        options.MaxOutputCharacters);
+                }
+            }
+
+            byte[] ReadEmbeddedImageBytes(WordImage image, string source, string? base64Mime = null, bool inlineMarkup = false) {
+                long currentMarkupCharacters = base64Mime == null && !inlineMarkup ? 0 : MeasureCurrentHtmlCharacters();
                 using Stream input = image.OpenRead();
                 if (input.CanSeek && input.Length > options.MaxEmbeddedImageBytes) {
                     ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
@@ -58,6 +71,9 @@ namespace OfficeIMO.Word.Html {
                 }
                 if (base64Mime != null && input.CanSeek) {
                     EnsureBase64ImageFitsOutputBudget(currentMarkupCharacters, input.Length, base64Mime, source);
+                }
+                if (inlineMarkup && input.CanSeek) {
+                    EnsureInlineImageFitsOutputBudget(currentMarkupCharacters, input.Length, source);
                 }
 
                 int capacity = input.CanSeek && input.Length <= int.MaxValue ? (int)input.Length : 0;
@@ -75,6 +91,9 @@ namespace OfficeIMO.Word.Html {
                     }
                     if (base64Mime != null) {
                         EnsureBase64ImageFitsOutputBudget(currentMarkupCharacters, nextImageBytes, base64Mime, source);
+                    }
+                    if (inlineMarkup) {
+                        EnsureInlineImageFitsOutputBudget(currentMarkupCharacters, nextImageBytes, source);
                     }
                     output.Write(buffer, 0, read);
                     imageBytes = nextImageBytes;
@@ -192,7 +211,7 @@ namespace OfficeIMO.Word.Html {
                         var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
                         if (ext == ".svg") {
                             if (options.EmbedImagesAsBase64) {
-                                var svgXml = Encoding.UTF8.GetString(ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image.svg"));
+                                var svgXml = Encoding.UTF8.GetString(ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image.svg", inlineMarkup: true));
                                 var parser = new HtmlParser();
                                 var fragment = parser.ParseFragment(svgXml, body);
                                 var svgElement = fragment.OfType<IElement>().FirstOrDefault();

@@ -102,11 +102,35 @@ namespace OfficeIMO.Word {
                 .SelectMany(candidate => candidate.GetAttributes())
                 .Any(IsThemeAttribute);
 
-        private static bool ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart) =>
-            EnumerateComparisonRoots(mainPart).Any(root =>
-                root.Descendants<TableStyle>().Any() ||
-                root.Descendants<TableStyleConditionalFormattingTableRowProperties>().Any() ||
-                root.Descendants<TableStyleConditionalFormattingTableCellProperties>().Any());
+        private static bool ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart) {
+            OpenXmlElement[] content = EnumerateComparisonRoots(mainPart)
+                .SelectMany(root => new[] { root }.Concat(root.Descendants()))
+                .ToArray();
+            if (content.OfType<TableStyleProperties>().Any()) return true;
+
+            var usedTableStyleIds = new HashSet<string>(content
+                .OfType<TableStyle>()
+                .Select(tableStyle => tableStyle.Val?.Value)
+                .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
+                .Select(styleId => styleId!), StringComparer.OrdinalIgnoreCase);
+            if (usedTableStyleIds.Count == 0) return false;
+
+            Dictionary<string, Style> stylesById = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
+                .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            var inspectedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string usedStyleId in usedTableStyleIds) {
+                string? currentStyleId = usedStyleId;
+                while (!string.IsNullOrWhiteSpace(currentStyleId) && inspectedStyleIds.Add(currentStyleId!)) {
+                    if (!stylesById.TryGetValue(currentStyleId!, out Style? style)) break;
+                    if (style.Elements<TableStyleProperties>().Any()) return true;
+                    currentStyleId = style.BasedOn?.Val?.Value;
+                }
+            }
+            return false;
+        }
 
         private static bool ContainsNumberingFormatting(MainDocumentPart mainPart) =>
             EnumerateComparisonRoots(mainPart)

@@ -10,6 +10,13 @@ using System.Xml;
 namespace OfficeIMO.Word {
     /// <summary>Cross-platform XML DSig, X.509, revocation, and RFC 3161 validator for OPC signatures.</summary>
     internal static class OfficePackageSignatureValidator {
+        private static readonly HashSet<string> XadesNamespaces = new(StringComparer.Ordinal) {
+            "http://uri.etsi.org/01903/v1.1.1#",
+            "http://uri.etsi.org/01903/v1.2.2#",
+            "http://uri.etsi.org/01903/v1.3.2#",
+            "http://uri.etsi.org/01903/v1.4.1#"
+        };
+
         internal static IReadOnlyList<WordSignaturePartValidationResult> Validate(
             DigitalSignatureOriginPart? originPart,
             byte[] packageBytes,
@@ -303,11 +310,11 @@ namespace OfficeIMO.Word {
             string signaturePartUri,
             List<Rfc3161TimestampVerificationResult> results,
             List<WordSignatureValidationFinding> findings) {
-            XmlNodeList tokens = document.GetElementsByTagName("EncapsulatedTimeStamp", "*");
+            IReadOnlyList<XmlElement> tokens = GetXadesTimestampTokens(document);
             if (tokens.Count > options.MaxTimestampTokens) {
                 throw new InvalidDataException("The XML signature exceeds the " + options.MaxTimestampTokens + " timestamp-token limit.");
             }
-            foreach (XmlElement tokenElement in tokens.OfType<XmlElement>()) {
+            foreach (XmlElement tokenElement in tokens) {
                 byte[] encoded;
                 try {
                     if (tokenElement.InnerText.Length > GetMaxBase64EncodedCharacters(options.MaxTimestampBytes)) {
@@ -342,6 +349,23 @@ namespace OfficeIMO.Word {
                     findings.Add(Finding(finding.Code, MapStatus(result.Status), finding.Message, signaturePartUri));
                 }
             }
+        }
+
+        private static IReadOnlyList<XmlElement> GetXadesTimestampTokens(XmlDocument document) =>
+            document.GetElementsByTagName("EncapsulatedTimeStamp", "*")
+                .OfType<XmlElement>()
+                .Where(IsXadesTimestampToken)
+                .ToArray();
+
+        private static bool IsXadesTimestampToken(XmlElement token) {
+            if (!XadesNamespaces.Contains(token.NamespaceURI)) return false;
+            for (XmlElement? ancestor = token.ParentNode as XmlElement; ancestor != null; ancestor = ancestor.ParentNode as XmlElement) {
+                if (ancestor.LocalName.Equals("SignatureTimeStamp", StringComparison.Ordinal) &&
+                    string.Equals(ancestor.NamespaceURI, token.NamespaceURI, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static byte[] CanonicalizeTimestampedSignatureValue(XmlElement signatureValue, XmlElement tokenElement) {
@@ -398,15 +422,26 @@ namespace OfficeIMO.Word {
             string signaturePartUri,
             List<WordSignatureValidationFinding> findings) {
             if (!options.ValidateTimestamps) return WordSignatureValidationState.NotChecked;
-            int declaredTokenCount = document.GetElementsByTagName("EncapsulatedTimeStamp", "*").Count;
+            int declaredTokenCount = GetXadesTimestampTokens(document).Count;
+            if (timestampResults.Any(result => result.Status == SecurityValidationStatus.Invalid)) {
+                return WordSignatureValidationState.Failed;
+            }
             if (declaredTokenCount > timestampResults.Count) {
+                if (findings.Any(finding => finding.Code == "TimestampMalformed")) {
+                    findings.Add(Finding("TimestampValidationFailed", WordSignatureValidationState.Failed,
+                        "At least one embedded RFC 3161 timestamp token could not be decoded or validated.",
+                        signaturePartUri));
+                    return WordSignatureValidationState.Failed;
+                }
+                if (findings.Any(finding => finding.Code == "TimestampCanonicalizationUnsupported")) {
+                    return WordSignatureValidationState.Unsupported;
+                }
                 findings.Add(Finding("TimestampValidationFailed", WordSignatureValidationState.Failed,
                     "At least one embedded RFC 3161 timestamp token could not be decoded or validated.",
                     signaturePartUri));
                 return WordSignatureValidationState.Failed;
             }
             if (timestampResults.Count > 0) {
-                if (timestampResults.Any(result => result.Status == SecurityValidationStatus.Invalid)) return WordSignatureValidationState.Failed;
                 if (timestampResults.All(result => result.Status == SecurityValidationStatus.Valid)) return WordSignatureValidationState.Passed;
                 return WordSignatureValidationState.Unsupported;
             }
