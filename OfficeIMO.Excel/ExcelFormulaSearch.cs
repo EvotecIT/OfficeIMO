@@ -171,6 +171,31 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TrySkipQuotedQualifier(string formula, int start, out int nextIndex) {
+            if (!TryFindQuotedTokenEnd(formula, start, out int firstEnd)) {
+                nextIndex = start;
+                return false;
+            }
+
+            int separator = firstEnd + 1;
+            if (separator < formula.Length && formula[separator] == '!') {
+                nextIndex = separator + 1;
+                return true;
+            }
+            if (separator + 1 < formula.Length
+                && formula[separator] == ':'
+                && formula[separator + 1] == '\''
+                && TryFindQuotedTokenEnd(formula, separator + 1, out int secondEnd)
+                && secondEnd + 1 < formula.Length
+                && formula[secondEnd + 1] == '!') {
+                nextIndex = secondEnd + 2;
+                return true;
+            }
+
+            nextIndex = start;
+            return false;
+        }
+
+        private static bool TryFindQuotedTokenEnd(string formula, int start, out int end) {
             int index = start + 1;
             while (index < formula.Length) {
                 if (formula[index] != '\'') {
@@ -181,13 +206,10 @@ namespace OfficeIMO.Excel {
                     index += 2;
                     continue;
                 }
-                if (index + 1 < formula.Length && formula[index + 1] == '!') {
-                    nextIndex = index + 2;
-                    return true;
-                }
-                break;
+                end = index;
+                return true;
             }
-            nextIndex = start;
+            end = start;
             return false;
         }
 

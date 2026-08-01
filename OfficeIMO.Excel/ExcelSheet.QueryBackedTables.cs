@@ -45,10 +45,15 @@ namespace OfficeIMO.Excel {
                 var current = A1.ParseRange(table.Reference?.Value
                     ?? throw new InvalidDataException("Query-backed table range is missing."));
                 NormalizeImplicitCellReferences();
+                int headerRowCount = checked((int)(table.HeaderRowCount?.Value ?? 1U));
+                if (headerRowCount < 0 || headerRowCount > 1) {
+                    throw new InvalidDataException("Query-backed table header-row metadata is unsupported.");
+                }
                 int totalsRowCount = checked((int)(table.TotalsRowCount?.Value
                     ?? (table.TotalsRowShown?.Value == true ? 1U : 0U)));
-                if (totalsRowCount < 0 || totalsRowCount >= current.r2 - current.r1 + 1) {
-                    throw new InvalidDataException("Query-backed table totals-row metadata is inconsistent with its range.");
+                int currentRowCount = current.r2 - current.r1 + 1;
+                if (totalsRowCount < 0 || headerRowCount + totalsRowCount > currentRowCount) {
+                    throw new InvalidDataException("Query-backed table row metadata is inconsistent with its range.");
                 }
                 int currentTotalsStartRow = current.r2 - totalsRowCount + 1;
                 List<(int RowOffset, int ColumnOffset, Cell Cell)> totalsCells = totalsRowCount == 0
@@ -64,7 +69,11 @@ namespace OfficeIMO.Excel {
                             (Cell)item.Cell.CloneNode(true)))
                         .ToList();
                 int targetLastColumn = checked(current.c1 + columnNames.Count - 1);
-                int targetLastRow = checked(current.r1 + rows.Count + totalsRowCount);
+                int targetRowCount = checked(headerRowCount + rows.Count + totalsRowCount);
+                if (targetRowCount == 0) {
+                    throw new InvalidOperationException("A headerless query-backed table cannot represent an empty result.");
+                }
+                int targetLastRow = checked(current.r1 + targetRowCount - 1);
                 if (targetLastColumn > 16_384 || targetLastRow > 1_048_576) {
                     throw new InvalidOperationException("Query result exceeds worksheet capacity.");
                 }
@@ -103,15 +112,17 @@ namespace OfficeIMO.Excel {
                 columns.Count = (uint)columnNames.Count;
 
                 RemoveCellsInRange(current.r1, current.c1, current.r2, current.c2);
-                for (int column = 0; column < columnNames.Count; column++) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    CellValueCoreNoMaterialize(current.r1, current.c1 + column, columnNames[column]);
+                if (headerRowCount > 0) {
+                    for (int column = 0; column < columnNames.Count; column++) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        CellValueCoreNoMaterialize(current.r1, current.c1 + column, columnNames[column]);
+                    }
                 }
                 for (int row = 0; row < rows.Count; row++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     object?[] values = rows[row];
                     for (int column = 0; column < values.Length; column++) {
-                        CellValueCoreNoMaterialize(current.r1 + row + 1, current.c1 + column, values[column]);
+                        CellValueCoreNoMaterialize(current.r1 + headerRowCount + row, current.c1 + column, values[column]);
                     }
                 }
                 int targetTotalsStartRow = targetLastRow - totalsRowCount + 1;
@@ -138,7 +149,9 @@ namespace OfficeIMO.Excel {
 
                 table.Reference = updatedRange;
                 AutoFilter? filter = table.GetFirstChild<AutoFilter>();
-                if (filter != null) {
+                if (filter != null && headerRowCount == 0) {
+                    filter.Remove();
+                } else if (filter != null) {
                     int filterLastRow = targetLastRow - totalsRowCount;
                     filter.Reference = A1.CellReference(current.r1, current.c1) + ":"
                         + A1.CellReference(filterLastRow, targetLastColumn);
@@ -155,7 +168,9 @@ namespace OfficeIMO.Excel {
                 _excelDocument.CleanupCalculationArtifacts(
                     save: false,
                     ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
-                return checked(rows.Count * columnNames.Count + columnNames.Count + totalsCells.Count);
+                return checked(rows.Count * columnNames.Count
+                    + headerRowCount * columnNames.Count
+                    + totalsCells.Count);
             }, new ExcelMutationPlanOptions(), cancellationToken);
             return updatedRange!;
         }

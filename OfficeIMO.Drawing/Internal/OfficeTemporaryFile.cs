@@ -1,10 +1,13 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Drawing.Internal {
     /// <summary>Creates owner-only, non-shareable temporary files that the operating system deletes on close.</summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     internal static class OfficeTemporaryFile {
+        private const uint OwnerFileMode = 0x180; // 0600
+
         internal static FileStream Create(
             string prefix,
             string suffix,
@@ -27,9 +30,29 @@ namespace OfficeIMO.Drawing.Internal {
             }
             return new FileStream(path, streamOptions);
 #else
-            return new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
+            var stream = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
                 FileShare.None, 81920, options | FileOptions.DeleteOnClose);
+            try {
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    && ChangeMode(path, OwnerFileMode) != 0) {
+                    throw new IOException(
+                        "Unable to restrict temporary-file permissions (OS error "
+                        + Marshal.GetLastWin32Error() + ").");
+                }
+                return stream;
+            } catch {
+                stream.Dispose();
+                TryDelete(path);
+                throw;
+            }
 #endif
         }
+
+        private static void TryDelete(string path) {
+            try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+
+        [DllImport("libc", EntryPoint = "chmod", SetLastError = true)]
+        private static extern int ChangeMode(string path, uint mode);
     }
 }
