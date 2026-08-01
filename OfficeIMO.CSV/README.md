@@ -301,6 +301,13 @@ using var reader = CsvDocument.OpenDataReader("large.csv", new CsvLoadOptions {
     ProgressCallback = progress =>
         Console.WriteLine($"{progress.RecordsRead} records read")
 });
+
+long rowsRead = 0;
+while (reader.Read()) {
+    rowsRead++;
+}
+
+Console.WriteLine($"Imported {rowsRead} rows");
 ```
 
 ## Export options

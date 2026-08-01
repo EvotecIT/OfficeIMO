@@ -1,7 +1,6 @@
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
-using System.Text;
 using System.Threading;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
@@ -51,7 +50,10 @@ public static class ExcelSheetCsvExtensions {
         return ImportCsvCore(sheet, reader, resolved, cancellationToken);
     }
 
-    /// <summary>Parses CSV text and imports it into an existing worksheet.</summary>
+    /// <summary>
+    /// Parses CSV text and imports it into an existing worksheet. Because the input is already decoded,
+    /// <see cref="CsvLoadOptions.Encoding"/> applies only to file and stream imports.
+    /// </summary>
     public static ExcelCsvImportResult ImportCsvText(
         this ExcelSheet sheet,
         string text,
@@ -60,10 +62,9 @@ public static class ExcelSheetCsvExtensions {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         if (text == null) throw new ArgumentNullException(nameof(text));
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
-        Encoding encoding = resolved.LoadOptions.Encoding ?? new UTF8Encoding(false);
-        using var stream = new MemoryStream(encoding.GetBytes(text), writable: false);
         using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream, loadOptions, resolved.ReaderOptions);
+        CsvDocument csv = CsvDocument.Parse(text, loadOptions);
+        using DbDataReader reader = csv.CreateDataReader(resolved.ReaderOptions);
         return ImportCsvCore(sheet, reader, resolved, cancellationToken);
     }
 

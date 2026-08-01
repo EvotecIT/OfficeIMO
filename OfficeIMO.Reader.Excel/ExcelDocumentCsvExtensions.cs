@@ -1,6 +1,5 @@
 using System.Data;
 using System.Data.Common;
-using System.Text;
 using System.Threading;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
@@ -50,7 +49,10 @@ public static class ExcelDocumentCsvExtensions {
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
-    /// <summary>Parses CSV text and imports it into a new worksheet.</summary>
+    /// <summary>
+    /// Parses CSV text and imports it into a new worksheet. Because the input is already decoded,
+    /// <see cref="CsvLoadOptions.Encoding"/> applies only to file and stream imports.
+    /// </summary>
     public static ExcelCsvImportResult ImportCsvText(
         this ExcelDocument document,
         string text,
@@ -59,10 +61,9 @@ public static class ExcelDocumentCsvExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (text == null) throw new ArgumentNullException(nameof(text));
         ExcelCsvImportOptions resolved = ResolveOptions(options);
-        Encoding encoding = resolved.LoadOptions.Encoding ?? new UTF8Encoding(false);
-        using var stream = new MemoryStream(encoding.GetBytes(text), writable: false);
         using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream, loadOptions, resolved.ReaderOptions);
+        CsvDocument csv = CsvDocument.Parse(text, loadOptions);
+        using DbDataReader reader = csv.CreateDataReader(resolved.ReaderOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
@@ -93,7 +94,7 @@ public static class ExcelDocumentCsvExtensions {
         if (csv == null) throw new ArgumentNullException(nameof(csv));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using ExcelDocument document = csv.ToExcelDocument(importOptions, cancellationToken: cancellationToken);
-        document.Save(path, saveOptions);
+        document.SaveAsync(path, saveOptions, cancellationToken).GetAwaiter().GetResult();
     }
 
     /// <summary>Converts a loaded CSV document and saves it to an Excel workbook stream.</summary>
@@ -106,7 +107,7 @@ public static class ExcelDocumentCsvExtensions {
         if (csv == null) throw new ArgumentNullException(nameof(csv));
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         using ExcelDocument document = csv.ToExcelDocument(importOptions, cancellationToken: cancellationToken);
-        document.Save(stream, saveOptions);
+        document.SaveAsync(stream, saveOptions, cancellationToken).GetAwaiter().GetResult();
     }
 
     private static ExcelCsvImportResult ImportIntoNewWorksheet(

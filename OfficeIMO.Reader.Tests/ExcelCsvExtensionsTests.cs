@@ -1,6 +1,8 @@
 using System.Data;
 using System.Globalization;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 using OfficeIMO.Reader.Csv;
@@ -42,6 +44,56 @@ public class ExcelCsvExtensionsTests {
         Assert.Equal("Empty", result.SheetName);
         Assert.Equal(string.Empty, result.Range);
         Assert.Equal("A1:A1", document["Empty"].GetUsedRangeA1());
+    }
+
+    [Fact]
+    public void CsvTextImportPreservesUnicodeRegardlessOfFileEncodingOption() {
+        var options = new ExcelCsvImportOptions {
+            SheetName = "Imported",
+            LoadOptions = new CsvLoadOptions { Encoding = Encoding.ASCII },
+            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+        };
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+
+        document.ImportCsvText("Name\r\nélève", options);
+        ExcelSheet existing = document.AddWorksheet("Existing");
+        existing.ImportCsvText("Name\r\n東京", options);
+
+        Assert.True(document["Imported"].TryGetCellText(2, 1, out string? imported));
+        Assert.Equal("élève", imported);
+        Assert.True(existing.TryGetCellText(2, 1, out string? existingValue));
+        Assert.Equal("東京", existingValue);
+    }
+
+    [Fact]
+    public void SaveAsExcelPassesCancellationIntoWorkbookSerialization() {
+        CsvDocument csv = CsvDocument.Parse("Name\r\nAlpha");
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CancelOnAsyncWriteStream(cancellation);
+
+        Assert.ThrowsAny<OperationCanceledException>(() => csv.SaveAsExcel(
+            destination,
+            saveOptions: new ExcelSaveOptions { DisableFastPackageWriter = true },
+            cancellationToken: cancellation.Token));
+        Assert.Equal(0, destination.Length);
+    }
+
+    [Fact]
+    public void WorksheetCsvExportHonorsReadOptionsCancellationBeforeWriting() {
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Name");
+        sheet.CellValue(2, 1, "Alpha");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var readOptions = new ExcelReadOptions { CancellationToken = cancellation.Token };
+        using var destination = new MemoryStream();
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            sheet.SaveAsCsv(destination, readOptions: readOptions));
+        Assert.Equal(0, destination.Length);
     }
 
     [Fact]
@@ -195,6 +247,23 @@ public class ExcelCsvExtensionsTests {
             Assert.Equal("10.5", amount);
         } finally {
             if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    private sealed class CancelOnAsyncWriteStream : MemoryStream {
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancelOnAsyncWriteStream(CancellationTokenSource cancellation) {
+            _cancellation = cancellation;
+        }
+
+        public override Task WriteAsync(
+            byte[] buffer,
+            int offset,
+            int count,
+            CancellationToken cancellationToken) {
+            _cancellation.Cancel();
+            return base.WriteAsync(buffer, offset, count, cancellationToken);
         }
     }
 }
