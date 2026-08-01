@@ -18,7 +18,15 @@ internal static class PdfImageExportEngine {
             options.RenderTimeout,
             cancellationToken);
         try {
-            return ExportCore(page, format, options, pageNumber, initialDiagnostics, execution.Token);
+            OfficeImageExportResult result = ExportCore(
+                page,
+                format,
+                options,
+                pageNumber,
+                initialDiagnostics,
+                execution.Token);
+            execution.ThrowIfCancellationRequested();
+            return result;
         } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
             throw execution.CreateTimeoutException(exception);
         }

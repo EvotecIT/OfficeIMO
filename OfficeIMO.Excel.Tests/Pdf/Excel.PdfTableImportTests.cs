@@ -462,6 +462,40 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_PositionedCellRecoveryKeepsHorizontallySeparateOverlappingLines() {
+        static PdfCore.TextLayoutEngine.TextLine Row(
+            double y,
+            double x,
+            string left,
+            double leftAdvance,
+            string right) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, x, y, leftAdvance),
+                new(right, "F1", 10, x + 200, y, 30)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, x, x + 230, left + " " + right, spans);
+        }
+
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { Row(700, 20, "Code", 80, "Total") },
+            new() { Row(680, 20, "A-100", 80, "12") },
+            new() { Row(660, 20, "B-200", 80, "14") },
+            new() { Row(700, 350, "Name", 30, "Qty") },
+            new() { Row(680, 350, "Alpha", 90, "2") },
+            new() { Row(660, 350, "Beta", 150, "14") }
+        };
+
+        List<PdfCore.StructuredTable> tables = PdfCore.TableDetector.DetectTablesFromBands(bands);
+
+        Assert.Contains(tables, table => table.Kind == "band-group" && table.Rows[0][0] == "Code");
+        PdfCore.StructuredTable recovered = Assert.Single(
+            tables,
+            table => table.Kind == "positioned-cells-bounded");
+        Assert.Equal(new[] { "Name", "Qty" }, recovered.Rows[0]);
+        Assert.Equal(new[] { "Beta", "14" }, recovered.Rows[2]);
+    }
+
+    [Fact]
     public void PdfTables_NumericParserHandlesInvoiceNumberText() {
         Assert.True(PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue("$1,234.50", CultureInfo.InvariantCulture, out decimal currency));
         Assert.Equal(1234.50m, currency);

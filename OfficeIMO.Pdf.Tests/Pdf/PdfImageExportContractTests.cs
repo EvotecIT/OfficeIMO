@@ -99,6 +99,19 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
+    public void LoadedPdfPageChecksTheDeadlineAfterDirectSvgExport() {
+        PdfReadPage page = LoadTwoPageDocument().Pages[0];
+        var timeout = TimeSpan.FromTicks(1);
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            page.ExportImage(
+                OfficeImageExportFormat.Svg,
+                new PdfImageExportOptions { RenderTimeout = timeout }));
+
+        Assert.Equal(timeout, exception.Timeout);
+    }
+
+    [Fact]
     public void FluentDocumentReaderUsesTheSharedImageExportContract() {
         PdfDocument document = PdfDocument.Open(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Fluent image export"))

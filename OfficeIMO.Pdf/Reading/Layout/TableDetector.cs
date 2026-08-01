@@ -73,7 +73,17 @@ internal static class TableDetector {
         for (int index = 0; index < tables.Count; index++) {
             double top = Math.Max(tables[index].YTop, tables[index].YBottom);
             double bottom = Math.Min(tables[index].YTop, tables[index].YBottom);
-            if (line.Y <= top + 0.001D && line.Y >= bottom - 0.001D) return true;
+            if (line.Y > top + 0.001D || line.Y < bottom - 0.001D || tables[index].Columns.Count == 0) {
+                continue;
+            }
+
+            double left = tables[index].Columns.Min(static column => Math.Min(column.From, column.To));
+            double right = tables[index].Columns.Max(static column => Math.Max(column.From, column.To));
+            double lineLeft = Math.Min(line.XStart, line.XEnd);
+            double lineRight = Math.Max(line.XStart, line.XEnd);
+            double overlap = Math.Max(0D, Math.Min(lineRight, right) - Math.Max(lineLeft, left));
+            double narrowerWidth = Math.Min(lineRight - lineLeft, right - left);
+            if (narrowerWidth > 0.001D && overlap + 0.001D >= narrowerWidth * 0.5D) return true;
         }
         return false;
     }
