@@ -37,15 +37,26 @@ var options = new GoogleWorkspaceSessionOptions {
     RequestTimeout = TimeSpan.FromSeconds(120),
     OperationReceiptSink = receipts.Add,
 };
-options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
-    options.ExpectedAccount!,
-    new[] { GoogleWorkspaceScopeCatalog.DriveFile },
-    context.Target,
-    expectedRevision: "absent-for-create", // use the observed revision/version for updates and deletes
-    options.MaxRetryCount,
-    options.MaxRetryElapsedTime,
-    options.RateLimitPolicy,
-    GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+options.OperationPolicyProvider = context => {
+    bool unversioned = context.RevisionPreconditionKind == GoogleWorkspaceRevisionPreconditionKind.Unavailable;
+    string expectedRevision = context.RevisionPreconditionKind switch {
+        GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+        GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+        GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("API exposes no conditional revision"),
+        _ => "\"observed-google-etag\"", // sent as If-Match
+    };
+    bool acceptsLoss = context.PotentialDataLoss || unversioned;
+    return new GoogleWorkspaceOperationPolicy(
+        options.ExpectedAccount!,
+        new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+        context.Target,
+        expectedRevision,
+        options.MaxRetryCount,
+        options.MaxRetryElapsedTime,
+        options.RateLimitPolicy,
+        acceptsLoss ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
+        acceptsLoss ? "named deletion or deliberately unversioned operation" : null);
+};
 
 var session = new GoogleWorkspaceSession(
     new StaticAccessTokenCredentialSource("<google-access-token>"), options);
@@ -76,6 +87,13 @@ var credentialSource = GoogleServiceAccountCredentialSource.FromFile(
 
 var session = new GoogleWorkspaceSession(credentialSource, sessionOptions);
 ```
+
+For a Google endpoint that exposes no usable conditional revision precondition, call
+`GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision(reason)` and pair it with
+`AcceptSpecifiedLoss` plus a named accepted-loss description. The receipt then records that the mutation was
+deliberately unguarded instead of presenting an observed version as an enforced precondition.
+For Docs and Slides write-control payloads, `AdapterExpectedRevision` is the exact revision already embedded by
+the adapter; return that same value so the transport can reject a mismatched policy before sending the request.
 
 This shortcut is sufficient for read-only calls. Add the explicit mutation policy and receipt sink shown above before creating, updating, or deleting cloud resources.
 

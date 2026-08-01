@@ -25,14 +25,29 @@ namespace OfficeIMO.Tests {
                     "https://www.googleapis.com/auth/drive",
                 },
                 context.Target,
-                "test-explicit-revision-decision",
+                TestExpectedRevision(context),
                 options.MaxRetryCount,
                 options.MaxRetryElapsedTime,
                 options.RateLimitPolicy,
-                GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+                RequiresAcceptedLoss(context)
+                    ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss
+                    : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
+                RequiresAcceptedLoss(context) ? "test fixture operation without a conditional revision" : null);
             options.OperationReceiptSink ??= _ => { };
             return new GoogleWorkspaceSession(credentialSource, options);
         }
+
+        private static string TestExpectedRevision(GoogleWorkspaceOperationContext context) =>
+            context.RevisionPreconditionKind switch {
+                GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+                GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test fixture operation"),
+                _ => "\"test-etag\"",
+            };
+
+        private static bool RequiresAcceptedLoss(GoogleWorkspaceOperationContext context) =>
+            context.PotentialDataLoss
+            || context.RevisionPreconditionKind == GoogleWorkspaceRevisionPreconditionKind.Unavailable;
 
         [Fact]
         public void Test_ExcelInspectionSnapshot_ExposesOfficeIMOWorkbookModel() {

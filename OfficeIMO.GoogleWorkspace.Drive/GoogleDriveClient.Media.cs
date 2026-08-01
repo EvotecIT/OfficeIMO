@@ -52,7 +52,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
             options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
             return file;
         }
@@ -81,7 +82,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 request => {
                     request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", options.ContentType);
                     request.Headers.TryAddWithoutValidation("X-Upload-Content-Length", content.LongLength.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                }).ConfigureAwait(false);
+                },
+                mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
             string sessionUri = GoogleDriveResumableSessionUri.Validate(initiation.GetHeader("Location")
                 ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI."));
 

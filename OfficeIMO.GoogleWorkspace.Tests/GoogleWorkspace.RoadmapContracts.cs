@@ -32,8 +32,285 @@ namespace OfficeIMO.Tests {
             Assert.True(receipt.Succeeded);
             Assert.Equal("test@example.com", receipt.Policy.Account);
             Assert.NotEmpty(receipt.Policy.Scopes);
-            Assert.Equal("explicit-test-revision", receipt.Policy.ExpectedRevision);
+            Assert.Equal(GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision, receipt.Policy.ExpectedRevision);
             Assert.Equal(GoogleWorkspaceDataLossDecision.RejectPotentialLoss, receipt.Policy.DataLossDecision);
+            Assert.Equal(GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate, receipt.RevisionPreconditionKind);
+            Assert.Null(receipt.EnforcedRevision);
+        }
+
+        [Fact]
+        public async Task MutationAppliesExpectedEntityTagAsIfMatch() {
+            string? ifMatch = null;
+            using var http = new HttpClient(new Handler(request => {
+                ifMatch = request.Headers.IfMatch.Single().Tag;
+                return Json("{}");
+            }));
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = http,
+                ExpectedAccount = "test@example.com",
+                OperationReceiptSink = receipts.Add,
+            };
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!, new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
+                "\"revision-7\"", options.MaxRetryCount, options.MaxRetryElapsedTime,
+                options.RateLimitPolicy, GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await transport.SendJsonAsync<object>("token", new HttpMethod("PATCH"),
+                "https://www.googleapis.com/drive/v3/files/file-1", new { name = "updated" },
+                GoogleWorkspaceRequestSafety.Idempotent, "Google Drive API", new TranslationReport());
+
+            Assert.Equal("\"revision-7\"", ifMatch);
+            GoogleWorkspaceOperationReceipt receipt = Assert.Single(receipts);
+            Assert.True(receipt.Succeeded);
+            Assert.Equal(GoogleWorkspaceRevisionPreconditionKind.HttpEntityTag, receipt.RevisionPreconditionKind);
+            Assert.Equal("\"revision-7\"", receipt.EnforcedRevision);
+        }
+
+        [Theory]
+        [InlineData("drive-version:7")]
+        [InlineData("*")]
+        [InlineData("W/\"revision-7\"")]
+        public async Task MutationRejectsObservedRevisionThatCannotBeEnforced(string expectedRevision) {
+            int requests = 0;
+            using var http = new HttpClient(new Handler(_ => { requests++; return Json("{}"); }));
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = http,
+                ExpectedAccount = "test@example.com",
+                OperationReceiptSink = _ => { },
+            };
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!, new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
+                expectedRevision, options.MaxRetryCount, options.MaxRetryElapsedTime,
+                options.RateLimitPolicy, GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendJsonAsync<object>(
+                "token", new HttpMethod("PATCH"), "https://www.googleapis.com/drive/v3/files/file-1",
+                new { name = "updated" }, GoogleWorkspaceRequestSafety.Idempotent,
+                "Google Drive API", new TranslationReport()));
+
+            Assert.Equal(0, requests);
+        }
+
+        [Fact]
+        public async Task ResourceAbsentRevisionCannotAuthorizePostUpdate() {
+            int requests = 0;
+            using var http = new HttpClient(new Handler(_ => { requests++; return Json("{}"); }));
+            var options = MutationOptions(http, _ => { });
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendJsonAsync<object>(
+                "token", HttpMethod.Post, "https://docs.googleapis.com/v1/documents/doc-1:batchUpdate",
+                new { requests = Array.Empty<object>() }, GoogleWorkspaceRequestSafety.NonIdempotent,
+                "Google Docs API", new TranslationReport(),
+                mutationKind: GoogleWorkspaceMutationKind.Update,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.PayloadRevision("docs-revision-7")));
+
+            Assert.Equal(0, requests);
+        }
+
+        [Fact]
+        public async Task PayloadRevisionMustMatchPolicyAndIsRecordedAsEnforced() {
+            bool hadIfMatch = true;
+            using var http = new HttpClient(new Handler(request => {
+                hadIfMatch = request.Headers.IfMatch.Any();
+                return Json("{}");
+            }));
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = http,
+                ExpectedAccount = "test@example.com",
+                OperationReceiptSink = receipts.Add,
+            };
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!, new[] { GoogleWorkspaceScopeCatalog.Documents }, context.Target,
+                context.AdapterExpectedRevision!, options.MaxRetryCount, options.MaxRetryElapsedTime,
+                options.RateLimitPolicy, GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await transport.SendJsonAsync<object>("token", HttpMethod.Post,
+                "https://docs.googleapis.com/v1/documents/doc-1:batchUpdate",
+                new { requests = Array.Empty<object>() }, GoogleWorkspaceRequestSafety.NonIdempotent,
+                "Google Docs API", new TranslationReport(), mutationKind: GoogleWorkspaceMutationKind.Update,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.PayloadRevision("docs-revision-7"));
+
+            Assert.False(hadIfMatch);
+            GoogleWorkspaceOperationReceipt receipt = Assert.Single(receipts);
+            Assert.Equal(GoogleWorkspaceRevisionPreconditionKind.PayloadRevision, receipt.RevisionPreconditionKind);
+            Assert.Equal("docs-revision-7", receipt.EnforcedRevision);
+            Assert.Equal(receipt.Policy.ExpectedRevision, receipt.EnforcedRevision);
+        }
+
+        [Fact]
+        public async Task ReceiptSinkFailureKeepsRemoteSuccessDistinguishable() {
+            int requests = 0;
+            using var http = new HttpClient(new Handler(_ => { requests++; return Json("{}"); }));
+            var options = MutationOptions(http, _ => throw new IOException("receipt store unavailable"));
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            GoogleWorkspaceReceiptPersistenceException exception =
+                await Assert.ThrowsAsync<GoogleWorkspaceReceiptPersistenceException>(() =>
+                    transport.SendJsonAsync<object>("token", HttpMethod.Post,
+                        "https://www.googleapis.com/drive/v3/files", new { name = "created" },
+                        GoogleWorkspaceRequestSafety.NonIdempotent, "Google Drive API", new TranslationReport(),
+                        mutationKind: GoogleWorkspaceMutationKind.Create));
+
+            Assert.Equal(1, requests);
+            Assert.True(exception.RemoteOperationSucceeded);
+            Assert.True(exception.Receipt.Succeeded);
+        }
+
+        [Fact]
+        public async Task ReceiptSinkFailureDoesNotReplaceRemoteFailure() {
+            int requests = 0;
+            using var http = new HttpClient(new Handler(_ => {
+                requests++;
+                return new HttpResponseMessage(HttpStatusCode.BadRequest) {
+                    Content = new StringContent("{\"error\":{\"message\":\"bad request\"}}", Encoding.UTF8, "application/json")
+                };
+            }));
+            var options = MutationOptions(http, _ => throw new IOException("receipt store unavailable"));
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            GoogleWorkspaceApiException exception = await Assert.ThrowsAsync<GoogleWorkspaceApiException>(() =>
+                transport.SendJsonAsync<object>("token", HttpMethod.Post,
+                    "https://www.googleapis.com/drive/v3/files", new { name = "created" },
+                    GoogleWorkspaceRequestSafety.NonIdempotent, "Google Drive API", new TranslationReport(),
+                    mutationKind: GoogleWorkspaceMutationKind.Create));
+
+            Assert.Equal(1, requests);
+            var receiptFailure = Assert.IsType<GoogleWorkspaceReceiptPersistenceException>(
+                exception.Data[GoogleWorkspaceReceiptPersistenceException.ExceptionDataKey]);
+            Assert.False(receiptFailure.RemoteOperationSucceeded);
+            Assert.False(receiptFailure.Receipt.Succeeded);
+        }
+
+        [Fact]
+        public async Task Google403RateLimitReasonUsesConfiguredRetryPolicy() {
+            int attempts = 0;
+            using var http = new HttpClient(new Handler(_ => {
+                attempts++;
+                return attempts == 1
+                    ? new HttpResponseMessage(HttpStatusCode.Forbidden) {
+                        Content = new StringContent("{\"error\":{\"errors\":[{\"reason\":\"userRateLimitExceeded\"}]}}", Encoding.UTF8, "application/json")
+                    }
+                    : Json("{\"id\":\"file-1\"}");
+            }));
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = http,
+                MaxRetryCount = 1,
+                RetryBaseDelay = TimeSpan.FromMilliseconds(1),
+                RetryMaxDelay = TimeSpan.FromMilliseconds(1),
+                RateLimitPolicy = GoogleWorkspaceRateLimitPolicy.HonorRetryAfter,
+            };
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await transport.SendJsonAsync<object>("token", HttpMethod.Get,
+                "https://www.googleapis.com/drive/v3/files/file-1", null,
+                GoogleWorkspaceRequestSafety.Safe, "Google Drive API", new TranslationReport());
+
+            Assert.Equal(2, attempts);
+        }
+
+        [Theory]
+        [InlineData("insufficientFilePermissions", GoogleWorkspaceRateLimitPolicy.HonorRetryAfter)]
+        [InlineData("userRateLimitExceeded", GoogleWorkspaceRateLimitPolicy.FailFast)]
+        public async Task Google403DoesNotRetryAuthorizationErrorsOrFailFastQuota(string reason,
+            GoogleWorkspaceRateLimitPolicy rateLimitPolicy) {
+            int attempts = 0;
+            using var http = new HttpClient(new Handler(_ => {
+                attempts++;
+                return new HttpResponseMessage(HttpStatusCode.Forbidden) {
+                    Content = new StringContent("{\"error\":{\"errors\":[{\"reason\":\"" + reason + "\"}]}}",
+                        Encoding.UTF8, "application/json")
+                };
+            }));
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = http,
+                MaxRetryCount = 1,
+                RetryBaseDelay = TimeSpan.FromMilliseconds(1),
+                RetryMaxDelay = TimeSpan.FromMilliseconds(1),
+                RateLimitPolicy = rateLimitPolicy,
+            };
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await Assert.ThrowsAsync<GoogleWorkspaceApiException>(() => transport.SendJsonAsync<object>(
+                "token", HttpMethod.Get, "https://www.googleapis.com/drive/v3/files/file-1", null,
+                GoogleWorkspaceRequestSafety.Safe, "Google Drive API", new TranslationReport()));
+
+            Assert.Equal(1, attempts);
+        }
+
+        [Fact]
+        public async Task RetryResponseIsDisposedBeforeElapsedBudgetRejection() {
+            var response = new TrackingResponseMessage(HttpStatusCode.ServiceUnavailable) {
+                Content = new StringContent("retry later")
+            };
+            response.Headers.RetryAfter = new RetryConditionHeaderValue(TimeSpan.FromSeconds(5));
+            using var http = new HttpClient(new Handler(_ => response));
+            var retryOptions = new GoogleWorkspaceRetryOptions(1, TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(5), new GoogleWorkspaceSessionOptions {
+                    MaxRetryCount = 1,
+                    MaxRetryElapsedTime = TimeSpan.FromMilliseconds(10),
+                    RetryBaseDelay = TimeSpan.FromSeconds(1),
+                    RetryMaxDelay = TimeSpan.FromSeconds(5),
+                });
+
+            await Assert.ThrowsAsync<TimeoutException>(() => GoogleWorkspaceRetryPolicy.SendAsync(
+                http, () => new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/drive/v3/files/file-1"),
+                retryOptions, GoogleWorkspaceRequestSafety.Safe, CancellationToken.None));
+
+            Assert.True(response.WasDisposed);
+        }
+
+        [Fact]
+        public async Task Google403BodyReadFailureDisposesAndRetriesSafeRequest() {
+            int attempts = 0;
+            var firstResponse = new TrackingResponseMessage(HttpStatusCode.Forbidden) {
+                Content = new ThrowingReadContent()
+            };
+            using var http = new HttpClient(new Handler(_ => {
+                attempts++;
+                return attempts == 1 ? firstResponse : Json("{\"id\":\"file-1\"}");
+            }));
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = http,
+                MaxRetryCount = 1,
+                RetryBaseDelay = TimeSpan.FromMilliseconds(1),
+                RetryMaxDelay = TimeSpan.FromMilliseconds(1),
+            };
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await transport.SendJsonAsync<object>("token", HttpMethod.Get,
+                "https://www.googleapis.com/drive/v3/files/file-1", null,
+                GoogleWorkspaceRequestSafety.Safe, "Google Drive API", new TranslationReport());
+
+            Assert.Equal(2, attempts);
+            Assert.True(firstResponse.WasDisposed);
+        }
+
+        [Fact]
+        public async Task FinalResponseIsDisposedWhenElapsedBudgetExpiresBeforeReturn() {
+            var response = new TrackingResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+            using var http = new HttpClient(new Handler(async _ => {
+                await Task.Delay(TimeSpan.FromMilliseconds(30)).ConfigureAwait(false);
+                return response;
+            }));
+            var retryOptions = new GoogleWorkspaceRetryOptions(0, TimeSpan.FromMilliseconds(1),
+                TimeSpan.FromMilliseconds(1), new GoogleWorkspaceSessionOptions {
+                    MaxRetryCount = 0,
+                    MaxRetryElapsedTime = TimeSpan.FromMilliseconds(5),
+                });
+
+            await Assert.ThrowsAsync<TimeoutException>(() => GoogleWorkspaceRetryPolicy.SendAsync(
+                http, () => new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/drive/v3/files/file-1"),
+                retryOptions, GoogleWorkspaceRequestSafety.Safe, CancellationToken.None));
+
+            Assert.True(response.WasDisposed);
         }
 
         [Fact]
@@ -153,13 +430,53 @@ namespace OfficeIMO.Tests {
             string? acceptedLoss = null) {
             var options = new GoogleWorkspaceSessionOptions { HttpClient = http, ExpectedAccount = "test@example.com", OperationReceiptSink = receipts.Add };
             options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(options.ExpectedAccount!,
-                new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target, "explicit-test-revision",
+                new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
+                context.RevisionPreconditionKind switch {
+                    GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                    GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+                    GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test mutation"),
+                    _ => "\"test-etag\"",
+                },
                 options.MaxRetryCount, options.MaxRetryElapsedTime, options.RateLimitPolicy,
                 dataLossDecision, acceptedLoss);
             return new GoogleWorkspaceSession(new StaticAccessTokenCredentialSource("token"), options);
         }
+        private static GoogleWorkspaceSessionOptions MutationOptions(HttpClient http,
+            Action<GoogleWorkspaceOperationReceipt> receiptSink) {
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = http,
+                ExpectedAccount = "test@example.com",
+                OperationReceiptSink = receiptSink,
+            };
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!, new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
+                GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                options.MaxRetryCount, options.MaxRetryElapsedTime, options.RateLimitPolicy,
+                GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            return options;
+        }
         private static HttpResponseMessage Json(string value) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(value, Encoding.UTF8, "application/json") };
         private sealed class StopAfterCheckpointException : Exception { }
+        private sealed class TrackingResponseMessage : HttpResponseMessage {
+            internal TrackingResponseMessage(HttpStatusCode statusCode) : base(statusCode) { }
+            internal bool WasDisposed { get; private set; }
+            protected override void Dispose(bool disposing) {
+                WasDisposed = true;
+                base.Dispose(disposing);
+            }
+        }
+        private sealed class ThrowingReadContent : HttpContent {
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+                Task.FromException(new IOException("Transient response read failure."));
+            protected override bool TryComputeLength(out long length) { length = 0; return false; }
+            protected override Task<Stream> CreateContentReadStreamAsync() =>
+                Task.FromResult<Stream>(new ThrowingReadStream());
+        }
+        private sealed class ThrowingReadStream : MemoryStream {
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count,
+                CancellationToken cancellationToken) =>
+                Task.FromException<int>(new IOException("Transient response read failure."));
+        }
         private sealed class Handler : HttpMessageHandler {
             private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
             internal Handler(Func<HttpRequestMessage, HttpResponseMessage> handler) { _handler = request => Task.FromResult(handler(request)); }

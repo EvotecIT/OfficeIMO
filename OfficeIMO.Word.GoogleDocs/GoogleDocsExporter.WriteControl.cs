@@ -74,6 +74,11 @@ namespace OfficeIMO.Word.GoogleDocs {
             CancellationToken cancellationToken) {
             GoogleDocsApiPayloadBuilder.ApplyTabId(payload, batch.TargetTabId);
             batch.WriteControlState?.Apply(payload);
+            string? payloadRevision = payload.WriteControl?.RequiredRevisionId
+                ?? payload.WriteControl?.TargetRevisionId;
+            GoogleWorkspaceRevisionPrecondition revisionPrecondition = string.IsNullOrWhiteSpace(payloadRevision)
+                ? GoogleWorkspaceRevisionPrecondition.Unavailable
+                : GoogleWorkspaceRevisionPrecondition.PayloadRevision(payloadRevision!);
             GoogleDocsApiBatchUpdateResponse response = await transport.SendJsonAsync<GoogleDocsApiBatchUpdatePayload, GoogleDocsApiBatchUpdateResponse>(
                 accessToken,
                 HttpMethod.Post,
@@ -84,7 +89,9 @@ namespace OfficeIMO.Word.GoogleDocs {
                 batch.Report,
                 GoogleDocsJsonSerializerContext.Default.GoogleDocsApiBatchUpdatePayload,
                 GoogleDocsJsonSerializerContext.Default.GoogleDocsApiBatchUpdateResponse,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Update,
+                revisionPrecondition: revisionPrecondition).ConfigureAwait(false);
             batch.WriteControlState?.Observe(response);
             return response;
         }

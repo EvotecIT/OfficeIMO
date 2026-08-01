@@ -697,7 +697,13 @@ namespace OfficeIMO.Tests {
             };
             options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
                 options.ExpectedAccount!, new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
-                "explicit-test-revision", options.MaxRetryCount, options.MaxRetryElapsedTime,
+                context.RevisionPreconditionKind switch {
+                    GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                    GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+                    GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test mutation"),
+                    _ => "\"test-etag\"",
+                },
+                options.MaxRetryCount, options.MaxRetryElapsedTime,
                 options.RateLimitPolicy, GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss,
                 "test mutation");
             return options;

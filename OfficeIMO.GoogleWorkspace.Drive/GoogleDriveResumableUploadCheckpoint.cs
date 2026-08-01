@@ -110,7 +110,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceHttpResponse initiation = await Transport.SendRawAsync(token, HttpMethod.Post, initUri,
                     () => new StringContent(metadataJson, Encoding.UTF8, "application/json"),
                     GoogleWorkspaceRequestSafety.NonIdempotent, "Google Drive API", report, cancellationToken,
-                    request => { request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", options.ContentType); request.Headers.TryAddWithoutValidation("X-Upload-Content-Length", length.ToString(System.Globalization.CultureInfo.InvariantCulture)); }).ConfigureAwait(false);
+                    request => { request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", options.ContentType); request.Headers.TryAddWithoutValidation("X-Upload-Content-Length", length.ToString(System.Globalization.CultureInfo.InvariantCulture)); },
+                    mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
                 string sessionUri = initiation.GetHeader("Location") ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI.");
                 state = GoogleDriveResumableUploadCheckpoint.Create(sessionUri, sourceFingerprint, metadataFingerprint, length, 0);
                 if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);

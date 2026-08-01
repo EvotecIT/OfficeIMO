@@ -3,6 +3,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.IO;
+using System.Text;
+using System.Text.Json;
 
 namespace OfficeIMO.GoogleWorkspace {
     /// <summary>
@@ -72,6 +74,8 @@ namespace OfficeIMO.GoogleWorkspace {
     }
 
     public static class GoogleWorkspaceRetryPolicy {
+        private const int MaximumRateLimitErrorBytes = 64 * 1024;
+
         public static Task<HttpResponseMessage> SendAsync(
             HttpClient client,
             Func<HttpRequestMessage> requestFactory,
@@ -172,7 +176,8 @@ namespace OfficeIMO.GoogleWorkspace {
                             timeoutSource.Token).ConfigureAwait(false);
                     } catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested && deadlineSource.IsCancellationRequested) {
                         throw new TimeoutException("The configured Google Workspace retry elapsed-time budget was exhausted.");
-                    } catch (HttpRequestException) when (CanRetry(requestSafety) && attempt < retryBudget) {
+                    } catch (HttpRequestException exception) when (!(exception is GoogleWorkspaceApiException)
+                        && CanRetry(requestSafety) && attempt < retryBudget) {
                         var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
                         EnsureElapsedBudget(stopwatch.Elapsed, delay, retryOptions);
                         onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
@@ -200,14 +205,21 @@ namespace OfficeIMO.GoogleWorkspace {
                         continue;
                     }
 
-                    if (!CanRetry(requestSafety)
-                        || !ShouldRetry(response.StatusCode, retryOptions.RateLimitPolicy)
-                        || attempt >= retryBudget) {
-                        try {
+                    try {
+                        bool retryableResponse = CanRetry(requestSafety)
+                            && attempt < retryBudget
+                            && await ShouldRetryAsync(response, retryOptions.RateLimitPolicy,
+                                timeoutSource.Token).ConfigureAwait(false);
+                        if (!retryableResponse) {
                             if (!disposeFinalResponse) {
                                 TResult result = await responseHandler(response,
                                     timeoutSource.Token).ConfigureAwait(false);
-                                EnsureElapsedBudget(stopwatch.Elapsed, TimeSpan.Zero, retryOptions);
+                                try {
+                                    EnsureElapsedBudget(stopwatch.Elapsed, TimeSpan.Zero, retryOptions);
+                                } catch {
+                                    response.Dispose();
+                                    throw;
+                                }
                                 return result;
                             }
                             using (response) {
@@ -216,32 +228,37 @@ namespace OfficeIMO.GoogleWorkspace {
                                 EnsureElapsedBudget(stopwatch.Elapsed, TimeSpan.Zero, retryOptions);
                                 return result;
                             }
-                        } catch (HttpRequestException) when (CanRetry(requestSafety) && attempt < retryBudget) {
-                            response.Dispose();
-                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
-                                retryOptions, stopwatch.Elapsed, "network failure while reading response", deadlineSource.Token, cancellationToken,
-                                onRetry).ConfigureAwait(false);
-                            continue;
-                        } catch (IOException) when (CanRetry(requestSafety) && attempt < retryBudget) {
-                            response.Dispose();
-                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
-                                retryOptions, stopwatch.Elapsed, "network failure while reading response", deadlineSource.Token, cancellationToken,
-                                onRetry).ConfigureAwait(false);
-                            continue;
-                        } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && deadlineSource.IsCancellationRequested) {
-                            response.Dispose();
-                            throw new TimeoutException("The configured Google Workspace retry elapsed-time budget was exhausted.");
-                        } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(requestSafety) && attempt < retryBudget) {
-                            response.Dispose();
-                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
-                                retryOptions, stopwatch.Elapsed, "request timeout while reading response", deadlineSource.Token, cancellationToken,
-                                onRetry).ConfigureAwait(false);
-                            continue;
                         }
+                    } catch (HttpRequestException exception) when (!(exception is GoogleWorkspaceApiException)
+                        && CanRetry(requestSafety) && attempt < retryBudget) {
+                        response.Dispose();
+                        await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                            retryOptions, stopwatch.Elapsed, "network failure while reading response", deadlineSource.Token, cancellationToken,
+                            onRetry).ConfigureAwait(false);
+                        continue;
+                    } catch (IOException) when (CanRetry(requestSafety) && attempt < retryBudget) {
+                        response.Dispose();
+                        await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                            retryOptions, stopwatch.Elapsed, "network failure while reading response", deadlineSource.Token, cancellationToken,
+                            onRetry).ConfigureAwait(false);
+                        continue;
+                    } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && deadlineSource.IsCancellationRequested) {
+                        response.Dispose();
+                        throw new TimeoutException("The configured Google Workspace retry elapsed-time budget was exhausted.");
+                    } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(requestSafety) && attempt < retryBudget) {
+                        response.Dispose();
+                        await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                            retryOptions, stopwatch.Elapsed, "request timeout while reading response", deadlineSource.Token, cancellationToken,
+                            onRetry).ConfigureAwait(false);
+                        continue;
+                    } catch {
+                        response.Dispose();
+                        throw;
                     }
 
                     var (statusDelay, statusDelayStrategy) = GetRetryDelay(
                         response.Headers.RetryAfter, attempt, retryOptions);
+                    response.Dispose();
                     EnsureElapsedBudget(stopwatch.Elapsed, statusDelay, retryOptions);
                     onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
                         method,
@@ -251,7 +268,6 @@ namespace OfficeIMO.GoogleWorkspace {
                         $"HTTP {(int)response.StatusCode}",
                         statusDelay,
                         statusDelayStrategy));
-                    response.Dispose();
                     await DelayWithinDeadlineAsync(statusDelay, deadlineSource.Token, cancellationToken)
                         .ConfigureAwait(false);
                 }
@@ -296,8 +312,83 @@ namespace OfficeIMO.GoogleWorkspace {
                 || requestSafety == GoogleWorkspaceRequestSafety.Idempotent;
         }
 
+        private static async Task<bool> ShouldRetryAsync(HttpResponseMessage response,
+            GoogleWorkspaceRateLimitPolicy rateLimitPolicy, CancellationToken cancellationToken) {
+            if (response.StatusCode != HttpStatusCode.Forbidden) {
+                return ShouldRetryStatus(response.StatusCode, rateLimitPolicy);
+            }
+            if (rateLimitPolicy == GoogleWorkspaceRateLimitPolicy.FailFast) {
+                return false;
+            }
+
+            byte[] errorBytes = await ReadAndReplaceErrorContentAsync(response,
+                MaximumRateLimitErrorBytes, cancellationToken).ConfigureAwait(false);
+            try {
+                using JsonDocument document = JsonDocument.Parse(errorBytes);
+                return ContainsRetryableRateLimitReason(document.RootElement);
+            } catch (JsonException) {
+                string errorText = Encoding.UTF8.GetString(errorBytes);
+                return ContainsRetryableRateLimitReason(errorText);
+            }
+        }
+
+        private static bool ContainsRetryableRateLimitReason(JsonElement element) {
+            if (element.ValueKind == JsonValueKind.Object) {
+                foreach (JsonProperty property in element.EnumerateObject()) {
+                    if (StringComparer.OrdinalIgnoreCase.Equals(property.Name, "reason")
+                        && property.Value.ValueKind == JsonValueKind.String
+                        && ContainsRetryableRateLimitReason(property.Value.GetString() ?? string.Empty)) {
+                        return true;
+                    }
+                    if (ContainsRetryableRateLimitReason(property.Value)) {
+                        return true;
+                    }
+                }
+            } else if (element.ValueKind == JsonValueKind.Array) {
+                foreach (JsonElement item in element.EnumerateArray()) {
+                    if (ContainsRetryableRateLimitReason(item)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static bool ContainsRetryableRateLimitReason(string reason) =>
+            StringComparer.OrdinalIgnoreCase.Equals(reason, "rateLimitExceeded")
+            || StringComparer.OrdinalIgnoreCase.Equals(reason, "userRateLimitExceeded")
+            || StringComparer.OrdinalIgnoreCase.Equals(reason, "sharingRateLimitExceeded")
+            || reason.IndexOf("\"rateLimitExceeded\"", StringComparison.OrdinalIgnoreCase) >= 0
+            || reason.IndexOf("\"userRateLimitExceeded\"", StringComparison.OrdinalIgnoreCase) >= 0
+            || reason.IndexOf("\"sharingRateLimitExceeded\"", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static async Task<byte[]> ReadAndReplaceErrorContentAsync(HttpResponseMessage response,
+            int maximumBytes, CancellationToken cancellationToken) {
+            HttpContent originalContent = response.Content;
+            var originalHeaders = originalContent.Headers
+                .Where(header => !StringComparer.OrdinalIgnoreCase.Equals(header.Key, "Content-Length"))
+                .ToArray();
+            using Stream input = await originalContent.ReadAsStreamAsync().ConfigureAwait(false);
+            using var output = new MemoryStream();
+            byte[] buffer = new byte[8192];
+            while (output.Length < maximumBytes) {
+                int count = (int)Math.Min(buffer.Length, maximumBytes - output.Length);
+                int read = await input.ReadAsync(buffer, 0, count, cancellationToken).ConfigureAwait(false);
+                if (read == 0) break;
+                output.Write(buffer, 0, read);
+            }
+            byte[] bytes = output.ToArray();
+            var replacement = new ByteArrayContent(bytes);
+            foreach (var header in originalHeaders) {
+                replacement.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+            originalContent.Dispose();
+            response.Content = replacement;
+            return bytes;
+        }
+
         // Retry only the status codes Google APIs commonly use for throttling or transient infrastructure failures.
-        private static bool ShouldRetry(HttpStatusCode statusCode, GoogleWorkspaceRateLimitPolicy rateLimitPolicy) {
+        private static bool ShouldRetryStatus(HttpStatusCode statusCode, GoogleWorkspaceRateLimitPolicy rateLimitPolicy) {
             if ((int)statusCode == 429 && rateLimitPolicy == GoogleWorkspaceRateLimitPolicy.FailFast) return false;
             switch (statusCode) {
                 case HttpStatusCode.RequestTimeout:

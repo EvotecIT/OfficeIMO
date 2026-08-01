@@ -44,7 +44,9 @@ namespace OfficeIMO.GoogleWorkspace {
             string serviceName,
             TranslationReport report,
             CancellationToken cancellationToken = default,
-            long? maxResponseBytes = null) {
+            long? maxResponseBytes = null,
+            GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null) {
             return SendAsync<TResponse>(
                 accessToken,
                 method,
@@ -56,7 +58,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 serviceName,
                 report,
                 cancellationToken,
-                maxResponseBytes);
+                maxResponseBytes,
+                mutationKind,
+                revisionPrecondition);
         }
 
         /// <summary>
@@ -73,7 +77,9 @@ namespace OfficeIMO.GoogleWorkspace {
             JsonTypeInfo<TRequest> requestTypeInfo,
             JsonTypeInfo<TResponse> responseTypeInfo,
             CancellationToken cancellationToken = default,
-            long? maxResponseBytes = null) {
+            long? maxResponseBytes = null,
+            GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null) {
             if (requestTypeInfo == null) throw new ArgumentNullException(nameof(requestTypeInfo));
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsync(
@@ -86,7 +92,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 report,
                 responseTypeInfo,
                 cancellationToken,
-                maxResponseBytes);
+                maxResponseBytes,
+                mutationKind,
+                revisionPrecondition);
         }
 
         /// <summary>
@@ -102,7 +110,9 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationReport report,
             JsonTypeInfo<TResponse> responseTypeInfo,
             CancellationToken cancellationToken = default,
-            long? maxResponseBytes = null) {
+            long? maxResponseBytes = null,
+            GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null) {
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsync(
                 accessToken,
@@ -116,7 +126,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 report,
                 responseTypeInfo,
                 cancellationToken,
-                maxResponseBytes);
+                maxResponseBytes,
+                mutationKind,
+                revisionPrecondition);
         }
 
         [RequiresUnreferencedCode("Use the overload that accepts JsonTypeInfo<TResponse> in trimmed applications.")]
@@ -130,7 +142,9 @@ namespace OfficeIMO.GoogleWorkspace {
             string serviceName,
             TranslationReport report,
             CancellationToken cancellationToken = default,
-            long? maxResponseBytes = null) {
+            long? maxResponseBytes = null,
+            GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null) {
             return SendAsyncCore(
                 accessToken,
                 method,
@@ -141,7 +155,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 report,
                 body => JsonSerializer.Deserialize<TResponse>(body, JsonOptions),
                 cancellationToken,
-                maxResponseBytes);
+                maxResponseBytes,
+                mutationKind,
+                revisionPrecondition);
         }
 
         /// <summary>
@@ -157,7 +173,9 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationReport report,
             JsonTypeInfo<TResponse> responseTypeInfo,
             CancellationToken cancellationToken = default,
-            long? maxResponseBytes = null) {
+            long? maxResponseBytes = null,
+            GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null) {
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsyncCore(
                 accessToken,
@@ -169,7 +187,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 report,
                 body => JsonSerializer.Deserialize(body, responseTypeInfo),
                 cancellationToken,
-                maxResponseBytes);
+                maxResponseBytes,
+                mutationKind,
+                revisionPrecondition);
         }
 
         private async Task<TResponse> SendAsyncCore<TResponse>(
@@ -182,7 +202,9 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationReport report,
             Func<string, TResponse?> deserialize,
             CancellationToken cancellationToken,
-            long? maxResponseBytes) {
+            long? maxResponseBytes,
+            GoogleWorkspaceMutationKind mutationKind,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
             if (method == null) throw new ArgumentNullException(nameof(method));
@@ -194,12 +216,17 @@ namespace OfficeIMO.GoogleWorkspace {
             string effectiveUri = AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
-            MutationAttempt? mutation = BeginMutation(method, effectiveUri, requestSafety, serviceName, requestId);
+            MutationAttempt? mutation = BeginMutation(method, effectiveUri, requestSafety, mutationKind,
+                revisionPrecondition, serviceName, requestId);
 
             try {
                 TResponse result = await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
                     _client,
-                    () => CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId),
+                    () => {
+                        HttpRequestMessage request = CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId);
+                        mutation?.ApplyRevisionPrecondition(request);
+                        return request;
+                    },
                     retryOptions,
                     requestSafety,
                     _options.RequestTimeout,
@@ -235,10 +262,10 @@ namespace OfficeIMO.GoogleWorkspace {
                     },
                     retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent); })
                     .ConfigureAwait(false);
-                mutation?.Complete(true, "completed");
+                CompleteMutationSuccess(mutation);
                 return result;
             } catch (Exception exception) {
-                mutation?.Complete(false, exception.GetType().Name);
+                CompleteMutationFailure(mutation, exception);
                 throw;
             }
         }
@@ -254,7 +281,9 @@ namespace OfficeIMO.GoogleWorkspace {
             bool preserveRequestUri = false,
             bool includeAuthorization = true,
             long? maxResponseBytes = null,
-            Action<HttpRequestMessage>? configureRequest = null) {
+            Action<HttpRequestMessage>? configureRequest = null,
+            GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null) {
             ThrowIfDisposed();
             if (maxResponseBytes.HasValue && maxResponseBytes.Value <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
@@ -264,7 +293,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 : AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
-            MutationAttempt? mutation = BeginMutation(method, effectiveUri, requestSafety, serviceName, requestId);
+            MutationAttempt? mutation = BeginMutation(method, effectiveUri, requestSafety, mutationKind,
+                revisionPrecondition, serviceName, requestId);
 
             try {
                 byte[] result = await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
@@ -272,6 +302,7 @@ namespace OfficeIMO.GoogleWorkspace {
                     () => {
                         HttpRequestMessage request = CreateRequest(accessToken, method, effectiveUri, null, requestId, includeAuthorization);
                         configureRequest?.Invoke(request);
+                        mutation?.ApplyRevisionPrecondition(request);
                         return request;
                     },
                     retryOptions,
@@ -295,10 +326,10 @@ namespace OfficeIMO.GoogleWorkspace {
                     },
                     retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent); })
                     .ConfigureAwait(false);
-                mutation?.Complete(true, "completed");
+                CompleteMutationSuccess(mutation);
                 return result;
             } catch (Exception exception) {
-                mutation?.Complete(false, exception.GetType().Name);
+                CompleteMutationFailure(mutation, exception);
                 throw;
             }
         }
@@ -350,7 +381,9 @@ namespace OfficeIMO.GoogleWorkspace {
             Action<HttpRequestMessage>? configureRequest = null,
             IReadOnlyCollection<HttpStatusCode>? additionalSuccessStatusCodes = null,
             bool preserveRequestUri = false,
-            string? diagnosticTarget = null) {
+            string? diagnosticTarget = null,
+            GoogleWorkspaceMutationKind mutationKind = GoogleWorkspaceMutationKind.Unspecified,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
             if (method == null) throw new ArgumentNullException(nameof(method));
@@ -364,7 +397,8 @@ namespace OfficeIMO.GoogleWorkspace {
             string visibleTarget = string.IsNullOrWhiteSpace(diagnosticTarget) ? effectiveUri : diagnosticTarget!;
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
-            MutationAttempt? mutation = BeginMutation(method, visibleTarget, requestSafety, serviceName, requestId);
+            MutationAttempt? mutation = BeginMutation(method, visibleTarget, requestSafety, mutationKind,
+                revisionPrecondition, serviceName, requestId);
 
             try {
                 using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
@@ -372,6 +406,7 @@ namespace OfficeIMO.GoogleWorkspace {
                     () => {
                         var request = CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId);
                         configureRequest?.Invoke(request);
+                        mutation?.ApplyRevisionPrecondition(request);
                         return request;
                     },
                     retryOptions,
@@ -395,11 +430,11 @@ namespace OfficeIMO.GoogleWorkspace {
                             StringComparer.OrdinalIgnoreCase);
                     var result = new GoogleWorkspaceHttpResponse(response.StatusCode, body,
                         response.Content.Headers.ContentType?.MediaType, headers);
-                    mutation?.Complete(true, "completed");
+                    CompleteMutationSuccess(mutation);
                     return result;
                 }
             } catch (Exception exception) {
-                mutation?.Complete(false, exception.GetType().Name);
+                CompleteMutationFailure(mutation, exception);
                 throw;
             }
         }
@@ -456,7 +491,8 @@ namespace OfficeIMO.GoogleWorkspace {
         }
 
         private MutationAttempt? BeginMutation(HttpMethod method, string target,
-            GoogleWorkspaceRequestSafety requestSafety, string service, string? requestId) {
+            GoogleWorkspaceRequestSafety requestSafety, GoogleWorkspaceMutationKind mutationKind,
+            GoogleWorkspaceRevisionPrecondition? revisionPrecondition, string service, string? requestId) {
             if (requestSafety == GoogleWorkspaceRequestSafety.Safe) return null;
             if (string.IsNullOrWhiteSpace(_options.ExpectedAccount)) {
                 throw new InvalidOperationException("Google mutations require GoogleWorkspaceSessionOptions.ExpectedAccount.");
@@ -467,9 +503,27 @@ namespace OfficeIMO.GoogleWorkspace {
             if (_options.OperationReceiptSink == null) {
                 throw new InvalidOperationException("Google mutations require an OperationReceiptSink so outcomes are recorded.");
             }
-            bool potentialDataLoss = method == HttpMethod.Delete;
+            if (mutationKind == GoogleWorkspaceMutationKind.Unspecified) {
+                if (method == HttpMethod.Delete) mutationKind = GoogleWorkspaceMutationKind.Delete;
+                else if (method == HttpMethod.Put || method.Method == "PATCH") mutationKind = GoogleWorkspaceMutationKind.Update;
+                else throw new InvalidOperationException("Google mutations whose semantics are not implied by PUT, PATCH, or DELETE require an explicit GoogleWorkspaceMutationKind.");
+            }
+            if (revisionPrecondition == null) {
+                if (mutationKind == GoogleWorkspaceMutationKind.Create) {
+                    revisionPrecondition = GoogleWorkspaceRevisionPrecondition.ResourceAbsentCreate;
+                } else if (method == HttpMethod.Put || method.Method == "PATCH" || method == HttpMethod.Delete) {
+                    revisionPrecondition = GoogleWorkspaceRevisionPrecondition.HttpEntityTag;
+                } else {
+                    throw new InvalidOperationException("Google mutations whose revision is not enforced by PUT, PATCH, or DELETE If-Match require an explicit GoogleWorkspaceRevisionPrecondition.");
+                }
+            }
+            if (mutationKind == GoogleWorkspaceMutationKind.Create
+                && revisionPrecondition.Kind != GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate) {
+                throw new InvalidOperationException("An adapter-declared create must use the resource-absent revision precondition.");
+            }
+            bool potentialDataLoss = mutationKind == GoogleWorkspaceMutationKind.Delete;
             var context = new GoogleWorkspaceOperationContext(service, method.Method, target,
-                requestSafety, potentialDataLoss, requestId);
+                requestSafety, mutationKind, revisionPrecondition, potentialDataLoss, requestId);
             GoogleWorkspaceOperationPolicy policy = _options.OperationPolicyProvider(context)
                 ?? throw new InvalidOperationException("The Google operation policy provider returned no policy.");
             if (!StringComparer.OrdinalIgnoreCase.Equals(policy.Account, _options.ExpectedAccount)) {
@@ -487,7 +541,51 @@ namespace OfficeIMO.GoogleWorkspace {
                 policy.DataLossDecision != GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss) {
                 throw new InvalidOperationException("The Google operation policy rejects the potential data loss of this mutation.");
             }
+            switch (revisionPrecondition.Kind) {
+                case GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate:
+                    if (context.MutationKind != GoogleWorkspaceMutationKind.Create
+                        || !StringComparer.Ordinal.Equals(policy.ExpectedRevision,
+                            GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision)) {
+                        throw new InvalidOperationException("An adapter-declared create requires the resource-absent revision decision.");
+                    }
+                    break;
+                case GoogleWorkspaceRevisionPreconditionKind.Unavailable:
+                    if (!GoogleWorkspaceOperationPolicy.IsExplicitlyUnversioned(policy.ExpectedRevision)
+                        || policy.DataLossDecision != GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss) {
+                        throw new InvalidOperationException("A Google mutation with no usable revision precondition requires an explicitly unversioned revision and an accepted, named data-loss decision.");
+                    }
+                    break;
+                case GoogleWorkspaceRevisionPreconditionKind.PayloadRevision:
+                    if (!StringComparer.Ordinal.Equals(policy.ExpectedRevision,
+                            revisionPrecondition.AdapterExpectedRevision)) {
+                        throw new InvalidOperationException("The Google operation policy expected revision does not match the revision enforced in the request payload.");
+                    }
+                    break;
+                case GoogleWorkspaceRevisionPreconditionKind.HttpEntityTag:
+                    if (!EntityTagHeaderValue.TryParse(policy.ExpectedRevision, out EntityTagHeaderValue? entityTag)
+                        || StringComparer.Ordinal.Equals(entityTag.Tag, "*") || entityTag.IsWeak) {
+                        throw new InvalidOperationException("An HTTP revision precondition requires a strong, non-wildcard entity tag.");
+                    }
+                    break;
+                default:
+                    throw new InvalidOperationException("The Google mutation revision precondition is unspecified.");
+            }
             return new MutationAttempt(policy, context, _options.OperationReceiptSink);
+        }
+
+        private static void CompleteMutationSuccess(MutationAttempt? mutation) {
+            GoogleWorkspaceReceiptPersistenceException? persistenceFailure = mutation?.Complete(true, "completed");
+            if (persistenceFailure != null) {
+                throw persistenceFailure;
+            }
+        }
+
+        private static void CompleteMutationFailure(MutationAttempt? mutation, Exception operationFailure) {
+            GoogleWorkspaceReceiptPersistenceException? persistenceFailure =
+                mutation?.Complete(false, operationFailure.GetType().Name);
+            if (persistenceFailure != null) {
+                operationFailure.Data[GoogleWorkspaceReceiptPersistenceException.ExceptionDataKey] = persistenceFailure;
+            }
         }
 
         private sealed class MutationAttempt {
@@ -499,11 +597,28 @@ namespace OfficeIMO.GoogleWorkspace {
             internal MutationAttempt(GoogleWorkspaceOperationPolicy policy, GoogleWorkspaceOperationContext context,
                 Action<GoogleWorkspaceOperationReceipt> sink) { _policy = policy; _context = context; _sink = sink; }
             internal void CountRetry() { _retryCount++; }
-            internal void Complete(bool succeeded, string outcome) {
-                if (_completed) return;
+            internal void ApplyRevisionPrecondition(HttpRequestMessage request) {
+                if (_context.RevisionPreconditionKind != GoogleWorkspaceRevisionPreconditionKind.HttpEntityTag) {
+                    return;
+                }
+                request.Headers.IfMatch.Clear();
+                request.Headers.IfMatch.Add(EntityTagHeaderValue.Parse(_policy.ExpectedRevision));
+            }
+            internal GoogleWorkspaceReceiptPersistenceException? Complete(bool succeeded, string outcome) {
+                if (_completed) return null;
                 _completed = true;
-                _sink(new GoogleWorkspaceOperationReceipt(_policy, _context.Service, _context.Method,
-                    _context.Target, _context.RequestId, _retryCount, succeeded, outcome));
+                string? enforcedRevision = _context.RevisionPreconditionKind == GoogleWorkspaceRevisionPreconditionKind.HttpEntityTag
+                    ? _policy.ExpectedRevision
+                    : _context.AdapterExpectedRevision;
+                var receipt = new GoogleWorkspaceOperationReceipt(_policy, _context.Service, _context.Method,
+                    _context.Target, _context.RequestId, _retryCount, succeeded, outcome,
+                    _context.RevisionPreconditionKind, enforcedRevision);
+                try {
+                    _sink(receipt);
+                    return null;
+                } catch (Exception exception) {
+                    return new GoogleWorkspaceReceiptPersistenceException(receipt, succeeded, exception);
+                }
             }
         }
 

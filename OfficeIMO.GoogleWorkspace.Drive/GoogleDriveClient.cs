@@ -161,7 +161,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
         }
 
         public async Task<GoogleDriveFile> CopyFileAsync(
@@ -187,7 +188,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
         }
 
         public async Task<GoogleDriveFile> MoveFileAsync(
@@ -324,7 +326,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.Object,
-                cancellationToken);
+                cancellationToken,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable);
         }
 
         internal GoogleWorkspaceHttpTransport Transport => _transport;

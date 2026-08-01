@@ -500,7 +500,13 @@ namespace OfficeIMO.Tests {
                     ExpectedAccount = "test@example.com",
                     OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
                         "test@example.com", new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
-                        "explicit-test-revision", 1, TimeSpan.FromMinutes(2),
+                        context.RevisionPreconditionKind switch {
+                            GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                            GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+                            GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test mutation"),
+                            _ => "\"test-etag\"",
+                        },
+                        1, TimeSpan.FromMinutes(2),
                         GoogleWorkspaceRateLimitPolicy.HonorRetryAfter,
                         GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss, "test mutation"),
                     OperationReceiptSink = _ => { },

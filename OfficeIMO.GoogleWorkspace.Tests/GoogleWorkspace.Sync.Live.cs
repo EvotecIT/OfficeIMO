@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             string token = Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_ACCESS_TOKEN")!;
             string account = Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_ACCOUNT")!;
             var receipts = new List<GoogleWorkspaceOperationReceipt>();
-            string expectedRevision = "resource-absent-for-create";
+            string expectedRevision = GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision;
             var sessionOptions = new GoogleWorkspaceSessionOptions {
                 ApplicationName = "OfficeIMO.Tests", DefaultFolderId = folderId, DefaultDriveId = driveId,
                 ExpectedAccount = account, OperationReceiptSink = receipts.Add,
@@ -46,7 +46,9 @@ namespace OfficeIMO.Tests {
                 using (var drive = new GoogleDriveClient(session)) {
                     GoogleDriveFile created = await drive.CreateFolderAsync("OfficeIMO disposable sync test " + Guid.NewGuid().ToString("N"), folderId);
                     fileId = created.Id;
-                    expectedRevision = "drive-version:" + (created.Version?.ToString() ?? "not-returned");
+                    expectedRevision = GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision(
+                        "Drive API v3 exposes file version " + (created.Version?.ToString() ?? "not-returned")
+                        + " but no conditional mutation precondition for files.delete");
                 }
                 Assert.False(string.IsNullOrWhiteSpace(fileId));
                 var options = new GoogleWorkspaceChangeReadOptions();
@@ -59,7 +61,8 @@ namespace OfficeIMO.Tests {
                     if (!observed) await Task.Delay(TimeSpan.FromSeconds(2));
                 }
                 Assert.True(observed, "The Drive change feed did not expose the disposable folder within the live-test window.");
-                Assert.Contains(receipts, receipt => receipt.Succeeded && receipt.Policy.ExpectedRevision == "resource-absent-for-create");
+                Assert.Contains(receipts, receipt => receipt.Succeeded &&
+                    receipt.Policy.ExpectedRevision == GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision);
             } finally {
                 if (!string.IsNullOrWhiteSpace(fileId)) { using var drive = new GoogleDriveClient(session); await drive.DeleteFileAsync(fileId!); }
             }

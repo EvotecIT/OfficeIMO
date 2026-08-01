@@ -108,7 +108,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         batch.Report,
                         GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdatePayload,
                         GoogleSheetsJsonSerializerContext.Default.Object,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken,
+                        mutationKind: GoogleWorkspaceMutationKind.Update,
+                        revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable).ConfigureAwait(false);
 
                     await SendValuesAsync(
                         transport,
@@ -173,7 +175,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Report,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiCreateSpreadsheetPayload,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiCreateSpreadsheetResponse,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
 
                 await SendValuesAsync(
                     transport,
@@ -371,7 +374,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Report,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdateValuesPayload,
                     GoogleSheetsJsonSerializerContext.Default.Object,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    mutationKind: GoogleWorkspaceMutationKind.Update,
+                    revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable).ConfigureAwait(false);
                 completed += payload.Data.Count;
                 execution.Progress?.Report(new GoogleSheetsExportProgress("values", completed, total));
             }
@@ -409,7 +414,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     report,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdatePayload,
                     GoogleSheetsJsonSerializerContext.Default.Object,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    mutationKind: GoogleWorkspaceMutationKind.Update,
+                    revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable).ConfigureAwait(false);
                 completed += payload.Requests.Count;
                 execution.Progress?.Report(new GoogleSheetsExportProgress("structure", completed, total));
             }

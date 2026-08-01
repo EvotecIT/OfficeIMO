@@ -57,7 +57,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         "Google Slides API",
                         batch.Plan.Report,
                         GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken,
+                        mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
                     presentationId = created.PresentationId ?? throw new InvalidOperationException("Google Slides create response did not return a presentationId.");
                 }
 
@@ -480,6 +481,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 var payload = Obj(("requests", new JsonArray(chunk.Select(request => (JsonNode?)request).ToArray())));
                 if (!string.IsNullOrWhiteSpace(revision)) payload["writeControl"] = Obj(("requiredRevisionId", revision));
                 string? attemptedRevision = revision;
+                GoogleWorkspaceRevisionPrecondition revisionPrecondition = string.IsNullOrWhiteSpace(attemptedRevision)
+                    ? GoogleWorkspaceRevisionPrecondition.Unavailable
+                    : GoogleWorkspaceRevisionPrecondition.PayloadRevision(attemptedRevision!);
                 try {
                     GoogleSlidesApiBatchResponse response = await transport.SendJsonAsync(
                         token,
@@ -490,7 +494,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         "Google Slides API",
                         report,
                         GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiBatchResponse,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken,
+                        mutationKind: GoogleWorkspaceMutationKind.Update,
+                        revisionPrecondition: revisionPrecondition).ConfigureAwait(false);
                     revision = response.WriteControl?.RequiredRevisionId ?? revision;
                 } catch (GoogleWorkspaceApiException ex) when (
                     classifyRevisionConflicts
