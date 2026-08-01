@@ -996,6 +996,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_RejectsUnsupportedSignedInfoTransformBeforeCryptographicValidation() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnsupportedSignedInfoTransform.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unsupported SignedInfo transform");
+                document.Save();
+            }
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, certificate);
+            AddUnsupportedSignedInfoTransform(filePath);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures();
+
+            Assert.Equal(WordSignatureValidationState.Unsupported, validation.CryptographicStatus);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "UnsupportedSignedInfoTransform");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_CountersigningPreservesExistingSignedApplicationProperties() {
+            string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "DigitalSignatures", "signed-valid.docx"));
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCountersignPreservesApplicationProperties.docx");
+            File.Copy(sourcePath, filePath, overwrite: true);
+
+            string existingSignatureUri;
+            using (WordDocument original = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            })) {
+                existingSignatureUri = Assert.Single(original.InspectSignatures().SignatureParts).Uri;
+            }
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, certificate);
+
+            Assert.True(signing.Succeeded);
+            Assert.Equal(2, signing.SignatureCount);
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
+                Assert.Null(package.ExtendedFilePropertiesPart?.Properties?.DigitalSignature);
+            }
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            WordSignaturePartValidationResult existing = Assert.Single(validation.Signatures, signature =>
+                string.Equals(signature.SignaturePart.Uri, existingSignatureUri, System.StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(WordSignatureValidationState.Passed, existing.CryptographicStatus);
+            Assert.All(existing.SignaturePart.SignedReferences.Where(reference => reference.IsPackagePartReference), reference =>
+                Assert.Equal(WordSignatureValidationState.Passed, reference.DigestVerificationStatus));
+            Assert.Equal(WordSignatureValidationState.Passed, validation.SignedPartDigestStatus);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_SignPackageValidatesCreatedSignatureIndependentlyOfExistingInvalidSignature() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCountersignedInvalidSignature.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -1548,6 +1605,31 @@ namespace OfficeIMO.Tests {
             namespaceManager.AddNamespace("ds", SignedXml.XmlDsigNamespaceUrl);
             XmlElement manifest = (XmlElement)signatureXml.SelectSingleNode("/ds:Signature/ds:Object/ds:Manifest", namespaceManager)!;
             manifest.SetAttribute("tampered", "true");
+
+            using Stream destination = signatureEntry.Open();
+            destination.SetLength(0);
+            signatureXml.Save(destination);
+        }
+
+        private static void AddUnsupportedSignedInfoTransform(string filePath) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
+                entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
+                entry.FullName.EndsWith(".xml", System.StringComparison.OrdinalIgnoreCase) &&
+                !entry.FullName.Contains("_rels", System.StringComparison.OrdinalIgnoreCase));
+            var signatureXml = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            using (Stream source = signatureEntry.Open()) {
+                signatureXml.Load(source);
+            }
+
+            var namespaceManager = new XmlNamespaceManager(signatureXml.NameTable);
+            namespaceManager.AddNamespace("ds", SignedXml.XmlDsigNamespaceUrl);
+            XmlElement reference = (XmlElement)signatureXml.SelectSingleNode("/ds:Signature/ds:SignedInfo/ds:Reference", namespaceManager)!;
+            XmlElement transforms = signatureXml.CreateElement("ds", "Transforms", SignedXml.XmlDsigNamespaceUrl);
+            XmlElement transform = signatureXml.CreateElement("ds", "Transform", SignedXml.XmlDsigNamespaceUrl);
+            transform.SetAttribute("Algorithm", SignedXml.XmlDsigXsltTransformUrl);
+            transforms.AppendChild(transform);
+            reference.PrependChild(transforms);
 
             using Stream destination = signatureEntry.Open();
             destination.SetLength(0);

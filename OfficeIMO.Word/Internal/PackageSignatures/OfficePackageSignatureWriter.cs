@@ -120,6 +120,9 @@ namespace OfficeIMO.Word {
 
         private static void PrepareDigitalSignatureMetadata(string packagePath) {
             using WordprocessingDocument package = WordprocessingDocument.Open(packagePath, true);
+            if (package.DigitalSignatureOriginPart?.XmlSignatureParts.Any() == true) {
+                return;
+            }
             ExtendedFilePropertiesPart appPart = package.ExtendedFilePropertiesPart ?? package.AddExtendedFilePropertiesPart();
             appPart.Properties ??= new Properties();
             appPart.Properties.DigitalSignature ??= new DigitalSignature();

@@ -17,6 +17,13 @@ namespace OfficeIMO.Word {
             "http://uri.etsi.org/01903/v1.3.2#",
             "http://uri.etsi.org/01903/v1.4.1#"
         };
+        private static readonly HashSet<string> SupportedSignedInfoReferenceTransforms = new(StringComparer.Ordinal) {
+            SignedXml.XmlDsigC14NTransformUrl,
+            SignedXml.XmlDsigC14NWithCommentsTransformUrl,
+            SignedXml.XmlDsigExcC14NTransformUrl,
+            SignedXml.XmlDsigExcC14NWithCommentsTransformUrl,
+            SignedXml.XmlDsigEnvelopedSignatureTransformUrl
+        };
 
         internal static IReadOnlyList<WordSignaturePartValidationResult> Validate(
             DigitalSignatureOriginPart? originPart,
@@ -216,6 +223,14 @@ namespace OfficeIMO.Word {
             List<WordSignatureValidationFinding> findings,
             out X509Certificate2? signer) {
             signer = null;
+            if (!HasOnlySupportedSignedInfoReferenceTransforms(signatureElement, out string? unsupportedTransform)) {
+                findings.Add(Finding(
+                    "UnsupportedSignedInfoTransform",
+                    WordSignatureValidationState.Unsupported,
+                    "SignedInfo reference transform '" + unsupportedTransform + "' is outside the supported canonicalization and enveloped-signature profile.",
+                    signaturePartUri));
+                return WordSignatureValidationState.Unsupported;
+            }
             var signedXml = new SignedXml(document) { Resolver = null! };
             try {
                 signedXml.LoadXml(signatureElement);
@@ -249,6 +264,42 @@ namespace OfficeIMO.Word {
             findings.Add(Finding("XmlSignatureInvalid", WordSignatureValidationState.Failed,
                 "XML DSig signature-value or signed-object validation failed for every supplied certificate.", signaturePartUri));
             return WordSignatureValidationState.Failed;
+        }
+
+        private static bool HasOnlySupportedSignedInfoReferenceTransforms(
+            XmlElement signatureElement,
+            out string? unsupportedTransform) {
+            unsupportedTransform = null;
+            XmlElement? signedInfo = signatureElement.ChildNodes
+                .OfType<XmlElement>()
+                .FirstOrDefault(element =>
+                    element.LocalName == "SignedInfo" &&
+                    element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl);
+            if (signedInfo == null) return true;
+
+            foreach (XmlElement reference in signedInfo.ChildNodes
+                         .OfType<XmlElement>()
+                         .Where(element =>
+                             element.LocalName == "Reference" &&
+                             element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl)) {
+                XmlElement? transforms = reference.ChildNodes
+                    .OfType<XmlElement>()
+                    .FirstOrDefault(element =>
+                        element.LocalName == "Transforms" &&
+                        element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl);
+                if (transforms == null) continue;
+                foreach (XmlElement transform in transforms.ChildNodes
+                             .OfType<XmlElement>()
+                             .Where(element =>
+                                 element.LocalName == "Transform" &&
+                                 element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl)) {
+                    string algorithm = transform.GetAttribute("Algorithm").Trim();
+                    if (SupportedSignedInfoReferenceTransforms.Contains(algorithm)) continue;
+                    unsupportedTransform = algorithm;
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static AsymmetricAlgorithm? GetPublicKey(X509Certificate2 certificate) {
