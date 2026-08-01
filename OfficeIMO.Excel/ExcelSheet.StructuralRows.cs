@@ -77,25 +77,6 @@ namespace OfficeIMO.Excel {
             ValidateStructuralRowArguments(firstRow, count);
             void ApplyCore() {
                 cancellationToken.ThrowIfCancellationRequested();
-                WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
-                if (!workbookPart.Parts.Any(pair =>
-                        ReferenceEquals(pair.OpenXmlPart, _worksheetPart))) {
-                    throw new InvalidOperationException(
-                        "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
-                }
-                string relationshipId = workbookPart.GetIdOfPart(_worksheetPart);
-                bool relationshipIsActive = WorkbookRoot.Sheets?
-                    .Elements<Sheet>()
-                    .Any(sheet => string.Equals(
-                        sheet.Id?.Value,
-                        relationshipId,
-                        StringComparison.Ordinal)) == true;
-                if (!relationshipIsActive) {
-                    throw new InvalidOperationException(
-                        "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
                 MaterializeDeferredDataSetImportIfNeeded();
                 cancellationToken.ThrowIfCancellationRequested();
                 if (kind == ExcelRowMutationKind.Insert) {

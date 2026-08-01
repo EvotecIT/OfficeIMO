@@ -6,6 +6,7 @@ using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -26,6 +27,7 @@ namespace OfficeIMO.Excel {
             ExcelMutationResult? result = null;
             Batch(_ => {
                 cancellationToken.ThrowIfCancellationRequested();
+                EnsureWorksheetCapturedByMutationPlanIsActive();
                 var snapshot = PackageMutationSnapshot.Capture(_excelDocument.WorkbookPartRoot, options.MaximumSnapshotCharacters);
                 try {
                     int affectedCells = operation(cancellationToken);
@@ -52,6 +54,24 @@ namespace OfficeIMO.Excel {
             _lastAccessedCellRowIndex = 0;
             _lastAccessedCellColumnIndex = 0;
             ClearHeaderCache();
+        }
+
+        /// <summary>Reads a payload-only rollback part without exceeding the unconsumed snapshot budget.</summary>
+        internal static byte[] ReadMutationSnapshotPayload(
+            Stream source,
+            long remainingCharacters,
+            long maximumCharacters) {
+            if (remainingCharacters < 1) {
+                throw new InvalidOperationException(
+                    $"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
+            }
+            try {
+                return OfficeStreamReader.ReadAllBytes(source, remainingCharacters);
+            } catch (InvalidDataException exception) {
+                throw new InvalidOperationException(
+                    $"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).",
+                    exception);
+            }
         }
 
         private sealed class PackageMutationSnapshot {
@@ -108,9 +128,10 @@ namespace OfficeIMO.Excel {
                     TPart part) where TPart : OpenXmlPart, IFixedContentTypePart {
                     string relationshipId = parent.GetIdOfPart(part);
                     using Stream source = part.GetStream(FileMode.Open, FileAccess.Read);
-                    using var buffer = new MemoryStream();
-                    source.CopyTo(buffer);
-                    byte[] bytes = buffer.ToArray();
+                    byte[] bytes = ReadMutationSnapshotPayload(
+                        source,
+                        maximumCharacters - characters,
+                        maximumCharacters);
                     characters = checked(characters + bytes.Length);
                     if (characters > maximumCharacters) {
                         throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");

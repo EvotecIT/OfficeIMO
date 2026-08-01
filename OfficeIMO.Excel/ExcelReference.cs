@@ -539,13 +539,13 @@ namespace OfficeIMO.Excel {
         private static bool IsValidQualifier(string qualifier) {
             if (qualifier.Length == 0) return false;
             if (qualifier[0] == '\'') {
-                if (qualifier.Length < 3 || qualifier[qualifier.Length - 1] != '\'') return false;
-                for (int index = 1; index < qualifier.Length - 1; index++) {
-                    if (qualifier[index] != '\'') continue;
-                    if (index + 1 >= qualifier.Length - 1 || qualifier[index + 1] != '\'') return false;
-                    index++;
+                int quotedSpanSeparator = qualifier.IndexOf("':'", StringComparison.Ordinal);
+                if (quotedSpanSeparator >= 0) {
+                    return quotedSpanSeparator == qualifier.LastIndexOf("':'", StringComparison.Ordinal)
+                        && IsValidQuotedQualifierToken(qualifier.Substring(0, quotedSpanSeparator + 1))
+                        && IsValidQuotedQualifierToken(qualifier.Substring(quotedSpanSeparator + 2));
                 }
-                return true;
+                return IsValidQuotedQualifierToken(qualifier);
             }
             if (qualifier.IndexOf('\'') >= 0 || qualifier.Any(char.IsWhiteSpace)) return false;
 
@@ -567,6 +567,16 @@ namespace OfficeIMO.Excel {
                 : rangeSeparator > 0
                     && rangeSeparator < sheetNames.Length - 1
                     && sheetNames.IndexOf(':', rangeSeparator + 1) < 0;
+        }
+
+        private static bool IsValidQuotedQualifierToken(string token) {
+            if (token.Length < 3 || token[0] != '\'' || token[token.Length - 1] != '\'') return false;
+            for (int index = 1; index < token.Length - 1; index++) {
+                if (token[index] != '\'') continue;
+                if (index + 1 >= token.Length - 1 || token[index + 1] != '\'') return false;
+                index++;
+            }
+            return true;
         }
 
         private static bool ReadDollar(string value, ref int index) {

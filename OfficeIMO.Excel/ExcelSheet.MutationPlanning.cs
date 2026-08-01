@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -24,6 +26,26 @@ namespace OfficeIMO.Excel {
             if (WorkbookRoot.GetFirstChild<CalculationProperties>()?.ReferenceMode?.Value == ReferenceModeValues.R1C1) {
                 throw new InvalidOperationException(
                     $"{operation} are not supported while the workbook uses R1C1 reference mode. Switch to A1 reference mode first.");
+            }
+        }
+
+        /// <summary>Rejects a stale plan whose captured worksheet relationship is no longer active in the workbook.</summary>
+        internal void EnsureWorksheetCapturedByMutationPlanIsActive() {
+            WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
+            if (!workbookPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, _worksheetPart))) {
+                throw new InvalidOperationException(
+                    "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
+            }
+            string relationshipId = workbookPart.GetIdOfPart(_worksheetPart);
+            bool relationshipIsActive = WorkbookRoot.Sheets?
+                .Elements<Sheet>()
+                .Any(sheet => string.Equals(
+                    sheet.Id?.Value,
+                    relationshipId,
+                    StringComparison.Ordinal)) == true;
+            if (!relationshipIsActive) {
+                throw new InvalidOperationException(
+                    "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
             }
         }
 

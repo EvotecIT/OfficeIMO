@@ -77,7 +77,12 @@ namespace OfficeIMO.Excel {
                     "Cell shifts",
                     budget.Consume,
                     shiftedBand,
-                    direction);
+                    direction,
+                    reference => ExcelDocument.TransformCellShiftReference(
+                        reference,
+                        affected,
+                        direction,
+                        inserting));
                 PreflightCellShift(affected, direction, inserting, budget);
                 int count = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell => {
                     if (!TryGetCellCoordinates(cell, out int row, out int column)) return false;
