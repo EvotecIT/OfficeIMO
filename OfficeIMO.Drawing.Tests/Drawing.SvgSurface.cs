@@ -88,4 +88,36 @@ public partial class DrawingTests {
             resourceIdPrefix: null,
             cancellationToken: cancellation.Token));
     }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_RechecksCancellationAfterTheFinalElement() {
+        var drawing = new OfficeDrawing(20D, 16D);
+        drawing.AddImage(
+            new byte[] { 1, 2, 3 },
+            "image/x-test",
+            new OfficeImageProjection(new OfficeImagePlacement(4D, 3D, 8D, 6D)));
+        using var cancellation = new CancellationTokenSource();
+
+        Assert.Throws<OperationCanceledException>(() => OfficeDrawingSvgExporter.ToSvgBytes(
+            drawing,
+            1D,
+            OfficeSvgSizeUnit.Pixel,
+            new CancelingImageCodec(cancellation),
+            resourceIdPrefix: null,
+            cancellationToken: cancellation.Token));
+    }
+
+    private sealed class CancelingImageCodec : IOfficeRasterImageCodec {
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancelingImageCodec(CancellationTokenSource cancellation) {
+            _cancellation = cancellation;
+        }
+
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            _cancellation.Cancel();
+            image = new OfficeRasterImage(1, 1, OfficeColor.White);
+            return true;
+        }
+    }
 }

@@ -78,7 +78,10 @@ public static partial class OfficeDrawingSvgExporter {
         int clipPathId = 0;
         AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
         builder.Append("</svg>");
-        return builder.ToString();
+        cancellationToken.ThrowIfCancellationRequested();
+        string svg = builder.ToString();
+        cancellationToken.ThrowIfCancellationRequested();
+        return svg;
     }
 
     /// <summary>Converts a drawing to UTF-8 SVG bytes with an explicit root size unit.</summary>
@@ -109,8 +112,13 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeSvgSizeUnit sizeUnit,
         IOfficeRasterImageCodec? imageCodec,
         string? resourceIdPrefix,
-        CancellationToken cancellationToken) =>
-        Encoding.UTF8.GetBytes(ToSvg(drawing, scale, sizeUnit, imageCodec, resourceIdPrefix, cancellationToken));
+        CancellationToken cancellationToken) {
+        string svg = ToSvg(drawing, scale, sizeUnit, imageCodec, resourceIdPrefix, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = Encoding.UTF8.GetBytes(svg);
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
 
     private static string ValidateResourceIdPrefix(string? value) {
         if (string.IsNullOrEmpty(value)) return string.Empty;

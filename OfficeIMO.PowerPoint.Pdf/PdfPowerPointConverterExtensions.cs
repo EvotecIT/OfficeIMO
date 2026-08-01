@@ -297,8 +297,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
                     TableSegment segment = segments[segmentIndex];
                     bool headerRowIncluded = options.IncludeColumnHeaderRows
-                        && HasHeaderRow(data)
-                        && segment.RowStartIndex == 0;
+                        && HasHeaderRow(data);
                     int rowCount = segment.RowCount + (headerRowIncluded ? 1 : 0);
                     if (rowCount <= 0 || segment.ColumnCount <= 0) continue;
 
@@ -436,10 +435,13 @@ public static partial class PowerPointPdfConverterExtensions {
         int sourceRowCount = Math.Max(1, table.Rows.Count);
         double sourceRowHeight = Math.Max(0D, table.YTop - table.YBottom) / sourceRowCount;
         bool sourceHeaderIncluded = headerRowIncluded && data.Structure.HasHeaderRow;
-        int sourceRowStart = sourceHeaderIncluded
-            ? 0
-            : Math.Min(sourceRowCount - 1, data.Structure.BodyStartRowIndex + segment.RowStartIndex);
-        int sourceRows = Math.Max(1, segment.RowCount + (sourceHeaderIncluded ? 1 : 0));
+        int bodySourceRowStart = Math.Min(
+            sourceRowCount - 1,
+            data.Structure.BodyStartRowIndex + segment.RowStartIndex);
+        int sourceRowStart = sourceHeaderIncluded ? 0 : bodySourceRowStart;
+        int sourceRows = sourceHeaderIncluded
+            ? Math.Max(1, Math.Min(sourceRowCount, bodySourceRowStart + segment.RowCount))
+            : Math.Max(1, segment.RowCount);
         double sourceTop = table.YTop - sourceRowStart * sourceRowHeight;
         double sourceBottom = Math.Max(table.YBottom, sourceTop - sourceRows * sourceRowHeight);
         double topPoints = Math.Max(0D, page.Height - sourceTop);

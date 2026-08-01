@@ -159,6 +159,7 @@ public class PowerPointPdfTableImportTests {
             Assert.Equal(4, entry.SegmentCount);
             Assert.InRange(entry.RowCount, 1, 2);
             Assert.InRange(entry.ColumnCount, 1, 2);
+            Assert.True(entry.HeaderRowIncluded);
         });
 
         using var presentation = new MemoryStream();
@@ -170,7 +171,7 @@ public class PowerPointPdfTableImportTests {
             Assert.Single(slidePart.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>());
             A.Table table = Assert.Single(slidePart.Slide.Descendants<A.Table>());
             Assert.InRange(table.TableGrid!.Elements<A.GridColumn>().Count(), 1, 2);
-            Assert.InRange(table.Elements<A.TableRow>().Count(), 1, 3);
+            Assert.Equal(3, table.Elements<A.TableRow>().Count());
         });
     }
 

@@ -3,9 +3,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    internal int GetVisibleVisualPrimitiveCount() {
+    internal (int TotalCount, int OutsideDetectedTableCount) GetVisibleVisualPrimitiveCounts(
+        IReadOnlyList<StructuredTable> detectedTables) {
         (double Width, double Height) size = GetVisualPageSize();
-        int count = 0;
+        int totalCount = 0;
+        int outsideDetectedTableCount = 0;
         var textOutputBudget = CreateTextOutputBudget();
         var visibilityBudget = new VisualGeometryBudget();
         var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
@@ -29,7 +31,10 @@ public sealed partial class PdfReadPage {
                             size.Height,
                             visibilityBudget,
                             patternPaintCache)) {
-                        count++;
+                        totalCount++;
+                        if (!IsWithinDetectedTable(primitive, detectedTables, size.Height)) {
+                            outsideDetectedTableCount++;
+                        }
                     }
                 },
                 activeForms,
@@ -39,7 +44,46 @@ public sealed partial class PdfReadPage {
                 pageContentBudget: pageContentBudget);
         }
 
-        return count;
+        return (totalCount, outsideDetectedTableCount);
+    }
+
+    private static bool IsWithinDetectedTable(
+        PdfPageVisualPrimitive primitive,
+        IReadOnlyList<StructuredTable> detectedTables,
+        double pageHeight) {
+        const double minimumHorizontalPadding = 8D;
+        const double maximumHorizontalPadding = 48D;
+        const double minimumVerticalPadding = 12D;
+        const double maximumVerticalPadding = 24D;
+        double primitiveLeft = primitive.X;
+        double primitiveTop = primitive.Y;
+        double primitiveRight = primitive.X + primitive.Width;
+        double primitiveBottom = primitive.Y + primitive.Height;
+        for (int tableIndex = 0; tableIndex < detectedTables.Count; tableIndex++) {
+            StructuredTable table = detectedTables[tableIndex];
+            if (table.Columns.Count == 0 || table.YTop <= table.YBottom) continue;
+            double tableLeft = table.Columns[0].From;
+            double tableRight = table.Columns[table.Columns.Count - 1].To;
+            double tableTop = pageHeight - table.YTop;
+            double tableBottom = pageHeight - table.YBottom;
+            double strokeTolerance = primitive.StrokeWidth / 2D;
+            double horizontalTolerance = Math.Max(
+                minimumHorizontalPadding,
+                Math.Min(maximumHorizontalPadding, (tableRight - tableLeft) / table.Columns.Count / 2D));
+            double verticalTolerance = Math.Max(
+                minimumVerticalPadding,
+                Math.Min(maximumVerticalPadding, (tableBottom - tableTop) / Math.Max(1, table.Rows.Count - 1) / 2D));
+            horizontalTolerance = Math.Max(horizontalTolerance, strokeTolerance);
+            verticalTolerance = Math.Max(verticalTolerance, strokeTolerance);
+            bool horizontalMatch = primitiveLeft >= tableLeft - horizontalTolerance &&
+                primitiveRight <= tableRight + horizontalTolerance;
+            bool topDownVerticalMatch = primitiveTop >= tableTop - verticalTolerance &&
+                primitiveBottom <= tableBottom + verticalTolerance;
+            if (horizontalMatch && topDownVerticalMatch) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>

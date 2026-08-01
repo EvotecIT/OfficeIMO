@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Drawing;
@@ -73,7 +74,7 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             var maskContent = new OfficeDrawing(width, height);
-            SvgPaintContext maskStyle = ResolvePaintContext(maskElement, SvgPaintContext.Default, paintServers, ref unsupported);
+            SvgPaintContext maskStyle = ResolveDefinitionPaintContext(maskElement, paintServers, ref unsupported);
             OfficeTransform maskTransform = ResolveTransform(maskElement, transform, viewX, viewY, ref unsupported);
             AddChildren(maskElement, maskContent, maskStyle, paintServers, references, maskTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
@@ -87,6 +88,17 @@ public static partial class OfficeSvgDrawingReader {
         } finally {
             references.Exit(maskId);
         }
+    }
+
+    private static SvgPaintContext ResolveDefinitionPaintContext(
+        XElement definition,
+        SvgPaintServerRegistry paintServers,
+        ref int unsupported) {
+        SvgPaintContext context = SvgPaintContext.Default;
+        foreach (XElement ancestor in definition.Ancestors().Reverse()) {
+            context = ResolvePaintContext(ancestor, context, paintServers, ref unsupported);
+        }
+        return ResolvePaintContext(definition, context, paintServers, ref unsupported);
     }
 
     private static bool TryResolveUserSpaceMaskRegion(

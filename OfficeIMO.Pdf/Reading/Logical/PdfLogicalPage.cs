@@ -19,6 +19,7 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalListItem> listItems,
         IReadOnlyList<PdfLogicalTable> tables,
         int vectorPrimitiveCount,
+        int vectorPrimitiveCountOutsideDetectedTables,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLogicalLinkAnnotation> links,
         IReadOnlyList<PdfAnnotation> annotations,
@@ -37,6 +38,7 @@ public sealed class PdfLogicalPage {
         ListItems = listItems;
         Tables = tables;
         VectorPrimitiveCount = vectorPrimitiveCount;
+        VectorPrimitiveCountOutsideDetectedTables = vectorPrimitiveCountOutsideDetectedTables;
         Images = images;
         Links = links;
         Annotations = annotations;
@@ -154,6 +156,8 @@ public sealed class PdfLogicalPage {
     /// <summary>Number of visible vector drawing primitives recovered from the source page.</summary>
     public int VectorPrimitiveCount { get; }
 
+    internal int VectorPrimitiveCountOutsideDetectedTables { get; }
+
     /// <summary>Image XObjects referenced by the page.</summary>
     public IReadOnlyList<PdfLogicalImage> Images { get; }
 
@@ -264,6 +268,8 @@ public sealed class PdfLogicalPage {
             pageActions.Add(readPageActions[i].WithPageNumber(pageNumber));
         }
 
+        (int vectorPrimitiveCount, int vectorPrimitiveCountOutsideDetectedTables) =
+            page.GetVisibleVisualPrimitiveCounts(structured.TablesDetailed);
         return new PdfLogicalPage(
             pageNumber,
             size.Width,
@@ -276,7 +282,8 @@ public sealed class PdfLogicalPage {
             BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
             BuildListItems(pageNumber, structured.ListNodes, textBlocks),
             tables.AsReadOnly(),
-            page.GetVisibleVisualPrimitiveCount(),
+            vectorPrimitiveCount,
+            vectorPrimitiveCountOutsideDetectedTables,
             images.AsReadOnly(),
             links.AsReadOnly(),
             annotations.AsReadOnly(),
