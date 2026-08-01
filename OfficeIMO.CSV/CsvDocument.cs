@@ -160,6 +160,22 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional save settings.</param>
     public static void WriteDataReader(TextWriter writer, IDataReader reader, CsvSaveOptions? options = null)
     {
+        WriteDataReader(writer, reader, options, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Writes an <see cref="IDataReader"/> directly as CSV without materializing a <see cref="CsvDocument"/>.
+    /// </summary>
+    /// <param name="writer">Destination text writer.</param>
+    /// <param name="reader">Source data reader positioned before the first row.</param>
+    /// <param name="options">Optional save settings.</param>
+    /// <param name="cancellationToken">Token observed while projecting and writing rows.</param>
+    public static void WriteDataReader(
+        TextWriter writer,
+        IDataReader reader,
+        CsvSaveOptions? options,
+        CancellationToken cancellationToken)
+    {
         if (writer == null)
         {
             throw new ArgumentNullException(nameof(writer));
@@ -176,13 +192,17 @@ public sealed partial class CsvDocument
             throw new ArgumentException("Append and NoClobber apply only to path writes.", nameof(options));
         }
 
-        WriteDataReaderCore(writer, reader, options);
+        WriteDataReaderCore(writer, reader, options, cancellationToken);
     }
 
-    private static void WriteDataReaderCore(TextWriter writer, IDataReader reader, CsvSaveOptions options)
+    private static void WriteDataReaderCore(
+        TextWriter writer,
+        IDataReader reader,
+        CsvSaveOptions options,
+        CancellationToken cancellationToken)
     {
         using var objectWriter = new CsvObjectWriter(writer, options, leaveOpen: true);
-        objectWriter.WriteDataReader(reader);
+        objectWriter.WriteDataReader(reader, cancellationToken);
     }
 
     /// <summary>
@@ -192,6 +212,22 @@ public sealed partial class CsvDocument
     /// <param name="reader">Open data reader positioned before the first row.</param>
     /// <param name="options">CSV serialization options.</param>
     public static void WriteDataReader(string path, IDataReader reader, CsvSaveOptions? options = null)
+    {
+        WriteDataReader(path, reader, options, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Writes an open data reader to a CSV file.
+    /// </summary>
+    /// <param name="path">Destination CSV path.</param>
+    /// <param name="reader">Open data reader positioned before the first row.</param>
+    /// <param name="options">CSV serialization options.</param>
+    /// <param name="cancellationToken">Token observed while projecting and writing rows.</param>
+    public static void WriteDataReader(
+        string path,
+        IDataReader reader,
+        CsvSaveOptions? options,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -203,7 +239,8 @@ public sealed partial class CsvDocument
         }
 
         options ??= new CsvSaveOptions();
-        WritePath(path, options, writer => WriteDataReaderCore(writer, reader, options));
+        cancellationToken.ThrowIfCancellationRequested();
+        WritePath(path, options, writer => WriteDataReaderCore(writer, reader, options, cancellationToken));
     }
 
     /// <summary>
@@ -218,6 +255,24 @@ public sealed partial class CsvDocument
         IDataReader reader,
         CsvSaveOptions? options = null,
         bool leaveOpen = true)
+    {
+        WriteDataReader(destination, reader, options, leaveOpen, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Writes an open data reader to a CSV stream.
+    /// </summary>
+    /// <param name="destination">Writable destination stream.</param>
+    /// <param name="reader">Open data reader positioned before the first row.</param>
+    /// <param name="options">CSV serialization options.</param>
+    /// <param name="leaveOpen">Whether the destination stream remains open after writing.</param>
+    /// <param name="cancellationToken">Token observed while projecting and writing rows.</param>
+    public static void WriteDataReader(
+        Stream destination,
+        IDataReader reader,
+        CsvSaveOptions? options,
+        bool leaveOpen,
+        CancellationToken cancellationToken)
     {
         if (destination is null)
         {
@@ -239,7 +294,7 @@ public sealed partial class CsvDocument
             throw new ArgumentException("Append and NoClobber apply only to path writes.", nameof(options));
         }
         using var writer = CsvFile.CreateTextWriter(destination, options, leaveOpen, FileBufferSize);
-        WriteDataReaderCore(writer, reader, options);
+        WriteDataReaderCore(writer, reader, options, cancellationToken);
     }
 
     /// <summary>

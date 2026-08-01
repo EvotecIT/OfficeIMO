@@ -123,7 +123,11 @@ public static class ExcelSheetCsvExtensions {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         using DataTable table = sheet.ToDataTable(headersInFirstRow, options: readOptions, ct: cancellationToken);
         using IDataReader reader = table.CreateDataReader();
-        CsvDocument.WriteDataReader(path, reader, ResolveSaveOptions(csvOptions, headersInFirstRow));
+        CsvDocument.WriteDataReader(
+            path,
+            reader,
+            ResolveSaveOptions(csvOptions, headersInFirstRow),
+            cancellationToken);
     }
 
     /// <summary>Saves the worksheet used range to a caller-owned CSV stream.</summary>
@@ -141,7 +145,8 @@ public static class ExcelSheetCsvExtensions {
             stream,
             reader,
             ResolveSaveOptions(csvOptions, headersInFirstRow),
-            leaveOpen: true);
+            leaveOpen: true,
+            cancellationToken: cancellationToken);
     }
 
     internal static ExcelCsvImportResult ImportCsvCore(
@@ -182,7 +187,11 @@ public static class ExcelSheetCsvExtensions {
             : sheet.ToDataTable(a1Range, headersInFirstRow, options: readOptions, ct: cancellationToken);
         using IDataReader reader = table.CreateDataReader();
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        CsvDocument.WriteDataReader(writer, reader, ResolveSaveOptions(csvOptions, headersInFirstRow));
+        CsvDocument.WriteDataReader(
+            writer,
+            reader,
+            ResolveSaveOptions(csvOptions, headersInFirstRow),
+            cancellationToken);
         return writer.ToString();
     }
 

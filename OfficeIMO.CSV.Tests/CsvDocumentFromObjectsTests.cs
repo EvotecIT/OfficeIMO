@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading;
 using OfficeIMO.CSV;
 using Xunit;
 
@@ -298,6 +299,45 @@ public class CsvDocumentFromObjectsTests
 
             CsvDocument reloaded = CsvDocument.Load(path);
             Assert.Equal("Alpha", Assert.Single(reloaded.AsEnumerable()).AsString("Name"));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void WriteDataReader_CancellationDuringRowsDoesNotReplaceDestination()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Cancel.{Guid.NewGuid():N}.csv");
+        const string original = "Name\nOriginal\n";
+        File.WriteAllText(path, original);
+        using var cancellation = new CancellationTokenSource();
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name" },
+            new[]
+            {
+                new object?[] { "Alpha" },
+                new object?[] { "Beta" },
+                new object?[] { "Gamma" }
+            },
+            rowIndex =>
+            {
+                if (rowIndex == 1)
+                {
+                    cancellation.Cancel();
+                }
+            });
+
+        try
+        {
+            Assert.Throws<OperationCanceledException>(() => CsvDocument.WriteDataReader(
+                path,
+                reader,
+                new CsvSaveOptions { NewLine = "\n" },
+                cancellation.Token));
+
+            Assert.Equal(original, File.ReadAllText(path));
         }
         finally
         {

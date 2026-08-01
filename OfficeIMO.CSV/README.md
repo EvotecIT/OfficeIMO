@@ -208,6 +208,7 @@ text should expose typed columns:
 
 ```csharp
 using System.Data;
+using System.Globalization;
 using OfficeIMO.CSV;
 
 using var reader = CsvDocument.OpenDataReader(

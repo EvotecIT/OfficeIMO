@@ -358,6 +358,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ExcelDataReaderHttpLoadAcceptsLegacyXlsCompoundFile() {
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Http.{Guid.NewGuid():N}.xls");
+            try {
+                using (var document = ExcelDocument.Create(path)) {
+                    ExcelSheet sheet = document.AddWorksheet("Legacy");
+                    sheet.CellValue(1, 1, "Id");
+                    sheet.CellValue(2, 1, 7);
+                    document.Save();
+                }
+
+                byte[] workbookBytes = File.ReadAllBytes(path);
+                using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
+                    Task.FromResult(CreateWorkbookResponse(workbookBytes)));
+
+                using ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(
+                    new Uri("https://example.test/workbook.xls"),
+                    httpOptions: new ExcelHttpLoadOptions { HttpMessageHandler = handler });
+
+                Assert.Equal("Legacy", reader.CurrentSheetName);
+                Assert.True(reader.Read());
+                Assert.Equal(7, reader.GetInt32(0));
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public async Task ExcelDataReaderHttpLoadObservesReadOptionsCancellationToken() {
             using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
                 Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
