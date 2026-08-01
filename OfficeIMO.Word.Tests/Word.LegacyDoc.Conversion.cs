@@ -49,6 +49,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_WriteAssessment_PreservesAutomaticTocRefreshState() {
+            using WordDocument document = WordDocument.Create();
+            document.AddTableOfContent();
+            var heading = document.AddParagraph("Assessment heading");
+            heading.Style = WordParagraphStyles.Heading1;
+            document.AutoUpdateToc = true;
+
+            LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+            NotSupportedException saveFailure = Assert.Throws<NotSupportedException>(() =>
+                document.ToBytes(WordFileFormat.Doc));
+
+            Assert.False(assessment.IsSupported);
+            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
+            Assert.Contains("TOCHeading", assessment.Message, StringComparison.Ordinal);
+            Assert.Equal(saveFailure.Message, assessment.Message);
+        }
+
+        [Fact]
         public void LegacyDoc_WriteAssessment_AssessesReadOnlyDocumentsThroughAWritableClone() {
             string path = Path.Combine(_directoryWithFiles, "LegacyDocReadOnlyAssessment.docx");
             using (WordDocument created = WordDocument.Create(path)) {

@@ -45,6 +45,7 @@ namespace OfficeIMO.Word {
 
         private void CopyLegacyDocAssessmentStateTo(WordDocument clone) {
             clone.SourceFormat = SourceFormat;
+            clone.AutoUpdateToc = AutoUpdateToc;
             clone._legacyDocImportDiagnostics = _legacyDocImportDiagnostics;
             clone._legacyDocUnsupportedFeatures = _legacyDocUnsupportedFeatures;
             clone._legacyDocPreservedFeatures = _legacyDocPreservedFeatures;

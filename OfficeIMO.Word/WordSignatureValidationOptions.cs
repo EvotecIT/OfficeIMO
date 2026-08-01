@@ -31,7 +31,10 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the maximum authenticated XML signature references per signature part. Defaults to 4,096.</summary>
         public int MaxSignedReferences { get; set; } = 4096;
 
-        /// <summary>Gets or sets the maximum aggregate uncompressed package-part bytes digested per signature part. Defaults to 512 MiB.</summary>
+        /// <summary>
+        /// Gets or sets the maximum aggregate bytes processed by each package-part or local SignedInfo digest-work phase per signature part.
+        /// Local-reference work includes every certificate candidate that may trigger cryptographic verification. Defaults to 512 MiB.
+        /// </summary>
         public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;
 
         /// <summary>Gets or sets the maximum bytes read from one signature part. Defaults to 16 MiB.</summary>

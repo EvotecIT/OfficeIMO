@@ -10,7 +10,7 @@ using System.Xml;
 
 namespace OfficeIMO.Word {
     /// <summary>Cross-platform XML DSig, X.509, revocation, and RFC 3161 validator for OPC signatures.</summary>
-    internal static class OfficePackageSignatureValidator {
+    internal static partial class OfficePackageSignatureValidator {
         private static readonly HashSet<string> XadesNamespaces = new(StringComparer.Ordinal) {
             "http://uri.etsi.org/01903/v1.1.1#",
             "http://uri.etsi.org/01903/v1.2.2#",
@@ -105,7 +105,14 @@ namespace OfficeIMO.Word {
                     findings.Add(Finding("SignerCertificateMissing", cryptographicStatus,
                         "No embedded or related X.509 signer certificate was found.", signaturePartInfo.Uri));
                 } else {
-                    cryptographicStatus = ValidateSignedXml(document, signatureElement, certificates, signaturePartInfo.Uri, findings, out signer);
+                    cryptographicStatus = ValidateSignedXml(
+                        document,
+                        signatureElement,
+                        certificates,
+                        options.MaxTotalDigestBytes,
+                        signaturePartInfo.Uri,
+                        findings,
+                        out signer);
                 }
 
                 WordSignatureValidationState timestampStatus;
@@ -232,6 +239,7 @@ namespace OfficeIMO.Word {
             XmlDocument document,
             XmlElement signatureElement,
             IReadOnlyList<X509Certificate2> certificates,
+            long maxTotalDigestBytes,
             string signaturePartUri,
             List<WordSignatureValidationFinding> findings,
             out X509Certificate2? signer) {
@@ -268,6 +276,11 @@ namespace OfficeIMO.Word {
                     unsupportedUri));
                 return WordSignatureValidationState.Unsupported;
             }
+            EnsureLocalSignedInfoDigestWorkWithinLimit(
+                document,
+                signedXml,
+                certificates.Count,
+                maxTotalDigestBytes);
 
             foreach (X509Certificate2 candidate in certificates) {
                 try {

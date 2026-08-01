@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class HtmlWordToHtml {
+    public partial class HtmlWordToHtml {
         [Fact]
         public void Test_WordToHtml_ExposesSharedTextResultContract() {
             using var doc = WordDocument.Create();

@@ -23,7 +23,7 @@ namespace OfficeIMO.Word.Html {
                 foreach ((OpenXmlElement Root, string PartUri) root in EnumerateExportRoots(
                     mainPart,
                     options.IncludeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null)) {
-                    bool countOutputContent = IsOutputContentRoot(root.Root);
+                    bool countOutputContent = IsOutputContentRoot(root.Root, options);
                     foreach (OpenXmlElement element in EnumerateRootAndDescendants(root.Root)) {
                         elements++;
                         if (elements > options.MaxDocumentElements) {
@@ -68,7 +68,11 @@ namespace OfficeIMO.Word.Html {
         private static long SaturatingAdd(long left, long right) =>
             left > long.MaxValue - right ? long.MaxValue : left + right;
 
-        private static bool IsOutputContentRoot(OpenXmlElement root) =>
+        private static bool IsOutputContentRoot(OpenXmlElement root, WordToHtmlOptions options) =>
+            (root is not DocumentFormat.OpenXml.Wordprocessing.Header && root is not DocumentFormat.OpenXml.Wordprocessing.Footer || options.ExportHeadersAndFooters) &&
+            (root is not DocumentFormat.OpenXml.Wordprocessing.Footnotes || options.ExportFootnotes) &&
+            (root is not DocumentFormat.OpenXml.Wordprocessing.Endnotes || options.ExportEndnotes) &&
+            (root is not DocumentFormat.OpenXml.Wordprocessing.Comments || options.ExportComments) &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Styles &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Numbering &&
             root is not DocumentFormat.OpenXml.Drawing.Theme &&
