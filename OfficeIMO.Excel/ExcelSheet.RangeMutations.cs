@@ -69,12 +69,15 @@ namespace OfficeIMO.Excel {
             ExcelReference affected = ParseLocalCellRange(range);
             ExcelMutationPlanOptions effective = (options ?? new ExcelMutationPlanOptions()).CloneAndValidate();
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
+            ExcelReference shiftedBand = GetCellShiftBand(affected, direction);
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
                 MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
                 ValidatePackageMutationReferenceSafety(
                     "Cell shifts",
-                    budget.Consume);
+                    budget.Consume,
+                    shiftedBand,
+                    direction);
                 PreflightCellShift(affected, direction, inserting, budget);
                 int count = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell => {
                     if (!TryGetCellCoordinates(cell, out int row, out int column)) return false;
@@ -157,13 +160,11 @@ namespace OfficeIMO.Excel {
             MutationPlanScanBudget? budget = null) {
             ValidateWorkbookSharedFormulasForStructuralEdit();
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
-            string shiftedBandText = direction == ExcelCellShiftDirection.Right || direction == ExcelCellShiftDirection.Left
-                ? A1.CellReference(r1, c1) + ":" + A1.CellReference(r2, A1.MaxColumns)
-                : A1.CellReference(r1, c1) + ":" + A1.CellReference(A1.MaxRows, c2);
             EnsureNoIntersectingOwnedStructures(
-                ExcelReference.Parse(shiftedBandText),
+                GetCellShiftBand(affected, direction),
                 "Cell shifts cannot split tables, merged cells, array formulas, data tables, or PivotTable output ranges in the shifted band.",
                 budget);
+            ValidateCellShiftConnectionParameters(affected, direction, inserting, budget);
             if (!inserting) return;
             if (direction == ExcelCellShiftDirection.Right) {
                 int maxCell = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Where(cell => TryGetCellCoordinates(cell, out int row, out _) && row >= r1 && row <= r2)
@@ -229,6 +230,16 @@ namespace OfficeIMO.Excel {
                 || InspectMutationPlanElements(_worksheetPart.PivotTableParts, budget)
                     .Any(part => ExcelReference.TryParse(part.PivotTableDefinition?.Location?.Reference?.Value, out ExcelReference? pivot) && pivot!.Intersects(range));
             if (conflict) throw new InvalidOperationException(message);
+        }
+
+        private static ExcelReference GetCellShiftBand(
+            ExcelReference affected,
+            ExcelCellShiftDirection direction) {
+            affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
+            string reference = direction == ExcelCellShiftDirection.Right || direction == ExcelCellShiftDirection.Left
+                ? A1.CellReference(r1, c1) + ":" + A1.CellReference(r2, A1.MaxColumns)
+                : A1.CellReference(r1, c1) + ":" + A1.CellReference(A1.MaxRows, c2);
+            return ExcelReference.Parse(reference);
         }
 
         private void ApplyCellShift(ExcelReference affected, ExcelCellShiftDirection direction, bool inserting, CancellationToken cancellationToken) {
@@ -502,6 +513,67 @@ namespace OfficeIMO.Excel {
                         || reference!.IsQualified && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) continue;
                     ExcelReference mapped = ExcelDocument.TransformMovedRangeReference(
                         reference!, source, destinationRow, destinationColumn, transpose);
+                    string rewritten = mapped.ToString();
+                    if (string.Equals(value, rewritten, StringComparison.OrdinalIgnoreCase)) continue;
+                    parameter.Cell = rewritten;
+                    changed = true;
+                }
+            }
+            if (changed) connections.Save();
+        }
+
+        private void ValidateCellShiftConnectionParameters(
+            ExcelReference affected,
+            ExcelCellShiftDirection direction,
+            bool inserting,
+            MutationPlanScanBudget? budget) {
+            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
+            if (connections == null) return;
+
+            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
+            foreach (Connection connection in InspectMutationPlanElements(connections.Elements<Connection>(), budget)
+                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+                foreach (Parameter parameter in InspectMutationPlanElements(connection.Descendants<Parameter>(), budget)) {
+                    if (parameter.Cell?.Value is not string value
+                        || !ExcelReference.TryParse(value, out ExcelReference? reference)
+                        || reference!.IsQualified && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) continue;
+                    ExcelReference? mapped;
+                    try {
+                        mapped = ExcelDocument.TransformCellShiftReference(reference!, affected, direction, inserting);
+                    } catch (Exception exception) when (exception is OverflowException || exception is ArgumentOutOfRangeException) {
+                        throw new InvalidOperationException(
+                            $"Cell insertion would move cell-backed connection parameter '{value}' beyond worksheet limits.",
+                            exception);
+                    }
+                    if (mapped == null) {
+                        throw new InvalidOperationException(
+                            $"Cannot delete cell-backed connection parameter reference '{value}'. Update or remove the parameter first.");
+                    }
+                }
+            }
+        }
+
+        internal void RemapCellShiftConnectionParameters(
+            ExcelReference affected,
+            ExcelCellShiftDirection direction,
+            bool inserting) {
+            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
+            if (connections == null) return;
+
+            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
+            bool changed = false;
+            foreach (Connection connection in connections.Elements<Connection>()
+                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                    if (parameter.Cell?.Value is not string value
+                        || !ExcelReference.TryParse(value, out ExcelReference? reference)
+                        || reference!.IsQualified && !IsCurrentSheetQualifier(reference.Qualifier!, Name)) continue;
+                    ExcelReference? mapped = ExcelDocument.TransformCellShiftReference(
+                        reference!, affected, direction, inserting);
+                    if (mapped == null) {
+                        throw new InvalidOperationException(
+                            $"Cannot delete cell-backed connection parameter reference '{value}'. Update or remove the parameter first.");
+                    }
                     string rewritten = mapped.ToString();
                     if (string.Equals(value, rewritten, StringComparison.OrdinalIgnoreCase)) continue;
                     parameter.Cell = rewritten;

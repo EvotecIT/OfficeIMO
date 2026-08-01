@@ -26,10 +26,12 @@ namespace OfficeIMO.Excel {
             int destinationRow,
             int destinationColumn,
             bool transpose) {
-            editedSheet.RemapMovedConnectionParameters(source, destinationRow, destinationColumn, transpose);
             ExcelReference? Transform(ExcelReference reference) =>
                 TransformMovedRangeReference(reference, source, destinationRow, destinationColumn, transpose);
+            editedSheet.RemapMovedConnectionParameters(source, destinationRow, destinationColumn, transpose);
+            editedSheet.RemapMutationCommentVml(Transform);
             RewriteMutationReferencesAcrossPackage(editedSheet, Transform);
+            editedSheet.CleanupCommentArtifacts();
         }
 
         /// <summary>Maps one parsed A1 reference through a complete range move.</summary>
@@ -66,65 +68,76 @@ namespace OfficeIMO.Excel {
             ExcelReference affected,
             ExcelCellShiftDirection direction,
             bool inserting) {
+            ExcelReference? Transform(ExcelReference reference) =>
+                TransformCellShiftReference(reference, affected, direction, inserting);
+            editedSheet.RemapCellShiftConnectionParameters(affected, direction, inserting);
+            editedSheet.RemapMutationCommentVml(Transform);
+            RewriteMutationReferencesAcrossPackage(editedSheet, Transform);
+            editedSheet.CleanupCommentArtifacts();
+        }
+
+        /// <summary>Maps one parsed A1 reference through a rectangular cell shift.</summary>
+        internal static ExcelReference? TransformCellShiftReference(
+            ExcelReference reference,
+            ExcelReference affected,
+            ExcelCellShiftDirection direction,
+            bool inserting) {
             affected.GetBounds(out int ar1, out int ac1, out int ar2, out int ac2);
             int rowCount = ar2 - ar1 + 1;
             int columnCount = ac2 - ac1 + 1;
-            ExcelReference? Transform(ExcelReference reference) {
-                int TransformRow(int row, int column) {
-                    if (column < ac1 || column > ac2) return row;
-                    if (direction == ExcelCellShiftDirection.Down && row >= ar1) return checked(row + rowCount);
-                    if (direction == ExcelCellShiftDirection.Up && row > ar2) return row - rowCount;
-                    return row;
-                }
-                int TransformColumn(int row, int column) {
-                    if (row < ar1 || row > ar2) return column;
-                    if (direction == ExcelCellShiftDirection.Right && column >= ac1) return checked(column + columnCount);
-                    if (direction == ExcelCellShiftDirection.Left && column > ac2) return column - columnCount;
-                    return column;
-                }
-                bool deletingPoint(int row, int column) => !inserting
-                    && ((direction == ExcelCellShiftDirection.Left && row >= ar1 && row <= ar2 && column >= ac1 && column <= ac2)
-                        || (direction == ExcelCellShiftDirection.Up && column >= ac1 && column <= ac2 && row >= ar1 && row <= ar2));
-                bool startDeleted = deletingPoint(reference.Start.Row, reference.Start.Column);
-                bool endDeleted = deletingPoint(reference.End.Row, reference.End.Column);
-                if (startDeleted && endDeleted) return null;
-                if (startDeleted || endDeleted) {
-                    reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
-                    if (direction == ExcelCellShiftDirection.Left) {
-                        bool keepsLeft = rc1 < ac1;
-                        bool keepsRight = rc2 > ac2;
-                        if (!keepsLeft && !keepsRight) return null;
-                        int newMinimum = keepsLeft ? rc1 : Math.Max(rc1, ac2 + 1) - columnCount;
-                        int newMaximum = keepsRight ? rc2 - columnCount : Math.Min(rc2, ac1 - 1);
-                        bool reversed = reference.Start.Column > reference.End.Column;
-                        return reference.WithCoordinates(
-                            reference.Kind,
-                            reference.Start.Row,
-                            reversed ? newMaximum : newMinimum,
-                            reference.End.Row,
-                            reversed ? newMinimum : newMaximum);
-                    }
-                    bool keepsAbove = rr1 < ar1;
-                    bool keepsBelow = rr2 > ar2;
-                    if (!keepsAbove && !keepsBelow) return null;
-                    int newTop = keepsAbove ? rr1 : Math.Max(rr1, ar2 + 1) - rowCount;
-                    int newBottom = keepsBelow ? rr2 - rowCount : Math.Min(rr2, ar1 - 1);
-                    bool rowsReversed = reference.Start.Row > reference.End.Row;
+            int TransformRow(int row, int column) {
+                if (column < ac1 || column > ac2) return row;
+                if (direction == ExcelCellShiftDirection.Down && row >= ar1) return checked(row + rowCount);
+                if (direction == ExcelCellShiftDirection.Up && row > ar2) return row - rowCount;
+                return row;
+            }
+            int TransformColumn(int row, int column) {
+                if (row < ar1 || row > ar2) return column;
+                if (direction == ExcelCellShiftDirection.Right && column >= ac1) return checked(column + columnCount);
+                if (direction == ExcelCellShiftDirection.Left && column > ac2) return column - columnCount;
+                return column;
+            }
+            bool deletingPoint(int row, int column) => !inserting
+                && ((direction == ExcelCellShiftDirection.Left && row >= ar1 && row <= ar2 && column >= ac1 && column <= ac2)
+                    || (direction == ExcelCellShiftDirection.Up && column >= ac1 && column <= ac2 && row >= ar1 && row <= ar2));
+            bool startDeleted = deletingPoint(reference.Start.Row, reference.Start.Column);
+            bool endDeleted = deletingPoint(reference.End.Row, reference.End.Column);
+            if (startDeleted && endDeleted) return null;
+            if (startDeleted || endDeleted) {
+                reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
+                if (direction == ExcelCellShiftDirection.Left) {
+                    bool keepsLeft = rc1 < ac1;
+                    bool keepsRight = rc2 > ac2;
+                    if (!keepsLeft && !keepsRight) return null;
+                    int newMinimum = keepsLeft ? rc1 : Math.Max(rc1, ac2 + 1) - columnCount;
+                    int newMaximum = keepsRight ? rc2 - columnCount : Math.Min(rc2, ac1 - 1);
+                    bool reversed = reference.Start.Column > reference.End.Column;
                     return reference.WithCoordinates(
                         reference.Kind,
-                        rowsReversed ? newBottom : newTop,
-                        reference.Start.Column,
-                        rowsReversed ? newTop : newBottom,
-                        reference.End.Column);
+                        reference.Start.Row,
+                        reversed ? newMaximum : newMinimum,
+                        reference.End.Row,
+                        reversed ? newMinimum : newMaximum);
                 }
+                bool keepsAbove = rr1 < ar1;
+                bool keepsBelow = rr2 > ar2;
+                if (!keepsAbove && !keepsBelow) return null;
+                int newTop = keepsAbove ? rr1 : Math.Max(rr1, ar2 + 1) - rowCount;
+                int newBottom = keepsBelow ? rr2 - rowCount : Math.Min(rr2, ar1 - 1);
+                bool rowsReversed = reference.Start.Row > reference.End.Row;
                 return reference.WithCoordinates(
                     reference.Kind,
-                    TransformRow(reference.Start.Row, reference.Start.Column),
-                    TransformColumn(reference.Start.Row, reference.Start.Column),
-                    TransformRow(reference.End.Row, reference.End.Column),
-                    TransformColumn(reference.End.Row, reference.End.Column));
+                    rowsReversed ? newBottom : newTop,
+                    reference.Start.Column,
+                    rowsReversed ? newTop : newBottom,
+                    reference.End.Column);
             }
-            RewriteMutationReferencesAcrossPackage(editedSheet, Transform);
+            return reference.WithCoordinates(
+                reference.Kind,
+                TransformRow(reference.Start.Row, reference.Start.Column),
+                TransformColumn(reference.Start.Row, reference.Start.Column),
+                TransformRow(reference.End.Row, reference.End.Column),
+                TransformColumn(reference.End.Row, reference.End.Column));
         }
 
         private int RewriteMutationReferencesAcrossPackage(
@@ -142,6 +155,7 @@ namespace OfficeIMO.Excel {
                 if (sheetElement.Id?.Value is not string relationshipId || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) continue;
                 bool ownerIsEdited = string.Equals(sheetElement.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase);
                 RewriteMutationFormulaLeaves(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform);
+                RewriteMutationHyperlinks(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform);
                 if (ownerIsEdited) {
                     RewriteMutationAddressAttributes(worksheetPart.Worksheet, transform);
                     WorksheetCommentsPart? commentsPart = worksheetPart.WorksheetCommentsPart;
@@ -153,6 +167,10 @@ namespace OfficeIMO.Excel {
                         if (threadedPart.ThreadedComments == null) continue;
                         RewriteMutationAddressAttributes(threadedPart.ThreadedComments, transform);
                         threadedPart.ThreadedComments.Save();
+                    }
+                    foreach (NamedSheetViewsPart namedViewsPart in worksheetPart.NamedSheetViewsParts) {
+                        RewriteMutationAddressAttributes(namedViewsPart.NamedSheetViews, transform);
+                        namedViewsPart.NamedSheetViews?.Save();
                     }
                 }
                 foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
@@ -250,6 +268,23 @@ namespace OfficeIMO.Excel {
             if (root == null) return;
             foreach (OpenXmlLeafTextElement leaf in root.Descendants<OpenXmlLeafTextElement>().Where(IsMutationFormulaLeaf)) {
                 leaf.Text = RewriteMutationFormula(leaf.Text, editedSheetName, unqualifiedTargetsEdited, transform);
+            }
+        }
+
+        private static void RewriteMutationHyperlinks(
+            Worksheet? worksheet,
+            string editedSheetName,
+            bool unqualifiedTargetsEdited,
+            Func<ExcelReference, ExcelReference?> transform) {
+            if (worksheet == null) return;
+            foreach (Hyperlink hyperlink in worksheet.Descendants<Hyperlink>()) {
+                if (!string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
+                    || string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) continue;
+                hyperlink.Location = RewriteMutationFormula(
+                    hyperlink.Location!.Value,
+                    editedSheetName,
+                    unqualifiedTargetsEdited,
+                    transform);
             }
         }
 

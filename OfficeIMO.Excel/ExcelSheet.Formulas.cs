@@ -315,6 +315,10 @@ namespace OfficeIMO.Excel {
                     formulaCells,
                     sharedFormulaDefinitions);
                 Metadata? metadata = _excelDocument.WorkbookPartRoot.CellMetadataPart?.Metadata;
+                CalculationProperties? calculation = WorkbookRoot.GetFirstChild<CalculationProperties>();
+                bool packageRequestsRecalculation = calculation?.FullCalculationOnLoad?.Value == true
+                    || calculation?.ForceFullCalculation?.Value == true
+                    || WorksheetRoot.GetFirstChild<SheetCalculationProperties>()?.FullCalculationOnLoad?.Value == true;
                 var previousCache = _formulaEvaluationCache;
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
@@ -352,7 +356,7 @@ namespace OfficeIMO.Excel {
                             cell.CellReference?.Value ?? string.Empty,
                             formula,
                             cell.CellValue?.Text,
-                            cell.CellFormula!.CalculateCell?.Value ?? false,
+                            packageRequestsRecalculation || (cell.CellFormula!.CalculateCell?.Value ?? false),
                             supported,
                             supported ? null : GetUnsupportedFormulaReason(formula),
                             dependencies,

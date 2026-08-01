@@ -30,13 +30,15 @@ namespace OfficeIMO.Excel {
         private void ValidatePackageMutationReferenceSafety(
             string operation,
             Action? consumeScannedElement = null,
-            ExcelReference? movedSource = null) {
+            ExcelReference? rewriteBoundary = null,
+            ExcelCellShiftDirection? cellShiftDirection = null) {
             ValidateA1MutationReferenceMode(operation);
             _excelDocument.ValidateMutationReferencesCanBeRewritten(
                 this,
                 operation,
                 consumeScannedElement,
-                movedSource);
+                rewriteBoundary,
+                cellShiftDirection);
         }
     }
 }

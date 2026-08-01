@@ -13,7 +13,8 @@ namespace OfficeIMO.Excel {
             ExcelSheet editedSheet,
             string operation,
             Action? consumeScannedElement = null,
-            ExcelReference? movedSource = null) {
+            ExcelReference? rewriteBoundary = null,
+            ExcelCellShiftDirection? cellShiftDirection = null) {
             List<Sheet> sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
             int editedSheetIndex = sheets.FindIndex(sheet =>
                 string.Equals(sheet.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase));
@@ -22,7 +23,7 @@ namespace OfficeIMO.Excel {
             int sc1 = 0;
             int sr2 = 0;
             int sc2 = 0;
-            movedSource?.GetBounds(out sr1, out sc1, out sr2, out sc2);
+            rewriteBoundary?.GetBounds(out sr1, out sc1, out sr2, out sc2);
 
             foreach (MutationFormulaContext formula in EnumerateMutationFormulaContexts(sheets, editedSheetIndex)) {
                 consumeScannedElement?.Invoke();
@@ -43,15 +44,21 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    if (movedSource == null) continue;
+                    if (rewriteBoundary == null) continue;
                     ExcelReference reference = referenceNode.Reference;
                     if (!ReferenceTargetsSheet(reference, editedSheet.Name, formula.UnqualifiedTargetsEdited)) continue;
                     reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
                     bool intersects = rr1 <= sr2 && rr2 >= sr1 && rc1 <= sc2 && rc2 >= sc1;
                     bool contained = rr1 >= sr1 && rr2 <= sr2 && rc1 >= sc1 && rc2 <= sc2;
-                    if (!intersects || contained) continue;
+                    bool unsafePartial = intersects && !contained;
+                    if (cellShiftDirection == ExcelCellShiftDirection.Left) {
+                        unsafePartial = intersects && (rr1 < sr1 || rr2 > sr2);
+                    } else if (cellShiftDirection == ExcelCellShiftDirection.Up) {
+                        unsafePartial = intersects && (rc1 < sc1 || rc2 > sc2);
+                    }
+                    if (!unsafePartial) continue;
                     throw new InvalidOperationException(
-                        $"Range moves cannot preserve partially overlapping reference '{referenceNode.Text}'. Move the complete referenced range or update the formula first.");
+                        $"{operation} cannot preserve partially overlapping reference '{referenceNode.Text}'. Edit the complete referenced range or update the formula first.");
                 }
             }
         }
@@ -74,6 +81,13 @@ namespace OfficeIMO.Excel {
                 if (part is WorksheetPart worksheetPart) {
                     bool ownerIsEdited = sheetIndex == editedSheetIndex;
                     foreach (string formula in EnumerateMutationFormulaTexts(worksheetPart.Worksheet)) yield return new MutationFormulaContext(formula, ownerIsEdited);
+                    foreach (Hyperlink hyperlink in worksheetPart.Worksheet?.Descendants<Hyperlink>()
+                        ?? Enumerable.Empty<Hyperlink>()) {
+                        if (string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
+                            && !string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
+                            yield return new MutationFormulaContext(hyperlink.Location!.Value!, ownerIsEdited);
+                        }
+                    }
                     foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                         foreach (string formula in EnumerateMutationFormulaTexts(tablePart.Table)) yield return new MutationFormulaContext(formula, ownerIsEdited);
                     }
