@@ -173,7 +173,7 @@ internal static class CertificateChainValidator {
     private static bool TryApplyCertificateDownloadPolicy(
         X509ChainPolicy chainPolicy,
         bool disableCertificateDownloads) {
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NETFRAMEWORK
         System.Reflection.PropertyInfo? property = typeof(X509ChainPolicy).GetProperty("DisableCertificateDownloads");
         if (property == null || !property.CanWrite) return !disableCertificateDownloads;
         try {

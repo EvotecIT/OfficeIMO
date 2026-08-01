@@ -957,6 +957,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_RejectsTamperedSignedPackageObject() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTamperedSignedObject.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed-object digest validation");
+                document.Save();
+            }
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, certificate);
+            TamperSignedPackageObject(filePath);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.Equal(WordSignatureValidationState.Failed, validation.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.Passed, validation.SignedPartDigestStatus);
+            Assert.False(validation.IsValidUnderPolicy);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "XmlSignatureInvalid");
+        }
+
+        [Fact]
         public void Test_DigitalSignature_SignPackageValidatesCreatedSignatureIndependentlyOfExistingInvalidSignature() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCountersignedInvalidSignature.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -1488,6 +1514,27 @@ namespace OfficeIMO.Tests {
             unrelated.InnerText = "not-an-rfc3161-token";
             dataObject.AppendChild(unrelated);
             signatureXml.DocumentElement!.AppendChild(dataObject);
+
+            using Stream destination = signatureEntry.Open();
+            destination.SetLength(0);
+            signatureXml.Save(destination);
+        }
+
+        private static void TamperSignedPackageObject(string filePath) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
+                entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
+                entry.FullName.EndsWith(".xml", System.StringComparison.OrdinalIgnoreCase) &&
+                !entry.FullName.Contains("_rels", System.StringComparison.OrdinalIgnoreCase));
+            var signatureXml = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            using (Stream source = signatureEntry.Open()) {
+                signatureXml.Load(source);
+            }
+
+            var namespaceManager = new XmlNamespaceManager(signatureXml.NameTable);
+            namespaceManager.AddNamespace("ds", SignedXml.XmlDsigNamespaceUrl);
+            XmlElement manifest = (XmlElement)signatureXml.SelectSingleNode("/ds:Signature/ds:Object/ds:Manifest", namespaceManager)!;
+            manifest.SetAttribute("tampered", "true");
 
             using Stream destination = signatureEntry.Open();
             destination.SetLength(0);

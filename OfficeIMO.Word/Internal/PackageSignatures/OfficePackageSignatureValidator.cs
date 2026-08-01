@@ -235,7 +235,8 @@ namespace OfficeIMO.Word {
 
             foreach (X509Certificate2 candidate in certificates) {
                 try {
-                    if (!signedXml.CheckSignature(candidate, verifySignatureOnly: true)) continue;
+                    using AsymmetricAlgorithm? publicKey = GetPublicKey(candidate);
+                    if (publicKey == null || !signedXml.CheckSignature(publicKey)) continue;
                     signer = candidate;
                     findings.Add(Finding("XmlSignatureValid", WordSignatureValidationState.Passed,
                         "XML DSig signature-value and signed-object validation passed.", signaturePartUri));
@@ -248,6 +249,17 @@ namespace OfficeIMO.Word {
             findings.Add(Finding("XmlSignatureInvalid", WordSignatureValidationState.Failed,
                 "XML DSig signature-value or signed-object validation failed for every supplied certificate.", signaturePartUri));
             return WordSignatureValidationState.Failed;
+        }
+
+        private static AsymmetricAlgorithm? GetPublicKey(X509Certificate2 certificate) {
+            AsymmetricAlgorithm? publicKey = certificate.GetRSAPublicKey();
+            publicKey ??= certificate.GetECDsaPublicKey();
+#if NETSTANDARD2_0 || NETFRAMEWORK
+            publicKey ??= certificate.PublicKey.Key;
+#else
+            publicKey ??= certificate.GetDSAPublicKey();
+#endif
+            return publicKey;
         }
 
         private static bool HasOnlyLocalSignedInfoReferences(SignedXml signedXml, out string? unsupportedUri) {

@@ -90,6 +90,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_PreflightKeepsOuterFieldSeparateFromNestedTextBoxParagraph() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph outerParagraph = document.AddParagraph();
+            WordTextBox textBox = outerParagraph.AddTextBoxVml("nested placeholder");
+            Paragraph nestedParagraph = textBox.Content!.Descendants<Paragraph>().Single();
+            nestedParagraph.RemoveAllChildren();
+            nestedParagraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Inner ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("inner placeholder")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            Run textBoxRun = outerParagraph._paragraph.Elements<Run>().Single();
+            outerParagraph._paragraph.InsertBefore(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }), textBoxRun);
+            outerParagraph._paragraph.InsertBefore(new Run(new FieldCode(" MERGEFIELD Outer ")), textBoxRun);
+            outerParagraph._paragraph.InsertBefore(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }), textBoxRun);
+            outerParagraph._paragraph.InsertAfter(new Run(new FieldChar { FieldCharType = FieldCharValues.End }), textBoxRun);
+
+            WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(
+                document,
+                mergeFieldNames: new[] { "Inner" });
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Inner" });
+
+            Assert.Equal(new[] { "Inner", "Outer" }, inspection.MergeFieldNames);
+            Assert.Contains(inspection.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue &&
+                issue.Name == "Outer");
+            Assert.Equal(2, preflight.MergeFieldCount);
+            Assert.False(preflight.CanBindTemplate);
+        }
+
+        [Fact]
         public void Test_MailMerge_PreflightTemplateSeesTableCellTemplateMarkersAfterSaveLoad() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergePreflightTableCellMarkers.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

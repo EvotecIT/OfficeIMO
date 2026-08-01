@@ -261,6 +261,23 @@ public sealed class CmsSecurityTests {
         Assert.Equal(SecurityValidationStatus.Invalid, untrusted.CertificateValidation.ChainStatus);
     }
 
+    [Theory]
+    [InlineData(SecurityValidationStatus.Invalid, SecurityValidationStatus.Invalid)]
+    [InlineData(SecurityValidationStatus.Indeterminate, SecurityValidationStatus.Indeterminate)]
+    [InlineData(SecurityValidationStatus.Valid, SecurityValidationStatus.Valid)]
+    [InlineData(SecurityValidationStatus.NotPerformed, SecurityValidationStatus.Valid)]
+    public void TimestampVerifier_CombinesTsaRevocationWithTrust(
+        SecurityValidationStatus revocationStatus,
+        SecurityValidationStatus expectedStatus) {
+        SecurityValidationStatus status = Rfc3161TimestampVerifier.ResolveTimestampStatus(
+            signatureValid: true,
+            imprintValid: true,
+            certificateStatus: SecurityValidationStatus.Valid,
+            revocationStatus);
+
+        Assert.Equal(expectedStatus, status);
+    }
+
     private static CmsVerificationOptions TrustSelfSigned() {
         var options = new CmsVerificationOptions();
         options.CertificateValidation.ChainEvaluator = static (_, _) => true;

@@ -87,7 +87,8 @@ public static class Rfc3161TimestampVerifier {
                 SecurityValidationStatus status = ResolveTimestampStatus(
                     signatureValid,
                     imprintValid,
-                    chain.ChainStatus);
+                    chain.ChainStatus,
+                    chain.RevocationStatus);
                 return CreateResult(status, info, tsaCertificate.GetEncoded(), chain, findings);
             } finally {
                 foreach (X509Certificate2 certificate in platformEmbedded) certificate.Dispose();
@@ -133,14 +134,19 @@ public static class Rfc3161TimestampVerifier {
             SecurityValidationStatus.NotPerformed,
             Array.Empty<string>());
 
-    private static SecurityValidationStatus ResolveTimestampStatus(
+    internal static SecurityValidationStatus ResolveTimestampStatus(
         bool signatureValid,
         bool imprintValid,
-        SecurityValidationStatus certificateStatus) {
-        if (!signatureValid || !imprintValid || certificateStatus == SecurityValidationStatus.Invalid) {
+        SecurityValidationStatus certificateStatus,
+        SecurityValidationStatus revocationStatus) {
+        if (!signatureValid ||
+            !imprintValid ||
+            certificateStatus == SecurityValidationStatus.Invalid ||
+            revocationStatus == SecurityValidationStatus.Invalid) {
             return SecurityValidationStatus.Invalid;
         }
-        return certificateStatus == SecurityValidationStatus.Valid
+        return certificateStatus == SecurityValidationStatus.Valid &&
+               revocationStatus is SecurityValidationStatus.Valid or SecurityValidationStatus.NotPerformed
             ? SecurityValidationStatus.Valid
             : SecurityValidationStatus.Indeterminate;
     }

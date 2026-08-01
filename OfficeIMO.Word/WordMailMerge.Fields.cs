@@ -409,7 +409,7 @@ namespace OfficeIMO.Word {
 
             foreach (var paragraph in EnumerateParagraphs(root)) {
                 List<Run>? fieldRuns = null;
-                foreach (var run in paragraph.Descendants<Run>()) {
+                foreach (var run in EnumerateParagraphOwnedRuns(paragraph)) {
                     var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
                         fieldRuns = new List<Run> { run };
@@ -469,7 +469,7 @@ namespace OfficeIMO.Word {
 
             foreach (var paragraph in EnumerateParagraphs(root)) {
                 List<Run>? fieldRuns = null;
-                foreach (var run in paragraph.Descendants<Run>()) {
+                foreach (var run in EnumerateParagraphOwnedRuns(paragraph)) {
                     var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
                         fieldRuns = new List<Run> { run };
