@@ -14,7 +14,7 @@ var options = new GoogleWorkspaceSessionOptions {
 };
 options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
     options.ExpectedAccount!,
-    new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+    context.RequiredScopes,
     context.Target,
     context.RevisionPreconditionKind switch {
         GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
@@ -23,9 +23,9 @@ options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
         GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("package smoke operation"),
         _ => "\"package-smoke-etag\"",
     },
-    options.MaxRetryCount,
-    options.MaxRetryElapsedTime,
-    options.RateLimitPolicy,
+    context.MaxRetryCount,
+    context.MaxRetryElapsedTime,
+    context.RateLimitPolicy,
     context.RevisionPreconditionKind == GoogleWorkspaceRevisionPreconditionKind.Unavailable
         ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss
         : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
@@ -44,7 +44,8 @@ using (var transport = new GoogleWorkspaceHttpTransport(options)) {
         GoogleWorkspaceRequestSafety.NonIdempotent,
         "Google Drive API",
         new TranslationReport(),
-        mutationKind: GoogleWorkspaceMutationKind.Create);
+        mutationKind: GoogleWorkspaceMutationKind.Create,
+        requiredScopes: new[] { GoogleWorkspaceScopeCatalog.DriveFile });
 }
 var item = new GoogleWorkspaceSyncItem("item-1", GoogleWorkspaceSyncItemKind.SourceChange,
     "document", "package smoke", "drive:file-1", "version:1", googleFileId: "file-1");

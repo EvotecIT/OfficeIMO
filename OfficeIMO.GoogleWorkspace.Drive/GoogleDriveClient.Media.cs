@@ -53,7 +53,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
                 cancellationToken,
-                mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
+                mutationKind: GoogleWorkspaceMutationKind.Create,
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
             options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
             return file;
         }
@@ -85,7 +86,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 },
                 mutationKind: GoogleWorkspaceMutationKind.Action,
                 revisionPrecondition: GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
-                    CreateResumableInitiationState(metadataJson, content.LongLength))).ConfigureAwait(false);
+                    CreateResumableInitiationState(metadataJson, content.LongLength)),
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
             string sessionUri = GoogleDriveResumableSessionUri.Validate(initiation.GetHeader("Location")
                 ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI."));
             GoogleWorkspaceHttpTransport.DeferredMutation create = BeginResumableFileCreate(sessionUri);
@@ -237,7 +239,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 diagnosticTarget: ResumableSessionDiagnosticTarget(sessionUri),
                 mutationKind: GoogleWorkspaceMutationKind.Action,
                 revisionPrecondition: GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
-                    $"content-range:bytes {start}-{end}/{total}"));
+                    $"content-range:bytes {start}-{end}/{total}"),
+                requiredScopes: Options.WriteScopes);
         }
 
         private Task<GoogleWorkspaceHttpResponse> QueryResumableStatusAsync(
@@ -278,7 +281,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceMutationKind.Create,
                 GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
                     "resumable-session:" + HashText(sessionUri)),
-                "Google Drive API");
+                "Google Drive API",
+                Options.WriteScopes);
 
         private static string CreateResumableInitiationState(string metadataJson, long length) =>
             "resumable-session-init:" + HashText(metadataJson) + ":" +

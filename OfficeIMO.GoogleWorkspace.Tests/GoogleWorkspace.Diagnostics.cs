@@ -696,7 +696,7 @@ namespace OfficeIMO.Tests {
                 OperationReceiptSink = _ => { },
             };
             options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
-                options.ExpectedAccount!, new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
+                options.ExpectedAccount!, context.RequiredScopes, context.Target,
                 context.RevisionPreconditionKind switch {
                     GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
                     GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
@@ -704,8 +704,8 @@ namespace OfficeIMO.Tests {
                     GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test mutation"),
                     _ => "\"test-etag\"",
                 },
-                options.MaxRetryCount, options.MaxRetryElapsedTime,
-                options.RateLimitPolicy, GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss,
+                context.MaxRetryCount, context.MaxRetryElapsedTime,
+                context.RateLimitPolicy, GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss,
                 "test mutation");
             return options;
         }

@@ -25,8 +25,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 return;
             }
 
-            if (GetUnixFileStatus(stream.SafeFileHandle.DangerousGetHandle(), out UnixFileStatus opened) != 0 ||
-                opened.HardLinkCount != 1) {
+            IntPtr openedDescriptor = stream.SafeFileHandle.DangerousGetHandle();
+            if (GetUnixFileStatus(openedDescriptor, out UnixFileStatus opened) != 0 ||
+                GetUnixHardLinkCount(openedDescriptor) != 1) {
                 throw new IOException("The guarded download destination identity could not be verified.");
             }
             int descriptor = OpenUnixNoFollow(path, createNew: false);
@@ -35,7 +36,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             }
             try {
                 if (GetUnixFileStatus(new IntPtr(descriptor), out UnixFileStatus current) != 0 ||
-                    current.HardLinkCount != 1 ||
+                    GetUnixHardLinkCount(new IntPtr(descriptor)) != 1 ||
                     opened.Device != current.Device || opened.Inode != current.Inode) {
                     throw new IOException("The guarded download destination was replaced during transfer.");
                 }
@@ -63,18 +64,20 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     ? "A new guarded download will not overwrite an existing or linked destination."
                     : "The checkpointed download destination is not a regular unlinked file.");
             }
-            if (GetUnixFileStatus(new IntPtr(descriptor), out UnixFileStatus status) != 0 ||
-                (status.Mode & 0xF000) != 0x8000 || status.HardLinkCount != 1) {
-                CloseUnix(descriptor);
-                throw new IOException("The guarded download destination is not a regular file.");
-            }
-
             var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
+            FileStream? unixStream = null;
             try {
-                var stream = new FileStream(handle, FileAccess.ReadWrite, bufferSize, isAsync: false);
-                EnsurePathReferencesHandle(path, stream);
-                return stream;
+                IntPtr openedDescriptor = handle.DangerousGetHandle();
+                if (GetUnixFileStatus(openedDescriptor, out UnixFileStatus status) != 0 ||
+                    (status.Mode & 0xF000) != 0x8000 || GetUnixHardLinkCount(openedDescriptor) != 1) {
+                    throw new IOException("The guarded download destination is not a regular file.");
+                }
+
+                unixStream = new FileStream(handle, FileAccess.ReadWrite, bufferSize, isAsync: false);
+                EnsurePathReferencesHandle(path, unixStream);
+                return unixStream;
             } catch {
+                unixStream?.Dispose();
                 handle.Dispose();
                 throw;
             }
@@ -102,6 +105,27 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 if (createNew) flags |= create | exclusive;
             }
             return OpenUnix(path, flags, 384); // 0600 for a newly created destination.
+        }
+
+        private static uint GetUnixHardLinkCount(IntPtr descriptor) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                if (MacFStat(descriptor, out MacFileStatus status) != 0) {
+                    throw new IOException("The guarded download destination link count could not be inspected.");
+                }
+                return status.HardLinkCount;
+            }
+
+            try {
+                const int atEmptyPath = 0x1000;
+                const uint statxBasicStats = 0x000007ff;
+                if (LinuxStatX(descriptor, string.Empty, atEmptyPath, statxBasicStats,
+                        out LinuxFileStatus status) != 0) {
+                    throw new IOException("The guarded download destination link count could not be inspected.");
+                }
+                return status.HardLinkCount;
+            } catch (EntryPointNotFoundException exception) {
+                throw new IOException("This Unix runtime cannot inspect guarded download hard links safely.", exception);
+            }
         }
 
         private static string GetWindowsFinalPath(SafeFileHandle handle) {
@@ -144,6 +168,13 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         [DllImport("System.Native", EntryPoint = "SystemNative_FStat", SetLastError = true)]
         private static extern int GetUnixFileStatus(IntPtr descriptor, out UnixFileStatus status);
 
+        [DllImport("libc", EntryPoint = "statx", SetLastError = true, CharSet = CharSet.Ansi)]
+        private static extern int LinuxStatX(IntPtr directoryDescriptor, string path, int flags,
+            uint mask, out LinuxFileStatus status);
+
+        [DllImport("libc", EntryPoint = "fstat", SetLastError = true)]
+        private static extern int MacFStat(IntPtr descriptor, out MacFileStatus status);
+
         [StructLayout(LayoutKind.Sequential)]
         private struct ByHandleFileInformation {
             internal uint FileAttributes;
@@ -183,7 +214,16 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             internal long RawDevice;
             internal long Inode;
             internal uint UserFlags;
-            internal int HardLinkCount;
+        }
+
+        [StructLayout(LayoutKind.Explicit, Size = 256)]
+        private struct LinuxFileStatus {
+            [FieldOffset(16)] internal uint HardLinkCount;
+        }
+
+        [StructLayout(LayoutKind.Explicit, Size = 144)]
+        private struct MacFileStatus {
+            [FieldOffset(6)] internal ushort HardLinkCount;
         }
     }
 }

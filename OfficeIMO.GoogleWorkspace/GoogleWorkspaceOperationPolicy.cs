@@ -81,11 +81,16 @@ namespace OfficeIMO.GoogleWorkspace {
         internal GoogleWorkspaceOperationContext(string service, string method, string target,
             GoogleWorkspaceRequestSafety requestSafety, GoogleWorkspaceMutationKind mutationKind,
             GoogleWorkspaceRevisionPrecondition revisionPrecondition,
-            bool potentialDataLoss, string? requestId) {
+            bool potentialDataLoss, string? requestId, IReadOnlyList<string> requiredScopes,
+            int maxRetryCount, TimeSpan maxRetryElapsedTime,
+            GoogleWorkspaceRateLimitPolicy rateLimitPolicy) {
             Service = service; Method = method; Target = target; RequestSafety = requestSafety;
             MutationKind = mutationKind; RevisionPreconditionKind = revisionPrecondition.Kind;
             AdapterExpectedRevision = revisionPrecondition.AdapterExpectedRevision;
             PotentialDataLoss = potentialDataLoss; RequestId = requestId;
+            RequiredScopes = requiredScopes;
+            MaxRetryCount = maxRetryCount; MaxRetryElapsedTime = maxRetryElapsedTime;
+            RateLimitPolicy = rateLimitPolicy;
         }
         public string Service { get; }
         public string Method { get; }
@@ -100,6 +105,14 @@ namespace OfficeIMO.GoogleWorkspace {
         /// <summary>True when the request deletes remote data or otherwise has a transport-known loss risk.</summary>
         public bool PotentialDataLoss { get; }
         public string? RequestId { get; }
+        /// <summary>The exact OAuth scopes requested by the adapter for this operation.</summary>
+        public IReadOnlyList<string> RequiredScopes { get; }
+        /// <summary>The snapshotted retry-count limit that will govern this operation.</summary>
+        public int MaxRetryCount { get; }
+        /// <summary>The snapshotted aggregate retry-time limit that will govern this operation.</summary>
+        public TimeSpan MaxRetryElapsedTime { get; }
+        /// <summary>The snapshotted rate-limit behavior that will govern this operation.</summary>
+        public GoogleWorkspaceRateLimitPolicy RateLimitPolicy { get; }
     }
 
     /// <summary>Explicit account, scope, revision, retry, rate, and loss contract for one cloud mutation.</summary>
@@ -122,7 +135,7 @@ namespace OfficeIMO.GoogleWorkspace {
             if (maxRetryCount < 0) throw new ArgumentOutOfRangeException(nameof(maxRetryCount));
             if (maxRetryElapsedTime <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(maxRetryElapsedTime));
             if (dataLossDecision == GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss && string.IsNullOrWhiteSpace(acceptedLoss)) throw new ArgumentException("Accepted loss must be named explicitly.", nameof(acceptedLoss));
-            Account = account; Scopes = materialized; Target = target; ExpectedRevision = expectedRevision;
+            Account = account; Scopes = Array.AsReadOnly(materialized); Target = target; ExpectedRevision = expectedRevision;
             MaxRetryCount = maxRetryCount; MaxRetryElapsedTime = maxRetryElapsedTime;
             RateLimitPolicy = rateLimitPolicy; DataLossDecision = dataLossDecision; AcceptedLoss = acceptedLoss;
         }

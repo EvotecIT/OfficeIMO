@@ -91,7 +91,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 GoogleDocsJsonSerializerContext.Default.GoogleDocsApiBatchUpdateResponse,
                 cancellationToken,
                 mutationKind: GoogleWorkspaceMutationKind.Update,
-                revisionPrecondition: revisionPrecondition).ConfigureAwait(false);
+                revisionPrecondition: revisionPrecondition,
+                requiredScopes: GoogleWorkspaceScopeCatalog.DocsAuthoring).ConfigureAwait(false);
             batch.WriteControlState?.Observe(response);
             return response;
         }

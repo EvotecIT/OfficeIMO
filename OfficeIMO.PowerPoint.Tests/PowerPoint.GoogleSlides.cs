@@ -909,15 +909,12 @@ namespace OfficeIMO.Tests {
             };
             options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
                 options.ExpectedAccount!,
-                new[] {
-                    "https://www.googleapis.com/auth/presentations",
-                    "https://www.googleapis.com/auth/drive",
-                },
+                context.RequiredScopes,
                 context.Target,
                 TestExpectedRevision(context),
-                options.MaxRetryCount,
-                options.MaxRetryElapsedTime,
-                options.RateLimitPolicy,
+                context.MaxRetryCount,
+                context.MaxRetryElapsedTime,
+                context.RateLimitPolicy,
                 RequiresAcceptedLoss(context)
                     ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss
                     : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,

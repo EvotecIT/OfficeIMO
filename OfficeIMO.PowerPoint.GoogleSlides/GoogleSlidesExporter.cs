@@ -58,7 +58,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         batch.Plan.Report,
                         GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse,
                         cancellationToken,
-                        mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
+                        mutationKind: GoogleWorkspaceMutationKind.Create,
+                        requiredScopes: GoogleWorkspaceScopeCatalog.SlidesAuthoring).ConfigureAwait(false);
                     presentationId = created.PresentationId ?? throw new InvalidOperationException("Google Slides create response did not return a presentationId.");
                 }
 
@@ -496,7 +497,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiBatchResponse,
                         cancellationToken,
                         mutationKind: GoogleWorkspaceMutationKind.Update,
-                        revisionPrecondition: revisionPrecondition).ConfigureAwait(false);
+                        revisionPrecondition: revisionPrecondition,
+                        requiredScopes: GoogleWorkspaceScopeCatalog.SlidesAuthoring).ConfigureAwait(false);
                     revision = response.WriteControl?.RequiredRevisionId ?? revision;
                 } catch (GoogleWorkspaceApiException ex) when (
                     classifyRevisionConflicts

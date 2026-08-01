@@ -2,6 +2,14 @@ namespace OfficeIMO.Email.AddressBook.Tests;
 
 public sealed class OfflineAddressBookSearchTests {
     [Fact]
+    public void QuerySignatureDistinguishesTermsContainingLegacyDelimiter() {
+        var singleTerm = new OfflineAddressBookSearchQuery(new[] { "alpha\u001fbeta" });
+        var separateTerms = new OfflineAddressBookSearchQuery(new[] { "alpha", "beta" });
+
+        Assert.NotEqual(singleTerm.Signature, separateTerms.Signature);
+    }
+
+    [Fact]
     public void SearchesSemanticFieldsAndReturnsBoundedSummaries() {
         using (var stream = new MemoryStream(new OabV4Fixture().Build(), writable: false))
         using (OfflineAddressBookSession session = OfflineAddressBookSession.Open(stream, "synthetic.oab")) {

@@ -178,7 +178,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     GoogleDocsJsonSerializerContext.Default.GoogleDocsApiCreateDocumentPayload,
                     GoogleDocsJsonSerializerContext.Default.GoogleDocsApiCreateDocumentResponse,
                     cancellationToken,
-                    mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
+                    mutationKind: GoogleWorkspaceMutationKind.Create,
+                    requiredScopes: GoogleWorkspaceScopeCatalog.DocsAuthoring).ConfigureAwait(false);
 
                 if (string.IsNullOrWhiteSpace(createResponse.DocumentId)) {
                     throw new InvalidOperationException("Google Docs create response did not return a documentId.");

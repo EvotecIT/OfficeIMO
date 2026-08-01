@@ -64,6 +64,13 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             report ??= new TranslationReport(); GoogleDriveFile metadata = await GetFileAsync(fileId, DefaultFileFields, report, cancellationToken).ConfigureAwait(false);
             long version = metadata.Version ?? throw new InvalidOperationException("Google Drive did not provide a file version for guarded download.");
             long total = metadata.Size ?? throw new InvalidOperationException("Google Drive did not provide a file size for guarded download.");
+            if (total < 0) {
+                throw new InvalidDataException($"Google Drive declared an invalid negative file size of {total} bytes.");
+            }
+            if (total > Options.MaxDownloadBytes) {
+                throw new InvalidDataException(
+                    $"Google Drive declared {total} bytes, exceeding the configured download limit of {Options.MaxDownloadBytes} bytes.");
+            }
             long offset; string contentFingerprint;
             string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
@@ -97,7 +104,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 byte[] bytes = await Transport.SendBytesAsync(token, HttpMethod.Get,
                     $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}?alt=media&supportsAllDrives={Bool(Options.SupportsAllDrives)}",
                     GoogleWorkspaceRequestSafety.Safe, "Google Drive API", report, cancellationToken,
-                    maxResponseBytes: expected, configureRequest: request => request.Headers.Range = new RangeHeaderValue(offset, end)).ConfigureAwait(false);
+                    maxResponseBytes: expected,
+                    configureRequest: request => request.Headers.Range = new RangeHeaderValue(offset, end),
+                    validateResponse: response => ValidateRangedDownloadResponse(response, offset, end, total)).ConfigureAwait(false);
                 if (bytes.LongLength != expected) throw new InvalidDataException("Google Drive returned an unexpected ranged-download length.");
                 GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(fullPath, output);
                 await output.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
@@ -115,6 +124,18 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         }
 
         private static string HashText(string value) { using var hash = SHA256.Create(); return Hex(hash.ComputeHash(Encoding.UTF8.GetBytes(value))); }
+        private static void ValidateRangedDownloadResponse(HttpResponseMessage response, long start, long end, long total) {
+            ContentRangeHeaderValue? range = response.Content.Headers.ContentRange;
+            if (response.StatusCode != System.Net.HttpStatusCode.PartialContent
+                || range == null
+                || !StringComparer.OrdinalIgnoreCase.Equals(range.Unit, "bytes")
+                || range.From != start
+                || range.To != end
+                || range.Length != total) {
+                throw new InvalidDataException(
+                    $"Google Drive did not confirm the requested byte range {start}-{end}/{total}.");
+            }
+        }
         private static string EmptyContentFingerprint() => HashText("OfficeIMO.GoogleDriveDownloadCheckpoint.v2");
         private static string HashFileChain(Stream stream, int chunkSize, long length, CancellationToken cancellationToken) {
             string current = EmptyContentFingerprint();

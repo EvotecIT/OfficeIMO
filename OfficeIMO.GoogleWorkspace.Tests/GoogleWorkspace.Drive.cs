@@ -499,7 +499,7 @@ namespace OfficeIMO.Tests {
                     QuotaUser = quotaUser,
                     ExpectedAccount = "test@example.com",
                     OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
-                        "test@example.com", new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
+                        "test@example.com", context.RequiredScopes, context.Target,
                         context.RevisionPreconditionKind switch {
                             GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
                             GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
@@ -507,8 +507,8 @@ namespace OfficeIMO.Tests {
                             GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test mutation"),
                             _ => "\"test-etag\"",
                         },
-                        1, TimeSpan.FromMinutes(2),
-                        GoogleWorkspaceRateLimitPolicy.HonorRetryAfter,
+                        context.MaxRetryCount, context.MaxRetryElapsedTime,
+                        context.RateLimitPolicy,
                         GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss, "test mutation"),
                     OperationReceiptSink = _ => { },
                 }));

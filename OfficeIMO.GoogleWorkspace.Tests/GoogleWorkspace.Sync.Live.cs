@@ -32,9 +32,9 @@ namespace OfficeIMO.Tests {
             sessionOptions.OperationPolicyProvider = context => {
                 bool isDelete = string.Equals(context.Method, "DELETE", StringComparison.OrdinalIgnoreCase);
                 return new GoogleWorkspaceOperationPolicy(
-                    account, new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
-                    expectedRevision, sessionOptions.MaxRetryCount,
-                    sessionOptions.MaxRetryElapsedTime, sessionOptions.RateLimitPolicy,
+                    account, context.RequiredScopes, context.Target,
+                    expectedRevision, context.MaxRetryCount,
+                    context.MaxRetryElapsedTime, context.RateLimitPolicy,
                     isDelete ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
                     isDelete ? "the disposable live-test folder" : null);
             };
