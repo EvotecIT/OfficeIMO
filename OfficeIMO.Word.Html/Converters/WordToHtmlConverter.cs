@@ -22,8 +22,6 @@ namespace OfficeIMO.Word.Html {
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
             CancellationToken cancellationToken = CancellationToken.None;
             long embeddedImageBytes = 0;
-            long embeddedImageOutputCharacters = 0;
-            long? embeddedImageBudgetBaselineCharacters = null;
 
             long MeasureCurrentHtmlCharacters() {
                 using var countingWriter = new CountingHtmlWriter();
@@ -39,24 +37,23 @@ namespace OfficeIMO.Word.Html {
                 return SaturatingAdd(prefixCharacters, base64Characters);
             }
 
-            void EnsureImageFitsOutputBudget(long imageOutputCharacters, string message, string source) {
-                embeddedImageBudgetBaselineCharacters ??= MeasureCurrentHtmlCharacters();
-                long projectedCharacters = SaturatingAdd(
-                    embeddedImageBudgetBaselineCharacters.Value,
-                    SaturatingAdd(embeddedImageOutputCharacters, imageOutputCharacters));
-                if (projectedCharacters > options.MaxOutputCharacters) {
-                    ThrowExportLimitExceeded(
-                        options,
-                        "WordHtmlOutputLimitExceeded",
-                        message,
-                        source,
-                        projectedCharacters,
-                        options.MaxOutputCharacters);
-                }
+            void ReserveImageOutputCharacters(
+                long imageOutputCharacters,
+                ref long reservedImageOutputCharacters,
+                string message,
+                string source) {
+                if (imageOutputCharacters <= reservedImageOutputCharacters) return;
+                ReserveOutputCharacters(
+                    htmlDoc,
+                    imageOutputCharacters - reservedImageOutputCharacters,
+                    message,
+                    source);
+                reservedImageOutputCharacters = imageOutputCharacters;
             }
 
             byte[] ReadEmbeddedImageBytes(WordImage image, string source, string? base64Mime = null, bool inlineMarkup = false) {
                 using Stream input = image.OpenRead();
+                long reservedImageOutputCharacters = 0;
                 if (input.CanSeek && input.Length > options.MaxEmbeddedImageBytes) {
                     ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
                 }
@@ -64,14 +61,16 @@ namespace OfficeIMO.Word.Html {
                     ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, input.Length), options.MaxTotalEmbeddedImageBytes);
                 }
                 if (base64Mime != null && input.CanSeek) {
-                    EnsureImageFitsOutputBudget(
+                    ReserveImageOutputCharacters(
                         GetBase64ImageOutputCharacters(input.Length, base64Mime),
+                        ref reservedImageOutputCharacters,
                         "An embedded Word image cannot fit within the configured HTML output-character limit.",
                         source);
                 }
                 if (inlineMarkup && input.CanSeek) {
-                    EnsureImageFitsOutputBudget(
+                    ReserveImageOutputCharacters(
                         input.Length,
+                        ref reservedImageOutputCharacters,
                         "An inline SVG image cannot fit within the configured HTML output-character limit.",
                         source);
                 }
@@ -90,14 +89,16 @@ namespace OfficeIMO.Word.Html {
                         ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, nextImageBytes), options.MaxTotalEmbeddedImageBytes);
                     }
                     if (base64Mime != null) {
-                        EnsureImageFitsOutputBudget(
+                        ReserveImageOutputCharacters(
                             GetBase64ImageOutputCharacters(nextImageBytes, base64Mime),
+                            ref reservedImageOutputCharacters,
                             "An embedded Word image cannot fit within the configured HTML output-character limit.",
                             source);
                     }
                     if (inlineMarkup) {
-                        EnsureImageFitsOutputBudget(
+                        ReserveImageOutputCharacters(
                             nextImageBytes,
+                            ref reservedImageOutputCharacters,
                             "An inline SVG image cannot fit within the configured HTML output-character limit.",
                             source);
                     }
@@ -107,11 +108,17 @@ namespace OfficeIMO.Word.Html {
 
                 embeddedImageBytes += imageBytes;
                 if (base64Mime != null) {
-                    embeddedImageOutputCharacters = SaturatingAdd(
-                        embeddedImageOutputCharacters,
-                        GetBase64ImageOutputCharacters(imageBytes, base64Mime));
+                    ReserveImageOutputCharacters(
+                        GetBase64ImageOutputCharacters(imageBytes, base64Mime),
+                        ref reservedImageOutputCharacters,
+                        "An embedded Word image cannot fit within the configured HTML output-character limit.",
+                        source);
                 } else if (inlineMarkup) {
-                    embeddedImageOutputCharacters = SaturatingAdd(embeddedImageOutputCharacters, imageBytes);
+                    ReserveImageOutputCharacters(
+                        imageBytes,
+                        ref reservedImageOutputCharacters,
+                        "An inline SVG image cannot fit within the configured HTML output-character limit.",
+                        source);
                 }
                 byte[] bytes = output.ToArray();
                 return bytes;
@@ -122,7 +129,7 @@ namespace OfficeIMO.Word.Html {
             var head = htmlDoc.Head ?? throw new InvalidOperationException("HTML document missing head element.");
             var body = htmlDoc.Body ?? throw new InvalidOperationException("HTML document missing body element.");
 
-            RegisterOutputElementBudget(
+            RegisterOutputConstructionBudget(
                 htmlDoc,
                 options,
                 SaturatingAdd(MeasureCurrentHtmlCharacters(), exportInspection.OutputConstructionCharacters));
@@ -1291,7 +1298,7 @@ namespace OfficeIMO.Word.Html {
                 options.MaxOutputCharacters,
                 actual => ThrowExportLimitExceeded(options, "WordHtmlOutputLimitExceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
             htmlDoc.DocumentElement.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
-            OutputElementBudgets.Remove(htmlDoc);
+            OutputConstructionBudgets.Remove(htmlDoc);
             return outputWriter.ToString();
         }
 

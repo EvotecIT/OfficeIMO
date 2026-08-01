@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             long imageBytes = new FileInfo(assetPath).Length;
             long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
-            var options = new WordToHtmlOptions { MaxOutputCharacters = imageDataUriCharacters + 512L };
+            var options = new WordToHtmlOptions { MaxOutputCharacters = imageDataUriCharacters * 2L };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
 

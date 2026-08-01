@@ -4,6 +4,7 @@ using OfficeIMO.Word.Html;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
+using System.IO;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -53,6 +54,29 @@ namespace OfficeIMO.Tests {
             var options = new WordToHtmlOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 4096
+            };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
+                () => document.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.StartsWith("GeneratedElement:", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetCombinesEarlyImageAndLaterElements() {
+            using WordDocument document = WordDocument.Create();
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            document.AddParagraph().AddImage(assetPath, 20, 20);
+            for (int index = 0; index < 800; index++) {
+                document.AddParagraph();
+            }
+            long imageBytes = new FileInfo(assetPath).Length;
+            long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
+            var options = new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = imageDataUriCharacters + 4096L
             };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(

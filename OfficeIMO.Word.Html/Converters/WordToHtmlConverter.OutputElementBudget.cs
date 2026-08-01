@@ -7,28 +7,39 @@ namespace OfficeIMO.Word.Html {
             "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"
         };
 
-        private static readonly ConditionalWeakTable<IDocument, OutputElementBudget> OutputElementBudgets =
-            new ConditionalWeakTable<IDocument, OutputElementBudget>();
+        private static readonly ConditionalWeakTable<IDocument, OutputConstructionBudget> OutputConstructionBudgets =
+            new ConditionalWeakTable<IDocument, OutputConstructionBudget>();
 
-        private static void RegisterOutputElementBudget(
+        private static void RegisterOutputConstructionBudget(
             IDocument owner,
             WordToHtmlOptions options,
             long initialOutputCharacters) {
-            OutputElementBudgets.Add(owner, new OutputElementBudget(options, initialOutputCharacters));
+            OutputConstructionBudgets.Add(owner, new OutputConstructionBudget(options, initialOutputCharacters));
         }
 
         private static IElement CreateOutputElement(IDocument owner, string tagName) {
-            if (!OutputElementBudgets.TryGetValue(owner, out OutputElementBudget? budget)) {
-                throw new InvalidOperationException("The HTML output element budget was not initialized.");
+            if (!OutputConstructionBudgets.TryGetValue(owner, out OutputConstructionBudget? budget)) {
+                throw new InvalidOperationException("The HTML output construction budget was not initialized.");
             }
             return budget.CreateElement(owner, tagName);
         }
 
-        private sealed class OutputElementBudget {
+        private static void ReserveOutputCharacters(
+            IDocument owner,
+            long characters,
+            string message,
+            string source) {
+            if (!OutputConstructionBudgets.TryGetValue(owner, out OutputConstructionBudget? budget)) {
+                throw new InvalidOperationException("The HTML output construction budget was not initialized.");
+            }
+            budget.ReserveCharacters(characters, message, source);
+        }
+
+        private sealed class OutputConstructionBudget {
             private readonly WordToHtmlOptions _options;
             private long _minimumOutputCharacters;
 
-            internal OutputElementBudget(WordToHtmlOptions options, long initialOutputCharacters) {
+            internal OutputConstructionBudget(WordToHtmlOptions options, long initialOutputCharacters) {
                 _options = options;
                 _minimumOutputCharacters = initialOutputCharacters;
             }
@@ -37,18 +48,25 @@ namespace OfficeIMO.Word.Html {
                 long minimumSerializedCharacters = HtmlVoidElements.Contains(tagName)
                     ? tagName.Length + 2L
                     : (tagName.Length * 2L) + 5L;
-                long projectedCharacters = SaturatingAdd(_minimumOutputCharacters, minimumSerializedCharacters);
+                ReserveCharacters(
+                    minimumSerializedCharacters,
+                    "Generated HTML elements exceed the configured output-character limit before DOM construction.",
+                    "GeneratedElement:" + tagName);
+                return owner.CreateElement(tagName);
+            }
+
+            internal void ReserveCharacters(long characters, string message, string source) {
+                long projectedCharacters = SaturatingAdd(_minimumOutputCharacters, characters);
                 if (projectedCharacters > _options.MaxOutputCharacters) {
                     ThrowExportLimitExceeded(
                         _options,
                         "WordHtmlOutputLimitExceeded",
-                        "Generated HTML elements exceed the configured output-character limit before DOM construction.",
-                        "GeneratedElement:" + tagName,
+                        message,
+                        source,
                         projectedCharacters,
                         _options.MaxOutputCharacters);
                 }
                 _minimumOutputCharacters = projectedCharacters;
-                return owner.CreateElement(tagName);
             }
         }
     }
