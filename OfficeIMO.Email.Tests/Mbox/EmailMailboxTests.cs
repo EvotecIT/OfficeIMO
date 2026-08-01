@@ -267,6 +267,19 @@ public sealed class EmailMailboxTests {
     }
 
     [Fact]
+    public void HeaderlessMboxEntryReportsFallbackMimeBudgetUsage() {
+        byte[] message = Encoding.ASCII.GetBytes("plain headerless body\n");
+        var options = new EmailReaderOptions();
+        EmailReadResult result = EmailMailboxReader.ReadEntryMessage(
+            new EmailDocumentReader(options), message, options, CancellationToken.None);
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MBOX_MESSAGE_HEADERS_MISSING");
+        Assert.True(result.ProcessingBudget.PartCount >= 1);
+        Assert.Equal(message.Length, result.ProcessingBudget.InputBytes);
+    }
+
+    [Fact]
     public async Task AggregateStreamReadersPreservePerMessageLimitFailures() {
         byte[] source = Encoding.ASCII.GetBytes(
             "From sender@example.com Fri Jul 10 12:00:00 2026\nSubject: oversized\n\n" +

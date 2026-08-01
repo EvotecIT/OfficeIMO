@@ -19,6 +19,7 @@ options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
     context.RevisionPreconditionKind switch {
         GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
         GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+        GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState => context.AdapterExpectedRevision!,
         GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("package smoke operation"),
         _ => "\"package-smoke-etag\"",
     },

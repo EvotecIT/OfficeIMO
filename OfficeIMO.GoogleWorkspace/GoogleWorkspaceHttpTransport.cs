@@ -451,6 +451,21 @@ namespace OfficeIMO.GoogleWorkspace {
             _disposed = true;
         }
 
+        internal DeferredMutation BeginDeferredMutation(HttpMethod method, string target,
+            GoogleWorkspaceRequestSafety requestSafety, GoogleWorkspaceMutationKind mutationKind,
+            GoogleWorkspaceRevisionPrecondition revisionPrecondition, string serviceName) {
+            ThrowIfDisposed();
+            if (method == null) throw new ArgumentNullException(nameof(method));
+            if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("The mutation target is required.", nameof(target));
+            if (revisionPrecondition == null) throw new ArgumentNullException(nameof(revisionPrecondition));
+            if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
+            string? requestId = _options.RequestIdFactory?.Invoke();
+            MutationAttempt mutation = BeginMutation(method, target, requestSafety, mutationKind,
+                revisionPrecondition, serviceName, requestId)
+                ?? throw new InvalidOperationException("A deferred mutation must not use safe request semantics.");
+            return new DeferredMutation(mutation);
+        }
+
         private HttpRequestMessage CreateRequest(
             string accessToken,
             HttpMethod method,
@@ -518,8 +533,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 }
             }
             if (mutationKind == GoogleWorkspaceMutationKind.Create
-                && revisionPrecondition.Kind != GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate) {
-                throw new InvalidOperationException("An adapter-declared create must use the resource-absent revision precondition.");
+                && revisionPrecondition.Kind != GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate
+                && revisionPrecondition.Kind != GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState) {
+                throw new InvalidOperationException("An adapter-declared create must use a resource-absent or resumable-session revision precondition.");
             }
             bool potentialDataLoss = mutationKind == GoogleWorkspaceMutationKind.Delete;
             var context = new GoogleWorkspaceOperationContext(service, method.Method, target,
@@ -556,9 +572,10 @@ namespace OfficeIMO.GoogleWorkspace {
                     }
                     break;
                 case GoogleWorkspaceRevisionPreconditionKind.PayloadRevision:
+                case GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState:
                     if (!StringComparer.Ordinal.Equals(policy.ExpectedRevision,
                             revisionPrecondition.AdapterExpectedRevision)) {
-                        throw new InvalidOperationException("The Google operation policy expected revision does not match the revision enforced in the request payload.");
+                        throw new InvalidOperationException("The Google operation policy expected revision does not match the revision or resumable-session state enforced by the adapter request.");
                     }
                     break;
                 case GoogleWorkspaceRevisionPreconditionKind.HttpEntityTag:
@@ -588,7 +605,7 @@ namespace OfficeIMO.GoogleWorkspace {
             }
         }
 
-        private sealed class MutationAttempt {
+        internal sealed class MutationAttempt {
             private readonly GoogleWorkspaceOperationPolicy _policy;
             private readonly GoogleWorkspaceOperationContext _context;
             private readonly Action<GoogleWorkspaceOperationReceipt> _sink;
@@ -612,7 +629,7 @@ namespace OfficeIMO.GoogleWorkspace {
                     : _context.AdapterExpectedRevision;
                 var receipt = new GoogleWorkspaceOperationReceipt(_policy, _context.Service, _context.Method,
                     _context.Target, _context.RequestId, _retryCount, succeeded, outcome,
-                    _context.RevisionPreconditionKind, enforcedRevision);
+                    _context.MutationKind, _context.RevisionPreconditionKind, enforcedRevision);
                 try {
                     _sink(receipt);
                     return null;
@@ -620,6 +637,19 @@ namespace OfficeIMO.GoogleWorkspace {
                     return new GoogleWorkspaceReceiptPersistenceException(receipt, succeeded, exception);
                 }
             }
+        }
+
+        internal sealed class DeferredMutation {
+            private readonly MutationAttempt _mutation;
+
+            internal DeferredMutation(MutationAttempt mutation) {
+                _mutation = mutation;
+            }
+
+            internal void CompleteSuccess() => CompleteMutationSuccess(_mutation);
+
+            internal void CompleteFailure(Exception exception) =>
+                CompleteMutationFailure(_mutation, exception);
         }
 
         private static string AppendQueryParameter(string uri, string name, string? value) {

@@ -91,19 +91,33 @@ public sealed class EmailStoreContentQuery {
 
     private string CreateSignature() {
         EmailStoreQuery? filter = MetadataFilter;
-        string value = string.Join("|",
-            string.Join("\u001f", Terms), ((int)Fields).ToString(CultureInfo.InvariantCulture),
-            ((int)MatchMode).ToString(CultureInfo.InvariantCulture),
-            filter?.FolderId ?? string.Empty, filter?.IncludeDescendants.ToString() ?? string.Empty,
-            filter?.IncludeAssociatedItems.ToString() ?? string.Empty,
-            filter?.IncludeOrphanedItems.ToString() ?? string.Empty, filter?.ItemKind?.ToString() ?? string.Empty,
-            filter?.SubjectContains ?? string.Empty, filter?.SenderContains ?? string.Empty,
-            filter?.Since?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
-            filter?.Before?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
-            filter?.HasAttachments?.ToString() ?? string.Empty, filter?.IsRead?.ToString() ?? string.Empty,
-            MaxDecodedPropertyBytesPerItem.ToString(CultureInfo.InvariantCulture),
-            MaxSearchableCharactersPerItem.ToString(CultureInfo.InvariantCulture),
-            SnippetCharacters.ToString(CultureInfo.InvariantCulture), ContinueOnItemError.ToString());
-        return EmailHashing.ComputeSha256HexLower(value);
+        var value = new StringBuilder("OfficeIMO.EmailStoreContentQuery.v2");
+        AppendSignatureField(value, Terms.Count.ToString(CultureInfo.InvariantCulture));
+        foreach (string term in Terms) AppendSignatureField(value, term);
+        AppendSignatureField(value, ((int)Fields).ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, ((int)MatchMode).ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, filter?.FolderId);
+        AppendSignatureField(value, filter?.IncludeDescendants.ToString());
+        AppendSignatureField(value, filter?.IncludeAssociatedItems.ToString());
+        AppendSignatureField(value, filter?.IncludeOrphanedItems.ToString());
+        AppendSignatureField(value, filter?.ItemKind?.ToString());
+        AppendSignatureField(value, filter?.SubjectContains);
+        AppendSignatureField(value, filter?.SenderContains);
+        AppendSignatureField(value, filter?.Since?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        AppendSignatureField(value, filter?.Before?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        AppendSignatureField(value, filter?.HasAttachments?.ToString());
+        AppendSignatureField(value, filter?.IsRead?.ToString());
+        AppendSignatureField(value, MaxDecodedPropertyBytesPerItem.ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, MaxSearchableCharactersPerItem.ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, SnippetCharacters.ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, ContinueOnItemError.ToString());
+        return EmailHashing.ComputeSha256HexLower(value.ToString());
+    }
+
+    private static void AppendSignatureField(StringBuilder builder, string? value) {
+        value ??= string.Empty;
+        builder.Append(value.Length.ToString(CultureInfo.InvariantCulture));
+        builder.Append(':');
+        builder.Append(value);
     }
 }

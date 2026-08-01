@@ -360,6 +360,8 @@ namespace OfficeIMO.Tests {
                         return Task.CompletedTask;
                     }));
             }
+            Assert.DoesNotContain(receipts, receipt =>
+                receipt.Succeeded && receipt.MutationKind == GoogleWorkspaceMutationKind.Create);
             GoogleDriveResumableUploadCheckpoint restored = GoogleDriveResumableUploadCheckpoint.Parse(Assert.IsType<GoogleDriveResumableUploadCheckpoint>(saved).Value);
             using var second = new GoogleDriveClient(Session(http, receipts));
             GoogleDriveResumableUploadResult result = await second.UploadResumableStreamAsync(
@@ -369,6 +371,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(total, result.Checkpoint.ConfirmedBytes);
             Assert.DoesNotContain("upload.googleapis.com", result.Checkpoint.ToString(), StringComparison.Ordinal);
             Assert.DoesNotContain(receipts, receipt => receipt.Target.Contains("upload.googleapis.com", StringComparison.Ordinal));
+            GoogleWorkspaceOperationReceipt createReceipt = Assert.Single(receipts, receipt =>
+                receipt.Succeeded && receipt.MutationKind == GoogleWorkspaceMutationKind.Create);
+            Assert.Equal(GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState,
+                createReceipt.RevisionPreconditionKind);
+            Assert.StartsWith("resumable-session:", createReceipt.EnforcedRevision, StringComparison.Ordinal);
+            Assert.Contains(receipts, receipt => receipt.Succeeded &&
+                receipt.MutationKind == GoogleWorkspaceMutationKind.Action &&
+                receipt.EnforcedRevision != null &&
+                receipt.EnforcedRevision.StartsWith("content-range:bytes ", StringComparison.Ordinal));
         }
 
         [Fact]
@@ -410,8 +421,8 @@ namespace OfficeIMO.Tests {
                 using (var first = new GoogleDriveClient(Session(http, new List<GoogleWorkspaceOperationReceipt>()))) {
                     await Assert.ThrowsAsync<StopAfterCheckpointException>(() => first.DownloadToFileAsync("file-1", path,
                         checkpointSink: (checkpoint, _) => {
-                            if (checkpoint.ConfirmedBytes > 0) throw new StopAfterCheckpointException();
                             saved = checkpoint;
+                            if (checkpoint.ConfirmedBytes > 0) throw new StopAfterCheckpointException();
                             return Task.CompletedTask;
                         },
                         chunkSize: 256 * 1024));
@@ -425,6 +436,58 @@ namespace OfficeIMO.Tests {
             } finally { if (File.Exists(path)) File.Delete(path); }
         }
 
+        [Fact]
+        public async Task GuardedDownloadNeverTruncatesAnExistingDestination() {
+            using var http = new HttpClient(new Handler(_ =>
+                Json("{\"id\":\"file-1\",\"version\":\"7\",\"size\":\"3\"}")));
+            string path = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-download-existing-" + Guid.NewGuid().ToString("N") + ".bin");
+            byte[] original = Encoding.UTF8.GetBytes("do not replace");
+            File.WriteAllBytes(path, original);
+            try {
+                using var client = new GoogleDriveClient(Session(http, new List<GoogleWorkspaceOperationReceipt>()));
+
+                await Assert.ThrowsAsync<IOException>(() => client.DownloadToFileAsync("file-1", path));
+
+                Assert.Equal(original, File.ReadAllBytes(path));
+            } finally { if (File.Exists(path)) File.Delete(path); }
+        }
+
+        [Fact]
+        public async Task ZeroByteDownloadCheckpointRejectsAReplacementDestination() {
+            using var http = new HttpClient(new Handler(_ =>
+                Json("{\"id\":\"file-1\",\"version\":\"7\",\"size\":\"3\"}")));
+            string path = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-download-replaced-" + Guid.NewGuid().ToString("N") + ".bin");
+            GoogleDriveDownloadCheckpoint? saved = null;
+            byte[] replacement = Encoding.UTF8.GetBytes("unrelated content");
+            try {
+                using (var first = new GoogleDriveClient(Session(http,
+                           new List<GoogleWorkspaceOperationReceipt>()))) {
+                    await Assert.ThrowsAsync<StopAfterCheckpointException>(() =>
+                        first.DownloadToFileAsync("file-1", path,
+                            checkpointSink: (checkpoint, _) => {
+                                saved = checkpoint;
+                                throw new StopAfterCheckpointException();
+                            },
+                            chunkSize: 256 * 1024));
+                }
+
+                File.Delete(path);
+                File.WriteAllBytes(path, replacement);
+                GoogleDriveDownloadCheckpoint restored = GoogleDriveDownloadCheckpoint.Parse(
+                    Assert.IsType<GoogleDriveDownloadCheckpoint>(saved).Value);
+                using var second = new GoogleDriveClient(Session(http,
+                    new List<GoogleWorkspaceOperationReceipt>()));
+
+                await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                    second.DownloadToFileAsync("file-1", path, restored,
+                        chunkSize: 256 * 1024));
+
+                Assert.Equal(replacement, File.ReadAllBytes(path));
+            } finally { if (File.Exists(path)) File.Delete(path); }
+        }
+
         private static GoogleWorkspaceSession Session(HttpClient http, IList<GoogleWorkspaceOperationReceipt> receipts,
             GoogleWorkspaceDataLossDecision dataLossDecision = GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
             string? acceptedLoss = null) {
@@ -434,6 +497,7 @@ namespace OfficeIMO.Tests {
                 context.RevisionPreconditionKind switch {
                     GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
                     GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+                    GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState => context.AdapterExpectedRevision!,
                     GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test mutation"),
                     _ => "\"test-etag\"",
                 },

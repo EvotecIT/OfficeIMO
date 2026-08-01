@@ -111,7 +111,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     () => new StringContent(metadataJson, Encoding.UTF8, "application/json"),
                     GoogleWorkspaceRequestSafety.NonIdempotent, "Google Drive API", report, cancellationToken,
                     request => { request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", options.ContentType); request.Headers.TryAddWithoutValidation("X-Upload-Content-Length", length.ToString(System.Globalization.CultureInfo.InvariantCulture)); },
-                    mutationKind: GoogleWorkspaceMutationKind.Create).ConfigureAwait(false);
+                    mutationKind: GoogleWorkspaceMutationKind.Action,
+                    revisionPrecondition: GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
+                        CreateResumableInitiationState(metadataJson, length))).ConfigureAwait(false);
                 string sessionUri = initiation.GetHeader("Location") ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI.");
                 state = GoogleDriveResumableUploadCheckpoint.Create(sessionUri, sourceFingerprint, metadataFingerprint, length, 0);
                 if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
@@ -123,45 +125,54 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 state = checkpoint;
             }
 
-            GoogleWorkspaceHttpResponse status = await QueryResumableStatusAsync(token, state.SessionUri, length, report, cancellationToken).ConfigureAwait(false);
-            if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) {
-                EnsureSourceUnchanged(content, length, sourceFingerprint, cancellationToken);
-                state = state.Advance(length); if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
-                return new GoogleDriveResumableUploadResult(status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile), state);
-            }
-            long offset = ResolveNextOffset(status, state.ConfirmedBytes);
-            int chunkSize = NormalizeChunkSize(options.ResumableChunkSize);
-            var buffer = new byte[chunkSize];
-            int noProgressResponses = 0;
-            while (offset < length) {
-                cancellationToken.ThrowIfCancellationRequested(); content.Position = offset;
-                int wanted = (int)Math.Min(buffer.Length, length - offset); int read = 0;
-                while (read < wanted) { int current = await content.ReadAsync(buffer, read, wanted - read, cancellationToken).ConfigureAwait(false); if (current == 0) throw new EndOfStreamException("The upload source changed during transfer."); read += current; }
-                byte[] chunk = read == buffer.Length ? buffer : buffer.Take(read).ToArray();
-                try {
-                    status = await SendResumableChunkAsync(token, state.SessionUri, chunk, options.ContentType,
-                        offset, offset + read - 1, length, report, cancellationToken).ConfigureAwait(false);
-                } catch (Exception exception) when (IsAmbiguousResumableChunkFailure(exception, cancellationToken)) {
-                    status = await QueryResumableStatusAsync(token, state.SessionUri, length, report, cancellationToken).ConfigureAwait(false);
-                }
-                if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) offset = length;
-                else {
-                    long nextOffset = ResolveNextOffset(status, offset);
-                    if (nextOffset <= offset) {
-                        if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress for the resumable upload chunk.");
-                    } else {
-                        offset = nextOffset;
-                        noProgressResponses = 0;
-                    }
-                }
-                state = state.Advance(offset); if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
-                options.Progress?.Report(new GoogleDriveTransferProgress(offset, length));
-                if (offset == length && (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created)) {
+            GoogleWorkspaceHttpTransport.DeferredMutation create = BeginResumableFileCreate(state.SessionUri);
+            try {
+                GoogleWorkspaceHttpResponse status = await QueryResumableStatusAsync(token, state.SessionUri, length, report, cancellationToken).ConfigureAwait(false);
+                if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) {
+                    create.CompleteSuccess();
                     EnsureSourceUnchanged(content, length, sourceFingerprint, cancellationToken);
+                    state = state.Advance(length); if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
                     return new GoogleDriveResumableUploadResult(status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile), state);
                 }
+                long offset = ResolveNextOffset(status, state.ConfirmedBytes);
+                int chunkSize = NormalizeChunkSize(options.ResumableChunkSize);
+                var buffer = new byte[chunkSize];
+                int noProgressResponses = 0;
+                while (offset < length) {
+                    cancellationToken.ThrowIfCancellationRequested(); content.Position = offset;
+                    int wanted = (int)Math.Min(buffer.Length, length - offset); int read = 0;
+                    while (read < wanted) { int current = await content.ReadAsync(buffer, read, wanted - read, cancellationToken).ConfigureAwait(false); if (current == 0) throw new EndOfStreamException("The upload source changed during transfer."); read += current; }
+                    byte[] chunk = read == buffer.Length ? buffer : buffer.Take(read).ToArray();
+                    try {
+                        status = await SendResumableChunkAsync(token, state.SessionUri, chunk, options.ContentType,
+                            offset, offset + read - 1, length, report, cancellationToken).ConfigureAwait(false);
+                    } catch (Exception exception) when (IsAmbiguousResumableChunkFailure(exception, cancellationToken)) {
+                        status = await QueryResumableStatusAsync(token, state.SessionUri, length, report, cancellationToken).ConfigureAwait(false);
+                    }
+                    bool completed = status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created;
+                    if (completed) offset = length;
+                    else {
+                        long nextOffset = ResolveNextOffset(status, offset);
+                        if (nextOffset <= offset) {
+                            if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress for the resumable upload chunk.");
+                        } else {
+                            offset = nextOffset;
+                            noProgressResponses = 0;
+                        }
+                    }
+                    if (completed) create.CompleteSuccess();
+                    state = state.Advance(offset); if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
+                    options.Progress?.Report(new GoogleDriveTransferProgress(offset, length));
+                    if (offset == length && completed) {
+                        EnsureSourceUnchanged(content, length, sourceFingerprint, cancellationToken);
+                        return new GoogleDriveResumableUploadResult(status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile), state);
+                    }
+                }
+                throw new InvalidOperationException("Google Drive resumable upload ended without final file metadata.");
+            } catch (Exception exception) {
+                create.CompleteFailure(exception);
+                throw;
             }
-            throw new InvalidOperationException("Google Drive resumable upload ended without final file metadata.");
         }
 
         /// <summary>Uploads a file through the durable resumable path.</summary>

@@ -139,8 +139,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0) {
                 throw new InvalidDataException("A mailbox-directory source changed after it was indexed.");
             }
-            using (var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read,
-                       buffer.Length, FileOptions.SequentialScan)) {
+            using (FileStream stream = OpenRegularMailboxFile(file.Path)) {
                 int read;
                 while ((read = stream.Read(buffer, 0, buffer.Length)) != 0) {
                     cancellationToken.ThrowIfCancellationRequested();

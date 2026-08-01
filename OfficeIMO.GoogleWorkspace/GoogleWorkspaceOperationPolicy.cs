@@ -27,6 +27,7 @@ namespace OfficeIMO.GoogleWorkspace {
         HttpEntityTag = 2,
         PayloadRevision = 3,
         Unavailable = 4,
+        ResumableSessionState = 5,
     }
 
     /// <summary>Adapter-declared revision enforcement for one Google mutation.</summary>
@@ -56,12 +57,22 @@ namespace OfficeIMO.GoogleWorkspace {
                 expectedRevision);
         }
 
+        /// <summary>Declares the exact resumable-session state enforced by the request's content range.</summary>
+        public static GoogleWorkspaceRevisionPrecondition ResumableSessionState(string expectedState) {
+            if (string.IsNullOrWhiteSpace(expectedState)) {
+                throw new ArgumentException("The resumable-session state is required.", nameof(expectedState));
+            }
+            return new GoogleWorkspaceRevisionPrecondition(
+                GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState,
+                expectedState);
+        }
+
         internal static GoogleWorkspaceRevisionPrecondition ResourceAbsentCreate { get; } =
             new GoogleWorkspaceRevisionPrecondition(GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate);
 
         public GoogleWorkspaceRevisionPreconditionKind Kind { get; }
 
-        /// <summary>The exact revision already carried in the request payload, when applicable.</summary>
+        /// <summary>The exact revision or resumable-session state already carried by the adapter request.</summary>
         public string? AdapterExpectedRevision { get; }
     }
 
@@ -150,9 +161,11 @@ namespace OfficeIMO.GoogleWorkspace {
 
         internal GoogleWorkspaceOperationReceipt(GoogleWorkspaceOperationPolicy policy, string service,
             string method, string target, string? requestId, int retryCount, bool succeeded, string outcome,
+            GoogleWorkspaceMutationKind mutationKind,
             GoogleWorkspaceRevisionPreconditionKind revisionPreconditionKind, string? enforcedRevision) {
             Policy = policy; Service = service; Method = method; Target = target; RequestId = requestId;
             RetryCount = retryCount; Succeeded = succeeded; Outcome = outcome;
+            MutationKind = mutationKind;
             RevisionPreconditionKind = revisionPreconditionKind; EnforcedRevision = enforcedRevision;
             CompletedAt = DateTimeOffset.UtcNow;
         }
@@ -164,6 +177,8 @@ namespace OfficeIMO.GoogleWorkspace {
         public int RetryCount { get; }
         public bool Succeeded { get; }
         public string Outcome { get; }
+        /// <summary>The adapter-declared semantic mutation represented by this receipt.</summary>
+        public GoogleWorkspaceMutationKind MutationKind { get; }
         /// <summary>How the expected revision was enforced for this attempted mutation.</summary>
         public GoogleWorkspaceRevisionPreconditionKind RevisionPreconditionKind { get; }
         /// <summary>The revision actually enforced by HTTP or payload precondition, when one was available.</summary>

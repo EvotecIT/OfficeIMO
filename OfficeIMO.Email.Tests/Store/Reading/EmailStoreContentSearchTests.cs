@@ -82,6 +82,16 @@ public sealed class EmailStoreContentSearchTests {
     }
 
     [Fact]
+    public void QuerySignatureUsesUnambiguousFieldBoundaries() {
+        var first = new EmailStoreContentQuery(new[] { "needle" }, metadataFilter: new EmailStoreQuery(
+            subjectContains: "a|b", senderContains: "c"));
+        var second = new EmailStoreContentQuery(new[] { "needle" }, metadataFilter: new EmailStoreQuery(
+            subjectContains: "a", senderContains: "b|c"));
+
+        Assert.NotEqual(first.Signature, second.Signature);
+    }
+
+    [Fact]
     public void SearchesSemanticRtfTextInsteadOfControlSource() {
         string root = CreateCorpus();
         try {

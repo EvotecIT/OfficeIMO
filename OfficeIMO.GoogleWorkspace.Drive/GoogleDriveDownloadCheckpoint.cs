@@ -65,64 +65,82 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             long version = metadata.Version ?? throw new InvalidOperationException("Google Drive did not provide a file version for guarded download.");
             long total = metadata.Size ?? throw new InvalidOperationException("Google Drive did not provide a file size for guarded download.");
             long offset; string contentFingerprint;
+            string? directory = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            using FileStream output = checkpoint == null
+                ? GoogleDriveDownloadFileGuard.CreateNew(fullPath, 64 * 1024)
+                : GoogleDriveDownloadFileGuard.OpenExisting(fullPath, 64 * 1024);
             if (checkpoint == null) {
-                if (File.Exists(fullPath)) throw new IOException("A new guarded download will not overwrite an existing destination.");
-                string? directory = Path.GetDirectoryName(fullPath); if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-                using (File.Create(fullPath)) { }
                 offset = 0; contentFingerprint = EmptyContentFingerprint();
             } else {
                 if (!StringComparer.Ordinal.Equals(checkpoint.FileId, fileId) || checkpoint.ExpectedVersion != version || checkpoint.TotalBytes != total || checkpoint.ChunkSize != chunkSize || !StringComparer.Ordinal.Equals(checkpoint.DestinationIdentity, destinationIdentity)) throw new InvalidOperationException("The download checkpoint belongs to a different resource, revision, chunking policy, or destination.");
-                if (!File.Exists(fullPath) || new FileInfo(fullPath).Length < checkpoint.ConfirmedBytes ||
+                if (checkpoint.ConfirmedBytes == 0 && output.Length != 0) {
+                    throw new InvalidOperationException("The zero-byte download checkpoint destination is no longer empty.");
+                }
+                if (output.Length < checkpoint.ConfirmedBytes ||
                     !StringComparer.Ordinal.Equals(checkpoint.PrefixFingerprint,
-                        HashFileChain(fullPath, chunkSize, checkpoint.ConfirmedBytes, cancellationToken))) {
+                        HashFileChain(output, chunkSize, checkpoint.ConfirmedBytes, cancellationToken))) {
                     throw new InvalidOperationException("The checkpointed destination prefix changed after the checkpoint was saved.");
                 }
-                using (var recovery = new FileStream(fullPath, FileMode.Open, FileAccess.Write, FileShare.Read)) {
-                    if (recovery.Length > checkpoint.ConfirmedBytes) {
-                        recovery.SetLength(checkpoint.ConfirmedBytes);
-                        recovery.Flush(flushToDisk: true);
-                    }
+                if (output.Length > checkpoint.ConfirmedBytes) {
+                    output.SetLength(checkpoint.ConfirmedBytes);
+                    output.Flush(flushToDisk: true);
                 }
                 offset = checkpoint.ConfirmedBytes; contentFingerprint = checkpoint.PrefixFingerprint;
             }
+            output.Position = offset;
             string token = await AcquireTokenAsync(Options.ReadScopes, report, "Google Drive durable file download", cancellationToken).ConfigureAwait(false);
             GoogleDriveDownloadCheckpoint state = GoogleDriveDownloadCheckpoint.Create(fileId, version, total, offset, chunkSize, destinationIdentity, contentFingerprint);
-            if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
-            using (var output = new FileStream(fullPath, FileMode.Append, FileAccess.Write, FileShare.Read, 64 * 1024, FileOptions.SequentialScan)) {
-                while (offset < total) {
-                    cancellationToken.ThrowIfCancellationRequested(); long end = Math.Min(total - 1, offset + chunkSize - 1); long expected = end - offset + 1;
-                    byte[] bytes = await Transport.SendBytesAsync(token, HttpMethod.Get,
-                        $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}?alt=media&supportsAllDrives={Bool(Options.SupportsAllDrives)}",
-                        GoogleWorkspaceRequestSafety.Safe, "Google Drive API", report, cancellationToken,
-                        maxResponseBytes: expected, configureRequest: request => request.Headers.Range = new RangeHeaderValue(offset, end)).ConfigureAwait(false);
-                    if (bytes.LongLength != expected) throw new InvalidDataException("Google Drive returned an unexpected ranged-download length.");
-                    await output.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-                    await output.FlushAsync(cancellationToken).ConfigureAwait(false);
-                    output.Flush(flushToDisk: true);
-                    offset += bytes.LongLength;
-                    contentFingerprint = ExtendContentFingerprint(contentFingerprint, bytes, bytes.Length);
-                    state = GoogleDriveDownloadCheckpoint.Create(fileId, version, total, offset, chunkSize, destinationIdentity, contentFingerprint);
-                    if (checkpointSink != null) await checkpointSink(state, cancellationToken).ConfigureAwait(false);
-                }
+            await PersistDownloadCheckpointAsync(fullPath, output, state, checkpointSink, cancellationToken).ConfigureAwait(false);
+            while (offset < total) {
+                cancellationToken.ThrowIfCancellationRequested(); long end = Math.Min(total - 1, offset + chunkSize - 1); long expected = end - offset + 1;
+                byte[] bytes = await Transport.SendBytesAsync(token, HttpMethod.Get,
+                    $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}?alt=media&supportsAllDrives={Bool(Options.SupportsAllDrives)}",
+                    GoogleWorkspaceRequestSafety.Safe, "Google Drive API", report, cancellationToken,
+                    maxResponseBytes: expected, configureRequest: request => request.Headers.Range = new RangeHeaderValue(offset, end)).ConfigureAwait(false);
+                if (bytes.LongLength != expected) throw new InvalidDataException("Google Drive returned an unexpected ranged-download length.");
+                GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(fullPath, output);
+                await output.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                output.Flush(flushToDisk: true);
+                offset += bytes.LongLength;
+                contentFingerprint = ExtendContentFingerprint(contentFingerprint, bytes, bytes.Length);
+                state = GoogleDriveDownloadCheckpoint.Create(fileId, version, total, offset, chunkSize, destinationIdentity, contentFingerprint);
+                await PersistDownloadCheckpointAsync(fullPath, output, state, checkpointSink, cancellationToken).ConfigureAwait(false);
             }
             GoogleDriveFile finalMetadata = await GetFileAsync(fileId, DefaultFileFields, report, cancellationToken).ConfigureAwait(false);
             if (finalMetadata.Version != version || finalMetadata.Size != total) throw new InvalidOperationException("The Google Drive resource changed during download; the destination was retained for reconciliation.");
+            GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(fullPath, output);
             return state;
         }
 
         private static string HashText(string value) { using var hash = SHA256.Create(); return Hex(hash.ComputeHash(Encoding.UTF8.GetBytes(value))); }
         private static string EmptyContentFingerprint() => HashText("OfficeIMO.GoogleDriveDownloadCheckpoint.v2");
-        private static string HashFileChain(string path, int chunkSize, long length, CancellationToken cancellationToken) {
+        private static string HashFileChain(Stream stream, int chunkSize, long length, CancellationToken cancellationToken) {
             string current = EmptyContentFingerprint();
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 64 * 1024, FileOptions.SequentialScan);
+            long position = stream.Position;
+            stream.Position = 0;
             var buffer = new byte[chunkSize]; long remaining = length;
-            while (remaining > 0) {
-                int read = ReadChunk(stream, buffer, (int)Math.Min(buffer.Length, remaining), cancellationToken);
-                if (read == 0) throw new EndOfStreamException("The partial download is shorter than its checkpoint.");
-                current = ExtendContentFingerprint(current, buffer, read);
-                remaining -= read;
+            try {
+                while (remaining > 0) {
+                    int read = ReadChunk(stream, buffer, (int)Math.Min(buffer.Length, remaining), cancellationToken);
+                    if (read == 0) throw new EndOfStreamException("The partial download is shorter than its checkpoint.");
+                    current = ExtendContentFingerprint(current, buffer, read);
+                    remaining -= read;
+                }
+                return current;
+            } finally {
+                stream.Position = position;
             }
-            return current;
+        }
+
+        private static async Task PersistDownloadCheckpointAsync(string path, FileStream stream,
+            GoogleDriveDownloadCheckpoint checkpoint,
+            Func<GoogleDriveDownloadCheckpoint, CancellationToken, Task>? checkpointSink,
+            CancellationToken cancellationToken) {
+            GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(path, stream);
+            if (checkpointSink != null) await checkpointSink(checkpoint, cancellationToken).ConfigureAwait(false);
+            GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(path, stream);
         }
         private static int ReadChunk(Stream stream, byte[] buffer, int wanted, CancellationToken cancellationToken) {
             int total = 0;
