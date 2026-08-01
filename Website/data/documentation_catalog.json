@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 150,
+    "projectCount": 152,
     "productionComponentCount": 91,
     "testProjectCount": 31,
-    "benchmarkProjectCount": 12,
+    "benchmarkProjectCount": 14,
     "validationProjectCount": 17,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39562
+    "conceptualWordCount": 39739
   },
   "categories": [
     {
@@ -131,7 +131,7 @@
       "description": "Shared zero-dependency document, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
-      "sourceFileCount": 323,
+      "sourceFileCount": 328,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -209,7 +209,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 903,
+      "sourceFileCount": 904,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -625,7 +625,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 930,
+      "sourceFileCount": 934,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -638,7 +638,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 439,
+      "sourceFileCount": 444,
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
