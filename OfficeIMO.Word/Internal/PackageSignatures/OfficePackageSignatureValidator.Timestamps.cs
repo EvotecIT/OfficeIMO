@@ -10,12 +10,14 @@ namespace OfficeIMO.Word {
             XmlElement signatureValue,
             WordSignatureValidationOptions options,
             string signaturePartUri,
+            OfficePackageTimestampValidationBudget timestampBudget,
             List<Rfc3161TimestampVerificationResult> results,
             List<WordSignatureValidationFinding> findings) {
             if (tokens.Count > options.MaxTimestampTokens) {
                 throw new InvalidDataException("The XML signature exceeds the " + options.MaxTimestampTokens + " timestamp-token limit.");
             }
             foreach (XmlElement tokenElement in tokens) {
+                timestampBudget.ReserveToken();
                 byte[] encoded;
                 try {
                     if (tokenElement.InnerText.Length > GetMaxBase64EncodedCharacters(options.MaxTimestampBytes)) {
@@ -25,6 +27,7 @@ namespace OfficeIMO.Word {
                     if (encoded.LongLength > options.MaxTimestampBytes) {
                         throw new InvalidDataException("An embedded RFC 3161 timestamp token exceeds the " + options.MaxTimestampBytes + " byte limit.");
                     }
+                    timestampBudget.ReserveBytes(encoded.LongLength);
                 } catch (FormatException exception) {
                     findings.Add(Finding("TimestampMalformed", WordSignatureValidationState.Failed,
                         "An embedded RFC 3161 timestamp token is not valid base64: " + exception.Message,
@@ -39,6 +42,7 @@ namespace OfficeIMO.Word {
                         exception.Message, signaturePartUri));
                     continue;
                 }
+                timestampBudget.ReserveVerification();
                 Rfc3161TimestampVerificationResult result = Rfc3161TimestampVerifier.Verify(
                     encoded,
                     timestampedData,
@@ -49,6 +53,42 @@ namespace OfficeIMO.Word {
                 foreach (SecurityFinding finding in result.Findings) {
                     findings.Add(Finding(finding.Code, MapStatus(result.Status), finding.Message, signaturePartUri));
                 }
+            }
+        }
+
+        private sealed class OfficePackageTimestampValidationBudget {
+            private readonly int _maxTokens;
+            private readonly long _maxBytes;
+            private int _tokens;
+            private int _verifications;
+            private long _bytes;
+
+            internal OfficePackageTimestampValidationBudget(int maxTokens, long maxTimestampBytes) {
+                _maxTokens = maxTokens;
+                _maxBytes = maxTimestampBytes > long.MaxValue / maxTokens
+                    ? long.MaxValue
+                    : maxTimestampBytes * maxTokens;
+            }
+
+            internal void ReserveToken() {
+                if (_tokens >= _maxTokens) {
+                    throw new InvalidDataException("The validation operation exceeds the " + _maxTokens + " aggregate timestamp-token limit.");
+                }
+                _tokens++;
+            }
+
+            internal void ReserveBytes(long byteCount) {
+                if (byteCount < 0 || _bytes > _maxBytes - byteCount) {
+                    throw new InvalidDataException("The validation operation exceeds the " + _maxBytes + " byte aggregate timestamp-token limit.");
+                }
+                _bytes += byteCount;
+            }
+
+            internal void ReserveVerification() {
+                if (_verifications >= _maxTokens) {
+                    throw new InvalidDataException("The validation operation exceeds the " + _maxTokens + " aggregate timestamp-verification limit.");
+                }
+                _verifications++;
             }
         }
 

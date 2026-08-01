@@ -130,6 +130,87 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_BoundsTimestampWorkAcrossSignatureParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTimestampBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Timestamp validation work budget");
+                document.Save();
+            }
+            const string signatureId = "OfficeIMOTimestampBudget";
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\" Id=\"" + signatureId + "\">" +
+                "<SignedInfo><CanonicalizationMethod Algorithm=\"http://www.w3.org/TR/2001/REC-xml-c14n-20010315\" />" +
+                "<SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" /></SignedInfo>" +
+                "<SignatureValue>AA==</SignatureValue><Object>" +
+                "<xades:QualifyingProperties xmlns:xades=\"http://uri.etsi.org/01903/v1.3.2#\" Target=\"#" + signatureId + "\">" +
+                "<xades:UnsignedProperties><xades:UnsignedSignatureProperties><xades:SignatureTimeStamp>" +
+                "<xades:EncapsulatedTimeStamp>AA==</xades:EncapsulatedTimeStamp>" +
+                "</xades:SignatureTimeStamp></xades:UnsignedSignatureProperties></xades:UnsignedProperties>" +
+                "</xades:QualifyingProperties></Object></Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes, signatureCount: 2);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            WordSignatureValidationReport bounded = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                ValidateCryptographicSignature = false,
+                MaxTimestampTokens = 1
+            });
+            WordSignatureValidationReport allowed = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                ValidateCryptographicSignature = false,
+                MaxTimestampTokens = 2
+            });
+
+            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "TimestampResourceLimitExceeded");
+            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "TimestampResourceLimitExceeded");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ReportsRelatedCertificateAggregateLimitAsResourceFailure() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureRelatedCertificateBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Related certificate byte budget");
+                document.Save();
+            }
+            AddDigitalSignatureMetadata(filePath, CreateSignatureXml(digestValue: "T2ZmaWNlSU1P"));
+            using X509Certificate2 firstCertificate = CreateSelfSignedSigningCertificate("CN=OfficeIMO Related One");
+            using X509Certificate2 secondCertificate = CreateSelfSignedSigningCertificate("CN=OfficeIMO Related Two");
+            byte[] firstBytes = firstCertificate.Export(X509ContentType.Cert);
+            byte[] secondBytes = secondCertificate.Export(X509ContentType.Cert);
+            AddRelatedSignatureCertificates(filePath, firstBytes, secondBytes);
+
+            byte[] packageBytes = File.ReadAllBytes(filePath);
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
+            WordSignatureInfo boundedInspection = WordSignatureInspector.Inspect(
+                package,
+                package.DigitalSignatureOriginPart,
+                hasApplicationSignatureMetadata: true,
+                packageBytes,
+                maxTotalCertificateBytes: firstBytes.LongLength + 1);
+            WordSignatureInfo signatureInfo = WordSignatureInspector.Inspect(
+                package,
+                package.DigitalSignatureOriginPart,
+                hasApplicationSignatureMetadata: true,
+                packageBytes,
+                maxTotalCertificateBytes: firstBytes.LongLength + secondBytes.LongLength);
+            IReadOnlyList<WordSignaturePartValidationResult> validation = OfficePackageSignatureValidator.Validate(
+                package.DigitalSignatureOriginPart,
+                packageBytes,
+                signatureInfo,
+                new WordSignatureValidationOptions {
+                    ValidateCryptographicSignature = false,
+                    MaxTotalCertificateBytes = firstBytes.LongLength + 1
+                });
+
+            Assert.Contains(boundedInspection.SignatureParts, part =>
+                part.ParseError?.Contains("aggregate certificate limit", StringComparison.OrdinalIgnoreCase) == true);
+            Assert.Contains(Assert.Single(validation).Findings, finding =>
+                finding.Code == "SignatureResourceLimitExceeded");
+            Assert.DoesNotContain(Assert.Single(validation).Findings, finding =>
+                finding.Code == "CertificateMalformed");
+        }
+
+        [Fact]
         public void Test_DigitalSignature_BoundsLocalReferenceTransformWork() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureLocalTransformBudget.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -158,6 +239,19 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+        }
+
+        private static void AddRelatedSignatureCertificates(string filePath, params byte[][] certificates) {
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, true);
+            XmlSignaturePart signaturePart = package.DigitalSignatureOriginPart!.XmlSignatureParts.Single();
+            foreach (byte[] certificate in certificates) {
+                ExtendedPart certificatePart = signaturePart.AddExtendedPart(
+                    "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/certificate",
+                    "application/vnd.openxmlformats-package.digital-signature-certificate",
+                    "cer");
+                using var stream = new MemoryStream(certificate);
+                certificatePart.FeedData(stream);
+            }
         }
     }
 }

@@ -63,6 +63,8 @@ namespace OfficeIMO.Word {
                     CopyBounded(stream, memoryStream, maxCertificateBytes);
                     rawCertificate = memoryStream.ToArray();
                     certificateByteBudget.Reserve(rawCertificate.LongLength);
+                } catch (InvalidDataException) {
+                    throw;
                 } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException) {
                     unsupportedDetails.Add("Unable to read signature certificate part " + relatedPart.Uri + ": " + exception.Message);
                     continue;

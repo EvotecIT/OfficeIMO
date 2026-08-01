@@ -49,10 +49,10 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the maximum aggregate certificate bytes decoded or read across all signature parts. Defaults to 64 MiB.</summary>
         public long MaxTotalCertificateBytes { get; set; } = DefaultMaxTotalCertificateBytes;
 
-        /// <summary>Gets or sets the maximum RFC 3161 timestamp-token count per signature. Defaults to 16.</summary>
+        /// <summary>Gets or sets the maximum aggregate RFC 3161 timestamp-token count across the validation operation. Defaults to 16.</summary>
         public int MaxTimestampTokens { get; set; } = 16;
 
-        /// <summary>Gets or sets the maximum encoded bytes per RFC 3161 timestamp token. Defaults to 16 MiB.</summary>
+        /// <summary>Gets or sets the maximum encoded bytes per RFC 3161 timestamp token. Aggregate decoded work is bounded by this value times <see cref="MaxTimestampTokens"/>. Defaults to 16 MiB.</summary>
         public long MaxTimestampBytes { get; set; } = 16L * 1024 * 1024;
     }
 }

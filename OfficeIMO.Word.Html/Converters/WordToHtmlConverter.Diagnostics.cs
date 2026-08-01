@@ -32,11 +32,13 @@ namespace OfficeIMO.Word.Html {
                         }
                         if (countOutputContent && !inspected.OmitOutputContent) {
                             long elementCharacters = element is OpenXmlLeafTextElement textElement && ShouldCountOutputLeafText(element)
-                                ? textElement.Text?.Length ?? 0
+                                ? GetHtmlEncodedLength(textElement.Text, attributeValue: false)
                                 : 0;
                             foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
                                 if (!ShouldCountOutputAttribute(element, attribute, options)) continue;
-                                elementCharacters = SaturatingAdd(elementCharacters, attribute.Value?.Length ?? 0);
+                                elementCharacters = SaturatingAdd(
+                                    elementCharacters,
+                                    GetHtmlEncodedLength(attribute.Value, attributeValue: true));
                             }
                             outputConstructionCharacters = SaturatingAdd(outputConstructionCharacters, elementCharacters);
                             if (outputConstructionCharacters > options.MaxOutputCharacters) {
@@ -74,6 +76,22 @@ namespace OfficeIMO.Word.Html {
 
         private static long SaturatingAdd(long left, long right) =>
             left > long.MaxValue - right ? long.MaxValue : left + right;
+
+        private static long GetHtmlEncodedLength(string? value, bool attributeValue) {
+            if (value == null || value.Length == 0) return 0;
+
+            long length = 0;
+            foreach (char character in value) {
+                length = SaturatingAdd(length, character switch {
+                    '&' => 5,
+                    '<' => 4,
+                    '>' => 4,
+                    '"' when attributeValue => 6,
+                    _ => 1
+                });
+            }
+            return length;
+        }
 
         private static bool ShouldCountOutputLeafText(OpenXmlElement element) =>
             element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode;

@@ -49,6 +49,9 @@ namespace OfficeIMO.Word {
             }
             using var archive = new OfficePackageSignatureArchive(packageBytes, options.MaxPackageParts);
             var certificateByteBudget = new OfficePackageCertificateByteBudget(options.MaxTotalCertificateBytes);
+            var timestampBudget = new OfficePackageTimestampValidationBudget(
+                options.MaxTimestampTokens,
+                options.MaxTimestampBytes);
             Dictionary<string, XmlSignaturePart> packageParts = originPart.XmlSignatureParts
                 .ToDictionary(part => OfficePackageSignatureArchive.NormalizePartUri(part.Uri.ToString()), StringComparer.OrdinalIgnoreCase);
             var results = new List<WordSignaturePartValidationResult>(signatureInfo.SignatureParts.Count);
@@ -59,7 +62,13 @@ namespace OfficeIMO.Word {
                     results.Add(FailedMissingPart(signaturePartInfo));
                     continue;
                 }
-                results.Add(ValidateSignaturePart(signaturePart, signaturePartInfo, archive, options, certificateByteBudget));
+                results.Add(ValidateSignaturePart(
+                    signaturePart,
+                    signaturePartInfo,
+                    archive,
+                    options,
+                    certificateByteBudget,
+                    timestampBudget));
             }
             return results;
         }
@@ -69,7 +78,8 @@ namespace OfficeIMO.Word {
             WordSignaturePartInfo signaturePartInfo,
             OfficePackageSignatureArchive archive,
             WordSignatureValidationOptions options,
-            OfficePackageCertificateByteBudget certificateByteBudget) {
+            OfficePackageCertificateByteBudget certificateByteBudget,
+            OfficePackageTimestampValidationBudget timestampBudget) {
             var findings = new List<WordSignatureValidationFinding>();
             var timestampResults = new List<Rfc3161TimestampVerificationResult>();
             var certificates = new List<X509Certificate2>();
@@ -124,6 +134,7 @@ namespace OfficeIMO.Word {
                             signatureValue,
                             options,
                             signaturePartInfo.Uri,
+                            timestampBudget,
                             timestampResults,
                             findings);
                     }
@@ -446,6 +457,8 @@ namespace OfficeIMO.Word {
                     byte[] certificateBytes = buffer.ToArray();
                     certificateByteBudget.Reserve(certificateBytes.LongLength);
                     result.Add(LoadCertificate(certificateBytes));
+                } catch (InvalidDataException) {
+                    throw;
                 } catch (Exception exception) when (exception is IOException or CryptographicException or InvalidOperationException) {
                     findings.Add(Finding("CertificateMalformed", WordSignatureValidationState.Failed,
                         "The related signature certificate could not be read: " + exception.Message,

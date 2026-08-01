@@ -76,7 +76,7 @@ namespace OfficeIMO.Word {
                 .Select(simpleField => MergeFieldOccurrence.ForSimple(
                     orderByElement[simpleField],
                     simpleField,
-                    simpleField.Descendants<SimpleField>().Any()
+                    ContainsNestedField(simpleField)
                         ? "A simple MERGEFIELD contains a nested field and cannot be processed deterministically."
                         : null))
                 .ToList();
@@ -131,6 +131,10 @@ namespace OfficeIMO.Word {
 
             return occurrences;
         }
+
+        private static bool ContainsNestedField(SimpleField simpleField) =>
+            simpleField.Descendants().Any(element =>
+                element is SimpleField or FieldChar or FieldCode);
 
         private static IEnumerable<Paragraph> EnumerateParagraphs(OpenXmlElement root) {
             if (root is Paragraph paragraph) {

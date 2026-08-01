@@ -428,6 +428,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_RejectsOuterSimpleFieldContainingNestedComplexField() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(
+                new SimpleField(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" MERGEFIELD Inner ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("inner placeholder")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })) {
+                    Instruction = " MERGEFIELD Outer "
+                }));
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Outer", "Inner" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Outer"] = "outer value", ["Inner"] = "inner value" },
+                removeFields: false);
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Contains(preflight.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MalformedMergeField &&
+                issue.Name == "Outer");
+            Assert.Contains(execution.Fields, result =>
+                result.Instruction.Contains("Outer", System.StringComparison.Ordinal) &&
+                result.Status == WordMailMergeFieldStatus.MalformedField);
+            Assert.DoesNotContain("outer value", body.InnerText, System.StringComparison.Ordinal);
+            Assert.Single(body.Descendants<SimpleField>());
+        }
+
+        [Fact]
         public void Test_MailMerge_UpdatesSimpleFieldResultInsideInlineWrapper() {
             using WordDocument document = WordDocument.Create();
             Body body = document._document.MainDocumentPart!.Document.Body!;
