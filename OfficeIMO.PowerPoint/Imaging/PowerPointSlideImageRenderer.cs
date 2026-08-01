@@ -461,16 +461,45 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (TryResolveShapeOutlineColor(source, colorScheme, out OfficeColor stroke)) {
+                A.Outline? localOutline = GetLocalShapeOutline(source);
+                A.Outline? themeOutline = GetThemeShapeOutline(source);
                 target.StrokeColor = stroke;
-                target.StrokeWidth = mapping.MapStrokeWidth(source.OutlineWidthPoints ?? 1D);
-                target.StrokeDashStyle = MapDash(source.OutlineDash);
-                ApplyStrokeLineCapAndJoin(target, source);
-                ApplyLineMarkers(target, source);
+                long? widthEmus = localOutline?.Width?.Value
+                    ?? themeOutline?.Width?.Value;
+                double widthPoints = widthEmus.HasValue
+                    ? widthEmus.Value / 12700D
+                    : 1D;
+                target.StrokeWidth = mapping.MapStrokeWidth(widthPoints);
+                A.PresetLineDashValues? dash = localOutline?
+                    .GetFirstChild<A.PresetDash>()?.Val?.Value;
+                if (!dash.HasValue
+                    && localOutline?.GetFirstChild<A.CustomDash>() == null) {
+                    dash = themeOutline?.GetFirstChild<A.PresetDash>()?
+                        .Val?.Value;
+                }
+                target.StrokeDashStyle = MapDash(dash);
+                ApplyStrokeLineCapAndJoin(target, localOutline, themeOutline);
+                ApplyLineMarkers(target, localOutline, themeOutline);
             } else {
                 target.StrokeWidth = 0D;
             }
 
             ApplyShapeEffects(target, source, colorScheme, mapping);
+        }
+
+        private static A.Outline? GetLocalShapeOutline(PowerPointShape source) =>
+            GetOpenXmlShapeProperties(source)?.GetFirstChild<A.Outline>();
+
+        private static A.Outline? GetThemeShapeOutline(PowerPointShape source) {
+            A.LineReference? lineReference =
+                GetOpenXmlShapeStyle(source)?.LineReference;
+            A.FormatScheme? formatScheme = source.OwnerSlide == null
+                ? null
+                : GetSlideFormatScheme(source.OwnerSlide);
+            OpenXmlElement? themeLine = ResolveThemeShapeLine(formatScheme,
+                lineReference?.Index?.Value);
+            return themeLine as A.Outline
+                ?? themeLine?.GetFirstChild<A.Outline>();
         }
 
         private static bool TryResolveShapeFillColor(PowerPointShape source, A.ColorScheme? colorScheme, out OfficeColor color) {
@@ -543,14 +572,16 @@ namespace OfficeIMO.PowerPoint {
             return TryParseOfficeColor(source.OutlineColor, out color);
         }
 
-        private static void ApplyStrokeLineCapAndJoin(OfficeShape target, PowerPointShape source) {
-            A.Outline? outline = GetOpenXmlShapeProperties(source)?.GetFirstChild<A.Outline>();
-            if (outline == null) {
-                return;
-            }
-
-            target.StrokeLineCap = MapLineCap(outline.CapType?.Value);
-            target.StrokeLineJoin = MapLineJoin(outline);
+        private static void ApplyStrokeLineCapAndJoin(OfficeShape target,
+            A.Outline? localOutline, A.Outline? themeOutline) {
+            target.StrokeLineCap = MapLineCap(localOutline?.CapType?.Value)
+                ?? MapLineCap(themeOutline?.CapType?.Value);
+            target.StrokeLineJoin = localOutline == null
+                ? null
+                : MapLineJoin(localOutline);
+            target.StrokeLineJoin ??= themeOutline == null
+                ? null
+                : MapLineJoin(themeOutline);
         }
 
         private static OfficeStrokeLineCap? MapLineCap(A.LineCapValues? cap) {
@@ -589,18 +620,16 @@ namespace OfficeIMO.PowerPoint {
             return null;
         }
 
-        private static void ApplyLineMarkers(OfficeShape target, PowerPointShape source) {
+        private static void ApplyLineMarkers(OfficeShape target,
+            A.Outline? localOutline, A.Outline? themeOutline) {
             if (target.Kind != OfficeShapeKind.Line && target.Kind != OfficeShapeKind.Path) {
                 return;
             }
 
-            A.Outline? outline = GetOpenXmlShapeProperties(source)?.GetFirstChild<A.Outline>();
-            if (outline == null) {
-                return;
-            }
-
-            A.HeadEnd? headEnd = outline.GetFirstChild<A.HeadEnd>();
-            A.TailEnd? tailEnd = outline.GetFirstChild<A.TailEnd>();
+            A.HeadEnd? headEnd = localOutline?.GetFirstChild<A.HeadEnd>()
+                ?? themeOutline?.GetFirstChild<A.HeadEnd>();
+            A.TailEnd? tailEnd = localOutline?.GetFirstChild<A.TailEnd>()
+                ?? themeOutline?.GetFirstChild<A.TailEnd>();
             target.StrokeStartMarker = MapLineMarker(headEnd?.Type?.Value, headEnd?.Width?.Value, headEnd?.Length?.Value, target.StrokeWidth);
             target.StrokeEndMarker = MapLineMarker(tailEnd?.Type?.Value, tailEnd?.Width?.Value, tailEnd?.Length?.Value, target.StrokeWidth);
         }

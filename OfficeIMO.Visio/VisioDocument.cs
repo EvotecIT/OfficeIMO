@@ -607,6 +607,14 @@ namespace OfficeIMO.Visio {
         public VisioMaster RegisterMaster(VisioMaster master) {
             if (master == null) throw new ArgumentNullException(nameof(master));
             if (string.IsNullOrWhiteSpace(master.NameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(master));
+            if (master.IsPackageBacked
+                && _builtinMasters.TryGetValue(master.NameU,
+                    out VisioMaster? registeredMaster)
+                && registeredMaster.IsPackageBacked) {
+                VisioStencilMetadata.EnsureSourcePackageMatches(
+                    registeredMaster,
+                    master.StencilSourcePackagePath ?? string.Empty);
+            }
 
             int existingIndex = _registeredMasters.FindIndex(existing =>
                 string.Equals(existing.Id, master.Id, StringComparison.OrdinalIgnoreCase) &&

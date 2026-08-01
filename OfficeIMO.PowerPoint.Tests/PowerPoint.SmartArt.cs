@@ -130,5 +130,64 @@ namespace OfficeIMO.Tests {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
         }
+
+        [Fact]
+        public void ImportedSmartArtRejectsTopologyThatSemanticRendererCannotRepresent() {
+            string filePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddSmartArt(
+                        PowerPointSmartArtType.BasicHierarchy,
+                        new[] { "Root", "Child", "Grandchild" });
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document =
+                       PresentationDocument.Open(filePath, true)) {
+                    DiagramDataPart dataPart = document.PresentationPart!
+                        .SlideParts.Single().DiagramDataParts.Single();
+                    XDocument data;
+                    using (Stream input = dataPart.GetStream(
+                               FileMode.Open, FileAccess.Read)) {
+                        data = XDocument.Load(input);
+                    }
+                    XNamespace dgm =
+                        "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+                    XElement[] nodePoints = data.Descendants(dgm + "pt")
+                        .Where(point => point.Attribute("type") == null)
+                        .ToArray();
+                    string childId = (string)nodePoints[1]
+                        .Attribute("modelId")!;
+                    string grandchildId = (string)nodePoints[2]
+                        .Attribute("modelId")!;
+                    XElement grandchildConnection = data
+                        .Descendants(dgm + "cxn")
+                        .Single(connection => string.Equals(
+                            (string?)connection.Attribute("destId"),
+                            grandchildId, StringComparison.Ordinal));
+                    grandchildConnection.SetAttributeValue("srcId", childId);
+                    using Stream output = dataPart.GetStream(
+                        FileMode.Create, FileAccess.Write);
+                    data.Save(output);
+                }
+
+                using PowerPointPresentation imported =
+                    PowerPointPresentation.Load(filePath);
+                PowerPointSmartArt smartArt = Assert.Single(
+                    imported.Slides[0].SmartArts);
+                Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
+
+                OfficeImageExportResult svg = imported.Slides[0].ExportImage(
+                    OfficeImageExportFormat.Svg);
+                Assert.Contains(svg.Diagnostics, diagnostic =>
+                    diagnostic.Message.Contains("semantic node data",
+                        StringComparison.OrdinalIgnoreCase));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
     }
 }

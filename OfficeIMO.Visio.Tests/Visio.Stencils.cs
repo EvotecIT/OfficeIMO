@@ -1194,6 +1194,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilMasterCollisionRejectsCrossPackageProvenanceMutation() {
+            string firstPackage = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            string secondPackage = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            try {
+                CreatePackageWithRawGroupMaster(firstPackage, "SharedMaster",
+                    "First Shared Master");
+                CreatePackageWithRawGroupMaster(secondPackage, "SharedMaster",
+                    "Second Shared Master");
+                VisioStencilCatalog firstCatalog =
+                    VisioStencilPackageCatalog.Load(firstPackage,
+                        new VisioStencilPackageLoadOptions {
+                            IncludeUnsupportedMasters = true,
+                            Category = "External",
+                            SourceLicense = "First-License",
+                            SourceAttribution = "First Vendor"
+                        });
+                VisioStencilCatalog secondCatalog =
+                    VisioStencilPackageCatalog.Load(secondPackage,
+                        new VisioStencilPackageLoadOptions {
+                            IncludeUnsupportedMasters = true,
+                            Category = "External",
+                            SourceLicense = "Second-License",
+                            SourceAttribution = "Second Vendor"
+                        });
+                VisioStencilShape firstStencil = firstCatalog.Shapes.Single();
+                VisioStencilShape secondStencil = secondCatalog.Shapes.Single();
+                VisioDocument document = VisioDocument.Create(
+                    Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+                VisioPage page = document.AddPage("Collision");
+                page.AddStencilShape(firstStencil, "first", 2, 4);
+                Assert.True(document.TryGetMaster("SharedMaster",
+                    out VisioMaster? registered));
+                Assert.NotNull(registered);
+
+                InvalidOperationException exception =
+                    Assert.Throws<InvalidOperationException>(() =>
+                        page.AddStencilShape(secondStencil, "second", 5, 4));
+
+                Assert.Contains("already bound to source package",
+                    exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Single(page.Shapes);
+                Assert.Equal(Path.GetFullPath(firstPackage),
+                    registered!.StencilSourcePackagePath);
+                Assert.Equal("First-License", registered.StencilSourceLicense);
+                Assert.Equal("First Vendor",
+                    registered.StencilSourceAttribution);
+            } finally {
+                if (File.Exists(firstPackage)) File.Delete(firstPackage);
+                if (File.Exists(secondPackage)) File.Delete(secondPackage);
+            }
+        }
+
+        [Fact]
         public void ImportStencilMastersRejectsOversizedEmbeddedMasterRelationship() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             byte[] oversizedMedia = new byte[checked((int)VisioAssets.MaxMasterRelationshipBytes + 1)];

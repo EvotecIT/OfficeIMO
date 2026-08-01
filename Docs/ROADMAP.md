@@ -38,6 +38,10 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 ## PowerPoint and Visio
 
+- [ ] Broaden imported-chart editing and image/PDF export fidelity across advanced chart families, with explicit diagnostics for producer-specific content that remains preservation-only.
+- [ ] Expand editable SmartArt coverage only where imported layout and connection topology can be represented without changing diagram meaning; preserve or reject unsupported topologies explicitly.
+- [ ] Extend typed animation timeline authoring and editing beyond the currently supported shape, text, and chart effects while preserving unsupported sequences losslessly.
+- [ ] Deepen typed media and OLE editing for linked and embedded audio, video, playback metadata, and package payloads while continuing to preserve unsupported content.
 - [ ] Extend typed Visio editing for advanced nested containers, deeper swimlane metadata and automatic lane assignment, and richer threaded comment and author workflows.
 - [ ] Complete advanced Visio resize-to-content and broader whole-diagram relayout and polish for dense imported diagrams.
 - [ ] Add typed Visio APIs for data graphics, legends, and additional high-value ShapeSheet sections and formulas while continuing to preserve unmodeled package content explicitly.

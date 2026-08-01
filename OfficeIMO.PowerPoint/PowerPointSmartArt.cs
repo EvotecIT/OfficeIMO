@@ -41,10 +41,6 @@ namespace OfficeIMO.PowerPoint {
             out OfficeDiagramSnapshot snapshot) {
             try {
                 var (xdoc, ns, textBodies, _) = LoadNodeTextBodiesWithPart();
-                IReadOnlyList<string> nodes = textBodies
-                    .Select(body => ReadNodeText(body, ns.a))
-                    .Where(text => !string.IsNullOrWhiteSpace(text))
-                    .ToArray();
                 XElement? properties = xdoc.Descendants(ns.dgm + "prSet")
                     .FirstOrDefault(element =>
                         element.Attribute("loCatId") != null
@@ -68,6 +64,11 @@ namespace OfficeIMO.PowerPoint {
                 } else {
                     kind = OfficeDiagramKind.Process;
                 }
+                if (!TryReadRepresentableTopology(xdoc, ns, textBodies,
+                        kind, out IReadOnlyList<string> nodes)) {
+                    snapshot = null!;
+                    return false;
+                }
                 snapshot = new OfficeDiagramSnapshot(Name, kind, nodes,
                     WidthPoints, HeightPoints);
                 return true;
@@ -75,6 +76,108 @@ namespace OfficeIMO.PowerPoint {
                 snapshot = null!;
                 return false;
             }
+        }
+
+        private static bool TryReadRepresentableTopology(
+            XDocument xdoc,
+            (XNamespace dgm, XNamespace a) ns,
+            IReadOnlyList<XElement> textBodies,
+            OfficeDiagramKind kind,
+            out IReadOnlyList<string> nodes) {
+            nodes = Array.Empty<string>();
+            List<XElement> nodePoints = xdoc.Descendants(ns.dgm + "pt")
+                .Where(point => point.Attribute("type") == null)
+                .Where(point => {
+                    XElement? body = point.Element(ns.dgm + "t")
+                        ?? point.Element(ns.dgm + "txBody");
+                    return body != null && textBodies.Contains(body);
+                })
+                .ToList();
+            if (nodePoints.Count == 0 || nodePoints.Count != textBodies.Count) {
+                return false;
+            }
+
+            var nodeById = new Dictionary<string, (int Index, string Text)>(
+                StringComparer.Ordinal);
+            for (int index = 0; index < nodePoints.Count; index++) {
+                string? modelId = (string?)nodePoints[index].Attribute("modelId");
+                XElement? textBody = nodePoints[index].Element(ns.dgm + "t")
+                    ?? nodePoints[index].Element(ns.dgm + "txBody");
+                string text = textBody == null
+                    ? string.Empty
+                    : ReadNodeText(textBody, ns.a);
+                if (string.IsNullOrWhiteSpace(modelId)
+                    || string.IsNullOrWhiteSpace(text)
+                    || nodeById.ContainsKey(modelId!)) {
+                    return false;
+                }
+                nodeById.Add(modelId!, (index, text));
+            }
+
+            var documentIds = new HashSet<string>(xdoc
+                .Descendants(ns.dgm + "pt")
+                .Where(point => string.Equals((string?)point.Attribute("type"),
+                    "doc", StringComparison.OrdinalIgnoreCase))
+                .Select(point => (string?)point.Attribute("modelId"))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Cast<string>(), StringComparer.Ordinal);
+            if (documentIds.Count == 0) return false;
+
+            var parentByNode = new Dictionary<string, string>(
+                StringComparer.Ordinal);
+            foreach (XElement connection in xdoc.Descendants(ns.dgm + "cxn")) {
+                string? type = (string?)connection.Attribute("type");
+                if (!string.IsNullOrWhiteSpace(type)
+                    && !string.Equals(type, "parOf",
+                        StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                string? destination = (string?)connection.Attribute("destId");
+                if (string.IsNullOrWhiteSpace(destination)
+                    || !nodeById.ContainsKey(destination!)) {
+                    continue;
+                }
+                string? source = (string?)connection.Attribute("srcId");
+                if (string.IsNullOrWhiteSpace(source)
+                    || (!documentIds.Contains(source!)
+                        && !nodeById.ContainsKey(source!))
+                    || parentByNode.ContainsKey(destination!)) {
+                    return false;
+                }
+                parentByNode.Add(destination!, source!);
+            }
+            if (parentByNode.Count != nodeById.Count) return false;
+
+            bool rooted = kind == OfficeDiagramKind.Hierarchy
+                || kind == OfficeDiagramKind.Relationship;
+            if (!rooted) {
+                if (parentByNode.Values.Any(parent =>
+                        !documentIds.Contains(parent))) {
+                    return false;
+                }
+                nodes = nodeById.Values.OrderBy(node => node.Index)
+                    .Select(node => node.Text).ToArray();
+                return true;
+            }
+
+            string[] roots = parentByNode
+                .Where(pair => documentIds.Contains(pair.Value))
+                .Select(pair => pair.Key)
+                .ToArray();
+            if (roots.Length != 1) return false;
+            string rootId = roots[0];
+            if (parentByNode.Any(pair => pair.Key != rootId
+                    && !string.Equals(pair.Value, rootId,
+                        StringComparison.Ordinal))) {
+                return false;
+            }
+            nodes = new[] { nodeById[rootId] }
+                .Concat(nodeById.Where(pair => pair.Key != rootId)
+                    .Select(pair => pair.Value)
+                    .OrderBy(node => node.Index))
+                .Select(node => node.Text)
+                .ToArray();
+            return true;
         }
 
         /// <summary>

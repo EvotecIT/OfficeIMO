@@ -38,6 +38,10 @@ namespace OfficeIMO.Visio {
         }
 
         internal static void Apply(VisioMaster master, VisioStencilShape stencil, string? catalogName) {
+            if (master.IsPackageBacked
+                && !string.IsNullOrWhiteSpace(stencil.SourcePackagePath)) {
+                EnsureSourcePackageMatches(master, stencil.SourcePackagePath!);
+            }
             master.StencilId = stencil.Id;
             master.StencilName = stencil.Name;
             master.StencilCategory = stencil.Category;
@@ -58,6 +62,22 @@ namespace OfficeIMO.Visio {
             master.StencilPreviewImageContentType = stencil.PreviewImage?.ContentType;
             master.StencilPreviewImageExtension = stencil.PreviewImage?.Extension;
             master.StencilPreviewImageByteLength = stencil.PreviewImage?.ByteLength;
+        }
+
+        internal static void EnsureSourcePackageMatches(VisioMaster master,
+            string sourcePackagePath) {
+            string? registeredPath = NormalizePath(
+                master.StencilSourcePackagePath);
+            string? requestedPath = NormalizePath(sourcePackagePath);
+            if (string.Equals(registeredPath, requestedPath,
+                    StringComparison.OrdinalIgnoreCase)) {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                $"Visio master '{master.NameU}' is already bound to source package " +
+                $"'{registeredPath ?? "<unknown>"}' and cannot be reused for " +
+                $"'{requestedPath ?? "<unknown>"}'. Import package masters with unique NameU values.");
         }
 
         internal static void Apply(VisioMaster master, IEnumerable<VisioUserCell> userCells) {

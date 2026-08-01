@@ -168,8 +168,21 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectanglePoints(
                 20, 20, 120, 80);
-            shape.OutlineWidthPoints = 2D;
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            A.Outline themeOutline = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.ThemePart!.Theme.ThemeElements!
+                .FormatScheme!.LineStyleList!.Elements<A.Outline>().First();
+            themeOutline.Width = 38100;
+            themeOutline.CapType = A.LineCapValues.Round;
+            themeOutline.RemoveAllChildren<A.PresetDash>();
+            themeOutline.RemoveAllChildren<A.Round>();
+            themeOutline.RemoveAllChildren<A.Bevel>();
+            themeOutline.RemoveAllChildren<A.Miter>();
+            A.SolidFill themeFill = themeOutline.GetFirstChild<A.SolidFill>()!;
+            A.PresetDash themeDash = themeOutline.InsertAfter(
+                new A.PresetDash { Val = A.PresetLineDashValues.Dash },
+                themeFill)!;
+            themeOutline.InsertAfter(new A.Round(), themeDash);
             var scheme = new A.SchemeColor {
                 Val = A.SchemeColorValues.Accent2
             };
@@ -207,6 +220,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal((byte)0x34, renderedStroke.G);
             Assert.Equal((byte)0x56, renderedStroke.B);
             Assert.Equal((byte)153, renderedStroke.A);
+            Assert.Equal(3D, rendered.Shape.StrokeWidth);
+            Assert.Equal(OfficeStrokeDashStyle.Dash,
+                rendered.Shape.StrokeDashStyle);
+            Assert.Equal(OfficeStrokeLineCap.Round,
+                rendered.Shape.StrokeLineCap);
+            Assert.Equal(OfficeStrokeLineJoin.Round,
+                rendered.Shape.StrokeLineJoin);
+            OfficeImageExportResult svg = slide.ExportImage(
+                OfficeImageExportFormat.Svg);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("stroke-width=\"3\"", svgText,
+                StringComparison.Ordinal);
+            Assert.Contains("stroke-dasharray=", svgText,
+                StringComparison.Ordinal);
+            Assert.Contains("stroke-linecap=\"round\"", svgText,
+                StringComparison.Ordinal);
+            Assert.Contains("stroke-linejoin=\"round\"", svgText,
+                StringComparison.Ordinal);
         }
 
         [Fact]
