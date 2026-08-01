@@ -54,25 +54,15 @@ public sealed partial class PdfReadPage {
     }
 
     private (double Width, double Height) GetVisualPageSize() {
-        (double Width, double Height) pageSize = GetPageSize();
-        int rotation = GetRotationDegrees();
-        return rotation == 90 || rotation == 270
-            ? (pageSize.Height, pageSize.Width)
-            : pageSize;
-    }
-
-    private Matrix2D GetVisualPageTransform() {
         PdfPageBox pageBox = GetPageBoundaryBox();
-        Matrix2D cropOrigin = Matrix2D.Translation(-pageBox.Left, -pageBox.Bottom);
-        Matrix2D rotation = GetRotationDegrees() switch {
-            90 => new Matrix2D(0D, 1D, -1D, 0D, pageBox.Height, 0D),
-            180 => new Matrix2D(-1D, 0D, 0D, -1D, pageBox.Width, pageBox.Height),
-            270 => new Matrix2D(0D, -1D, 1D, 0D, 0D, pageBox.Width),
-            _ => Matrix2D.Identity
-        };
-
-        return Matrix2D.Multiply(rotation, cropOrigin);
+        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, GetRotationDegrees());
     }
+
+    private Matrix2D GetVisualPageTransform() =>
+        PdfVisualCoordinateMapper.CreateTransform(GetPageBoundaryBox(), GetRotationDegrees());
+
+    internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
+        PdfVisualCoordinateMapper.TransformBounds(GetPageBoundaryBox(), GetRotationDegrees(), left, bottom, right, top);
 
     internal (double Width, double Height) GetInteractionPageSize() => GetVisualPageSize();
 

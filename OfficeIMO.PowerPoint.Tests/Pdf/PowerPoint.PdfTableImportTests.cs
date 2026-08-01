@@ -93,6 +93,70 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocument_ToPowerPointPresentation_HybridMapsRotatedTableBoundsToVisualCoordinates() {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 300,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "14" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 140, 80 }
+            })
+            .ToBytes();
+        byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(rotated)
+            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateHybrid());
+        using var presentation = new MemoryStream();
+        using (result.Value) result.Value.Save(presentation);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        SlidePart slide = Assert.Single(package.PresentationPart!.SlideParts);
+        DocumentFormat.OpenXml.Presentation.Picture picture = Assert.Single(
+            slide.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>());
+        DocumentFormat.OpenXml.Presentation.GraphicFrame frame = Assert.Single(
+            slide.Slide.Descendants<DocumentFormat.OpenXml.Presentation.GraphicFrame>());
+        long pictureTop = picture.ShapeProperties!.Transform2D!.Offset!.Y!.Value;
+        long pictureHeight = picture.ShapeProperties.Transform2D.Extents!.Cy!.Value;
+        long tableTop = frame.Transform!.Offset!.Y!.Value;
+
+        Assert.True(tableTop > pictureTop + pictureHeight / 2L);
+        Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
+    }
+
+    [Fact]
+    public void PdfDocument_ToPowerPointPresentation_HybridOmitsSyntheticKeyValueHeader() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .KeyValueTable(new[] {
+                PdfCore.PdfKeyValueRow.Text("InvoiceId", "INV-001"),
+                PdfCore.PdfKeyValueRow.Text("Customer", "Evotec"),
+                PdfCore.PdfKeyValueRow.Text("Status", "Open")
+            }, includeHeader: false)
+            .ToBytes();
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateHybrid());
+        using var presentation = new MemoryStream();
+        using (result.Value) result.Value.Save(presentation);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        A.Table table = GetSingleTable(package);
+
+        Assert.True(ContainsRows(
+            table,
+            new[] { "InvoiceId", "INV-001" },
+            new[] { "Customer", "Evotec" },
+            new[] { "Status", "Open" }));
+        Assert.DoesNotContain(table.Descendants<A.Text>(), text => text.Text == "Key" || text.Text == "Value");
+    }
+
+    [Fact]
     public void PdfDocument_ToPowerPointPresentation_HybridPreservesSelectedPageIndexesInTableReports() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

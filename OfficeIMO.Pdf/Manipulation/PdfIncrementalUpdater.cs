@@ -204,18 +204,22 @@ internal static partial class PdfIncrementalUpdater {
         int metadataObjectNumber;
         int metadataGeneration;
         if (metadataReference is not null) {
-            if (!PdfObjectLookup.TryGet(objects, metadataReference, out PdfIndirectObject? metadataObject) ||
-                metadataObject.Value is not PdfStream metadataStream) {
-                throw new InvalidOperationException("The existing XMP metadata reference does not resolve to a readable stream.");
-            }
-
-            if (existingXmp is null || existingXmp.RawXml is null || !existingXmp.IsWellFormedXml || existingXmp.HasUnsupportedFilters) {
+            if (!TryGetPreservableXmpMetadata(
+                    objects,
+                    metadataReference,
+                    existingXmp,
+                    out PdfIndirectObject? metadataObject,
+                    out PdfStream? metadataStream)) {
+                if (!PdfObjectLookup.TryGet(objects, metadataReference, out PdfIndirectObject? referencedObject) ||
+                    referencedObject.Value is not PdfStream) {
+                    throw new InvalidOperationException("The existing XMP metadata reference does not resolve to a readable stream.");
+                }
                 throw new InvalidOperationException("The existing XMP metadata stream cannot be decoded and preserved safely.");
             }
 
-            xml = PdfXmpMetadataSynchronizer.Synchronize(existingXmp.RawXml, updated);
-            streamDictionary = PdfXmpMetadataSynchronizer.CloneUnfilteredMetadataDictionary(metadataStream.Dictionary);
-            metadataObjectNumber = metadataObject.ObjectNumber;
+            xml = PdfXmpMetadataSynchronizer.Synchronize(existingXmp!.RawXml!, updated);
+            streamDictionary = PdfXmpMetadataSynchronizer.CloneUnfilteredMetadataDictionary(metadataStream!.Dictionary);
+            metadataObjectNumber = metadataObject!.ObjectNumber;
             metadataGeneration = metadataObject.Generation;
         } else {
             xml = PdfXmpMetadataBuilder.Build(updated.Title, updated.Author, updated.Subject, updated.Keywords);
@@ -233,6 +237,32 @@ internal static partial class PdfIncrementalUpdater {
             metadataGeneration,
             new PdfStream(streamDictionary, xml));
         changedObjectNumbers.Add(metadataObjectNumber);
+    }
+
+    internal static bool CanPreserveXmpMetadataAppendOnly(byte[] pdf, PdfReadOptions? readOptions) {
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
+        if (!security.RootObjectNumber.HasValue) return false;
+        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
+        if (!objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? catalogObject) ||
+            catalogObject.Value is not PdfDictionary catalog) return false;
+        PdfReference? metadataReference = catalog.Get<PdfReference>("Metadata");
+        if (metadataReference is null) return true;
+        PdfXmpMetadataInfo? existingXmp = PdfInspector.Inspect(pdf, readOptions).XmpMetadata;
+        return TryGetPreservableXmpMetadata(objects, metadataReference, existingXmp, out _, out _);
+    }
+
+    private static bool TryGetPreservableXmpMetadata(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReference metadataReference,
+        PdfXmpMetadataInfo? existingXmp,
+        out PdfIndirectObject? metadataObject,
+        out PdfStream? metadataStream) {
+        metadataStream = null;
+        if (!PdfObjectLookup.TryGet(objects, metadataReference, out metadataObject) ||
+            metadataObject.Value is not PdfStream stream) return false;
+        if (existingXmp is null || existingXmp.RawXml is null || !existingXmp.IsWellFormedXml || existingXmp.HasUnsupportedFilters) return false;
+        metadataStream = stream;
+        return true;
     }
 
     private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {

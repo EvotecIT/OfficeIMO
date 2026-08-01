@@ -30,7 +30,7 @@ public sealed partial class PdfReadPage {
                             visibilityBudget,
                             patternPaintCache)) {
                         totalCount++;
-                        if (!IsRepresentedByDetectedTableBorder(primitive, detectedTables, size.Height)) {
+                        if (!IsRepresentedByDetectedTableBorder(primitive, detectedTables)) {
                             unrepresentedCount++;
                         }
                     }
@@ -45,10 +45,9 @@ public sealed partial class PdfReadPage {
         return (totalCount, unrepresentedCount);
     }
 
-    private static bool IsRepresentedByDetectedTableBorder(
+    private bool IsRepresentedByDetectedTableBorder(
         PdfPageVisualPrimitive primitive,
-        IReadOnlyList<StructuredTable> detectedTables,
-        double pageHeight) {
+        IReadOnlyList<StructuredTable> detectedTables) {
         bool hasFill = primitive.FillColor.HasValue ||
             primitive.FillGradient != null ||
             primitive.FillRadialGradient != null ||
@@ -62,8 +61,10 @@ public sealed partial class PdfReadPage {
 
         const double minimumHorizontalPadding = 8D;
         const double maximumHorizontalPadding = 48D;
-        const double minimumVerticalPadding = 12D;
-        const double maximumVerticalPadding = 24D;
+        int rotationDegrees = GetRotationDegrees();
+        bool axesSwapped = rotationDegrees == 90 || rotationDegrees == 270;
+        double minimumVerticalPadding = axesSwapped ? 32D : 12D;
+        double maximumVerticalPadding = axesSwapped ? 48D : 24D;
         double primitiveLeft = primitive.X;
         double primitiveTop = primitive.Y;
         double primitiveRight = primitive.X + primitive.Width;
@@ -71,17 +72,19 @@ public sealed partial class PdfReadPage {
         for (int tableIndex = 0; tableIndex < detectedTables.Count; tableIndex++) {
             StructuredTable table = detectedTables[tableIndex];
             if (table.Columns.Count == 0 || table.YTop <= table.YBottom) continue;
-            double tableLeft = table.Columns[0].From;
-            double tableRight = table.Columns[table.Columns.Count - 1].To;
-            double tableTop = pageHeight - table.YTop;
-            double tableBottom = pageHeight - table.YBottom;
+            GetVisualTableBoundaries(table, out double[] verticalBoundaries, out double[] horizontalBoundaries);
+            if (verticalBoundaries.Length < 2 || horizontalBoundaries.Length < 2) continue;
+            double tableLeft = verticalBoundaries[0];
+            double tableRight = verticalBoundaries[verticalBoundaries.Length - 1];
+            double tableTop = horizontalBoundaries[0];
+            double tableBottom = horizontalBoundaries[horizontalBoundaries.Length - 1];
             double strokeTolerance = primitive.StrokeWidth / 2D;
             double horizontalTolerance = Math.Max(
                 minimumHorizontalPadding,
-                Math.Min(maximumHorizontalPadding, (tableRight - tableLeft) / table.Columns.Count * 0.75D));
+                Math.Min(maximumHorizontalPadding, (tableRight - tableLeft) / Math.Max(1, verticalBoundaries.Length - 1) * 0.75D));
             double verticalTolerance = Math.Max(
                 minimumVerticalPadding,
-                Math.Min(maximumVerticalPadding, (tableBottom - tableTop) / Math.Max(1, table.Rows.Count - 1) / 2D));
+                Math.Min(maximumVerticalPadding, (tableBottom - tableTop) / Math.Max(1, horizontalBoundaries.Length - 1) * 0.75D));
             horizontalTolerance = Math.Max(horizontalTolerance, strokeTolerance);
             verticalTolerance = Math.Max(verticalTolerance, strokeTolerance);
             bool horizontalMatch = primitiveLeft >= tableLeft - horizontalTolerance &&
@@ -90,40 +93,28 @@ public sealed partial class PdfReadPage {
                 primitiveBottom <= tableBottom + verticalTolerance;
             if (!horizontalMatch || !topDownVerticalMatch) continue;
 
-            double averageColumnWidth = Math.Max(1D, (tableRight - tableLeft) / table.Columns.Count);
-            double averageRowHeight = Math.Max(1D, (tableBottom - tableTop) / Math.Max(1, table.Rows.Count - 1));
+            double averageColumnWidth = Math.Max(1D, (tableRight - tableLeft) / Math.Max(1, verticalBoundaries.Length - 1));
+            double averageRowHeight = Math.Max(1D, (tableBottom - tableTop) / Math.Max(1, horizontalBoundaries.Length - 1));
             double lineTolerance = Math.Max(2D, primitive.StrokeWidth * 2D);
             double rowBoundaryTolerance = Math.Max(
                 lineTolerance,
                 Math.Min(verticalTolerance, averageRowHeight * 0.25D));
+            double rectangleRowBoundaryTolerance = axesSwapped
+                ? Math.Max(rowBoundaryTolerance, verticalTolerance)
+                : rowBoundaryTolerance;
             bool horizontalBorder = primitive.Height <= lineTolerance &&
                 primitive.Width >= averageColumnWidth * 0.5D &&
-                IsNearDetectedRowBoundary(
-                    (primitiveTop + primitiveBottom) / 2D,
-                    tableTop,
-                    averageRowHeight,
-                    table.Rows.Count,
-                    rowBoundaryTolerance);
+                IsNearBoundary((primitiveTop + primitiveBottom) / 2D, horizontalBoundaries, rowBoundaryTolerance);
             bool verticalBorder = primitive.Width <= lineTolerance &&
                 primitive.Height >= averageRowHeight * 0.5D &&
-                IsNearDetectedColumnBoundary(primitiveLeft, table.Columns, horizontalTolerance);
+                IsNearBoundary((primitiveLeft + primitiveRight) / 2D, verticalBoundaries, horizontalTolerance);
             bool cellBorderRectangle = primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle &&
                 primitive.Width >= averageColumnWidth * 0.5D &&
-                primitive.Height <= averageRowHeight * 2.5D &&
-                IsNearDetectedRowBoundary(
-                    primitiveTop,
-                    tableTop,
-                    averageRowHeight,
-                    table.Rows.Count,
-                    rowBoundaryTolerance) &&
-                IsNearDetectedRowBoundary(
-                    primitiveBottom,
-                    tableTop,
-                    averageRowHeight,
-                    table.Rows.Count,
-                    rowBoundaryTolerance) &&
-                ((IsNearDetectedColumnBoundary(primitiveLeft, table.Columns, horizontalTolerance) &&
-                  IsNearDetectedColumnBoundary(primitiveRight, table.Columns, horizontalTolerance)) ||
+                primitive.Height <= (axesSwapped ? tableBottom - tableTop + verticalTolerance : averageRowHeight * 2.5D) &&
+                IsNearBoundary(primitiveTop, horizontalBoundaries, rectangleRowBoundaryTolerance) &&
+                IsNearBoundary(primitiveBottom, horizontalBoundaries, rectangleRowBoundaryTolerance) &&
+                ((IsNearBoundary(primitiveLeft, verticalBoundaries, horizontalTolerance) &&
+                  IsNearBoundary(primitiveRight, verticalBoundaries, horizontalTolerance)) ||
                  (primitiveLeft <= tableLeft + horizontalTolerance &&
                   primitiveRight >= tableRight - horizontalTolerance));
             if (horizontalBorder || verticalBorder || cellBorderRectangle) return true;
@@ -131,27 +122,53 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private static bool IsNearDetectedRowBoundary(
-        double y,
-        double firstRowBaseline,
-        double averageRowHeight,
-        int rowCount,
-        double tolerance) {
-        if (rowCount <= 0) return false;
-        double firstBoundary = firstRowBaseline - averageRowHeight / 2D;
-        for (int index = 0; index <= rowCount; index++) {
-            if (Math.Abs(y - (firstBoundary + index * averageRowHeight)) <= tolerance) return true;
+    private void GetVisualTableBoundaries(
+        StructuredTable table,
+        out double[] verticalBoundaries,
+        out double[] horizontalBoundaries) {
+        var vertical = new List<double>();
+        var horizontal = new List<double>();
+        double tableLeft = table.Columns[0].From;
+        double tableRight = table.Columns[table.Columns.Count - 1].To;
+        double averageRowHeight = (table.YTop - table.YBottom) / Math.Max(1, table.Rows.Count - 1);
+        double firstRowBoundary = table.YTop + averageRowHeight / 2D;
+        double lastRowBoundary = table.YBottom - averageRowHeight / 2D;
+        var columnBoundaries = new HashSet<double>();
+        for (int index = 0; index < table.Columns.Count; index++) {
+            columnBoundaries.Add(table.Columns[index].From);
+            columnBoundaries.Add(table.Columns[index].To);
         }
-        return false;
+        foreach (double x in columnBoundaries) {
+            AddVisualBoundary(x, lastRowBoundary, x, firstRowBoundary, vertical, horizontal);
+        }
+        int rowCount = Math.Max(1, table.Rows.Count);
+        for (int index = 0; index <= rowCount; index++) {
+            double y = firstRowBoundary - index * averageRowHeight;
+            AddVisualBoundary(tableLeft, y, tableRight, y, vertical, horizontal);
+        }
+        verticalBoundaries = vertical.Distinct().OrderBy(static value => value).ToArray();
+        horizontalBoundaries = horizontal.Distinct().OrderBy(static value => value).ToArray();
     }
 
-    private static bool IsNearDetectedColumnBoundary(
-        double x,
-        List<StructuredTableColumn> columns,
-        double tolerance) {
-        for (int index = 0; index < columns.Count; index++) {
-            if (Math.Abs(x - columns[index].From) <= tolerance ||
-                Math.Abs(x - columns[index].To) <= tolerance) return true;
+    private void AddVisualBoundary(
+        double x1,
+        double y1,
+        double x2,
+        double y2,
+        List<double> vertical,
+        List<double> horizontal) {
+        PdfVisualBounds bounds = TransformBoundsToVisual(
+            Math.Min(x1, x2),
+            Math.Min(y1, y2),
+            Math.Max(x1, x2),
+            Math.Max(y1, y2));
+        if (bounds.Width <= bounds.Height) vertical.Add((bounds.Left + bounds.Right) / 2D);
+        else horizontal.Add((bounds.Top + bounds.Bottom) / 2D);
+    }
+
+    private static bool IsNearBoundary(double value, double[] boundaries, double tolerance) {
+        for (int index = 0; index < boundaries.Length; index++) {
+            if (Math.Abs(value - boundaries[index]) <= tolerance) return true;
         }
         return false;
     }

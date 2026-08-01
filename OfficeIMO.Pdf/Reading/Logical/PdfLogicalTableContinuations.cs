@@ -60,7 +60,7 @@ internal static class PdfLogicalTableContinuations {
         if (previous.Data.Columns.Count < 2 || previous.Data.Columns.Count != current.Data.Columns.Count) return false;
         if (!string.Equals(previous.DetectionKind, current.DetectionKind, StringComparison.Ordinal)) return false;
         if (!IsAtBottomEdge(previous.Table, previousPage) || !IsAtTopEdge(current.Table, currentPage)) return false;
-        if (!HasCompatibleColumns(previous.Table.Columns, current.Table.Columns, tolerance)) return false;
+        if (!HasCompatibleColumns(previous.Table, current.Table, tolerance)) return false;
 
         bool previousHasHeader = previous.Data.Structure.HasHeaderRow;
         bool currentHasHeader = current.Data.Structure.HasHeaderRow;
@@ -74,15 +74,21 @@ internal static class PdfLogicalTableContinuations {
     private static bool IsAtTopEdge(PdfLogicalTable table, PdfLogicalPage page) =>
         table.YTop >= page.Height * 0.72D;
 
-    private static bool HasCompatibleColumns(
-        IReadOnlyList<PdfLogicalTableColumn> previous,
-        IReadOnlyList<PdfLogicalTableColumn> current,
+    internal static bool HasCompatibleColumns(
+        PdfLogicalTable previousTable,
+        PdfLogicalTable currentTable,
         double tolerance) {
+        IReadOnlyList<PdfLogicalTableColumn> previous = previousTable.Columns;
+        IReadOnlyList<PdfLogicalTableColumn> current = currentTable.Columns;
         if (previous.Count == 0 || previous.Count != current.Count) return false;
+        bool positionedRecovery = string.Equals(previousTable.DetectionKind, "positioned-cells-bounded", StringComparison.Ordinal) &&
+            string.Equals(currentTable.DetectionKind, "positioned-cells-bounded", StringComparison.Ordinal);
         for (int index = 0; index < previous.Count; index++) {
             if (Math.Abs(previous[index].From - current[index].From) > tolerance) return false;
             // The last right edge is based on the widest text run on each page rather than a stable split.
-            if (index < previous.Count - 1 && Math.Abs(previous[index].To - current[index].To) > tolerance) return false;
+            // Positioned-cell recovery derives every right edge from page-local text width, so its
+            // stable compatibility evidence is the ordered set of column starts.
+            if (!positionedRecovery && index < previous.Count - 1 && Math.Abs(previous[index].To - current[index].To) > tolerance) return false;
         }
 
         return true;

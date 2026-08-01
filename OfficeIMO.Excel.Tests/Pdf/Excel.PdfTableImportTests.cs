@@ -446,12 +446,12 @@ public partial class Excel {
     public void PdfTables_SaveTablesAsExcel_ImportsTimeOnlyValuesWithoutInventingDates() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Table(new[] {
-                new[] { "Time", "Label" },
-                new[] { "09:30", "Morning" },
-                new[] { "14:45", "Afternoon" }
+                new[] { "Start", "End", "Label" },
+                new[] { "09:30", "10:15", "Morning" },
+                new[] { "14:45", "16:30", "Afternoon" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 120, 160 }
+                ColumnWidthPoints = new List<double?> { 90, 90, 160 }
             })
             .ToBytes();
 
@@ -461,6 +461,7 @@ public partial class Excel {
             new PdfExcelTableImportOptions { AutoFitColumns = false }).Entries);
 
         Assert.Equal(PdfExcelTableColumnKind.Time, entry.ColumnKinds[0]);
+        Assert.Equal(PdfExcelTableColumnKind.Time, entry.ColumnKinds[1]);
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
         object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
         DateTime first = Assert.IsType<DateTime>(values[1, 0]);
@@ -654,6 +655,27 @@ public partial class Excel {
             table => table.Kind == "positioned-cells-bounded");
         Assert.Equal(new[] { "Name", "Qty" }, recovered.Rows[0]);
         Assert.Equal(new[] { "Beta", "14" }, recovered.Rows[2]);
+    }
+
+    [Fact]
+    public void PdfTables_PositionedContinuationsMatchStableColumnStartsInsteadOfTextWidths() {
+        static PdfCore.PdfLogicalTable Table(double firstWidth, double secondWidth) {
+            var table = new PdfCore.StructuredTable {
+                Kind = "positioned-cells-bounded",
+                YTop = 700,
+                YBottom = 660
+            };
+            table.Columns.Add(new PdfCore.StructuredTableColumn { From = 20, To = 20 + firstWidth });
+            table.Columns.Add(new PdfCore.StructuredTableColumn { From = 220, To = 220 + secondWidth });
+            table.Rows.Add(new[] { "Code", "Total" });
+            table.Rows.Add(new[] { "A-100", "12" });
+            return PdfCore.PdfLogicalTable.From(1, table);
+        }
+
+        Assert.True(PdfCore.PdfLogicalTableContinuations.HasCompatibleColumns(
+            Table(40, 30),
+            Table(160, 90),
+            tolerance: 4D));
     }
 
     [Fact]

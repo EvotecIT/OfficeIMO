@@ -150,10 +150,23 @@ public class PdfIncrementalUpdaterTests {
         string? metadataObjectBody) {
         byte[] original = BuildMetadataPdfWithCatalogGeneration(metadataObjectNumber, metadataObjectBody);
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            PdfIncrementalUpdater.SynchronizeMetadata(original, title: "Must not replace existing metadata"));
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(
+            original,
+            PdfMutationOperation.SynchronizeMetadata,
+            executionPreference: PdfMutationExecutionPreference.RequireAppendOnly);
 
-        Assert.Contains("does not resolve to a readable stream", exception.Message, StringComparison.Ordinal);
+        Assert.False(plan.CanExecute);
+        Assert.False(plan.AppendOnlyAvailable);
+        Assert.Throws<PdfMutationBlockedException>(() => PdfMutationPlanner.RequireAppendOnly(
+            original,
+            PdfMutationOperation.SynchronizeMetadata));
+        Assert.False(PdfMutationPlanner.Plan(
+            original,
+            PdfMutationOperation.UpdateMetadata,
+            executionPreference: PdfMutationExecutionPreference.RequireAppendOnly).CanExecute);
+
+        Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfIncrementalUpdater.SynchronizeMetadata(original, title: "Must not replace existing metadata"));
     }
 
     [Fact]

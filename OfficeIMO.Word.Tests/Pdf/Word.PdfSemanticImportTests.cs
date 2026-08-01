@@ -248,6 +248,33 @@ public partial class Word {
     }
 
     [Fact]
+    public void PdfSemanticImport_RotatedPureTableBordersAreRepresentedSemantics() {
+        byte[] source = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" },
+                new[] { "B", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .ToBytes();
+        byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(rotated).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            count == "0");
+    }
+
+    [Fact]
     public void PdfSemanticImport_VectorArtworkInsideDetectedTableIsReportedAsLoss() {
         var shape = OfficeShape.Rectangle(18D, 10D);
         shape.FillColor = OfficeColor.Blue;

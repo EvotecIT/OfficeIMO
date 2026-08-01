@@ -297,7 +297,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
                     TableSegment segment = segments[segmentIndex];
                     bool headerRowIncluded = options.IncludeColumnHeaderRows
-                        && HasHeaderRow(data);
+                        && HasSourceHeaderRow(data);
                     int rowCount = segment.RowCount + (headerRowIncluded ? 1 : 0);
                     if (rowCount <= 0 || segment.ColumnCount <= 0) continue;
 
@@ -470,9 +470,10 @@ public static partial class PowerPointPdfConverterExtensions {
         double slideWidthPoints,
         double slideHeightPoints) {
         const double emusPerPoint = 12700D;
+        (double Width, double Height) visualPageSize = page.GetVisualPageSize();
         VisualPagePlacement placement = render.Width > 0 && render.Height > 0
             ? GetVisualPagePlacement(render.Width, render.Height, slideWidthPoints, slideHeightPoints)
-            : GetVisualPagePlacement(page.Width, page.Height, slideWidthPoints, slideHeightPoints);
+            : GetVisualPagePlacement(visualPageSize.Width, visualPageSize.Height, slideWidthPoints, slideHeightPoints);
         int firstColumn = Math.Min(segment.ColumnStartIndex, Math.Max(0, table.Columns.Count - 1));
         int lastColumn = Math.Min(table.Columns.Count, segment.ColumnStartIndex + segment.ColumnCount) - 1;
         double leftPoints = table.Columns.Count == 0 ? 0D : table.Columns[firstColumn].From;
@@ -490,14 +491,14 @@ public static partial class PowerPointPdfConverterExtensions {
             : Math.Max(1, segment.RowCount);
         double sourceTop = table.YTop - sourceRowStart * sourceRowHeight;
         double sourceBottom = Math.Max(table.YBottom, sourceTop - sourceRows * sourceRowHeight);
-        double topPoints = Math.Max(0D, page.Height - sourceTop);
-        double widthPoints = Math.Max(1D, rightPoints - leftPoints);
-        double heightPoints = Math.Max(1D, sourceTop - sourceBottom);
-        double xScale = placement.Width / Math.Max(1D, page.Width);
-        double yScale = placement.Height / Math.Max(1D, page.Height);
+        PdfCore.PdfVisualBounds visualBounds = page.TransformBoundsToVisual(leftPoints, sourceBottom, rightPoints, sourceTop);
+        double widthPoints = Math.Max(1D, visualBounds.Width);
+        double heightPoints = Math.Max(1D, visualBounds.Height);
+        double xScale = placement.Width / Math.Max(1D, visualPageSize.Width);
+        double yScale = placement.Height / Math.Max(1D, visualPageSize.Height);
         return (
-            (long)Math.Round((placement.Left + leftPoints * xScale) * emusPerPoint),
-            (long)Math.Round((placement.Top + topPoints * yScale) * emusPerPoint),
+            (long)Math.Round((placement.Left + visualBounds.Left * xScale) * emusPerPoint),
+            (long)Math.Round((placement.Top + visualBounds.Top * yScale) * emusPerPoint),
             (long)Math.Round(Math.Min(placement.Width, widthPoints * xScale) * emusPerPoint),
             (long)Math.Round(Math.Min(placement.Height, heightPoints * yScale) * emusPerPoint));
     }
@@ -543,6 +544,9 @@ public static partial class PowerPointPdfConverterExtensions {
             && (data.Structure.HasHeaderRow || data.Structure.IsKeyValueTable)
             && data.Columns.Any(column => !string.IsNullOrWhiteSpace(column));
     }
+
+    private static bool HasSourceHeaderRow(PdfCore.PdfLogicalTableData data) =>
+        data.Structure.HasHeaderRow && HasHeaderRow(data);
 
     private static string BuildTitle(PdfCore.PdfLogicalTableExtraction extraction, int segmentIndex, int segmentCount) {
         string title = "PDF page "

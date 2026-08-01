@@ -271,7 +271,6 @@ namespace OfficeIMO.Excel.Pdf {
                 } else if (options.ConvertPercentageColumns && values.All(value => TryParsePercentage(value, options.NumericCulture, out _))) {
                     kinds[columnIndex] = PdfExcelTableColumnKind.Percentage;
                 } else if (options.ConvertDateTimeColumns &&
-                           HasHeaderWord(columns[columnIndex], "time") &&
                            values.All(value => TryParseTimeOnly(value, options.NumericCulture, out _))) {
                     kinds[columnIndex] = PdfExcelTableColumnKind.Time;
                 } else if (options.ConvertNumericColumns &&
@@ -364,9 +363,6 @@ namespace OfficeIMO.Excel.Pdf {
                 DateTimeStyles.AllowWhiteSpaces,
                 out _));
         }
-
-        private static bool HasHeaderWord(string columnName, string expected) =>
-            TokenizeHeaderWords(columnName).Any(word => string.Equals(word, expected, StringComparison.Ordinal));
 
         private static bool TryParseTimeOnly(string value, CultureInfo culture, out TimeSpan result) {
             string normalized = value.Trim();

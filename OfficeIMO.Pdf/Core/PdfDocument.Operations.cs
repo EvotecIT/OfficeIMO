@@ -90,7 +90,7 @@ public sealed partial class PdfDocument {
             snapshot.Bytes,
             snapshot.Options,
             () => snapshot.Document);
-        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference);
+        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options);
     }
 
     /// <summary>
@@ -128,7 +128,8 @@ public sealed partial class PdfDocument {
                 snapshot.Bytes,
                 requested[index],
                 requestedFieldNames,
-                executionPreference);
+                executionPreference,
+                snapshot.Options);
         }
         return new PdfMutationPortfolioReport(preflight, Array.AsReadOnly(plans));
     }

@@ -95,6 +95,17 @@ public sealed class PdfLogicalPage {
     /// <summary>True when page-level /PieceInfo was present.</summary>
     public bool HasPieceInfo => Geometry.HasPieceInfo;
 
+    internal (double Width, double Height) GetVisualPageSize() {
+        PdfPageBox pageBox = GetVisualBoundaryBox();
+        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, RotationDegrees);
+    }
+
+    internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
+        PdfVisualCoordinateMapper.TransformBounds(GetVisualBoundaryBox(), RotationDegrees, left, bottom, right, top);
+
+    private PdfPageBox GetVisualBoundaryBox() =>
+        CropBox ?? MediaBox ?? new PdfPageBox("MediaBox", 0D, 0D, Width, Height);
+
     /// <summary>Logical elements in extraction order.</summary>
     public IReadOnlyList<IPdfLogicalElement> Elements { get; }
 
