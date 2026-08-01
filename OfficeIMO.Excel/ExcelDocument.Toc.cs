@@ -182,10 +182,12 @@ namespace OfficeIMO.Excel {
 
                 if (!string.IsNullOrEmpty(relId)) {
                     var part = (DocumentFormat.OpenXml.Packaging.WorksheetPart)_workBookPart.GetPartById(relId!);
+                    IReadOnlyList<uint> queryConnectionIds = GetWorksheetQueryConnectionIds(part);
                     foreach (var t in part.TableDefinitionParts.ToList()) {
                         part.DeletePart(t);
                     }
                     _workBookPart.DeletePart(part);
+                    RemoveUnusedAuthoredQueryConnections(queryConnectionIds);
                 }
                 wb.Save();
                 MarkSheetCacheDirty();

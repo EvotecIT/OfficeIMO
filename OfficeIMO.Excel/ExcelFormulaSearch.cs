@@ -155,6 +155,10 @@ namespace OfficeIMO.Excel {
                     index = nextIndex;
                     continue;
                 }
+                if (!inString && current == '[' && TrySkipBracketedToken(formula, index, out int bracketEnd)) {
+                    index = bracketEnd;
+                    continue;
+                }
                 if (inString || !(char.IsLetter(current) || current == '_')) { index++; continue; }
 
                 int start = index++;
@@ -191,6 +195,29 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            nextIndex = start;
+            return false;
+        }
+
+        private static bool TrySkipBracketedToken(string formula, int start, out int nextIndex) {
+            int depth = 0;
+            for (int index = start; index < formula.Length; index++) {
+                if (formula[index] == '\'' && index + 1 < formula.Length
+                    && (formula[index + 1] == '['
+                        || formula[index + 1] == ']'
+                        || formula[index + 1] == '#'
+                        || formula[index + 1] == '@'
+                        || formula[index + 1] == '\'')) {
+                    index++;
+                    continue;
+                }
+                if (formula[index] == '[') {
+                    depth++;
+                } else if (formula[index] == ']' && --depth == 0) {
+                    nextIndex = index + 1;
+                    return true;
+                }
+            }
             nextIndex = start;
             return false;
         }

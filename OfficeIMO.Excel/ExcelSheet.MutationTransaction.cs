@@ -50,12 +50,20 @@ namespace OfficeIMO.Excel {
         }
 
         private void ResetMutationCaches() {
+            _excelDocument.ResetMutationCachesAfterRollback();
             _sheetDataCache = null;
             _lastAccessedRow = null;
             _lastAccessedCell = null;
             _lastAccessedRowIndex = 0;
             _lastAccessedCellRowIndex = 0;
             _lastAccessedCellColumnIndex = 0;
+            _cellValueSharedStringIndexCache = null;
+            _cellValueDateStyleIndexes = null;
+            _cellValueDurationStyleIndexes = null;
+            _cellValueDefaultDateStyleIndex = null;
+            _cellValueDefaultDurationStyleIndex = null;
+            ClearCellTextSharedStringCache();
+            ClearFindFirstCache();
             ClearHeaderCache();
         }
 

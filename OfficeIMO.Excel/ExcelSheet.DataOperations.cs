@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.IO;
 using System.Globalization;
 using System.Text;
 
@@ -601,7 +602,7 @@ namespace OfficeIMO.Excel {
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter autoFilter = GetOrReplaceWorksheetAutoFilter(worksheet, range);
+                AutoFilter autoFilter = GetOrReplaceAutoFilter(worksheet, range, out Table? tableOwner);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -620,7 +621,7 @@ namespace OfficeIMO.Excel {
                 if (customFilters.Elements<CustomFilter>().Any()) {
                     filterColumn.Append(customFilters);
                     autoFilter.Append(filterColumn);
-                    worksheet.Save();
+                    SaveAutoFilterOwner(worksheet, tableOwner);
                 }
             });
         }
@@ -631,7 +632,7 @@ namespace OfficeIMO.Excel {
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter autoFilter = GetOrReplaceWorksheetAutoFilter(worksheet, range);
+                AutoFilter autoFilter = GetOrReplaceAutoFilter(worksheet, range, out Table? tableOwner);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -639,7 +640,7 @@ namespace OfficeIMO.Excel {
                 var filterColumn = new FilterColumn { ColumnId = columnId };
                 filterColumn.Append(new Filters { Blank = true });
                 autoFilter.Append(filterColumn);
-                worksheet.Save();
+                SaveAutoFilterOwner(worksheet, tableOwner);
             });
         }
 
@@ -660,7 +661,7 @@ namespace OfficeIMO.Excel {
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter autoFilter = GetOrReplaceWorksheetAutoFilter(worksheet, range);
+                AutoFilter autoFilter = GetOrReplaceAutoFilter(worksheet, range, out Table? tableOwner);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -672,8 +673,31 @@ namespace OfficeIMO.Excel {
                     Val = (double)value,
                 });
                 autoFilter.Append(filterColumn);
-                worksheet.Save();
+                SaveAutoFilterOwner(worksheet, tableOwner);
             });
+        }
+
+        private AutoFilter GetOrReplaceAutoFilter(Worksheet worksheet, string range, out Table? tableOwner) {
+            Table[] matchingTables = _worksheetPart.TableDefinitionParts
+                .Select(part => part.Table)
+                .Where(table => table?.GetFirstChild<AutoFilter>() is AutoFilter filter
+                    && AutoFilterRangesMatch(filter.Reference?.Value, range))
+                .Cast<Table>()
+                .ToArray();
+            if (matchingTables.Length > 1) {
+                throw new InvalidDataException("Multiple table AutoFilters own the requested range.");
+            }
+            if (matchingTables.Length == 1) {
+                tableOwner = matchingTables[0];
+                return tableOwner.GetFirstChild<AutoFilter>()!;
+            }
+            tableOwner = null;
+            return GetOrReplaceWorksheetAutoFilter(worksheet, range);
+        }
+
+        private static void SaveAutoFilterOwner(Worksheet worksheet, Table? tableOwner) {
+            if (tableOwner != null) tableOwner.Save();
+            else worksheet.Save();
         }
 
         private static AutoFilter GetOrReplaceWorksheetAutoFilter(Worksheet worksheet, string range) {

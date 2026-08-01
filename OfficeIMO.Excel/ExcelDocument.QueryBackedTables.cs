@@ -29,38 +29,46 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelSheet sheet = this[options.WorksheetName];
-            for (int index = 0; index < columns.Length; index++) sheet.CellValue(row, column + index, columns[index]);
             string range = A1.CellReference(row, column) + ":" + A1.CellReference(row, column + columns.Length - 1);
-            string tableName = sheet.AddTableAndGetName(
-                range,
-                hasHeader: true,
-                options.TableName.Trim(),
-                TableStyle.TableStyleMedium2,
-                includeAutoFilter: true,
-                validationMode: TableNameValidationMode.Strict);
+            string? tableName = null;
+            uint connectionId = 0U;
+            sheet.ApplyTransactionalMutation(_ => {
+                for (int index = 0; index < columns.Length; index++) {
+                    sheet.CellValue(row, column + index, columns[index]);
+                }
+                tableName = sheet.AddTableAndGetName(
+                    range,
+                    hasHeader: true,
+                    options.TableName.Trim(),
+                    TableStyle.TableStyleMedium2,
+                    includeAutoFilter: true,
+                    validationMode: TableNameValidationMode.Strict,
+                    headerNames: columns);
 
-            uint connectionId = GetNextPowerQueryConnectionId();
-            Connection connection = CreateNativeQueryConnection(
-                connectionId,
-                connectionName,
-                options.Description,
-                options.CommandText,
-                options.RefreshOnOpen);
-            ConnectionsPart connectionsPart = WorkbookPartRoot.ConnectionsPart
-                ?? WorkbookPartRoot.AddNewPart<ConnectionsPart>();
-            connectionsPart.Connections ??= new Connections();
-            connectionsPart.Connections!.Append(connection);
-            connectionsPart.Connections.Save();
+                connectionId = GetNextPowerQueryConnectionId();
+                Connection connection = CreateNativeQueryConnection(
+                    connectionId,
+                    connectionName,
+                    options.Description,
+                    options.CommandText,
+                    options.RefreshOnOpen);
+                ConnectionsPart connectionsPart = WorkbookPartRoot.ConnectionsPart
+                    ?? WorkbookPartRoot.AddNewPart<ConnectionsPart>();
+                connectionsPart.Connections ??= new Connections();
+                connectionsPart.Connections!.Append(connection);
+                connectionsPart.Connections.Save();
 
-            TableDefinitionPart tablePart = sheet.WorksheetPart.TableDefinitionParts.Single(part =>
-                string.Equals(part.Table?.Name?.Value ?? part.Table?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase));
-            QueryTablePart queryPart = tablePart.AddNewPart<QueryTablePart>();
-            queryPart.QueryTable = CreateNativeQueryTable(
-                tableName,
-                connectionId,
-                tablePart.Table!.TableColumns!,
-                columns);
-            queryPart.QueryTable.Save();
+                TableDefinitionPart tablePart = sheet.WorksheetPart.TableDefinitionParts.Single(part =>
+                    string.Equals(part.Table?.Name?.Value ?? part.Table?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase));
+                QueryTablePart queryPart = tablePart.AddNewPart<QueryTablePart>();
+                queryPart.QueryTable = CreateNativeQueryTable(
+                    tableName!,
+                    connectionId,
+                    tablePart.Table!.TableColumns!,
+                    columns);
+                queryPart.QueryTable.Save();
+                return columns.Length;
+            }, new ExcelMutationPlanOptions(), CancellationToken.None);
             _authoredQueryConnectionIds.Add(connectionId);
             MarkMetadataPartChanged();
 
@@ -69,7 +77,7 @@ namespace OfficeIMO.Excel {
                 connectionName,
                 options.CommandText ?? string.Empty,
                 sheet.Name,
-                tableName,
+                tableName!,
                 range,
                 imported: false);
         }
@@ -191,21 +199,41 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet = this[source.WorksheetName];
             sheet.RemoveQueryBackedTableBinding(source.TableName, preserveTable);
 
-            bool connectionStillUsed = IsNativeConnectionReferenced(source.ConnectionId);
-            if (!connectionStillUsed && _authoredQueryConnectionIds.Contains(source.ConnectionId)) {
-                ConnectionsPart? part = WorkbookPartRoot.ConnectionsPart;
-                Connection? connection = part?.Connections?.Elements<Connection>().FirstOrDefault(item =>
-                    item.Id?.Value == source.ConnectionId);
-                connection?.Remove();
-                if (part?.Connections?.Elements<Connection>().Any() == true) {
-                    part.Connections.Save();
-                } else if (part != null) {
-                    WorkbookPartRoot.DeletePart(part);
-                }
-                _authoredQueryConnectionIds.Remove(source.ConnectionId);
-            }
+            RemoveUnusedAuthoredQueryConnections(new[] { source.ConnectionId });
             MarkMetadataPartChanged();
             return true;
+        }
+
+        internal IReadOnlyList<uint> GetWorksheetQueryConnectionIds(WorksheetPart worksheetPart) {
+            var result = new HashSet<uint>();
+            foreach (QueryTablePart queryPart in ExcelPackageQueryTableParts.Enumerate(worksheetPart)) {
+                if (queryPart.QueryTable?.ConnectionId?.Value is uint connectionId) result.Add(connectionId);
+            }
+            foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
+                if (tablePart.Table?.ConnectionId?.Value is uint connectionId) result.Add(connectionId);
+            }
+            foreach (SingleXmlCell cell in worksheetPart.SingleCellTablePart?.SingleXmlCells?
+                .Elements<SingleXmlCell>() ?? Enumerable.Empty<SingleXmlCell>()) {
+                if (cell.ConnectionId?.Value is uint connectionId) result.Add(connectionId);
+            }
+            return result.ToArray();
+        }
+
+        internal void RemoveUnusedAuthoredQueryConnections(IEnumerable<uint> connectionIds) {
+            ConnectionsPart? part = WorkbookPartRoot.ConnectionsPart;
+            bool changed = false;
+            foreach (uint connectionId in connectionIds.Distinct()) {
+                if (!_authoredQueryConnectionIds.Contains(connectionId)
+                    || IsNativeConnectionReferenced(connectionId)) continue;
+                part?.Connections?.Elements<Connection>().FirstOrDefault(item =>
+                    item.Id?.Value == connectionId)?.Remove();
+                _authoredQueryConnectionIds.Remove(connectionId);
+                changed = true;
+            }
+            if (!changed || part == null) return;
+            if (part.Connections?.Elements<Connection>().Any() == true) part.Connections.Save();
+            else WorkbookPartRoot.DeletePart(part);
+            MarkMetadataPartChanged();
         }
 
         private bool IsNativeConnectionReferenced(uint connectionId) {
@@ -290,6 +318,10 @@ namespace OfficeIMO.Excel {
         private static object? NormalizeQueryCellValue(object? value) {
             if (value == null || value == DBNull.Value) return null;
             switch (value) {
+                case double number when double.IsNaN(number) || double.IsInfinity(number):
+                    throw new InvalidDataException("Query result contains a non-finite floating-point value.");
+                case float number when float.IsNaN(number) || float.IsInfinity(number):
+                    throw new InvalidDataException("Query result contains a non-finite floating-point value.");
                 case string:
                 case double:
                 case float:

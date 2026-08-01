@@ -172,11 +172,16 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Removes this chart drawing and its owned ChartEx part.</summary>
         public void Remove() {
-            ExtendedChartPart part = GetChartPart();
+            string relationshipId = GetChartRelationshipId();
+            ExtendedChartPart part = GetChartPart(relationshipId);
             OpenXmlElement? anchor = _frame.Parent;
             anchor?.Remove();
-            _drawingsPart.DeletePart(part);
-            if (DataRange != null) _sheet.Document.ReleaseOwnedChartDataRange(DataRange);
+            bool partStillReferenced = _drawingsPart.WorksheetDrawing?.Descendants<Xdr.GraphicFrame>()
+                .Any(frame => string.Equals(GetChartRelationshipId(frame), relationshipId, StringComparison.Ordinal)) == true;
+            if (!partStillReferenced) {
+                _drawingsPart.DeletePart(part);
+                if (DataRange != null) _sheet.Document.ReleaseOwnedChartDataRange(DataRange);
+            }
             if (_drawingsPart.WorksheetDrawing?.ChildElements.Any() == true) {
                 SaveDrawing();
                 return;
@@ -194,17 +199,23 @@ namespace OfficeIMO.Excel {
         private Cx.Series[] GetSeries() => GetChartPart().ChartSpace?.Descendants<Cx.Series>().ToArray()
             ?? Array.Empty<Cx.Series>();
 
-        private ExtendedChartPart GetChartPart() {
-            OpenXmlElement reference = _frame.Graphic?.GraphicData?.ChildElements.FirstOrDefault(element =>
-                string.Equals(element.LocalName, "chart", StringComparison.Ordinal)
-                && string.Equals(element.NamespaceUri, "http://schemas.microsoft.com/office/drawing/2014/chartex", StringComparison.Ordinal))
-                ?? throw new InvalidOperationException("Modern chart relationship is missing.");
-            string relationshipId = reference.GetAttribute(
-                "id",
-                "http://schemas.openxmlformats.org/officeDocument/2006/relationships").Value
-                ?? throw new InvalidOperationException("Modern chart relationship identifier is missing.");
+        private ExtendedChartPart GetChartPart() => GetChartPart(GetChartRelationshipId());
+
+        private ExtendedChartPart GetChartPart(string relationshipId) {
             return _drawingsPart.GetPartById(relationshipId) as ExtendedChartPart
                 ?? throw new InvalidOperationException("Modern chart part is missing.");
+        }
+
+        private string GetChartRelationshipId() => GetChartRelationshipId(_frame)
+            ?? throw new InvalidOperationException("Modern chart relationship identifier is missing.");
+
+        private static string? GetChartRelationshipId(Xdr.GraphicFrame frame) {
+            OpenXmlElement? reference = frame.Graphic?.GraphicData?.ChildElements.FirstOrDefault(element =>
+                string.Equals(element.LocalName, "chart", StringComparison.Ordinal)
+                && string.Equals(element.NamespaceUri, "http://schemas.microsoft.com/office/drawing/2014/chartex", StringComparison.Ordinal));
+            return reference?.GetAttribute(
+                "id",
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships").Value;
         }
 
         private void SaveDrawing() {
