@@ -44,7 +44,7 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
             string? duplicate = materialized.GroupBy(item => item.Id, StringComparer.Ordinal).Where(group => group.Count() > 1).Select(group => group.Key).FirstOrDefault();
             if (duplicate != null) throw new ArgumentException($"Synchronization plan item id '{duplicate}' is duplicated.", nameof(items));
             return new GoogleWorkspaceSyncPlan(Array.AsReadOnly(materialized), policy,
-                report ?? new TranslationReport());
+                (report ?? new TranslationReport()).CreateReadOnlySnapshot());
         }
     }
 }

@@ -713,6 +713,36 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, statusQueries);
         }
 
+        [Fact]
+        public async Task ResumableUploadDoesNotReconcileProgressCallbackFailures() {
+            const int total = 16;
+            int statusQueries = 0;
+            using var http = new HttpClient(new Handler(request => {
+                if (request.Method == HttpMethod.Post) {
+                    var initiated = Json("{}");
+                    initiated.Headers.Location = new Uri("https://upload.googleapis.com/progress-failure");
+                    return initiated;
+                }
+
+                string range = request.Content!.Headers.GetValues("Content-Range").Single();
+                if (range == $"bytes */{total}") statusQueries++;
+                return new HttpResponseMessage(HttpStatusCode.Created) {
+                    Content = new StringContent("{\"id\":\"created-before-progress-failure\",\"version\":\"2\"}",
+                        Encoding.UTF8, "application/json"),
+                };
+            }));
+            using var client = new GoogleDriveClient(Session(http,
+                new List<GoogleWorkspaceOperationReceipt>()));
+
+            await Assert.ThrowsAsync<IOException>(() => client.UploadResumableAsync(
+                new byte[total], new GoogleDriveUploadOptions {
+                    Name = "progress-failure.bin",
+                    Progress = new ThrowingProgress(),
+                }));
+
+            Assert.Equal(0, statusQueries);
+        }
+
         [Theory]
         [InlineData("not-a-range-15")]
         [InlineData("bytes=0-16")]
@@ -870,20 +900,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task DurableDownloadRemovesNewDestinationWhenInitialCheckpointCannotBePersisted() {
-            using var http = new HttpClient(new Handler(_ =>
-                Json("{\"id\":\"file-1\",\"version\":\"7\",\"size\":\"3\"}")));
+        public async Task DurableDownloadReturnsRecoverableStateWhenInitialCheckpointCannotBePersisted() {
+            byte[] payload = Encoding.UTF8.GetBytes("abc");
+            using var http = new HttpClient(new Handler(request => {
+                if (!request.RequestUri!.Query.Contains("alt=media", StringComparison.Ordinal))
+                    return Json("{\"id\":\"file-1\",\"version\":\"7\",\"size\":\"3\"}");
+                var response = new HttpResponseMessage(HttpStatusCode.PartialContent) {
+                    Content = new ByteArrayContent(payload),
+                };
+                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 2, 3);
+                return response;
+            }));
             string path = Path.Combine(Path.GetTempPath(),
                 "OfficeIMO-download-uncheckpointed-" + Guid.NewGuid().ToString("N") + ".bin");
             try {
                 using var client = new GoogleDriveClient(Session(http,
                     new List<GoogleWorkspaceOperationReceipt>()));
 
-                await Assert.ThrowsAsync<StopAfterCheckpointException>(() =>
+                GoogleDriveDownloadCheckpointPersistenceException exception =
+                    await Assert.ThrowsAsync<GoogleDriveDownloadCheckpointPersistenceException>(() =>
                     client.DownloadToFileAsync("file-1", path,
                         checkpointSink: (_, _) => throw new StopAfterCheckpointException()));
 
-                Assert.False(File.Exists(path));
+                Assert.True(File.Exists(path));
+                Assert.Equal(0, new FileInfo(path).Length);
+                Assert.Equal(0, exception.Checkpoint.ConfirmedBytes);
+
+                GoogleDriveDownloadCheckpoint completed = await client.DownloadToFileAsync(
+                    "file-1", path, exception.Checkpoint);
+                Assert.Equal(3, completed.ConfirmedBytes);
+                Assert.Equal(payload, File.ReadAllBytes(path));
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
@@ -1187,6 +1233,10 @@ namespace OfficeIMO.Tests {
         }
         private static HttpResponseMessage Json(string value) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(value, Encoding.UTF8, "application/json") };
         private sealed class StopAfterCheckpointException : Exception { }
+        private sealed class ThrowingProgress : IProgress<GoogleDriveTransferProgress> {
+            public void Report(GoogleDriveTransferProgress value) =>
+                throw new IOException("The progress observer failed.");
+        }
         private sealed class FailSecondCredentialSource : IGoogleWorkspaceCredentialSource {
             private int _calls;
             public Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(

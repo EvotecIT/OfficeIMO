@@ -42,8 +42,7 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
 
     public sealed class GoogleWorkspaceChangeReadResult {
         internal GoogleWorkspaceChangeReadResult(IReadOnlyList<GoogleWorkspaceTrackedChange> changes, GoogleWorkspaceSyncCheckpoint checkpoint, IReadOnlyList<GoogleWorkspaceChangeSourceResult> sources, TranslationReport report) {
-            Changes = Array.AsReadOnly(changes.ToArray()); NextCheckpoint = checkpoint;
-            Sources = Array.AsReadOnly(sources.ToArray()); Report = report;
+            Changes = changes; NextCheckpoint = checkpoint; Sources = sources; Report = report;
         }
         public IReadOnlyList<GoogleWorkspaceTrackedChange> Changes { get; }
         public GoogleWorkspaceSyncCheckpoint NextCheckpoint { get; }

@@ -113,10 +113,13 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     Buffer.BlockCopy(content, (int)offset, chunk, 0, currentLength);
                     long end = offset + currentLength - 1;
 
+                    GoogleWorkspaceHttpResponse response;
                     try {
-                        var response = await SendResumableChunkAsync(
+                        response = await SendResumableChunkAsync(
                             token, sessionUri, chunk, contentType, offset, end,
                             content.LongLength, report, cancellationToken).ConfigureAwait(false);
+                    } catch (Exception exception) when (IsAmbiguousResumableChunkFailure(exception, cancellationToken)) {
+                        response = await QueryResumableStatusAsync(token, sessionUri, content.LongLength, report, cancellationToken).ConfigureAwait(false);
                         if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
                             create.CompleteSuccess();
                             options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
@@ -125,29 +128,29 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
 
                         long nextOffset = ResolveNextOffset(response, offset, content.LongLength);
                         if (nextOffset <= offset) {
-                            if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress for the resumable upload chunk.");
-                        } else {
-                            offset = nextOffset;
-                            noProgressResponses = 0;
-                        }
-                        options.Progress?.Report(new GoogleDriveTransferProgress(offset, content.LongLength));
-                    } catch (Exception exception) when (IsAmbiguousResumableChunkFailure(exception, cancellationToken)) {
-                        var status = await QueryResumableStatusAsync(token, sessionUri, content.LongLength, report, cancellationToken).ConfigureAwait(false);
-                        if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) {
-                            create.CompleteSuccess();
-                            options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
-                            return status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
-                        }
-
-                        long nextOffset = ResolveNextOffset(status, offset, content.LongLength);
-                        if (nextOffset <= offset) {
                             if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress while reconciling the resumable upload.");
                         } else {
                             offset = nextOffset;
                             noProgressResponses = 0;
                         }
                         options.Progress?.Report(new GoogleDriveTransferProgress(offset, content.LongLength));
+                        continue;
                     }
+
+                    if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
+                        create.CompleteSuccess();
+                        options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
+                        return response.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
+                    }
+
+                    long confirmedOffset = ResolveNextOffset(response, offset, content.LongLength);
+                    if (confirmedOffset <= offset) {
+                        if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress for the resumable upload chunk.");
+                    } else {
+                        offset = confirmedOffset;
+                        noProgressResponses = 0;
+                    }
+                    options.Progress?.Report(new GoogleDriveTransferProgress(offset, content.LongLength));
                 }
                 throw new InvalidOperationException("Google Drive resumable upload ended without final file metadata.");
             } catch (Exception exception) {

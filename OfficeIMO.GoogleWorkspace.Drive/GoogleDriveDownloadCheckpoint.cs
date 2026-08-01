@@ -50,6 +50,22 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         private static string ReadString(BinaryReader reader, int maximum) { int length = reader.ReadInt32(); if (length < 0 || length > maximum) throw new InvalidDataException("The checkpoint string length is invalid."); byte[] bytes = reader.ReadBytes(length); if (bytes.Length != length) throw new EndOfStreamException(); return Encoding.UTF8.GetString(bytes); }
     }
 
+    /// <summary>
+    /// Indicates that the initial durable-download checkpoint could not be persisted. The newly
+    /// created destination is retained and can be resumed with <see cref="Checkpoint"/>.
+    /// </summary>
+    public sealed class GoogleDriveDownloadCheckpointPersistenceException : Exception {
+        internal GoogleDriveDownloadCheckpointPersistenceException(
+            GoogleDriveDownloadCheckpoint checkpoint, Exception innerException)
+            : base("The initial Google Drive download checkpoint could not be persisted. "
+                + "The empty destination was retained; retry with the supplied checkpoint.", innerException) {
+            Checkpoint = checkpoint;
+        }
+
+        /// <summary>Gets the zero-byte checkpoint that binds the retained destination.</summary>
+        public GoogleDriveDownloadCheckpoint Checkpoint { get; }
+    }
+
     public sealed partial class GoogleDriveClient {
         /// <summary>Downloads to a new file or resumes an exact checkpoint after process restart.</summary>
         public async Task<GoogleDriveDownloadCheckpoint> DownloadToFileAsync(string fileId, string destinationPath,
@@ -102,8 +118,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             try {
                 await PersistDownloadCheckpointAsync(fullPath, output, state, checkpointSink, cancellationToken).ConfigureAwait(false);
             } catch (Exception exception) when (checkpoint == null) {
-                RemoveUncheckpointedDestination(fullPath, output, state, exception);
-                throw;
+                GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(fullPath, output);
+                throw new GoogleDriveDownloadCheckpointPersistenceException(state, exception);
             }
             while (offset < total) {
                 cancellationToken.ThrowIfCancellationRequested(); long end = Math.Min(total - 1, offset + chunkSize - 1); long expected = end - offset + 1;
@@ -175,23 +191,6 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(path, stream);
             if (checkpointSink != null) await checkpointSink(checkpoint, cancellationToken).ConfigureAwait(false);
             GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(path, stream);
-        }
-        private static void RemoveUncheckpointedDestination(string path, FileStream stream,
-            GoogleDriveDownloadCheckpoint checkpoint, Exception checkpointException) {
-            try {
-                GoogleDriveDownloadFileGuard.EnsurePathReferencesHandle(path, stream);
-                if (stream.Length != 0) {
-                    checkpointException.Data["OfficeIMO.GoogleWorkspace.UnpersistedDownloadCheckpoint"] = checkpoint.Value;
-                    return;
-                }
-
-                stream.Dispose();
-                File.Delete(path);
-            } catch (Exception cleanupException) {
-                checkpointException.Data["OfficeIMO.GoogleWorkspace.UnpersistedDownloadCheckpoint"] = checkpoint.Value;
-                checkpointException.Data["OfficeIMO.GoogleWorkspace.DownloadCleanupFailure"] =
-                    cleanupException.GetType().FullName ?? cleanupException.GetType().Name;
-            }
         }
         private static int ReadChunk(Stream stream, byte[] buffer, int wanted, CancellationToken cancellationToken) {
             int total = 0;

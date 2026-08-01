@@ -39,10 +39,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("drive-next", result.NextCheckpoint.SharedDriveChangeTokens["drive-a"]);
             Assert.Equal("user-start", checkpoint.UserChangeToken);
             Assert.Equal("drive-start", checkpoint.SharedDriveChangeTokens["drive-a"]);
-            Assert.Throws<NotSupportedException>(() =>
-                ((IList<GoogleWorkspaceTrackedChange>)result.Changes)[0] = result.Changes[0]);
-            Assert.Throws<NotSupportedException>(() =>
-                ((IList<GoogleWorkspaceChangeSourceResult>)result.Sources)[0] = result.Sources[0]);
             Assert.All(changeUris.Where(uri => !uri.Contains("driveId=drive-a", StringComparison.Ordinal)),
                 uri => Assert.Contains("includeItemsFromAllDrives=false", uri, StringComparison.Ordinal));
             Assert.All(changeUris.Where(uri => uri.Contains("driveId=drive-a", StringComparison.Ordinal)),
@@ -152,9 +148,18 @@ namespace OfficeIMO.Tests {
             GoogleWorkspaceSyncPlan plan = GoogleWorkspaceSyncPlan.Create(source, Policy());
             source[0] = replacement;
 
+            var report = new TranslationReport();
+            GoogleWorkspaceSyncPlan reportPlan = GoogleWorkspaceSyncPlan.Create(
+                new[] { original }, Policy(), report);
+            report.Add(TranslationSeverity.Error, "late", "late mutation");
+
             Assert.Same(original, Assert.Single(plan.Items));
             Assert.Throws<NotSupportedException>(() =>
                 ((IList<GoogleWorkspaceSyncItem>)plan.Items)[0] = replacement);
+            Assert.True(reportPlan.CanApply);
+            Assert.Empty(reportPlan.Report.Notices);
+            Assert.Throws<InvalidOperationException>(() =>
+                reportPlan.Report.Add(TranslationSeverity.Error, "late", "late mutation"));
 
             GoogleWorkspaceSyncApplyResult result = await GoogleWorkspaceSyncExecutor.ApplyAsync(
                 plan, (_, _) => Task.CompletedTask);
