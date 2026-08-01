@@ -26,5 +26,15 @@ namespace OfficeIMO.Excel {
                     $"{operation} are not supported while the workbook uses R1C1 reference mode. Switch to A1 reference mode first.");
             }
         }
+
+        private void ValidatePackageMutationReferenceSafety(
+            string operation,
+            Action? consumeScannedElement = null) {
+            ValidateA1MutationReferenceMode(operation);
+            _excelDocument.ValidateMutationReferencesCanBeRewritten(
+                this,
+                operation,
+                consumeScannedElement);
+        }
     }
 }

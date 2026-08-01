@@ -81,7 +81,9 @@ namespace OfficeIMO.Excel {
             int count,
             bool deleting,
             MutationPlanScanBudget? budget = null) {
-            ValidateA1MutationReferenceMode("Structural column edits");
+            ValidatePackageMutationReferenceSafety(
+                "Structural column edits",
+                budget == null ? null : new Action(budget.Consume));
             ValidateWorkbookSharedFormulasForStructuralEdit();
             ValidateStructuralVmlControlSafety();
             ValidateColumnConnectionParameters(firstColumn, count, deleting);

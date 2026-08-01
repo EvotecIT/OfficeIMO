@@ -73,22 +73,25 @@ namespace OfficeIMO.Excel {
                     ?? _excelDocument.WorkbookPartRoot.AddNewPart<DocumentFormat.OpenXml.Packaging.WorkbookStylesPart>();
                 Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
                 EnsureNamedStyleContainers(stylesheet);
+                string normalizedName = name.Trim();
+                CellStyle? style = stylesheet.CellStyles!.Elements<CellStyle>()
+                    .FirstOrDefault(item => string.Equals(item.Name?.Value, normalizedName, StringComparison.OrdinalIgnoreCase));
+                if (style?.BuiltinId != null) {
+                    throw new InvalidOperationException($"Built-in named style '{name}' cannot be replaced.");
+                }
                 uint cellStyleIndex = TryGetExistingCell(sourceRow, sourceColumn)?.StyleIndex?.Value ?? 0U;
                 CellFormat source = stylesheet.CellFormats!.Elements<CellFormat>().ElementAtOrDefault((int)cellStyleIndex)
                     ?? stylesheet.CellFormats.Elements<CellFormat>().First();
                 var styleFormat = (CellFormat)source.CloneNode(true);
                 styleFormat.FormatId = null;
-                uint formatId = FindOrAppendFormat(stylesheet.CellStyleFormats!, styleFormat);
-                CellStyle? style = stylesheet.CellStyles!.Elements<CellStyle>()
-                    .FirstOrDefault(item => string.Equals(item.Name?.Value, name.Trim(), StringComparison.OrdinalIgnoreCase));
+                uint formatId = ReplaceOrAppendNamedStyleFormat(stylesheet, style, styleFormat);
                 style ??= stylesheet.CellStyles.AppendChild(new CellStyle());
-                if (style.BuiltinId != null) throw new InvalidOperationException($"Built-in named style '{name}' cannot be replaced.");
-                style.Name = name.Trim();
+                style.Name = normalizedName;
                 style.FormatId = formatId;
                 style.Hidden = hidden;
                 stylesheet.CellStyles.Count = (uint)stylesheet.CellStyles.Count();
                 stylesheet.Save();
-                result = new ExcelNamedStyleInfo(name.Trim(), formatId, null, hidden);
+                result = new ExcelNamedStyleInfo(normalizedName, formatId, null, hidden);
             });
             return result!;
         }
@@ -153,6 +156,43 @@ namespace OfficeIMO.Excel {
             if (container is CellFormats cellFormats) cellFormats.Count = (uint)cellFormats.Count();
             if (container is CellStyleFormats styleFormats) styleFormats.Count = (uint)styleFormats.Count();
             return index;
+        }
+
+        private static uint ReplaceOrAppendNamedStyleFormat(
+            Stylesheet stylesheet,
+            CellStyle? style,
+            CellFormat replacement) {
+            CellStyleFormats styleFormats = stylesheet.CellStyleFormats!;
+            if (style?.FormatId?.Value is uint formatId
+                && formatId < styleFormats.Count()) {
+                CellFormat previous = styleFormats.Elements<CellFormat>().ElementAt((int)formatId);
+                ReplaceAppliedNamedStyleFormats(stylesheet.CellFormats!, previous, replacement, formatId);
+                styleFormats.ReplaceChild(replacement, previous);
+                styleFormats.Count = (uint)styleFormats.Count();
+                return formatId;
+            }
+
+            uint appendedId = (uint)styleFormats.Count();
+            styleFormats.Append(replacement);
+            styleFormats.Count = appendedId + 1U;
+            return appendedId;
+        }
+
+        private static void ReplaceAppliedNamedStyleFormats(
+            CellFormats cellFormats,
+            CellFormat previousStyle,
+            CellFormat replacementStyle,
+            uint formatId) {
+            var previousApplied = (CellFormat)previousStyle.CloneNode(true);
+            previousApplied.FormatId = formatId;
+            string previousXml = previousApplied.OuterXml;
+            foreach (CellFormat applied in cellFormats.Elements<CellFormat>().ToList()) {
+                if (!string.Equals(applied.OuterXml, previousXml, StringComparison.Ordinal)) continue;
+                var replacement = (CellFormat)replacementStyle.CloneNode(true);
+                replacement.FormatId = formatId;
+                cellFormats.ReplaceChild(replacement, applied);
+            }
+            cellFormats.Count = (uint)cellFormats.Count();
         }
     }
 }

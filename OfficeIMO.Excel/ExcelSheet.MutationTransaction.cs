@@ -94,13 +94,33 @@ namespace OfficeIMO.Excel {
                         if (createdPart != null) workbookPart.DeletePart(createdPart);
                     });
                 }
+                void AddDrawingRoots(DrawingsPart? drawingsPart) {
+                    if (drawingsPart == null) return;
+                    AddRoot(drawingsPart.WorksheetDrawing, value => drawingsPart.WorksheetDrawing = value);
+                    foreach (ChartPart part in drawingsPart.ChartParts) {
+                        AddRoot(part.ChartSpace, value => part.ChartSpace = value);
+                    }
+                    foreach (ExtendedChartPart part in drawingsPart.ExtendedChartParts) {
+                        AddRoot(part.ChartSpace, value => part.ChartSpace = value);
+                    }
+                }
+
                 foreach (WorksheetPart worksheetPart in workbookPart.WorksheetParts) {
                     AddRoot(worksheetPart.Worksheet, value => worksheetPart.Worksheet = value);
                     AddRoot(worksheetPart.WorksheetCommentsPart?.Comments, value => worksheetPart.WorksheetCommentsPart!.Comments = value);
-                    AddRoot(worksheetPart.DrawingsPart?.WorksheetDrawing, value => worksheetPart.DrawingsPart!.WorksheetDrawing = value);
-                    foreach (TableDefinitionPart part in worksheetPart.TableDefinitionParts) AddRoot(part.Table, value => part.Table = value);
-                    foreach (ChartPart part in worksheetPart.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) AddRoot(part.ChartSpace, value => part.ChartSpace = value);
-                    foreach (PivotTablePart part in worksheetPart.PivotTableParts) AddRoot(part.PivotTableDefinition, value => part.PivotTableDefinition = value);
+                    foreach (WorksheetThreadedCommentsPart part in worksheetPart.WorksheetThreadedCommentsParts) {
+                        AddRoot(part.ThreadedComments, value => part.ThreadedComments = value);
+                    }
+                    AddDrawingRoots(worksheetPart.DrawingsPart);
+                    foreach (TableDefinitionPart part in worksheetPart.TableDefinitionParts) {
+                        AddRoot(part.Table, value => part.Table = value);
+                    }
+                    foreach (PivotTablePart part in worksheetPart.PivotTableParts) {
+                        AddRoot(part.PivotTableDefinition, value => part.PivotTableDefinition = value);
+                    }
+                }
+                foreach (ChartsheetPart chartsheetPart in workbookPart.ChartsheetParts) {
+                    AddDrawingRoots(chartsheetPart.DrawingsPart);
                 }
                 foreach (PivotTableCacheDefinitionPart part in workbookPart.PivotTableCacheDefinitionParts) {
                     AddRoot(part.PivotCacheDefinition, value => part.PivotCacheDefinition = value);

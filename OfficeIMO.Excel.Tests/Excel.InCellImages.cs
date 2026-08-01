@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -69,6 +70,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal("B3", image.CellReference);
             Assert.Equal("Sorted badge", image.AltText);
             Assert.NotEmpty(sheet.GetAutoFilters());
+        }
+
+        [Fact]
+        public void Test_InCellImage_ReplacesAndRemovesInlineStringPayload() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Images");
+            sheet.CellValue(1, 1, "Old value");
+            Cell cell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>());
+            cell.CellValue = null;
+            cell.DataType = CellValues.InlineString;
+            cell.InlineString = new InlineString(new Text("Old value"));
+
+            sheet.SetInCellImage(1, 1, TinyPng, altText: "Replacement");
+
+            Assert.Null(cell.InlineString);
+            Assert.Equal("#VALUE!", cell.CellValue!.Text);
+            Assert.Single(sheet.GetInCellImages());
+
+            Assert.True(sheet.RemoveInCellImage(1, 1));
+            Assert.Null(cell.InlineString);
+            Assert.Null(cell.CellValue);
+            Assert.Empty(document.ValidateOpenXml());
         }
     }
 }

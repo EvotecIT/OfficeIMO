@@ -223,7 +223,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void PreflightRowInsertion(int firstRow, int count) {
-            ValidateStructuralRowReferenceMode();
+            ValidatePackageMutationReferenceSafety("Structural row edits");
             ValidateStructuralVmlControlSafety();
             ValidateRowInsertionAgainstArrayFormulas(firstRow);
             ValidateRowInsertionAgainstPivotOutputs(firstRow);
@@ -238,7 +238,7 @@ namespace OfficeIMO.Excel {
 
         private void PreflightRowDeletion(int firstRow, int count) {
             int lastRemovedRow = firstRow + count - 1;
-            ValidateStructuralRowReferenceMode();
+            ValidatePackageMutationReferenceSafety("Structural row edits");
             ValidateStructuralVmlControlSafety();
             ValidateRowDeletionAgainstOwnedRanges(firstRow, lastRemovedRow);
             ValidateWorkbookSharedFormulasForStructuralEdit();
@@ -443,13 +443,6 @@ namespace OfficeIMO.Excel {
                 rowDelta,
                 Name);
             return rewritten.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-        private void ValidateStructuralRowReferenceMode() {
-            if (WorkbookRoot.GetFirstChild<CalculationProperties>()?.ReferenceMode?.Value == ReferenceModeValues.R1C1) {
-                throw new InvalidOperationException(
-                    "Structural row edits are not supported while the workbook uses R1C1 reference mode. Switch to A1 reference mode first.");
-            }
         }
 
         private static uint GetMaximumEffectiveRowIndex(SheetData? sheetData, int firstRow) {

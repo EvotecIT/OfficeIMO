@@ -72,7 +72,9 @@ namespace OfficeIMO.Excel {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
                 MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
-                ValidateA1MutationReferenceMode("Cell shifts");
+                ValidatePackageMutationReferenceSafety(
+                    "Cell shifts",
+                    budget.Consume);
                 PreflightCellShift(affected, direction, inserting, budget);
                 int count = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell => {
                     if (!TryGetCellCoordinates(cell, out int row, out int column)) return false;
@@ -119,7 +121,13 @@ namespace OfficeIMO.Excel {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
                 MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
-                ValidateA1MutationReferenceMode("Range transfers");
+                if (move) {
+                    ValidatePackageMutationReferenceSafety(
+                        "Range moves",
+                        budget.Consume);
+                } else {
+                    ValidateA1MutationReferenceMode("Range transfers");
+                }
                 PreflightRangeTransfer(source, destination.Start.Row, destination.Start.Column, destinationRows, destinationColumns, move, transpose, budget);
                 int existing = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell =>
                     TryGetCellCoordinates(cell, out int row, out int column)

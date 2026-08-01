@@ -99,6 +99,7 @@ namespace OfficeIMO.Excel {
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
                 cell.CellValue = new CellValue("#VALUE!");
                 cell.CellFormula = null;
+                cell.InlineString = null;
                 metadata.Save();
                 WorksheetRoot.Save();
             });
@@ -137,6 +138,7 @@ namespace OfficeIMO.Excel {
                 cell.RemoveAttribute("vm", string.Empty);
                 cell.CellValue = null;
                 cell.DataType = null;
+                cell.InlineString = null;
                 WorksheetRoot.Save();
                 removed = true;
             });
