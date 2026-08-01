@@ -281,6 +281,41 @@ public partial class Word {
     }
 
     [Fact]
+    public void PdfSemanticImport_HorizontalArtworkInsideTableCellIsNotTreatedAsABorder() {
+        OfficeShape line = OfficeShape.Line(0D, 0D, 55D, 0D);
+        line.StrokeColor = OfficeColor.Blue;
+        line.StrokeWidth = 1D;
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" },
+                new[] { "B", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .Canvas(canvas => canvas.Shape(line, 50D, 115D))
+            .ToBytes();
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.True(conversion.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
     public void PdfSemanticImport_PageRanges_ImportsOnlySelectedPages() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 320,

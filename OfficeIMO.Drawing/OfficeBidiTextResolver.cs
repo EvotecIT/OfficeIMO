@@ -213,18 +213,8 @@ public static class OfficeBidiTextResolver {
     internal static string MirrorText(string value) {
         if (value.Length == 0) return value;
         var mirrored = new StringBuilder(value.Length);
-        foreach (string element in OfficeTextElements.Enumerate(value)) {
-            mirrored.Append(element switch {
-                "(" => ")", ")" => "(", "[" => "]", "]" => "[", "{" => "}", "}" => "{", "<" => ">", ">" => "<",
-                "«" => "»", "»" => "«", "‹" => "›", "›" => "‹", "⁅" => "⁆", "⁆" => "⁅",
-                "⁽" => "⁾", "⁾" => "⁽", "₍" => "₎", "₎" => "₍",
-                "⌈" => "⌉", "⌉" => "⌈", "⌊" => "⌋", "⌋" => "⌊", "〈" => "〉", "〉" => "〈",
-                "❨" => "❩", "❩" => "❨", "❪" => "❫", "❫" => "❪", "❬" => "❭", "❭" => "❬",
-                "❮" => "❯", "❯" => "❮", "❰" => "❱", "❱" => "❰", "❲" => "❳", "❳" => "❲",
-                "❴" => "❵", "❵" => "❴", "⟅" => "⟆", "⟆" => "⟅", "⟦" => "⟧", "⟧" => "⟦",
-                "⟨" => "⟩", "⟩" => "⟨", "⟪" => "⟫", "⟫" => "⟪",
-                _ => element
-            });
+        foreach (char codeUnit in value) {
+            mirrored.Append(OfficeBidiMirroring.Mirror(codeUnit));
         }
         return mirrored.ToString();
     }

@@ -233,7 +233,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfExcelTableColumnKind[] columnKinds = DetectColumnKinds(columns, rows, options);
             var usedColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < columns.Count; i++) {
-                table.Columns.Add(GetUniqueColumnName(columns[i], i, usedColumns), GetColumnType(columnKinds[i]));
+                AddTypedColumn(table, GetUniqueColumnName(columns[i], i, usedColumns), columnKinds[i]);
             }
 
             table.BeginLoadData();
@@ -289,14 +289,26 @@ namespace OfficeIMO.Excel.Pdf {
             return kinds;
         }
 
-        private static Type GetColumnType(PdfExcelTableColumnKind kind) => kind switch {
-            PdfExcelTableColumnKind.Number => typeof(decimal),
-            PdfExcelTableColumnKind.Percentage => typeof(decimal),
-            PdfExcelTableColumnKind.Boolean => typeof(bool),
-            PdfExcelTableColumnKind.Time => typeof(TimeSpan),
-            PdfExcelTableColumnKind.DateTime => typeof(DateTime),
-            _ => typeof(string)
-        };
+        private static void AddTypedColumn(DataTable table, string columnName, PdfExcelTableColumnKind kind) {
+            switch (kind) {
+                case PdfExcelTableColumnKind.Number:
+                case PdfExcelTableColumnKind.Percentage:
+                    table.Columns.Add(columnName, typeof(decimal));
+                    break;
+                case PdfExcelTableColumnKind.Boolean:
+                    table.Columns.Add(columnName, typeof(bool));
+                    break;
+                case PdfExcelTableColumnKind.Time:
+                    table.Columns.Add(columnName, typeof(TimeSpan));
+                    break;
+                case PdfExcelTableColumnKind.DateTime:
+                    table.Columns.Add(columnName, typeof(DateTime));
+                    break;
+                default:
+                    table.Columns.Add(columnName, typeof(string));
+                    break;
+            }
+        }
 
         private static object ConvertValue(string value, PdfExcelTableColumnKind kind, CultureInfo culture) {
             if (kind == PdfExcelTableColumnKind.Text) return value;

@@ -93,19 +93,54 @@ public sealed partial class PdfReadPage {
             double averageColumnWidth = Math.Max(1D, (tableRight - tableLeft) / table.Columns.Count);
             double averageRowHeight = Math.Max(1D, (tableBottom - tableTop) / Math.Max(1, table.Rows.Count - 1));
             double lineTolerance = Math.Max(2D, primitive.StrokeWidth * 2D);
+            double rowBoundaryTolerance = Math.Max(
+                lineTolerance,
+                Math.Min(verticalTolerance, averageRowHeight * 0.25D));
             bool horizontalBorder = primitive.Height <= lineTolerance &&
-                primitive.Width >= averageColumnWidth * 0.5D;
+                primitive.Width >= averageColumnWidth * 0.5D &&
+                IsNearDetectedRowBoundary(
+                    (primitiveTop + primitiveBottom) / 2D,
+                    tableTop,
+                    averageRowHeight,
+                    table.Rows.Count,
+                    rowBoundaryTolerance);
             bool verticalBorder = primitive.Width <= lineTolerance &&
                 primitive.Height >= averageRowHeight * 0.5D &&
                 IsNearDetectedColumnBoundary(primitiveLeft, table.Columns, horizontalTolerance);
             bool cellBorderRectangle = primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle &&
                 primitive.Width >= averageColumnWidth * 0.5D &&
                 primitive.Height <= averageRowHeight * 2.5D &&
+                IsNearDetectedRowBoundary(
+                    primitiveTop,
+                    tableTop,
+                    averageRowHeight,
+                    table.Rows.Count,
+                    rowBoundaryTolerance) &&
+                IsNearDetectedRowBoundary(
+                    primitiveBottom,
+                    tableTop,
+                    averageRowHeight,
+                    table.Rows.Count,
+                    rowBoundaryTolerance) &&
                 ((IsNearDetectedColumnBoundary(primitiveLeft, table.Columns, horizontalTolerance) &&
                   IsNearDetectedColumnBoundary(primitiveRight, table.Columns, horizontalTolerance)) ||
                  (primitiveLeft <= tableLeft + horizontalTolerance &&
                   primitiveRight >= tableRight - horizontalTolerance));
             if (horizontalBorder || verticalBorder || cellBorderRectangle) return true;
+        }
+        return false;
+    }
+
+    private static bool IsNearDetectedRowBoundary(
+        double y,
+        double firstRowBaseline,
+        double averageRowHeight,
+        int rowCount,
+        double tolerance) {
+        if (rowCount <= 0) return false;
+        double firstBoundary = firstRowBaseline - averageRowHeight / 2D;
+        for (int index = 0; index <= rowCount; index++) {
+            if (Math.Abs(y - (firstBoundary + index * averageRowHeight)) <= tolerance) return true;
         }
         return false;
     }

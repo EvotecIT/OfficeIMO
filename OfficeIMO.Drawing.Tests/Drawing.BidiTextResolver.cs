@@ -123,6 +123,12 @@ public partial class Drawing {
     }
 
     [Fact]
+    public void BidiTextResolver_MirrorsUnicodeOperatorsAtOddLevels() {
+        Assert.Equal("≥∋", OfficeBidiTextResolver.MirrorText("≤∈"));
+        Assert.Equal("≤∈", OfficeBidiTextResolver.MirrorText("≥∋"));
+    }
+
+    [Fact]
     public void BidiTextResolver_ExposesVisualRunOrderWithoutReversingRunText() {
         string logical = "A\u2067שלום abc\u2069B";
 

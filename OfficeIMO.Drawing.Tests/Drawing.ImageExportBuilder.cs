@@ -500,7 +500,7 @@ public partial class DrawingTests {
                     OfficeImageExportFormat.Svg,
                     1,
                     1,
-                    System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>")),
+                    System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"></svg>")),
                 static _ => { },
                 options: options));
 

@@ -25,6 +25,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelSheet_DirectImageExportEnforcesRenderTimeoutFromThePublicBoundary() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("SheetDeadline");
+            sheet.CellValue(1, 1, "Deadline");
+            var options = new ExcelWorksheetImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
+
+            Assert.Throws<OfficeImageExportTimeoutException>(() =>
+                sheet.ExportImage(OfficeImageExportFormat.Svg, options));
+        }
+
+        [Fact]
         public void ExcelRange_ExportsPngAndSvgFromVisualSnapshot() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
