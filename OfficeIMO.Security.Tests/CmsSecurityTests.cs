@@ -59,6 +59,25 @@ public sealed class CmsSecurityTests {
     }
 
     [Fact]
+    public void DocumentSigningValidationRejectsEmailProtectionOnlyCertificates() {
+        using X509Certificate2 certificate = CreateRsaCertificate(
+            "OfficeIMO Email Protection Only",
+            new Oid("1.3.6.1.5.5.7.3.4"));
+        var options = new CertificateValidationOptions {
+            ChainEvaluator = static (_, _) => true,
+            RevocationMode = X509RevocationMode.NoCheck
+        };
+
+        CertificateTrustValidationResult result = CertificateValidator.Validate(
+            certificate,
+            options: options,
+            purpose: CertificateValidationPurpose.DocumentSigning);
+
+        Assert.Equal(SecurityValidationStatus.Invalid, result.Validation.ChainStatus);
+        Assert.Contains(result.Findings, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
+    }
+
+    [Fact]
     public void EncapsulatedSignature_StopsAtTheConfiguredContentLimit() {
         byte[] content = Enumerable.Repeat((byte)0x5a, 4096).ToArray();
         using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Bounded Encapsulated");

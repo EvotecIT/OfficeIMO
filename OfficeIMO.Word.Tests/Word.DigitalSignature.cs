@@ -43,6 +43,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_UnsignedValidationReturnsBeforeApplyingSignedPackageByteBudget() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph(new string('x', 4096));
+
+            WordSignatureValidationReport validation = document.ValidateSignatures(new WordSignatureValidationOptions {
+                MaxPackageBytes = 1
+            });
+
+            Assert.False(validation.HasSignatures);
+            Assert.Equal(WordSignatureValidationState.NotPresent, validation.PackageStructureStatus);
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "PackageByteLimitExceeded");
+        }
+
+        [Fact]
         public void Test_DigitalSignature_PartDeleted_ReturnsNull() {
             string tempFile = Path.GetTempFileName();
             using (WordDocument document = WordDocument.Create(tempFile)) {
@@ -325,6 +339,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_IgnoresPackageReferencesInUnsignedManifestObjects() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUnsignedManifest.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unsigned manifest must not establish package coverage");
+                document.Save();
+            }
+            string documentDigest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\">" +
+                "<SignedInfo><SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                "<Reference URI=\"#signed-object\"><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue></Reference></SignedInfo>" +
+                "<Object Id=\"signed-object\"><SignatureProperties /></Object>" +
+                "<Object><Manifest><Reference URI=\"/word/document.xml\"><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>" + documentDigest + "</DigestValue></Reference></Manifest></Object>" +
+                "</Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures();
+
+            WordSignaturePartInfo part = Assert.Single(validation.SignatureInfo.SignatureParts);
+            Assert.DoesNotContain(part.SignedReferences, reference => reference.IsPackagePartReference);
+            Assert.Equal(WordSignatureValidationState.Unsupported, validation.SignedPartCoverageStatus);
+            Assert.Contains(part.UnsupportedDetails, detail => detail.Contains("not authenticated by SignedInfo", System.StringComparison.Ordinal));
+            Assert.False(validation.IsValidUnderPolicy);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ArchiveDoesNotTreatZipDirectoryEntriesAsPackageParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureDirectoryEntry.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Explicit ZIP directory entry");
+                document.Save();
+            }
+            using (ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Update)) {
+                archive.CreateEntry("custom/");
+            }
+
+            using var package = new OfficePackageSignatureArchive(File.ReadAllBytes(filePath));
+
+            Assert.False(package.ContainsPart("/custom/"));
+            Assert.DoesNotContain(package.PartUris, uri => uri.EndsWith("/", System.StringComparison.Ordinal));
+            Assert.DoesNotContain("/custom/", package.PartUris);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidateSignaturesLeavesTransformedDigestVerificationUnsupported() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureTransformedDigestUnsupported.docx");
 
@@ -473,6 +532,7 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions { MaxCertificates = 1 });
 
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains("certificate limit", Assert.Single(validation.SignatureInfo.SignatureParts).ParseError!, System.StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -488,6 +548,7 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions { MaxCertificateBytes = 16 });
 
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains("byte limit", Assert.Single(validation.SignatureInfo.SignatureParts).ParseError!, System.StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -816,7 +877,9 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
 
             Assert.False(validation.IsValidUnderPolicy);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+            Assert.Equal(WordSignatureValidationState.Failed, validation.TimestampStatus);
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "TimestampResourceLimitExceeded");
         }
 
         [Fact]

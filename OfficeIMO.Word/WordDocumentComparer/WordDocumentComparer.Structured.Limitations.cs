@@ -57,6 +57,8 @@ namespace OfficeIMO.Word {
                 .SelectMany(root => new[] { root }.Concat(root.Descendants()))
                 .ToArray();
             if (content.SelectMany(element => element.GetAttributes()).Any(IsThemeAttribute)) return true;
+            if (content.OfType<Run>().Any() &&
+                ContainsThemeAttribute(mainPart.StyleDefinitionsPart?.Styles?.DocDefaults)) return true;
 
             var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (OpenXmlElement element in content) {
@@ -91,6 +93,12 @@ namespace OfficeIMO.Word {
         private static bool IsThemeAttribute(OpenXmlAttribute attribute) =>
             attribute.LocalName.EndsWith("Theme", StringComparison.OrdinalIgnoreCase) ||
             attribute.LocalName.Equals("themeColor", StringComparison.OrdinalIgnoreCase);
+
+        private static bool ContainsThemeAttribute(OpenXmlElement? element) =>
+            element != null &&
+            new[] { element }.Concat(element.Descendants())
+                .SelectMany(candidate => candidate.GetAttributes())
+                .Any(IsThemeAttribute);
 
         private static bool ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart) =>
             EnumerateComparisonRoots(mainPart).Any(root =>

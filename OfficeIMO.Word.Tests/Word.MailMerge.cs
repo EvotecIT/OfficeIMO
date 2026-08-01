@@ -53,6 +53,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_ProcessesTextBoxComplexFieldOnlyInItsOwningParagraph() {
+            using var document = WordDocument.Create();
+            WordTextBox textBox = document.AddTextBox("placeholder");
+            Paragraph textBoxParagraph = textBox.Content!.Descendants<Paragraph>().Single();
+            textBoxParagraph.RemoveAllChildren();
+            textBoxParagraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD  \"Name\" ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("placeholder")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Alice" },
+                removeFields: false);
+
+            WordMailMergeFieldResult field = Assert.Single(report.Fields);
+            Assert.Equal(WordMailMergeFieldStatus.Merged, field.Status);
+            Assert.Contains("Alice", textBoxParagraph.InnerText, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_MailMerge_ReplacementsPreserveFieldResultFormatting() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeFormatting.docx");
 

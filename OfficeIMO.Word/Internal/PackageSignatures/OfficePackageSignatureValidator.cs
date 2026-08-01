@@ -82,22 +82,32 @@ namespace OfficeIMO.Word {
                     cryptographicStatus = ValidateSignedXml(document, signatureElement, certificates, signaturePartInfo.Uri, findings, out signer);
                 }
 
-                if (options.ValidateTimestamps && signatureValue != null) {
-                    ValidateTimestampTokens(
-                        document,
-                        signatureValue,
-                        options,
-                        signaturePartInfo.Uri,
-                        timestampResults,
-                        findings);
-                }
+                WordSignatureValidationState timestampStatus;
+                try {
+                    if (options.ValidateTimestamps && signatureValue != null) {
+                        ValidateTimestampTokens(
+                            document,
+                            signatureValue,
+                            options,
+                            signaturePartInfo.Uri,
+                            timestampResults,
+                            findings);
+                    }
 
-                WordSignatureValidationState timestampStatus = ResolveTimestampStatus(
-                    document,
-                    options,
-                    timestampResults,
-                    signaturePartInfo.Uri,
-                    findings);
+                    timestampStatus = ResolveTimestampStatus(
+                        document,
+                        options,
+                        timestampResults,
+                        signaturePartInfo.Uri,
+                        findings);
+                } catch (InvalidDataException exception) {
+                    timestampStatus = WordSignatureValidationState.Failed;
+                    findings.Add(Finding(
+                        "TimestampResourceLimitExceeded",
+                        timestampStatus,
+                        "Timestamp validation exceeds the configured resource limits: " + exception.Message,
+                        signaturePartInfo.Uri));
+                }
 
                 CertificateValidationResult? certificateValidation = null;
                 WordSignatureValidationState certificateStatus;

@@ -207,6 +207,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsThemeLimitationFromDifferingDocumentDefaults() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_doc_defaults_theme_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Unstyled themed text");
+                document.Save();
+            }
+            SetDocDefaultsThemeFont(sourcePath, ThemeFontValues.MinorHighAnsi);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_doc_defaults_theme_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Unstyled themed text");
+                document.Save();
+            }
+            SetDocDefaultsThemeFont(targetPath, ThemeFontValues.MajorHighAnsi);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureOptionsCanDisableImageFindings() {
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -423,6 +447,18 @@ namespace OfficeIMO.Tests {
             style.StyleRunProperties ??= new StyleRunProperties();
             style.StyleRunProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color { ThemeColor = themeColor };
             wordDocument.MainDocumentPart.StyleDefinitionsPart.Styles.Save();
+        }
+
+        private static void SetDocDefaultsThemeFont(string path, ThemeFontValues themeFont) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Styles styles = wordDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.DocDefaults ??= new DocDefaults();
+            RunPropertiesDefault runDefaults = styles.DocDefaults.RunPropertiesDefault
+                ?? styles.DocDefaults.AppendChild(new RunPropertiesDefault());
+            RunPropertiesBaseStyle runProperties = runDefaults.RunPropertiesBaseStyle
+                ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
+            runProperties.RunFonts = new RunFonts { AsciiTheme = themeFont, HighAnsiTheme = themeFont };
+            styles.Save();
         }
     }
 }

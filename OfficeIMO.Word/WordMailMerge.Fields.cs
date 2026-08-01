@@ -74,7 +74,7 @@ namespace OfficeIMO.Word {
             foreach (var paragraph in EnumerateParagraphs(root)) {
                 var activeFields = new List<ComplexFieldFrame>();
 
-                foreach (var run in paragraph.Descendants<Run>().ToList()) {
+                foreach (var run in EnumerateParagraphOwnedRuns(paragraph).ToList()) {
                     var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
                     if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
                         foreach (ComplexFieldFrame activeField in activeFields) {
@@ -125,6 +125,28 @@ namespace OfficeIMO.Word {
 
             foreach (var child in root.Descendants<Paragraph>()) {
                 yield return child;
+            }
+        }
+
+        private static IEnumerable<Run> EnumerateParagraphOwnedRuns(Paragraph paragraph) {
+            foreach (OpenXmlElement child in paragraph.ChildElements) {
+                foreach (Run run in EnumerateRunsUntilNestedParagraph(child)) {
+                    yield return run;
+                }
+            }
+        }
+
+        private static IEnumerable<Run> EnumerateRunsUntilNestedParagraph(OpenXmlElement element) {
+            if (element is Paragraph) yield break;
+            if (element is Run run) {
+                yield return run;
+                yield break;
+            }
+
+            foreach (OpenXmlElement child in element.ChildElements) {
+                foreach (Run descendantRun in EnumerateRunsUntilNestedParagraph(child)) {
+                    yield return descendantRun;
+                }
             }
         }
 

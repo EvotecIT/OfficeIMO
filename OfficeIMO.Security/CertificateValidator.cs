@@ -55,7 +55,7 @@ public static class CertificateValidator {
             purpose == CertificateValidationPurpose.TimestampAuthority ? "TSA" : "Signer",
             purpose == CertificateValidationPurpose.TimestampAuthority
                 ? CertificateUsagePurpose.TimestampAuthority
-                : CertificateUsagePurpose.CmsSigner);
+                : CertificateUsagePurpose.DocumentSigner);
         return new CertificateTrustValidationResult(validation, findings.ToArray());
     }
 }

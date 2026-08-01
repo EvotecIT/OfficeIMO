@@ -281,7 +281,9 @@ namespace OfficeIMO.Word {
             byte[]? packageBytes = null,
             int maxPackageParts = 10000,
             long maxPartBytes = 256L * 1024 * 1024,
-            long maxSignatureBytes = 16L * 1024 * 1024) {
+            long maxSignatureBytes = 16L * 1024 * 1024,
+            int maxCertificates = 64,
+            long maxCertificateBytes = 4L * 1024 * 1024) {
             if (package == null) throw new ArgumentNullException(nameof(package));
 
             return WordSignatureInfo.FromPackageInfo(
@@ -292,7 +294,9 @@ namespace OfficeIMO.Word {
                     packageBytes,
                     maxPackageParts,
                     maxPartBytes,
-                    maxSignatureBytes));
+                    maxSignatureBytes,
+                    maxCertificates,
+                    maxCertificateBytes));
         }
     }
 }

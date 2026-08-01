@@ -5,6 +5,7 @@ namespace OfficeIMO.Security;
 
 internal enum CertificateUsagePurpose {
     CmsSigner,
+    DocumentSigner,
     TimestampAuthority
 }
 
@@ -127,7 +128,11 @@ internal static class CertificateChainValidator {
                 SecurityFindingSeverity.Error,
                 "CertificateEnhancedKeyUsageInvalid",
                 role + " certificate enhanced key usage is not valid for " +
-                    (purpose == CertificateUsagePurpose.TimestampAuthority ? "timestamping." : "document or CMS signing."),
+                    (purpose == CertificateUsagePurpose.TimestampAuthority
+                        ? "timestamping."
+                        : purpose == CertificateUsagePurpose.DocumentSigner
+                            ? "document signing."
+                            : "CMS signing."),
                 signerIndex));
         }
         return permitted;
@@ -136,6 +141,12 @@ internal static class CertificateChainValidator {
     private static bool IsPermittedEnhancedKeyUsage(string? oid, CertificateUsagePurpose purpose) {
         if (purpose == CertificateUsagePurpose.TimestampAuthority) {
             return string.Equals(oid, "1.3.6.1.5.5.7.3.8", StringComparison.Ordinal);
+        }
+
+        if (purpose == CertificateUsagePurpose.DocumentSigner) {
+            return oid is "2.5.29.37.0" or
+                "1.3.6.1.5.5.7.3.3" or
+                "1.3.6.1.4.1.311.10.3.12";
         }
 
         return oid is "2.5.29.37.0" or

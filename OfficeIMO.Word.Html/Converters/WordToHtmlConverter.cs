@@ -21,14 +21,36 @@ namespace OfficeIMO.Word.Html {
             ReportKnownExportLimitations(document, options, exportInspection);
             CancellationToken cancellationToken = CancellationToken.None;
             long embeddedImageBytes = 0;
+            long embeddedImageCharacters = 0;
 
-            byte[] ReadEmbeddedImageBytes(WordImage image, string source) {
+            void EnsureBase64ImageFitsOutputBudget(long imageBytes, string mime, string source) {
+                long base64Characters = imageBytes > (long.MaxValue / 4L) * 3L
+                    ? long.MaxValue
+                    : ((imageBytes + 2L) / 3L) * 4L;
+                long prefixCharacters = "data:;base64,".Length + mime.Length;
+                long dataUriCharacters = SaturatingAdd(prefixCharacters, base64Characters);
+                long projectedCharacters = SaturatingAdd(embeddedImageCharacters, dataUriCharacters);
+                if (projectedCharacters > options.MaxOutputCharacters) {
+                    ThrowExportLimitExceeded(
+                        options,
+                        "WordHtmlOutputLimitExceeded",
+                        "An embedded Word image cannot fit within the configured HTML output-character limit.",
+                        source,
+                        projectedCharacters,
+                        options.MaxOutputCharacters);
+                }
+            }
+
+            byte[] ReadEmbeddedImageBytes(WordImage image, string source, string? base64Mime = null) {
                 using Stream input = image.OpenRead();
                 if (input.CanSeek && input.Length > options.MaxEmbeddedImageBytes) {
                     ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
                 }
                 if (input.CanSeek && input.Length > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes) {
                     ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, input.Length), options.MaxTotalEmbeddedImageBytes);
+                }
+                if (base64Mime != null && input.CanSeek) {
+                    EnsureBase64ImageFitsOutputBudget(input.Length, base64Mime, source);
                 }
 
                 int capacity = input.CanSeek && input.Length <= int.MaxValue ? (int)input.Length : 0;
@@ -44,11 +66,22 @@ namespace OfficeIMO.Word.Html {
                     if (nextImageBytes > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes) {
                         ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, nextImageBytes), options.MaxTotalEmbeddedImageBytes);
                     }
+                    if (base64Mime != null) {
+                        EnsureBase64ImageFitsOutputBudget(nextImageBytes, base64Mime, source);
+                    }
                     output.Write(buffer, 0, read);
                     imageBytes = nextImageBytes;
                 }
 
                 embeddedImageBytes += imageBytes;
+                if (base64Mime != null) {
+                    long base64Characters = imageBytes > (long.MaxValue / 4L) * 3L
+                        ? long.MaxValue
+                        : ((imageBytes + 2L) / 3L) * 4L;
+                    embeddedImageCharacters = SaturatingAdd(
+                        embeddedImageCharacters,
+                        SaturatingAdd("data:;base64,".Length + base64Mime.Length, base64Characters));
+                }
                 byte[] bytes = output.ToArray();
                 return bytes;
             }
@@ -196,8 +229,8 @@ namespace OfficeIMO.Word.Html {
                             } else if (!options.EmbedImagesAsBase64) {
                                 src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                             } else {
-                                var bytes = ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image");
                                 var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
+                                var bytes = ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image", mime);
                                 src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
                             }
                             img!.Source = src;

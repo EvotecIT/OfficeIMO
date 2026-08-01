@@ -34,6 +34,19 @@ namespace OfficeIMO.Word {
             OfficePackageSignatureValidator.ValidateOptions(options);
             var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
             bool hasApplicationSignatureMetadata = ApplicationProperties.DigitalSignature != null;
+            if (originPart == null || !originPart.XmlSignatureParts.Any()) {
+                WordSignatureInfo unsignedInfo = WordSignatureInspector.Inspect(
+                    _wordprocessingDocument,
+                    originPart,
+                    hasApplicationSignatureMetadata,
+                    packageBytes: null,
+                    maxPackageParts: options.MaxPackageParts,
+                    maxPartBytes: options.MaxPartBytes,
+                    maxSignatureBytes: options.MaxSignatureBytes,
+                    maxCertificates: options.MaxCertificates,
+                    maxCertificateBytes: options.MaxCertificateBytes);
+                return WordSignatureValidationReport.From(unsignedInfo);
+            }
             if (originPart != null && originPart.XmlSignatureParts.Skip(options.MaxSignatureParts).Any()) {
                 var boundedInfo = new WordSignatureInfo(
                     hasDigitalSignatureOriginPart: true,
@@ -56,7 +69,9 @@ namespace OfficeIMO.Word {
                     packageBytes: null,
                     maxPackageParts: options.MaxPackageParts,
                     maxPartBytes: options.MaxPartBytes,
-                    maxSignatureBytes: options.MaxSignatureBytes);
+                    maxSignatureBytes: options.MaxSignatureBytes,
+                    maxCertificates: options.MaxCertificates,
+                    maxCertificateBytes: options.MaxCertificateBytes);
                 return WordSignatureValidationReport.WithValidationFailure(
                     WordSignatureValidationReport.From(boundedInfo),
                     "PackageByteLimitExceeded",
@@ -70,7 +85,9 @@ namespace OfficeIMO.Word {
                 packageBytes,
                 options.MaxPackageParts,
                 options.MaxPartBytes,
-                options.MaxSignatureBytes);
+                options.MaxSignatureBytes,
+                options.MaxCertificates,
+                options.MaxCertificateBytes);
             WordSignatureValidationReport structural = WordSignatureValidationReport.From(signatureInfo);
             if (!signatureInfo.HasSignatures ||
                 packageBytes == null ||

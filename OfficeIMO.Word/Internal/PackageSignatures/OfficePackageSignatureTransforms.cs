@@ -30,6 +30,7 @@ namespace OfficeIMO.Word {
 
             _entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
             foreach (ZipArchiveEntry entry in _archive.Entries) {
+                if (entry.Name.Length == 0) continue;
                 string uri = NormalizePartUri(entry.FullName);
                 if (_entries.ContainsKey(uri)) {
                     throw new InvalidDataException("The OPC package contains duplicate part URI '" + uri + "'.");
