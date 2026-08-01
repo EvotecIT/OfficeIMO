@@ -366,6 +366,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_EmptyUriReferenceDoesNotAuthenticateExcludedManifest() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureEmptyUriManifest.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Empty URI excludes the signature subtree");
+                document.Save();
+            }
+            string documentDigest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\">" +
+                "<SignedInfo><SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                "<Reference URI=\"\"><Transforms><Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\" /></Transforms>" +
+                "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue></Reference></SignedInfo>" +
+                "<Object><Manifest><Reference URI=\"/word/document.xml\"><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>" + documentDigest + "</DigestValue></Reference></Manifest></Object>" +
+                "</Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures();
+
+            WordSignaturePartInfo part = Assert.Single(validation.SignatureInfo.SignatureParts);
+            Assert.DoesNotContain(part.SignedReferences, reference => reference.IsPackagePartReference);
+            Assert.Equal(WordSignatureValidationState.Unsupported, validation.SignedPartCoverageStatus);
+            Assert.Contains(part.UnsupportedDetails, detail => detail.Contains("not authenticated by SignedInfo", System.StringComparison.Ordinal));
+            Assert.False(validation.IsValidUnderPolicy);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_BoundsAggregateDigestWorkBeforeReadingDuplicateParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureDigestWorkBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph(new string('x', 4096));
+                document.Save();
+            }
+            string documentDigest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            string reference = "<Reference URI=\"/word/document.xml\"><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>" + documentDigest + "</DigestValue></Reference>";
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo>" +
+                "<SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                reference + reference +
+                "</SignedInfo></Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                MaxTotalDigestBytes = 1
+            });
+
+            WordSignaturePartInfo part = Assert.Single(validation.SignatureInfo.SignatureParts);
+            Assert.True(part.HasParseError);
+            Assert.Empty(part.SignedReferences);
+            Assert.Contains(part.UnsupportedDetails, detail => detail.Contains("aggregate digest-work limit", System.StringComparison.Ordinal));
+            Assert.False(validation.IsValidUnderPolicy);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ArchiveDoesNotTreatZipDirectoryEntriesAsPackageParts() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureDirectoryEntry.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

@@ -19,17 +19,23 @@ namespace OfficeIMO.Word.Html {
             options ??= new WordToHtmlOptions();
             ExportInspection exportInspection = InspectExport(document, options);
             ReportKnownExportLimitations(document, options, exportInspection);
+            var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
             CancellationToken cancellationToken = CancellationToken.None;
             long embeddedImageBytes = 0;
-            long embeddedImageCharacters = 0;
 
-            void EnsureBase64ImageFitsOutputBudget(long imageBytes, string mime, string source) {
+            long MeasureCurrentHtmlCharacters() {
+                using var countingWriter = new CountingHtmlWriter();
+                htmlDoc.DocumentElement.ToHtml(countingWriter, HtmlMarkupFormatter.Instance);
+                return countingWriter.CharacterCount;
+            }
+
+            void EnsureBase64ImageFitsOutputBudget(long currentMarkupCharacters, long imageBytes, string mime, string source) {
                 long base64Characters = imageBytes > (long.MaxValue / 4L) * 3L
                     ? long.MaxValue
                     : ((imageBytes + 2L) / 3L) * 4L;
                 long prefixCharacters = "data:;base64,".Length + mime.Length;
                 long dataUriCharacters = SaturatingAdd(prefixCharacters, base64Characters);
-                long projectedCharacters = SaturatingAdd(embeddedImageCharacters, dataUriCharacters);
+                long projectedCharacters = SaturatingAdd(currentMarkupCharacters, dataUriCharacters);
                 if (projectedCharacters > options.MaxOutputCharacters) {
                     ThrowExportLimitExceeded(
                         options,
@@ -42,6 +48,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             byte[] ReadEmbeddedImageBytes(WordImage image, string source, string? base64Mime = null) {
+                long currentMarkupCharacters = base64Mime == null ? 0 : MeasureCurrentHtmlCharacters();
                 using Stream input = image.OpenRead();
                 if (input.CanSeek && input.Length > options.MaxEmbeddedImageBytes) {
                     ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
@@ -50,7 +57,7 @@ namespace OfficeIMO.Word.Html {
                     ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, input.Length), options.MaxTotalEmbeddedImageBytes);
                 }
                 if (base64Mime != null && input.CanSeek) {
-                    EnsureBase64ImageFitsOutputBudget(input.Length, base64Mime, source);
+                    EnsureBase64ImageFitsOutputBudget(currentMarkupCharacters, input.Length, base64Mime, source);
                 }
 
                 int capacity = input.CanSeek && input.Length <= int.MaxValue ? (int)input.Length : 0;
@@ -67,28 +74,18 @@ namespace OfficeIMO.Word.Html {
                         ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, nextImageBytes), options.MaxTotalEmbeddedImageBytes);
                     }
                     if (base64Mime != null) {
-                        EnsureBase64ImageFitsOutputBudget(nextImageBytes, base64Mime, source);
+                        EnsureBase64ImageFitsOutputBudget(currentMarkupCharacters, nextImageBytes, base64Mime, source);
                     }
                     output.Write(buffer, 0, read);
                     imageBytes = nextImageBytes;
                 }
 
                 embeddedImageBytes += imageBytes;
-                if (base64Mime != null) {
-                    long base64Characters = imageBytes > (long.MaxValue / 4L) * 3L
-                        ? long.MaxValue
-                        : ((imageBytes + 2L) / 3L) * 4L;
-                    embeddedImageCharacters = SaturatingAdd(
-                        embeddedImageCharacters,
-                        SaturatingAdd("data:;base64,".Length + base64Mime.Length, base64Characters));
-                }
                 byte[] bytes = output.ToArray();
                 return bytes;
             }
 
             long SaturatingAdd(long left, long right) => left > long.MaxValue - right ? long.MaxValue : left + right;
-
-            var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
 
             var head = htmlDoc.Head ?? throw new InvalidOperationException("HTML document missing head element.");
             var body = htmlDoc.Body ?? throw new InvalidOperationException("HTML document missing body element.");

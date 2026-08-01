@@ -34,12 +34,14 @@ namespace OfficeIMO.Word {
                     ContainsNumberingFormatting(targetPart));
             }
 
-            AddShapeLimitation(
-                result,
-                "MoveSemantics.RevisionMetadataOnly",
-                "Existing move-from and move-to markup is compared as review metadata; generated redlines use insert/delete revisions and do not synthesize Word move-range semantics.",
-                ContainsMoveMarkup(sourcePart),
-                ContainsMoveMarkup(targetPart));
+            if (options.CompareRevisions) {
+                AddShapeLimitation(
+                    result,
+                    "MoveSemantics.RevisionMetadataOnly",
+                    "Existing move-from and move-to markup is compared as review metadata; generated redlines use insert/delete revisions and do not synthesize Word move-range semantics.",
+                    ContainsMoveMarkup(sourcePart),
+                    ContainsMoveMarkup(targetPart));
+            }
         }
 
         private static void AddShapeLimitation(

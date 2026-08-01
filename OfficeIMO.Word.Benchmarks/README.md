@@ -8,4 +8,4 @@ dotnet run -c Release -f net8.0 --project OfficeIMO.Word.Benchmarks -- --filter 
 
 Use `--job Dry` for a quick execution check. A dry run is not a stable performance baseline; use the normal BenchmarkDotNet job on an otherwise idle machine before comparing timings or setting budgets.
 
-The suite covers package load, field refresh, mail merge, structured comparison, Word-to-HTML including package load, and Word-to-HTML over an already loaded document. Each benchmark validates its result by returning a count or encoded length. Temporary packages are created under the operating-system temporary folder and removed by benchmark cleanup.
+The suite covers package load, field refresh, mail merge, structured comparison, Word-to-HTML including package load, and Word-to-HTML over an already loaded document. Global setup executes each workflow once and rejects unexpected field, merge, paragraph, HTML-output, or comparison results before BenchmarkDotNet starts timing. Temporary packages are created under the operating-system temporary folder and removed by benchmark cleanup.

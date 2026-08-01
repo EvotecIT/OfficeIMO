@@ -244,5 +244,25 @@ namespace OfficeIMO.Word.Html {
                 if (requested > _maxCharacters) _limitExceeded(requested);
             }
         }
+
+        private sealed class CountingHtmlWriter : TextWriter {
+            public override Encoding Encoding => Encoding.UTF8;
+
+            internal long CharacterCount { get; private set; }
+
+            public override void Write(char value) => AddCharacters(1);
+
+            public override void Write(char[] buffer, int index, int count) => AddCharacters(count);
+
+            public override void Write(string? value) {
+                if (!string.IsNullOrEmpty(value)) AddCharacters(value!.Length);
+            }
+
+            private void AddCharacters(int count) {
+                CharacterCount = CharacterCount > long.MaxValue - count
+                    ? long.MaxValue
+                    : CharacterCount + count;
+            }
+        }
     }
 }

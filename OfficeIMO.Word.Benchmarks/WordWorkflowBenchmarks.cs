@@ -57,6 +57,8 @@ public class WordWorkflowBenchmarks {
             source.Save();
             target.Save();
         }
+
+        ValidateWorkflowResults();
     }
 
     [Benchmark]
@@ -92,6 +94,33 @@ public class WordWorkflowBenchmarks {
 
     [Benchmark]
     public int CompareStructure() => WordDocumentComparer.CompareStructure(_sourcePath, _targetPath).Findings.Count;
+
+    private void ValidateWorkflowResults() {
+        EnsureEqual(nameof(UpdateFields), ItemCount, UpdateFields());
+        EnsureEqual(nameof(ExecuteMailMerge), ItemCount, ExecuteMailMerge());
+        EnsureEqual(nameof(LoadDocument), ItemCount, LoadDocument());
+        EnsurePositive(nameof(ExportHtml), ExportHtml());
+        EnsurePositive(nameof(ExportLoadedHtml), ExportLoadedHtml());
+
+        WordComparisonResult comparison = WordDocumentComparer.CompareStructure(_sourcePath, _targetPath);
+        if (!comparison.HasChanges ||
+            !comparison.Findings.Any(finding =>
+                string.Equals(finding.TargetText, "Changed paragraph", StringComparison.Ordinal))) {
+            throw new InvalidOperationException("CompareStructure validation did not find the expected changed paragraph.");
+        }
+    }
+
+    private static void EnsureEqual(string benchmark, int expected, int actual) {
+        if (actual != expected) {
+            throw new InvalidOperationException(benchmark + " validation returned " + actual + "; expected " + expected + ".");
+        }
+    }
+
+    private static void EnsurePositive(string benchmark, int actual) {
+        if (actual <= 0) {
+            throw new InvalidOperationException(benchmark + " validation returned no output.");
+        }
+    }
 
     [GlobalCleanup]
     public void Cleanup() {

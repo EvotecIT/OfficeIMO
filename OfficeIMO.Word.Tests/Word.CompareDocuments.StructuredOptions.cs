@@ -189,6 +189,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureOmitsMoveLimitationWhenRevisionComparisonIsDisabled() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_move_disabled_source.docx");
+            CreateImportedMoveAndFormattingRevisionDocument(sourcePath, "Move source", "Reviewer");
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_move_disabled_target.docx");
+            CreateImportedMoveAndFormattingRevisionDocument(targetPath, "Move target", "Reviewer");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareRevisions = false,
+                CompareEffectiveFormatting = false
+            });
+
+            Assert.DoesNotContain(result.Limitations, limitation => limitation.Code == "MoveSemantics.RevisionMetadataOnly");
+        }
+
+        [Fact]
         public void CompareStructureReportsThemeLimitationFromUsedStyleDefinitions() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_style_theme_source.docx");
             CreateDocumentWithInheritedComparisonStyle(sourcePath, paragraphSpacingAfter: "120", runColor: "1F4E79");

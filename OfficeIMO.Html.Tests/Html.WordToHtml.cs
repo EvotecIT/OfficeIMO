@@ -105,6 +105,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_Base64ImageBudgetIncludesExistingMarkup() {
+            using var doc = WordDocument.Create();
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            doc.AddParagraph(new string('x', 2048));
+            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            long imageBytes = new FileInfo(assetPath).Length;
+            long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
+            var options = new WordToHtmlOptions { MaxOutputCharacters = imageDataUriCharacters + 100L };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Contains("OfficeIMO.png", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+            Assert.True(exception.Actual > imageDataUriCharacters);
+        }
+
+        [Fact]
         public void Test_WordToHtml_DocumentElementBudgetIncludesCommentsPart() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Small visible body");

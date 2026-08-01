@@ -215,12 +215,16 @@ namespace OfficeIMO.Word {
             byte[]? packageBytes = null,
             int maxPackageParts = 10000,
             long maxPartBytes = 256L * 1024 * 1024,
+            int maxSignedReferences = 4096,
+            long maxTotalDigestBytes = 512L * 1024 * 1024,
             long maxSignatureBytes = 16L * 1024 * 1024,
             int maxCertificates = 64,
             long maxCertificateBytes = 4L * 1024 * 1024) {
             if (package == null) throw new ArgumentNullException(nameof(package));
             if (maxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificates));
             if (maxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificateBytes));
+            if (maxSignedReferences <= 0) throw new ArgumentOutOfRangeException(nameof(maxSignedReferences));
+            if (maxTotalDigestBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalDigestBytes));
 
             var signatureParts = new List<OfficePackageSignaturePartInfo>();
             var unsupportedDetails = new List<string>();
@@ -257,6 +261,8 @@ namespace OfficeIMO.Word {
                             packageParts,
                             signatureArchive,
                             maxPartBytes,
+                            maxSignedReferences,
+                            maxTotalDigestBytes,
                             maxSignatureBytes,
                             maxCertificates,
                             maxCertificateBytes);
@@ -299,6 +305,8 @@ namespace OfficeIMO.Word {
             IReadOnlyDictionary<string, OpenXmlPart> packageParts,
             OfficePackageSignatureArchive? signatureArchive,
             long maxPartBytes,
+            int maxSignedReferences,
+            long maxTotalDigestBytes,
             long maxSignatureBytes,
             int maxCertificates,
             long maxCertificateBytes) {
@@ -338,6 +346,7 @@ namespace OfficeIMO.Word {
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
                 IReadOnlyList<XElement> referencesToInspect = GetAuthenticatedReferences(xml, ds, unsupportedDetails);
+                ValidateDigestWorkBudget(referencesToInspect, signatureArchive, maxSignedReferences, maxTotalDigestBytes);
                 signedReferences.AddRange(referencesToInspect
                     .Select(reference => InspectSignedReference(reference, ds, packagePartUris, packageParts, signatureArchive, maxPartBytes)));
                 timestamps.AddRange(ReadSignatureTimestamps(xml));
@@ -398,7 +407,6 @@ namespace OfficeIMO.Word {
             foreach (XElement signedReference in signedInfoReferences) {
                 string uri = ((string?)signedReference.Attribute("URI"))?.Trim() ?? string.Empty;
                 if (uri.Length == 0) {
-                    authenticatedManifests.UnionWith(allManifests);
                     continue;
                 }
                 if (!uri.StartsWith("#", StringComparison.Ordinal) || uri.Length == 1) continue;
@@ -425,6 +433,27 @@ namespace OfficeIMO.Word {
                 .Distinct()
                 .ToList();
             return result.Count > 0 ? result : signedInfoReferences;
+        }
+
+        private static void ValidateDigestWorkBudget(
+            IReadOnlyList<XElement> references,
+            OfficePackageSignatureArchive? archive,
+            int maxSignedReferences,
+            long maxTotalDigestBytes) {
+            if (references.Count > maxSignedReferences) {
+                throw new InvalidDataException("The XML signature contains more than " + maxSignedReferences + " authenticated references.");
+            }
+            if (archive == null) return;
+
+            long totalDigestBytes = 0;
+            foreach (XElement reference in references) {
+                string? targetPartUri = NormalizePackagePartReference((string?)reference.Attribute("URI"));
+                if (targetPartUri == null || !archive.TryGetPartLength(targetPartUri, out long partLength)) continue;
+                if (partLength > maxTotalDigestBytes - totalDigestBytes) {
+                    throw new InvalidDataException("Authenticated package references exceed the " + maxTotalDigestBytes + " byte aggregate digest-work limit.");
+                }
+                totalDigestBytes += partLength;
+            }
         }
 
         private static bool HasElementId(XElement element, string id) {

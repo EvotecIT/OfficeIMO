@@ -48,6 +48,15 @@ namespace OfficeIMO.Word {
 
         internal bool ContainsPart(string partUri) => _entries.ContainsKey(NormalizePartUri(partUri));
 
+        internal bool TryGetPartLength(string partUri, out long length) {
+            if (_entries.TryGetValue(NormalizePartUri(partUri), out ZipArchiveEntry? entry)) {
+                length = entry.Length;
+                return true;
+            }
+            length = 0;
+            return false;
+        }
+
         internal bool TryGetContentType(string partUri, out string contentType) =>
             _contentTypes.TryGetValue(NormalizePartUri(partUri), out contentType!);
 

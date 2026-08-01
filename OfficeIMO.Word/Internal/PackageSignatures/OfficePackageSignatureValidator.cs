@@ -540,6 +540,8 @@ namespace OfficeIMO.Word {
             if (options.MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageBytes));
             if (options.MaxPackageParts <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageParts));
             if (options.MaxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxPartBytes));
+            if (options.MaxSignedReferences <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignedReferences));
+            if (options.MaxTotalDigestBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalDigestBytes));
             if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
             if (options.MaxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificates));
             if (options.MaxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificateBytes));

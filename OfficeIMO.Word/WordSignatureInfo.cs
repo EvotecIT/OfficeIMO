@@ -281,6 +281,8 @@ namespace OfficeIMO.Word {
             byte[]? packageBytes = null,
             int maxPackageParts = 10000,
             long maxPartBytes = 256L * 1024 * 1024,
+            int maxSignedReferences = 4096,
+            long maxTotalDigestBytes = 512L * 1024 * 1024,
             long maxSignatureBytes = 16L * 1024 * 1024,
             int maxCertificates = 64,
             long maxCertificateBytes = 4L * 1024 * 1024) {
@@ -294,6 +296,8 @@ namespace OfficeIMO.Word {
                     packageBytes,
                     maxPackageParts,
                     maxPartBytes,
+                    maxSignedReferences,
+                    maxTotalDigestBytes,
                     maxSignatureBytes,
                     maxCertificates,
                     maxCertificateBytes));

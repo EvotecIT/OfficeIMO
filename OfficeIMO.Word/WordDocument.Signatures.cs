@@ -42,6 +42,8 @@ namespace OfficeIMO.Word {
                     packageBytes: null,
                     maxPackageParts: options.MaxPackageParts,
                     maxPartBytes: options.MaxPartBytes,
+                    maxSignedReferences: options.MaxSignedReferences,
+                    maxTotalDigestBytes: options.MaxTotalDigestBytes,
                     maxSignatureBytes: options.MaxSignatureBytes,
                     maxCertificates: options.MaxCertificates,
                     maxCertificateBytes: options.MaxCertificateBytes);
@@ -69,6 +71,8 @@ namespace OfficeIMO.Word {
                     packageBytes: null,
                     maxPackageParts: options.MaxPackageParts,
                     maxPartBytes: options.MaxPartBytes,
+                    maxSignedReferences: options.MaxSignedReferences,
+                    maxTotalDigestBytes: options.MaxTotalDigestBytes,
                     maxSignatureBytes: options.MaxSignatureBytes,
                     maxCertificates: options.MaxCertificates,
                     maxCertificateBytes: options.MaxCertificateBytes);
@@ -85,6 +89,8 @@ namespace OfficeIMO.Word {
                 packageBytes,
                 options.MaxPackageParts,
                 options.MaxPartBytes,
+                options.MaxSignedReferences,
+                options.MaxTotalDigestBytes,
                 options.MaxSignatureBytes,
                 options.MaxCertificates,
                 options.MaxCertificateBytes);
