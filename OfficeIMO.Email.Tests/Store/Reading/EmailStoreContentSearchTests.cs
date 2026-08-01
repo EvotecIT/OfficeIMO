@@ -78,8 +78,7 @@ public sealed class EmailStoreContentSearchTests {
             new[] { "value" }, maxItemsScanned: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new EmailStoreContentQuery(
             new[] { "value" }, fields: EmailStoreContentSearchFields.None));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new EmailStoreContentSearchCheckpoint(-1));
+        Assert.Throws<InvalidDataException>(() => EmailStoreContentSearchCheckpoint.Parse("invalid"));
     }
 
     [Fact]
@@ -101,6 +100,44 @@ public sealed class EmailStoreContentSearchTests {
         } finally {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public void DurableCheckpointResumesAfterReopenAndRejectsChangedSourceOrQuery() {
+        string root = CreateCorpus();
+        try {
+            EmailStoreContentSearchCheckpoint checkpoint;
+            EmailStoreContinuationToken tableCheckpoint;
+            using (EmailStoreSession first = EmailStoreSession.Open(root)) {
+                EmailStoreContentSearchReport page = first.SearchContent(new EmailStoreContentQuery(
+                    new[] { "needle" }, matchMode: EmailStoreContentMatchMode.AnyTerm,
+                    maxItemsScanned: 1, maxResults: 10));
+                checkpoint = EmailStoreContentSearchCheckpoint.Parse(Assert.IsType<EmailStoreContentSearchCheckpoint>(page.NextCheckpoint).Value);
+                tableCheckpoint = EmailStoreContinuationToken.Parse(Assert.IsType<EmailStoreContinuationToken>(
+                    first.SearchPage(new EmailStoreTableQuery(pageSize: 1, maxItemsScanned: 10)).NextToken).Value);
+            }
+
+            using (EmailStoreSession reopened = EmailStoreSession.Open(root)) {
+                EmailStoreContentSearchReport resumed = reopened.SearchContent(new EmailStoreContentQuery(
+                    new[] { "needle" }, matchMode: EmailStoreContentMatchMode.AnyTerm,
+                    maxItemsScanned: 1, maxResults: 10, resumeFrom: checkpoint));
+                Assert.NotEmpty(resumed.Results);
+                EmailStoreTablePage tablePage = reopened.SearchPage(new EmailStoreTableQuery(
+                    continuationToken: tableCheckpoint, pageSize: 1, maxItemsScanned: 10));
+                Assert.Single(tablePage.Rows);
+                Assert.Throws<ArgumentException>(() => reopened.SearchContent(new EmailStoreContentQuery(
+                    new[] { "different" }, matchMode: EmailStoreContentMatchMode.AnyTerm,
+                    maxItemsScanned: 1, maxResults: 10, resumeFrom: checkpoint)));
+            }
+
+            File.AppendAllText(Directory.GetFiles(root, "*.eml", SearchOption.AllDirectories).First(), "\r\nchanged");
+            using EmailStoreSession changed = EmailStoreSession.Open(root);
+            Assert.Throws<ArgumentException>(() => changed.SearchContent(new EmailStoreContentQuery(
+                new[] { "needle" }, matchMode: EmailStoreContentMatchMode.AnyTerm,
+                maxItemsScanned: 1, maxResults: 10, resumeFrom: checkpoint)));
+            Assert.Throws<ArgumentException>(() => changed.SearchPage(new EmailStoreTableQuery(
+                continuationToken: tableCheckpoint, pageSize: 1, maxItemsScanned: 10)));
+        } finally { Directory.Delete(root, recursive: true); }
     }
 
     private static string CreateCorpus() {

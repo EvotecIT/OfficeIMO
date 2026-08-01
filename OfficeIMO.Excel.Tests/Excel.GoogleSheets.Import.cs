@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleSheetsImportResult result = await session.ImportGoogleSheetAsync("sheet123");
                 using (result.Document) {
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
                 nativeReads++;
                 return Task.FromResult(CreateJsonResponse("{\"spreadsheetId\":\"sheet-blocked\"}"));
             }));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 session.ImportGoogleSheetAsync("sheet-blocked", new GoogleSheetsImportOptions { Mode = GoogleSheetsImportMode.Native }));
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
                 request.RequestUri!.Host == "www.googleapis.com"
                     ? Task.FromResult(CreateJsonResponse("{\"id\":\"sheet-large\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"capabilities\":{\"canDownload\":true}}"))
                     : Task.FromResult(CreateJsonResponse(nativeJson))));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 session.ImportGoogleSheetAsync("sheet-large", new GoogleSheetsImportOptions {
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 request.RequestUri!.Host == "www.googleapis.com"
                     ? Task.FromResult(CreateJsonResponse("{\"id\":\"sheet-metadata\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"capabilities\":{\"canDownload\":true}}"))
                     : Task.FromResult(CreateJsonResponse(nativeJson))));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(),
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(),
                 new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
                 request.RequestUri!.Host == "www.googleapis.com"
                     ? Task.FromResult(CreateJsonResponse("{\"id\":\"sheet-groups\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"capabilities\":{\"canDownload\":true}}"))
                     : Task.FromResult(CreateJsonResponse(nativeJson))));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(),
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(),
                 new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
                 }
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             }));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             GoogleSheetsImportResult result = await session.ImportGoogleSheetAsync("native123", new GoogleSheetsImportOptions {
                 Mode = GoogleSheetsImportMode.Native,
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleSheetsDiffPlan plan = await GoogleSheetsDiffPlanner.BuildAsync(source, "diff-sheet", session, checkpoint);
 
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleSheetsDiffPlan plan = await GoogleSheetsDiffPlanner.BuildAsync(source, "diff-chart", session, checkpoint);
 
@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
                     requestCount++;
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleWorkspacePreflightException exception = await Assert.ThrowsAsync<GoogleWorkspacePreflightException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
@@ -357,7 +357,7 @@ namespace OfficeIMO.Tests {
                     sheetsRequests++;
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleWorkspaceConflictException exception = await Assert.ThrowsAsync<GoogleWorkspaceConflictException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
@@ -397,7 +397,7 @@ namespace OfficeIMO.Tests {
                     requestCount++;
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleWorkspacePreflightException exception = await Assert.ThrowsAsync<GoogleWorkspacePreflightException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleSpreadsheetReference result = await document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
                     Execution = new GoogleSheetsExecutionOptions {

@@ -59,6 +59,12 @@ public sealed class OfflineAddressBookSearchQuery {
         ProgressInterval = progressInterval;
         ContinueOnEntryError = continueOnEntryError;
         ResumeFrom = resumeFrom;
+        Signature = EmailHashing.ComputeSha256HexLower(string.Join("|",
+            string.Join("\u001f", Terms), ((int)Fields).ToString(CultureInfo.InvariantCulture),
+            ((int)MatchMode).ToString(CultureInfo.InvariantCulture), AddressListId ?? string.Empty,
+            ObjectType?.ToString() ?? string.Empty,
+            MaxSearchableCharactersPerEntry.ToString(CultureInfo.InvariantCulture),
+            SnippetCharacters.ToString(CultureInfo.InvariantCulture), ContinueOnEntryError.ToString()));
     }
 
     /// <summary>Case-insensitive terms.</summary>
@@ -85,4 +91,5 @@ public sealed class OfflineAddressBookSearchQuery {
     public bool ContinueOnEntryError { get; }
     /// <summary>Optional exact-position checkpoint from an earlier batch on the same session snapshot.</summary>
     public OfflineAddressBookSearchCheckpoint? ResumeFrom { get; }
+    internal string Signature { get; }
 }

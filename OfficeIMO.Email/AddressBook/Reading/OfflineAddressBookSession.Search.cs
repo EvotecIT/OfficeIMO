@@ -13,6 +13,8 @@ public sealed partial class OfflineAddressBookSession {
         CancellationToken cancellationToken = default) {
         if (query == null) throw new ArgumentNullException(nameof(query));
         ThrowIfDisposed();
+        string durableSourceFingerprint = GetDurableSourceFingerprint(cancellationToken);
+        query.ResumeFrom?.Validate(durableSourceFingerprint, query.Signature);
 
         IReadOnlyList<OabAddressListSource> selectedSources = SelectSearchSources(query);
         SearchPosition position = GetSearchStart(selectedSources, query.ResumeFrom);
@@ -39,7 +41,7 @@ public sealed partial class OfflineAddressBookSession {
                     if (scanned >= query.MaxEntriesScanned) {
                         stoppedAtEntryLimit = true;
                         nextCheckpoint = CreateCheckpoint(selected, entryIndex,
-                            stream.Position - selected.Source.BaseOffset);
+                            stream.Position - selected.Source.BaseOffset, query, durableSourceFingerprint);
                         break;
                     }
 
@@ -78,7 +80,7 @@ public sealed partial class OfflineAddressBookSession {
                                 stoppedAtResultLimit = true;
                                 nextCheckpoint = CreateNextCheckpoint(
                                     selectedSources, selectedIndex, selected, entryIndex,
-                                    stream.Position - selected.Source.BaseOffset);
+                                    stream.Position - selected.Source.BaseOffset, query, durableSourceFingerprint);
                                 break;
                             }
                         }
@@ -118,8 +120,7 @@ public sealed partial class OfflineAddressBookSession {
         }
         for (int index = 0; index < selectedSources.Count; index++) {
             OabAddressListSource source = selectedSources[index];
-            if (source.SnapshotId != checkpoint.SnapshotId ||
-                source.Info.Index != checkpoint.AddressListIndex ||
+            if (source.Info.Index != checkpoint.AddressListIndex ||
                 !string.Equals(source.Info.Id, checkpoint.AddressListId, StringComparison.Ordinal)) continue;
             if (checkpoint.EntryIndex < 0 || checkpoint.EntryIndex >= source.Info.DeclaredEntryCount ||
                 checkpoint.RecordOffset < source.Info.EntriesOffset ||
@@ -142,21 +143,24 @@ public sealed partial class OfflineAddressBookSession {
 
     private static OfflineAddressBookSearchCheckpoint CreateNextCheckpoint(
         IReadOnlyList<OabAddressListSource> selectedSources, int selectedIndex,
-        OabAddressListSource selected, long nextEntryIndex, long nextOffset) {
+        OabAddressListSource selected, long nextEntryIndex, long nextOffset,
+        OfflineAddressBookSearchQuery query, string sourceFingerprint) {
         if (nextEntryIndex < selected.Info.DeclaredEntryCount) {
-            return CreateCheckpoint(selected, nextEntryIndex, nextOffset);
+            return CreateCheckpoint(selected, nextEntryIndex, nextOffset, query, sourceFingerprint);
         }
         for (int index = selectedIndex + 1; index < selectedSources.Count; index++) {
             OabAddressListSource next = selectedSources[index];
-            if (next.Info.DeclaredEntryCount > 0) return CreateCheckpoint(next, 0, next.Info.EntriesOffset);
+            if (next.Info.DeclaredEntryCount > 0) return CreateCheckpoint(next, 0, next.Info.EntriesOffset, query, sourceFingerprint);
         }
         throw new InvalidOperationException("A search checkpoint was requested after the selected scope was exhausted.");
     }
 
     private static OfflineAddressBookSearchCheckpoint CreateCheckpoint(
-        OabAddressListSource source, long entryIndex, long recordOffset) =>
-        new OfflineAddressBookSearchCheckpoint(
-            source.Info.Id, source.Info.Index, entryIndex, recordOffset, source.SnapshotId);
+        OabAddressListSource source, long entryIndex, long recordOffset,
+        OfflineAddressBookSearchQuery query, string sourceFingerprint) =>
+        OfflineAddressBookSearchCheckpoint.Create(
+            source.Info.Id, source.Info.Index, entryIndex, recordOffset,
+            sourceFingerprint, query.Signature);
 
     private static EmailDiagnostic SearchDiagnostic(string code, Exception exception, string location) =>
         new EmailDiagnostic(code, exception.Message,

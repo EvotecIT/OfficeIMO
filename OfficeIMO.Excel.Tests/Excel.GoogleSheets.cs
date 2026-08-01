@@ -13,6 +13,27 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        private static GoogleWorkspaceSession GoogleTestSession(
+            IGoogleWorkspaceCredentialSource credentialSource,
+            GoogleWorkspaceSessionOptions? options = null) {
+            options ??= new GoogleWorkspaceSessionOptions();
+            options.ExpectedAccount ??= "test-account@example.invalid";
+            options.OperationPolicyProvider ??= context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!,
+                new[] {
+                    "https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive",
+                },
+                context.Target,
+                "test-explicit-revision-decision",
+                options.MaxRetryCount,
+                options.MaxRetryElapsedTime,
+                options.RateLimitPolicy,
+                GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            options.OperationReceiptSink ??= _ => { };
+            return new GoogleWorkspaceSession(credentialSource, options);
+        }
+
         [Fact]
         public void Test_ExcelInspectionSnapshot_ExposesOfficeIMOWorkbookModel() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelInspectionSnapshot.xlsx");
@@ -1436,7 +1457,7 @@ namespace OfficeIMO.Tests {
                     };
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions {
                         HttpClient = httpClient,
@@ -1507,7 +1528,7 @@ namespace OfficeIMO.Tests {
                     });
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions {
                         HttpClient = httpClient,
@@ -1563,7 +1584,7 @@ namespace OfficeIMO.Tests {
                     });
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions {
                         HttpClient = httpClient,
@@ -1629,7 +1650,7 @@ namespace OfficeIMO.Tests {
                     };
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions {
                         HttpClient = httpClient,
@@ -1705,7 +1726,7 @@ namespace OfficeIMO.Tests {
                     });
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions {
                         HttpClient = httpClient,
@@ -1775,7 +1796,7 @@ namespace OfficeIMO.Tests {
                     };
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions {
                         HttpClient = httpClient,
@@ -1839,7 +1860,7 @@ namespace OfficeIMO.Tests {
                     };
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions {
                         HttpClient = httpClient,
@@ -1928,7 +1949,7 @@ namespace OfficeIMO.Tests {
                     };
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions {
                         HttpClient = httpClient,
@@ -1964,7 +1985,7 @@ namespace OfficeIMO.Tests {
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new DelegateGoogleWorkspaceCredentialSource((scopes, cancellationToken) =>
                         Task.FromException<GoogleWorkspaceAccessToken>(new HttpRequestException("token endpoint unavailable"))));
 

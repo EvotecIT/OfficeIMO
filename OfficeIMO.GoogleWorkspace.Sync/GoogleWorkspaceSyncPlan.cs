@@ -5,9 +5,14 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
 
     /// <summary>One caller-owned operation classified before any mutation is attempted.</summary>
     public sealed class GoogleWorkspaceSyncItem {
-        public GoogleWorkspaceSyncItem(string id, GoogleWorkspaceSyncItemKind kind, string path, string message, string? sourceId = null, string? googleFileId = null) {
+        public GoogleWorkspaceSyncItem(string id, GoogleWorkspaceSyncItemKind kind, string path, string message,
+            string targetResource, string expectedRevision, string? sourceId = null, string? googleFileId = null) {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A stable plan item id is required.", nameof(id));
-            Id = id; Kind = kind; Path = path ?? string.Empty; Message = message ?? string.Empty; SourceId = sourceId; GoogleFileId = googleFileId;
+            if (string.IsNullOrWhiteSpace(targetResource)) throw new ArgumentException("The target resource is required.", nameof(targetResource));
+            if (string.IsNullOrWhiteSpace(expectedRevision)) throw new ArgumentException("The expected revision decision is required.", nameof(expectedRevision));
+            Id = id; Kind = kind; Path = path ?? string.Empty; Message = message ?? string.Empty;
+            TargetResource = targetResource; ExpectedRevision = expectedRevision;
+            SourceId = sourceId; GoogleFileId = googleFileId;
         }
         public string Id { get; }
         public GoogleWorkspaceSyncItemKind Kind { get; }
@@ -15,24 +20,30 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
         public string Message { get; }
         public string? SourceId { get; }
         public string? GoogleFileId { get; }
+        public string TargetResource { get; }
+        public string ExpectedRevision { get; }
         public bool RequiresApproval => Kind == GoogleWorkspaceSyncItemKind.LossyAction;
     }
 
     /// <summary>Immutable mutation plan suitable for review, dry-run, approval, and apply.</summary>
     public sealed class GoogleWorkspaceSyncPlan {
-        private GoogleWorkspaceSyncPlan(IReadOnlyList<GoogleWorkspaceSyncItem> items, TranslationReport report) { Items = items; Report = report; }
+        private GoogleWorkspaceSyncPlan(IReadOnlyList<GoogleWorkspaceSyncItem> items,
+            GoogleWorkspaceOperationPolicy policy, TranslationReport report) { Items = items; Policy = policy; Report = report; }
         public IReadOnlyList<GoogleWorkspaceSyncItem> Items { get; }
+        public GoogleWorkspaceOperationPolicy Policy { get; }
         public TranslationReport Report { get; }
         public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceSyncItemKind.Conflict);
         public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceSyncItemKind.LossyAction);
         public bool CanApply => !HasConflicts && !Report.HasErrors;
 
-        public static GoogleWorkspaceSyncPlan Create(IEnumerable<GoogleWorkspaceSyncItem> items, TranslationReport? report = null) {
+        public static GoogleWorkspaceSyncPlan Create(IEnumerable<GoogleWorkspaceSyncItem> items,
+            GoogleWorkspaceOperationPolicy policy, TranslationReport? report = null) {
             if (items == null) throw new ArgumentNullException(nameof(items));
+            if (policy == null) throw new ArgumentNullException(nameof(policy));
             GoogleWorkspaceSyncItem[] materialized = items.ToArray();
             string? duplicate = materialized.GroupBy(item => item.Id, StringComparer.Ordinal).Where(group => group.Count() > 1).Select(group => group.Key).FirstOrDefault();
             if (duplicate != null) throw new ArgumentException($"Synchronization plan item id '{duplicate}' is duplicated.", nameof(items));
-            return new GoogleWorkspaceSyncPlan(materialized, report ?? new TranslationReport());
+            return new GoogleWorkspaceSyncPlan(materialized, policy, report ?? new TranslationReport());
         }
     }
 }

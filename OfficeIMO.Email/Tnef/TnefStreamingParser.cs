@@ -7,23 +7,27 @@ internal sealed class TnefStreamingParser {
     private readonly IList<EmailDiagnostic> _diagnostics;
     private readonly CancellationToken _cancellationToken;
     private readonly EmailReadWorkspace _workspace;
+    private readonly EmailProcessingBudget _budget;
     private readonly List<ExternalAttribute> _external = new List<ExternalAttribute>();
     private long _totalAttachmentBytes;
 
     private TnefStreamingParser(Stream input, EmailReaderOptions options,
-        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace) {
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace,
+        EmailProcessingBudget budget) {
         _input = input;
         _options = options;
         _diagnostics = diagnostics;
         _cancellationToken = cancellationToken;
         _workspace = workspace;
+        _budget = budget;
     }
 
     internal static EmailDocument Parse(Stream input, EmailReaderOptions options,
-        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace) {
-        var parser = new TnefStreamingParser(input, options, diagnostics, cancellationToken, workspace);
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace,
+        EmailProcessingBudget budget) {
+        var parser = new TnefStreamingParser(input, options, diagnostics, cancellationToken, workspace, budget);
         byte[] skeleton = parser.CreateSkeleton();
-        EmailDocument document = TnefReader.Read(skeleton, options, diagnostics, cancellationToken);
+        EmailDocument document = TnefReader.Read(skeleton, options, diagnostics, cancellationToken, budget);
         parser.ApplyExternalContent(document);
         return document;
     }
@@ -151,6 +155,7 @@ internal sealed class TnefStreamingParser {
                 _options.MaxTotalAttachmentBytes);
         }
         _totalAttachmentBytes = total;
+        _budget.CountAttachmentBytes(length);
     }
 
     private void CopyRange(long start, long end, Stream output) {

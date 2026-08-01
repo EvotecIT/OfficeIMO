@@ -194,15 +194,17 @@ namespace OfficeIMO.GoogleWorkspace {
             string effectiveUri = AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
+            MutationAttempt? mutation = BeginMutation(method, effectiveUri, requestSafety, serviceName, requestId);
 
-            return await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
-                _client,
-                () => CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId),
-                retryOptions,
-                requestSafety,
-                _options.RequestTimeout,
-                cancellationToken,
-                async (response, responseToken) => {
+            try {
+                TResponse result = await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
+                    _client,
+                    () => CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId),
+                    retryOptions,
+                    requestSafety,
+                    _options.RequestTimeout,
+                    cancellationToken,
+                    async (response, responseToken) => {
                     if (!response.IsSuccessStatusCode) {
                         byte[] errorBytes = await ReadResponseBytesAsync(
                             response.Content,
@@ -230,8 +232,15 @@ namespace OfficeIMO.GoogleWorkspace {
                     }
 
                     return result;
-                },
-                retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false);
+                    },
+                    retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent); })
+                    .ConfigureAwait(false);
+                mutation?.Complete(true, "completed");
+                return result;
+            } catch (Exception exception) {
+                mutation?.Complete(false, exception.GetType().Name);
+                throw;
+            }
         }
 
         public async Task<byte[]> SendBytesAsync(
@@ -244,7 +253,8 @@ namespace OfficeIMO.GoogleWorkspace {
             CancellationToken cancellationToken = default,
             bool preserveRequestUri = false,
             bool includeAuthorization = true,
-            long? maxResponseBytes = null) {
+            long? maxResponseBytes = null,
+            Action<HttpRequestMessage>? configureRequest = null) {
             ThrowIfDisposed();
             if (maxResponseBytes.HasValue && maxResponseBytes.Value <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
@@ -254,15 +264,21 @@ namespace OfficeIMO.GoogleWorkspace {
                 : AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
+            MutationAttempt? mutation = BeginMutation(method, effectiveUri, requestSafety, serviceName, requestId);
 
-            return await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
-                _client,
-                () => CreateRequest(accessToken, method, effectiveUri, null, requestId, includeAuthorization),
-                retryOptions,
-                requestSafety,
-                _options.RequestTimeout,
-                cancellationToken,
-                async (response, responseToken) => {
+            try {
+                byte[] result = await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
+                    _client,
+                    () => {
+                        HttpRequestMessage request = CreateRequest(accessToken, method, effectiveUri, null, requestId, includeAuthorization);
+                        configureRequest?.Invoke(request);
+                        return request;
+                    },
+                    retryOptions,
+                    requestSafety,
+                    _options.RequestTimeout,
+                    cancellationToken,
+                    async (response, responseToken) => {
                     if (!response.IsSuccessStatusCode) {
                         byte[] errorBytes = await ReadResponseBytesAsync(
                             response.Content,
@@ -276,9 +292,15 @@ namespace OfficeIMO.GoogleWorkspace {
 
                     return await ReadResponseBytesAsync(response.Content,
                         maxResponseBytes, responseToken).ConfigureAwait(false);
-                },
-                retryEvent => ReportRetry(report, serviceName, retryEvent))
-                .ConfigureAwait(false);
+                    },
+                    retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent); })
+                    .ConfigureAwait(false);
+                mutation?.Complete(true, "completed");
+                return result;
+            } catch (Exception exception) {
+                mutation?.Complete(false, exception.GetType().Name);
+                throw;
+            }
         }
 
         private static async Task<byte[]> ReadResponseBytesAsync(
@@ -327,7 +349,8 @@ namespace OfficeIMO.GoogleWorkspace {
             CancellationToken cancellationToken = default,
             Action<HttpRequestMessage>? configureRequest = null,
             IReadOnlyCollection<HttpStatusCode>? additionalSuccessStatusCodes = null,
-            bool preserveRequestUri = false) {
+            bool preserveRequestUri = false,
+            string? diagnosticTarget = null) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
             if (method == null) throw new ArgumentNullException(nameof(method));
@@ -338,41 +361,46 @@ namespace OfficeIMO.GoogleWorkspace {
             string effectiveUri = preserveRequestUri
                 ? uri
                 : AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
+            string visibleTarget = string.IsNullOrWhiteSpace(diagnosticTarget) ? effectiveUri : diagnosticTarget!;
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
+            MutationAttempt? mutation = BeginMutation(method, visibleTarget, requestSafety, serviceName, requestId);
 
-            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
-                _client,
-                () => {
-                    var request = CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId);
-                    configureRequest?.Invoke(request);
-                    return request;
-                },
-                retryOptions,
-                requestSafety,
-                _options.RequestTimeout,
-                cancellationToken,
-                retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
-                byte[] body = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                bool accepted = response.IsSuccessStatusCode
-                    || (additionalSuccessStatusCodes != null && additionalSuccessStatusCodes.Contains(response.StatusCode));
-                if (!accepted) {
-                    string responseText = Encoding.UTF8.GetString(body);
-                    throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, responseText);
+            try {
+                using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
+                    _client,
+                    () => {
+                        var request = CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId);
+                        configureRequest?.Invoke(request);
+                        return request;
+                    },
+                    retryOptions,
+                    requestSafety,
+                    _options.RequestTimeout,
+                    cancellationToken,
+                    retryEvent => { mutation?.CountRetry(); ReportRetry(report, serviceName, retryEvent, visibleTarget); }).ConfigureAwait(false)) {
+                    byte[] body = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    bool accepted = response.IsSuccessStatusCode
+                        || (additionalSuccessStatusCodes != null && additionalSuccessStatusCodes.Contains(response.StatusCode));
+                    if (!accepted) {
+                        string responseText = Encoding.UTF8.GetString(body);
+                        throw GoogleWorkspaceApiException.Create(serviceName, method, visibleTarget, response.StatusCode, responseText);
+                    }
+
+                    var headers = response.Headers
+                        .Concat(response.Content.Headers)
+                        .GroupBy(header => header.Key, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(group => group.Key,
+                            group => (IReadOnlyList<string>)group.SelectMany(header => header.Value).ToArray(),
+                            StringComparer.OrdinalIgnoreCase);
+                    var result = new GoogleWorkspaceHttpResponse(response.StatusCode, body,
+                        response.Content.Headers.ContentType?.MediaType, headers);
+                    mutation?.Complete(true, "completed");
+                    return result;
                 }
-
-                var headers = response.Headers
-                    .Concat(response.Content.Headers)
-                    .GroupBy(header => header.Key, StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(
-                        group => group.Key,
-                        group => (IReadOnlyList<string>)group.SelectMany(header => header.Value).ToArray(),
-                        StringComparer.OrdinalIgnoreCase);
-                return new GoogleWorkspaceHttpResponse(
-                    response.StatusCode,
-                    body,
-                    response.Content.Headers.ContentType?.MediaType,
-                    headers);
+            } catch (Exception exception) {
+                mutation?.Complete(false, exception.GetType().Name);
+                throw;
             }
         }
 
@@ -414,15 +442,69 @@ namespace OfficeIMO.GoogleWorkspace {
             return request;
         }
 
-        private void ReportRetry(TranslationReport report, string serviceName, GoogleWorkspaceRetryEvent retryEvent) {
+        private void ReportRetry(TranslationReport report, string serviceName, GoogleWorkspaceRetryEvent retryEvent,
+            string? visibleTarget = null) {
+            string target = visibleTarget ?? retryEvent.Uri;
             GoogleWorkspaceDiagnosticsDispatcher.AddUnique(
                 report,
                 _options,
                 TranslationSeverity.Info,
                 "ApiRetries",
-                $"{serviceName} retried {retryEvent.Method} {retryEvent.Uri} after transient {retryEvent.Trigger} using {retryEvent.DelayStrategy} ({retryEvent.Delay.TotalMilliseconds:0} ms, retry {retryEvent.RetryAttempt} of {retryEvent.MaxRetryCount}).",
-                $"{retryEvent.Method} {retryEvent.Uri}",
+                $"{serviceName} retried {retryEvent.Method} {target} after transient {retryEvent.Trigger} using {retryEvent.DelayStrategy} ({retryEvent.Delay.TotalMilliseconds:0} ms, retry {retryEvent.RetryAttempt} of {retryEvent.MaxRetryCount}).",
+                $"{retryEvent.Method} {target}",
                 code: GoogleWorkspaceDiagnosticCodes.ApiRetry);
+        }
+
+        private MutationAttempt? BeginMutation(HttpMethod method, string target,
+            GoogleWorkspaceRequestSafety requestSafety, string service, string? requestId) {
+            if (requestSafety == GoogleWorkspaceRequestSafety.Safe) return null;
+            if (string.IsNullOrWhiteSpace(_options.ExpectedAccount)) {
+                throw new InvalidOperationException("Google mutations require GoogleWorkspaceSessionOptions.ExpectedAccount.");
+            }
+            if (_options.OperationPolicyProvider == null) {
+                throw new InvalidOperationException("Google mutations require an explicit OperationPolicyProvider.");
+            }
+            if (_options.OperationReceiptSink == null) {
+                throw new InvalidOperationException("Google mutations require an OperationReceiptSink so outcomes are recorded.");
+            }
+            bool potentialDataLoss = method == HttpMethod.Delete;
+            var context = new GoogleWorkspaceOperationContext(service, method.Method, target,
+                requestSafety, potentialDataLoss, requestId);
+            GoogleWorkspaceOperationPolicy policy = _options.OperationPolicyProvider(context)
+                ?? throw new InvalidOperationException("The Google operation policy provider returned no policy.");
+            if (!StringComparer.OrdinalIgnoreCase.Equals(policy.Account, _options.ExpectedAccount)) {
+                throw new InvalidOperationException("The Google operation policy account does not match the configured session account.");
+            }
+            if (!StringComparer.Ordinal.Equals(policy.Target, target)) {
+                throw new InvalidOperationException("The Google operation policy target does not match the request target.");
+            }
+            if (policy.MaxRetryCount != _options.MaxRetryCount ||
+                policy.MaxRetryElapsedTime != _options.MaxRetryElapsedTime ||
+                policy.RateLimitPolicy != _options.RateLimitPolicy) {
+                throw new InvalidOperationException("The Google operation policy retry or rate-limit decision does not match the configured session behavior.");
+            }
+            if (context.PotentialDataLoss &&
+                policy.DataLossDecision != GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss) {
+                throw new InvalidOperationException("The Google operation policy rejects the potential data loss of this mutation.");
+            }
+            return new MutationAttempt(policy, context, _options.OperationReceiptSink);
+        }
+
+        private sealed class MutationAttempt {
+            private readonly GoogleWorkspaceOperationPolicy _policy;
+            private readonly GoogleWorkspaceOperationContext _context;
+            private readonly Action<GoogleWorkspaceOperationReceipt> _sink;
+            private int _retryCount;
+            private bool _completed;
+            internal MutationAttempt(GoogleWorkspaceOperationPolicy policy, GoogleWorkspaceOperationContext context,
+                Action<GoogleWorkspaceOperationReceipt> sink) { _policy = policy; _context = context; _sink = sink; }
+            internal void CountRetry() { _retryCount++; }
+            internal void Complete(bool succeeded, string outcome) {
+                if (_completed) return;
+                _completed = true;
+                _sink(new GoogleWorkspaceOperationReceipt(_policy, _context.Service, _context.Method,
+                    _context.Target, _context.RequestId, _retryCount, succeeded, outcome));
+            }
         }
 
         private static string AppendQueryParameter(string uri, string name, string? value) {

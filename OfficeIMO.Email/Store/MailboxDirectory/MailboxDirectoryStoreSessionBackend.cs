@@ -128,6 +128,30 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         return EmailHashing.ToHexLower(fingerprint.GetHashAndReset());
     }
 
+    internal string GetContentFingerprint(CancellationToken cancellationToken) {
+        using IncrementalHash fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[64 * 1024];
+        foreach (MailboxFile file in _files) {
+            cancellationToken.ThrowIfCancellationRequested();
+            AppendFingerprint(fingerprint, file.RelativePath);
+            var info = new FileInfo(file.Path);
+            info.Refresh();
+            if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0) {
+                throw new InvalidDataException("A mailbox-directory source changed after it was indexed.");
+            }
+            using (var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read,
+                       buffer.Length, FileOptions.SequentialScan)) {
+                int read;
+                while ((read = stream.Read(buffer, 0, buffer.Length)) != 0) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    fingerprint.AppendData(buffer, 0, read);
+                }
+            }
+            fingerprint.AppendData(FingerprintSeparator);
+        }
+        return EmailHashing.ToHexLower(fingerprint.GetHashAndReset());
+    }
+
     private static void AppendFingerprint(IncrementalHash fingerprint, string value) {
         fingerprint.AppendData(Encoding.UTF8.GetBytes(value));
         fingerprint.AppendData(FingerprintSeparator);

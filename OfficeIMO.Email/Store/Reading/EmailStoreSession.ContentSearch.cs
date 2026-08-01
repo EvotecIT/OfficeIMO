@@ -12,6 +12,8 @@ public sealed partial class EmailStoreSession {
         CancellationToken cancellationToken = default) {
         if (query == null) throw new ArgumentNullException(nameof(query));
         ThrowIfDisposed();
+        string sourceFingerprint = GetDurableSourceFingerprint(cancellationToken);
+        query.ResumeFrom?.Validate(sourceFingerprint, query.Signature);
 
         var results = new List<EmailStoreContentSearchResult>();
         var diagnostics = new List<EmailStoreDiagnostic>();
@@ -92,7 +94,7 @@ public sealed partial class EmailStoreSession {
 
         ReportProgress(progress, scanned, results.Count, skipped);
         EmailStoreContentSearchCheckpoint? next = stoppedAtItemLimit || stoppedAtResultLimit
-            ? new EmailStoreContentSearchCheckpoint(startOffset + scanned)
+            ? EmailStoreContentSearchCheckpoint.Create(startOffset + scanned, sourceFingerprint, query.Signature)
             : null;
         return new EmailStoreContentSearchReport(
             results, diagnostics, scanned, skipped,

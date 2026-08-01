@@ -900,9 +900,27 @@ namespace OfficeIMO.Tests {
             Assert.Contains(GoogleSlidesFeatureSupportCatalog.Features, row => row.Import == GoogleSlidesFeatureSupportLevel.DriveFallback);
         }
 
-        private static GoogleWorkspaceSession Session(HttpClient client, string? quotaUser = null) => new GoogleWorkspaceSession(
-            new StaticAccessTokenCredentialSource("token"),
-            new GoogleWorkspaceSessionOptions { HttpClient = client, QuotaUser = quotaUser });
+        private static GoogleWorkspaceSession Session(HttpClient client, string? quotaUser = null) {
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = client,
+                QuotaUser = quotaUser,
+                ExpectedAccount = "test-account@example.invalid",
+                OperationReceiptSink = _ => { },
+            };
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!,
+                new[] {
+                    "https://www.googleapis.com/auth/presentations",
+                    "https://www.googleapis.com/auth/drive",
+                },
+                context.Target,
+                "test-explicit-revision-decision",
+                options.MaxRetryCount,
+                options.MaxRetryElapsedTime,
+                options.RateLimitPolicy,
+                GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            return new GoogleWorkspaceSession(new StaticAccessTokenCredentialSource("token"), options);
+        }
         private static HttpResponseMessage Json(string value) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(value, Encoding.UTF8, "application/json") };
         private static string ElementHash(GoogleSlidesSyncCheckpoint checkpoint) =>
             Assert.Single(checkpoint.ContentHashes, pair => pair.Key.Contains("/element/", StringComparison.Ordinal)).Value;

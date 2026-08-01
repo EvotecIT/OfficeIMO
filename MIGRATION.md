@@ -39,6 +39,10 @@ OpenDocument forward PDF results expose the typed OpenDocument projection report
 
 ### Google Workspace preview options
 
+Google Workspace mutations now require `ExpectedAccount`, an `OperationPolicyProvider`, and an `OperationReceiptSink` on `GoogleWorkspaceSessionOptions`. Sync plan items require a target resource and expected revision, and `GoogleWorkspaceSyncPlan.Create` requires the plan policy. Read sync executor decisions from `GoogleWorkspaceSyncItemResult.DecisionReceipt`; actual network mutation receipts continue to arrive through the session receipt sink.
+
+Email store content-search checkpoints are now source- and query-bound serialized envelopes. Replace direct `new EmailStoreContentSearchCheckpoint(offset)` construction with the checkpoint returned by `EmailStoreContentSearchResult.Checkpoint`; persisted legacy offset-only values cannot safely resume against a reopened or changed store.
+
 The completed Google Workspace adapters replace preview booleans that described behavior without proving that the fallback executed. Configure the operation through `UnsupportedFeatures`, `GoogleWorkspaceFidelityPolicy`, the format support catalog, and an executed fallback mode:
 
 | Removed preview option | Current action |

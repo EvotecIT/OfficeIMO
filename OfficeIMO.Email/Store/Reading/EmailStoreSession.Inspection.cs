@@ -55,11 +55,9 @@ public sealed partial class EmailStoreSession {
                 }
             } catch (EmailStoreLimitExceededException exception) {
                 failed++;
-                validationDiagnostics.Add(new EmailStoreDiagnostic(
-                    "EMAIL_STORE_VALIDATION_ITEM_LIMIT",
-                    exception.Message,
-                    EmailStoreDiagnosticSeverity.Warning,
-                    string.Concat("item/", reference.Id)));
+                validationDiagnostics.Add(EmailStoreDiagnostic.FromLimit(exception,
+                    "store-validation", string.Concat("item/", reference.Id),
+                    EmailDiagnosticDisposition.Skipped, "EMAIL_STORE_VALIDATION_ITEM_LIMIT"));
             } catch (Exception exception) when (
                 exception is InvalidDataException ||
                 exception is NotSupportedException ||

@@ -59,6 +59,7 @@ public sealed class EmailStoreContentQuery {
         ProgressInterval = progressInterval;
         ContinueOnItemError = continueOnItemError;
         ResumeFrom = resumeFrom;
+        Signature = CreateSignature();
     }
 
     /// <summary>Case-insensitive terms.</summary>
@@ -85,4 +86,24 @@ public sealed class EmailStoreContentQuery {
     public bool ContinueOnItemError { get; }
     /// <summary>Optional checkpoint from a previous batch.</summary>
     public EmailStoreContentSearchCheckpoint? ResumeFrom { get; }
+
+    internal string Signature { get; }
+
+    private string CreateSignature() {
+        EmailStoreQuery? filter = MetadataFilter;
+        string value = string.Join("|",
+            string.Join("\u001f", Terms), ((int)Fields).ToString(CultureInfo.InvariantCulture),
+            ((int)MatchMode).ToString(CultureInfo.InvariantCulture),
+            filter?.FolderId ?? string.Empty, filter?.IncludeDescendants.ToString() ?? string.Empty,
+            filter?.IncludeAssociatedItems.ToString() ?? string.Empty,
+            filter?.IncludeOrphanedItems.ToString() ?? string.Empty, filter?.ItemKind?.ToString() ?? string.Empty,
+            filter?.SubjectContains ?? string.Empty, filter?.SenderContains ?? string.Empty,
+            filter?.Since?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
+            filter?.Before?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
+            filter?.HasAttachments?.ToString() ?? string.Empty, filter?.IsRead?.ToString() ?? string.Empty,
+            MaxDecodedPropertyBytesPerItem.ToString(CultureInfo.InvariantCulture),
+            MaxSearchableCharactersPerItem.ToString(CultureInfo.InvariantCulture),
+            SnippetCharacters.ToString(CultureInfo.InvariantCulture), ContinueOnItemError.ToString());
+        return EmailHashing.ComputeSha256HexLower(value);
+    }
 }

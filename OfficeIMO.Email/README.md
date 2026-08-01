@@ -2,6 +2,12 @@
 
 `OfficeIMO.Email` provides a first-party engine for persisted email and Outlook artifacts without a third-party message, compound-file, MIME, RTF, or platform-UI runtime.
 
+Email reads expose an aggregate `ProcessingBudget` snapshot. MIME, MSG, embedded TNEF, and streaming payload paths share one operation ledger, so nested parsers do not receive fresh attachment, property, or structural allowances. `EmailLimitExceededException.Diagnostic` carries a stable actionable non-sensitive diagnostic automatically; store limits expose the equivalent through `EmailStoreDiagnostic.FromLimit`.
+
+Store table, content-search, and OAB search checkpoints are versioned persistence values bound to a complete-source SHA-256 and exact query signature. Persist the checkpoint's `Value`, parse it after restart, and expect resume to fail closed if the source bytes or query changed. Creating a durable checkpoint intentionally reads the complete selected source to establish that identity.
+
+`EmailStoreSession.PlanMaintenance` is read-only and source-bound. Executable repair remains a separate operation through recovery export, PST compaction, or PST split planning; OfficeIMO never repairs the opened source in place and rewrite paths require semantic post-verification.
+
 The package supports:
 
 - EML and MIME messages, including multipart bodies, encoded headers, inline resources, attachments, and embedded messages

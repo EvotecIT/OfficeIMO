@@ -96,11 +96,7 @@ namespace OfficeIMO.Tests {
 
                 var session = new GoogleWorkspaceSession(
                     new FakeGoogleWorkspaceCredentialSource(),
-                    new GoogleWorkspaceSessionOptions {
-                        HttpClient = httpClient,
-                        MaxRetryCount = 1,
-                        DiagnosticSink = entries.Add,
-                    });
+                    MutationOptions(httpClient, entries.Add, maxRetryCount: 1));
 
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
@@ -212,6 +208,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_EnforcesTotalElapsedDeadline() {
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(async (_, cancellationToken) => {
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+                return CreateJsonResponse("{\"id\":\"too-late\"}");
+            }));
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = httpClient,
+                RequestTimeout = TimeSpan.FromSeconds(10),
+                MaxRetryElapsedTime = TimeSpan.FromMilliseconds(50),
+                MaxRetryCount = 3,
+            };
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await Assert.ThrowsAsync<TimeoutException>(() => transport.SendJsonAsync<TransportReadResponse>(
+                "token", HttpMethod.Get,
+                "https://www.googleapis.com/drive/v3/files/file-1?fields=id", null,
+                GoogleWorkspaceRequestSafety.Safe, "Google Drive API", new TranslationReport()));
+        }
+
+        [Fact]
         public void Test_GoogleWorkspaceHttpTransport_OwnedClientDoesNotOverridePerAttemptTimeout() {
             var ownedOptions = new GoogleWorkspaceSessionOptions {
                 RequestTimeout = TimeSpan.FromMinutes(5),
@@ -313,10 +329,7 @@ namespace OfficeIMO.Tests {
 
                 var session = new GoogleWorkspaceSession(
                     new FakeGoogleWorkspaceCredentialSource(),
-                    new GoogleWorkspaceSessionOptions {
-                        HttpClient = httpClient,
-                        DiagnosticSink = entries.Add,
-                    });
+                    MutationOptions(httpClient, entries.Add));
 
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
@@ -362,9 +375,7 @@ namespace OfficeIMO.Tests {
 
                 var session = new GoogleWorkspaceSession(
                     new FakeGoogleWorkspaceCredentialSource(),
-                    new GoogleWorkspaceSessionOptions {
-                        HttpClient = httpClient,
-                    });
+                    MutationOptions(httpClient));
 
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
@@ -407,9 +418,7 @@ namespace OfficeIMO.Tests {
 
                 var session = new GoogleWorkspaceSession(
                     new FakeGoogleWorkspaceCredentialSource(),
-                    new GoogleWorkspaceSessionOptions {
-                        HttpClient = httpClient,
-                    });
+                    MutationOptions(httpClient));
 
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
@@ -675,6 +684,23 @@ namespace OfficeIMO.Tests {
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
             public override void SetLength(long value) => throw new NotSupportedException();
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        }
+
+        private static GoogleWorkspaceSessionOptions MutationOptions(HttpClient httpClient,
+            Action<GoogleWorkspaceDiagnosticEntry>? diagnosticSink = null, int maxRetryCount = 3) {
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = httpClient,
+                MaxRetryCount = maxRetryCount,
+                ExpectedAccount = "test@example.com",
+                DiagnosticSink = diagnosticSink,
+                OperationReceiptSink = _ => { },
+            };
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!, new[] { GoogleWorkspaceScopeCatalog.DriveFile }, context.Target,
+                "explicit-test-revision", options.MaxRetryCount, options.MaxRetryElapsedTime,
+                options.RateLimitPolicy, GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss,
+                "test mutation");
+            return options;
         }
 
         private sealed class FakeHttpMessageHandler : HttpMessageHandler {

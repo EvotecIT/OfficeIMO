@@ -45,7 +45,7 @@ public sealed class OfflineAddressBookSearchTests {
     }
 
     [Fact]
-    public void RejectsCheckpointsCreatedByAnotherSessionSnapshot() {
+    public void ResumesCheckpointsAcrossSessionsForTheSameSource() {
         byte[] oab = new OabV4Fixture().Build();
         using (var firstStream = new MemoryStream(oab, writable: false))
         using (var secondStream = new MemoryStream(oab, writable: false))
@@ -57,7 +57,8 @@ public sealed class OfflineAddressBookSearchTests {
             var resumed = new OfflineAddressBookSearchQuery(
                 new[] { "example" }, maxEntriesScanned: 1, resumeFrom: firstPage.NextCheckpoint);
 
-            Assert.Throws<ArgumentException>(() => second.Search(resumed));
+            OfflineAddressBookSearchReport secondPage = second.Search(resumed);
+            Assert.NotEmpty(secondPage.Results);
         }
     }
 

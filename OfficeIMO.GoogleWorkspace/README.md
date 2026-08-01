@@ -5,6 +5,14 @@
 
 `OfficeIMO.GoogleWorkspace` contains the dependency-light credential, session, transport, retry, scope, diagnostics, Drive-location, and translation-report contracts shared by the OfficeIMO Google Docs, Sheets, Slides, Drive, and synchronization packages.
 
+## Explicit mutation policy
+
+Non-safe Google requests are blocked unless the session names the expected account, supplies an operation-policy provider, and records every outcome through a receipt sink. The policy captures scopes, target, expected revision decision, retry count and total elapsed-time deadline, rate-limit behavior, and the caller's data-loss decision. Transport-known destructive operations such as DELETE are refused unless the policy explicitly accepts the named loss. This applies in the dependency-light HTTP owner, so Docs, Sheets, Slides, Drive, and optional SDK adapters cannot bypass it accidentally.
+
+Translation preflight defaults to `FailOnErrors`. Select `FailOnWarnings` when every lossy projection must be accepted by diagnostic code before mutation; a named accepted diagnostic remains explicit and reviewable.
+
+Drive offers stream/file durable transfer APIs. `UploadResumableStreamAsync` and `UploadResumableFileAsync` persist the sensitive upload-session checkpoint after initiation and every confirmed chunk, query Google before resuming, reconcile ambiguous outcomes, and verify that the local source did not change. `DownloadToFileAsync` uses ranged reads and binds its checkpoint to file id, Drive version, size, destination identity, and the hash of committed bytes; after a crash it verifies the checkpointed prefix and discards only an uncheckpointed tail. Protect upload checkpoint values like credentials; their `ToString()` representation is redacted and policy/receipt targets use a stable SHA-256 session identifier.
+
 ## Install
 
 ```powershell
@@ -16,17 +24,31 @@ dotnet add package OfficeIMO.GoogleWorkspace
 ```csharp
 using OfficeIMO.GoogleWorkspace;
 
+var receipts = new List<GoogleWorkspaceOperationReceipt>();
+var options = new GoogleWorkspaceSessionOptions {
+    ApplicationName = "OfficeIMO Samples",
+    ExpectedAccount = "author@example.com",
+    DefaultDriveId = "shared-drive-id",
+    DefaultFolderId = "reports-folder-id",
+    MaxRetryCount = 5,
+    RetryBaseDelay = TimeSpan.FromMilliseconds(250),
+    RetryMaxDelay = TimeSpan.FromSeconds(10),
+    MaxRetryElapsedTime = TimeSpan.FromMinutes(2),
+    RequestTimeout = TimeSpan.FromSeconds(120),
+    OperationReceiptSink = receipts.Add,
+};
+options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+    options.ExpectedAccount!,
+    new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+    context.Target,
+    expectedRevision: "absent-for-create", // use the observed revision/version for updates and deletes
+    options.MaxRetryCount,
+    options.MaxRetryElapsedTime,
+    options.RateLimitPolicy,
+    GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+
 var session = new GoogleWorkspaceSession(
-    new StaticAccessTokenCredentialSource("<google-access-token>"),
-    new GoogleWorkspaceSessionOptions {
-        ApplicationName = "OfficeIMO Samples",
-        DefaultDriveId = "shared-drive-id",
-        DefaultFolderId = "reports-folder-id",
-        MaxRetryCount = 5,
-        RetryBaseDelay = TimeSpan.FromMilliseconds(250),
-        RetryMaxDelay = TimeSpan.FromSeconds(10),
-        RequestTimeout = TimeSpan.FromSeconds(120),
-    });
+    new StaticAccessTokenCredentialSource("<google-access-token>"), options);
 ```
 
 ## What it provides
@@ -54,6 +76,8 @@ var credentialSource = GoogleServiceAccountCredentialSource.FromFile(
 
 var session = new GoogleWorkspaceSession(credentialSource, sessionOptions);
 ```
+
+This shortcut is sufficient for read-only calls. Add the explicit mutation policy and receipt sink shown above before creating, updating, or deleting cloud resources.
 
 ## Boundaries
 

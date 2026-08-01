@@ -42,12 +42,27 @@ The checkpoint intentionally contains only the user cursor, per-shared-drive cur
 Map a Docs, Sheets, or Slides diff plan into stable shared items, then dry-run it before mutation:
 
 ```csharp
+var policy = new GoogleWorkspaceOperationPolicy(
+    account: "automation@example.com",
+    scopes: new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+    target: "drive://sync-root",
+    expectedRevision: "version-42",
+    maxRetryCount: 3,
+    maxRetryElapsedTime: TimeSpan.FromMinutes(2),
+    rateLimitPolicy: GoogleWorkspaceRateLimitPolicy.HonorRetryAfter,
+    dataLossDecision: GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss,
+    acceptedLoss: "chart-1 may be rasterized");
+
 GoogleWorkspaceSyncPlan plan = GoogleWorkspaceSyncPlan.Create(new[] {
     new GoogleWorkspaceSyncItem("summary!A1", GoogleWorkspaceSyncItemKind.SourceChange,
-        "sheet/Summary/cell/1:1", "The local value changed.", googleFileId: "spreadsheet-id"),
+        "sheet/Summary/cell/1:1", "The local value changed.",
+        targetResource: "drive://spreadsheet-id/summary!A1", expectedRevision: "version-42",
+        googleFileId: "spreadsheet-id"),
     new GoogleWorkspaceSyncItem("chart-1", GoogleWorkspaceSyncItemKind.LossyAction,
-        "sheet/Summary/chart/1", "This chart requires a raster fallback.", googleFileId: "spreadsheet-id")
-});
+        "sheet/Summary/chart/1", "This chart requires a raster fallback.",
+        targetResource: "drive://spreadsheet-id/chart-1", expectedRevision: "version-42",
+        googleFileId: "spreadsheet-id")
+}, policy);
 
 GoogleWorkspaceSyncApplyResult preview = await GoogleWorkspaceSyncExecutor.ApplyAsync(
     plan,
@@ -62,7 +77,7 @@ GoogleWorkspaceSyncApplyResult applied = await GoogleWorkspaceSyncExecutor.Apply
     cancellationToken);
 ```
 
-Conflicts are never sent to the operation. Lossy actions require approval by stable item ID. Every item returns `Planned`, `Applied`, `Conflict`, `ApprovalRequired`, `Failed`, `Skipped`, or `Canceled`; cancellation can return the already-applied partial result.
+Conflicts are never sent to the operation. Lossy actions require both an `AcceptSpecifiedLoss` plan policy and approval by stable item ID; either guard can refuse the mutation. Every item returns `Planned`, `Applied`, `Conflict`, `ApprovalRequired`, `Failed`, `Skipped`, or `Canceled` with a `GoogleWorkspaceSyncDecisionReceipt`; actual HTTP mutation receipts remain owned by the configured session receipt sink. Cancellation can return the already-applied partial result.
 
 ## Boundaries
 
@@ -72,3 +87,4 @@ Conflicts are never sent to the operation. Lossy actions require approval by sta
 - The application owns checkpoint persistence, selection/approval UI, schedules, and the actual mutation callback.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, plus `net472` on Windows. License: MIT.
+Every `GoogleWorkspaceSyncPlan` requires a `GoogleWorkspaceOperationPolicy`, and every item requires an explicit target resource and expected revision decision. Dry-run remains the default. Apply results include a decision receipt for planned, applied, blocked, failed, and canceled items, so partial progress and policy decisions remain inspectable without misrepresenting those decisions as network receipts.

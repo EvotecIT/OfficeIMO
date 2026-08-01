@@ -11,10 +11,25 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
     }
 
     public sealed class GoogleWorkspaceSyncItemResult {
-        internal GoogleWorkspaceSyncItemResult(GoogleWorkspaceSyncItem item, GoogleWorkspaceSyncApplyStatus status, Exception? exception = null) { Item = item; Status = status; Exception = exception; }
+        internal GoogleWorkspaceSyncItemResult(GoogleWorkspaceSyncItem item, GoogleWorkspaceSyncApplyStatus status,
+            GoogleWorkspaceSyncDecisionReceipt decisionReceipt, Exception? exception = null) { Item = item; Status = status; DecisionReceipt = decisionReceipt; Exception = exception; }
         public GoogleWorkspaceSyncItem Item { get; }
         public GoogleWorkspaceSyncApplyStatus Status { get; }
         public Exception? Exception { get; }
+        /// <summary>Evidence of the sync executor's plan/apply decision. Actual HTTP mutation receipts come from the session receipt sink.</summary>
+        public GoogleWorkspaceSyncDecisionReceipt DecisionReceipt { get; }
+    }
+
+    /// <summary>Caller-observable evidence for one synchronization decision; this is not an HTTP mutation receipt.</summary>
+    public sealed class GoogleWorkspaceSyncDecisionReceipt {
+        internal GoogleWorkspaceSyncDecisionReceipt(GoogleWorkspaceOperationPolicy policy, string target,
+            GoogleWorkspaceSyncApplyStatus status) {
+            Policy = policy; Target = target; Status = status; CompletedAt = DateTimeOffset.UtcNow;
+        }
+        public GoogleWorkspaceOperationPolicy Policy { get; }
+        public string Target { get; }
+        public GoogleWorkspaceSyncApplyStatus Status { get; }
+        public DateTimeOffset CompletedAt { get; }
     }
 
     public sealed class GoogleWorkspaceSyncApplyResult {
@@ -41,29 +56,30 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
                 GoogleWorkspaceSyncItem item = plan.Items[index];
                 if (cancellationToken.IsCancellationRequested) return Cancel(plan, results, index, options, cancellationToken);
                 if (item.Kind == GoogleWorkspaceSyncItemKind.Conflict) {
-                    results.Add(new GoogleWorkspaceSyncItemResult(item, GoogleWorkspaceSyncApplyStatus.Conflict));
+                    results.Add(Result(plan, item, GoogleWorkspaceSyncApplyStatus.Conflict));
                     continue;
                 }
-                if (item.RequiresApproval && !approved.Contains(item.Id)) {
-                    results.Add(new GoogleWorkspaceSyncItemResult(item, GoogleWorkspaceSyncApplyStatus.ApprovalRequired));
+                if (item.RequiresApproval && (!approved.Contains(item.Id) ||
+                    plan.Policy.DataLossDecision != GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss)) {
+                    results.Add(Result(plan, item, GoogleWorkspaceSyncApplyStatus.ApprovalRequired));
                     continue;
                 }
                 if (options.DryRun) {
-                    results.Add(new GoogleWorkspaceSyncItemResult(item, GoogleWorkspaceSyncApplyStatus.Planned));
+                    results.Add(Result(plan, item, GoogleWorkspaceSyncApplyStatus.Planned));
                     continue;
                 }
                 try {
                     await operation(item, cancellationToken).ConfigureAwait(false);
-                    results.Add(new GoogleWorkspaceSyncItemResult(item, GoogleWorkspaceSyncApplyStatus.Applied));
+                    results.Add(Result(plan, item, GoogleWorkspaceSyncApplyStatus.Applied));
                 } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-                    results.Add(new GoogleWorkspaceSyncItemResult(item, GoogleWorkspaceSyncApplyStatus.Canceled));
-                    for (int remaining = index + 1; remaining < plan.Items.Count; remaining++) results.Add(new GoogleWorkspaceSyncItemResult(plan.Items[remaining], GoogleWorkspaceSyncApplyStatus.Canceled));
+                    results.Add(Result(plan, item, GoogleWorkspaceSyncApplyStatus.Canceled));
+                    for (int remaining = index + 1; remaining < plan.Items.Count; remaining++) results.Add(Result(plan, plan.Items[remaining], GoogleWorkspaceSyncApplyStatus.Canceled));
                     if (!options.ReturnPartialResultOnCancellation) cancellationToken.ThrowIfCancellationRequested();
                     return new GoogleWorkspaceSyncApplyResult(results, true);
                 } catch (Exception exception) {
-                    results.Add(new GoogleWorkspaceSyncItemResult(item, GoogleWorkspaceSyncApplyStatus.Failed, exception));
+                    results.Add(Result(plan, item, GoogleWorkspaceSyncApplyStatus.Failed, exception));
                     if (!options.ContinueOnError) {
-                        for (int remaining = index + 1; remaining < plan.Items.Count; remaining++) results.Add(new GoogleWorkspaceSyncItemResult(plan.Items[remaining], GoogleWorkspaceSyncApplyStatus.Skipped));
+                        for (int remaining = index + 1; remaining < plan.Items.Count; remaining++) results.Add(Result(plan, plan.Items[remaining], GoogleWorkspaceSyncApplyStatus.Skipped));
                         return new GoogleWorkspaceSyncApplyResult(results, false);
                     }
                 }
@@ -72,9 +88,19 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
         }
 
         private static GoogleWorkspaceSyncApplyResult Cancel(GoogleWorkspaceSyncPlan plan, List<GoogleWorkspaceSyncItemResult> results, int index, GoogleWorkspaceSyncApplyOptions options, CancellationToken token) {
-            for (int remaining = index; remaining < plan.Items.Count; remaining++) results.Add(new GoogleWorkspaceSyncItemResult(plan.Items[remaining], GoogleWorkspaceSyncApplyStatus.Canceled));
+            for (int remaining = index; remaining < plan.Items.Count; remaining++) results.Add(Result(plan, plan.Items[remaining], GoogleWorkspaceSyncApplyStatus.Canceled));
             if (!options.ReturnPartialResultOnCancellation) token.ThrowIfCancellationRequested();
             return new GoogleWorkspaceSyncApplyResult(results, true);
+        }
+
+        private static GoogleWorkspaceSyncItemResult Result(GoogleWorkspaceSyncPlan plan,
+            GoogleWorkspaceSyncItem item, GoogleWorkspaceSyncApplyStatus status, Exception? exception = null) {
+            var itemPolicy = new GoogleWorkspaceOperationPolicy(plan.Policy.Account, plan.Policy.Scopes,
+                item.TargetResource, item.ExpectedRevision, plan.Policy.MaxRetryCount,
+                plan.Policy.MaxRetryElapsedTime, plan.Policy.RateLimitPolicy,
+                plan.Policy.DataLossDecision, plan.Policy.AcceptedLoss);
+            var receipt = new GoogleWorkspaceSyncDecisionReceipt(itemPolicy, item.TargetResource, status);
+            return new GoogleWorkspaceSyncItemResult(item, status, receipt, exception);
         }
     }
 }

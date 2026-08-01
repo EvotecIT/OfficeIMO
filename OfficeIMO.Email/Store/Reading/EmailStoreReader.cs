@@ -62,6 +62,7 @@ public sealed class EmailStoreReader {
     /// <summary>Reads a file while keeping random-access parsing off the large-object heap.</summary>
     public EmailStoreReadResult Read(string path, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
+        cancellationToken.ThrowIfCancellationRequested();
         using (EmailStoreSession session = EmailStoreSession.Open(path, _options, cancellationToken)) {
             return session.ReadAll(cancellationToken);
         }
@@ -71,6 +72,7 @@ public sealed class EmailStoreReader {
     public EmailStoreReadResult Read(Stream stream, string? sourceName = null,
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
+        cancellationToken.ThrowIfCancellationRequested();
         if (!stream.CanRead || !stream.CanSeek) {
             throw new ArgumentException("Email-store streams must be readable and seekable.", nameof(stream));
         }

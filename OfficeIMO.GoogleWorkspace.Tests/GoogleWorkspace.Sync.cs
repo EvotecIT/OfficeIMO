@@ -145,9 +145,9 @@ namespace OfficeIMO.Tests {
             GoogleWorkspaceSyncItemKind blockedKind,
             GoogleWorkspaceSyncApplyStatus expectedStatus) {
             GoogleWorkspaceSyncPlan plan = GoogleWorkspaceSyncPlan.Create(new[] {
-                new GoogleWorkspaceSyncItem("source", GoogleWorkspaceSyncItemKind.SourceChange, "source", "local changed"),
-                new GoogleWorkspaceSyncItem("blocked", blockedKind, "blocked", "review required"),
-            });
+                Item("source", GoogleWorkspaceSyncItemKind.SourceChange, "local changed"),
+                Item("blocked", blockedKind, "review required"),
+            }, Policy());
             var options = new GoogleWorkspaceSyncApplyOptions { DryRun = false };
 
             GoogleWorkspaceSyncApplyResult result = await GoogleWorkspaceSyncExecutor.ApplyAsync(
@@ -175,16 +175,44 @@ namespace OfficeIMO.Tests {
             Assert.Equal(GoogleWorkspaceSyncApplyStatus.Conflict, result.Items.Single(item => item.Item.Id == "conflict").Status);
             Assert.Equal(GoogleWorkspaceSyncApplyStatus.Applied, result.Items.Single(item => item.Item.Id == "lossy").Status);
             Assert.Equal(GoogleWorkspaceSyncApplyStatus.Failed, result.Items.Single(item => item.Item.Id == "remote").Status);
+            Assert.All(result.Items, item => {
+                Assert.Equal(item.Item.TargetResource, item.DecisionReceipt.Target);
+                Assert.Equal(item.Item.TargetResource, item.DecisionReceipt.Policy.Target);
+                Assert.Equal(item.Item.ExpectedRevision, item.DecisionReceipt.Policy.ExpectedRevision);
+            });
             Assert.True(result.HasFailures);
             Assert.True(result.IsPartial);
         }
 
         [Fact]
+        public async Task Executor_ItemApprovalCannotOverridePlanDataLossRefusal() {
+            var refusingPolicy = new GoogleWorkspaceOperationPolicy(
+                "test@example.com", new[] { GoogleWorkspaceScopeCatalog.DriveFile }, "drive://sync-root", "version-1",
+                1, TimeSpan.FromMinutes(2), GoogleWorkspaceRateLimitPolicy.HonorRetryAfter,
+                GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            GoogleWorkspaceSyncPlan plan = GoogleWorkspaceSyncPlan.Create(new[] {
+                Item("lossy", GoogleWorkspaceSyncItemKind.LossyAction, "render required"),
+            }, refusingPolicy);
+            var options = new GoogleWorkspaceSyncApplyOptions { DryRun = false };
+            options.ApprovedLossyItemIds.Add("lossy");
+            int calls = 0;
+
+            GoogleWorkspaceSyncApplyResult result = await GoogleWorkspaceSyncExecutor.ApplyAsync(
+                plan,
+                (item, token) => { calls++; return Task.CompletedTask; },
+                options);
+
+            Assert.Equal(0, calls);
+            Assert.Equal(GoogleWorkspaceSyncApplyStatus.ApprovalRequired, result.Items[0].Status);
+            Assert.Equal(GoogleWorkspaceDataLossDecision.RejectPotentialLoss, result.Items[0].DecisionReceipt.Policy.DataLossDecision);
+        }
+
+        [Fact]
         public async Task Executor_CancellationReturnsPartialOutcome() {
             GoogleWorkspaceSyncPlan plan = GoogleWorkspaceSyncPlan.Create(new[] {
-                new GoogleWorkspaceSyncItem("first", GoogleWorkspaceSyncItemKind.SourceChange, "first", "first"),
-                new GoogleWorkspaceSyncItem("second", GoogleWorkspaceSyncItemKind.SourceChange, "second", "second"),
-            });
+                Item("first", GoogleWorkspaceSyncItemKind.SourceChange, "first"),
+                Item("second", GoogleWorkspaceSyncItemKind.SourceChange, "second"),
+            }, Policy());
             using var cancellation = new CancellationTokenSource();
             var options = new GoogleWorkspaceSyncApplyOptions { DryRun = false };
 
@@ -200,11 +228,19 @@ namespace OfficeIMO.Tests {
         }
 
         private static GoogleWorkspaceSyncPlan Plan() => GoogleWorkspaceSyncPlan.Create(new[] {
-            new GoogleWorkspaceSyncItem("source", GoogleWorkspaceSyncItemKind.SourceChange, "source", "local changed"),
-            new GoogleWorkspaceSyncItem("conflict", GoogleWorkspaceSyncItemKind.Conflict, "conflict", "both changed"),
-            new GoogleWorkspaceSyncItem("lossy", GoogleWorkspaceSyncItemKind.LossyAction, "lossy", "render required"),
-            new GoogleWorkspaceSyncItem("remote", GoogleWorkspaceSyncItemKind.RemoteChange, "remote", "remote changed"),
-        });
+            Item("source", GoogleWorkspaceSyncItemKind.SourceChange, "local changed"),
+            Item("conflict", GoogleWorkspaceSyncItemKind.Conflict, "both changed"),
+            Item("lossy", GoogleWorkspaceSyncItemKind.LossyAction, "render required"),
+            Item("remote", GoogleWorkspaceSyncItemKind.RemoteChange, "remote changed"),
+        }, Policy());
+
+        private static GoogleWorkspaceSyncItem Item(string id, GoogleWorkspaceSyncItemKind kind, string message) =>
+            new GoogleWorkspaceSyncItem(id, kind, id, message, "drive://" + id, "version-1");
+
+        private static GoogleWorkspaceOperationPolicy Policy() => new GoogleWorkspaceOperationPolicy(
+            "test@example.com", new[] { GoogleWorkspaceScopeCatalog.DriveFile }, "drive://sync-root", "version-1",
+            1, TimeSpan.FromMinutes(2), GoogleWorkspaceRateLimitPolicy.HonorRetryAfter,
+            GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss, "approved test projection");
 
         private static GoogleWorkspaceSession Session(HttpClient client) => new GoogleWorkspaceSession(new StaticAccessTokenCredentialSource("token"), new GoogleWorkspaceSessionOptions { HttpClient = client, MaxRetryCount = 1 });
         private static HttpResponseMessage Json(string value) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(value, Encoding.UTF8, "application/json") };
