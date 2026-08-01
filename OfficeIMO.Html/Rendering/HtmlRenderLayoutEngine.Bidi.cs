@@ -142,7 +142,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         while (start < ordered.Count) {
             int end = start + 1;
             while (end < ordered.Count && ordered[end].SourceSegmentIndex == ordered[start].SourceSegmentIndex) end++;
-            InlineSegment source = sources[ordered[start].SourceSegmentIndex];
             string text = string.Concat(ordered.Skip(start).Take(end - start).Select(static element => element.Text));
             string logicalText = string.Concat(ordered
                 .Skip(start)
@@ -150,10 +149,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .OrderBy(static element => element.SourceElementIndex)
                 .Select(static element => element.LogicalText));
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
-            result.Add(new InlineSegment(text, segmentWidth, source.Run, logicalText, bidiResolved: true));
+            result.Add(new InlineSegment(
+                text,
+                segmentWidth,
+                sources[ordered[start].SourceSegmentIndex].Run,
+                logicalText,
+                bidiResolved: true));
             start = end;
         }
         return result.AsReadOnly();
+    }
+
+    private static string ResolveInlineLineLogicalText(IReadOnlyList<InlineSegment> segments) {
+        var text = new StringBuilder();
+        foreach (InlineSegment segment in segments) {
+            foreach (string element in OfficeTextElements.Enumerate(segment.LogicalText)) {
+                if (!OfficeTextElements.ContainsBidiControl(element)) text.Append(element);
+            }
+        }
+        return text.ToString();
     }
 
     private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, OfficeFontInfo font) {

@@ -355,6 +355,14 @@ public static class OfficeBidiTextResolver {
                     }
                     continue;
                 }
+                if (control is '\u061C' or '\u200E' or '\u200F') {
+                    if (overflowDepth == 0 && isolates.Count > 0 && isolates.Peek().SourceIndex >= 0 && !isolates.Peek().Direction.HasValue) {
+                        isolates.Peek().Direction = control == '\u200E'
+                            ? OfficeTextDirection.LeftToRight
+                            : OfficeTextDirection.RightToLeft;
+                    }
+                    continue;
+                }
                 if (OfficeTextElements.ContainsBidiControl(element)) continue;
             }
 

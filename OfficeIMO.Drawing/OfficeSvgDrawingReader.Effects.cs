@@ -30,8 +30,12 @@ public static partial class OfficeSvgDrawingReader {
 
         string? blendValue = ReadPresentationProperty(element, "mix-blend-mode");
         if (!string.IsNullOrWhiteSpace(blendValue)) {
-            hasEffects = true;
-            if (!TryParseBlendMode(blendValue!, out blendMode)) unsupported++;
+            if (!TryParseBlendMode(blendValue!, out blendMode)) {
+                hasEffects = true;
+                unsupported++;
+            } else if (blendMode != OfficeBlendMode.Normal) {
+                hasEffects = true;
+            }
         }
 
         string? maskValue = ReadPresentationProperty(element, "mask");
@@ -95,14 +99,18 @@ public static partial class OfficeSvgDrawingReader {
         out double y,
         out double regionWidth,
         out double regionHeight) {
-        x = -width * 0.1D;
-        y = -height * 0.1D;
+        x = viewX - width * 0.1D;
+        y = viewY - height * 0.1D;
         regionWidth = width * 1.2D;
         regionHeight = height * 1.2D;
-        if (maskElement.Attribute("x") != null
-            && !TryViewportLength(maskElement.Attribute("x")!.Value, width, out x, out _)) return false;
-        if (maskElement.Attribute("y") != null
-            && !TryViewportLength(maskElement.Attribute("y")!.Value, height, out y, out _)) return false;
+        if (maskElement.Attribute("x") != null) {
+            if (!TryViewportLength(maskElement.Attribute("x")!.Value, width, out x, out bool percentage)) return false;
+            if (percentage) x += viewX;
+        }
+        if (maskElement.Attribute("y") != null) {
+            if (!TryViewportLength(maskElement.Attribute("y")!.Value, height, out y, out bool percentage)) return false;
+            if (percentage) y += viewY;
+        }
         if (maskElement.Attribute("width") != null
             && !TryViewportLength(maskElement.Attribute("width")!.Value, width, out regionWidth, out _)) return false;
         if (maskElement.Attribute("height") != null

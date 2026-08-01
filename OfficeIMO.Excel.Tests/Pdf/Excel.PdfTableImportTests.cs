@@ -210,7 +210,7 @@ public partial class Excel {
 
         PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
         PdfCore.PdfLogicalTableContinuationGroup bounded = Assert.Single(
-            PdfCore.PdfLogicalTableContinuations.Group(logical, 2, true, 64, 4D));
+            PdfCore.PdfLogicalTableContinuations.Group(logical, 2, true, true, 64, 4D));
         Assert.All(bounded.Segments, segment => Assert.InRange(segment.Data.Rows.Count, 0, 6));
         Assert.Equal(30, bounded.TotalRowCount);
         Assert.Equal(2, bounded.Rows.Count);
@@ -218,7 +218,10 @@ public partial class Excel {
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
             workbook,
-            new PdfExcelTableImportOptions { AutoFitColumns = false });
+            new PdfExcelTableImportOptions {
+                AutoFitColumns = false,
+                SuppressRepeatedBodyHeaderRows = true
+            });
 
         string tableDetails = string.Join("; ", logical.Pages.SelectMany((page, pageIndex) => page.Tables.Select((table, tableIndex) =>
             $"P{page.PageNumber}/T{tableIndex}: {table.YTop:0.##}-{table.YBottom:0.##}, {table.DetectionKind}, rows={table.Rows.Count}, headers={string.Join("|", PdfCore.PdfLogicalTableAnalysis.Extract(table).Columns)}")));
@@ -293,6 +296,48 @@ public partial class Excel {
         object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
         Assert.Equal("Entry 1", values[1, 0]);
         Assert.Equal("Entry 30", values[30, 0]);
+    }
+
+    [Fact]
+    public void PdfTables_SaveTablesAsExcel_DoesNotSuppressRepeatedOrdinaryRowsOnMergedContinuations() {
+        var rows = new List<string[]> { new[] { "Status", "Owner" } };
+        for (int index = 0; index < 30; index++) rows.Add(new[] { "Pending", "Team A" });
+
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            })
+            .Table(rows, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                RepeatHeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 160, 80 },
+                CellPaddingX = 5,
+                CellPaddingY = 3
+            })
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportEntry entry = Assert.Single(LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions {
+                AutoFitColumns = false,
+                ContinuationGeometryTolerancePoints = 8D
+            }).Entries);
+
+        Assert.True(entry.SourceTableCount > 1);
+        Assert.Equal(30, entry.RowCount);
+        Assert.Equal(30, entry.TotalRowCount);
+        Assert.Equal(0, entry.AdditionalHeaderRowCount);
+        Assert.Equal(0, entry.SuppressedRepeatedHeaderRows);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal("Pending", values[30, 0]);
+        Assert.Equal("TeamA", values[30, 1]);
     }
 
     [Fact]

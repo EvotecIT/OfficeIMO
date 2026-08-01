@@ -66,6 +66,12 @@ public sealed class PdfExcelTableImportOptions {
         public bool MergePageContinuations { get; set; } = true;
 
         /// <summary>
+        /// When true, identical header-like body prefixes on every merged segment are treated as additional repeated header rows and suppressed.
+        /// Keep false when repeated ordinary data rows must be preserved without additional header evidence.
+        /// </summary>
+        public bool SuppressRepeatedBodyHeaderRows { get; set; }
+
+        /// <summary>
         /// Maximum adjacent PDF table segments that may be combined into one logical table.
         /// </summary>
         public int MaximumContinuationSegments { get; set; } = 64;

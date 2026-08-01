@@ -4279,6 +4279,15 @@ public partial class DrawingTests {
         }
     }
 
+    private sealed class UncooperativeTimeoutImageExportBuilder : OfficeImageExportBuilder<UncooperativeTimeoutImageExportBuilder, TestImageExportOptions> {
+        internal UncooperativeTimeoutImageExportBuilder(TestImageExportOptions options)
+            : base(
+                options,
+                static (format, current) => CreateTestImageExportResult(format, current),
+                static (format, current, _) => Task.FromResult(CreateTestImageExportResult(format, current))) {
+        }
+    }
+
     private sealed class TestImageExportBatchBuilder : OfficeImageExportBatchBuilder<TestImageExportBatchBuilder, TestImageExportOptions> {
         internal TestImageExportBatchBuilder(TestImageExportOptions options, params string[] names)
             : this(options, null, names) {

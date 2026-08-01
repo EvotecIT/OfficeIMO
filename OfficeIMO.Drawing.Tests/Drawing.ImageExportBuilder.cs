@@ -461,6 +461,21 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public async Task SingleImageRenderTimeoutChecksElapsedTimeAfterUncooperativeDelegatesReturn() {
+        var timeout = TimeSpan.FromTicks(1);
+        var builder = new UncooperativeTimeoutImageExportBuilder(new TestImageExportOptions())
+            .WithRenderTimeout(timeout);
+
+        OfficeImageExportTimeoutException synchronous = Assert.Throws<OfficeImageExportTimeoutException>(
+            () => builder.Export());
+        OfficeImageExportTimeoutException asynchronous = await Assert.ThrowsAsync<OfficeImageExportTimeoutException>(
+            () => builder.ExportAsync());
+
+        Assert.Equal(timeout, synchronous.Timeout);
+        Assert.Equal(timeout, asynchronous.Timeout);
+    }
+
+    [Fact]
     public void BatchRenderTimeoutCancelsTheSharedStreamingPath() {
         var timeout = TimeSpan.FromMilliseconds(25D);
         var builder = new TimeoutImageExportBatchBuilder(new TestImageExportOptions())

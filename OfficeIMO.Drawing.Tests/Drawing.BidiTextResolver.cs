@@ -32,6 +32,18 @@ public partial class Drawing {
         Assert.Equal(OfficeTextDirection.RightToLeft, run.Direction);
     }
 
+    [Theory]
+    [InlineData("\u200E", 2)]
+    [InlineData("\u200F", 1)]
+    [InlineData("\u061C", 1)]
+    public void BidiTextResolver_UsesDirectionalMarksAsFirstStrongFsiSignals(string mark, int expectedNeutralLevel) {
+        IReadOnlyList<OfficeBidiTextRun> runs = OfficeBidiTextResolver.ResolveRuns(
+            "\u2068" + mark + "-א\u2069",
+            OfficeTextDirection.LeftToRight);
+
+        Assert.Equal(expectedNeutralLevel, Assert.Single(runs, static run => run.Text.Contains("-", StringComparison.Ordinal)).EmbeddingLevel);
+    }
+
     [Fact]
     public void BidiTextResolver_ResolvesDeepFsiInputWithLinearPreprocessing() {
         const int isolateCount = 10_000;

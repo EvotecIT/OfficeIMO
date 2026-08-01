@@ -298,7 +298,7 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
             OfficeImageExportResult result = _exportWithCancellation != null
                 ? _exportWithCancellation(_format, effective, execution.Token)
                 : _export(_format, effective);
-            execution.Token.ThrowIfCancellationRequested();
+            execution.ThrowIfCancellationRequested();
             result.Require(effective.Policy);
             return result;
         } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
@@ -316,7 +316,7 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         try {
             effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
             OfficeImageExportResult result = await _exportAsync(_format, effective, execution.Token).ConfigureAwait(false);
-            execution.Token.ThrowIfCancellationRequested();
+            execution.ThrowIfCancellationRequested();
             result.Require(effective.Policy);
             return result;
         } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {

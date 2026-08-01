@@ -150,6 +150,7 @@ namespace OfficeIMO.Excel.Pdf {
                 document,
                 options.MaxRows,
                 options.MergePageContinuations,
+                options.SuppressRepeatedBodyHeaderRows,
                 options.MaximumContinuationSegments,
                 options.ContinuationGeometryTolerancePoints);
             if (tables.Count == 0) {

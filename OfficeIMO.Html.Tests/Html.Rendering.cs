@@ -1687,11 +1687,30 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         HtmlRenderLogicalTextGroup group = Assert.Single(
             EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
-            item => item.Text == "abc");
+            item => item.Text == "abc" && item.Visuals.OfType<HtmlRenderText>().Any());
         HtmlRenderText text = Assert.Single(group.Visuals.OfType<HtmlRenderText>());
 
         Assert.Equal("cba", text.Text);
         Assert.Equal("abc", group.Text);
+    }
+
+    [Fact]
+    public void HtmlRenderer_RetainsLogicalTextOrderAcrossVisuallyReorderedStyledRuns() {
+        const string html = "<p style='margin:0'><span>\u202E</span><b>abc</b><i>def</i><span>\u202C</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        IReadOnlyList<HtmlRenderLogicalTextGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderLogicalTextGroup>()
+            .Where(group => group.Text is "abc" or "def")
+            .ToList();
+
+        Assert.Equal(2, groups.Count);
+        Assert.Contains("abcdef", rendered.Text, StringComparison.Ordinal);
+        HtmlRenderText abc = Assert.Single(Assert.Single(groups, static group => group.Text == "abc").Visuals.OfType<HtmlRenderText>());
+        HtmlRenderText def = Assert.Single(Assert.Single(groups, static group => group.Text == "def").Visuals.OfType<HtmlRenderText>());
+        Assert.True(def.X < abc.X);
+        Assert.Equal("cba", abc.Text);
+        Assert.Equal("fed", def.Text);
     }
 
     [Fact]
@@ -1704,11 +1723,11 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
 
         Assert.Contains(groups, group =>
-            group.Text == "one" && Assert.Single(group.Visuals.OfType<HtmlRenderText>()).Text == "eno");
+            group.Text == "one" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "eno");
         Assert.Contains(groups, group =>
-            group.Text == "two" && Assert.Single(group.Visuals.OfType<HtmlRenderText>()).Text == "owt");
+            group.Text == "two" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "owt");
         Assert.Contains(groups, group =>
-            group.Text == "four" && Assert.Single(group.Visuals.OfType<HtmlRenderText>()).Text == "ruof");
+            group.Text == "four" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "ruof");
     }
 
     [Fact]

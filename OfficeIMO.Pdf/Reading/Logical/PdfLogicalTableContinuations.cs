@@ -10,6 +10,7 @@ internal static class PdfLogicalTableContinuations {
         PdfLogicalDocument document,
         int maxRows,
         bool mergePageContinuations,
+        bool suppressRepeatedBodyHeaderRows,
         int maximumSegmentsPerTable,
         double geometryTolerancePoints) {
         Guard.NotNull(document, nameof(document));
@@ -36,14 +37,14 @@ internal static class PdfLogicalTableContinuations {
             if (segments.Count > 0 && (!mergePageContinuations ||
                 segments.Count >= maximumSegmentsPerTable ||
                 !CanContinue(document, segments[segments.Count - 1], current, geometryTolerancePoints))) {
-                groups.Add(CreateGroup(segments, maxRows));
+                groups.Add(CreateGroup(segments, maxRows, suppressRepeatedBodyHeaderRows));
                 segments.Clear();
             }
 
             segments.Add(current);
         }
 
-        if (segments.Count > 0) groups.Add(CreateGroup(segments, maxRows));
+        if (segments.Count > 0) groups.Add(CreateGroup(segments, maxRows, suppressRepeatedBodyHeaderRows));
         return groups.AsReadOnly();
     }
 
@@ -98,9 +99,12 @@ internal static class PdfLogicalTableContinuations {
 
     private static PdfLogicalTableContinuationGroup CreateGroup(
         IReadOnlyList<PdfLogicalTableExtraction> sourceSegments,
-        int maxRows) {
+        int maxRows,
+        bool suppressRepeatedBodyHeaderRows) {
         PdfLogicalTableExtraction[] segments = sourceSegments.ToArray();
-        int repeatedBodyHeaderRows = DetectRepeatedBodyHeaderRows(segments);
+        int repeatedBodyHeaderRows = suppressRepeatedBodyHeaderRows
+            ? DetectRepeatedBodyHeaderRows(segments)
+            : 0;
         IReadOnlyList<string> columns = BuildColumns(segments[0].Data.Columns, segments[0].Data.Rows, repeatedBodyHeaderRows);
         var allRows = new List<IReadOnlyList<string>>();
         int totalRowCount = 0;
@@ -127,7 +131,11 @@ internal static class PdfLogicalTableContinuations {
     }
 
     private static int DetectRepeatedBodyHeaderRows(PdfLogicalTableExtraction[] segments) {
-        if (segments.Length < 2 || !segments[0].Data.Structure.HasHeaderRow) return 0;
+        if (segments.Length < 2 ||
+            segments.Any(static segment => !segment.Data.Structure.HasHeaderRow) ||
+            segments.Skip(1).Any(segment => !HeadersEqual(segments[0].Data.Columns, segment.Data.Columns))) {
+            return 0;
+        }
         int maximum = Math.Min(MaximumRepeatedHeaderRows, segments.Min(static segment => segment.Data.Rows.Count));
         int repeated = 0;
         for (int rowIndex = 0; rowIndex < maximum; rowIndex++) {

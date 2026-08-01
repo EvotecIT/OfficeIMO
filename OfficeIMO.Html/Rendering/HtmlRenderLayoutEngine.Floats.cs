@@ -269,6 +269,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && string.Equals(paragraphStyle.Direction, "rtl", StringComparison.Ordinal)
                 && current.Segments.Any(segment => OfficeTextElements.ContainsRightToLeft(segment.Text));
             double cursor = rightToLeftLine ? lineStart + current.Width : lineStart;
+            int lineVisualStart = visuals.Count;
             foreach (InlineSegment segment in paintLineSegments) {
                 double x = rightToLeftLine ? cursor - segment.Width : cursor;
                 if (segment.Run.RunningStringElement != null) {
@@ -360,6 +361,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         formattingContainer);
                 }
                 cursor += rightToLeftLine ? -segment.Width : segment.Width;
+            }
+
+            if (lineBidiResolved && visuals.Count > lineVisualStart) {
+                List<HtmlRenderVisual> lineVisuals = visuals.GetRange(lineVisualStart, visuals.Count - lineVisualStart);
+                visuals.RemoveRange(lineVisualStart, visuals.Count - lineVisualStart);
+                visuals.Add(new HtmlRenderLogicalTextGroup(
+                    ResolveInlineLineLogicalText(mergedLines[lineIndex]),
+                    lineStart,
+                    lineY,
+                    Math.Max(0.01D, current.Width),
+                    Math.Max(0.01D, lineHeight),
+                    lineVisuals,
+                    lineVisualStart,
+                    paintLineSegments.FirstOrDefault()?.Run.Source));
             }
 
             flowY = Math.Max(flowY, lineY + lineHeight);
