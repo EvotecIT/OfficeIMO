@@ -136,6 +136,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_PreflightRejectsExplicitlyEmptyDatePicture() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("placeholder"))) {
+                Instruction = " MERGEFIELD EventTime \\@ \"\" "
+            });
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "EventTime" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["EventTime"] = "2026-08-01T10:00:00Z" });
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Contains(preflight.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting &&
+                issue.Name == "EventTime" &&
+                issue.Message.Contains("empty picture", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(WordMailMergeFieldStatus.UnsupportedFormatting, Assert.Single(execution.Fields).Status);
+            Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SimpleField>());
+        }
+
+        [Fact]
         public void Test_MailMerge_PreflightRejectsUnsupportedNonzeroNumericPictureSection() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("placeholder"))) {

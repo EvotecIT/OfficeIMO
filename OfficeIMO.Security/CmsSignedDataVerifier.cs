@@ -14,13 +14,30 @@ namespace OfficeIMO.Security;
 public static class CmsSignedDataVerifier {
     /// <summary>Verifies an encapsulated CMS SignedData object.</summary>
     public static CmsVerificationResult Verify(byte[] encodedCms, CmsVerificationOptions? options = null) =>
-        VerifyCore(encodedCms, null, detachedContentSupplied: false, options, timestampBudget: null);
+        VerifyCore(encodedCms, null, detachedContentSupplied: false, options, timestampBudget: null,
+            CertificateUsagePurpose.CmsSigner);
+
+    internal static CmsVerificationResult Verify(
+        byte[] encodedCms,
+        CmsVerificationOptions options,
+        CertificateValidationPurpose signerCertificatePurpose) =>
+        VerifyCore(encodedCms, null, detachedContentSupplied: false, options, timestampBudget: null,
+            MapCertificatePurpose(signerCertificatePurpose));
 
     internal static CmsVerificationResult Verify(
         byte[] encodedCms,
         CmsVerificationOptions options,
         TimestampVerificationBudget timestampBudget) =>
-        VerifyCore(encodedCms, null, detachedContentSupplied: false, options, timestampBudget);
+        VerifyCore(encodedCms, null, detachedContentSupplied: false, options, timestampBudget,
+            CertificateUsagePurpose.CmsSigner);
+
+    internal static CmsVerificationResult Verify(
+        byte[] encodedCms,
+        CmsVerificationOptions options,
+        TimestampVerificationBudget timestampBudget,
+        CertificateValidationPurpose signerCertificatePurpose) =>
+        VerifyCore(encodedCms, null, detachedContentSupplied: false, options, timestampBudget,
+            MapCertificatePurpose(signerCertificatePurpose));
 
     /// <summary>Verifies a detached CMS SignedData object against the exact supplied content bytes.</summary>
     public static CmsVerificationResult VerifyDetached(
@@ -32,7 +49,8 @@ public static class CmsSignedDataVerifier {
 #else
         ArgumentNullException.ThrowIfNull(detachedContent);
 #endif
-        return VerifyCore(encodedCms, detachedContent, detachedContentSupplied: true, options, timestampBudget: null);
+        return VerifyCore(encodedCms, detachedContent, detachedContentSupplied: true, options, timestampBudget: null,
+            CertificateUsagePurpose.CmsSigner);
     }
 
     private static CmsVerificationResult VerifyCore(
@@ -40,7 +58,8 @@ public static class CmsSignedDataVerifier {
         byte[]? detachedContent,
         bool detachedContentSupplied,
         CmsVerificationOptions? options,
-        TimestampVerificationBudget? timestampBudget) {
+        TimestampVerificationBudget? timestampBudget,
+        CertificateUsagePurpose signerCertificatePurpose) {
 #if NETSTANDARD2_0 || NET472
         if (encodedCms == null) throw new ArgumentNullException(nameof(encodedCms));
 #else
@@ -126,7 +145,8 @@ public static class CmsSignedDataVerifier {
                         embedded,
                         platformEmbedded,
                         options,
-                        effectiveTimestampBudget));
+                        effectiveTimestampBudget,
+                        signerCertificatePurpose));
                 }
 
                 AuthenticodeIndirectDataInfo? authenticode = TryReadAuthenticodeIndirectData(
@@ -166,7 +186,8 @@ public static class CmsSignedDataVerifier {
         IReadOnlyList<BcX509Certificate> embedded,
         IReadOnlyList<X509Certificate2> platformEmbedded,
         CmsVerificationOptions options,
-        TimestampVerificationBudget? timestampBudget) {
+        TimestampVerificationBudget? timestampBudget,
+        CertificateUsagePurpose signerCertificatePurpose) {
         var findings = new List<SecurityFinding>();
         BcX509Certificate? bcSigner = signedData.GetCertificates()
             .EnumerateMatches(signer.SignerID)
@@ -230,7 +251,7 @@ public static class CmsSignedDataVerifier {
             signerOptions,
             findings,
             "CMS signer",
-            CertificateUsagePurpose.CmsSigner,
+            signerCertificatePurpose,
             signerIndex);
 
         return new CmsSignerVerificationResult(
@@ -251,6 +272,11 @@ public static class CmsSignedDataVerifier {
             timestamps,
             findings);
     }
+
+    private static CertificateUsagePurpose MapCertificatePurpose(CertificateValidationPurpose purpose) =>
+        purpose == CertificateValidationPurpose.TimestampAuthority
+            ? CertificateUsagePurpose.TimestampAuthority
+            : CertificateUsagePurpose.DocumentSigner;
 
     internal static CertificateValidationOptions ResolveSignerCertificateValidation(
         CertificateValidationOptions source,

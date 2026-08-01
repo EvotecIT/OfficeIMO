@@ -1,9 +1,48 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using AngleSharp.Html.Parser;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
+        private static IElement? CreateEquationNode(
+            IHtmlDocument htmlDocument,
+            IElement context,
+            WordEquation equation,
+            WordToHtmlOptions options) {
+            long remaining = GetRemainingOutputCharacters(htmlDocument);
+            string mathMl;
+            try {
+                mathMl = equation.ToMathMl(remaining);
+            } catch (WordMathMlOutputLimitExceededException exception) {
+                ThrowExportLimitExceeded(
+                    options,
+                    "WordHtmlOutputLimitExceeded",
+                    "Generated MathML exceeds the configured HTML output-character limit before DOM construction.",
+                    "EquationMathMl",
+                    options.MaxOutputCharacters - remaining + exception.Actual,
+                    options.MaxOutputCharacters);
+                return null;
+            }
+            ReserveOutputCharacters(
+                htmlDocument,
+                mathMl.Length,
+                "Generated MathML exceeds the configured HTML output-character limit before DOM construction.",
+                "EquationMathMl");
+            string label = equation.Text;
+            ReserveOutputCharacters(
+                htmlDocument,
+                " aria-label=\"\"".Length + GetHtmlEncodedLength(label, attributeValue: true),
+                "Generated equation accessibility metadata exceeds the configured HTML output-character limit before DOM construction.",
+                "EquationAriaLabel");
+            IElement? mathNode = new HtmlParser()
+                .ParseFragment(mathMl, context)
+                .OfType<IElement>()
+                .FirstOrDefault();
+            mathNode?.SetAttribute("aria-label", label);
+            return mathNode;
+        }
+
         private INode CreateEquationAdjacentTextNode(
             IHtmlDocument htmlDocument,
             WordParagraph run,

@@ -35,6 +35,13 @@ namespace OfficeIMO.Word.Html {
             budget.ReserveCharacters(characters, message, source);
         }
 
+        private static long GetRemainingOutputCharacters(IDocument owner) {
+            if (!OutputConstructionBudgets.TryGetValue(owner, out OutputConstructionBudget? budget)) {
+                throw new InvalidOperationException("The HTML output construction budget was not initialized.");
+            }
+            return budget.RemainingCharacters;
+        }
+
         private sealed class OutputConstructionBudget {
             private readonly WordToHtmlOptions _options;
             private long _minimumOutputCharacters;
@@ -43,6 +50,8 @@ namespace OfficeIMO.Word.Html {
                 _options = options;
                 _minimumOutputCharacters = initialOutputCharacters;
             }
+
+            internal long RemainingCharacters => Math.Max(0, _options.MaxOutputCharacters - _minimumOutputCharacters);
 
             internal IElement CreateElement(IDocument owner, string tagName) {
                 long minimumSerializedCharacters = HtmlVoidElements.Contains(tagName)

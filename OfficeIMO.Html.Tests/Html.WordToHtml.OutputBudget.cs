@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.IO;
 using Xunit;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Tests {
     public partial class HtmlWordToHtml {
@@ -209,6 +210,23 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
             Assert.StartsWith("HeaderFooter:header:default:section-", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetBoundsMathMlBeforeFragmentParsing() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(
+                new M.OfficeMath(new M.Run(new M.Text(new string('&', 4096)))));
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = 4096
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("EquationMathMl", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
     }

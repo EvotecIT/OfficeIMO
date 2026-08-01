@@ -217,8 +217,15 @@ namespace OfficeIMO.Word {
             }
 
             CmsVerificationResult cms = operationBudget.TimestampBudget == null
-                ? CmsSignedDataVerifier.Verify(cmsBytes, options.CmsVerification)
-                : CmsSignedDataVerifier.Verify(cmsBytes, options.CmsVerification, operationBudget.TimestampBudget);
+                ? CmsSignedDataVerifier.Verify(
+                    cmsBytes,
+                    options.CmsVerification,
+                    CertificateValidationPurpose.DocumentSigning)
+                : CmsSignedDataVerifier.Verify(
+                    cmsBytes,
+                    options.CmsVerification,
+                    operationBudget.TimestampBudget,
+                    CertificateValidationPurpose.DocumentSigning);
             CmsSignerVerificationResult? signer = cms.Signers.FirstOrDefault();
             foreach (SecurityFinding finding in cms.Findings.Concat(cms.Signers.SelectMany(item => item.Findings))) {
                 findings.Add(Finding(finding.Code, Map(finding.Severity), finding.Message, profile));

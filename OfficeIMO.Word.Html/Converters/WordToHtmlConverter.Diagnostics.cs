@@ -108,7 +108,8 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool ShouldCountOutputLeafText(OpenXmlElement element) =>
-            element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode;
+            element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode &&
+            element is not DocumentFormat.OpenXml.Math.Text;
 
         private static bool ShouldCountOutputAttribute(
             OpenXmlElement element,

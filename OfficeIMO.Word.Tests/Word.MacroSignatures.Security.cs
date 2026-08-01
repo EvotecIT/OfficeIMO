@@ -1,4 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -107,6 +108,49 @@ namespace OfficeIMO.Tests {
             Assert.False(result.Succeeded);
             Assert.False(result.MacroProjectPreserved);
             Assert.Contains(result.Findings, finding => finding.Code == "MacroValidatedSnapshotChanged");
+        }
+
+        [Fact]
+        public void MacroSignatureValidationRejectsEmailProtectionOnlySigner() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureEmailProtectionOnly.docm");
+            using X509Certificate2 certificate = CreateEmailProtectionSigningCertificate();
+            AddMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.V3, certificate);
+            var options = new WordMacroProjectSignatureValidationOptions();
+            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            var dependencies = new WordMacroProjectSigningDependencies(
+                new RecordingMacroToolRunner(_ => Success()),
+                new TestMacroSigningPlatform(isWindows: true));
+
+            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
+                filePath, options, dependencies);
+
+            Assert.False(result.IsValidUnderPolicy);
+            Assert.Equal(
+                WordSignatureValidationState.Failed,
+                Assert.Single(result.SignatureInfo.Signatures).CertificateChainStatus);
+            Assert.Contains(result.Findings, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
+        }
+
+        private static X509Certificate2 CreateEmailProtectionSigningCertificate() {
+            using RSA rsa = RSA.Create(2048);
+            var request = new CertificateRequest(
+                "CN=OfficeIMO Email Protection VBA Test",
+                rsa,
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1);
+            request.CertificateExtensions.Add(new X509KeyUsageExtension(
+                X509KeyUsageFlags.DigitalSignature,
+                critical: true));
+            request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
+                new OidCollection { new Oid("1.3.6.1.5.5.7.3.4") },
+                critical: false));
+            using X509Certificate2 created = request.CreateSelfSigned(
+                DateTimeOffset.UtcNow.AddMinutes(-5),
+                DateTimeOffset.UtcNow.AddDays(1));
+            return new X509Certificate2(
+                created.Export(X509ContentType.Pfx),
+                (string?)null,
+                X509KeyStorageFlags.Exportable);
         }
 
         private static void AddTimestampedMacroSignatureProfile(

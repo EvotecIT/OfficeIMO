@@ -91,9 +91,11 @@ namespace OfficeIMO.Word {
         public string ToLatex() => MathElement != null ? WordMath.ToLatex(MathElement) : Text;
 
         /// <summary>Projects the equation to MathML. Field-backed equations use a safe <c>mtext</c> fallback.</summary>
-        public string ToMathMl() => MathElement != null
-            ? WordMath.ToMathMl(MathElement)
-            : $"<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mtext>{EscapeXml(Text)}</mtext></math>";
+        public string ToMathMl() => ToMathMl(long.MaxValue);
+
+        internal string ToMathMl(long maxCharacters) => MathElement != null
+            ? WordMath.ToMathMl(MathElement, maxCharacters)
+            : WordMath.ToMathMlText(Text, maxCharacters);
 
         /// <summary>Projects this equation into the reusable OfficeIMO math expression tree.</summary>
         public OfficeMathExpression ToExpression() => MathElement != null

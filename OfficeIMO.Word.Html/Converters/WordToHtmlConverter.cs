@@ -301,15 +301,6 @@ namespace OfficeIMO.Word.Html {
                     return appendedBreak && string.IsNullOrEmpty(run.Text);
                 }
 
-                IElement? CreateEquationNode(WordEquation equation) {
-                    IElement? mathNode = new HtmlParser()
-                        .ParseFragment(equation.ToMathMl(), parent)
-                        .OfType<IElement>()
-                        .FirstOrDefault();
-                    mathNode?.SetAttribute("aria-label", equation.Text);
-                    return mathNode;
-                }
-
                 List<INode> CreateExpandedEquationContainerNodes(
                     DocumentFormat.OpenXml.OpenXmlElement container,
                     IReadOnlyList<WordEquationOccurrence> coveringEquations,
@@ -327,7 +318,7 @@ namespace OfficeIMO.Word.Html {
                             para._paragraph,
                             fallbackRun);
                         if (segment.Equation != null) {
-                            IElement? mathNode = CreateEquationNode(segment.Equation);
+                            IElement? mathNode = CreateEquationNode(htmlDoc, parent, segment.Equation, options);
                             if (mathNode != null &&
                                 hyperlinkNode == null &&
                                 sourceRun.IsHyperLink &&
@@ -369,7 +360,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 INode? CreatePositionedEquationNode(WordEquationOccurrence occurrence) {
-                    IElement? mathNode = CreateEquationNode(occurrence.Equation);
+                    IElement? mathNode = CreateEquationNode(htmlDoc, parent, occurrence.Equation, options);
                     if (mathNode == null) return null;
 
                     if (occurrence.StartChildIndex >= 0 &&

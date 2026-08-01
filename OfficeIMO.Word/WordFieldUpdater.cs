@@ -3,12 +3,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using System.IO;
-using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
     internal static partial class WordFieldUpdater {
-        private const string DefaultDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
-
         internal static WordFieldUpdateReport Update(WordDocument document, WordFieldUpdateOptions options) {
             MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
@@ -816,64 +813,6 @@ namespace OfficeIMO.Word {
             status = WordFieldUpdateStatus.Skipped;
             message = "Source document property is empty.";
             return false;
-        }
-
-        internal static bool TryFormatDateTime(DateTime source, WordFieldInventory.ParsedFieldInstruction parsed, out string value, out string message) {
-            string? customFormat = GetDateTimeFormatSwitch(parsed.Switches);
-            if (string.IsNullOrWhiteSpace(customFormat)) {
-                value = source.ToString(DefaultDateTimeFormat, CultureInfo.InvariantCulture);
-                message = string.Empty;
-                return true;
-            }
-
-            string normalizedFormat = NormalizeDateTimeFormat(customFormat!);
-            try {
-                value = source.ToString(normalizedFormat, CultureInfo.InvariantCulture);
-                message = string.Empty;
-                return true;
-            } catch (FormatException) {
-                value = string.Empty;
-                message = $"Date/time format switch {customFormat} is not supported for deterministic field refresh.";
-                return false;
-            }
-        }
-
-        internal static bool TryFormatDateTime(DateTimeOffset source, WordFieldInventory.ParsedFieldInstruction parsed, out string value, out string message) {
-            string? customFormat = GetDateTimeFormatSwitch(parsed.Switches);
-            if (string.IsNullOrWhiteSpace(customFormat)) {
-                value = source.ToString(DefaultDateTimeFormat, CultureInfo.InvariantCulture);
-                message = string.Empty;
-                return true;
-            }
-
-            string normalizedFormat = NormalizeDateTimeFormat(customFormat!);
-            try {
-                value = source.ToString(normalizedFormat, CultureInfo.InvariantCulture);
-                message = string.Empty;
-                return true;
-            } catch (FormatException) {
-                value = string.Empty;
-                message = $"Date/time format switch {customFormat} is not supported for deterministic field refresh.";
-                return false;
-            }
-        }
-
-        private static string? GetDateTimeFormatSwitch(IReadOnlyList<string> switches) {
-            for (int index = switches.Count - 1; index >= 0; index--) {
-                string fieldSwitch = switches[index].Trim();
-                if (!fieldSwitch.StartsWith(@"\@", StringComparison.Ordinal)) {
-                    continue;
-                }
-
-                string format = fieldSwitch.Substring(2).Trim();
-                return string.IsNullOrWhiteSpace(format) ? null : TrimQuotes(format);
-            }
-
-            return null;
-        }
-
-        private static string NormalizeDateTimeFormat(string format) {
-            return Regex.Replace(format, "am/pm", "tt", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
         private static int EstimateTotalPages(WordDocument document) {
