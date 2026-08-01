@@ -15,10 +15,13 @@ namespace OfficeIMO.Word.Html {
             long elements = 0;
             bool hasFields = false;
             bool hasRevisions = false;
+            bool hasRevisionText = false;
             bool hasComments = false;
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
             if (mainPart != null) {
-                foreach ((OpenXmlElement Root, string PartUri) root in EnumerateExportRoots(mainPart)) {
+                foreach ((OpenXmlElement Root, string PartUri) root in EnumerateExportRoots(
+                    mainPart,
+                    options.IncludeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null)) {
                     foreach (OpenXmlElement element in EnumerateRootAndDescendants(root.Root)) {
                         elements++;
                         if (elements > options.MaxDocumentElements) {
@@ -30,13 +33,16 @@ namespace OfficeIMO.Word.Html {
                         if (!hasRevisions && IsRevisionElement(element.LocalName)) {
                             hasRevisions = true;
                         }
+                        if (!hasRevisionText && IsRevisionTextContainer(element)) {
+                            hasRevisionText = true;
+                        }
                         if (!hasComments && element is DocumentFormat.OpenXml.Wordprocessing.Comment) {
                             hasComments = true;
                         }
                     }
                 }
             }
-            return new ExportInspection(hasFields, hasRevisions, hasComments);
+            return new ExportInspection(hasFields, hasRevisions, hasRevisionText, hasComments);
         }
 
         private static IEnumerable<OpenXmlElement> EnumerateRootAndDescendants(OpenXmlElement root) {
@@ -44,11 +50,16 @@ namespace OfficeIMO.Word.Html {
             foreach (OpenXmlElement descendant in root.Descendants()) yield return descendant;
         }
 
-        private static IEnumerable<(OpenXmlElement Root, string PartUri)> EnumerateExportRoots(MainDocumentPart mainPart) {
+        private static IEnumerable<(OpenXmlElement Root, string PartUri)> EnumerateExportRoots(
+            MainDocumentPart mainPart,
+            CustomFilePropertiesPart? customPropertiesPart) {
+            if (customPropertiesPart?.Properties is OpenXmlElement customProperties) {
+                yield return (customProperties, customPropertiesPart.Uri.ToString());
+            }
+
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 yield return (root.Root, root.PartUri);
             }
-
             if (mainPart.WordprocessingCommentsPart?.Comments is OpenXmlElement comments) {
                 yield return (comments, mainPart.WordprocessingCommentsPart.Uri.ToString());
             }
@@ -76,7 +87,9 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ReportKnownExportLimitations(WordDocument document, WordToHtmlOptions options, ExportInspection inspection) {
-            if (inspection.HasRevisions) {
+            if (inspection.HasRevisionText) {
+                AddExportDiagnostic(options, "TrackedRevisionTextOmitted", "Text wrapped in Word tracked-revision markup is omitted because the HTML exporter does not project revision containers.", HtmlConversionLossKind.Omission);
+            } else if (inspection.HasRevisions) {
                 AddExportDiagnostic(options, "TrackedRevisionsFlattened", "Tracked revisions are exported as visible document content without Word revision semantics.", HtmlConversionLossKind.Approximation);
             }
             if (inspection.HasComments && !options.ExportComments) {
@@ -88,8 +101,9 @@ namespace OfficeIMO.Word.Html {
             if (document.HasMacros) {
                 AddExportDiagnostic(options, "MacroProjectOmitted", "The VBA project is package metadata and is not represented in HTML.", HtmlConversionLossKind.Omission);
             }
-            if (document._wordprocessingDocument.DigitalSignatureOriginPart != null) {
-                AddExportDiagnostic(options, "PackageSignaturesOmitted", "OPC package signatures are not represented in HTML.", HtmlConversionLossKind.Omission);
+            if (document._wordprocessingDocument.DigitalSignatureOriginPart != null ||
+                document.ApplicationProperties.DigitalSignature != null) {
+                AddExportDiagnostic(options, "PackageSignaturesOmitted", "OPC package signature metadata is not represented in HTML.", HtmlConversionLossKind.Omission);
             }
             if (!options.ExportHeadersAndFooters && document.Sections.Any(section =>
                 section.Header.Default != null || section.Header.Even != null || section.Header.First != null ||
@@ -102,9 +116,33 @@ namespace OfficeIMO.Word.Html {
             if (!options.ExportEndnotes && document.EndNotes.Count > 0) {
                 AddExportDiagnostic(options, "EndnotesOmitted", "Endnotes were omitted because ExportEndnotes is false.", HtmlConversionLossKind.Omission);
             }
-            if (!options.IncludeSectionMetadata && document.Sections.Count > 1) {
-                AddExportDiagnostic(options, "SectionLayoutFlattened", "Multiple Word sections are exported without page geometry metadata because IncludeSectionMetadata is false.", HtmlConversionLossKind.Approximation);
+            if (!options.IncludeSectionMetadata &&
+                (document.Sections.Count > 1 || document.Sections.Any(section => HasNonDefaultPageGeometry(section._sectionProperties)))) {
+                AddExportDiagnostic(options, "SectionLayoutFlattened", "Word section page geometry is exported without page metadata because IncludeSectionMetadata is false.", HtmlConversionLossKind.Approximation);
             }
+        }
+
+        private static bool IsRevisionTextContainer(OpenXmlElement element) {
+            if (element.LocalName is not ("ins" or "del" or "moveFrom" or "moveTo")) return false;
+            return element.Descendants().Any(descendant =>
+                descendant is DocumentFormat.OpenXml.Wordprocessing.Text or
+                    DocumentFormat.OpenXml.Wordprocessing.DeletedText);
+        }
+
+        private static bool HasNonDefaultPageGeometry(DocumentFormat.OpenXml.Wordprocessing.SectionProperties sectionProperties) {
+            DocumentFormat.OpenXml.Wordprocessing.PageSize? pageSize = sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>();
+            if (pageSize?.Orient?.Value == DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues.Landscape) return true;
+            if (pageSize?.Width?.Value is uint width && width != 12240U) return true;
+            if (pageSize?.Height?.Value is uint height && height != 15840U) return true;
+
+            DocumentFormat.OpenXml.Wordprocessing.PageMargin? margin = sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageMargin>();
+            return (margin?.Top?.Value is int top && top != 1440) ||
+                   (margin?.Right?.Value is uint right && right != 1440U) ||
+                   (margin?.Bottom?.Value is int bottom && bottom != 1440) ||
+                   (margin?.Left?.Value is uint left && left != 1440U) ||
+                   (margin?.Header?.Value is uint header && header != 720U) ||
+                   (margin?.Footer?.Value is uint footer && footer != 720U) ||
+                   (margin?.Gutter?.Value is uint gutter && gutter != 0U);
         }
 
         private static bool IsRevisionElement(string localName) {
@@ -128,14 +166,16 @@ namespace OfficeIMO.Word.Html {
         }
 
         private readonly struct ExportInspection {
-            internal ExportInspection(bool hasFields, bool hasRevisions, bool hasComments) {
+            internal ExportInspection(bool hasFields, bool hasRevisions, bool hasRevisionText, bool hasComments) {
                 HasFields = hasFields;
                 HasRevisions = hasRevisions;
+                HasRevisionText = hasRevisionText;
                 HasComments = hasComments;
             }
 
             internal bool HasFields { get; }
             internal bool HasRevisions { get; }
+            internal bool HasRevisionText { get; }
             internal bool HasComments { get; }
         }
 

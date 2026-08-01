@@ -231,6 +231,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsNumberingLimitationFromUsedParagraphStyle() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_style_numbering_source.docx");
+            CreateDocumentWithStyleInheritedNumbering(sourcePath);
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_style_numbering_target.docx");
+            CreateDocumentWithStyleInheritedNumbering(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.NumberingLevelStyles" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureOptionsCanDisableImageFindings() {
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -459,6 +474,33 @@ namespace OfficeIMO.Tests {
                 ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
             runProperties.RunFonts = new RunFonts { AsciiTheme = themeFont, HighAnsiTheme = themeFont };
             styles.Save();
+        }
+
+        private static void CreateDocumentWithStyleInheritedNumbering(string path) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Style-numbered paragraph");
+                document.Save();
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Styles styles = mainPart.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "OfficeIMO Style Numbering" },
+                new StyleParagraphProperties(
+                    new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = 1 }))) {
+                Type = StyleValues.Paragraph,
+                StyleId = "OfficeIMOStyleNumbering",
+                CustomStyle = true
+            });
+            styles.Save();
+
+            Paragraph paragraph = mainPart.Document.Body!.Elements<Paragraph>().First();
+            paragraph.ParagraphProperties = new ParagraphProperties(
+                new ParagraphStyleId { Val = "OfficeIMOStyleNumbering" });
+            mainPart.Document.Save();
         }
     }
 }

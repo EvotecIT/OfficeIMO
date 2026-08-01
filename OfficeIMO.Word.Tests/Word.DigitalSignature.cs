@@ -1024,6 +1024,24 @@ namespace OfficeIMO.Tests {
             Assert.False(exception.Result.Succeeded);
         }
 
+        [Fact]
+        public void Test_DigitalSignature_TrySignPackageReportsDisposedPrivateKeyProviderFailure() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureDisposedCertificate.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Unavailable private-key provider");
+                document.Save();
+            }
+            X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            certificate.Dispose();
+
+            WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, certificate);
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Details, detail =>
+                detail.Contains("private key", System.StringComparison.OrdinalIgnoreCase) ||
+                detail.Contains("signing failed", System.StringComparison.OrdinalIgnoreCase));
+        }
+
         private static byte[] CreateSignatureXml(
             string referenceUri = "/word/document.xml",
             bool includeDigestValue = true,

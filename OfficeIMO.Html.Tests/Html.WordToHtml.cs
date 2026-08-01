@@ -38,7 +38,9 @@ namespace OfficeIMO.Tests {
 
             Assert.True(result.Succeeded);
             Assert.True(result.HasLoss);
-            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "TrackedRevisionsFlattened");
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "TrackedRevisionTextOmitted" &&
+                diagnostic.LossKind == HtmlConversionLossKind.Omission);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "CommentsOmitted");
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "FieldInstructionsFlattened");
         }
@@ -123,6 +125,64 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("WordElementLimitExceeded", exception.Code);
             Assert.Contains("comments.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_DocumentElementBudgetIncludesExportedCustomProperties() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Small visible body");
+            CustomFilePropertiesPart sourceCustomPart = doc._wordprocessingDocument.AddCustomFilePropertiesPart();
+            sourceCustomPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties();
+            for (int i = 0; i < 200; i++) {
+                sourceCustomPart.Properties.Append(new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(
+                    new DocumentFormat.OpenXml.VariantTypes.VTLPWSTR("Value" + i)) {
+                    FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
+                    PropertyId = i + 2,
+                    Name = "BudgetProperty" + i
+                });
+            }
+            sourceCustomPart.Properties.Save();
+            var options = new WordToHtmlOptions {
+                IncludeCustomProperties = true,
+                MaxDocumentElements = 100
+            };
+            using MemoryStream package = doc.ToStream();
+            using WordDocument loaded = WordDocument.Load(package);
+            CustomFilePropertiesPart customPart = Assert.IsType<CustomFilePropertiesPart>(loaded._wordprocessingDocument.CustomFilePropertiesPart);
+            Assert.True(customPart.Properties!.Descendants().Count() > 100);
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => loaded.ToHtmlResult(options));
+
+            Assert.Equal("WordElementLimitExceeded", exception.Code);
+            Assert.Contains("custom.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_ReportsSingleLandscapeSectionGeometryWhenMetadataIsDisabled() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Landscape content");
+            doc.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+
+            HtmlTextConversionResult result = doc.ToHtmlResult();
+
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "SectionLayoutFlattened" &&
+                diagnostic.LossKind == HtmlConversionLossKind.Approximation);
+            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+        }
+
+        [Fact]
+        public void Test_WordToHtml_ReportsApplicationOnlySignatureMetadataAsOmitted() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Application signature metadata only");
+            doc.ApplicationProperties.DigitalSignature = new DocumentFormat.OpenXml.ExtendedProperties.DigitalSignature();
+
+            HtmlTextConversionResult result = doc.ToHtmlResult();
+
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "PackageSignaturesOmitted" &&
+                diagnostic.LossKind == HtmlConversionLossKind.Omission);
+            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
         }
 
         [Fact]

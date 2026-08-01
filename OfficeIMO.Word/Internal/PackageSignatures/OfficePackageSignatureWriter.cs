@@ -72,7 +72,6 @@ namespace OfficeIMO.Word {
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) return Failed(fullPath, "The package file does not exist.");
             if (certificate == null) return Failed(fullPath, "A signing certificate is required.");
-            if (!certificate.HasPrivateKey) return Failed(fullPath, "The signing certificate must include a private key.");
             if (options.MaxPackageParts <= 0) return Failed(fullPath, "MaxPackageParts must be greater than zero.");
             if (options.MaxPackageBytes <= 0) return Failed(fullPath, "MaxPackageBytes must be greater than zero.");
             if (options.MaxPartBytes <= 0) return Failed(fullPath, "MaxPartBytes must be greater than zero.");
@@ -81,11 +80,13 @@ namespace OfficeIMO.Word {
                 return Failed(fullPath, "The package exceeds the " + options.MaxPackageBytes + " byte signing limit.");
             }
 
-            using RSA? signingKey = certificate.GetRSAPrivateKey();
-            if (signingKey == null) return Failed(fullPath, "OPC package signing requires an RSA certificate with an accessible private key.");
-
-            string stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
+            string stagingPath = string.Empty;
             try {
+                if (!certificate.HasPrivateKey) return Failed(fullPath, "The signing certificate must include a private key.");
+                using RSA? signingKey = certificate.GetRSAPrivateKey();
+                if (signingKey == null) return Failed(fullPath, "OPC package signing requires an RSA certificate with an accessible private key.");
+
+                stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
                 File.Copy(fullPath, stagingPath, overwrite: false);
                 PrepareDigitalSignatureMetadata(stagingPath);
                 byte[] packageBytes = File.ReadAllBytes(stagingPath);

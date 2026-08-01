@@ -107,7 +107,10 @@ namespace OfficeIMO.Word {
                 root.Descendants<TableStyleConditionalFormattingTableCellProperties>().Any());
 
         private static bool ContainsNumberingFormatting(MainDocumentPart mainPart) =>
-            EnumerateComparisonRoots(mainPart).Any(root => root.Descendants<NumberingProperties>().Any());
+            EnumerateComparisonRoots(mainPart)
+                .SelectMany(root => new[] { root }.Concat(root.Descendants()))
+                .OfType<Paragraph>()
+                .Any(paragraph => ResolveParagraphNumberingProperties(paragraph, mainPart) != null);
 
         private static bool ContainsMoveMarkup(MainDocumentPart mainPart) =>
             EnumerateComparisonRoots(mainPart)
