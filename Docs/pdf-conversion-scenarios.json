@@ -259,7 +259,7 @@
     },
     {
       "id": "visio-diagram",
-      "sourceFormats": [ "vsdx", "vsdm", "vstx", "vstm" ],
+      "sourceFormats": [ "vsdx" ],
       "status": "direct-loss-aware-adapter",
       "stages": [ "OfficeIMO.Visio.Pdf", "OfficeIMO.Reader.Visio", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
       "implementationProject": "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",

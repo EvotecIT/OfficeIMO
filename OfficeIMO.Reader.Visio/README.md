@@ -99,7 +99,9 @@ OfficeDocumentReadResult document = diagram.ToOfficeDocumentReadResult();
 
 ## What it emits
 
-- Page-aware chunks for `.vsdx`, `.vsdm`, `.vstx`, and `.vstm` files.
+- Page-aware chunks for `.vsdx` files. Template and macro-enabled packages are
+  not advertised until the document loader can prove those content types with
+  representative conversion fixtures.
 - Shape Data as `ReaderTable` rows.
 - Pages, shapes, connectors, hyperlinks, and optional preview asset metadata in the shared read result envelope.
 - Point-based geometry and one topology `ReaderVisual` per page for graph-aware consumers.

@@ -325,6 +325,12 @@ options-first async overload keeps cancellation explicit:
 as `LoadAsync(path, default)` continue to bind to the `CancellationToken`
 overload; use a typed or named token when the argument's purpose is not obvious.
 
+The modular Visio reader now registers `.vsdx` only. Earlier handler metadata
+listed `.vsdm`, `.vstx`, and `.vstm`, but the document loader did not accept
+their distinct main-part content types. Convert those files to `.vsdx` before
+using the document reader; use the dedicated stencil package APIs for `.vstx`
+master catalogs.
+
 ### Common member replacements
 
 | Removed member | Replacement |

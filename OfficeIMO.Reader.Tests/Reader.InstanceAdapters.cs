@@ -53,6 +53,18 @@ public sealed class ReaderInstanceAdapterTests {
     }
 
     [Fact]
+    public void VisioAdapter_AdvertisesOnlyFormatsAcceptedByTheDocumentLoader() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddVisioHandler()
+            .Build();
+
+        ReaderHandlerCapability capability = Assert.Single(
+            reader.GetCapabilities(),
+            item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
+        Assert.Equal(new[] { ".vsdx" }, capability.Extensions);
+    }
+
+    [Fact]
     public void JsonAdapter_RoutesThroughInstanceWithoutStaticRegistration() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddJsonHandler(new JsonReadOptions { IncludeMarkdown = false })
