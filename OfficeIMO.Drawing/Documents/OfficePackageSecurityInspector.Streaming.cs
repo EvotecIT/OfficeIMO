@@ -15,7 +15,13 @@ namespace OfficeIMO.Drawing {
 
             long originalPosition = source.Position;
             try {
-                long packageBytes = checked(source.Length - originalPosition);
+                long sourceLength = source.Length;
+                if (originalPosition < 0 || originalPosition > sourceLength) {
+                    throw new ArgumentException(
+                        "The source position must be within the readable stream length.",
+                        nameof(source));
+                }
+                long packageBytes = sourceLength - originalPosition;
                 ValidateSourceSize(packageBytes, options);
                 var findings = new System.Collections.Generic.List<OfficePackageSecurityFinding>();
 

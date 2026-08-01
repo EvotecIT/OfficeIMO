@@ -280,11 +280,28 @@ namespace OfficeIMO.Excel {
 
         private void RewriteFormulaRoots(Func<string, string> rewrite) {
             RewriteFormulaLeaves(WorkbookPartRoot.Workbook, rewrite);
+            var rewrittenChartParts = new HashSet<OpenXmlPart>();
             foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
                 RewriteFormulaLeaves(worksheetPart.Worksheet, rewrite);
                 foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) RewriteFormulaLeaves(tablePart.Table, rewrite);
-                foreach (ChartPart chartPart in worksheetPart.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) RewriteFormulaLeaves(chartPart.ChartSpace, rewrite);
+                RewriteDrawingFormulaRoots(worksheetPart.DrawingsPart, rewrittenChartParts, rewrite);
                 foreach (PivotTablePart pivotPart in worksheetPart.PivotTableParts) RewriteFormulaLeaves(pivotPart.PivotTableDefinition, rewrite);
+            }
+            foreach (ChartsheetPart chartsheetPart in WorkbookPartRoot.ChartsheetParts) {
+                RewriteDrawingFormulaRoots(chartsheetPart.DrawingsPart, rewrittenChartParts, rewrite);
+            }
+        }
+
+        private static void RewriteDrawingFormulaRoots(
+            DrawingsPart? drawingsPart,
+            HashSet<OpenXmlPart> rewrittenParts,
+            Func<string, string> rewrite) {
+            if (drawingsPart == null) return;
+            foreach (ChartPart chartPart in drawingsPart.ChartParts) {
+                if (rewrittenParts.Add(chartPart)) RewriteFormulaLeaves(chartPart.ChartSpace, rewrite);
+            }
+            foreach (ExtendedChartPart chartPart in drawingsPart.ExtendedChartParts) {
+                if (rewrittenParts.Add(chartPart)) RewriteFormulaLeaves(chartPart.ChartSpace, rewrite);
             }
         }
 

@@ -158,19 +158,29 @@ namespace OfficeIMO.Excel {
                 foreach (Row row in sheetData.Elements<Row>().ToList()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     List<Cell> cells = row.Elements<Cell>().ToList();
+                    bool rowChanged = false;
                     if (deleting) {
                         foreach (Cell cell in cells) {
                             int column = cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0;
-                            if (column >= firstColumn && column <= lastColumn) cell.Remove();
-                            else if (column > lastColumn) cell.CellReference = A1.CellReference((int)(row.RowIndex?.Value ?? 0U), column - count);
+                            if (column >= firstColumn && column <= lastColumn) {
+                                cell.Remove();
+                                rowChanged = true;
+                            } else if (column > lastColumn) {
+                                cell.CellReference = A1.CellReference((int)(row.RowIndex?.Value ?? 0U), column - count);
+                                rowChanged = true;
+                            }
                         }
                     } else {
                         foreach (Cell cell in cells.OrderByDescending(cell =>
                             cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0)) {
                             int column = cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0;
-                            if (column >= firstColumn) cell.CellReference = A1.CellReference((int)(row.RowIndex?.Value ?? 0U), checked(column + count));
+                            if (column >= firstColumn) {
+                                cell.CellReference = A1.CellReference((int)(row.RowIndex?.Value ?? 0U), checked(column + count));
+                                rowChanged = true;
+                            }
                         }
                     }
+                    if (rowChanged) row.Spans = null;
                     if (!row.Elements<Cell>().Any()) row.Remove();
                 }
             }

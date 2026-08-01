@@ -183,6 +183,18 @@ public sealed class DrawingOfficePackageSecurityTests {
     }
 
     [Fact]
+    public void StreamInspectionRejectsPositionBeyondLength() {
+        using var source = new MemoryStream(new byte[8]);
+        source.Position = 16;
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            OfficePackageSecurityInspector.Inspect(source));
+
+        Assert.Equal("source", exception.ParamName);
+        Assert.Equal(16, source.Position);
+    }
+
+    [Fact]
     public void SeekableStreamInspectionDoesNotMaterializeLargeOpaqueParts() {
         var payload = new byte[4 * 1024 * 1024];
         new Random(42).NextBytes(payload);

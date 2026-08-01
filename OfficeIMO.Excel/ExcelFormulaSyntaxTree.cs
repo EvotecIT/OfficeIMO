@@ -114,20 +114,20 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (TryReadStructuredReference(formula, cursor, out int structuredLength, out string? tableName, out string selector)) {
-                    AddText(nodes, formula, textStart, cursor - textStart);
-                    string text = formula.Substring(cursor, structuredLength);
-                    nodes.Add(new ExcelFormulaStructuredReferenceSyntax(text, tableName, selector));
-                    cursor += structuredLength;
-                    textStart = cursor;
-                    continue;
-                }
-
                 if (TryReadQualifiedName(formula, cursor, out int qualifiedNameLength)) {
                     AddText(nodes, formula, textStart, cursor - textStart);
                     string name = formula.Substring(cursor, qualifiedNameLength);
                     nodes.Add(new ExcelFormulaNameSyntax(name, name));
                     cursor += qualifiedNameLength;
+                    textStart = cursor;
+                    continue;
+                }
+
+                if (TryReadStructuredReference(formula, cursor, out int structuredLength, out string? tableName, out string selector)) {
+                    AddText(nodes, formula, textStart, cursor - textStart);
+                    string text = formula.Substring(cursor, structuredLength);
+                    nodes.Add(new ExcelFormulaStructuredReferenceSyntax(text, tableName, selector));
+                    cursor += structuredLength;
                     textStart = cursor;
                     continue;
                 }
