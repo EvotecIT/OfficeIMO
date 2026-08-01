@@ -68,6 +68,17 @@ namespace OfficeIMO.Excel {
     }
 
     public partial class ExcelSheet {
+        private const ExcelIgnoredErrorKind AllIgnoredErrorKinds =
+            ExcelIgnoredErrorKind.EvaluationError
+            | ExcelIgnoredErrorKind.EmptyCellReference
+            | ExcelIgnoredErrorKind.NumberStoredAsText
+            | ExcelIgnoredErrorKind.FormulaRange
+            | ExcelIgnoredErrorKind.Formula
+            | ExcelIgnoredErrorKind.TwoDigitTextYear
+            | ExcelIgnoredErrorKind.UnlockedFormula
+            | ExcelIgnoredErrorKind.ListDataValidation
+            | ExcelIgnoredErrorKind.CalculatedColumn;
+
         /// <summary>Lists allowed-edit regions without exposing Open XML types.</summary>
         public IReadOnlyList<ExcelAllowedEditRangeInfo> GetAllowedEditRanges() {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
@@ -162,7 +173,9 @@ namespace OfficeIMO.Excel {
         /// <summary>Adds ignored-error metadata for one or more regions.</summary>
         public void AddIgnoredErrorRegion(IEnumerable<string> ranges, ExcelIgnoredErrorKind errors) {
             IReadOnlyList<string> normalized = NormalizeRegionReferences(ranges);
-            if (errors == ExcelIgnoredErrorKind.None) throw new ArgumentOutOfRangeException(nameof(errors));
+            if (errors == ExcelIgnoredErrorKind.None || (errors & ~AllIgnoredErrorKinds) != 0) {
+                throw new ArgumentOutOfRangeException(nameof(errors));
+            }
             WriteLock(() => {
                 IgnoredErrors container = WorksheetRoot.GetFirstChild<IgnoredErrors>() ?? WorksheetRoot.AppendChild(new IgnoredErrors());
                 var ignored = new IgnoredError {

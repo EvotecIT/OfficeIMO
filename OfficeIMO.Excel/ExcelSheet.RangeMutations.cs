@@ -172,7 +172,10 @@ namespace OfficeIMO.Excel {
                 int maxDrawing = InspectMutationPlanElements(
                         _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<Xdr.MarkerType>() ?? Enumerable.Empty<Xdr.MarkerType>(),
                         budget)
-                    .Select(marker => TryGetDrawingMarkerCoordinates(marker, out int row, out int column) && row >= r1 && row <= r2 && column >= c1 ? column : 0)
+                    .Where(marker => ExcelDocument.DrawingMarkerMovesWithPlacement(marker, candidate =>
+                        TryGetDrawingMarkerCoordinates(candidate, out int row, out int column)
+                        && row >= r1 && row <= r2 && column >= c1))
+                    .Select(marker => TryGetDrawingMarkerCoordinates(marker, out _, out int column) ? column : 0)
                     .DefaultIfEmpty().Max();
                 int max = Math.Max(maxCell, maxDrawing);
                 if ((long)max + c2 - c1 + 1L > A1.MaxColumns) throw new InvalidOperationException("Cell insertion would exceed the worksheet column limit.");
@@ -182,7 +185,10 @@ namespace OfficeIMO.Excel {
                 int maxDrawing = InspectMutationPlanElements(
                         _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<Xdr.MarkerType>() ?? Enumerable.Empty<Xdr.MarkerType>(),
                         budget)
-                    .Select(marker => TryGetDrawingMarkerCoordinates(marker, out int row, out int column) && column >= c1 && column <= c2 && row >= r1 ? row : 0)
+                    .Where(marker => ExcelDocument.DrawingMarkerMovesWithPlacement(marker, candidate =>
+                        TryGetDrawingMarkerCoordinates(candidate, out int row, out int column)
+                        && column >= c1 && column <= c2 && row >= r1))
+                    .Select(marker => TryGetDrawingMarkerCoordinates(marker, out int row, out _) ? row : 0)
                     .DefaultIfEmpty().Max();
                 int max = Math.Max(maxCell, maxDrawing);
                 if ((long)max + r2 - r1 + 1L > A1.MaxRows) throw new InvalidOperationException("Cell insertion would exceed the worksheet row limit.");
@@ -300,7 +306,15 @@ namespace OfficeIMO.Excel {
                 .Select(image => new RangeTransferImageSnapshot(image))
                 .ToList();
 
-            if (move) _excelDocument.RewriteMovedRangeReferences(this, source, destinationRow, destinationColumn, transpose);
+            if (move) {
+                RemoveRangeMoveDestinationComments(
+                    source,
+                    destinationRow,
+                    destinationColumn,
+                    destinationRow + destinationRows - 1,
+                    destinationColumn + destinationColumns - 1);
+                _excelDocument.RewriteMovedRangeReferences(this, source, destinationRow, destinationColumn, transpose);
+            }
             RemoveCellsInRange(destinationRow, destinationColumn, destinationRow + destinationRows - 1, destinationColumn + destinationColumns - 1);
             if (move) RemoveCellsInRange(sr1, sc1, sr2, sc2);
             foreach (var snapshot in snapshots) {
@@ -613,22 +627,18 @@ namespace OfficeIMO.Excel {
         }
 
         private void RewriteDrawingCellShift(ExcelReference affected, ExcelCellShiftDirection direction, bool inserting) {
-            Xdr.WorksheetDrawing? drawing = _worksheetPart.DrawingsPart?.WorksheetDrawing;
-            if (drawing == null) return;
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
             int rows = r2 - r1 + 1;
             int columns = c2 - c1 + 1;
-            foreach (Xdr.MarkerType marker in drawing.Descendants<Xdr.MarkerType>()) {
-                int row = int.TryParse(marker.RowId?.Text, out int parsedRow) ? parsedRow + 1 : 1;
-                int column = int.TryParse(marker.ColumnId?.Text, out int parsedColumn) ? parsedColumn + 1 : 1;
-                if (direction == ExcelCellShiftDirection.Right && row >= r1 && row <= r2 && column >= c1) column += columns;
-                else if (direction == ExcelCellShiftDirection.Down && column >= c1 && column <= c2 && row >= r1) row += rows;
-                else if (direction == ExcelCellShiftDirection.Left && row >= r1 && row <= r2 && column > c2) column -= columns;
-                else if (direction == ExcelCellShiftDirection.Up && column >= c1 && column <= c2 && row > r2) row -= rows;
-                marker.RowId!.Text = (row - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                marker.ColumnId!.Text = (column - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-            drawing.Save();
+            ExcelDocument.RewriteDrawingAnchors(
+                _worksheetPart.DrawingsPart?.WorksheetDrawing,
+                (row, column) => {
+                    if (direction == ExcelCellShiftDirection.Right && row >= r1 && row <= r2 && column >= c1) column += columns;
+                    else if (direction == ExcelCellShiftDirection.Down && column >= c1 && column <= c2 && row >= r1) row += rows;
+                    else if (direction == ExcelCellShiftDirection.Left && row >= r1 && row <= r2 && column > c2) column -= columns;
+                    else if (direction == ExcelCellShiftDirection.Up && column >= c1 && column <= c2 && row > r2) row -= rows;
+                    return (row, column);
+                });
         }
 
         private static ExcelReference ParseLocalCellRange(string range) {

@@ -133,7 +133,11 @@ namespace OfficeIMO.Excel {
                     FileShare.None,
                     81920,
                     FileOptions.SequentialScan))
-                using (var bounded = new ExcelBoundedSeekableStream(stagedFile, temporaryLimit, leaveOpen: true))
+                using (var bounded = new ExcelBoundedSeekableStream(
+                    stagedFile,
+                    temporaryLimit,
+                    leaveOpen: true,
+                    cancellationToken))
                 using (_spreadSheetDocument.Clone(bounded)) {
                 }
 

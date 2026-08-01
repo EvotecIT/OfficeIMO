@@ -47,21 +47,64 @@ namespace OfficeIMO.Excel {
                     if (rewriteBoundary == null) continue;
                     ExcelReference reference = referenceNode.Reference;
                     if (!ReferenceTargetsSheet(reference, editedSheet.Name, formula.UnqualifiedTargetsEdited)) continue;
-                    reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
-                    bool intersects = rr1 <= sr2 && rr2 >= sr1 && rc1 <= sc2 && rc2 >= sc1;
-                    bool contained = rr1 >= sr1 && rr2 <= sr2 && rc1 >= sc1 && rc2 <= sc2;
-                    bool unsafePartial = intersects && !contained;
-                    if (cellShiftDirection == ExcelCellShiftDirection.Left) {
-                        unsafePartial = intersects && (rr1 < sr1 || rr2 > sr2);
-                    } else if (cellShiftDirection == ExcelCellShiftDirection.Up) {
-                        unsafePartial = intersects && (rc1 < sc1 || rc2 > sc2);
-                    }
-                    if (!unsafePartial) continue;
+                    if (!IsUnsafePartialMutationReference(reference, sr1, sc1, sr2, sc2, cellShiftDirection)) continue;
                     throw new InvalidOperationException(
                         $"{operation} cannot preserve partially overlapping reference '{referenceNode.Text}'. Edit the complete referenced range or update the formula first.");
                 }
             }
+
+            if (rewriteBoundary == null) return;
+            foreach (string referenceText in EnumerateMutationRangeMetadataReferences(editedSheet.WorksheetPart)) {
+                consumeScannedElement?.Invoke();
+                if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                    || !IsUnsafePartialMutationReference(reference!, sr1, sc1, sr2, sc2, cellShiftDirection)) continue;
+                throw new InvalidOperationException(
+                    $"{operation} cannot preserve partially overlapping range metadata '{referenceText}'. Edit the complete metadata range first.");
+            }
         }
+
+        private static bool IsUnsafePartialMutationReference(
+            ExcelReference reference,
+            int sr1,
+            int sc1,
+            int sr2,
+            int sc2,
+            ExcelCellShiftDirection? cellShiftDirection) {
+            reference.GetBounds(out int rr1, out int rc1, out int rr2, out int rc2);
+            bool intersects = rr1 <= sr2 && rr2 >= sr1 && rc1 <= sc2 && rc2 >= sc1;
+            bool contained = rr1 >= sr1 && rr2 <= sr2 && rc1 >= sc1 && rc2 <= sc2;
+            if (cellShiftDirection == ExcelCellShiftDirection.Left) {
+                return intersects && (rr1 < sr1 || rr2 > sr2);
+            }
+            if (cellShiftDirection == ExcelCellShiftDirection.Up) {
+                return intersects && (rc1 < sc1 || rc2 > sc2);
+            }
+            return intersects && !contained;
+        }
+
+        private static IEnumerable<string> EnumerateMutationRangeMetadataReferences(WorksheetPart worksheetPart) {
+            IEnumerable<OpenXmlPartRootElement?> roots = new OpenXmlPartRootElement?[] { worksheetPart.Worksheet }
+                .Concat(worksheetPart.NamedSheetViewsParts.Select(part => part.NamedSheetViews));
+            foreach (OpenXmlPartRootElement? root in roots) {
+                if (root == null) continue;
+                foreach (OpenXmlElement element in root.Descendants().Prepend(root).Where(IsMutationRangeMetadataElement)) {
+                    foreach (OpenXmlAttribute attribute in element.GetAttributes().Where(attribute =>
+                        string.Equals(attribute.LocalName, "ref", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(attribute.LocalName, "sqref", StringComparison.OrdinalIgnoreCase))) {
+                        foreach (string item in (attribute.Value ?? string.Empty)
+                            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) {
+                            yield return item;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static bool IsMutationRangeMetadataElement(OpenXmlElement element) =>
+            element.GetAttributes().Any(attribute =>
+                string.Equals(attribute.LocalName, "sqref", StringComparison.OrdinalIgnoreCase))
+            || element is AutoFilter
+            || string.Equals(element.LocalName, "nsvFilter", StringComparison.OrdinalIgnoreCase);
 
         private IEnumerable<MutationFormulaContext> EnumerateMutationFormulaContexts(
             IReadOnlyList<Sheet> sheets,

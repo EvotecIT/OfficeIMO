@@ -101,12 +101,14 @@ namespace OfficeIMO.Excel {
                     .Select(pageBreak => checked((int)(pageBreak.Id?.Value ?? 0U)))
                     .DefaultIfEmpty(0).Max();
                 int maximumDrawingColumn = InspectMutationPlanElements(
-                        _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.ColumnId>()
-                            ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Spreadsheet.ColumnId>(),
+                        _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType>()
+                            ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType>(),
                         budget)
-                    .Select(column => int.TryParse(column.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBased)
-                        ? zeroBased + 1
-                        : 0)
+                    .Where(marker => ExcelDocument.DrawingMarkerMovesWithPlacement(marker, candidate =>
+                        int.TryParse(candidate.ColumnId?.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBased)
+                        && zeroBased + 1 >= firstColumn))
+                    .Select(marker => int.TryParse(marker.ColumnId?.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBased)
+                        ? zeroBased + 1 : 0)
                     .DefaultIfEmpty(0).Max();
                 int maximumUsedColumn = Math.Max(
                     Math.Max(maximumCellColumn, maximumDefinedColumn),

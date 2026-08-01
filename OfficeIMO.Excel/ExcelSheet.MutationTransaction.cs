@@ -179,6 +179,16 @@ namespace OfficeIMO.Excel {
                                 (restoredPart, value) => restoredPart.ThreadedComments = value);
                         }
                     }
+                    foreach (NamedSheetViewsPart part in worksheetPart.NamedSheetViewsParts) {
+                        if (part.NamedSheetViews == null) AddPartPayload(worksheetPart, part);
+                        else {
+                            AddPartRoot(
+                                worksheetPart,
+                                part,
+                                part.NamedSheetViews,
+                                (restoredPart, value) => restoredPart.NamedSheetViews = value);
+                        }
+                    }
                     AddDrawingRoots(worksheetPart.DrawingsPart);
                     foreach (TableDefinitionPart part in worksheetPart.TableDefinitionParts) {
                         AddRoot(part.Table, value => part.Table = value);

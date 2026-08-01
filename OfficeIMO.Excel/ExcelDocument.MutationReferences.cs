@@ -443,17 +443,96 @@ namespace OfficeIMO.Excel {
         }
 
         private static void RewriteDrawingColumns(Xdr.WorksheetDrawing? drawing, int firstColumn, int count, bool deleting) {
-            if (drawing == null) return;
             int firstZeroBased = firstColumn - 1;
-            foreach (Xdr.ColumnId column in drawing.Descendants<Xdr.ColumnId>()) {
-                if (!int.TryParse(column.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)) continue;
-                int mapped = value;
-                if (!deleting && value >= firstZeroBased) mapped = checked(value + count);
-                else if (deleting && value >= firstZeroBased + count) mapped = value - count;
-                else if (deleting && value >= firstZeroBased) mapped = firstZeroBased;
-                column.Text = mapped.ToString(CultureInfo.InvariantCulture);
+            RewriteDrawingAnchors(drawing, (row, column) => {
+                int zeroBased = column - 1;
+                int mapped = zeroBased;
+                if (!deleting && zeroBased >= firstZeroBased) mapped = checked(zeroBased + count);
+                else if (deleting && zeroBased >= firstZeroBased + count) mapped = zeroBased - count;
+                else if (deleting && zeroBased >= firstZeroBased) mapped = firstZeroBased;
+                return (row, mapped + 1);
+            });
+        }
+
+        /// <summary>Returns whether a marker moves after applying two-cell anchor placement semantics.</summary>
+        internal static bool DrawingMarkerMovesWithPlacement(
+            Xdr.MarkerType marker,
+            Func<Xdr.MarkerType, bool> directMarkerMoves) {
+            Xdr.TwoCellAnchor? anchor = marker.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
+            if (anchor == null) return directMarkerMoves(marker);
+            Xdr.EditAsValues placement = anchor.EditAs?.Value ?? Xdr.EditAsValues.TwoCell;
+            if (placement == Xdr.EditAsValues.Absolute) return false;
+            return placement == Xdr.EditAsValues.OneCell && ReferenceEquals(marker, anchor.ToMarker)
+                ? anchor.FromMarker != null && directMarkerMoves(anchor.FromMarker)
+                : directMarkerMoves(marker);
+        }
+
+        /// <summary>Remaps drawing anchors while preserving absolute, move-only, and move-and-size placement behavior.</summary>
+        internal static void RewriteDrawingAnchors(
+            Xdr.WorksheetDrawing? drawing,
+            Func<int, int, (int Row, int Column)> transform) {
+            if (drawing == null) return;
+            bool changed = false;
+            foreach (Xdr.OneCellAnchor anchor in drawing.Elements<Xdr.OneCellAnchor>()) {
+                changed |= TransformDrawingMarker(anchor.FromMarker, transform);
             }
-            drawing.Save();
+            foreach (Xdr.TwoCellAnchor anchor in drawing.Elements<Xdr.TwoCellAnchor>()) {
+                Xdr.EditAsValues placement = anchor.EditAs?.Value ?? Xdr.EditAsValues.TwoCell;
+                if (placement == Xdr.EditAsValues.Absolute) continue;
+                if (placement == Xdr.EditAsValues.OneCell) {
+                    if (!TryGetDrawingMarkerPoint(anchor.FromMarker, out int fromRow, out int fromColumn)) continue;
+                    (int mappedRow, int mappedColumn) = transform(fromRow, fromColumn);
+                    int rowDelta = mappedRow - fromRow;
+                    int columnDelta = mappedColumn - fromColumn;
+                    if (rowDelta == 0 && columnDelta == 0) continue;
+                    changed |= SetDrawingMarkerPoint(anchor.FromMarker, mappedRow, mappedColumn);
+                    if (TryGetDrawingMarkerPoint(anchor.ToMarker, out int toRow, out int toColumn)) {
+                        changed |= SetDrawingMarkerPoint(
+                            anchor.ToMarker,
+                            checked(toRow + rowDelta),
+                            checked(toColumn + columnDelta));
+                    }
+                    continue;
+                }
+                changed |= TransformDrawingMarker(anchor.FromMarker, transform);
+                changed |= TransformDrawingMarker(anchor.ToMarker, transform);
+            }
+            if (changed) drawing.Save();
+        }
+
+        private static bool TransformDrawingMarker(
+            Xdr.MarkerType? marker,
+            Func<int, int, (int Row, int Column)> transform) {
+            if (!TryGetDrawingMarkerPoint(marker, out int row, out int column)) return false;
+            (int mappedRow, int mappedColumn) = transform(row, column);
+            if (mappedRow == row && mappedColumn == column) return false;
+            return SetDrawingMarkerPoint(marker, mappedRow, mappedColumn);
+        }
+
+        private static bool TryGetDrawingMarkerPoint(
+            Xdr.MarkerType? marker,
+            out int row,
+            out int column) {
+            row = column = 0;
+            if (!int.TryParse(marker?.RowId?.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBasedRow)
+                || !int.TryParse(marker?.ColumnId?.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBasedColumn)) return false;
+            row = zeroBasedRow + 1;
+            column = zeroBasedColumn + 1;
+            return true;
+        }
+
+        private static bool SetDrawingMarkerPoint(Xdr.MarkerType? marker, int row, int column) {
+            if (marker?.RowId == null || marker.ColumnId == null) return false;
+            if (row < 1 || row > A1.MaxRows || column < 1 || column > A1.MaxColumns) {
+                throw new InvalidOperationException("Structural edit would move a drawing anchor beyond worksheet limits.");
+            }
+            string rowText = (row - 1).ToString(CultureInfo.InvariantCulture);
+            string columnText = (column - 1).ToString(CultureInfo.InvariantCulture);
+            bool changed = !string.Equals(marker.RowId.Text, rowText, StringComparison.Ordinal)
+                || !string.Equals(marker.ColumnId.Text, columnText, StringComparison.Ordinal);
+            marker.RowId.Text = rowText;
+            marker.ColumnId.Text = columnText;
+            return changed;
         }
     }
 }

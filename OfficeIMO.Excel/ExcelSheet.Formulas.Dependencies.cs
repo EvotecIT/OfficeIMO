@@ -442,7 +442,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string reference = match.Groups["reference"].Value;
+            string reference = match.Value;
             int qualifierSeparator = reference.LastIndexOf('!');
             if (qualifierSeparator > 0) {
                 string qualifier = reference.Substring(0, qualifierSeparator);
@@ -455,7 +455,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool IsFormulaDependencyFunctionToken(string formula, Match match) {
-            string token = match.Groups["reference"].Value;
+            string token = match.Value;
             if (token.IndexOf('!') >= 0 || token.IndexOf(':') >= 0 || token.IndexOf('$') >= 0) {
                 return false;
             }
