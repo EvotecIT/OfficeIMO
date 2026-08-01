@@ -21,8 +21,11 @@ internal static class CertificateChainValidator {
         if (certificate == null) {
             return Empty(SecurityValidationStatus.Indeterminate);
         }
+        bool usageAccepted = ValidateCertificateUsage(certificate, purpose, findings, role, signerIndex);
         if (!options.ValidateChain) {
-            return Empty(SecurityValidationStatus.NotPerformed);
+            return Empty(usageAccepted
+                ? SecurityValidationStatus.NotPerformed
+                : SecurityValidationStatus.Invalid);
         }
 
         using var chain = new X509Chain();
@@ -35,7 +38,9 @@ internal static class CertificateChainValidator {
                 "CertificateDownloadPolicyUnavailable",
                 role + " certificate chain was not built because this runtime cannot enforce the requested no-download policy.",
                 signerIndex));
-            return Empty(SecurityValidationStatus.Indeterminate);
+            return Empty(usageAccepted
+                ? SecurityValidationStatus.Indeterminate
+                : SecurityValidationStatus.Invalid);
         }
         chain.ChainPolicy.UrlRetrievalTimeout = options.UrlRetrievalTimeout;
         if (options.VerificationTime.HasValue) {
@@ -58,11 +63,12 @@ internal static class CertificateChainValidator {
                 "CertificateChainFailed",
                 role + " certificate chain could not be built: " + exception.Message,
                 signerIndex));
-            return Empty(SecurityValidationStatus.Indeterminate);
+            return Empty(usageAccepted
+                ? SecurityValidationStatus.Indeterminate
+                : SecurityValidationStatus.Invalid);
         }
 
         bool chainAccepted = options.ChainEvaluator?.Invoke(certificate, chain) ?? platformResult;
-        bool usageAccepted = ValidateCertificateUsage(certificate, purpose, findings, role, signerIndex);
         bool accepted = chainAccepted && usageAccepted;
         string[] statuses = chain.ChainStatus
             .Select(static status => string.IsNullOrWhiteSpace(status.StatusInformation)

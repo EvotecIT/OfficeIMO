@@ -358,7 +358,20 @@ public static class CmsSignedDataVerifier {
                     results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
                     return results;
                 }
-                byte[] encoded = attribute.AttrValues[index].GetEncoded();
+                long encodingLimit = budget.GetRemainingEncodingLimit(out limitCode, out limitMessage);
+                if (encodingLimit <= 0) {
+                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
+                    return results;
+                }
+                byte[] encoded;
+                try {
+                    using var encodedToken = new BoundedMemoryStream(encodingLimit);
+                    attribute.AttrValues[index].EncodeTo(encodedToken);
+                    encoded = encodedToken.ToArray();
+                } catch (SecurityContentLimitExceededException) {
+                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
+                    return results;
+                }
                 if (!budget.TryReserveBytes(encoded.LongLength, out limitCode, out limitMessage)) {
                     results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
                     return results;
@@ -438,6 +451,19 @@ public static class CmsSignedDataVerifier {
             code = null;
             message = null;
             return true;
+        }
+
+        internal long GetRemainingEncodingLimit(out string code, out string message) {
+            long remainingTotal = _maximumTotalBytes - _totalBytes;
+            if (_maximumTokenBytes <= remainingTotal) {
+                code = "CmsTimestampSizeLimitExceeded";
+                message = $"An encoded CMS timestamp token exceeds the configured limit of {_maximumTokenBytes} bytes.";
+                return _maximumTokenBytes;
+            }
+
+            code = "CmsTimestampTotalSizeLimitExceeded";
+            message = $"Encoded CMS timestamp tokens exceed the configured aggregate limit of {_maximumTotalBytes} bytes.";
+            return remainingTotal;
         }
     }
 

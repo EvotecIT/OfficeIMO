@@ -266,7 +266,7 @@ namespace OfficeIMO.Drawing.Internal {
             string displacedPath = CreateTemporaryPath(fullTargetPath);
             bool targetContainsTemporary = false;
             bool preserveDisplacedPath = false;
-            string installedTemporaryIdentity = string.Empty;
+            string installedTemporaryIdentity = ComputeFileIdentity(temporaryPath);
             try {
 #if NET6_0_OR_GREATER
                 if (!OperatingSystem.IsWindows()) {
@@ -275,7 +275,6 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
                 ExecuteWithRetry(() => File.Replace(temporaryPath, fullTargetPath, backupPath));
                 targetContainsTemporary = true;
-                installedTemporaryIdentity = ComputeFileIdentity(fullTargetPath);
                 if (destinationMatchesExpected(backupPath) &&
                     (installedFileMatchesExpected == null || installedFileMatchesExpected(fullTargetPath))) {
                     DeleteIfExists(backupPath);
