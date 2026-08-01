@@ -190,6 +190,10 @@ internal static class PowerPointBenchmarkSemanticValidator {
         C.Chart chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>()
             ?? throw new InvalidOperationException(
                 $"{operation} slide {index + 1} chart has no root.");
+        if (chart.GetFirstChild<C.Title>() != null) {
+            throw new InvalidOperationException(
+                $"{operation} slide {index + 1} chart unexpectedly has a title.");
+        }
         C.BarChartSeries[] series = chart.Descendants<C.BarChartSeries>()
             .ToArray();
         if (series.Length != 2) {

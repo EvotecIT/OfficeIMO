@@ -125,6 +125,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Same(scheme, Assert.Single(solid.ChildElements));
             Assert.Equal(40000, scheme.GetFirstChild<A.Alpha>()!.Val!.Value);
+            Assert.Equal(60, shape.OutlineTransparency);
             Assert.Null(solid.RgbColorModelHex);
 
             shape.SetOutlineOpacity(null);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -35,7 +36,8 @@ namespace OfficeIMO.PowerPoint {
             string[] words = name.Split(new[] { ' ', '\t' },
                 StringSplitOptions.RemoveEmptyEntries);
             if (words.Length == 0) return "?";
-            return string.Concat(words.Take(2).Select(word => word.Substring(0, 1)))
+            return string.Concat(words.Take(2)
+                    .Select(word => StringInfo.GetNextTextElement(word)))
                 .ToUpperInvariant();
         }
     }

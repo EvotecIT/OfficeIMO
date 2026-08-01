@@ -574,6 +574,10 @@ namespace OfficeIMO.Tests {
                 Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
                     new[] { first }, 2, out string incompleteMessage));
                 Assert.Contains("expected 2", incompleteMessage, StringComparison.Ordinal);
+                Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
+                    Array.Empty<string>(), 0, out string emptyMessage));
+                Assert.Contains("no slide images", emptyMessage,
+                    StringComparison.OrdinalIgnoreCase);
 
                 string third = Path.Combine(output, "Slide3.png");
                 File.Copy(second, third);

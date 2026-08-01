@@ -34,9 +34,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int? OutlineTransparency {
             get {
-                A.RgbColorModelHex? color = GetOutline()?
-                    .GetFirstChild<A.SolidFill>()?
-                    .RgbColorModelHex;
+                A.SolidFill? solid = GetOutline()?.GetFirstChild<A.SolidFill>();
+                OpenXmlCompositeElement? color = solid == null
+                    ? null
+                    : GetSolidFillColorChoice(solid);
                 int? alpha = color?.GetFirstChild<A.Alpha>()?.Val?.Value;
                 return alpha == null
                     ? null

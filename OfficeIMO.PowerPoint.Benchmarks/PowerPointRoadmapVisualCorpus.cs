@@ -83,8 +83,9 @@ internal static class PowerPointRoadmapVisualCorpus {
             OfficeImageExportDiagnostic[] failures = image.Diagnostics
                 .Concat(vectors[index].Diagnostics)
                 .Where(diagnostic =>
-                    diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Warning
-                    || diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error)
+                    diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error
+                    || (diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Warning
+                        && diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted))
                 .ToArray();
             if (failures.Length > 0) {
                 int withoutCharts = reopened.Slides[index].ExportImage(

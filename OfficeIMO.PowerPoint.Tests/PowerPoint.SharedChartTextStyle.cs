@@ -44,4 +44,23 @@ public sealed class PowerPointSharedChartTextStyleTests {
         Assert.Equal("Arial", snapshot.Style.FontFamily);
         Assert.Equal("Georgia", snapshot.Style.TitleFontFamily);
     }
+
+    [Fact]
+    public void SharedSnapshot_DoesNotPromoteConflictingBodyFonts() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(
+            new[] { "Q1", "Q2" },
+            new[] { new OfficeChartSeries("Actual", new[] { 10D, 20D }) });
+        PowerPointChart chart = slide.AddChartPoints(
+            OfficeChartKind.ColumnClustered, data, 40, 40, 500, 300);
+        chart.SetLegendTextStyle(fontName: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontName: "Georgia")
+            .SetValueAxisLabelTextStyle(fontName: "Arial");
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.NotNull(snapshot.Style);
+        Assert.Equal(OfficeChartStyle.Default.FontFamily,
+            snapshot.Style.FontFamily);
+    }
 }

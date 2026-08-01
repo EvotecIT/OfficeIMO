@@ -117,5 +117,32 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentException>(() =>
                 first.AddClassicComment(first.AddSlide(), author, " "));
         }
+
+        [Fact]
+        public void CommentAuthor_GeneratesUnicodeScalarInitialsThatRoundTrip() {
+            const string supplementaryCjk = "\U00020000";
+            var emojiAuthor = new PowerPointCommentAuthor("😀 Reviewer");
+            var cjkAuthor = new PowerPointCommentAuthor(supplementaryCjk + " Reviewer");
+
+            Assert.Equal("😀R", emojiAuthor.Initials);
+            Assert.Equal(supplementaryCjk + "R", cjkAuthor.Initials);
+
+            using var stream = new MemoryStream();
+            using (PowerPointPresentation presentation =
+                   PowerPointPresentation.Create(stream)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                presentation.AddClassicComment(slide, emojiAuthor, "Emoji author");
+                presentation.AddModernComment(slide, cjkAuthor, "CJK author");
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            Assert.Equal("😀R", Assert.Single(reopened.GetClassicComments(
+                reopened.Slides[0])).Author.Initials);
+            Assert.Equal(supplementaryCjk + "R", Assert.Single(
+                reopened.GetModernComments(reopened.Slides[0])).Author.Initials);
+            Assert.Empty(reopened.ValidateDocument());
+        }
     }
 }

@@ -145,6 +145,10 @@ namespace OfficeIMO.PowerPoint {
             if (expectedSlideCount < 0) {
                 throw new ArgumentOutOfRangeException(nameof(expectedSlideCount));
             }
+            if (expectedSlideCount == 0 || imagePaths.Count == 0) {
+                message = "PowerPoint Desktop exported no slide images.";
+                return false;
+            }
             if (imagePaths.Count != expectedSlideCount) {
                 message = "PowerPoint Desktop exported " + imagePaths.Count
                     + " PNG slide image(s); expected " + expectedSlideCount + ".";

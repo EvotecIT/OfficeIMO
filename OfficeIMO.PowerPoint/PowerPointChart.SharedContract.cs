@@ -171,11 +171,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
-            string? bodyFont = chart.Descendants<C.TextProperties>()
+            string[] bodyFonts = chart.Descendants<C.TextProperties>()
                 .Where(properties => !properties.Ancestors<C.Title>().Any())
                 .SelectMany(properties => properties.Descendants<A.LatinFont>())
                 .Select(font => font.Typeface?.Value)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            string? bodyFont = bodyFonts.Length == 1 ? bodyFonts[0] : null;
             string? titleFont = chart.GetFirstChild<C.Title>()?
                 .Descendants<A.LatinFont>()
                 .Select(font => font.Typeface?.Value)
