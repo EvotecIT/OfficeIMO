@@ -201,6 +201,7 @@ namespace OfficeIMO.Tests {
                     subject.Contains("OfficeIMO Fixture Package Signing", System.StringComparison.OrdinalIgnoreCase));
 
                 var validationOptions = new WordSignatureValidationOptions();
+                validationOptions.CertificateValidation.DisableCertificateDownloads = false;
                 validationOptions.CertificateValidation.ChainEvaluator = static (_, _) => true;
                 WordSignatureValidationReport validation = document.ValidateSignatures(validationOptions);
 
@@ -1125,6 +1126,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 var validationOptions = new WordSignatureValidationOptions();
+                validationOptions.CertificateValidation.DisableCertificateDownloads = false;
                 validationOptions.CertificateValidation.ChainEvaluator = static (_, _) => true;
                 WordSignatureValidationReport validation = document.ValidateSignatures(validationOptions);
 
@@ -1317,7 +1319,9 @@ namespace OfficeIMO.Tests {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
             });
             var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.DisableCertificateDownloads = false;
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            options.TimestampCertificateValidation.DisableCertificateDownloads = false;
             options.TimestampCertificateValidation.ChainEvaluator = static (_, _) => true;
 
             WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
@@ -1355,7 +1359,9 @@ namespace OfficeIMO.Tests {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
             });
             var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.DisableCertificateDownloads = false;
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            options.TimestampCertificateValidation.DisableCertificateDownloads = false;
             options.TimestampCertificateValidation.ChainEvaluator = static (_, _) => true;
 
             WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
@@ -1517,6 +1523,7 @@ namespace OfficeIMO.Tests {
             });
             var evaluatedSubjects = new List<string>();
             var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.DisableCertificateDownloads = false;
             options.CertificateValidation.ChainEvaluator = (certificate, _) => {
                 evaluatedSubjects.Add(certificate.Subject);
                 return certificate.Subject.Contains("Accepted Matching Signer", StringComparison.Ordinal);
