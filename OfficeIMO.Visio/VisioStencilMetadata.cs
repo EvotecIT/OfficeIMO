@@ -4,11 +4,13 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {
     internal static class VisioStencilMetadata {
         private const string ListSeparator = ";";
+        private const string EncodedListPrefix = "OfficeIMO.List.v1:";
 
         internal static void Apply(VisioShape shape, VisioStencilShape stencil, string? catalogName) {
             Clear(shape);
@@ -255,7 +257,15 @@ namespace OfficeIMO.Visio {
         }
 
         internal static string Join(IEnumerable<string>? values) {
-            return string.Join(ListSeparator, Normalize(values));
+            IReadOnlyList<string> normalized = Normalize(values);
+            if (normalized.Count == 0) return string.Empty;
+            var builder = new StringBuilder(EncodedListPrefix);
+            foreach (string item in normalized) {
+                builder.Append(item.Length.ToString(CultureInfo.InvariantCulture));
+                builder.Append(':');
+                builder.Append(item);
+            }
+            return builder.ToString();
         }
 
         internal static IReadOnlyList<string> Split(string? value) {
@@ -263,7 +273,36 @@ namespace OfficeIMO.Visio {
                 return Array.Empty<string>();
             }
 
+            if (value!.StartsWith(EncodedListPrefix,
+                    StringComparison.Ordinal)
+                && TrySplitEncodedList(value, out IReadOnlyList<string> encoded)) {
+                return Normalize(encoded);
+            }
+
             return Normalize(value!.Split(new[] { ListSeparator }, StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        private static bool TrySplitEncodedList(string value,
+            out IReadOnlyList<string> items) {
+            var result = new List<string>();
+            int position = EncodedListPrefix.Length;
+            while (position < value.Length) {
+                int separator = value.IndexOf(':', position);
+                if (separator <= position
+                    || !int.TryParse(value.Substring(position,
+                            separator - position), NumberStyles.None,
+                        CultureInfo.InvariantCulture, out int length)
+                    || length < 0
+                    || length > value.Length - separator - 1) {
+                    items = Array.Empty<string>();
+                    return false;
+                }
+                position = separator + 1;
+                result.Add(value.Substring(position, length));
+                position += length;
+            }
+            items = result.AsReadOnly();
+            return true;
         }
 
         internal static string? NormalizePath(string? path) {

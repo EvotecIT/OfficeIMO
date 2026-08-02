@@ -102,6 +102,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportPreservesCustomShowSlideListProducerMetadata() {
+            const string ProducerNamespace = "urn:officeimo:test";
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide requested = source.AddSlide();
+            PowerPointAutoShape actionShape = requested.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            PowerPointSlide showSlide = source.AddSlide();
+            PresentationPart sourcePart = source.OpenXmlDocument
+                .PresentationPart!;
+            var entry = new SlideListEntry {
+                Id = sourcePart.GetIdOfPart(showSlide.SlidePart)
+            };
+            entry.SetAttribute(new OpenXmlAttribute("producer", "metadata",
+                ProducerNamespace, "entry"));
+            var slideList = new SlideList(entry);
+            slideList.SetAttribute(new OpenXmlAttribute("producer",
+                "metadata", ProducerNamespace, "list"));
+            slideList.Append(new OpenXmlUnknownElement("producer",
+                "listExtension", ProducerNamespace));
+            sourcePart.Presentation!.CustomShowList = new CustomShowList(
+                new CustomShow(slideList) {
+                    Id = 41U,
+                    Name = "Producer tour"
+                });
+            NonVisualDrawingProperties actionProperties =
+                ((Shape)actionShape.Element).NonVisualShapeProperties!
+                .NonVisualDrawingProperties!;
+            actionProperties.Append(new A.HyperlinkOnClick {
+                Id = string.Empty,
+                Action = "ppaction://customshow?id=41&return=true"
+            });
+
+            using PowerPointPresentation target =
+                PowerPointPresentation.Create();
+
+            target.ImportSlide(source, 0);
+
+            CustomShow importedShow = Assert.Single(target.OpenXmlDocument
+                .PresentationPart!.Presentation!.CustomShowList!
+                .Elements<CustomShow>());
+            SlideList importedList = importedShow.SlideList!;
+            SlideListEntry importedEntry = Assert.Single(importedList
+                .Elements<SlideListEntry>());
+            Assert.Equal("list", importedList.GetAttribute("metadata",
+                ProducerNamespace).Value);
+            Assert.Equal("entry", importedEntry.GetAttribute("metadata",
+                ProducerNamespace).Value);
+            Assert.Contains(importedList.ChildElements, child =>
+                child.LocalName == "listExtension"
+                && child.NamespaceUri == ProducerNamespace);
+            SlidePart importedShowSlide = (SlidePart)target.OpenXmlDocument
+                .PresentationPart.GetPartById(importedEntry.Id!.Value!);
+            Assert.Same(target.Slides[1].SlidePart, importedShowSlide);
+        }
+
+        [Fact]
         public void ImportRemapsCustomShowActionsInClonedLayoutsAndExportCleansThem() {
             using PowerPointPresentation source =
                 PowerPointPresentation.Create();

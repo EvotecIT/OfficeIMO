@@ -103,6 +103,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilProfileRoundTripsMetadataContainingSemicolons() {
+            string filePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create(
+                "Delimited Metadata", builder => builder.AddWithMetadata(
+                    "profile.messaging",
+                    "Messaging",
+                    "Process",
+                    "Infrastructure",
+                    1.4,
+                    0.8,
+                    new[] { "message;queue" },
+                    new[] { "route;bus" },
+                    new[] { "tier;critical" }));
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+            document.AddPage("Metadata", 8, 5).AddStencilShape(catalog,
+                "profile.messaging", "messaging", 2, 3, "Messaging");
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioStencilProfile profile = loaded.CreateStencilProfile();
+
+            Assert.Contains("message;queue", profile.StencilKeywords);
+            Assert.DoesNotContain("message", profile.StencilKeywords);
+            Assert.DoesNotContain("queue", profile.StencilKeywords);
+            Assert.Contains("route;bus", profile.StencilAliases);
+            Assert.DoesNotContain("route", profile.StencilAliases);
+            Assert.DoesNotContain("bus", profile.StencilAliases);
+            Assert.Contains("tier;critical", profile.StencilTags);
+            Assert.DoesNotContain("tier", profile.StencilTags);
+            Assert.DoesNotContain("critical", profile.StencilTags);
+            Assert.Equal(new[] { "legacy", "values" },
+                VisioStencilMetadata.Split("legacy;values"));
+        }
+
+        [Fact]
         public void StencilProfileCapturesConnectorShapeDataAndStableText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
