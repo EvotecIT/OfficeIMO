@@ -35,6 +35,13 @@ namespace OfficeIMO.Word {
         /// This allocates the candidate DOC bytes so the assessment cannot drift from the writer used by <see cref="Save(Stream, WordFileFormat, WordSaveOptions?)"/>.
         /// </summary>
         public LegacyDocWriteAssessment AssessLegacyDocWrite(WordSaveOptions? options = null) {
+            if (_wordprocessingDocument.MainDocumentPart?.Document?.Body == null) {
+                return new LegacyDocWriteAssessment(
+                    false,
+                    null,
+                    "LegacyDocWriteUnsupported",
+                    "Document couldn't be saved as legacy DOC because the main document part or document body is missing.");
+            }
             using var cloneStream = new MemoryStream();
             using (var packageClone = _wordprocessingDocument.Clone(cloneStream, true)) { }
             cloneStream.Position = 0;
@@ -72,6 +79,12 @@ namespace OfficeIMO.Word {
                     "LegacyDocWriteUnsupported",
                     exception.Message);
             } catch (WordSignatureSavePolicyException exception) {
+                return new LegacyDocWriteAssessment(
+                    false,
+                    null,
+                    "LegacyDocWriteUnsupported",
+                    exception.Message);
+            } catch (InvalidOperationException exception) {
                 return new LegacyDocWriteAssessment(
                     false,
                     null,

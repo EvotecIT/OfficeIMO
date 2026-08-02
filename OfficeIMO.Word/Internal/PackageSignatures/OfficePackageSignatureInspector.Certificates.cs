@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
 
                 byte[] rawCertificate;
                 try {
-                    if (certificateText.Length > GetMaxBase64EncodedCharacters(maxCertificateBytes)) {
+                    if (OfficePackageBase64.ExceedsDecodedByteLimit(certificateText, maxCertificateBytes)) {
                         throw new InvalidDataException("The embedded X509Certificate exceeds the " + maxCertificateBytes + " byte limit.");
                     }
                     rawCertificate = Convert.FromBase64String(certificateText);
@@ -97,11 +97,6 @@ namespace OfficeIMO.Word {
             return new X509Certificate2(rawCertificate);
 #endif
         }
-
-        private static long GetMaxBase64EncodedCharacters(long maxDecodedBytes) =>
-            maxDecodedBytes > (long.MaxValue / 4L) * 3L
-                ? long.MaxValue
-                : ((maxDecodedBytes + 2L) / 3L) * 4L;
 
         private static void CopyBounded(Stream source, Stream destination, long maxBytes) {
             byte[] buffer = new byte[81920];

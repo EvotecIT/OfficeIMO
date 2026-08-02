@@ -333,6 +333,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_AcceptsWhitespaceWrappedCertificateAtDecodedByteLimit() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureWhitespaceCertificate.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Whitespace-wrapped signer certificate");
+                document.Save();
+            }
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            byte[] certificateBytes = signer.Export(X509ContentType.Cert);
+            Assert.True(WordDocument.SignPackage(filePath, signer).Succeeded);
+            string encodedCertificate = Convert.ToBase64String(certificateBytes);
+            string wrappedCertificate = Convert.ToBase64String(
+                certificateBytes,
+                Base64FormattingOptions.InsertLineBreaks);
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                XmlSignaturePart signaturePart = Assert.Single(package.DigitalSignatureOriginPart!.XmlSignatureParts);
+                string signatureXml;
+                using (var input = new StreamReader(signaturePart.GetStream(FileMode.Open, FileAccess.Read), Encoding.UTF8)) {
+                    signatureXml = input.ReadToEnd();
+                }
+                Assert.Contains(encodedCertificate, signatureXml, StringComparison.Ordinal);
+                using var replacement = new MemoryStream(Encoding.UTF8.GetBytes(
+                    signatureXml.Replace(encodedCertificate, wrappedCertificate)));
+                signaturePart.FeedData(replacement);
+            }
+
+            byte[] packageBytes = File.ReadAllBytes(filePath);
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
+                WordSignatureInfo inspection = WordSignatureInspector.Inspect(
+                    package,
+                    package.DigitalSignatureOriginPart,
+                    hasApplicationSignatureMetadata: true,
+                    packageBytes,
+                    maxCertificateBytes: certificateBytes.LongLength,
+                    maxTotalCertificateBytes: certificateBytes.LongLength);
+
+                WordSignaturePartInfo part = Assert.Single(inspection.SignatureParts);
+                Assert.Null(part.ParseError);
+                Assert.Contains(part.X509SubjectNames, subject =>
+                    subject.Contains("OfficeIMO Package Signing Test", StringComparison.Ordinal));
+            }
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions {
+                MaxCertificateBytes = certificateBytes.LongLength,
+                MaxTotalCertificateBytes = certificateBytes.LongLength
+            };
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
+            Assert.True(validation.IsValidUnderPolicy, string.Join(Environment.NewLine, validation.Findings));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_BoundsLocalReferenceTransformWork() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureLocalTransformBudget.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

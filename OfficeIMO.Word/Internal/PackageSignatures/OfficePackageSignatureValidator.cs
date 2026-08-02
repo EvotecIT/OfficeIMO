@@ -534,8 +534,7 @@ namespace OfficeIMO.Word {
             List<WordSignatureValidationFinding> findings,
             string signaturePartUri) {
             try {
-                long maxEncodedCharacters = GetMaxBase64EncodedCharacters(maxCertificateBytes);
-                if (encoded.Length > maxEncodedCharacters) {
+                if (OfficePackageBase64.ExceedsDecodedByteLimit(encoded, maxCertificateBytes)) {
                     throw new InvalidDataException("The " + source + " value exceeds the " + maxCertificateBytes + " byte limit.");
                 }
 
@@ -572,12 +571,6 @@ namespace OfficeIMO.Word {
                     "SignatureValue is not valid base64: " + exception.Message, signaturePartUri));
                 return null;
             }
-        }
-
-        private static long GetMaxBase64EncodedCharacters(long maxDecodedBytes) {
-            return maxDecodedBytes > (long.MaxValue / 4L) * 3L
-                ? long.MaxValue
-                : ((maxDecodedBytes + 2L) / 3L) * 4L;
         }
 
         private static XmlDocument LoadXml(byte[] bytes, long maxBytes) {

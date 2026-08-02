@@ -51,15 +51,16 @@ namespace OfficeIMO.Word {
                     OpenXmlPartRootElement? sourceRoot = sourcePart.IsRootElementLoaded
                         ? sourcePart.RootElement
                         : null;
+                    byte[]? currentPayload = null;
                     if (sourceRoot != null &&
                         encodedParts.TryGetValue(sourcePart.Uri, out OpenXmlPart? encodedPart) &&
-                        encodedPart.RootElement is OpenXmlPartRootElement encodedRoot &&
-                        AreSignatureSnapshotRootsEquivalent(sourceRoot, encodedRoot)) {
-                        continue;
+                        encodedPart.RootElement is OpenXmlPartRootElement encodedRoot) {
+                        currentPayload = SerializeSignatureSnapshotRoot(sourceRoot, options.MaxPartBytes);
+                        byte[] encodedPayload = SerializeSignatureSnapshotRoot(encodedRoot, options.MaxPartBytes);
+                        if (currentPayload.SequenceEqual(encodedPayload)) continue;
                     }
-                    currentPartPayloads[sourcePart.Uri] = ReadCurrentSignatureSnapshotPart(
-                        sourcePart,
-                        options.MaxPartBytes);
+                    currentPartPayloads[sourcePart.Uri] = currentPayload ?? ReadCurrentSignatureSnapshotPart(
+                        sourcePart, options.MaxPartBytes);
                 }
             }
             ApplyCurrentSignatureSnapshotState(
@@ -95,21 +96,22 @@ namespace OfficeIMO.Word {
                 }
                 if (!input.CanSeek) CopySignatureSnapshotPart(input, Stream.Null, maxPartBytes, part.Uri);
             }
-
-            if (!part.IsRootElementLoaded || part.RootElement == null) return;
-            using var boundedOutput = new SignatureValidationPartWriteStream(Stream.Null, maxPartBytes);
-            part.RootElement.Save(boundedOutput);
         }
 
         private static byte[] ReadCurrentSignatureSnapshotPart(OpenXmlPart part, long maxPartBytes) {
-            using var output = new MemoryStream();
             if (part.IsRootElementLoaded && part.RootElement != null) {
-                using var boundedOutput = new SignatureValidationPartWriteStream(output, maxPartBytes);
-                part.RootElement.Save(boundedOutput);
-            } else {
-                using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
-                CopySignatureSnapshotPart(input, output, maxPartBytes, part.Uri);
+                return SerializeSignatureSnapshotRoot(part.RootElement, maxPartBytes);
             }
+            using var output = new MemoryStream();
+            using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
+            CopySignatureSnapshotPart(input, output, maxPartBytes, part.Uri);
+            return output.ToArray();
+        }
+
+        private static byte[] SerializeSignatureSnapshotRoot(OpenXmlPartRootElement root, long maxPartBytes) {
+            using var output = new MemoryStream();
+            using var boundedOutput = new SignatureValidationPartWriteStream(output, maxPartBytes);
+            root.Save(boundedOutput);
             return output.ToArray();
         }
 
@@ -526,46 +528,6 @@ namespace OfficeIMO.Word {
                 yield return part;
                 foreach (IdPartPair child in part.Parts) pending.Push(child.OpenXmlPart);
             }
-        }
-
-        private static bool AreSignatureSnapshotRootsEquivalent(OpenXmlElement source, OpenXmlElement snapshot) {
-            var pending = new Stack<(OpenXmlElement Source, OpenXmlElement Snapshot)>();
-            pending.Push((source, snapshot));
-            while (pending.Count > 0) {
-                (OpenXmlElement sourceElement, OpenXmlElement snapshotElement) = pending.Pop();
-                if (!string.Equals(sourceElement.LocalName, snapshotElement.LocalName, StringComparison.Ordinal) ||
-                    !string.Equals(sourceElement.NamespaceUri, snapshotElement.NamespaceUri, StringComparison.Ordinal)) {
-                    return false;
-                }
-                IList<OpenXmlAttribute> sourceAttributes = sourceElement.GetAttributes();
-                IList<OpenXmlAttribute> snapshotAttributes = snapshotElement.GetAttributes();
-                if (sourceAttributes.Count != snapshotAttributes.Count || sourceAttributes.Any(sourceAttribute =>
-                    !snapshotAttributes.Any(snapshotAttribute =>
-                        string.Equals(sourceAttribute.LocalName, snapshotAttribute.LocalName, StringComparison.Ordinal) &&
-                        string.Equals(sourceAttribute.NamespaceUri, snapshotAttribute.NamespaceUri, StringComparison.Ordinal) &&
-                        string.Equals(sourceAttribute.Value, snapshotAttribute.Value, StringComparison.Ordinal)))) {
-                    return false;
-                }
-                List<KeyValuePair<string, string>> sourceNamespaces = sourceElement.NamespaceDeclarations.ToList();
-                List<KeyValuePair<string, string>> snapshotNamespaces = snapshotElement.NamespaceDeclarations.ToList();
-                if (sourceNamespaces.Count != snapshotNamespaces.Count || sourceNamespaces.Any(sourceNamespace =>
-                    !snapshotNamespaces.Any(snapshotNamespace =>
-                        string.Equals(sourceNamespace.Key, snapshotNamespace.Key, StringComparison.Ordinal) &&
-                        string.Equals(sourceNamespace.Value, snapshotNamespace.Value, StringComparison.Ordinal)))) {
-                    return false;
-                }
-                if (sourceElement.ChildElements.Count != snapshotElement.ChildElements.Count) return false;
-                if (sourceElement.ChildElements.Count == 0 && !string.Equals(
-                    sourceElement.InnerText,
-                    snapshotElement.InnerText,
-                    StringComparison.Ordinal)) {
-                    return false;
-                }
-                for (int index = sourceElement.ChildElements.Count - 1; index >= 0; index--) {
-                    pending.Push((sourceElement.ChildElements[index], snapshotElement.ChildElements[index]));
-                }
-            }
-            return true;
         }
 
         private sealed class SignatureValidationSnapshotResourceException : Exception {

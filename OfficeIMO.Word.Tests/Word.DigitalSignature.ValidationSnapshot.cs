@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using System.IO;
@@ -17,6 +18,35 @@ namespace OfficeIMO.Tests {
             using (var replacement = new MemoryStream(new byte[] { 9, 8, 7, 6, 5 })) {
                 imagePart.FeedData(replacement);
             }
+
+            AssertLivePackageSignatureInvalid(loaded);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidationSnapshotPreservesLexicalXmlEdits() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureLexicalXmlEdit.docx");
+            const string proofNamespace = "urn:officeimo:signature-snapshot-proof";
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordParagraph paragraph = document.AddParagraph("Signed lexical XML");
+                paragraph._paragraph.SetAttribute(new OpenXmlAttribute("proof", "first", proofNamespace, "1"));
+                paragraph._paragraph.SetAttribute(new OpenXmlAttribute("proof", "second", proofNamespace, "2"));
+                document.Save();
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            Assert.True(WordDocument.SignPackage(filePath, certificate).Succeeded);
+
+            using WordDocument loaded = WordDocument.Load(filePath);
+            DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraphRoot = loaded._wordprocessingDocument
+                .MainDocumentPart!.Document!.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
+                .First(paragraph => paragraph.InnerText == "Signed lexical XML");
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignatureValidationReport unchanged = loaded.ValidateSignatures(options);
+            Assert.Equal(WordSignatureValidationState.Passed, unchanged.SignedPartDigestStatus);
+
+            paragraphRoot.RemoveAttribute("first", proofNamespace);
+            paragraphRoot.SetAttribute(new OpenXmlAttribute("proof", "first", proofNamespace, "1"));
 
             AssertLivePackageSignatureInvalid(loaded);
         }

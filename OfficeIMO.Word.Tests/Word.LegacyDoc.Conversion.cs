@@ -103,6 +103,27 @@ namespace OfficeIMO.Tests {
             Assert.Contains("AllowSignatureInvalidation", assessment.Message, StringComparison.Ordinal);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LegacyDoc_WriteAssessment_ReportsMissingDocumentStructureWithoutThrowing(bool removeMainPart) {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Body removed through the public Open XML surface");
+            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+            if (removeMainPart) {
+                document._wordprocessingDocument.DeletePart(mainPart);
+            } else {
+                mainPart.Document!.Body!.Remove();
+            }
+
+            LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+
+            Assert.False(assessment.IsSupported);
+            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
+            Assert.Null(assessment.EncodedByteCount);
+            Assert.Contains("body is missing", assessment.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
         [Fact]
         public void LegacyDoc_Convert_DocxToDocAndBack_RoundTripsSupportedContent() {
             string docxPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
