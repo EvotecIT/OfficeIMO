@@ -24,6 +24,10 @@ namespace OfficeIMO.Word.Html {
                     mainPart,
                     options.IncludeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null)) {
                     bool countOutputContent = IsOutputContentRoot(root.Root, options);
+                    bool inspectExportedFields = countOutputContent ||
+                        (options.ExportHeadersAndFooters &&
+                         (root.Root is DocumentFormat.OpenXml.Wordprocessing.Header or
+                             DocumentFormat.OpenXml.Wordprocessing.Footer));
                     foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(root.Root)) {
                         OpenXmlElement element = inspected.Element;
                         elements++;
@@ -43,7 +47,10 @@ namespace OfficeIMO.Word.Html {
                                     options.MaxOutputCharacters);
                             }
                         }
-                        if (!hasFields && element is DocumentFormat.OpenXml.Wordprocessing.SimpleField or DocumentFormat.OpenXml.Wordprocessing.FieldChar or DocumentFormat.OpenXml.Wordprocessing.FieldCode) {
+                        if (!hasFields && inspectExportedFields && !inspected.OmitOutputContent &&
+                            (element is DocumentFormat.OpenXml.Wordprocessing.SimpleField or
+                                DocumentFormat.OpenXml.Wordprocessing.FieldChar or
+                                DocumentFormat.OpenXml.Wordprocessing.FieldCode)) {
                             hasFields = true;
                         }
                         if (!hasRevisions && IsRevisionElement(element.LocalName)) {

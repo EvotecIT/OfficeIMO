@@ -28,26 +28,38 @@ internal static class CertificateChainValidator {
                 : SecurityValidationStatus.Invalid);
         }
 
+        IReadOnlyList<X509Certificate2> embedded = embeddedCertificates as IReadOnlyList<X509Certificate2>
+            ?? embeddedCertificates.ToArray();
+
         using var chain = new X509Chain();
         chain.ChainPolicy.RevocationMode = options.RevocationMode;
         chain.ChainPolicy.RevocationFlag = options.RevocationFlag;
         chain.ChainPolicy.VerificationFlags = options.VerificationFlags;
         if (!TryApplyCertificateDownloadPolicy(chain.ChainPolicy, options.DisableCertificateDownloads)) {
+            IEnumerable<X509Certificate2> offlineCandidates = embedded
+                .Concat(options.ExtraCertificates.Cast<X509Certificate2>());
+            if (!HasCompleteOfflinePath(certificate, offlineCandidates)) {
+                findings.Add(new SecurityFinding(
+                    SecurityFindingSeverity.Warning,
+                    "CertificateDownloadPolicyUnavailable",
+                    role + " certificate chain was not built because this runtime cannot enforce the requested no-download policy and the supplied certificates do not contain a complete verified issuer path.",
+                    signerIndex));
+                return Empty(usageAccepted
+                    ? SecurityValidationStatus.Indeterminate
+                    : SecurityValidationStatus.Invalid);
+            }
             findings.Add(new SecurityFinding(
-                SecurityFindingSeverity.Warning,
-                "CertificateDownloadPolicyUnavailable",
-                role + " certificate chain was not built because this runtime cannot enforce the requested no-download policy.",
+                SecurityFindingSeverity.Info,
+                "CertificateDownloadPolicyOfflineFallback",
+                role + " certificate chain uses the complete cryptographically verified issuer path supplied by the caller or signed object because this runtime cannot set DisableCertificateDownloads.",
                 signerIndex));
-            return Empty(usageAccepted
-                ? SecurityValidationStatus.Indeterminate
-                : SecurityValidationStatus.Invalid);
         }
         chain.ChainPolicy.UrlRetrievalTimeout = options.UrlRetrievalTimeout;
         if (options.VerificationTime.HasValue) {
             chain.ChainPolicy.VerificationTime = options.VerificationTime.Value;
         }
 
-        foreach (X509Certificate2 candidate in embeddedCertificates) {
+        foreach (X509Certificate2 candidate in embedded) {
             if (!string.Equals(candidate.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase)) {
                 chain.ChainPolicy.ExtraStore.Add(candidate);
             }
@@ -192,6 +204,61 @@ internal static class CertificateChainValidator {
         chainPolicy.DisableCertificateDownloads = disableCertificateDownloads;
         return true;
 #endif
+    }
+
+    internal static bool HasCompleteOfflinePath(
+        X509Certificate2 certificate,
+        IEnumerable<X509Certificate2> issuerCandidates) {
+        var certificates = issuerCandidates
+            .Prepend(certificate)
+            .GroupBy(static candidate => candidate.Thumbprint ?? Convert.ToBase64String(candidate.GetCertHash()),
+                StringComparer.OrdinalIgnoreCase)
+            .Select(static group => group.First())
+            .ToArray();
+        return HasCompleteOfflinePath(
+            certificate,
+            certificates,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static bool HasCompleteOfflinePath(
+        X509Certificate2 certificate,
+        IReadOnlyList<X509Certificate2> candidates,
+        HashSet<string> path) {
+        string identity = certificate.Thumbprint ?? Convert.ToBase64String(certificate.GetCertHash());
+        if (!path.Add(identity)) return false;
+        try {
+            if (certificate.IssuerName.RawData.SequenceEqual(certificate.SubjectName.RawData)) {
+                return VerifyCertificateSignature(certificate, certificate);
+            }
+            foreach (X509Certificate2 issuer in candidates) {
+                string issuerIdentity = issuer.Thumbprint ?? Convert.ToBase64String(issuer.GetCertHash());
+                if (string.Equals(identity, issuerIdentity, StringComparison.OrdinalIgnoreCase) ||
+                    !certificate.IssuerName.RawData.SequenceEqual(issuer.SubjectName.RawData) ||
+                    !VerifyCertificateSignature(certificate, issuer)) {
+                    continue;
+                }
+                if (HasCompleteOfflinePath(issuer, candidates, path)) return true;
+            }
+            return false;
+        } finally {
+            path.Remove(identity);
+        }
+    }
+
+    private static bool VerifyCertificateSignature(
+        X509Certificate2 certificate,
+        X509Certificate2 issuer) {
+        try {
+            Org.BouncyCastle.X509.X509Certificate candidate =
+                Org.BouncyCastle.Security.DotNetUtilities.FromX509Certificate(certificate);
+            Org.BouncyCastle.X509.X509Certificate issuerCertificate =
+                Org.BouncyCastle.Security.DotNetUtilities.FromX509Certificate(issuer);
+            candidate.Verify(issuerCertificate.GetPublicKey());
+            return true;
+        } catch (Org.BouncyCastle.Security.GeneralSecurityException) {
+            return false;
+        }
     }
 
     private static SecurityValidationStatus ClassifyRevocation(X509Chain chain, X509RevocationMode revocationMode) {

@@ -2,9 +2,11 @@ using System.IO.Packaging;
 using System.IO.Compression;
 using System.Security.Cryptography.X509Certificates;
 using DocumentFormat.OpenXml.Packaging;
+using OpenMcdf;
 using OfficeIMO.Security;
 using OfficeIMO.Word;
 using Xunit;
+using StorageModeFlags = OpenMcdf.StorageModeFlags;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -44,6 +46,18 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(info.MacroProjectPartUri);
             Assert.NotNull(info.MacroProjectSha256);
             Assert.False(WordDocument.InspectMacroProjectSignatures(filePath).HasMacroProject);
+        }
+
+        [Fact]
+        public void MacroInteropTamperChangesProtectedVbaModuleContent() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureProtectedTamper.docm");
+            WordMacroProjectSignatureInfo before = WordDocument.InspectMacroProjectSignatures(filePath);
+
+            TamperVbaProjectPart(filePath);
+
+            WordMacroProjectSignatureInfo after = WordDocument.InspectMacroProjectSignatures(filePath);
+            Assert.True(after.HasMacroProject);
+            Assert.NotEqual(before.MacroProjectSha256, after.MacroProjectSha256);
         }
 
         [Fact]
@@ -733,19 +747,30 @@ namespace OfficeIMO.Tests {
             using (WordprocessingDocument document = WordprocessingDocument.Open(filePath, false)) {
                 vbaUri = document.MainDocumentPart!.VbaProjectPart!.Uri;
             }
-            using Package package = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
-            PackagePart part = package.GetPart(vbaUri);
-            using Stream stream = part.GetStream(FileMode.Open, FileAccess.ReadWrite);
-            byte[] bytes;
+            byte[] compoundBytes;
+            using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read))
+            using (Stream stream = package.GetPart(vbaUri).GetStream(FileMode.Open, FileAccess.Read))
             using (var copy = new MemoryStream()) {
                 stream.CopyTo(copy);
-                bytes = copy.ToArray();
+                compoundBytes = copy.ToArray();
             }
-            Assert.NotEmpty(bytes);
-            bytes[bytes.Length - 1] ^= 0x01;
-            stream.Position = 0;
-            stream.SetLength(0);
-            stream.Write(bytes, 0, bytes.Length);
+
+            using (var compound = new MemoryStream(compoundBytes, writable: true)) {
+                using (RootStorage root = RootStorage.Open(compound, StorageModeFlags.LeaveOpen)) {
+                    Storage vba = root.OpenStorage("VBA");
+                    using CfbStream module = vba.OpenStream("Module1");
+                    int original = module.ReadByte();
+                    Assert.NotEqual(-1, original);
+                    module.Position = 0;
+                    module.WriteByte((byte)(original ^ 0x01));
+                    root.Flush(true);
+                }
+                compoundBytes = compound.ToArray();
+            }
+
+            using Package writablePackage = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
+            using Stream output = writablePackage.GetPart(vbaUri).GetStream(FileMode.Create, FileAccess.Write);
+            output.Write(compoundBytes, 0, compoundBytes.Length);
         }
 
         private static WordMacroProjectToolResult Success() =>

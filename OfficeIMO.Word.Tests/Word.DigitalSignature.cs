@@ -261,11 +261,39 @@ namespace OfficeIMO.Tests {
                 Assert.True(defaultDisableCertificateDownloads);
                 Assert.False(optedInDisableCertificateDownloads);
             } else {
-                Assert.False(defaultChainEvaluated);
                 Assert.True(optInChainEvaluated);
                 Assert.Contains(defaultValidation.Diagnostics, finding =>
-                    finding.Code == "CertificateDownloadPolicyUnavailable");
+                    finding.Code == (defaultChainEvaluated
+                        ? "CertificateDownloadPolicyOfflineFallback"
+                        : "CertificateDownloadPolicyUnavailable"));
             }
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_DefaultOfflinePolicyBuildsCompleteEmbeddedChain() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureOfflineFallback.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Complete offline certificate path");
+                document.Save();
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            Assert.True(WordDocument.SignPackage(filePath, certificate).Succeeded);
+
+            bool chainEvaluated = false;
+            var options = new WordSignatureValidationOptions();
+            options.CertificateValidation.ChainEvaluator = (_, _) => {
+                chainEvaluated = true;
+                return true;
+            };
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+
+            Assert.True(chainEvaluated);
+            Assert.Equal(WordSignatureValidationState.Passed, validation.CertificateChainStatus);
+            Assert.DoesNotContain(validation.Diagnostics, finding =>
+                finding.Code == "CertificateDownloadPolicyUnavailable");
         }
 
         [Fact]

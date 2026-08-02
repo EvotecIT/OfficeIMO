@@ -130,6 +130,46 @@ public sealed class CmsSecurityTests {
     }
 
     [Fact]
+    public void CertificateValidationRecognizesACompleteOfflineIssuerPath() {
+        using RSA rootKey = RSA.Create(2048);
+        var rootRequest = new CertificateRequest(
+            "CN=OfficeIMO Offline Root",
+            rootKey,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        rootRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        rootRequest.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign,
+            true));
+        rootRequest.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(rootRequest.PublicKey, false));
+        using X509Certificate2 root = rootRequest.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            DateTimeOffset.UtcNow.AddDays(1));
+
+        using RSA leafKey = RSA.Create(2048);
+        var leafRequest = new CertificateRequest(
+            "CN=OfficeIMO Offline Leaf",
+            leafKey,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        leafRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+        leafRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
+        leafRequest.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(leafRequest.PublicKey, false));
+        using X509Certificate2 leaf = leafRequest.Create(
+            root,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            DateTimeOffset.UtcNow.AddHours(12),
+            new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+
+        Assert.False(CertificateChainValidator.HasCompleteOfflinePath(
+            leaf,
+            Array.Empty<X509Certificate2>()));
+        Assert.True(CertificateChainValidator.HasCompleteOfflinePath(
+            leaf,
+            new[] { root }));
+    }
+
+    [Fact]
     public void EncapsulatedSignature_StopsAtTheConfiguredContentLimit() {
         byte[] content = Enumerable.Repeat((byte)0x5a, 4096).ToArray();
         using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Bounded Encapsulated");

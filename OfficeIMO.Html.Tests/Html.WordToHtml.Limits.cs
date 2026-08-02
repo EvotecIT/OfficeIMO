@@ -30,5 +30,31 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Visible body", html, StringComparison.Ordinal);
             Assert.DoesNotContain(hiddenText, html, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void Test_WordToHtml_FieldDiagnosticOnlyDescribesExportedStories() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Visible body");
+            WordParagraph header = document.Sections[0]
+                .GetOrCreateHeader(HeaderFooterValues.Default)
+                .AddParagraph();
+            header._paragraph.Append(new SimpleField(new Run(new Text("Header field result"))) {
+                Instruction = "DATE"
+            });
+
+            var omitted = document.ToHtmlResult(new WordToHtmlOptions {
+                ExportHeadersAndFooters = false
+            });
+            var exported = document.ToHtmlResult(new WordToHtmlOptions {
+                ExportHeadersAndFooters = true
+            });
+
+            Assert.Contains(omitted.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "HeadersFootersOmitted");
+            Assert.DoesNotContain(omitted.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "FieldInstructionsFlattened");
+            Assert.Contains(exported.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "FieldInstructionsFlattened");
+        }
     }
 }
