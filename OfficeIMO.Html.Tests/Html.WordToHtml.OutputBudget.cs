@@ -120,6 +120,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesSectionMetadataBeforeDomAssignment() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("First section");
+            for (int index = 1; index < 32; index++) {
+                document.AddSection(SectionMarkValues.NextPage).AddParagraph("Section " + index);
+            }
+            foreach (WordSection section in document.Sections) {
+                section.PageOrientation = PageOrientationValues.Landscape;
+                section.PageSettings.PageSize = WordPageSize.Letter;
+                section.Margins.Top = 1440;
+                section.Margins.Right = 1200;
+                section.Margins.Bottom = 720;
+                section.Margins.Left = 1080;
+            }
+
+            string withoutMetadata = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false
+            }).RequireValue();
+            string withMetadata = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                IncludeSectionMetadata = true
+            }).RequireValue();
+            long limit = withoutMetadata.Length + ((withMetadata.Length - withoutMetadata.Length) / 2L);
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    IncludeSectionMetadata = true,
+                    MaxOutputCharacters = limit
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.StartsWith("SectionMetadata:", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetReservesGeneratedStyleCssBeforeDomAssignment() {
             using WordDocument document = WordDocument.Create();
             const string styleId = "BudgetedStyle";
