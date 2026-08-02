@@ -178,8 +178,7 @@ namespace OfficeIMO.PowerPoint {
                 .FirstOrDefault(child => child is A.NoFill
                     or A.SolidFill or A.GradientFill or A.PatternFill);
             bool hasFixedThemeFill = opacity != null && themeFill != null
-                && !themeFill.Descendants<A.SchemeColor>().Any(color =>
-                    color.Val?.Value == A.SchemeColorValues.PhColor);
+                && ContainsFixedThemeColor(themeFill);
             if (outline == null && hasFixedThemeFill) {
                 ShapeProperties? properties = GetShapeProperties(create: true);
                 outline = (A.Outline)themeOutline!.CloneNode(true);

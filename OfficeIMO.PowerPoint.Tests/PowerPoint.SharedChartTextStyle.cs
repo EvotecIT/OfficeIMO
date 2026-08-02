@@ -192,8 +192,9 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
-    public void SharedSnapshot_DoesNotProjectThemeFontTokensAsLiteralFamilies() {
+    public void SharedSnapshot_ResolvesThemeFontTokensToEffectiveFamilies() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        presentation.SetThemeLatinFonts("Theme Heading", "Theme Body");
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(
             new[] { "Q1", "Q2" },
@@ -207,9 +208,33 @@ public sealed class PowerPointSharedChartTextStyleTests {
             .SetValueAxisLabelTextStyle(fontName: "+mn-lt");
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartStyle.Default.FontFamily,
-            snapshot.Style.FontFamily);
-        Assert.Equal(OfficeChartStyle.Default.TitleFontFamily,
-            snapshot.Style.TitleFontFamily);
+        Assert.Equal("Theme Body", snapshot.Style.FontFamily);
+        Assert.Equal("Theme Heading", snapshot.Style.TitleFontFamily);
+    }
+
+    [Fact]
+    public void SharedSnapshot_PreservesIndependentlyInheritedTitleFont() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        presentation.SetThemeLatinFonts("Theme Heading", "Theme Body");
+        PowerPointChart chart = presentation.AddSlide().AddChartPoints(
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            }), 40, 40, 500, 300);
+        chart.SetTitle("Trajectory")
+            .SetLegendTextStyle(fontName: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
+            .SetValueAxisLabelTextStyle(fontName: "Arial");
+        C.Title title = presentation.OpenXmlDocument.PresentationPart!
+            .SlideParts.Single().ChartParts.Single().ChartSpace!
+            .GetFirstChild<C.Chart>()!.GetFirstChild<C.Title>()!;
+        foreach (A.LatinFont latin in title.Descendants<A.LatinFont>()) {
+            latin.Remove();
+        }
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal("Arial", snapshot.Style.FontFamily);
+        Assert.Equal("Theme Heading", snapshot.Style.TitleFontFamily);
     }
 }

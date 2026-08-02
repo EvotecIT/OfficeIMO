@@ -171,19 +171,19 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
+        private OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
             OpenXmlElement[] bodyTextAreas = chart.Descendants()
                 .Where(IsRelevantBodyTextArea)
                 .ToArray();
             string?[] bodyFonts = bodyTextAreas
-                .Select(ReadExplicitBodyTypeface)
+                .Select(ReadBodyTypeface)
                 .ToArray();
             string? bodyFont = bodyFonts.Length > 0
                 && bodyFonts.All(value => value != null)
                 && bodyFonts.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
                     ? bodyFonts[0]
                     : null;
-            string? titleFont = ReadExplicitTitleTypeface(
+            string? titleFont = ReadTitleTypeface(
                 chart.GetFirstChild<C.Title>());
             return bodyFont == null && titleFont == null
                 ? null
@@ -191,7 +191,7 @@ namespace OfficeIMO.PowerPoint {
                     titleFontFamily: titleFont);
         }
 
-        private static string? ReadExplicitBodyTypeface(
+        private string? ReadBodyTypeface(
             OpenXmlElement textArea) {
             string?[] typefaces = textArea.Descendants<C.TextProperties>()
                 .Where(properties => !properties.Ancestors<C.Title>().Any())
@@ -199,16 +199,18 @@ namespace OfficeIMO.PowerPoint {
                 .Select(font => font.Typeface?.Value)
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .ToArray();
-            if (typefaces.Length == 0 || typefaces.Any(IsThemeFontToken)) {
-                return null;
-            }
-            string[] explicitFonts = typefaces.Select(value => value!)
+            if (typefaces.Length == 0) return null;
+            string?[] resolved = typefaces.Select(value =>
+                    ResolveChartTypeface(value, useMajorWhenMissing: false))
+                .ToArray();
+            if (resolved.Any(string.IsNullOrWhiteSpace)) return null;
+            string[] explicitFonts = resolved.Select(value => value!)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             return explicitFonts.Length == 1 ? explicitFonts[0] : null;
         }
 
-        private static string? ReadExplicitTitleTypeface(C.Title? title) {
+        private string? ReadTitleTypeface(C.Title? title) {
             if (title == null) return null;
             string? defaultTypeface = title.Elements<C.TextProperties>()
                 .SelectMany(properties => properties.Descendants<A.LatinFont>())
@@ -220,22 +222,53 @@ namespace OfficeIMO.PowerPoint {
                 .Where(run => run.GetFirstChild<A.Text>() != null)
                 .ToArray();
             if (textRuns.Length == 0) {
-                return IsThemeFontToken(defaultTypeface)
-                    ? null
-                    : defaultTypeface;
+                return ResolveChartTypeface(defaultTypeface,
+                    useMajorWhenMissing: true);
             }
 
             string?[] resolvedFonts = textRuns.Select(run =>
-                    ReadTitleRunTypeface(run) ?? defaultTypeface)
+                    ResolveChartTypeface(ReadTitleRunTypeface(run)
+                            ?? defaultTypeface,
+                        useMajorWhenMissing: true))
                 .ToArray();
-            if (resolvedFonts.Any(value => string.IsNullOrWhiteSpace(value)
-                    || IsThemeFontToken(value))) {
+            if (resolvedFonts.Any(string.IsNullOrWhiteSpace)) {
                 return null;
             }
             string[] explicitFonts = resolvedFonts.Select(value => value!)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             return explicitFonts.Length == 1 ? explicitFonts[0] : null;
+        }
+
+        private string? ResolveChartTypeface(string? typeface,
+            bool useMajorWhenMissing) {
+            if (!string.IsNullOrWhiteSpace(typeface)
+                && !IsThemeFontToken(typeface)) {
+                return typeface;
+            }
+            A.FontScheme? scheme = GetChartThemeFontScheme();
+            if (scheme == null) return null;
+            if (string.IsNullOrWhiteSpace(typeface)) {
+                return useMajorWhenMissing
+                    ? scheme.MajorFont?.LatinFont?.Typeface?.Value
+                    : null;
+            }
+            if (typeface!.StartsWith("+mj-", StringComparison.OrdinalIgnoreCase)) {
+                return scheme.MajorFont?.LatinFont?.Typeface?.Value;
+            }
+            if (typeface.StartsWith("+mn-", StringComparison.OrdinalIgnoreCase)) {
+                return scheme.MinorFont?.LatinFont?.Typeface?.Value;
+            }
+            return null;
+        }
+
+        private A.FontScheme? GetChartThemeFontScheme() {
+            if (_ownerPart is not SlidePart slidePart) return null;
+            return slidePart.ThemeOverridePart?.ThemeOverride?.FontScheme
+                ?? slidePart.SlideLayoutPart?.ThemeOverridePart?
+                    .ThemeOverride?.FontScheme
+                ?? slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
+                    .Theme?.ThemeElements?.FontScheme;
         }
 
         private static string? ReadTitleRunTypeface(OpenXmlElement run) {

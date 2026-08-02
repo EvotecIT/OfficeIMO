@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
@@ -276,6 +277,29 @@ namespace OfficeIMO.Tests {
                 .SlidePart.DiagramLayoutDefinitionParts).LayoutDefinition!;
             Dgm.Shape shape = layout.Descendants<Dgm.Shape>().First();
             shape.Type = "ellipse";
+
+            Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ImportedSmartArtRejectsModifiedRecognizedStyleParts(
+            bool modifyQuickStyle) {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSmartArt smartArt = slide.AddSmartArt(
+                PowerPointSmartArtType.BasicProcess,
+                new[] { "Discover", "Deliver" });
+            OpenXmlElement definition = modifyQuickStyle
+                ? Assert.Single(slide.SlidePart.DiagramStyleParts)
+                    .StyleDefinition!
+                : Assert.Single(slide.SlidePart.DiagramColorsParts)
+                    .ColorsDefinition!;
+            OpenXmlElement title = definition.ChildElements[0];
+            title.SetAttribute(new OpenXmlAttribute("val", string.Empty,
+                "Producer modified"));
 
             Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
         }

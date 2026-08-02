@@ -23,6 +23,10 @@ namespace OfficeIMO.PowerPoint {
             if (geometry == null) throw new ArgumentNullException(nameof(geometry));
             if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ValidateCustomGeometryOpacity(geometry.FillOpacity,
+                nameof(geometry.FillOpacity));
+            ValidateCustomGeometryOpacity(geometry.StrokeOpacity,
+                nameof(geometry.StrokeOpacity));
 
             IReadOnlyList<OfficePathCommand> commands = GetCustomGeometryCommands(geometry);
             if (commands.Count > MaximumCustomGeometryCommands) {
@@ -387,6 +391,17 @@ namespace OfficeIMO.PowerPoint {
                 : opacity > 1D ? 1D
                 : opacity;
             return colorAlpha / (double)byte.MaxValue * clampedOpacity;
+        }
+
+        private static void ValidateCustomGeometryOpacity(double? opacity,
+            string propertyName) {
+            if (opacity.HasValue && (double.IsNaN(opacity.Value)
+                    || double.IsInfinity(opacity.Value)
+                    || opacity.Value < 0D || opacity.Value > 1D)) {
+                throw new ArgumentException(
+                    $"Custom geometry {propertyName} must be finite and between 0 and 1.",
+                    "geometry");
+            }
         }
     }
 }

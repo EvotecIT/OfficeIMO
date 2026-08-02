@@ -106,10 +106,16 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        /// <summary>Creation timestamp when present.</summary>
+        /// <summary>Required creation timestamp.</summary>
         public DateTime? Created {
             get => RequireAttached().DateTime?.Value;
-            set => RequireAttached().DateTime = value;
+            set {
+                if (!value.HasValue) {
+                    throw new ArgumentNullException(nameof(value),
+                        "Classic comments require a creation timestamp.");
+                }
+                RequireAttached().DateTime = value.Value;
+            }
         }
 
         /// <summary>Classic comment X position.</summary>

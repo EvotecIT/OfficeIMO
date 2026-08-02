@@ -78,9 +78,10 @@ internal static class PowerPointRoadmapVisualCorpus {
             OfficeImageExportFormat.Png);
         IReadOnlyList<OfficeImageExportResult> vectors = reopened.ExportImages(
             OfficeImageExportFormat.Svg);
-        if (vectors.Count != images.Count) {
+        if (images.Count != reopened.Slides.Count
+            || vectors.Count != reopened.Slides.Count) {
             throw new InvalidOperationException(
-                "Visual corpus PNG and SVG export counts differ.");
+                $"Visual corpus expected {reopened.Slides.Count} PNG and SVG exports but received {images.Count} PNG and {vectors.Count} SVG artifacts.");
         }
         for (int index = 0; index < images.Count; index++) {
             OfficeImageExportResult image = images[index];

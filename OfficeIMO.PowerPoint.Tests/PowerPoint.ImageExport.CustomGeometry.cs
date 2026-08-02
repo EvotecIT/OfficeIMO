@@ -578,6 +578,89 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointShape_TransparencyMaterializesMixedThemeColors() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                20, 20, 120, 80);
+            Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
+            openXmlShape.ShapeProperties.RemoveAllChildren<A.Outline>();
+            var mixedGradient = new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(new A.SchemeColor {
+                        Val = A.SchemeColorValues.PhColor
+                    }) { Position = 0 },
+                    new A.GradientStop(new A.RgbColorModelHex {
+                        Val = "654321"
+                    }) { Position = 100000 }),
+                new A.LinearGradientFill { Angle = 0, Scaled = true });
+            A.FormatScheme scheme = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.ThemePart!.Theme!.ThemeElements!
+                .FormatScheme!;
+            scheme.FillStyleList!.ReplaceChild(mixedGradient.CloneNode(true),
+                scheme.FillStyleList.ChildElements[0]);
+            var mixedOutline = new A.Outline(mixedGradient.CloneNode(true)) {
+                Width = 38100
+            };
+            scheme.LineStyleList!.ReplaceChild(mixedOutline,
+                scheme.LineStyleList.ChildElements[0]);
+            openXmlShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.FillReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent2
+                }) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+
+            shape.FillTransparency = 40;
+            shape.OutlineTransparency = 40;
+
+            A.GradientFill localFill = openXmlShape.ShapeProperties
+                .GetFirstChild<A.GradientFill>()!;
+            A.GradientFill localOutlineFill = openXmlShape.ShapeProperties
+                .GetFirstChild<A.Outline>()!
+                .GetFirstChild<A.GradientFill>()!;
+            Assert.All(localFill.Descendants<A.GradientStop>(), stop =>
+                Assert.Equal(60000, stop.Descendants<A.Alpha>()
+                    .Single().Val!.Value));
+            Assert.All(localOutlineFill.Descendants<A.GradientStop>(), stop =>
+                Assert.Equal(60000, stop.Descendants<A.Alpha>()
+                    .Single().Val!.Value));
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void PowerPointSlide_RejectsNonFiniteCustomGeometryOpacityBeforeMutation() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            OfficeShape invalidFill = OfficeShape.Polygon(
+                new OfficePoint(0, 0), new OfficePoint(100, 0),
+                new OfficePoint(50, 100));
+            invalidFill.FillColor = OfficeColor.FromRgb(14, 165, 233);
+            invalidFill.FillOpacity = double.NaN;
+            OfficeShape invalidStroke = OfficeShape.Path(
+                OfficePathCommand.MoveTo(0, 0),
+                OfficePathCommand.LineTo(100, 100));
+            invalidStroke.StrokeColor = OfficeColor.FromRgb(37, 99, 235);
+            invalidStroke.StrokeOpacity = double.PositiveInfinity;
+
+            Assert.Throws<ArgumentException>(() => slide
+                .AddCustomGeometryPoints(invalidFill, 10, 10, 100, 80));
+            Assert.Throws<ArgumentException>(() => slide
+                .AddCustomGeometryPoints(invalidStroke, 10, 10, 100, 80));
+            Assert.Empty(slide.Shapes);
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsSharedPolygonAndRejectsNonFreeformDescriptors() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),

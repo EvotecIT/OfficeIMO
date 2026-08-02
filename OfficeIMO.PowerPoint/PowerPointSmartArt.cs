@@ -122,6 +122,7 @@ namespace OfficeIMO.PowerPoint {
                     AccentOneColorStyleId, StringComparison.Ordinal)) {
                 return false;
             }
+            if (!HasRepresentableStyleDefinitions()) return false;
 
             A.ColorScheme? colorScheme = _slidePart.ThemeOverridePart?
                     .ThemeOverride?.ColorScheme
@@ -150,6 +151,59 @@ namespace OfficeIMO.PowerPoint {
                 new[] { accent.Value }, light.Value, light.Value,
                 accent.Value);
             return true;
+        }
+
+        private bool HasRepresentableStyleDefinitions() {
+            Dgm.RelationshipIds? relationshipIds = GraphicFrame
+                .Descendants<Dgm.RelationshipIds>().SingleOrDefault();
+            string? styleRelationshipId = relationshipIds?.StylePart?.Value;
+            string? colorRelationshipId = relationshipIds?.ColorPart?.Value;
+            if (string.IsNullOrWhiteSpace(styleRelationshipId)
+                || string.IsNullOrWhiteSpace(colorRelationshipId)
+                || !_slidePart.TryGetPartById(styleRelationshipId!,
+                    out OpenXmlPart? relatedStyle)
+                || relatedStyle is not DiagramStylePart stylePart
+                || stylePart.StyleDefinition == null
+                || !_slidePart.TryGetPartById(colorRelationshipId!,
+                    out OpenXmlPart? relatedColors)
+                || relatedColors is not DiagramColorsPart colorsPart
+                || colorsPart.ColorsDefinition == null) {
+                return false;
+            }
+            return MatchesSmartArtDefinition(
+                    stylePart.StyleDefinition.OuterXml,
+                    PowerPointSlide.SmartArtStyleDefinitionXml)
+                && MatchesSmartArtDefinition(
+                    colorsPart.ColorsDefinition.OuterXml,
+                    PowerPointSlide.SmartArtColorsDefinitionXml);
+        }
+
+        private static bool MatchesSmartArtDefinition(string actual,
+            string expected) => XNode.DeepEquals(
+                NormalizeSmartArtDefinition(XElement.Parse(actual)),
+                NormalizeSmartArtDefinition(XElement.Parse(expected)));
+
+        private static XElement NormalizeSmartArtDefinition(
+            XElement element) {
+            var normalized = new XElement(element.Name);
+            foreach (XAttribute attribute in element.Attributes()
+                         .Where(attribute => !attribute.IsNamespaceDeclaration)
+                         .OrderBy(attribute => attribute.Name.NamespaceName,
+                             StringComparer.Ordinal)
+                         .ThenBy(attribute => attribute.Name.LocalName,
+                             StringComparer.Ordinal)) {
+                normalized.Add(new XAttribute(attribute.Name,
+                    attribute.Value));
+            }
+            foreach (XNode node in element.Nodes()) {
+                if (node is XElement child) {
+                    normalized.Add(NormalizeSmartArtDefinition(child));
+                } else if (node is XText text
+                           && !string.IsNullOrWhiteSpace(text.Value)) {
+                    normalized.Add(new XText(text.Value));
+                }
+            }
+            return normalized;
         }
 
         private static bool TryResolveDiagramKind(string category,

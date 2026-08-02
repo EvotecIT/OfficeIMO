@@ -11,6 +11,33 @@ using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
+        internal const string SmartArtColorsDefinitionXml = """
+            <dgm:colorsDef uniqueId="urn:microsoft.com/office/officeart/2005/8/colors/accent1_2" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <dgm:title val="" />
+              <dgm:desc val="" />
+              <dgm:catLst><dgm:cat type="accent1" pri="11200" /></dgm:catLst>
+              <dgm:styleLbl name="node0"><dgm:fillClrLst meth="repeat"><a:schemeClr val="accent1" /></dgm:fillClrLst><dgm:linClrLst meth="repeat"><a:schemeClr val="lt1" /></dgm:linClrLst><dgm:effectClrLst /><dgm:txLinClrLst /><dgm:txFillClrLst /><dgm:txEffectClrLst /></dgm:styleLbl>
+              <dgm:styleLbl name="lnNode1"><dgm:fillClrLst meth="repeat"><a:schemeClr val="accent1" /></dgm:fillClrLst><dgm:linClrLst meth="repeat"><a:schemeClr val="lt1" /></dgm:linClrLst><dgm:effectClrLst /><dgm:txLinClrLst /><dgm:txFillClrLst /><dgm:txEffectClrLst /></dgm:styleLbl>
+              <dgm:styleLbl name="alignNode1"><dgm:fillClrLst meth="repeat"><a:schemeClr val="accent1" /></dgm:fillClrLst><dgm:linClrLst meth="repeat"><a:schemeClr val="accent1" /></dgm:linClrLst><dgm:effectClrLst /><dgm:txLinClrLst /><dgm:txFillClrLst /><dgm:txEffectClrLst /></dgm:styleLbl>
+            </dgm:colorsDef>
+            """;
+
+        internal const string SmartArtStyleDefinitionXml = """
+            <dgm:styleDef uniqueId="urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <dgm:title val="" />
+              <dgm:desc val="" />
+              <dgm:catLst><dgm:cat type="simple" pri="10100" /></dgm:catLst>
+              <dgm:styleLbl name="node">
+                <dgm:style>
+                  <a:lnRef idx="2"><a:schemeClr val="accent1" /></a:lnRef>
+                  <a:fillRef idx="1"><a:schemeClr val="accent1" /></a:fillRef>
+                  <a:effectRef idx="0"><a:schemeClr val="accent1" /></a:effectRef>
+                  <a:fontRef idx="minor"><a:schemeClr val="lt1" /></a:fontRef>
+                </dgm:style>
+              </dgm:styleLbl>
+            </dgm:styleDef>
+            """;
+
         /// <summary>
         ///     Adds a native SmartArt diagram to the slide.
         /// </summary>
@@ -214,37 +241,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void PopulateSmartArtColors(DiagramColorsPart part) {
-            string xml = """
-                <dgm:colorsDef uniqueId="urn:microsoft.com/office/officeart/2005/8/colors/accent1_2" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-                  <dgm:title val="" />
-                  <dgm:desc val="" />
-                  <dgm:catLst><dgm:cat type="accent1" pri="11200" /></dgm:catLst>
-                  <dgm:styleLbl name="node0"><dgm:fillClrLst meth="repeat"><a:schemeClr val="accent1" /></dgm:fillClrLst><dgm:linClrLst meth="repeat"><a:schemeClr val="lt1" /></dgm:linClrLst><dgm:effectClrLst /><dgm:txLinClrLst /><dgm:txFillClrLst /><dgm:txEffectClrLst /></dgm:styleLbl>
-                  <dgm:styleLbl name="lnNode1"><dgm:fillClrLst meth="repeat"><a:schemeClr val="accent1" /></dgm:fillClrLst><dgm:linClrLst meth="repeat"><a:schemeClr val="lt1" /></dgm:linClrLst><dgm:effectClrLst /><dgm:txLinClrLst /><dgm:txFillClrLst /><dgm:txEffectClrLst /></dgm:styleLbl>
-                  <dgm:styleLbl name="alignNode1"><dgm:fillClrLst meth="repeat"><a:schemeClr val="accent1" /></dgm:fillClrLst><dgm:linClrLst meth="repeat"><a:schemeClr val="accent1" /></dgm:linClrLst><dgm:effectClrLst /><dgm:txLinClrLst /><dgm:txFillClrLst /><dgm:txEffectClrLst /></dgm:styleLbl>
-                </dgm:colorsDef>
-                """;
-            using MemoryStream stream = new(Encoding.UTF8.GetBytes(xml));
+            using MemoryStream stream = new(Encoding.UTF8.GetBytes(
+                SmartArtColorsDefinitionXml));
             part.FeedData(stream);
         }
 
         private static void PopulateSmartArtStyle(DiagramStylePart part) {
-            string xml = """
-                <dgm:styleDef uniqueId="urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-                  <dgm:title val="" />
-                  <dgm:desc val="" />
-                  <dgm:catLst><dgm:cat type="simple" pri="10100" /></dgm:catLst>
-                  <dgm:styleLbl name="node">
-                    <dgm:style>
-                      <a:lnRef idx="2"><a:schemeClr val="accent1" /></a:lnRef>
-                      <a:fillRef idx="1"><a:schemeClr val="accent1" /></a:fillRef>
-                      <a:effectRef idx="0"><a:schemeClr val="accent1" /></a:effectRef>
-                      <a:fontRef idx="minor"><a:schemeClr val="lt1" /></a:fontRef>
-                    </dgm:style>
-                  </dgm:styleLbl>
-                </dgm:styleDef>
-                """;
-            using MemoryStream stream = new(Encoding.UTF8.GetBytes(xml));
+            using MemoryStream stream = new(Encoding.UTF8.GetBytes(
+                SmartArtStyleDefinitionXml));
             part.FeedData(stream);
         }
     }

@@ -76,6 +76,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ClassicCommentMutation_RejectsMissingTimestamp() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointClassicComment comment = presentation.AddClassicComment(
+                presentation.AddSlide(),
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            DateTime? created = comment.Created;
+
+            Assert.Throws<ArgumentNullException>(() => comment.Created = null);
+
+            Assert.Equal(created, comment.Created);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void RemovingCommentedSlideReconcilesClassicAndModernAuthors() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide removed = presentation.AddSlide();

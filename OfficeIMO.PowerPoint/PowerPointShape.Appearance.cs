@@ -110,8 +110,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 OpenXmlElement? themeFill = ResolveThemeFill();
                 if (opacity != null && themeFill != null
-                    && !themeFill.Descendants<A.SchemeColor>().Any(color =>
-                        color.Val?.Value == A.SchemeColorValues.PhColor)) {
+                    && ContainsFixedThemeColor(themeFill)) {
                     OpenXmlElement materialized = themeFill.CloneNode(true);
                     RemoveFillChoiceChildren(props);
                     InsertShapePropertyChild(props, materialized);
@@ -249,7 +248,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static IReadOnlyList<OpenXmlCompositeElement>
             GetFillColorChoices(OpenXmlCompositeElement parent) {
-            A.SolidFill? solid = parent.GetFirstChild<A.SolidFill>();
+            A.SolidFill? solid = parent as A.SolidFill
+                ?? parent.GetFirstChild<A.SolidFill>();
             if (solid != null) {
                 OpenXmlCompositeElement? color = GetColorChoice(solid);
                 return color == null
@@ -257,7 +257,8 @@ namespace OfficeIMO.PowerPoint {
                     : new[] { color };
             }
 
-            A.GradientFill? gradient = parent.GetFirstChild<A.GradientFill>();
+            A.GradientFill? gradient = parent as A.GradientFill
+                ?? parent.GetFirstChild<A.GradientFill>();
             if (gradient != null) {
                 return gradient.Descendants<A.GradientStop>()
                     .Select(GetColorChoice)
@@ -266,7 +267,8 @@ namespace OfficeIMO.PowerPoint {
                     .ToArray();
             }
 
-            A.PatternFill? pattern = parent.GetFirstChild<A.PatternFill>();
+            A.PatternFill? pattern = parent as A.PatternFill
+                ?? parent.GetFirstChild<A.PatternFill>();
             if (pattern != null) {
                 return pattern.ChildElements
                     .OfType<OpenXmlCompositeElement>()
@@ -278,6 +280,12 @@ namespace OfficeIMO.PowerPoint {
 
             return Array.Empty<OpenXmlCompositeElement>();
         }
+
+        private static bool ContainsFixedThemeColor(OpenXmlElement fill) =>
+            fill is OpenXmlCompositeElement composite
+            && GetFillColorChoices(composite).Any(color =>
+                color is not A.SchemeColor scheme
+                || scheme.Val?.Value != A.SchemeColorValues.PhColor);
 
         /// <summary>
         ///     Gets or sets rotation in degrees.
