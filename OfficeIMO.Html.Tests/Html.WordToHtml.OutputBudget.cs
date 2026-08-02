@@ -83,6 +83,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesEncodedDocumentMetadataBeforeDomConstruction() {
+            using WordDocument document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Title = new string('&', 1024);
+            document.AddParagraph("Visible content");
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = 4500
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("DocumentMetadata:title", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetCombinesEarlyImageAndLaterElements() {
             using WordDocument document = WordDocument.Create();
             string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");

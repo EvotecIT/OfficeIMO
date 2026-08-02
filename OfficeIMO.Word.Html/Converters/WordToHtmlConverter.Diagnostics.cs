@@ -146,6 +146,7 @@ namespace OfficeIMO.Word.Html {
             (root is not DocumentFormat.OpenXml.Wordprocessing.Comments || options.ExportComments) &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Styles &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Numbering &&
+            root is not DocumentFormat.OpenXml.CustomProperties.Properties &&
             root is not DocumentFormat.OpenXml.Drawing.Theme &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Fonts &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Settings &&

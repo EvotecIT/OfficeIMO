@@ -607,14 +607,22 @@ jobs:
             $env:OFFICEIMO_RUN_VBA_SIP_INTEROP = '1'
             $env:OFFICEIMO_VBA_SIP_DIRECTORY = Split-Path -Parent $clearPath
             $env:OFFICEIMO_SIGNTOOL_PATH = $signToolPath
+            $env:OFFICEIMO_VBA_SIP_TRACE_PATH = Join-Path $env:RUNNER_TEMP 'officeimo-vba-sip-trace.txt'
             dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj `
               --configuration $env:BUILD_CONFIGURATION `
               --framework net8.0 `
               --no-restore `
               --filter 'FullyQualifiedName~MacroSigningInteroperatesWithMicrosoftOfficeSipAndDetectsTampering' `
+              --blame-hang `
+              --blame-hang-timeout 4m `
+              --blame-hang-dump-type none `
               --logger "console;verbosity=$env:TEST_VERBOSITY"
           } finally {
             & regsvr32.exe /u /s $sipPath
+            if (Test-Path -LiteralPath $env:OFFICEIMO_VBA_SIP_TRACE_PATH) {
+              Write-Host '=== OfficeSips interoperability phases ==='
+              Get-Content -LiteralPath $env:OFFICEIMO_VBA_SIP_TRACE_PATH
+            }
           }
 
   test-ubuntu-matrix:

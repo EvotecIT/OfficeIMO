@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using System.IO;
+using System.IO.Compression;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Xml.Linq;
@@ -123,6 +124,74 @@ namespace OfficeIMO.Tests {
 
             Assert.True(permissive.Succeeded, string.Join(System.Environment.NewLine, permissive.Details));
             Assert.True(permissive.SignedRelationshipSelectorCount >= 128);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_SigningAuthenticatesCustomSignatureLikeRelationshipTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureCustomRelationshipType.docx");
+            const string relationshipId = "rCustomSignatureLike";
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Custom relationship type");
+                document.Save();
+            }
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                package.MainDocumentPart!.AddExternalRelationship(
+                    "https://example.com/digital-signature/attachment",
+                    new System.Uri("https://example.test/original", System.UriKind.Absolute),
+                    relationshipId);
+            }
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult signed = WordDocument.SignPackage(filePath, certificate);
+
+            Assert.True(signed.Succeeded, string.Join(System.Environment.NewLine, signed.Details));
+            XElement relationshipReference;
+            using (var archive = ZipFile.OpenRead(filePath)) {
+                ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
+                    entry.FullName.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase) &&
+                    entry.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase));
+                XDocument signature = XDocument.Load(signatureEntry.Open());
+                relationshipReference = signature.Descendants().Single(element =>
+                    element.Name.LocalName == "Reference" &&
+                    element.Descendants().Any(descendant =>
+                        descendant.Name.LocalName == "RelationshipReference" &&
+                        string.Equals((string?)descendant.Attribute("SourceId"), relationshipId, StringComparison.Ordinal)));
+            }
+
+            RetargetRelationship(filePath, "word/_rels/document.xml.rels", relationshipId);
+            using var tamperedArchive = new OfficePackageSignatureArchive(File.ReadAllBytes(filePath));
+            OfficePackageDigestResult digest = tamperedArchive.VerifyReference(
+                relationshipReference,
+                maxPartBytes: 16 * 1024 * 1024);
+
+            Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Failed, digest.Status);
+
+            using WordDocument tampered = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var validationOptions = new WordSignatureValidationOptions();
+            validationOptions.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            WordSignatureValidationReport validation = tampered.ValidateSignatures(validationOptions);
+            Assert.False(validation.IsValidUnderPolicy);
+            Assert.Equal(
+                WordSignatureValidationState.Failed,
+                validation.SignedPartDigestStatus);
+            Assert.False(Assert.Single(validation.Signatures).IsValidUnderPolicy);
+        }
+
+        private static void RetargetRelationship(string filePath, string entryName, string relationshipId) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry entry = archive.GetEntry(entryName)!;
+            XDocument relationships;
+            using (Stream input = entry.Open()) relationships = XDocument.Load(input);
+            XElement relationship = relationships.Descendants().Single(element =>
+                element.Name.LocalName == "Relationship" &&
+                string.Equals((string?)element.Attribute("Id"), relationshipId, StringComparison.Ordinal));
+            relationship.SetAttributeValue("Target", "https://example.test/retargeted");
+            entry.Delete();
+            ZipArchiveEntry replacement = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+            using Stream output = replacement.Open();
+            relationships.Save(output);
         }
     }
 }

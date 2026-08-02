@@ -426,29 +426,42 @@ namespace OfficeIMO.Tests {
 
         [VbaOfficeSipInteropFact]
         public void MacroSigningInteroperatesWithMicrosoftOfficeSipAndDetectsTampering() {
+            TraceOfficeSipInterop("document-create:start");
             string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
             string filePath = Path.Combine(_directoryWithFiles, "MacroSignatureOfficeSips.docm");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddMacro(macroPath);
                 document.Save();
             }
+            TraceOfficeSipInterop("document-create:complete");
 
+            TraceOfficeSipInterop("certificate-create:start");
             using X509Certificate2 certificate = CreateOfficeSipSigningCertificate();
+            TraceOfficeSipInterop("certificate-create:complete");
             using var personalStore = new X509Store(StoreName.My, StoreLocation.CurrentUser);
             using var rootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            TraceOfficeSipInterop("certificate-store-open:start");
             personalStore.Open(OpenFlags.ReadWrite);
             rootStore.Open(OpenFlags.ReadWrite);
+            TraceOfficeSipInterop("certificate-store-open:complete");
+            TraceOfficeSipInterop("certificate-store-add:start");
             personalStore.Add(certificate);
             rootStore.Add(new X509Certificate2(certificate.Export(X509ContentType.Cert)));
+            TraceOfficeSipInterop("certificate-store-add:complete");
             try {
                 var options = new WordMacroProjectSigningOptions {
                     SignToolPath = Environment.GetEnvironmentVariable("OFFICEIMO_SIGNTOOL_PATH"),
                     OfficeSipsDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_VBA_SIP_DIRECTORY"),
                     ToolTimeout = TimeSpan.FromSeconds(30)
                 };
+                var dependencies = new WordMacroProjectSigningDependencies(
+                    new TracingOfficeSipToolRunner(new WordMacroProjectProcessRunner()),
+                    new TracingOfficeSipPlatform(new WordMacroProjectWindowsPlatform()));
 
-                WordMacroProjectSigningResult signing = WordDocument.SignMacroProject(
-                    filePath, certificate.Thumbprint!, options);
+                TraceOfficeSipInterop("macro-sign:start");
+                WordMacroProjectSigningResult signing = WordMacroProjectSignatureService.TrySign(
+                    filePath, certificate.Thumbprint!, options, dependencies);
+                TraceOfficeSipInterop("macro-sign:complete:" + signing.Succeeded);
 
                 Assert.True(signing.Succeeded, string.Join(" | ", signing.Findings.Select(
                     finding => finding.Code + ": " + finding.Message)));
@@ -456,18 +469,26 @@ namespace OfficeIMO.Tests {
                 Assert.True(signing.ValidationResult!.IsValidUnderPolicy);
                 Assert.Equal(3, signing.ValidationResult.SignatureInfo.Signatures.Count);
 
+                TraceOfficeSipInterop("macro-validate:start");
                 WordMacroProjectSignatureValidationResult valid =
-                    WordDocument.ValidateMacroProjectSignature(filePath, options);
+                    WordMacroProjectSignatureService.Validate(filePath, options, dependencies);
+                TraceOfficeSipInterop("macro-validate:complete:" + valid.IsValidUnderPolicy);
                 Assert.True(valid.IsValidUnderPolicy);
 
+                TraceOfficeSipInterop("macro-tamper:start");
                 TamperVbaProjectPart(filePath);
+                TraceOfficeSipInterop("macro-tamper:complete");
+                TraceOfficeSipInterop("tampered-validate:start");
                 WordMacroProjectSignatureValidationResult tampered =
-                    WordDocument.ValidateMacroProjectSignature(filePath, options);
+                    WordMacroProjectSignatureService.Validate(filePath, options, dependencies);
+                TraceOfficeSipInterop("tampered-validate:complete:" + tampered.IsValidUnderPolicy);
                 Assert.False(tampered.IsValidUnderPolicy);
                 Assert.Equal(WordSignatureValidationState.Failed, tampered.ContentBindingStatus);
             } finally {
+                TraceOfficeSipInterop("certificate-store-remove:start");
                 RemoveCertificatesByThumbprint(personalStore, certificate.Thumbprint);
                 RemoveCertificatesByThumbprint(rootStore, certificate.Thumbprint);
+                TraceOfficeSipInterop("certificate-store-remove:complete");
             }
         }
 

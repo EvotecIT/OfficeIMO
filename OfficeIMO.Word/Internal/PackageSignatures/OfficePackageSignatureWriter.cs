@@ -68,6 +68,9 @@ namespace OfficeIMO.Word {
     /// <summary>Creates interoperable OPC XML signatures through cross-platform cryptographic primitives.</summary>
     internal static class OfficePackageSignatureWriter {
         private const string DigitalSignatureNamespace = "http://schemas.openxmlformats.org/package/2006/digital-signature";
+        private const string SignatureOriginRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
+        private const string SignatureRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature";
+        private const string SignatureCertificateRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/certificate";
         private const string ObjectReferenceType = "http://www.w3.org/2000/09/xmldsig#Object";
         private const string PackageObjectId = "idPackageObject";
         private const string SignatureTimePropertyId = "idSignatureTime";
@@ -527,8 +530,9 @@ namespace OfficeIMO.Word {
             uri.StartsWith("/package/services/digital-signature/", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsSignatureRelationship(string? relationshipType) =>
-            !string.IsNullOrWhiteSpace(relationshipType) &&
-            relationshipType!.IndexOf("/digital-signature/", StringComparison.OrdinalIgnoreCase) >= 0;
+            string.Equals(relationshipType, SignatureOriginRelationship, StringComparison.Ordinal) ||
+            string.Equals(relationshipType, SignatureRelationship, StringComparison.Ordinal) ||
+            string.Equals(relationshipType, SignatureCertificateRelationship, StringComparison.Ordinal);
 
         private static string ResolveSignatureId(string? signatureId) {
             string resolved = string.IsNullOrWhiteSpace(signatureId)
