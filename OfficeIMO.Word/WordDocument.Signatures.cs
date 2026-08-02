@@ -194,9 +194,7 @@ namespace OfficeIMO.Word {
             WordSignatureValidationReport? validationReport = null;
 
             if (packageResult.Succeeded) {
-                using WordDocument document = Load(filePath, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
-                });
+                using WordDocument document = Load(filePath, CreateSigningReadbackLoadOptions(effectiveOptions));
                 validationReport = document.ValidateSignatures(CreateSigningReadbackOptions(
                     effectiveOptions,
                     packageResult.SignatureCount));
@@ -204,6 +202,12 @@ namespace OfficeIMO.Word {
 
             return new WordPackageSigningResult(packageResult, validationReport);
         }
+
+        internal static WordLoadOptions CreateSigningReadbackLoadOptions(
+            WordPackageSigningOptions signingOptions) => new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                MaxInputBytes = signingOptions.MaxPackageBytes
+            };
 
         internal static WordSignatureValidationOptions CreateSigningReadbackOptions(
             WordPackageSigningOptions signingOptions,

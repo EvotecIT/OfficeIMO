@@ -206,6 +206,69 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_ComboBoxPreservesDistinctValueAndDisplayText() {
+            using WordDocument document = WordDocument.Create();
+            WordComboBox comboBox = document.AddParagraph().AddComboBox(new[] { "placeholder" });
+            ListItem item = comboBox._sdtRun.SdtProperties!
+                .GetFirstChild<SdtContentComboBox>()!
+                .Elements<ListItem>()
+                .Single();
+            item.Value = "internal-id";
+            item.DisplayText = "Visible label";
+
+            string html = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false
+            }).RequireValue();
+
+            Assert.Contains("value=\"internal-id\"", html, StringComparison.Ordinal);
+            Assert.Contains("label=\"Visible label\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesComboBoxDisplayText() {
+            using WordDocument document = WordDocument.Create();
+            WordComboBox comboBox = document.AddParagraph().AddComboBox(new[] { "placeholder" });
+            ListItem item = comboBox._sdtRun.SdtProperties!
+                .GetFirstChild<SdtContentComboBox>()!
+                .Elements<ListItem>()
+                .Single();
+            item.Value = "short";
+            item.DisplayText = new string('&', 1024);
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = 4096
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("ComboBoxOption:label", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesRepeatedCommentReferenceMetadata() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Reviewed text");
+            paragraph.AddComment(new string('&', 256), "AB", "Review note");
+            WordComment comment = Assert.Single(document.Comments);
+            for (int index = 0; index < 8; index++) {
+                paragraph._paragraph.Append(new Run(new CommentReference { Id = comment.Id }));
+            }
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    ExportComments = true,
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = 4096
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("CommentReference:title", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetUsesSerializedVoidElementSize() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();

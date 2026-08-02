@@ -807,7 +807,10 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationOptions validationOptions = WordDocument.CreateSigningReadbackOptions(
                 signingOptions,
                 signatureCount: 48);
+            WordLoadOptions loadOptions = WordDocument.CreateSigningReadbackLoadOptions(signingOptions);
 
+            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadOnly, loadOptions.AccessMode);
+            Assert.Equal(signingOptions.MaxPackageBytes, loadOptions.MaxInputBytes);
             Assert.Equal(signingOptions.MaxPackageBytes, validationOptions.MaxPackageBytes);
             Assert.Equal(signingOptions.MaxPackageParts, validationOptions.MaxPackageParts);
             Assert.Equal(signingOptions.MaxPartBytes, validationOptions.MaxPartBytes);

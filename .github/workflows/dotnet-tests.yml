@@ -572,6 +572,9 @@ jobs:
           $downloadUrl = 'https://download.microsoft.com/download/c53e473c-3060-4ee9-ac5c-0ddbbeced4e5/OfficeSips_x64_16-0-19416-43425.exe'
           $expectedSha256 = '96335D8AFBED13919E6BD31CF38974FB4EE2A534734A5E5736E1A40D032D2456'
           $downloadPath = Join-Path $env:RUNNER_TEMP 'OfficeSips_x64.exe'
+          $runtimeUrl = 'https://download.microsoft.com/download/1/6/5/165255e7-1014-4d0a-b094-b6a430a6bffc/vcredist_x64.exe'
+          $runtimeSha256 = 'F3B7A76D84D23F91957AA18456A14B4E90609E4CE8194C5653384ED38DADA6F3'
+          $runtimePath = Join-Path $env:RUNNER_TEMP 'vcredist_2010_sp1_x64.exe'
           $extractRoot = Join-Path $env:RUNNER_TEMP 'OfficeSips'
           $outerDirectory = Join-Path $extractRoot 'outer'
           $toolsDirectory = Join-Path $extractRoot 'tools'
@@ -581,33 +584,62 @@ jobs:
           if ($actualSha256 -ne $expectedSha256) {
             throw "OfficeSips download checksum mismatch: $actualSha256"
           }
+          $runtimeDll = Join-Path $env:WINDIR 'System32\msvcr100.dll'
+          if (-not (Test-Path -LiteralPath $runtimeDll)) {
+            Invoke-WebRequest -Uri $runtimeUrl -OutFile $runtimePath
+            $actualRuntimeSha256 = (Get-FileHash -LiteralPath $runtimePath -Algorithm SHA256).Hash
+            if ($actualRuntimeSha256 -ne $runtimeSha256) {
+              throw "Visual C++ 2010 SP1 runtime checksum mismatch: $actualRuntimeSha256"
+            }
+            $runtimeInstall = Start-Process -FilePath $runtimePath -ArgumentList '/q', '/norestart' -Wait -PassThru
+            if ($runtimeInstall.ExitCode -notin 0, 1638, 3010) {
+              throw "Visual C++ 2010 SP1 runtime installation failed with exit code $($runtimeInstall.ExitCode)."
+            }
+          }
+          if (-not (Test-Path -LiteralPath $runtimeDll)) {
+            throw 'The OfficeSips VBE7 dependency msvcr100.dll is unavailable after runtime setup.'
+          }
           & 7z.exe x $downloadPath "-o$outerDirectory" -y | Out-Null
           $sipPath = Get-ChildItem -LiteralPath $outerDirectory -Filter msosipx.dll -Recurse |
             Select-Object -First 1 -ExpandProperty FullName
           $clearPath = Get-ChildItem -LiteralPath $outerDirectory -Filter offclearsig.exe -Recurse |
             Select-Object -First 1 -ExpandProperty FullName
-          if (-not $sipPath -or -not $clearPath) {
+          $vbePath = Get-ChildItem -LiteralPath $outerDirectory -Filter vbe7.dll -Recurse |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $sipPath -or -not $clearPath -or -not $vbePath) {
             $cabPath = Get-ChildItem -LiteralPath $outerDirectory -Filter *.cab -Recurse |
               Select-Object -First 1 -ExpandProperty FullName
             if ($cabPath) {
               & expand.exe '-F:*' $cabPath $toolsDirectory | Out-Null
               $sipPath = Join-Path $toolsDirectory 'msosipx.dll'
               $clearPath = Join-Path $toolsDirectory 'offclearsig.exe'
+              $vbePath = Join-Path $toolsDirectory 'vbe7.dll'
             }
           }
-          if (-not (Test-Path -LiteralPath $sipPath) -or -not (Test-Path -LiteralPath $clearPath)) {
-            throw 'The verified OfficeSips archive does not contain msosipx.dll and offclearsig.exe.'
+          if (-not (Test-Path -LiteralPath $sipPath) -or
+              -not (Test-Path -LiteralPath $clearPath) -or
+              -not (Test-Path -LiteralPath $vbePath)) {
+            throw 'The verified OfficeSips archive does not contain msosipx.dll, offclearsig.exe, and vbe7.dll.'
           }
           $signToolPath = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' |
             Sort-Object FullName -Descending |
             Select-Object -First 1 -ExpandProperty FullName
           if (-not $signToolPath) { throw 'The Windows SDK SignTool.exe was not found.' }
+          $vbaRegistryPath = 'HKLM:\SOFTWARE\Microsoft\VBA'
+          $vbaRegistryKey = Get-Item -LiteralPath $vbaRegistryPath -ErrorAction SilentlyContinue
+          $hadVbePath = $null -ne $vbaRegistryKey -and
+            ($vbaRegistryKey.GetValueNames() -contains 'Vbe71DllPath')
+          $previousVbePath = if ($hadVbePath) { $vbaRegistryKey.GetValue('Vbe71DllPath') } else { $null }
+          New-Item -Path $vbaRegistryPath -Force | Out-Null
+          Set-ItemProperty -LiteralPath $vbaRegistryPath -Name Vbe71DllPath -Value $vbePath
+          $env:OFFICEIMO_VBA_SIP_TRACE_PATH = Join-Path $env:RUNNER_TEMP 'officeimo-vba-sip-trace.txt'
+          $sipRegistered = $false
           try {
             & regsvr32.exe /s $sipPath
+            $sipRegistered = $true
             $env:OFFICEIMO_RUN_VBA_SIP_INTEROP = '1'
             $env:OFFICEIMO_VBA_SIP_DIRECTORY = Split-Path -Parent $clearPath
             $env:OFFICEIMO_SIGNTOOL_PATH = $signToolPath
-            $env:OFFICEIMO_VBA_SIP_TRACE_PATH = Join-Path $env:RUNNER_TEMP 'officeimo-vba-sip-trace.txt'
             dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj `
               --configuration $env:BUILD_CONFIGURATION `
               --framework net8.0 `
@@ -618,7 +650,12 @@ jobs:
               --blame-hang-dump-type none `
               --logger "console;verbosity=$env:TEST_VERBOSITY"
           } finally {
-            & regsvr32.exe /u /s $sipPath
+            if ($sipRegistered) { & regsvr32.exe /u /s $sipPath }
+            if ($hadVbePath) {
+              Set-ItemProperty -LiteralPath $vbaRegistryPath -Name Vbe71DllPath -Value $previousVbePath
+            } else {
+              Remove-ItemProperty -LiteralPath $vbaRegistryPath -Name Vbe71DllPath -ErrorAction SilentlyContinue
+            }
             if (Test-Path -LiteralPath $env:OFFICEIMO_VBA_SIP_TRACE_PATH) {
               Write-Host '=== OfficeSips interoperability phases ==='
               Get-Content -LiteralPath $env:OFFICEIMO_VBA_SIP_TRACE_PATH

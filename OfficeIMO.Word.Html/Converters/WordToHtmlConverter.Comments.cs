@@ -35,13 +35,14 @@ namespace OfficeIMO.Word.Html {
 
             var sup = CreateOutputElement(htmlDoc, "sup");
             var anchor = CreateOutputElement(htmlDoc, "a");
-            anchor.SetAttribute("href", $"#comment{number.ToString(CultureInfo.InvariantCulture)}");
-            anchor.SetAttribute("id", $"commentref{number.ToString(CultureInfo.InvariantCulture)}");
-            anchor.SetAttribute("data-word-comment-id", commentId!);
+            string numberText = number.ToString(CultureInfo.InvariantCulture);
+            SetOutputAttribute(htmlDoc, anchor, "href", $"#comment{numberText}", "CommentReference:href");
+            SetOutputAttribute(htmlDoc, anchor, "id", $"commentref{numberText}", "CommentReference:id");
+            SetOutputAttribute(htmlDoc, anchor, "data-word-comment-id", commentId!, "CommentReference:comment-id");
             if (!string.IsNullOrEmpty(comment.Author)) {
-                anchor.SetAttribute("title", $"Comment by {comment.Author}");
+                SetOutputAttribute(htmlDoc, anchor, "title", $"Comment by {comment.Author}", "CommentReference:title");
             }
-            anchor.TextContent = $"[{number.ToString(CultureInfo.InvariantCulture)}]";
+            SetOutputText(htmlDoc, anchor, $"[{numberText}]", "CommentReference:text");
             sup.AppendChild(anchor);
             nodes.Add(sup);
             return true;

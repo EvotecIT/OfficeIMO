@@ -56,6 +56,7 @@ namespace OfficeIMO.Word.Html {
             foreach (var item in comboBox.ExportItems) {
                 var option = CreateOutputElement(htmlDoc, "option");
                 SetOutputAttribute(htmlDoc, option, "value", item.Value, "ComboBoxOption:value");
+                SetOutputAttribute(htmlDoc, option, "label", item.DisplayText, "ComboBoxOption:label");
                 dataList.AppendChild(option);
             }
 
