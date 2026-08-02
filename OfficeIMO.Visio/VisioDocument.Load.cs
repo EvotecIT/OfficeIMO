@@ -14,7 +14,24 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Loads an existing .vsdx file into a VisioDocument.
         /// </summary>
-        public static VisioDocument Load(string filePath) => LoadCore(filePath);
+        public static VisioDocument Load(string filePath) => Load(filePath, options: null);
+
+        /// <summary>Loads an existing .vsdx file with explicit input limits.</summary>
+        public static VisioDocument Load(string filePath, VisioLoadOptions? options) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            string fullPath = Path.GetFullPath(filePath);
+            if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
+
+            VisioLoadOptions resolved = options ?? new VisioLoadOptions();
+            using var source = new FileStream(
+                fullPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            byte[] bytes = OfficeStreamReader.ReadAllBytes(source, ResolveInputLimit(resolved));
+            return LoadDocument(bytes, fullPath, sourceStream: null, options: resolved);
+        }
 
         /// <summary>
         /// Loads an existing .vsdx document from a stream.
@@ -28,52 +45,84 @@ namespace OfficeIMO.Visio {
 
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
             byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, ResolveInputLimit(resolved));
-            ValidatePackageSecurity(bytes, resolved);
-            using var buffer = new MemoryStream(bytes, writable: false);
-
-            using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read);
-            VisioDocument document = LoadCore(package, filePath: null);
-            document._sourceStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(
-                stream,
-                OfficeIMO.Drawing.DocumentAccessMode.ReadWrite);
-            return document;
+            return LoadDocument(
+                bytes,
+                filePath: null,
+                sourceStream: OfficeDocumentLifecycle.ResolveAssociatedDestination(
+                    stream,
+                    DocumentAccessMode.ReadWrite),
+                options: resolved);
         }
 
-        /// <summary>Asynchronously loads an existing .vsdx file.</summary>
-        public static Task<VisioDocument> LoadAsync(string filePath, CancellationToken cancellationToken = default) =>
-            LoadAsync(filePath, cancellationToken, options: null);
+        /// <summary>Asynchronously loads an existing .vsdx file with optional input limits.</summary>
+        public static Task<VisioDocument> LoadAsync(
+            string filePath,
+            CancellationToken cancellationToken = default) =>
+            LoadAsync(filePath, options: null, cancellationToken);
 
         /// <summary>Asynchronously loads an existing .vsdx file with explicit input limits.</summary>
-        public static async Task<VisioDocument> LoadAsync(string filePath, CancellationToken cancellationToken, VisioLoadOptions? options) {
+        public static Task<VisioDocument> LoadAsync(
+            string filePath,
+            CancellationToken legacyCancellationToken,
+            VisioLoadOptions? options) =>
+            LoadAsync(filePath, options, legacyCancellationToken);
+
+        /// <summary>Asynchronously loads an existing .vsdx file with optional input limits.</summary>
+        public static async Task<VisioDocument> LoadAsync(
+            string filePath,
+            VisioLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
             using var source = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken, ResolveInputLimit(resolved)).ConfigureAwait(false);
-            ValidatePackageSecurity(bytes, resolved);
-            using var buffer = new MemoryStream(bytes, writable: false);
-            using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read);
-            return LoadCore(package, fullPath);
+            return LoadDocument(bytes, fullPath, sourceStream: null, options: resolved);
         }
 
-        /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream.</summary>
-        public static Task<VisioDocument> LoadAsync(Stream stream, CancellationToken cancellationToken = default) =>
-            LoadAsync(stream, cancellationToken, options: null);
+        /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
+        public static Task<VisioDocument> LoadAsync(
+            Stream stream,
+            CancellationToken cancellationToken = default) =>
+            LoadAsync(stream, options: null, cancellationToken);
 
         /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with explicit input limits.</summary>
-        public static async Task<VisioDocument> LoadAsync(Stream stream, CancellationToken cancellationToken, VisioLoadOptions? options) {
+        public static Task<VisioDocument> LoadAsync(
+            Stream stream,
+            CancellationToken legacyCancellationToken,
+            VisioLoadOptions? options) =>
+            LoadAsync(stream, options, legacyCancellationToken);
+
+        /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
+        public static async Task<VisioDocument> LoadAsync(
+            Stream stream,
+            VisioLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, ResolveInputLimit(resolved)).ConfigureAwait(false);
-            ValidatePackageSecurity(bytes, resolved);
+            return LoadDocument(
+                bytes,
+                filePath: null,
+                sourceStream: OfficeDocumentLifecycle.ResolveAssociatedDestination(
+                    stream,
+                    DocumentAccessMode.ReadWrite),
+                options: resolved);
+        }
+
+        private static VisioDocument LoadDocument(
+            byte[] bytes,
+            string? filePath,
+            Stream? sourceStream,
+            VisioLoadOptions options) {
+            ValidatePackageSecurity(bytes, options);
             using var buffer = new MemoryStream(bytes, writable: false);
             using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read);
-            VisioDocument document = LoadCore(package, filePath: null);
-            document._sourceStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(
-                stream,
-                OfficeIMO.Drawing.DocumentAccessMode.ReadWrite);
+            VisioDocument document = LoadCore(package, filePath);
+            document._sourceStream = sourceStream;
             return document;
         }
 

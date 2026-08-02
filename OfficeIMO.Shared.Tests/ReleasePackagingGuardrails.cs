@@ -89,15 +89,15 @@ public sealed class ReleasePackagingGuardrails {
                 File.Exists(Path.Combine(repositoryRoot, match.Groups["path"].Value)),
                 "README project link is missing: " + match.Value));
         Assert.Equal(26, CountProjectHeadings(readme, "Native formats and shared foundations"));
-        Assert.Equal(31, CountProjectHeadings(readme, "Conversion and cloud bridges"));
+        Assert.Equal(32, CountProjectHeadings(readme, "Conversion and cloud bridges"));
         Assert.Equal(27, CountProjectHeadings(readme, "Unified Reader family"));
         Assert.Equal(10, CountProjectHeadings(readme, "Markdown rendering and OfficeIMO Markup"));
-        Assert.Equal(94, projectHeadings.Count);
+        Assert.Equal(95, projectHeadings.Count);
 
         Assert.Contains($"| Coordinated `3.1.x` source packages | {releasePackageCount} |", readme, StringComparison.Ordinal);
         Assert.Contains($"| Documented package, tool, and example projects below | {projectHeadings.Count} |", readme, StringComparison.Ordinal);
         Assert.Contains("| Native format, foundation, and shared-service packages | 26 |", readme, StringComparison.Ordinal);
-        Assert.Contains("| Conversion and cloud bridge packages | 31 |", readme, StringComparison.Ordinal);
+        Assert.Contains("| Conversion and cloud bridge packages | 32 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Unified Reader packages | 27 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Markdown renderer and OfficeIMO Markup surfaces | 10 |", readme, StringComparison.Ordinal);
         Assert.Contains("The current source line is `3.1.x`; the latest NuGet release is `3.0.3`", readme, StringComparison.Ordinal);

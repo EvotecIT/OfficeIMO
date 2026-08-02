@@ -74,8 +74,10 @@ var chunks = reader.ReadFolder("Architecture",
 ### Read topology and geometry
 
 ```csharp
-OfficeDocumentReadResult document =
-    VisioReaderAdapter.ReadDocument("network.vsdx");
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddVisioHandler()
+    .Build();
+OfficeDocumentReadResult document = reader.ReadDocument("network.vsdx");
 
 foreach (ReaderVisual topology in document.Visuals) {
     Console.WriteLine($"Page {topology.Location.Page}: {topology.Content}");
@@ -88,9 +90,16 @@ foreach (OfficeDocumentPage page in document.Pages) {
 
 The topology visual is deterministic JSON describing page shapes and connector edges. Shared regions and page dimensions are expressed in points. A configured reader uses the same native mapping through `reader.ReadDocument("network.vsdx")`.
 
+An already loaded `VisioDocument` can use the same projection without being
+serialized and reopened:
+
+```csharp
+OfficeDocumentReadResult document = diagram.ToOfficeDocumentReadResult();
+```
+
 ## What it emits
 
-- Page-aware chunks for `.vsdx`, `.vsdm`, `.vstx`, and `.vstm` files.
+- Page-aware chunks for `.vsdx` files.
 - Shape Data as `ReaderTable` rows.
 - Pages, shapes, connectors, hyperlinks, and optional preview asset metadata in the shared read result envelope.
 - Point-based geometry and one topology `ReaderVisual` per page for graph-aware consumers.
@@ -100,6 +109,9 @@ The topology visual is deterministic JSON describing page shapes and connector e
 - Reader adapter configuration belongs here.
 - Visio package parsing and inspection belongs in `OfficeIMO.Visio`.
 - Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
+- The handler advertises the same 512 MiB default input limit enforced by
+  `VisioDocument.Load`; set `ReaderOptions.MaxInputBytes` explicitly to choose a
+  different bound.
 
 ## Targets and license
 

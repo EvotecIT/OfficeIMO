@@ -418,6 +418,25 @@ Reusable conversion options no longer retain operation state in members such as 
 
 The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfLogicalDocument` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF adapters, while `ToPdf()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
 
+`VisioDocument.Load(path)` and `Load(stream)` now apply a 512 MiB default input
+limit before opening the package. For trusted documents that intentionally
+exceed that size, pass `new VisioLoadOptions { MaxInputBytes = null }`. The
+options-first async overload keeps cancellation explicit:
+`LoadAsync(path, options, cancellationToken)`. Existing two-argument calls such
+as `LoadAsync(path, default)` continue to bind to the `CancellationToken`
+overload; use a typed or named token when the argument's purpose is not obvious.
+The former positional three-argument shape `LoadAsync(path, default, default)`
+is ambiguous while both the token-first compatibility overload and the
+options-first 3.1 overload are available. Replace it with
+`LoadAsync(path, options: null, cancellationToken: default)` (and use the same
+named arguments for the stream overload), or pass explicitly typed values.
+
+The modular Visio reader now registers `.vsdx` only. Earlier handler metadata
+listed `.vsdm`, `.vstx`, and `.vstm`, but the document loader did not accept
+their distinct main-part content types. Convert those files to `.vsdx` before
+using the document reader; use the dedicated stencil package APIs for `.vstx`
+master catalogs.
+
 ### Common member replacements
 
 | Removed member | Replacement |

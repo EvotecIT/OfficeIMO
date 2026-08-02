@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 152,
-    "productionComponentCount": 91,
+    "projectCount": 153,
+    "productionComponentCount": 92,
     "testProjectCount": 31,
     "benchmarkProjectCount": 12,
     "validationProjectCount": 19,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39562
+    "conceptualWordCount": 39660
   },
   "categories": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 13
+      "componentCount": 14
     },
     {
       "name": "Foundations and integrations",
@@ -300,7 +300,7 @@
       "description": "Typed Google Drive API client, shared-drive support, conversion, media transfer, collaboration, and change tracking for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.GoogleWorkspace.Drive/OfficeIMO.GoogleWorkspace.Drive.csproj",
-      "sourceFileCount": 8,
+      "sourceFileCount": 9,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/google-workspace/",
       "apiUrl": "/api/google-workspace-drive/",
@@ -626,7 +626,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
       "sourceFileCount": 933,
-      "referencingTestProjectCount": 10,
+      "referencingTestProjectCount": 11,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf"
@@ -781,7 +781,7 @@
       "description": "Excel workbook adapter for OfficeIMO.Reader.Core.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
-      "sourceFileCount": 9,
+      "sourceFileCount": 8,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -976,8 +976,8 @@
       "description": "Visio adapter for OfficeIMO.Reader using OfficeIMO.Visio inspection snapshots.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
-      "sourceFileCount": 5,
-      "referencingTestProjectCount": 2,
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Visio"
@@ -1124,6 +1124,19 @@
       "docsUrl": "/docs/visio/",
       "apiUrl": "/api/visio/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio"
+    },
+    {
+      "name": "OfficeIMO.Visio.Pdf",
+      "packageId": "OfficeIMO.Visio.Pdf",
+      "category": "Formats and interoperability",
+      "description": "First-party loss-aware Visio to PDF conversion for OfficeIMO.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/visio/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio.Pdf"
     },
     {
       "name": "OfficeIMO.Word",

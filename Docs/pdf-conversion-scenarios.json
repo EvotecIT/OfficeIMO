@@ -259,12 +259,12 @@
     },
     {
       "id": "visio-diagram",
-      "sourceFormats": [ "vsdx", "vssx", "vstx" ],
+      "sourceFormats": [ "vsdx" ],
       "status": "direct-loss-aware-adapter",
-      "stages": [ "OfficeIMO.Reader.Visio", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
-      "implementationProject": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
-      "evidenceTest": "OfficeIMO.Reader.Tests/Reader.DirectPdfAdapters.cs#VisioFacade_ProducesSearchableSemanticFallbackWithEvidence",
-      "diagnosticContract": "The direct façade emits searchable diagram semantics and explicit preview-versus-semantic fallback evidence. It does not claim native vector-page equivalence when the Reader projection cannot preserve it."
+      "stages": [ "OfficeIMO.Visio.Pdf", "OfficeIMO.Reader.Visio", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
+      "implementationProject": "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
+      "evidenceTest": "OfficeIMO.Visio.Tests/Visio.Pdf.ApiConsistency.cs#LoadedDocumentProjectsDirectlyWithoutReopeningOrChangingItsDestination",
+      "diagnosticContract": "The document-shaped adapter reuses the shared Visio reader and PDF projection owners, emits searchable diagram semantics, and retains explicit preview-versus-semantic fallback evidence. It does not claim native vector-page equivalence when the Reader projection cannot preserve it."
     }
   ],
   "qualityContract": {
