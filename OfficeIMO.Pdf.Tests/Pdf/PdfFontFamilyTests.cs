@@ -742,6 +742,29 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFamily_SystemMetadataProbeMarksPartialCollectionsIncomplete() {
+        if (!TryFindSingleInstalledRegularFontFace(out _, out string fontPath)) {
+            return;
+        }
+
+        string tempDir = Path.Combine(Path.GetTempPath(),
+            "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string collectionPath = Path.Combine(tempDir, "partial.ttc");
+            File.WriteAllBytes(collectionPath,
+                CreatePartiallyInspectableTrueTypeCollection(
+                    File.ReadAllBytes(fontPath)));
+
+            Assert.True(InvokeSystemFontNameMetadataProbe(collectionPath,
+                out bool inspectedAllFaces));
+            Assert.False(inspectedAllFaces);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsMalformedTrueTypeFiles() {
         string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -3410,12 +3433,43 @@ public class PdfFontFamilyTests {
         return collection;
     }
 
-    private static bool InvokeSystemFontNameMetadataProbe(string path) {
+    private static bool InvokeSystemFontNameMetadataProbe(string path) =>
+        InvokeSystemFontNameMetadataProbe(path, out _);
+
+    private static bool InvokeSystemFontNameMetadataProbe(string path,
+        out bool inspectedAllFaces) {
         MethodInfo method = typeof(PdfEmbeddedFontFamily).GetMethod(
             "TryReadSystemFontNameMetadata",
             BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] arguments = { path, null };
-        return (bool)method.Invoke(null, arguments)!;
+        object?[] arguments = { path, null, false };
+        bool result = (bool)method.Invoke(null, arguments)!;
+        inspectedAllFaces = (bool)arguments[2]!;
+        return result;
+    }
+
+    private static byte[] CreatePartiallyInspectableTrueTypeCollection(
+        byte[] fontData) {
+        const int collectionHeaderLength = 20;
+        int invalidFaceOffset = checked(collectionHeaderLength + fontData.Length);
+        byte[] collection = new byte[checked(invalidFaceOffset + 12)];
+        collection[0] = (byte)'t';
+        collection[1] = (byte)'t';
+        collection[2] = (byte)'c';
+        collection[3] = (byte)'f';
+        WriteUInt32(collection, 4, 0x00010000);
+        WriteUInt32(collection, 8, 2U);
+        WriteUInt32(collection, 12, collectionHeaderLength);
+        WriteUInt32(collection, 16, (uint)invalidFaceOffset);
+        Array.Copy(fontData, 0, collection, collectionHeaderLength,
+            fontData.Length);
+        int tableCount = ReadUInt16(fontData, 4);
+        for (int index = 0; index < tableCount; index++) {
+            int recordOffset = collectionHeaderLength + 12 + index * 16;
+            uint sourceOffset = ReadUInt32(fontData, 12 + index * 16 + 8);
+            WriteUInt32(collection, recordOffset + 8,
+                checked((uint)collectionHeaderLength + sourceOffset));
+        }
+        return collection;
     }
 
     private static byte[] CreateNameTableBudgetCollection(int faceCount,

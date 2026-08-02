@@ -97,16 +97,22 @@ namespace OfficeIMO.Tests {
             PowerPointSlide retained = presentation.AddSlide();
             var alice = new PowerPointCommentAuthor("Alice", "A");
             var bob = new PowerPointCommentAuthor("Bob", "B");
-            presentation.AddClassicComment(removed, alice, "Removed first");
+            PowerPointClassicComment removedClassic = presentation.AddClassicComment(
+                removed, alice, "Removed first");
             PowerPointClassicComment surviving = presentation.AddClassicComment(
                 retained, alice, "Surviving");
             presentation.AddClassicComment(removed, alice, "Removed last");
             PowerPointModernComment modern = presentation.AddModernComment(
                 removed, bob, "Modern removed");
-            modern.AddReply(alice, "Modern reply removed");
+            PowerPointModernCommentReply removedReply = modern.AddReply(
+                alice, "Modern reply removed");
 
             presentation.RemoveSlide(0);
 
+            Assert.Throws<InvalidOperationException>(() => removedClassic.Text = "Detached");
+            Assert.Throws<InvalidOperationException>(() => modern.Status =
+                PowerPointModernCommentStatus.Resolved);
+            Assert.Throws<InvalidOperationException>(() => removedReply.Text = "Detached");
             Assert.Equal(surviving.Index,
                 GetClassicAuthor(presentation, "Alice").LastIndex!.Value);
             Assert.Empty(presentation.OpenXmlDocument.PresentationPart!.Parts
@@ -114,6 +120,35 @@ namespace OfficeIMO.Tests {
                 .OfType<PowerPointAuthorsPart>());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.NotEmpty(presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ModernCommentMutation_PreservesAbsentOptionalAuthorIdentity() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddModernComment(slide,
+                new PowerPointCommentAuthor("Imported", "I"), "Review");
+            P188.Author author = presentation.OpenXmlDocument.PresentationPart!
+                .Parts.Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointAuthorsPart>()
+                .SelectMany(part => part.AuthorList!.Elements<P188.Author>())
+                .Single();
+            author.UserId = null;
+            author.ProviderId = null;
+            string id = author.Id!.Value!;
+            PowerPointModernComment comment = Assert.Single(
+                presentation.GetModernComments(slide));
+
+            comment.SetAuthor(comment.Author);
+
+            P188.Author retained = presentation.OpenXmlDocument.PresentationPart!
+                .Parts.Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointAuthorsPart>()
+                .SelectMany(part => part.AuthorList!.Elements<P188.Author>())
+                .Single();
+            Assert.Equal(id, retained.Id!.Value);
+            Assert.Null(retained.UserId);
+            Assert.Null(retained.ProviderId);
         }
 
         [Fact]

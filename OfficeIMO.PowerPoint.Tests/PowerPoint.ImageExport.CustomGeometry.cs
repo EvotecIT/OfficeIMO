@@ -526,6 +526,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointShape_FillTransparencyRejectsInheritedPictureFillWithoutMutation() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(20, 20, 120, 80);
+            Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
+            A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.ThemePart!.Theme!.ThemeElements!
+                .FormatScheme!.FillStyleList!;
+            fillStyles.ReplaceChild(new A.BlipFill(new A.Blip()),
+                fillStyles.ChildElements[0]);
+            openXmlShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.FillReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent2
+                }) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+            string propertiesBefore = openXmlShape.ShapeProperties.OuterXml;
+            string styleBefore = openXmlShape.ShapeStyle.OuterXml;
+
+            Assert.Throws<NotSupportedException>(() =>
+                shape.FillTransparency = 40);
+
+            Assert.Equal(propertiesBefore, openXmlShape.ShapeProperties.OuterXml);
+            Assert.Equal(styleBefore, openXmlShape.ShapeStyle.OuterXml);
+        }
+
+        [Fact]
         public void PowerPointShape_OutlineTransparencyMaterializesFixedThemeLine() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

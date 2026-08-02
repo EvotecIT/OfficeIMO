@@ -164,7 +164,10 @@ namespace OfficeIMO.PowerPoint {
 
         private P.Comment RequireAttached() {
             _presentation.ThrowIfDisposedForCommentApi();
-            if (_comment.Parent == null) {
+            _presentation.EnsureAttachedCommentSlide(_slide);
+            if (_comment.Parent == null
+                || _slide.SlidePart.SlideCommentsPart?.CommentList?
+                    .Elements<P.Comment>().Contains(_comment) != true) {
                 throw new InvalidOperationException("The classic comment is no longer attached to the presentation.");
             }
             return _comment;
@@ -259,7 +262,7 @@ namespace OfficeIMO.PowerPoint {
                     .GetFirstChild<P188.CommentReplyList>()?
                     .Elements<P188.CommentReply>()
                     .Select(reply => new PowerPointModernCommentReply(
-                        _presentation, comment, reply)).ToArray()
+                        _presentation, _slide, _part, comment, reply)).ToArray()
                     ?? Array.Empty<PowerPointModernCommentReply>());
             }
         }
@@ -287,7 +290,8 @@ namespace OfficeIMO.PowerPoint {
                 comment.AddChild(replies, true);
             }
             replies.Append(reply);
-            return new PowerPointModernCommentReply(_presentation, comment, reply);
+            return new PowerPointModernCommentReply(_presentation, _slide, _part,
+                comment, reply);
         }
 
         /// <summary>Reassigns the comment to an existing or newly created author.</summary>
@@ -323,7 +327,12 @@ namespace OfficeIMO.PowerPoint {
 
         private P188.Comment RequireAttached() {
             _presentation.ThrowIfDisposedForCommentApi();
-            if (_comment.Parent == null) {
+            _presentation.EnsureAttachedCommentSlide(_slide);
+            if (_comment.Parent == null
+                || !_slide.SlidePart.Parts.Any(pair =>
+                    ReferenceEquals(pair.OpenXmlPart, _part))
+                || _part.CommentList?.Elements<P188.Comment>()
+                    .Contains(_comment) != true) {
                 throw new InvalidOperationException("The modern comment is no longer attached to the presentation.");
             }
             return _comment;
@@ -342,12 +351,17 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>Editable reply in a modern PowerPoint comment thread.</summary>
     public sealed class PowerPointModernCommentReply {
         private readonly PowerPointPresentation _presentation;
+        private readonly PowerPointSlide _slide;
+        private readonly PowerPointCommentPart _part;
         private readonly P188.Comment _parent;
         private readonly P188.CommentReply _reply;
 
         internal PowerPointModernCommentReply(PowerPointPresentation presentation,
+            PowerPointSlide slide, PowerPointCommentPart part,
             P188.Comment parent, P188.CommentReply reply) {
             _presentation = presentation;
+            _slide = slide;
+            _part = part;
             _parent = parent;
             _reply = reply;
         }
@@ -410,7 +424,12 @@ namespace OfficeIMO.PowerPoint {
 
         private P188.CommentReply RequireAttached() {
             _presentation.ThrowIfDisposedForCommentApi();
-            if (_reply.Parent == null || _parent.Parent == null) {
+            _presentation.EnsureAttachedCommentSlide(_slide);
+            if (_reply.Parent == null || _parent.Parent == null
+                || !_slide.SlidePart.Parts.Any(pair =>
+                    ReferenceEquals(pair.OpenXmlPart, _part))
+                || _part.CommentList?.Elements<P188.Comment>()
+                    .Contains(_parent) != true) {
                 throw new InvalidOperationException("The modern comment reply is no longer attached to the presentation.");
             }
             return _reply;
@@ -578,15 +597,21 @@ namespace OfficeIMO.PowerPoint {
 
         internal P188.Author GetOrCreateModernCommentAuthor(PowerPointCommentAuthor author) {
             ValidateCommentAuthorIdentity(author);
-            PowerPointAuthorsPart? firstPart = null;
-            foreach (PowerPointAuthorsPart part in _presentationPart.Parts
-                         .Select(pair => pair.OpenXmlPart).OfType<PowerPointAuthorsPart>()) {
-                if (firstPart == null) firstPart = part;
+            PowerPointAuthorsPart[] parts = _presentationPart.Parts
+                .Select(pair => pair.OpenXmlPart).OfType<PowerPointAuthorsPart>()
+                .ToArray();
+            foreach (PowerPointAuthorsPart part in parts) {
                 P188.Author? existing = part.AuthorList?.Elements<P188.Author>()
-                    .FirstOrDefault(candidate => ModernAuthorMatches(candidate, author));
+                    .FirstOrDefault(candidate => ModernAuthorExactlyMatches(candidate, author));
                 if (existing != null) return existing;
             }
-            PowerPointAuthorsPart target = firstPart ?? _presentationPart.AddNewPart<PowerPointAuthorsPart>();
+            foreach (PowerPointAuthorsPart part in parts) {
+                P188.Author? existing = part.AuthorList?.Elements<P188.Author>()
+                    .FirstOrDefault(candidate => ModernAuthorMatchesCreatedDefaults(candidate, author));
+                if (existing != null) return existing;
+            }
+            PowerPointAuthorsPart target = parts.FirstOrDefault()
+                ?? _presentationPart.AddNewPart<PowerPointAuthorsPart>();
             if (target.AuthorList == null) target.AuthorList = new P188.AuthorList();
             var created = new P188.Author {
                 Id = CreateModernCommentId(),
@@ -849,6 +874,13 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        internal void EnsureAttachedCommentSlide(PowerPointSlide slide) {
+            if (!_slides.Contains(slide)) {
+                throw new InvalidOperationException(
+                    "The comment's slide is no longer attached to the presentation.");
+            }
+        }
+
         private static uint AllocateClassicAuthorId(P.CommentAuthorList authors) {
             var usedIds = new HashSet<uint>(authors.Elements<P.CommentAuthor>()
                 .Where(author => author.Id?.Value != null)
@@ -857,7 +889,14 @@ namespace OfficeIMO.PowerPoint {
                 "classic-comment-author");
         }
 
-        private static bool ModernAuthorMatches(P188.Author candidate,
+        private static bool ModernAuthorExactlyMatches(P188.Author candidate,
+            PowerPointCommentAuthor author) =>
+            string.Equals(candidate.Name?.Value, author.Name, StringComparison.Ordinal)
+            && string.Equals(candidate.Initials?.Value, author.Initials, StringComparison.Ordinal)
+            && string.Equals(candidate.UserId?.Value, author.UserId, StringComparison.Ordinal)
+            && string.Equals(candidate.ProviderId?.Value, author.ProviderId, StringComparison.Ordinal);
+
+        private static bool ModernAuthorMatchesCreatedDefaults(P188.Author candidate,
             PowerPointCommentAuthor author) =>
             string.Equals(candidate.Name?.Value, author.Name, StringComparison.Ordinal)
             && string.Equals(candidate.Initials?.Value, author.Initials, StringComparison.Ordinal)

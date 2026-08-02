@@ -145,6 +145,17 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("expected 2", pageCountIssue,
                     StringComparison.OrdinalIgnoreCase);
 
+                string blankPdf = Path.Combine(directory, "blank.pdf");
+                File.WriteAllBytes(blankPdf, PdfCore.PdfDocument.Create()
+                    .Paragraph(paragraph => paragraph
+                        .Color(PdfCore.PdfColor.White)
+                        .Text("Invisible"))
+                    .ToBytes());
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    blankPdf, out string blankPdfIssue));
+                Assert.Contains("visible non-background content", blankPdfIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
                 string invalidPdf = Path.Combine(directory, "invalid.pdf");
                 File.WriteAllBytes(invalidPdf, pdf.Take(pdf.Length / 2).ToArray());
                 Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(

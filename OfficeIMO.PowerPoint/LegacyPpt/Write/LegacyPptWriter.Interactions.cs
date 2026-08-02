@@ -390,24 +390,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryParseCustomShowAction(string? action,
-            out uint customShowId, out bool returnsToSlide) {
-            const string Prefix = "ppaction://customshow?id=";
-            const string ReturnSuffix = "&return=true";
-            customShowId = 0;
-            returnsToSlide = false;
-            if (action == null || !action.StartsWith(Prefix,
-                    StringComparison.OrdinalIgnoreCase)) return false;
-            string value = action.Substring(Prefix.Length);
-            if (value.EndsWith(ReturnSuffix, StringComparison.OrdinalIgnoreCase)) {
-                returnsToSlide = true;
-                value = value.Substring(0, value.Length - ReturnSuffix.Length);
-            }
-            return value.Length > 0 && value.IndexOf('&') < 0
-                && uint.TryParse(value,
-                    System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out customShowId);
-        }
+            out uint customShowId, out bool returnsToSlide) =>
+            PowerPointCustomShowAction.TryParseSupported(action,
+                out customShowId, out returnsToSlide);
 
         private static bool TryResolveCustomShowName(SlidePart slidePart,
             uint customShowId, out string? name) {

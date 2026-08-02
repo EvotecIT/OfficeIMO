@@ -14,6 +14,29 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointFeatureReportTests {
         [Fact]
+        public void PowerPointFeatureReport_PreservesCustomShowWithDanglingAction() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddCustomShow("Valid", new[] { slide });
+            Shape shape = Assert.IsType<Shape>(
+                slide.AddRectangle(0, 0, 914400, 914400).Element);
+            shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(new A.HyperlinkOnClick {
+                    Id = string.Empty,
+                    Action = "ppaction://customshow?id=999"
+                });
+
+            PowerPointFeatureFinding customShows = Assert.Single(
+                presentation.InspectFeatures().FindFeatures("Custom shows"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                customShows.SupportLevel);
+            Assert.Contains(customShows.Details, detail =>
+                detail.Contains("missing identifier 999",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsEditableAndPartiallyEditableFeatures() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");

@@ -342,6 +342,32 @@ namespace OfficeIMO.Tests {
                                 + expectedPdfPageCount.Value + ": " + path;
                             return false;
                         }
+                        IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
+                            PdfCore.PdfDocument.Open(pdf).Read.RenderPages(options:
+                                new PdfCore.PdfPageRenderOptions {
+                                    Dpi = 72D,
+                                    Format = PdfCore.PdfPageRenderFormat.Png,
+                                    MaxPages = parsed.Pages.Count,
+                                    ContinueOnError = false,
+                                    MaxTotalOutputBytes = 256L * 1024L * 1024L
+                                });
+                        if (rendered.Count != parsed.Pages.Count) {
+                            issue = "PDF pages could not all be rendered: " + path;
+                            return false;
+                        }
+                        for (int pageIndex = 0; pageIndex < rendered.Count; pageIndex++) {
+                            PdfCore.PdfPageRenderResult page = rendered[pageIndex];
+                            if (!page.Succeeded || page.Bytes == null
+                                || !OfficePngReader.TryDecode(page.Bytes,
+                                    out OfficeRasterImage? raster) || raster == null) {
+                                issue = $"PDF page {pageIndex + 1} could not be rendered: {path}";
+                                return false;
+                            }
+                            if (VisualBaselineTestSupport.CountNonWhiteVisiblePixels(raster) == 0) {
+                                issue = $"PDF page {pageIndex + 1} contains no visible non-background content: {path}";
+                                return false;
+                            }
+                        }
                         break;
                     default:
                         issue = "Unsupported desktop validation output extension: " + extension;

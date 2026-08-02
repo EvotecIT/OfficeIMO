@@ -109,6 +109,10 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
                 OpenXmlElement? themeFill = ResolveThemeFill();
+                if (opacity != null && themeFill is A.BlipFill) {
+                    throw new NotSupportedException(
+                        "Fill transparency cannot be changed while the shape inherits a picture fill. Materialize a local picture fill with a valid image relationship first.");
+                }
                 if (opacity != null && themeFill != null
                     && ContainsFixedThemeColor(themeFill)) {
                     OpenXmlElement materialized = themeFill.CloneNode(true);

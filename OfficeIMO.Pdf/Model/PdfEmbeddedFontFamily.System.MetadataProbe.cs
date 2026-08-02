@@ -6,8 +6,10 @@ public sealed partial class PdfEmbeddedFontFamily {
     internal const int MaxSystemFontNameMetadataBytes = 16 * 1024 * 1024;
 
     private static bool TryReadSystemFontNameMetadata(string path,
-        out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces) {
+        out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces,
+        out bool inspectedAllFaces) {
         metadataFaces = null;
+        inspectedAllFaces = false;
         try {
             using var stream = new System.IO.FileStream(path, System.IO.FileMode.Open,
                 System.IO.FileAccess.Read,
@@ -38,15 +40,19 @@ public sealed partial class PdfEmbeddedFontFamily {
             var nameTables = new System.Collections.Generic.Dictionary<long,
                 SystemFontNameTableCacheEntry>();
             long nameTableBytes = 0L;
+            bool complete = true;
             for (int index = 0; index < offsets.Count; index++) {
                 if (TryReadSystemFontFaceNameMetadata(stream, offsets[index],
                         nameTables, ref nameTableBytes,
                         out TrueTypeNameMetadata? metadata) && metadata != null) {
                     found.Add(metadata);
+                } else {
+                    complete = false;
                 }
             }
 
             metadataFaces = found;
+            inspectedAllFaces = complete;
             return found.Count > 0;
         } catch (System.Exception exception) when (
             exception is System.IO.IOException ||

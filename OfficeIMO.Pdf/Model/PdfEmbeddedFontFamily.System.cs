@@ -139,7 +139,9 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
 
             if (TryReadSystemFontNameMetadata(path,
-                    out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces) &&
+                    out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces,
+                    out bool inspectedAllFaces) &&
+                inspectedAllFaces &&
                 metadataFaces != null &&
                 metadataFaces.Count > 0 &&
                 !metadataFaces.Exists(metadata =>

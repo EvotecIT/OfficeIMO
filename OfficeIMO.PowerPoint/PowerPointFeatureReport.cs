@@ -647,6 +647,20 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
+            foreach (A.HyperlinkType hyperlink in _slides
+                         .SelectMany(slide => slide.SlidePart.Slide?
+                             .Descendants<A.HyperlinkType>()
+                             ?? Enumerable.Empty<A.HyperlinkType>())) {
+                string? action = hyperlink.Action?.Value;
+                if (!PowerPointCustomShowAction.IsCustomShowAction(action)) continue;
+                if (!PowerPointCustomShowAction.TryParseSupported(action,
+                        out uint targetId, out _)) {
+                    details.Add("A slide contains an unsupported custom-show action.");
+                } else if (!ids.Contains(targetId)) {
+                    details.Add($"A slide custom-show action targets missing identifier {targetId}.");
+                }
+            }
+
             return details.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
 
