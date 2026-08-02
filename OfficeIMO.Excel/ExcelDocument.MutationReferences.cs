@@ -85,21 +85,29 @@ namespace OfficeIMO.Excel {
             affected.GetBounds(out int ar1, out int ac1, out int ar2, out int ac2);
             int rowCount = ar2 - ar1 + 1;
             int columnCount = ac2 - ac1 + 1;
+            bool wholeRowsAffected = reference.Kind == ExcelReferenceKind.WholeRow
+                && ac1 == 1
+                && ac2 == A1.MaxColumns;
+            bool wholeColumnsAffected = reference.Kind == ExcelReferenceKind.WholeColumn
+                && ar1 == 1
+                && ar2 == A1.MaxRows;
+            bool ColumnIsAffected(int column) => wholeRowsAffected || (column >= ac1 && column <= ac2);
+            bool RowIsAffected(int row) => wholeColumnsAffected || (row >= ar1 && row <= ar2);
             int TransformRow(int row, int column) {
-                if (column < ac1 || column > ac2) return row;
+                if (!ColumnIsAffected(column)) return row;
                 if (direction == ExcelCellShiftDirection.Down && row >= ar1) return checked(row + rowCount);
                 if (direction == ExcelCellShiftDirection.Up && row > ar2) return row - rowCount;
                 return row;
             }
             int TransformColumn(int row, int column) {
-                if (row < ar1 || row > ar2) return column;
+                if (!RowIsAffected(row)) return column;
                 if (direction == ExcelCellShiftDirection.Right && column >= ac1) return checked(column + columnCount);
                 if (direction == ExcelCellShiftDirection.Left && column > ac2) return column - columnCount;
                 return column;
             }
             bool deletingPoint(int row, int column) => !inserting
-                && ((direction == ExcelCellShiftDirection.Left && row >= ar1 && row <= ar2 && column >= ac1 && column <= ac2)
-                    || (direction == ExcelCellShiftDirection.Up && column >= ac1 && column <= ac2 && row >= ar1 && row <= ar2));
+                && ((direction == ExcelCellShiftDirection.Left && RowIsAffected(row) && column >= ac1 && column <= ac2)
+                    || (direction == ExcelCellShiftDirection.Up && ColumnIsAffected(column) && row >= ar1 && row <= ar2));
             bool startDeleted = deletingPoint(reference.Start.Row, reference.Start.Column);
             bool endDeleted = deletingPoint(reference.End.Row, reference.End.Column);
             if (startDeleted && endDeleted) return null;

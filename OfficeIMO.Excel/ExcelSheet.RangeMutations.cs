@@ -352,7 +352,8 @@ namespace OfficeIMO.Excel {
                 destinationRow,
                 destinationColumn,
                 destinationRow + destinationRows - 1,
-                destinationColumn + destinationColumns - 1);
+                destinationColumn + destinationColumns - 1,
+                move);
             var snapshots = WorksheetRoot.Descendants<Cell>()
                 .Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))
                 .Select(cell => {
@@ -712,7 +713,11 @@ namespace OfficeIMO.Excel {
             int r1,
             int c1,
             int r2,
-            int c2) {
+            int c2,
+            bool move) {
+            if (move) {
+                RemoveRangeTransferDestinationMetadata(source, r1, c1, r2, c2);
+            }
             foreach ((Cell cell, int row, int column) in WorksheetRoot.Descendants<Cell>()
                 .Select(cell => TryGetCellCoordinates(cell, out int row, out int column)
                     ? (Cell: cell, Row: row, Column: column)

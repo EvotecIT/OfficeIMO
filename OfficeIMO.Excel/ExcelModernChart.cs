@@ -123,7 +123,10 @@ namespace OfficeIMO.Excel {
             int pointCount = data.Categories.Count;
             ExcelChartDataRange updatedRange = currentRange.WithSize(pointCount, data.Series.Count);
             ExcelSheet dataSheet = _sheet.Document[updatedRange.SheetName];
-            if (pointCount > currentRange.CategoryCount || data.Series.Count > currentRange.SeriesCount) {
+            bool sharedRange = _sheet.Document.IsOwnedChartDataRangeShared(currentRange, part);
+            if (sharedRange
+                || pointCount > currentRange.CategoryCount
+                || data.Series.Count > currentRange.SeriesCount) {
                 int startRow = _sheet.Document.ReserveChartDataStartRow(dataSheet, pointCount + 1);
                 updatedRange = dataSheet.WriteChartData(
                     data,
@@ -159,7 +162,9 @@ namespace OfficeIMO.Excel {
             part.ChartSpace.Save();
             _sheet.MarkRequiresSavePreparation();
             DataRange = updatedRange;
-            _sheet.Document.ReleaseOwnedChartDataRange(currentRange, updatedRange);
+            _sheet.Document.ReleaseOwnedChartDataRange(
+                currentRange,
+                sharedRange ? currentRange : updatedRange);
             return this;
         }
 

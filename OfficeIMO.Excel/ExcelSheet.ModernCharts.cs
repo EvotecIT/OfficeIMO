@@ -55,15 +55,26 @@ namespace OfficeIMO.Excel {
             ValidateModernChartText(title, nameof(title));
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
-            ExcelSheet dataSheet = _excelDocument.GetOrCreateChartDataSheet();
-            int startRow = _excelDocument.ReserveChartDataStartRow(dataSheet, GetChartDataPointCount(data) + 1);
-            ExcelChartDataRange range = dataSheet.WriteChartData(data, startRow, 1);
-
+            ExcelChartDataRange? range = null;
             Xdr.GraphicFrame? frame = null;
             DrawingsPart? drawingsPart = null;
             WriteLock(() => {
                 DocumentFormat.OpenXml.Spreadsheet.Drawing? drawing = WorksheetRoot
                     .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
+                if (drawing != null) {
+                    string drawingRelationshipId = drawing.Id?.Value ?? string.Empty;
+                    if (drawingRelationshipId.Length == 0
+                        || TryGetPartById(_worksheetPart, drawingRelationshipId) is not DrawingsPart existingDrawingsPart) {
+                        throw new InvalidOperationException("Worksheet drawing relationship is missing or invalid.");
+                    }
+                    drawingsPart = existingDrawingsPart;
+                }
+
+                ExcelSheet dataSheet = _excelDocument.GetOrCreateChartDataSheet();
+                int startRow = _excelDocument.ReserveChartDataStartRow(
+                    dataSheet,
+                    GetChartDataPointCount(data) + 1);
+                range = dataSheet.WriteChartData(data, startRow, 1);
                 if (drawing == null) {
                     drawingsPart = _worksheetPart.AddNewPart<DrawingsPart>();
                     drawingsPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
@@ -71,12 +82,11 @@ namespace OfficeIMO.Excel {
                         Id = _worksheetPart.GetIdOfPart(drawingsPart)
                     });
                 } else {
-                    drawingsPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
-                    drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
+                    drawingsPart!.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
                 }
 
                 ExtendedChartPart chartPart = drawingsPart!.AddNewPart<ExtendedChartPart>();
-                chartPart.ChartSpace = BuildModernChartSpace(data, range, layout, title);
+                chartPart.ChartSpace = BuildModernChartSpace(data, range!, layout, title);
                 chartPart.ChartSpace.Save();
                 string relationshipId = drawingsPart.GetIdOfPart(chartPart);
                 long width = PxToEmu(widthPixels);
@@ -105,7 +115,7 @@ namespace OfficeIMO.Excel {
                 drawingsPart.WorksheetDrawing.Save();
                 MarkRequiresSavePreparation();
             });
-            return new ExcelModernChart(frame!, drawingsPart!, this, range);
+            return new ExcelModernChart(frame!, drawingsPart!, this, range!);
         }
 
         internal static void ValidateModernChartPlacement(int row, int column, int widthPixels, int heightPixels) {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -107,6 +108,36 @@ namespace OfficeIMO.Excel {
                 }
             }
             return references;
+        }
+
+        internal bool IsOwnedChartDataRangeShared(
+            ExcelChartDataRange range,
+            ExtendedChartPart ownerPart) {
+            if (range == null) throw new ArgumentNullException(nameof(range));
+            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
+            ExcelReference ownedRange = ExcelReference.Parse(range.DataRangeA1);
+
+            IEnumerable<ExtendedChartPart> chartParts = WorkbookPartRoot.WorksheetParts
+                .SelectMany(part => part.DrawingsPart?.ExtendedChartParts
+                    ?? Enumerable.Empty<ExtendedChartPart>())
+                .Concat(WorkbookPartRoot.ChartsheetParts.SelectMany(part =>
+                    part.DrawingsPart?.ExtendedChartParts
+                    ?? Enumerable.Empty<ExtendedChartPart>()));
+            foreach (ExtendedChartPart chartPart in chartParts) {
+                if (ReferenceEquals(chartPart, ownerPart)) continue;
+                foreach (string formula in EnumerateMutationFormulaTexts(chartPart.ChartSpace)) {
+                    if (!ExcelChartUtils.TryParseSheetQualifiedRange(
+                            formula,
+                            out string sheetName,
+                            out string reference)
+                        || !string.Equals(sheetName, range.SheetName, StringComparison.OrdinalIgnoreCase)
+                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)) {
+                        continue;
+                    }
+                    if (parsed!.Intersects(ownedRange)) return true;
+                }
+            }
+            return false;
         }
 
         private static IReadOnlyList<ExcelReference> SubtractChartDataRange(
