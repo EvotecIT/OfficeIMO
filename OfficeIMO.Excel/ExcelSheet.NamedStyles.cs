@@ -30,16 +30,18 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>Lists workbook named styles.</summary>
         public IReadOnlyList<ExcelNamedStyleInfo> GetNamedStyles() {
-            Stylesheet? stylesheet = WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-            if (stylesheet?.CellStyles == null) return System.Array.Empty<ExcelNamedStyleInfo>();
-            return new ReadOnlyCollection<ExcelNamedStyleInfo>(stylesheet.CellStyles.Elements<CellStyle>()
-                .Where(style => !string.IsNullOrWhiteSpace(style.Name?.Value))
-                .Select(style => new ExcelNamedStyleInfo(
-                    style.Name!.Value!,
-                    style.FormatId?.Value ?? 0U,
-                    style.BuiltinId?.Value,
-                    style.Hidden?.Value == true))
-                .ToArray());
+            return Locking.ExecuteRead<IReadOnlyList<ExcelNamedStyleInfo>>(EnsureLock(), () => {
+                Stylesheet? stylesheet = WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
+                if (stylesheet?.CellStyles == null) return System.Array.Empty<ExcelNamedStyleInfo>();
+                return new ReadOnlyCollection<ExcelNamedStyleInfo>(stylesheet.CellStyles.Elements<CellStyle>()
+                    .Where(style => !string.IsNullOrWhiteSpace(style.Name?.Value))
+                    .Select(style => new ExcelNamedStyleInfo(
+                        style.Name!.Value!,
+                        style.FormatId?.Value ?? 0U,
+                        style.BuiltinId?.Value,
+                        style.Hidden?.Value == true))
+                    .ToArray());
+            });
         }
 
         /// <summary>Removes a custom named-style catalog entry without changing already formatted cells.</summary>

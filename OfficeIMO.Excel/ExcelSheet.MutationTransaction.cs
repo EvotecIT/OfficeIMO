@@ -8,6 +8,7 @@ using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Excel {
@@ -531,8 +532,10 @@ namespace OfficeIMO.Excel {
             int maximumDiagnostics,
             CancellationToken cancellationToken = default) {
             var diagnostics = new List<ExcelMutationDiagnostic>(maximumDiagnostics);
-            foreach (var error in ValidateDocument(DocumentFormat.OpenXml.FileFormatVersions.Microsoft365)) {
-                cancellationToken.ThrowIfCancellationRequested();
+            var validator = new OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Microsoft365) {
+                MaxNumberOfErrors = maximumDiagnostics
+            };
+            foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument, cancellationToken)) {
                 if (diagnostics.Count >= maximumDiagnostics) break;
                 diagnostics.Add(new ExcelMutationDiagnostic(
                     "OPENXML_VALIDATION",

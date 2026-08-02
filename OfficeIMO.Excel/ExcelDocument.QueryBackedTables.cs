@@ -174,6 +174,7 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet = this[source.WorksheetName];
             string updatedRange = sheet.ReplaceQueryBackedTableData(
                 source.TableName,
+                source.ConnectionId,
                 materialized.Columns,
                 materialized.Rows,
                 cancellationToken);

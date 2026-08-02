@@ -62,14 +62,44 @@ namespace OfficeIMO.Drawing.Internal {
                         "Unable to secure the owner-only temporary file (OS error "
                         + Marshal.GetLastWin32Error() + ").");
                 }
-                handle.Dispose();
+                var stream = new UnixOwnerOnlyFileStream(handle, path, bufferSize, options);
                 handle = null!;
-                return new FileStream(path, FileMode.Open, FileAccess.ReadWrite,
-                    FileShare.None, bufferSize, options);
+                return stream;
             } catch {
                 handle?.Dispose();
                 TryDelete(path);
                 throw;
+            }
+        }
+
+        private sealed class UnixOwnerOnlyFileStream : FileStream {
+            private readonly bool _deleteOnClose;
+            private readonly string _path;
+            private bool _deleted;
+
+            internal UnixOwnerOnlyFileStream(
+                SafeFileHandle handle,
+                string path,
+                int bufferSize,
+                FileOptions options)
+                : base(
+                    handle,
+                    FileAccess.ReadWrite,
+                    bufferSize,
+                    (options & FileOptions.Asynchronous) != 0) {
+                _path = path;
+                _deleteOnClose = (options & FileOptions.DeleteOnClose) != 0;
+            }
+
+            protected override void Dispose(bool disposing) {
+                try {
+                    base.Dispose(disposing);
+                } finally {
+                    if (_deleteOnClose && !_deleted) {
+                        _deleted = true;
+                        TryDelete(_path);
+                    }
+                }
             }
         }
 

@@ -113,6 +113,12 @@ namespace OfficeIMO.Excel {
             }
             ExcelSheet.ValidateModernChartData(data);
             ExtendedChartPart part = GetChartPart();
+            Cx.ChartSpace root = part.ChartSpace ?? throw new InvalidOperationException("Modern chart root is missing.");
+            Cx.Chart chart = root.GetFirstChild<Cx.Chart>()
+                ?? throw new InvalidOperationException("Modern chart content is missing.");
+            Cx.PlotArea plotArea = chart.GetFirstChild<Cx.PlotArea>()
+                ?? throw new InvalidOperationException("Modern chart plot area is missing.");
+            Cx.PlotAreaRegion? currentRegion = plotArea.GetFirstChild<Cx.PlotAreaRegion>();
             string layout = ExcelSheet.GetModernChartLayout(ChartType);
             int pointCount = data.Categories.Count;
             ExcelChartDataRange updatedRange = currentRange.WithSize(pointCount, data.Series.Count);
@@ -134,7 +140,6 @@ namespace OfficeIMO.Excel {
                     orientation: updatedRange.Orientation);
             }
 
-            Cx.ChartSpace root = part.ChartSpace ?? throw new InvalidOperationException("Modern chart root is missing.");
             Cx.ChartSpace replacement = ExcelSheet.BuildModernChartSpace(
                 data,
                 updatedRange,
@@ -146,10 +151,7 @@ namespace OfficeIMO.Excel {
             else root.ReplaceChild((Cx.ChartData)replacementData.CloneNode(true), currentData);
 
             Cx.PlotAreaRegion replacementRegion = replacement.Descendants<Cx.PlotAreaRegion>().First();
-            Cx.PlotAreaRegion? currentRegion = root.Descendants<Cx.PlotAreaRegion>().FirstOrDefault();
             if (currentRegion == null) {
-                Cx.PlotArea plotArea = root.Descendants<Cx.PlotArea>().FirstOrDefault()
-                    ?? throw new InvalidOperationException("Modern chart plot area is missing.");
                 plotArea.Append((Cx.PlotAreaRegion)replacementRegion.CloneNode(true));
             } else {
                 MergePlotAreaSeries(currentRegion, replacementRegion);

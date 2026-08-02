@@ -167,6 +167,8 @@ namespace OfficeIMO.Shared.Tests {
 
             string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             string retainedPath = Path.Combine(root, "retained.tmp");
+            string movedRetainedPath = Path.Combine(root, "retained-original.tmp");
+            string victimPath = Path.Combine(root, "victim.tmp");
             string unlinkedPath = Path.Combine(root, "unlinked.tmp");
             string occupiedPath = Path.Combine(root, "occupied.tmp");
             Directory.CreateDirectory(root);
@@ -188,7 +190,13 @@ namespace OfficeIMO.Shared.Tests {
                     Assert.Equal(
                         UnixFileMode.UserRead | UnixFileMode.UserWrite,
                         File.GetUnixFileMode(retainedPath) & accessBits);
+                    File.Move(retainedPath, movedRetainedPath);
+                    File.WriteAllBytes(victimPath, new byte[] { 7 });
+                    File.CreateSymbolicLink(retainedPath, victimPath);
                     stream.WriteByte(1);
+                    stream.Flush();
+                    Assert.Equal(new byte[] { 7 }, File.ReadAllBytes(victimPath));
+                    Assert.Equal(new byte[] { 1 }, File.ReadAllBytes(movedRetainedPath));
                 }
 
                 using (FileStream stream = OfficeTemporaryFile.CreateUnixOwnerOnly(
@@ -209,6 +217,8 @@ namespace OfficeIMO.Shared.Tests {
                 Assert.Equal(new byte[] { 7, 8, 9 }, File.ReadAllBytes(occupiedPath));
             } finally {
                 OfficeFileCommit.DeleteIfExists(retainedPath);
+                OfficeFileCommit.DeleteIfExists(movedRetainedPath);
+                OfficeFileCommit.DeleteIfExists(victimPath);
                 OfficeFileCommit.DeleteIfExists(unlinkedPath);
                 OfficeFileCommit.DeleteIfExists(occupiedPath);
                 if (Directory.Exists(root)) Directory.Delete(root, true);

@@ -37,6 +37,7 @@ namespace OfficeIMO.Excel {
 
         internal string ReplaceQueryBackedTableData(
             string tableName,
+            uint expectedConnectionId,
             IReadOnlyList<string> columnNames,
             IReadOnlyList<object?[]> rows,
             CancellationToken cancellationToken) {
@@ -48,6 +49,10 @@ namespace OfficeIMO.Excel {
                 Table table = tablePart.Table ?? throw new InvalidDataException("Query-backed table definition is missing.");
                 QueryTablePart queryPart = tablePart.QueryTableParts.FirstOrDefault()
                     ?? throw new InvalidOperationException($"Table '{tableName}' is not query-backed.");
+                if (queryPart.QueryTable?.ConnectionId?.Value != expectedConnectionId) {
+                    throw new InvalidOperationException(
+                        $"Query-backed table '{tableName}' changed while its query was executing.");
+                }
                 var current = A1.ParseRange(table.Reference?.Value
                     ?? throw new InvalidDataException("Query-backed table range is missing."));
                 NormalizeImplicitCellReferences();

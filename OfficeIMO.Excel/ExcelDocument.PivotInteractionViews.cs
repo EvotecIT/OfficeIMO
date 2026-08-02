@@ -35,12 +35,12 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(options), "Slicer item columns must be between 1 and 20,000.");
             }
 
-            string viewName = ResolveNativeInteractionName(
-                options.Name,
-                "Slicer_" + sourceField.Trim(),
-                GetPivotInteractions().Select(item => item.Name));
             ExcelPivotInteractionInfo? created = null;
             targetSheet.ApplyTransactionalMutation(_ => {
+                string viewName = ResolveNativeInteractionName(
+                    options.Name,
+                    "Slicer_" + sourceField.Trim(),
+                    EnumeratePivotInteractionNames());
                 PivotTablePart pivotPart = FindPivotTablePart(pivot)
                     ?? throw new InvalidOperationException($"Pivot table '{pivot.Name}' has no package part.");
                 SlicerCachePart cachePart = ResolveOrCreateSlicerCache(
@@ -116,12 +116,12 @@ namespace OfficeIMO.Excel {
                 sourceBounds = GetTimelineBounds(sourceCacheField, pivot);
             }
 
-            string viewName = ResolveNativeInteractionName(
-                options.Name,
-                "Timeline_" + sourceField.Trim(),
-                GetPivotInteractions().Select(item => item.Name));
             ExcelPivotInteractionInfo? created = null;
             targetSheet.ApplyTransactionalMutation(_ => {
+                string viewName = ResolveNativeInteractionName(
+                    options.Name,
+                    "Timeline_" + sourceField.Trim(),
+                    EnumeratePivotInteractionNames());
                 TimeLineCachePart cachePart = ResolveOrCreateTimelineCache(
                     pivot,
                     pivotPart,
@@ -334,6 +334,21 @@ namespace OfficeIMO.Excel {
                 if (!names.Contains(generated)) return generated;
             }
             throw new InvalidOperationException("Unable to allocate a unique pivot interaction name.");
+        }
+
+        private IEnumerable<string> EnumeratePivotInteractionNames() {
+            foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
+                foreach (SlicersPart part in worksheetPart.SlicersParts) {
+                    foreach (X14.Slicer view in part.Slicers?.Elements<X14.Slicer>() ?? Enumerable.Empty<X14.Slicer>()) {
+                        if (!string.IsNullOrWhiteSpace(view.Name?.Value)) yield return view.Name!.Value!;
+                    }
+                }
+                foreach (TimeLinePart part in worksheetPart.TimeLineParts) {
+                    foreach (X15.Timeline view in part.Timelines?.Elements<X15.Timeline>() ?? Enumerable.Empty<X15.Timeline>()) {
+                        if (!string.IsNullOrWhiteSpace(view.Name?.Value)) yield return view.Name!.Value!;
+                    }
+                }
+            }
         }
 
         private SlicerCachePart ResolveOrCreateSlicerCache(
