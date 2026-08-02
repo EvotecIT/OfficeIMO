@@ -9,23 +9,25 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void Test_FormulaReplacement_PreservesCacheButMarksOrdinaryAndArrayFormulasDirty() {
+        public void Test_FormulaAuthoring_PreservesRetainedCachesButMarksEveryFormulaKindDirty() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Calc");
 
             sheet.CellValue(1, 1, 4d);
             sheet.CellValue(1, 2, 4d);
+            sheet.CellValue(1, 3, 4d);
             sheet.CellFormula(1, 1, "2+2");
-            sheet.CellFormula(1, 2, "2+2");
+            sheet.SetArrayFormula("B1:B1", "2+2");
+            sheet.SetLegacyArrayFormula("C1:C1", "2+2");
 
             Assert.All(sheet.GetFormulaCells(), formula => {
                 Assert.Equal("4", formula.CachedValue);
-                Assert.True(formula.State.HasFlag(ExcelFormulaState.Evaluated));
-                Assert.False(formula.State.HasFlag(ExcelFormulaState.Dirty));
+                Assert.True(formula.State.HasFlag(ExcelFormulaState.Dirty));
+                Assert.True(formula.State.HasFlag(ExcelFormulaState.Deferred));
+                Assert.False(formula.State.HasFlag(ExcelFormulaState.Evaluated));
             });
 
             sheet.CellFormula(1, 1, "3+3");
-            sheet.SetArrayFormula("B1:B1", "3+3");
 
             Assert.All(sheet.GetFormulaCells(), formula => {
                 Assert.Equal("4", formula.CachedValue);

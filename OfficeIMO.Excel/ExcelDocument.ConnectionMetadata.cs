@@ -243,7 +243,7 @@ namespace OfficeIMO.Excel {
             WriteOpenXmlPartText(part, xml);
         }
 
-        private static string ReadOpenXmlPartText(OpenXmlPart part) {
+        internal static string ReadOpenXmlPartText(OpenXmlPart part) {
             if (part is ConnectionsPart connectionsPart && connectionsPart.IsRootElementLoaded) {
                 Connections? connections = connectionsPart.Connections;
                 if (connections == null) return string.Empty;

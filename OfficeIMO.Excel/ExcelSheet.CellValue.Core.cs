@@ -301,14 +301,17 @@ namespace OfficeIMO.Excel {
         private void CellFormulaCore(int row, int column, string formula) {
             var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             Cell cell = GetCell(row, column);
-            bool replacesCachedFormula = cell.CellFormula != null && cell.CellValue != null;
+            bool retainsCachedValue = cell.CellValue != null;
             ClearCellValueMetadata(cell);
             // Excel formulas in XML should not start with '=' and must not include illegal control characters
             cell.CellFormula = new CellFormula(safe);
-            if (replacesCachedFormula) {
+            if (retainsCachedValue) {
                 cell.CellFormula.CalculateCell = true;
             }
-            _excelDocument.MarkFormulaAuthored(_worksheetPart, A1.CellReference(row, column));
+            _excelDocument.MarkFormulaAuthored(
+                _worksheetPart,
+                A1.CellReference(row, column),
+                retainedCachedValue: retainsCachedValue);
             ClearHeaderCacheForCellMutation(row, column);
         }
 

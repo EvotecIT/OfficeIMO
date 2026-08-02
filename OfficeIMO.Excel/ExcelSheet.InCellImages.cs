@@ -97,6 +97,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 using var imageStream = new MemoryStream(imageBytes, writable: false);
                 SetInCellImageCore(row, column, imageStream, contentType, text);
+                CompleteCellValueMutation(row, column);
                 WorksheetRoot.Save();
             });
             return new ExcelInCellImage(A1.CellReference(row, column), contentType, text, (byte[])imageBytes.Clone());
@@ -317,6 +318,7 @@ namespace OfficeIMO.Excel {
                 cell.CellValue = null;
                 cell.DataType = null;
                 cell.InlineString = null;
+                CompleteCellValueMutation(row, column);
                 WorksheetRoot.Save();
                 removed = true;
             });

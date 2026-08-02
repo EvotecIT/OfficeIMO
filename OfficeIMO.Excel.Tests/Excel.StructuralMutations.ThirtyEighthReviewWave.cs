@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -68,6 +69,12 @@ namespace OfficeIMO.Tests {
             data.CellValue(1, 1, 2d);
             calculations.CellValue(1, 1, 4d);
             calculations.CellFormula(1, 1, "Data!A1*2");
+            Cell formulaCell = calculations.WorksheetPart.Worksheet.Descendants<Cell>()
+                .Single(cell => cell.CellReference?.Value == "A1");
+            formulaCell.CellFormula!.CalculateCell = false;
+            document.MarkFormulaSheetRecalculated(
+                calculations.WorksheetPart,
+                document.CaptureFormulaInputMutationVersion());
 
             ExcelFormulaCellInfo evaluated = Assert.Single(calculations.GetFormulaCells());
             Assert.Equal("4", evaluated.CachedValue);

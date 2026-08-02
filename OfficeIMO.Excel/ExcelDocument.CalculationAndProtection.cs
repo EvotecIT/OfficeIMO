@@ -30,9 +30,15 @@ namespace OfficeIMO.Excel {
                     || recalculationVersion < mutationVersion);
         }
 
-        internal void MarkFormulaAuthored(WorksheetPart worksheetPart, string cellReference) {
+        internal void MarkFormulaAuthored(
+            WorksheetPart worksheetPart,
+            string cellReference,
+            bool retainedCachedValue = false) {
             _formulaAuthoredVersions[(worksheetPart.Uri, cellReference)] =
                 Interlocked.Read(ref _formulaInputMutationVersion);
+            if (retainedCachedValue) {
+                MarkFormulaInputMutation();
+            }
         }
 
         internal bool HasFormulaInputMutationsAfterFormulaBaseline(WorksheetPart worksheetPart, string cellReference) {

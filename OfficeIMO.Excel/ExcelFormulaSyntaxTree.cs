@@ -168,11 +168,19 @@ namespace OfficeIMO.Excel {
                 }
 
                 int end = start + literal.Length;
-                if (end < formula.Length && IsNamePart(formula[end])) {
+                bool deletedReference = string.Equals(literal, "#REF!", StringComparison.OrdinalIgnoreCase);
+                if (!deletedReference && end < formula.Length && IsNamePart(formula[end])) {
                     continue;
                 }
 
                 length = literal.Length;
+                if (deletedReference) {
+                    System.Text.RegularExpressions.Match deletedAddress =
+                        ExcelFormulaReferenceRewriter.SharedFormulaReferenceAtCursorRegex.Match(formula, end);
+                    if (deletedAddress.Success) {
+                        length += deletedAddress.Length;
+                    }
+                }
                 return true;
             }
 

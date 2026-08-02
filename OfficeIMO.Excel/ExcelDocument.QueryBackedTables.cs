@@ -104,29 +104,32 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Lists query-backed worksheet tables that have a resolvable native query-table relationship.</summary>
         public IReadOnlyList<ExcelQueryBackedTableInfo> GetQueryBackedTables() {
-            IReadOnlyDictionary<uint, (string Name, string Command)> connections = ReadNativeQueryConnections();
-            var results = new List<ExcelQueryBackedTableInfo>();
-            foreach (ExcelSheet sheet in Sheets) {
-                foreach (TableDefinitionPart tablePart in sheet.WorksheetPart.TableDefinitionParts) {
-                    Table? table = tablePart.Table;
-                    if (table == null) continue;
-                    QueryTablePart? queryPart = tablePart.QueryTableParts.FirstOrDefault();
-                    if (queryPart?.QueryTable?.ConnectionId?.Value is not uint connectionId) continue;
-                    if (!connections.TryGetValue(connectionId, out var connection)) continue;
-                    string tableName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
-                    results.Add(new ExcelQueryBackedTableInfo(
-                        connectionId,
-                        connection.Name ?? string.Empty,
-                        connection.Command ?? string.Empty,
-                        sheet.Name,
-                        tableName,
-                        table.Reference?.Value ?? string.Empty,
-                        imported: !_authoredQueryConnectionIds.Contains(connectionId)));
+            MaterializeDeferredDataSetImport();
+            return Locking.ExecuteRead(EnsureLock(), () => {
+                IReadOnlyDictionary<uint, (string Name, string Command)> connections = ReadNativeQueryConnections();
+                var results = new List<ExcelQueryBackedTableInfo>();
+                foreach (ExcelSheet sheet in BuildSheetsWithoutCaching()) {
+                    foreach (TableDefinitionPart tablePart in sheet.WorksheetPart.TableDefinitionParts) {
+                        Table? table = tablePart.Table;
+                        if (table == null) continue;
+                        QueryTablePart? queryPart = tablePart.QueryTableParts.FirstOrDefault();
+                        if (queryPart?.QueryTable?.ConnectionId?.Value is not uint connectionId) continue;
+                        if (!connections.TryGetValue(connectionId, out var connection)) continue;
+                        string tableName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
+                        results.Add(new ExcelQueryBackedTableInfo(
+                            connectionId,
+                            connection.Name ?? string.Empty,
+                            connection.Command ?? string.Empty,
+                            sheet.Name,
+                            tableName,
+                            table.Reference?.Value ?? string.Empty,
+                            imported: !_authoredQueryConnectionIds.Contains(connectionId)));
+                    }
                 }
-            }
-            return results.OrderBy(item => item.WorksheetName, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(item => item.TableName, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+                return results.OrderBy(item => item.WorksheetName, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(item => item.TableName, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            });
         }
 
         /// <summary>Executes one query through an explicit caller host and atomically replaces its owned table data.</summary>

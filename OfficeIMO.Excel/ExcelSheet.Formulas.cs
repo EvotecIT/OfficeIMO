@@ -473,15 +473,18 @@ namespace OfficeIMO.Excel {
                 }
 
                 var topLeft = GetCell(r1, c1);
-                bool replacesCachedFormula = topLeft.CellFormula != null && topLeft.CellValue != null;
+                bool retainsCachedValue = topLeft.CellValue != null;
                 topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
-                if (replacesCachedFormula) {
+                if (retainsCachedValue) {
                     topLeft.CellFormula.CalculateCell = true;
                 }
-                _excelDocument.MarkFormulaAuthored(_worksheetPart, A1.CellReference(r1, c1));
+                _excelDocument.MarkFormulaAuthored(
+                    _worksheetPart,
+                    A1.CellReference(r1, c1),
+                    retainedCachedValue: retainsCachedValue);
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
                         if (row == r1 && column == c1) continue;
@@ -506,15 +509,18 @@ namespace OfficeIMO.Excel {
 
             WriteLock(() => {
                 var topLeft = GetCell(r1, c1);
-                bool replacesCachedFormula = topLeft.CellFormula != null && topLeft.CellValue != null;
+                bool retainsCachedValue = topLeft.CellValue != null;
                 topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
-                if (replacesCachedFormula) {
+                if (retainsCachedValue) {
                     topLeft.CellFormula.CalculateCell = true;
                 }
-                _excelDocument.MarkFormulaAuthored(_worksheetPart, A1.CellReference(r1, c1));
+                _excelDocument.MarkFormulaAuthored(
+                    _worksheetPart,
+                    A1.CellReference(r1, c1),
+                    retainedCachedValue: retainsCachedValue);
                 WorksheetRoot.Save();
             });
         }

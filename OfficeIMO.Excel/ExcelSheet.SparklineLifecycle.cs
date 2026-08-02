@@ -28,20 +28,22 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>Lists authored worksheet sparklines in package order.</summary>
         public IReadOnlyList<ExcelSparklineInfo> GetSparklines() {
-            var result = new List<ExcelSparklineInfo>();
-            int groupIndex = 0;
-            foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>()) {
-                SparklineTypeValues type = group.Type?.Value ?? SparklineTypeValues.Line;
-                foreach (Sparkline sparkline in group.Descendants<Sparkline>()) {
-                    result.Add(new ExcelSparklineInfo(
-                        groupIndex,
-                        sparkline.Formula?.Text ?? string.Empty,
-                        sparkline.GetFirstChild<OfficeReferenceSequence>()?.Text ?? string.Empty,
-                        type));
+            return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+                var result = new List<ExcelSparklineInfo>();
+                int groupIndex = 0;
+                foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>()) {
+                    SparklineTypeValues type = group.Type?.Value ?? SparklineTypeValues.Line;
+                    foreach (Sparkline sparkline in group.Descendants<Sparkline>()) {
+                        result.Add(new ExcelSparklineInfo(
+                            groupIndex,
+                            sparkline.Formula?.Text ?? string.Empty,
+                            sparkline.GetFirstChild<OfficeReferenceSequence>()?.Text ?? string.Empty,
+                            type));
+                    }
+                    groupIndex++;
                 }
-                groupIndex++;
-            }
-            return new ReadOnlyCollection<ExcelSparklineInfo>(result);
+                return new ReadOnlyCollection<ExcelSparklineInfo>(result);
+            });
         }
 
         /// <summary>Changes the type of every sparkline whose destination intersects a range.</summary>
