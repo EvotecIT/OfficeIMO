@@ -238,7 +238,6 @@ namespace OfficeIMO.Word {
             var unsupportedDetails = new List<string>();
             var details = new List<string>();
             var certificateByteBudget = new OfficePackageCertificateByteBudget(maxTotalCertificateBytes);
-            var digestWorkBudget = new OfficePackageDigestWorkBudget(maxTotalDigestBytes);
             string? originRelationshipId = null;
 
             OfficePackageSignatureArchive? signatureArchive = null;
@@ -279,6 +278,7 @@ namespace OfficeIMO.Word {
                     HashSet<string> packagePartUris = GetPackagePartUris(packageParts);
                     if (signatureArchive != null) packagePartUris.UnionWith(signatureArchive.PartUris);
                     foreach (XmlSignaturePart signaturePart in originPart.XmlSignatureParts) {
+                        var digestWorkBudget = new OfficePackageDigestWorkBudget(maxTotalDigestBytes);
                         OfficePackageSignaturePartInfo partInfo = InspectSignaturePart(
                             originPart,
                             signaturePart,

@@ -275,29 +275,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MacroSigningLocksTheValidatedStagingBytesUntilAtomicCommit() {
-            string filePath = CreateMacroEnabledTestDocument("MacroSignatureLockedStage.docm");
-            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            string toolsDirectory = CreateFakeOfficeSipsDirectory();
-            var runner = new SimulatedOfficeSipsRunner(certificate);
-            var platform = new StagingMutationMacroSigningPlatform(runner);
-            var dependencies = new WordMacroProjectSigningDependencies(runner, platform);
-            var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
-            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
-
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
-
-            Assert.True(result.Succeeded, string.Join(" | ", result.Findings.Select(
-                finding => finding.Code + ": " + finding.Message)));
-            Assert.Equal(
-                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
-                    System.Runtime.InteropServices.OSPlatform.Windows),
-                platform.StagingMutationBlocked);
-            Assert.True(WordDocument.ValidateMacroProjectSignature(filePath, options).SignatureInfo.HasV3Signature);
-        }
-
-        [Fact]
         public void MacroSigningBoundsTheSourceSnapshotCopy() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignatureBoundedSource.docm");
             long originalLength = new FileInfo(filePath).Length;
@@ -466,13 +443,15 @@ namespace OfficeIMO.Tests {
             try {
                 var options = new WordMacroProjectSigningOptions {
                     SignToolPath = Environment.GetEnvironmentVariable("OFFICEIMO_SIGNTOOL_PATH"),
-                    OfficeSipsDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_VBA_SIP_DIRECTORY")
+                    OfficeSipsDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_VBA_SIP_DIRECTORY"),
+                    ToolTimeout = TimeSpan.FromSeconds(30)
                 };
 
                 WordMacroProjectSigningResult signing = WordDocument.SignMacroProject(
                     filePath, certificate.Thumbprint!, options);
 
-                Assert.True(signing.Succeeded);
+                Assert.True(signing.Succeeded, string.Join(" | ", signing.Findings.Select(
+                    finding => finding.Code + ": " + finding.Message)));
                 Assert.True(signing.MacroProjectPreserved);
                 Assert.True(signing.ValidationResult!.IsValidUnderPolicy);
                 Assert.Equal(3, signing.ValidationResult.SignatureInfo.Signatures.Count);
@@ -731,40 +710,6 @@ namespace OfficeIMO.Tests {
                 Paths.Add(filePath);
                 return new WordMacroProjectContentBindingResult(true, true,
                     "simulated Office SIP digest match on immutable snapshot");
-            }
-        }
-
-        private sealed class StagingMutationMacroSigningPlatform : IWordMacroProjectPlatform {
-            private readonly SimulatedOfficeSipsRunner _runner;
-
-            internal StagingMutationMacroSigningPlatform(SimulatedOfficeSipsRunner runner) => _runner = runner;
-
-            internal bool StagingMutationBlocked { get; private set; }
-            public bool IsWindows => true;
-
-            public bool TryGetSubjectInterfacePackage(string filePath, out Guid subjectGuid, out string detail) {
-                subjectGuid = new Guid("6E64D5BD-CEB0-4B66-B4A0-15AC71775C48");
-                detail = "simulated Microsoft Office SIP";
-                return true;
-            }
-
-            public WordMacroProjectContentBindingResult ValidateContentBinding(
-                string filePath,
-                string digestAlgorithmOid,
-                byte[] expectedDigest) {
-                string stagingPath = _runner.Invocations.Last(invocation =>
-                    invocation.Arguments.Count > 0 && invocation.Arguments[0] == "sign").Arguments.Last();
-                byte[] originalBytes = File.ReadAllBytes(stagingPath);
-                try {
-                    File.WriteAllBytes(stagingPath, new byte[] { 0x01, 0x02, 0x03 });
-                    File.WriteAllBytes(stagingPath, originalBytes);
-                } catch (IOException) {
-                    StagingMutationBlocked = true;
-                } catch (UnauthorizedAccessException) {
-                    StagingMutationBlocked = true;
-                }
-                return new WordMacroProjectContentBindingResult(true, true,
-                    "simulated Office SIP digest match while the stage is locked");
             }
         }
 

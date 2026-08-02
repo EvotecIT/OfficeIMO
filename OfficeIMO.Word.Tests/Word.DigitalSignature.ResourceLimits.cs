@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_DigitalSignature_BoundsAggregatePackageDigestWorkAcrossSignatureParts() {
+        public void Test_DigitalSignature_BoundsPackageDigestWorkPerSignaturePart() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignaturePackageDigestBudget.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph(new string('x', 4096));
@@ -110,17 +110,19 @@ namespace OfficeIMO.Tests {
                 package.DigitalSignatureOriginPart,
                 hasApplicationSignatureMetadata: true,
                 packageBytes,
-                maxTotalDigestBytes: documentPartLength);
+                maxTotalDigestBytes: documentPartLength - 1);
             OfficePackageSignatureInfo allowed = OfficePackageSignatureInspector.Inspect(
                 package,
                 package.DigitalSignatureOriginPart,
                 hasApplicationSignatureMetadata: true,
                 packageBytes,
-                maxTotalDigestBytes: documentPartLength * 2);
+                maxTotalDigestBytes: documentPartLength);
 
             Assert.Equal(2, bounded.SignatureParts.Count);
-            Assert.Contains(bounded.SignatureParts, part =>
-                part.ParseError?.Contains("aggregate digest-work limit", StringComparison.OrdinalIgnoreCase) == true);
+            Assert.All(bounded.SignatureParts, part => Assert.Contains(
+                "aggregate digest-work limit",
+                part.ParseError,
+                StringComparison.OrdinalIgnoreCase));
             Assert.Contains(bounded.UnsupportedDetails, detail =>
                 detail.Contains("aggregate digest-work limit", StringComparison.OrdinalIgnoreCase));
             Assert.All(allowed.SignatureParts, part => {

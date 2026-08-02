@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
     internal sealed class WordMacroProjectToolInvocation {
@@ -70,6 +71,8 @@ namespace OfficeIMO.Word {
     }
 
     internal sealed class WordMacroProjectProcessRunner : IWordMacroProjectToolRunner {
+        private const int ExitGraceMilliseconds = 1000;
+
         public WordMacroProjectToolResult Run(WordMacroProjectToolInvocation invocation, TimeSpan timeout,
             int maxOutputCharacters) {
             if (invocation == null) throw new ArgumentNullException(nameof(invocation));
@@ -93,8 +96,16 @@ namespace OfficeIMO.Word {
 
             using var process = new Process { StartInfo = startInfo };
             var output = new BoundedProcessOutput(maxOutputCharacters);
-            process.OutputDataReceived += (_, args) => output.Append(args.Data);
-            process.ErrorDataReceived += (_, args) => output.Append(args.Data);
+            var standardOutputCompleted = new TaskCompletionSource<bool>();
+            var standardErrorCompleted = new TaskCompletionSource<bool>();
+            process.OutputDataReceived += (_, args) => {
+                if (args.Data == null) standardOutputCompleted.TrySetResult(true);
+                else output.Append(args.Data);
+            };
+            process.ErrorDataReceived += (_, args) => {
+                if (args.Data == null) standardErrorCompleted.TrySetResult(true);
+                else output.Append(args.Data);
+            };
             try {
                 if (!process.Start()) {
                     return new WordMacroProjectToolResult(null, false,
@@ -104,17 +115,43 @@ namespace OfficeIMO.Word {
                 process.BeginErrorReadLine();
                 bool exited = process.WaitForExit(checked((int)timeout.TotalMilliseconds));
                 if (!exited) {
-                    try { process.Kill(); } catch (InvalidOperationException) { }
-                    process.WaitForExit();
+                    TryTerminateProcess(process);
+                    process.WaitForExit(ExitGraceMilliseconds);
+                    DrainRedirectedOutput(process, standardOutputCompleted.Task, standardErrorCompleted.Task, output);
                     return new WordMacroProjectToolResult(null, true, output.ToString());
                 }
-                process.WaitForExit();
+                DrainRedirectedOutput(process, standardOutputCompleted.Task, standardErrorCompleted.Task, output);
                 return new WordMacroProjectToolResult(process.ExitCode, false, output.ToString());
             } catch (Exception exception) when (exception is Win32Exception || exception is IOException ||
                 exception is InvalidOperationException || exception is UnauthorizedAccessException ||
                 exception is PlatformNotSupportedException || exception is NotSupportedException) {
                 return new WordMacroProjectToolResult(null, false, exception.Message);
             }
+        }
+
+        private static void TryTerminateProcess(Process process) {
+            try {
+#if NET6_0_OR_GREATER
+                process.Kill(entireProcessTree: true);
+#else
+                process.Kill();
+#endif
+            } catch (Exception exception) when (exception is InvalidOperationException ||
+                exception is Win32Exception || exception is NotSupportedException) {
+            }
+        }
+
+        private static void DrainRedirectedOutput(
+            Process process,
+            Task standardOutputCompleted,
+            Task standardErrorCompleted,
+            BoundedProcessOutput output) {
+            if (Task.WaitAll(new[] { standardOutputCompleted, standardErrorCompleted }, ExitGraceMilliseconds)) {
+                return;
+            }
+            try { process.CancelOutputRead(); } catch (InvalidOperationException) { }
+            try { process.CancelErrorRead(); } catch (InvalidOperationException) { }
+            output.Append("Redirected process output did not close within the bounded drain period.");
         }
 
 #if !NET6_0_OR_GREATER

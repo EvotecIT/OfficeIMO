@@ -116,9 +116,7 @@ namespace OfficeIMO.Word {
             if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
             if (options.MaxTotalSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalSignatureBytes));
             if (options.MaxRelationships <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRelationships));
-            if (options.CmsVerification.MaxEncodedBytes <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(options.CmsVerification.MaxEncodedBytes));
-            }
+            CmsSignedDataVerifier.ValidateOptions(options.CmsVerification);
         }
 
         internal static bool IsMacroEnabledPath(string filePath) {

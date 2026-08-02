@@ -66,12 +66,8 @@ public static class CmsSignedDataVerifier {
         ArgumentNullException.ThrowIfNull(encodedCms);
 #endif
         options ??= new CmsVerificationOptions();
+        ValidateOptions(options);
         SecurityLimits.EnsureBufferWithinLimit(encodedCms, options.MaxEncodedBytes, nameof(encodedCms));
-        SecurityLimits.EnsureCountWithinLimit(0, options.MaxTimestampTokens, nameof(options.MaxTimestampTokens));
-        SecurityLimits.EnsureBufferWithinLimit(Array.Empty<byte>(), options.MaxTimestampTokenBytes,
-            nameof(options.MaxTimestampTokenBytes));
-        SecurityLimits.EnsureBufferWithinLimit(Array.Empty<byte>(), options.MaxTotalTimestampBytes,
-            nameof(options.MaxTotalTimestampBytes));
         if (detachedContent != null) {
             SecurityLimits.EnsureBufferWithinLimit(detachedContent, options.MaxContentBytes, nameof(detachedContent));
         }
@@ -421,7 +417,27 @@ public static class CmsSignedDataVerifier {
                 }
             }
         }
+
         return results;
+    }
+
+    internal static void ValidateOptions(CmsVerificationOptions options) {
+#if NETSTANDARD2_0 || NET472
+        if (options == null) throw new ArgumentNullException(nameof(options));
+#else
+        ArgumentNullException.ThrowIfNull(options);
+#endif
+        SecurityLimits.EnsureBufferWithinLimit(Array.Empty<byte>(), options.MaxEncodedBytes,
+            nameof(options.MaxEncodedBytes));
+        SecurityLimits.EnsureBufferWithinLimit(Array.Empty<byte>(), options.MaxContentBytes,
+            nameof(options.MaxContentBytes));
+        SecurityLimits.EnsureCountWithinLimit(0, options.MaxSigners, nameof(options.MaxSigners));
+        SecurityLimits.EnsureCountWithinLimit(0, options.MaxCertificates, nameof(options.MaxCertificates));
+        SecurityLimits.EnsureCountWithinLimit(0, options.MaxTimestampTokens, nameof(options.MaxTimestampTokens));
+        SecurityLimits.EnsureBufferWithinLimit(Array.Empty<byte>(), options.MaxTimestampTokenBytes,
+            nameof(options.MaxTimestampTokenBytes));
+        SecurityLimits.EnsureBufferWithinLimit(Array.Empty<byte>(), options.MaxTotalTimestampBytes,
+            nameof(options.MaxTotalTimestampBytes));
     }
 
     private static Rfc3161TimestampVerificationResult CreateTimestampLimitResult(

@@ -6,6 +6,28 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void MacroSignatureInspectionRejectsEveryInvalidNestedCmsLimitBeforeReadingSignatures() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureInvalidCmsLimits.docm");
+            Action<OfficeIMO.Security.CmsVerificationOptions>[] invalidLimits = {
+                options => options.MaxEncodedBytes = 0,
+                options => options.MaxContentBytes = 0,
+                options => options.MaxSigners = 0,
+                options => options.MaxCertificates = 0,
+                options => options.MaxTimestampTokens = 0,
+                options => options.MaxTimestampTokenBytes = 0,
+                options => options.MaxTotalTimestampBytes = 0
+            };
+
+            foreach (Action<OfficeIMO.Security.CmsVerificationOptions> invalidate in invalidLimits) {
+                var options = new WordMacroProjectSignatureInspectionOptions();
+                invalidate(options.CmsVerification);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    WordDocument.InspectMacroProjectSignatures(filePath, options));
+            }
+        }
+
+        [Fact]
         public void MacroSignatureInspectorSharesTimestampCountBudgetAcrossProfiles() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignatureTimestampCountBudget.docm");
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
