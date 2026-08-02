@@ -108,5 +108,23 @@ namespace OfficeIMO.Tests {
                 .Descendants<A.HyperlinkOnClick>());
             Assert.Empty(presentation.ValidateDocument());
         }
+
+        [Fact]
+        public void CustomShows_ReuseFreeIdentifierWhenMaximumIsOccupied() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow maximum = presentation.AddCustomShow(
+                "Maximum", new[] { slide });
+            maximum.OpenXmlElement.Id = uint.MaxValue;
+
+            PowerPointCustomShow allocated = presentation.AddCustomShow(
+                "Available", new[] { slide });
+
+            Assert.Equal(1U, allocated.Id);
+            Assert.Equal(new[] { uint.MaxValue, 1U },
+                presentation.CustomShows.Select(show => show.Id));
+            Assert.Empty(presentation.ValidateDocument());
+        }
     }
 }

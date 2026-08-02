@@ -194,6 +194,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BasicCycleAuthorsEveryExportedTopologyEdge() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddSmartArt(PowerPointSmartArtType.BasicCycle,
+                new[] { "Plan", "Run", "Learn", "Improve" });
+
+            Dgm.LayoutDefinition layout = Assert.Single(slide.SlidePart
+                .DiagramLayoutDefinitionParts).LayoutDefinition!;
+            Dgm.ForEach transitions = Assert.Single(
+                layout.Descendants<Dgm.ForEach>(), iterator =>
+                    iterator.Name?.Value == "cycleTransitions");
+            Assert.Equal("followSib", transitions.Axis?.InnerText);
+            Assert.Equal("sibTrans", transitions.PointType?.InnerText);
+            Assert.Equal("0", transitions.HideLastTrans?.InnerText);
+            Dgm.LayoutNode connector = Assert.Single(
+                transitions.Elements<Dgm.LayoutNode>());
+            Assert.Equal(Dgm.AlgorithmValues.Connector,
+                connector.GetFirstChild<Dgm.Algorithm>()!.Type!.Value);
+            Assert.Equal("conn",
+                connector.GetFirstChild<Dgm.Shape>()!.Type!.Value);
+
+            PowerPointSlideVisualSnapshot snapshot =
+                slide.CreateVisualSnapshot();
+            Assert.Equal(4, snapshot.Drawing.Shapes.Count(shape =>
+                shape.Shape.Kind == OfficeShapeKind.Line));
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void AddSmartArtRejectsUndefinedLayoutKind() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();

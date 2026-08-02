@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                RemoveOutlineFillChildren(outline);
+                RemoveFillChoiceChildren(outline);
                 InsertOutlineChild(outline, new A.SolidFill(new A.RgbColorModelHex { Val = value }));
             }
         }
@@ -39,8 +39,8 @@ namespace OfficeIMO.PowerPoint {
                 A.Outline? outline = GetOutline();
                 IReadOnlyList<OpenXmlCompositeElement> localColors = outline == null
                     ? Array.Empty<OpenXmlCompositeElement>()
-                    : GetOutlineFillColorChoices(outline);
-                if (outline != null && HasExplicitOutlineFill(outline)) {
+                    : GetFillColorChoices(outline);
+                if (outline != null && HasExplicitFillChoice(outline)) {
                     if (localColors.Count == 0) return null;
                     int? localAlpha = localColors[0]
                         .GetFirstChild<A.Alpha>()?.Val?.Value;
@@ -164,9 +164,9 @@ namespace OfficeIMO.PowerPoint {
 
             A.SolidFill? solid = outline.GetFirstChild<A.SolidFill>();
             if (solid == null) {
-                if (HasExplicitOutlineFill(outline)) {
+                if (HasExplicitFillChoice(outline)) {
                     foreach (OpenXmlCompositeElement fillColor in
-                             GetOutlineFillColorChoices(outline)) {
+                             GetFillColorChoices(outline)) {
                         SetColorAlpha(fillColor, opacity);
                     }
                     return;
@@ -194,42 +194,6 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SetColorAlpha(color, opacity);
-        }
-
-        private static bool HasExplicitOutlineFill(A.Outline outline) =>
-            outline.ChildElements.Any(child => child is A.NoFill
-                or A.SolidFill or A.GradientFill or A.PatternFill);
-
-        private static IReadOnlyList<OpenXmlCompositeElement>
-            GetOutlineFillColorChoices(A.Outline outline) {
-            A.SolidFill? solid = outline.GetFirstChild<A.SolidFill>();
-            if (solid != null) {
-                OpenXmlCompositeElement? color = GetColorChoice(solid);
-                return color == null
-                    ? Array.Empty<OpenXmlCompositeElement>()
-                    : new[] { color };
-            }
-
-            A.GradientFill? gradient = outline.GetFirstChild<A.GradientFill>();
-            if (gradient != null) {
-                return gradient.Descendants<A.GradientStop>()
-                    .Select(GetColorChoice)
-                    .Where(color => color != null)
-                    .Cast<OpenXmlCompositeElement>()
-                    .ToArray();
-            }
-
-            A.PatternFill? pattern = outline.GetFirstChild<A.PatternFill>();
-            if (pattern != null) {
-                return pattern.ChildElements
-                    .OfType<OpenXmlCompositeElement>()
-                    .Select(GetColorChoice)
-                    .Where(color => color != null)
-                    .Cast<OpenXmlCompositeElement>()
-                    .ToArray();
-            }
-
-            return Array.Empty<OpenXmlCompositeElement>();
         }
 
         private OpenXmlCompositeElement? GetShapeStyleLineColorChoice(
@@ -290,13 +254,6 @@ namespace OfficeIMO.PowerPoint {
                 A.TailEnd => 4,
                 _ => 100
             };
-        }
-
-        private static void RemoveOutlineFillChildren(A.Outline outline) {
-            outline.RemoveAllChildren<A.NoFill>();
-            outline.RemoveAllChildren<A.SolidFill>();
-            outline.RemoveAllChildren<A.GradientFill>();
-            outline.RemoveAllChildren<A.PatternFill>();
         }
 
         private static void ApplyLineEnd(A.Outline outline, A.LineEndValues? type, A.LineEndWidthValues? width, A.LineEndLengthValues? length, bool isStart) {

@@ -320,14 +320,8 @@ namespace OfficeIMO.PowerPoint {
             uint preferredId,
             ISet<uint> usedIds) {
             if (usedIds.Add(preferredId)) return preferredId;
-            uint candidate = 0;
-            while (!usedIds.Add(candidate)) {
-                if (candidate == uint.MaxValue) {
-                    throw new InvalidOperationException(
-                        "The presentation has no available custom-show identifiers.");
-                }
-                candidate++;
-            }
+            uint candidate = FindAvailableCustomShowId(usedIds, 0U);
+            usedIds.Add(candidate);
             return candidate;
         }
 

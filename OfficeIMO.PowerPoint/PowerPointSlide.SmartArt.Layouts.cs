@@ -136,10 +136,12 @@ namespace OfficeIMO.PowerPoint {
                     (Dgm.ParameterIdValues.StartAngle, "-90"),
                     (Dgm.ParameterIdValues.SpanAngle, "360")));
             root.Append(CreateRootNodeConstraints("node", heightToWidth: 1D,
-                fontSize: 42D));
+                widthFact: 0.72D, fontSize: 42D));
             root.Append(new Dgm.RuleList());
-            root.Append(CreateNodeIterator("cycleNodes",
-                CreateTextLayoutNode("node", "ellipse", square: true)));
+            Dgm.ForEach nodes = CreateNodeIterator("cycleNodes",
+                CreateTextLayoutNode("node", "ellipse", square: true));
+            nodes.Append(CreateCycleConnectorIterator());
+            root.Append(nodes);
             return root;
         }
 
@@ -398,6 +400,34 @@ namespace OfficeIMO.PowerPoint {
             spacer.Append(new Dgm.Constraints());
             spacer.Append(new Dgm.RuleList());
             iterator.Append(spacer);
+            return iterator;
+        }
+
+        private static Dgm.ForEach CreateCycleConnectorIterator() {
+            Dgm.ForEach iterator = new() {
+                Name = "cycleTransitions",
+                Axis = AxisList("followSib"),
+                PointType = PointTypeList("sibTrans"),
+                HideLastTrans = new ListValue<BooleanValue> { InnerText = "0" },
+                Count = UIntList(1U)
+            };
+            Dgm.LayoutNode connector = new() { Name = "cycleConnector" };
+            connector.Append(CreateAlgorithm(Dgm.AlgorithmValues.Connector,
+                (Dgm.ParameterIdValues.BeginningPoints, "radial"),
+                (Dgm.ParameterIdValues.EndPoints, "radial")));
+            connector.Append(CreateLayoutShape("conn"));
+            connector.Append(new Dgm.PresentationOf { Axis = AxisList("self") });
+            connector.Append(new Dgm.Constraints(
+                new Dgm.Constraint {
+                    Type = Dgm.ConstraintValues.Height,
+                    ReferenceType = Dgm.ConstraintValues.Width,
+                    Fact = 1.35D
+                },
+                new Dgm.Constraint {
+                    Type = Dgm.ConstraintValues.ConnectionDistance
+                }));
+            connector.Append(new Dgm.RuleList());
+            iterator.Append(connector);
             return iterator;
         }
 

@@ -223,15 +223,23 @@ namespace OfficeIMO.PowerPoint {
                 }));
 
         private uint AllocateCustomShowId() {
-            uint maximum = PresentationRoot.CustomShowList?
+            var usedIds = new HashSet<uint>(PresentationRoot.CustomShowList?
                 .Elements<P.CustomShow>()
-                .Select(show => show.Id?.Value ?? 0U)
-                .DefaultIfEmpty(0U).Max() ?? 0U;
-            if (maximum == uint.MaxValue) {
-                throw new InvalidOperationException(
-                    "The custom-show identifier space is exhausted.");
-            }
-            return maximum + 1U;
+                .Where(show => show.Id?.Value != null)
+                .Select(show => show.Id!.Value)
+                ?? Enumerable.Empty<uint>());
+            return FindAvailableCustomShowId(usedIds, 1U);
+        }
+
+        private static uint FindAvailableCustomShowId(
+            ISet<uint> usedIds, uint firstCandidate) {
+            uint candidate = firstCandidate;
+            do {
+                if (!usedIds.Contains(candidate)) return candidate;
+                candidate = candidate == uint.MaxValue ? 0U : candidate + 1U;
+            } while (candidate != firstCandidate);
+            throw new InvalidOperationException(
+                "The presentation has no available custom-show identifiers.");
         }
     }
 }

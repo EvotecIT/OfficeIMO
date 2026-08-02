@@ -196,6 +196,58 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
+        [Fact]
+        public void FillTransparencyPreservesActiveNonSolidFillChoice() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape noFillShape = slide.AddRectanglePoints(
+                10, 10, 100, 60);
+            ShapeProperties noFillProperties = ((Shape)noFillShape.Element)
+                .ShapeProperties!;
+            noFillProperties.InsertAfter(new A.NoFill(),
+                noFillProperties.GetFirstChild<A.PresetGeometry>()!);
+
+            noFillShape.FillTransparency = 40;
+
+            Assert.NotNull(noFillProperties.GetFirstChild<A.NoFill>());
+            Assert.Null(noFillProperties.GetFirstChild<A.SolidFill>());
+            Assert.Null(noFillShape.FillTransparency);
+            noFillShape.FillColor = "445566";
+            Assert.Null(noFillProperties.GetFirstChild<A.NoFill>());
+            Assert.Equal("445566", noFillProperties
+                .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+
+            PowerPointAutoShape gradientShape = slide.AddRectanglePoints(
+                130, 10, 100, 60);
+            ShapeProperties gradientProperties = ((Shape)gradientShape.Element)
+                .ShapeProperties!;
+            var gradient = new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(
+                        new A.RgbColorModelHex { Val = "112233" }) {
+                        Position = 0
+                    },
+                    new A.GradientStop(
+                        new A.RgbColorModelHex { Val = "AABBCC" }) {
+                        Position = 100000
+                    }),
+                new A.LinearGradientFill { Angle = 0, Scaled = true });
+            gradientProperties.InsertAfter(gradient,
+                gradientProperties.GetFirstChild<A.PresetGeometry>()!);
+
+            gradientShape.FillTransparency = 60;
+
+            Assert.Null(gradientProperties.GetFirstChild<A.SolidFill>());
+            Assert.All(gradient.Descendants<A.GradientStop>(), stop =>
+                Assert.Equal(40000, stop.Descendants<A.Alpha>()
+                    .Single().Val!.Value));
+            Assert.Equal(60, gradientShape.FillTransparency);
+            gradientShape.FillTransparency = null;
+            Assert.DoesNotContain(gradient.Descendants<A.Alpha>(), _ => true);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
         private static string CreateTempFilePath(string extension) {
             string path = Path.GetTempFileName();
             File.Delete(path);

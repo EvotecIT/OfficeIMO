@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
@@ -21,10 +22,13 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                props.RemoveAllChildren<A.SolidFill>();
-                if (value != null) {
-                    InsertShapePropertyChild(props, new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+                if (value == null) {
+                    props.RemoveAllChildren<A.SolidFill>();
+                    return;
                 }
+                RemoveFillChoiceChildren(props);
+                InsertShapePropertyChild(props,
+                    new A.SolidFill(new A.RgbColorModelHex { Val = value }));
             }
         }
 
@@ -34,16 +38,27 @@ namespace OfficeIMO.PowerPoint {
         public int? FillTransparency {
             get {
                 ShapeProperties? props = GetShapeProperties();
-                A.SolidFill? solid = props?.GetFirstChild<A.SolidFill>();
-                OpenXmlCompositeElement? color = solid == null
-                    ? GetShapeStyleFillColorChoice(createPlaceholder: false)
-                    : GetColorChoice(solid);
-                A.Alpha? alpha = color?.GetFirstChild<A.Alpha>();
-                int? val = alpha?.Val?.Value;
-                if (val == null) {
-                    return null;
+                IReadOnlyList<OpenXmlCompositeElement> localColors = props == null
+                    ? Array.Empty<OpenXmlCompositeElement>()
+                    : GetFillColorChoices(props);
+                if (props != null && HasExplicitFillChoice(props)) {
+                    if (localColors.Count == 0) return null;
+                    int? localAlpha = localColors[0]
+                        .GetFirstChild<A.Alpha>()?.Val?.Value;
+                    if (localAlpha == null || localColors.Any(color =>
+                            color.GetFirstChild<A.Alpha>()?.Val?.Value
+                                != localAlpha)) {
+                        return null;
+                    }
+                    return (int)Math.Round((100000 - localAlpha.Value)
+                        / 1000D);
                 }
-                return (int)Math.Round((100000 - val.Value) / 1000d);
+                OpenXmlCompositeElement? color =
+                    GetShapeStyleFillColorChoice(createPlaceholder: false);
+                int? alpha = color?.GetFirstChild<A.Alpha>()?.Val?.Value;
+                return alpha == null
+                    ? null
+                    : (int)Math.Round((100000 - alpha.Value) / 1000D);
             }
             set {
                 if (value is < 0 or > 100) {
@@ -65,6 +80,13 @@ namespace OfficeIMO.PowerPoint {
             if (props == null) return;
             A.SolidFill? solid = props.GetFirstChild<A.SolidFill>();
             if (solid == null) {
+                if (HasExplicitFillChoice(props)) {
+                    foreach (OpenXmlCompositeElement fillColor in
+                             GetFillColorChoices(props)) {
+                        SetFillColorAlpha(fillColor, opacity);
+                    }
+                    return;
+                }
                 OpenXmlCompositeElement? styleColor =
                     GetShapeStyleFillColorChoice(createPlaceholder: opacity != null);
                 if (styleColor != null) {
@@ -129,6 +151,54 @@ namespace OfficeIMO.PowerPoint {
                     || element is A.SystemColor
                     || element is A.SchemeColor
                     || element is A.PresetColor);
+
+        private static bool HasExplicitFillChoice(
+            OpenXmlCompositeElement parent) =>
+            parent.ChildElements.Any(child => child is A.NoFill
+                or A.SolidFill or A.GradientFill or A.BlipFill
+                or A.PatternFill or A.GroupFill);
+
+        private static void RemoveFillChoiceChildren(
+            OpenXmlCompositeElement parent) {
+            parent.RemoveAllChildren<A.NoFill>();
+            parent.RemoveAllChildren<A.SolidFill>();
+            parent.RemoveAllChildren<A.GradientFill>();
+            parent.RemoveAllChildren<A.BlipFill>();
+            parent.RemoveAllChildren<A.PatternFill>();
+            parent.RemoveAllChildren<A.GroupFill>();
+        }
+
+        private static IReadOnlyList<OpenXmlCompositeElement>
+            GetFillColorChoices(OpenXmlCompositeElement parent) {
+            A.SolidFill? solid = parent.GetFirstChild<A.SolidFill>();
+            if (solid != null) {
+                OpenXmlCompositeElement? color = GetColorChoice(solid);
+                return color == null
+                    ? Array.Empty<OpenXmlCompositeElement>()
+                    : new[] { color };
+            }
+
+            A.GradientFill? gradient = parent.GetFirstChild<A.GradientFill>();
+            if (gradient != null) {
+                return gradient.Descendants<A.GradientStop>()
+                    .Select(GetColorChoice)
+                    .Where(color => color != null)
+                    .Cast<OpenXmlCompositeElement>()
+                    .ToArray();
+            }
+
+            A.PatternFill? pattern = parent.GetFirstChild<A.PatternFill>();
+            if (pattern != null) {
+                return pattern.ChildElements
+                    .OfType<OpenXmlCompositeElement>()
+                    .Select(GetColorChoice)
+                    .Where(color => color != null)
+                    .Cast<OpenXmlCompositeElement>()
+                    .ToArray();
+            }
+
+            return Array.Empty<OpenXmlCompositeElement>();
+        }
 
         /// <summary>
         ///     Gets or sets rotation in degrees.
