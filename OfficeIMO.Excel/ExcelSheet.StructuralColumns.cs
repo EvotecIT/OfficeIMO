@@ -37,10 +37,8 @@ namespace OfficeIMO.Excel {
                 MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
                 int last = firstColumn + count - 1;
                 PreflightColumnMutation(firstColumn, last, count, deleting, budget);
-                int cells = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget).Count(cell => {
-                    int column = cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0;
-                    return deleting ? column >= firstColumn : column >= firstColumn;
-                });
+                int cells = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
+                    .Count(item => item.Column >= firstColumn);
                 if (cells > effective.MaximumAffectedCells) {
                     throw new InvalidOperationException($"Column mutation affects {cells} cells, exceeding MaximumAffectedCells ({effective.MaximumAffectedCells}).");
                 }
@@ -95,8 +93,8 @@ namespace OfficeIMO.Excel {
             ValidateColumnConnectionParameters(firstColumn, count, deleting, budget);
             if (!deleting) ValidateColumnCommentVmlAnchorCapacity(firstColumn, count, budget);
             if (!deleting) {
-                int maximumCellColumn = InspectMutationPlanElements(WorksheetRoot.Descendants<Cell>(), budget)
-                    .Select(cell => cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0)
+                int maximumCellColumn = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
+                    .Select(item => item.Column)
                     .DefaultIfEmpty(0).Max();
                 int maximumDefinedColumn = InspectMutationPlanElements(WorksheetRoot.Descendants<Column>(), budget)
                     .Select(column => checked((int)(column.Max?.Value ?? column.Min?.Value ?? 0U)))
@@ -151,6 +149,7 @@ namespace OfficeIMO.Excel {
 
         private void ApplyColumnMutation(int firstColumn, int count, bool deleting, CancellationToken cancellationToken) {
             int lastColumn = firstColumn + count - 1;
+            NormalizeImplicitCellReferences(preserveImplicitRowIndexes: true);
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             IReadOnlyList<(int Row, int Column, string Name)> pendingHeaders = AdjustTableSchemasForColumnMutation(firstColumn, lastColumn, count, deleting);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();

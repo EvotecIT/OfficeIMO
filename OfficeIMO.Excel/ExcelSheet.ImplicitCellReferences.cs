@@ -27,12 +27,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void NormalizeImplicitCellReferences() {
+        private void NormalizeImplicitCellReferences(bool preserveImplicitRowIndexes = false) {
             uint previousRow = 0U;
             foreach (Row row in WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>()
                 ?? Enumerable.Empty<Row>()) {
                 uint effectiveRow = GetEffectiveRowIndex(row, previousRow);
-                row.RowIndex = effectiveRow;
+                if (!preserveImplicitRowIndexes) row.RowIndex = effectiveRow;
                 int previousColumn = 0;
                 foreach (Cell cell in row.Elements<Cell>()) {
                     if (A1.TryParseCellReferenceFast(cell.CellReference?.Value, out _, out int explicitColumn)) {

@@ -22,7 +22,13 @@ namespace OfficeIMO.Excel {
                     }
                     DeleteTableDefinitionPart(tablePart);
                 } else {
-                    tablePart.Table?.Save();
+                    Table table = tablePart.Table
+                        ?? throw new InvalidDataException($"Query-backed table '{tableName}' has no table definition.");
+                    table.ConnectionId = null;
+                    foreach (TableColumn column in table.Descendants<TableColumn>()) {
+                        column.QueryTableFieldId = null;
+                    }
+                    table.Save();
                 }
                 WorksheetRoot.Save();
                 return 1;

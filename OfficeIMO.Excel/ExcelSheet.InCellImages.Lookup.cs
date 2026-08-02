@@ -295,7 +295,7 @@ namespace OfficeIMO.Excel {
                 bool changed = false;
                 foreach (Cell candidate in worksheetPart.Worksheet?.Descendants<Cell>() ?? Enumerable.Empty<Cell>()) {
                     if (candidate.ValueMetaIndex?.Value == slot.MetadataIndex) {
-                        ClearCellValueMetadata(candidate);
+                        ClearCellValueMetadataAttribute(candidate);
                         changed = true;
                     } else if (candidate.ValueMetaIndex?.Value is uint index && index > slot.MetadataIndex) {
                         candidate.ValueMetaIndex = index - 1U;

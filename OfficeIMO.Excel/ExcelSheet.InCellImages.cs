@@ -7,6 +7,7 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Drawing.Internal;
 using Rich = DocumentFormat.OpenXml.Office2019.Excel.RichData;
 using RichRel = DocumentFormat.OpenXml.Office.Y2022.RichValueRel;
 
@@ -35,6 +36,7 @@ namespace OfficeIMO.Excel {
         private const string RichValueRelRelationshipType = "http://schemas.microsoft.com/office/2022/10/relationships/richValueRel";
         private const string RichValueRelContentType = "application/vnd.ms-excel.richvaluerel+xml";
         private const string ImageRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+        private const long MaximumRichValueRelationshipBytes = 16L * 1024L * 1024L;
 
         /// <summary>Adds or replaces a native in-cell image without creating a drawing anchor.</summary>
         public ExcelInCellImage SetInCellImage(
@@ -189,7 +191,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 Cell? cell = TryGetExistingCell(row, column);
                 if (cell == null || !TryResolveInCellImage(cell, out _, out _)) return;
-                if (!TryRemoveExclusiveInCellImage(cell)) ClearCellValueMetadata(cell);
+                if (!TryRemoveExclusiveInCellImage(cell)) ClearCellValueMetadataAttribute(cell);
                 cell.CellValue = null;
                 cell.DataType = null;
                 cell.InlineString = null;
@@ -201,8 +203,13 @@ namespace OfficeIMO.Excel {
 
         private static bool HasCellValueMetadata(Cell cell) => cell.ValueMetaIndex != null;
 
-        private static void ClearCellValueMetadata(Cell cell) {
+        private void ClearCellValueMetadata(Cell cell) {
             if (cell.ValueMetaIndex == null) return;
+            if (TryRemoveExclusiveInCellImage(cell)) return;
+            ClearCellValueMetadataAttribute(cell);
+        }
+
+        private static void ClearCellValueMetadataAttribute(Cell cell) {
             cell.ValueMetaIndex = null;
             cell.RemoveAttribute("vm", string.Empty);
         }
@@ -291,7 +298,16 @@ namespace OfficeIMO.Excel {
         private static RichRel.RichValueRels LoadRichValueRelationships(ExtendedPart part) {
             using Stream stream = part.GetStream(FileMode.OpenOrCreate, FileAccess.Read);
             if (stream.Length == 0) return new RichRel.RichValueRels();
-            using var reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen: false);
+            byte[] bytes;
+            try {
+                bytes = OfficeStreamReader.ReadAllBytes(stream, MaximumRichValueRelationshipBytes);
+            } catch (InvalidDataException exception) {
+                throw new InvalidDataException(
+                    $"Rich-value relationship metadata exceeds the supported {MaximumRichValueRelationshipBytes}-byte limit.",
+                    exception);
+            }
+            using var bounded = new MemoryStream(bytes, writable: false);
+            using var reader = new StreamReader(bounded, Encoding.UTF8, true, 1024, leaveOpen: false);
             return new RichRel.RichValueRels(reader.ReadToEnd());
         }
 

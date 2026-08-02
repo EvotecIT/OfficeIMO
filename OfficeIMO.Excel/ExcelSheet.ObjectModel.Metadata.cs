@@ -226,10 +226,20 @@ namespace OfficeIMO.Excel {
         private static HashSet<uint> GetWorksheetQueryConnectionIds(
             WorksheetPart worksheetPart,
             MutationPlanScanBudget? budget = null) {
-            return new HashSet<uint>(InspectMutationPlanElements(ExcelPackageQueryTableParts.Enumerate(worksheetPart), budget)
+            var result = new HashSet<uint>(InspectMutationPlanElements(ExcelPackageQueryTableParts.Enumerate(worksheetPart), budget)
                 .Select(part => part.QueryTable?.ConnectionId?.Value)
                 .Where(id => id.HasValue)
                 .Select(id => id!.Value));
+            foreach (TableDefinitionPart tablePart in InspectMutationPlanElements(worksheetPart.TableDefinitionParts, budget)) {
+                if (tablePart.Table?.ConnectionId?.Value is uint connectionId) result.Add(connectionId);
+            }
+            foreach (SingleXmlCell cell in InspectMutationPlanElements(
+                worksheetPart.SingleCellTablePart?.SingleXmlCells?.Elements<SingleXmlCell>()
+                    ?? Enumerable.Empty<SingleXmlCell>(),
+                budget)) {
+                if (cell.ConnectionId?.Value is uint connectionId) result.Add(connectionId);
+            }
+            return result;
         }
 
         private bool ConnectionParameterTargetsCurrentSheet(
