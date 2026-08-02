@@ -58,4 +58,8 @@
         <Using Include="System.Threading.Tasks" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Drive" />
+    </ItemGroup>
+
 </Project>

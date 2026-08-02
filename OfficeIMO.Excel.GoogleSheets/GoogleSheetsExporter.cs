@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     ex);
             }
 
-            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var transport = new GoogleWorkspaceHttpTransport(session)) {
             using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
                 await ValidateDrivePlacementAsync(
@@ -108,7 +108,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         batch.Report,
                         GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdatePayload,
                         GoogleSheetsJsonSerializerContext.Default.Object,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken,
+                        mutationKind: GoogleWorkspaceMutationKind.Update,
+                        revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable,
+                        requiredScopes: GoogleWorkspaceScopeCatalog.SheetsAuthoring,
+                        potentialDataLoss: true).ConfigureAwait(false);
 
                     await SendValuesAsync(
                         transport,
@@ -173,7 +177,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Report,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiCreateSpreadsheetPayload,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiCreateSpreadsheetResponse,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    mutationKind: GoogleWorkspaceMutationKind.Create,
+                    requiredScopes: GoogleWorkspaceScopeCatalog.SheetsAuthoring).ConfigureAwait(false);
 
                 await SendValuesAsync(
                     transport,
@@ -230,6 +236,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 throw;
             } catch (GoogleWorkspaceExportCanceledException) {
                 throw;
+            } catch (GoogleWorkspaceAmbiguousMutationException ex) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateAmbiguousMutationFailure(
+                    "Google Sheets export",
+                    session.Options,
+                    batch.Report,
+                    ex);
             } catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
                 throw GoogleWorkspaceFailureDiagnostics.CreateRequestTimeoutFailure(
                     "Google Sheets export",
@@ -371,7 +383,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Report,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdateValuesPayload,
                     GoogleSheetsJsonSerializerContext.Default.Object,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    mutationKind: GoogleWorkspaceMutationKind.Update,
+                    revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable,
+                    requiredScopes: GoogleWorkspaceScopeCatalog.SheetsAuthoring,
+                    potentialDataLoss: true).ConfigureAwait(false);
                 completed += payload.Data.Count;
                 execution.Progress?.Report(new GoogleSheetsExportProgress("values", completed, total));
             }
@@ -409,7 +425,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     report,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdatePayload,
                     GoogleSheetsJsonSerializerContext.Default.Object,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    mutationKind: GoogleWorkspaceMutationKind.Update,
+                    revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable,
+                    requiredScopes: GoogleWorkspaceScopeCatalog.SheetsAuthoring,
+                    potentialDataLoss: payload.Requests.Any(request =>
+                        request.DeleteSheet != null
+                        || request.DeleteDeveloperMetadata != null)).ConfigureAwait(false);
                 completed += payload.Requests.Count;
                 execution.Progress?.Report(new GoogleSheetsExportProgress("structure", completed, total));
             }

@@ -8,13 +8,30 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         private static readonly TimeSpan DefaultLifetime = TimeSpan.FromMinutes(50);
         private readonly Func<IReadOnlyList<string>, ITokenAccess> _credentialFactory;
         private readonly TimeSpan _fallbackTokenLifetime;
+        private readonly string? _account;
+        private readonly GoogleWorkspaceCredentialBindingResolver? _credentialBindingResolver;
 
         /// <summary>
         /// Creates an adapter around a Google credential, applying requested scopes when the credential requires scoping.
         /// </summary>
         public GoogleApisCredentialSource(
             GoogleCredential credential,
-            TimeSpan? fallbackTokenLifetime = null) {
+            TimeSpan? fallbackTokenLifetime = null)
+            : this(credential, fallbackTokenLifetime, null, null) { }
+
+        /// <summary>Creates an adapter with an informational account label that is not credential evidence.</summary>
+        public GoogleApisCredentialSource(
+            GoogleCredential credential,
+            TimeSpan? fallbackTokenLifetime,
+            string? account)
+            : this(credential, fallbackTokenLifetime, account, null) { }
+
+        /// <summary>Creates an adapter that verifies account and grants through a provider-evidence resolver.</summary>
+        public GoogleApisCredentialSource(
+            GoogleCredential credential,
+            TimeSpan? fallbackTokenLifetime,
+            string? account,
+            GoogleWorkspaceCredentialBindingResolver? credentialBindingResolver) {
             if (credential == null) {
                 throw new ArgumentNullException(nameof(credential));
             }
@@ -23,6 +40,8 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
                 ? credential.CreateScoped(scopes)
                 : credential;
             _fallbackTokenLifetime = ValidateLifetime(fallbackTokenLifetime);
+            _account = account;
+            _credentialBindingResolver = credentialBindingResolver;
         }
 
         /// <summary>
@@ -30,13 +49,30 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         /// </summary>
         public GoogleApisCredentialSource(
             ITokenAccess credential,
-            TimeSpan? fallbackTokenLifetime = null) {
+            TimeSpan? fallbackTokenLifetime = null)
+            : this(credential, fallbackTokenLifetime, null, null) { }
+
+        /// <summary>Creates an adapter with an informational account label that is not credential evidence.</summary>
+        public GoogleApisCredentialSource(
+            ITokenAccess credential,
+            TimeSpan? fallbackTokenLifetime,
+            string? account)
+            : this(credential, fallbackTokenLifetime, account, null) { }
+
+        /// <summary>Creates an adapter that verifies account and grants through a provider-evidence resolver.</summary>
+        public GoogleApisCredentialSource(
+            ITokenAccess credential,
+            TimeSpan? fallbackTokenLifetime,
+            string? account,
+            GoogleWorkspaceCredentialBindingResolver? credentialBindingResolver) {
             if (credential == null) {
                 throw new ArgumentNullException(nameof(credential));
             }
 
             _credentialFactory = _ => credential;
             _fallbackTokenLifetime = ValidateLifetime(fallbackTokenLifetime);
+            _account = account;
+            _credentialBindingResolver = credentialBindingResolver;
         }
 
         /// <inheritdoc />
@@ -55,7 +91,13 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
 
             DateTimeOffset expiresAt = ResolveExpiry(credential, _fallbackTokenLifetime);
             IReadOnlyList<string> grantedScopes = ResolveGrantedScopes(credential, requestedScopes);
-            return new GoogleWorkspaceAccessToken(accessToken, expiresAt, grantedScopes);
+            if (_credentialBindingResolver != null) {
+                GoogleWorkspaceCredentialBinding binding = await _credentialBindingResolver(accessToken, cancellationToken)
+                    .ConfigureAwait(false)
+                    ?? throw new InvalidOperationException("The Google credential binding resolver returned no provider evidence.");
+                return GoogleWorkspaceAccessToken.FromVerifiedCredential(accessToken, expiresAt, binding);
+            }
+            return new GoogleWorkspaceAccessToken(accessToken, expiresAt, grantedScopes, _account);
         }
 
         private static IReadOnlyList<string> NormalizeScopes(IEnumerable<string>? scopes) {

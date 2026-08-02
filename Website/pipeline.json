@@ -1245,7 +1245,7 @@
       "checkDescriptionLength": true,
       "minDescriptionLength": 120,
       "maxDescriptionLength": 160,
-      "applyGeneratedApiReferenceSeoProfile": false,
+      "applyGeneratedApiReferenceSeoProfile": true,
       "requireCanonical": true,
       "requireHreflang": true,
       "requireHreflangXDefault": true,

@@ -34,7 +34,7 @@ var session = new GoogleWorkspaceSession(
     });
 ```
 
-A static access token is useful for samples and short-lived jobs. Production applications normally implement `IGoogleWorkspaceCredentialSource`, use the built-in service-account source, or install the optional Google APIs adapter.
+A raw static token is useful for read-only samples and short-lived jobs. A caller-entered account name or requested scope is not proof of the token's identity or grants, so it cannot authorize mutations. Mutation-capable applications normally use the built-in service-account source or return `GoogleWorkspaceAccessToken.FromVerifiedCredential` from a delegate or optional Google APIs adapter after checking provider-issued token evidence.
 
 ## Common contract
 

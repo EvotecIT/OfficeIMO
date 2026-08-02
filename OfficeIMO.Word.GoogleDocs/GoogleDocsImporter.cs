@@ -59,7 +59,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleWorkspaceAccessToken token = await session.AcquireAccessTokenAsync(new[] { GoogleWorkspaceScopeCatalog.DocumentsReadonly }, cancellationToken).ConfigureAwait(false);
             string uri = $"https://docs.googleapis.com/v1/documents/{Uri.EscapeDataString(documentId)}?includeTabsContent=true&suggestionsViewMode={MapSuggestions(options.Suggestions)}";
             GoogleDocsApiDocumentResponse response;
-            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var transport = new GoogleWorkspaceHttpTransport(session)) {
                 response = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(token.AccessToken, HttpMethod.Get, uri, null,
                     GoogleWorkspaceRequestSafety.Safe, "Google Docs API", report,
                     GoogleDocsJsonSerializerContext.Default.GoogleDocsApiDocumentResponse, cancellationToken,

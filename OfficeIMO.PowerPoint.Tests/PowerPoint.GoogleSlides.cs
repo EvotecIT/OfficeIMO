@@ -13,6 +13,50 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public sealed partial class GoogleSlidesTests {
         [Fact]
+        public async Task Exporter_NewDeckPlaceholderDeletionIsNotClassifiedAsCallerDataLoss() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("New deck content");
+            var contexts = new List<GoogleWorkspaceOperationContext>();
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                string uri = request.RequestUri!.AbsoluteUri;
+                if (request.Method == HttpMethod.Post && uri == "https://slides.googleapis.com/v1/presentations") {
+                    return Task.FromResult(Json("{\"presentationId\":\"new-deck\"}"));
+                }
+                if (request.Method == HttpMethod.Get && uri == "https://slides.googleapis.com/v1/presentations/new-deck") {
+                    return Task.FromResult(Json("{\"presentationId\":\"new-deck\",\"revisionId\":\"revision-1\",\"slides\":[{\"objectId\":\"initial-slide\"}]}"));
+                }
+                if (request.Method == HttpMethod.Post && uri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"presentationId\":\"new-deck\",\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}"));
+                }
+                if (request.Method == HttpMethod.Get && request.RequestUri.Host == "www.googleapis.com") {
+                    return Task.FromResult(Json("{\"id\":\"new-deck\",\"name\":\"New deck\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":2}"));
+                }
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = httpClient,
+                ExpectedAccount = "test-account@example.invalid",
+                OperationReceiptSink = _ => { },
+            };
+            options.OperationPolicyProvider = context => {
+                contexts.Add(context);
+                return new GoogleWorkspaceOperationPolicy(
+                    options.ExpectedAccount!, context.RequiredScopes, context.Target,
+                    TestExpectedRevision(context), context.MaxRetryCount,
+                    context.MaxRetryElapsedTime, context.RateLimitPolicy,
+                    GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            };
+            var session = new GoogleWorkspaceSession(VerifiedCredentialSource(options.ExpectedAccount!), options);
+
+            GooglePresentationReference result = await presentation.ExportToGoogleSlidesAsync(session);
+
+            Assert.Equal("new-deck", result.PresentationId);
+            GoogleWorkspaceOperationContext batch = Assert.Single(contexts,
+                context => context.MutationKind == GoogleWorkspaceMutationKind.Update);
+            Assert.False(batch.PotentialDataLoss);
+        }
+
+        [Fact]
         public void BatchCompiler_MapsEditableCoreAndDeterministicIds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
@@ -900,9 +944,42 @@ namespace OfficeIMO.Tests {
             Assert.Contains(GoogleSlidesFeatureSupportCatalog.Features, row => row.Import == GoogleSlidesFeatureSupportLevel.DriveFallback);
         }
 
-        private static GoogleWorkspaceSession Session(HttpClient client, string? quotaUser = null) => new GoogleWorkspaceSession(
-            new StaticAccessTokenCredentialSource("token"),
-            new GoogleWorkspaceSessionOptions { HttpClient = client, QuotaUser = quotaUser });
+        private static GoogleWorkspaceSession Session(HttpClient client, string? quotaUser = null) {
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = client,
+                QuotaUser = quotaUser,
+                ExpectedAccount = "test-account@example.invalid",
+                OperationReceiptSink = _ => { },
+            };
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!,
+                context.RequiredScopes,
+                context.Target,
+                TestExpectedRevision(context),
+                context.MaxRetryCount,
+                context.MaxRetryElapsedTime,
+                context.RateLimitPolicy,
+                RequiresAcceptedLoss(context)
+                    ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss
+                    : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
+                RequiresAcceptedLoss(context) ? "test fixture operation without a conditional revision" : null);
+            return new GoogleWorkspaceSession(VerifiedCredentialSource(options.ExpectedAccount!), options);
+        }
+        private static IGoogleWorkspaceCredentialSource VerifiedCredentialSource(string account) =>
+            new DelegateGoogleWorkspaceCredentialSource((scopes, _) => Task.FromResult(
+                GoogleWorkspaceAccessToken.FromVerifiedCredential("token", DateTimeOffset.UtcNow.AddMinutes(30),
+                    new GoogleWorkspaceCredentialBinding(account, scopes))));
+        private static string TestExpectedRevision(GoogleWorkspaceOperationContext context) =>
+            context.RevisionPreconditionKind switch {
+                GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+                GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState => context.AdapterExpectedRevision!,
+                GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test fixture operation"),
+                _ => "\"test-etag\"",
+            };
+        private static bool RequiresAcceptedLoss(GoogleWorkspaceOperationContext context) =>
+            context.PotentialDataLoss
+            || context.RevisionPreconditionKind == GoogleWorkspaceRevisionPreconditionKind.Unavailable;
         private static HttpResponseMessage Json(string value) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(value, Encoding.UTF8, "application/json") };
         private static string ElementHash(GoogleSlidesSyncCheckpoint checkpoint) =>
             Assert.Single(checkpoint.ContentHashes, pair => pair.Key.Contains("/element/", StringComparison.Ordinal)).Value;

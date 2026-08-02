@@ -15,26 +15,26 @@ namespace OfficeIMO.GoogleWorkspace {
         public const string Presentations = "https://www.googleapis.com/auth/presentations";
         public const string PresentationsReadonly = "https://www.googleapis.com/auth/presentations.readonly";
 
-        public static IReadOnlyList<string> DocsAuthoring { get; } = new[] {
+        public static IReadOnlyList<string> DocsAuthoring { get; } = Array.AsReadOnly(new[] {
             DriveFile,
             Documents
-        };
+        });
 
-        public static IReadOnlyList<string> SheetsAuthoring { get; } = new[] {
+        public static IReadOnlyList<string> SheetsAuthoring { get; } = Array.AsReadOnly(new[] {
             DriveFile,
             Spreadsheets
-        };
+        });
 
-        public static IReadOnlyList<string> SlidesAuthoring { get; } = new[] {
+        public static IReadOnlyList<string> SlidesAuthoring { get; } = Array.AsReadOnly(new[] {
             DriveFile,
             Presentations
-        };
+        });
 
-        public static IReadOnlyList<string> WorkspaceAuthoring { get; } = new[] {
+        public static IReadOnlyList<string> WorkspaceAuthoring { get; } = Array.AsReadOnly(new[] {
             DriveFile,
             Documents,
             Spreadsheets,
             Presentations
-        };
+        });
     }
 }

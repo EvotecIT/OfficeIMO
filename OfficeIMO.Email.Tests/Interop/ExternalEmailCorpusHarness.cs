@@ -1,6 +1,7 @@
 using MimeKit;
 using MimeKit.Tnef;
 using OfficeIMO.Email;
+using System.Security.Cryptography;
 
 namespace OfficeIMO.Email.Tests;
 
@@ -11,11 +12,22 @@ internal sealed class ExternalCorpusResult {
     internal int ApplicableArtifacts { get; private set; }
     internal int SkippedArtifacts { get; private set; }
     internal IReadOnlyList<string> Failures => _failures;
+    internal IList<string> ArtifactSha256 { get; } = new List<string>();
+    internal IList<ExternalCorpusArtifactEvidence> ArtifactEvidence { get; } = new List<ExternalCorpusArtifactEvidence>();
 
     internal void Run(string category, string path, Func<bool> action) {
         CandidateArtifacts++;
         try {
-            if (action()) ApplicableArtifacts++;
+            string fingerprint;
+            using (SHA256 hash = SHA256.Create())
+            using (FileStream stream = File.OpenRead(path)) {
+                fingerprint = EmailHash(hash.ComputeHash(stream));
+                ArtifactSha256.Add(fingerprint);
+            }
+            bool matchedOracle = action();
+            ArtifactEvidence.Add(new ExternalCorpusArtifactEvidence(
+                Path.GetFileName(path), fingerprint, category, matchedOracle));
+            if (matchedOracle) ApplicableArtifacts++;
             else SkippedArtifacts++;
         } catch (Exception exception) {
             _failures.Add(string.Concat(category, ": ", Path.GetFileName(path), ": ",
@@ -23,7 +35,21 @@ internal sealed class ExternalCorpusResult {
         }
     }
 
+    private static string EmailHash(byte[] value) => BitConverter.ToString(value).Replace("-", string.Empty).ToLowerInvariant();
+
     internal string FormatFailures() => string.Join(Environment.NewLine, _failures);
+}
+
+internal sealed class ExternalCorpusArtifactEvidence {
+    internal ExternalCorpusArtifactEvidence(string relativePath, string sha256,
+        string semanticOracle, bool matchedExpectedSemantics) {
+        RelativePath = relativePath; Sha256 = sha256; SemanticOracle = semanticOracle;
+        MatchedExpectedSemantics = matchedExpectedSemantics;
+    }
+    internal string RelativePath { get; }
+    internal string Sha256 { get; }
+    internal string SemanticOracle { get; }
+    internal bool MatchedExpectedSemantics { get; }
 }
 
 internal static class ExternalEmailCorpusHarness {

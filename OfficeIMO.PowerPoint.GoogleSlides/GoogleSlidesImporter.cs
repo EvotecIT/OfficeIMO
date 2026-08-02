@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             EnsurePresentation(source, id);
             EnsureDownloadable(source, id);
             GoogleWorkspaceAccessToken token = await session.AcquireAccessTokenAsync(new[] { GoogleWorkspaceScopeCatalog.PresentationsReadonly }, cancellationToken).ConfigureAwait(false);
-            using var transport = new GoogleWorkspaceHttpTransport(session.Options);
+            using var transport = new GoogleWorkspaceHttpTransport(session);
             GoogleSlidesApiPresentationResponse response = await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token.AccessToken, HttpMethod.Get,
                 $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}", null, GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report,
                 GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse, cancellationToken).ConfigureAwait(false);

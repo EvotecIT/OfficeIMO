@@ -10,6 +10,7 @@ internal sealed class MimeStreamingParser {
     private readonly IList<EmailDiagnostic> _diagnostics;
     private readonly CancellationToken _cancellationToken;
     private readonly EmailReadWorkspace _workspace;
+    private readonly EmailProcessingBudget _budget;
     private readonly List<ExternalPart> _externalParts = new List<ExternalPart>();
     private int _analyzedPartCount;
     private int _analyzedAttachmentCount;
@@ -19,24 +20,27 @@ internal sealed class MimeStreamingParser {
     private bool _hasRtfBody;
 
     private MimeStreamingParser(Stream input, EmailReaderOptions options,
-        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace) {
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace,
+        EmailProcessingBudget budget) {
         _input = input;
         _options = options;
         _diagnostics = diagnostics;
         _cancellationToken = cancellationToken;
         _workspace = workspace;
+        _budget = budget;
     }
 
     internal static EmailDocument Parse(Stream input, EmailReaderOptions options,
-        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace) {
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace,
+        EmailProcessingBudget budget) {
         if (!input.CanSeek) throw new ArgumentException("Streaming MIME parsing requires a seekable source.", nameof(input));
-        var parser = new MimeStreamingParser(input, options, diagnostics, cancellationToken, workspace);
+        var parser = new MimeStreamingParser(input, options, diagnostics, cancellationToken, workspace, budget);
         long start = input.Position;
         long end = input.Length;
         parser.AnalyzeMessage(start, end, 0, "message");
         parser.DecodeExternalParts();
         byte[] skeleton = parser.CreateSkeleton(start, end);
-        EmailDocument document = MimeParser.Parse(skeleton, options, diagnostics, cancellationToken);
+        EmailDocument document = MimeParser.Parse(skeleton, options, diagnostics, cancellationToken, budget);
         parser.ApplyExternalContent(document);
         return document;
     }
@@ -235,6 +239,7 @@ internal sealed class MimeStreamingParser {
                     decodedLength = DecodePart(part, Stream.Null);
                 }
                 EnsureAttachmentLimits(decodedLength);
+                _budget.CountAttachmentBytes(decodedLength);
                 part.Length = decodedLength;
                 if (path != null) {
                     part.Source = _workspace.RegisterContent(

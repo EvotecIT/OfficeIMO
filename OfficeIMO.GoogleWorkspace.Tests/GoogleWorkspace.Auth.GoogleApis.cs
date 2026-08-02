@@ -12,7 +12,8 @@ namespace OfficeIMO.Tests {
         public async Task Test_CredentialSource_NormalizesScopesAndUsesTokenAccess() {
             IReadOnlyList<string>? requestedScopes = null;
             var tokenAccess = new FakeTokenAccess((_, _) => Task.FromResult("access-token"));
-            var source = new GoogleApisCredentialSource(tokenAccess, TimeSpan.FromMinutes(5));
+            var source = new GoogleApisCredentialSource(tokenAccess, TimeSpan.FromMinutes(5),
+                "test@example.com");
 
             GoogleWorkspaceAccessToken token = await source.AcquireAccessTokenAsync(new[] {
                 "scope-b",
@@ -22,7 +23,9 @@ namespace OfficeIMO.Tests {
 
             requestedScopes = token.Scopes;
             Assert.Equal("access-token", token.AccessToken);
+            Assert.Equal("test@example.com", token.Account);
             Assert.Equal(new[] { "scope-a", "scope-b" }, requestedScopes);
+            Assert.Null(token.CredentialBinding);
             Assert.InRange(token.ExpiresAt, DateTimeOffset.UtcNow.AddMinutes(4), DateTimeOffset.UtcNow.AddMinutes(6));
             Assert.Equal(1, tokenAccess.RequestCount);
         }
@@ -46,6 +49,7 @@ namespace OfficeIMO.Tests {
                 ClientSecrets = new ClientSecrets { ClientId = "client-id", ClientSecret = "client-secret" },
                 Scopes = new[] { GoogleWorkspaceScopeCatalog.DriveFile },
                 UserId = "local-user",
+                Account = "test@example.com",
             };
 
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -72,6 +76,45 @@ namespace OfficeIMO.Tests {
         public void Test_CredentialSource_RejectsInvalidFallbackLifetime() {
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => new GoogleApisCredentialSource(new FakeTokenAccess((_, _) => Task.FromResult("unused")), TimeSpan.Zero));
+        }
+
+        [Fact]
+        public async Task Test_CredentialSource_UsesProviderBindingResolverForMutationEvidence() {
+            var tokenAccess = new FakeTokenAccess((_, _) => Task.FromResult("access-token"));
+            var source = new GoogleApisCredentialSource(tokenAccess, TimeSpan.FromMinutes(5), null,
+                (token, _) => Task.FromResult(new GoogleWorkspaceCredentialBinding(
+                    "verified@example.com", new[] { "scope-a" })));
+
+            GoogleWorkspaceAccessToken token = await source.AcquireAccessTokenAsync(new[] { "scope-a" });
+
+            Assert.Equal("verified@example.com", token.CredentialBinding!.Account);
+            Assert.Equal(new[] { "scope-a" }, token.CredentialBinding.Scopes);
+        }
+
+        [Fact]
+        public void Test_LegacyCredentialSourceConstructorsRemainAvailable() {
+            Assert.NotNull(typeof(GoogleApisCredentialSource).GetConstructor(new[] {
+                typeof(GoogleCredential), typeof(TimeSpan?)
+            }));
+            Assert.NotNull(typeof(GoogleApisCredentialSource).GetConstructor(new[] {
+                typeof(ITokenAccess), typeof(TimeSpan?)
+            }));
+        }
+
+        [Fact]
+        public async Task Test_InstalledApplicationAuthorization_RequiresProviderBindingResolverBeforeInteraction() {
+            var options = new GoogleInstalledApplicationAuthorizationOptions {
+                ClientSecrets = new ClientSecrets { ClientId = "client-id", ClientSecret = "client-secret" },
+                Scopes = new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+                UserId = "local-user",
+                Account = "test@example.com",
+                TokenStore = new MemoryTokenStore(),
+            };
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => GoogleInstalledApplicationAuthorization.AuthorizeAsync(options));
+
+            Assert.Contains("provider-backed credential binding resolver", exception.Message, StringComparison.Ordinal);
         }
 
         private sealed class FakeTokenAccess : ITokenAccess {

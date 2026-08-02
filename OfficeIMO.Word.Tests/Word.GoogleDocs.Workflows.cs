@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
                     }
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Location = new GoogleDriveFileLocation { ExistingFileId = "doc-tabs" },
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                     if (request.Method == HttpMethod.Post) mutationCount++;
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleWorkspaceConflictException exception = await Assert.ThrowsAsync<GoogleWorkspaceConflictException>(() =>
                     document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                     }
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Location = new GoogleDriveFileLocation { ExistingFileId = "doc-nonstrict" },
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
@@ -210,7 +210,7 @@ namespace OfficeIMO.Tests {
                     }
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Location = new GoogleDriveFileLocation { ExistingFileId = "doc-write-control" },
@@ -247,7 +247,7 @@ namespace OfficeIMO.Tests {
                     }
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Tabs = new GoogleDocsTabOptions { Strategy = GoogleDocsTabStrategy.SelectedTab, TabId = "caller-supplied-tab" },
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
                     }
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Location = new GoogleDriveFileLocation { ExistingFileId = "doc-tab-header" },
@@ -338,7 +338,7 @@ namespace OfficeIMO.Tests {
                     }
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
                 }));
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
@@ -368,7 +368,7 @@ namespace OfficeIMO.Tests {
                 }
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             }));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync("doc-import", session, new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native });
             using (imported.Document) {
@@ -394,7 +394,7 @@ namespace OfficeIMO.Tests {
                 nativeReads++;
                 return Task.FromResult(CreateJsonResponse("{\"documentId\":\"doc-blocked\"}"));
             }));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 new GoogleDocsImporter().ImportAsync("doc-blocked", session, new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native }));
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
                 request.RequestUri!.Host == "www.googleapis.com"
                     ? Task.FromResult(CreateJsonResponse("{\"id\":\"doc-large\",\"mimeType\":\"application/vnd.google-apps.document\",\"capabilities\":{\"canDownload\":true}}"))
                     : Task.FromResult(CreateJsonResponse(nativeJson))));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 new GoogleDocsImporter().ImportAsync("doc-large", session, new GoogleDocsImportOptions {
@@ -431,7 +431,7 @@ namespace OfficeIMO.Tests {
                 request.RequestUri!.Host == "www.googleapis.com"
                     ? Task.FromResult(CreateJsonResponse("{\"id\":\"doc-sparse-table\",\"mimeType\":\"application/vnd.google-apps.document\",\"capabilities\":{\"canDownload\":true}}"))
                     : Task.FromResult(CreateJsonResponse(nativeJson))));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(),
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(),
                 new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
@@ -448,7 +448,7 @@ namespace OfficeIMO.Tests {
                 request.RequestUri!.Host == "www.googleapis.com"
                     ? Task.FromResult(CreateJsonResponse("{\"id\":\"doc-ragged-table\",\"mimeType\":\"application/vnd.google-apps.document\",\"capabilities\":{\"canDownload\":true}}"))
                     : Task.FromResult(CreateJsonResponse(nativeJson))));
-            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(),
+            var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(),
                 new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
@@ -472,7 +472,7 @@ namespace OfficeIMO.Tests {
                     const string docs = "{\"documentId\":\"doc-diff\",\"title\":\"Diff\",\"revisionId\":\"revision-1\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":6,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Same\\n\"}}]}}]}}";
                     return Task.FromResult(CreateJsonResponse(docs));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleDocsDiffPlan plan = await GoogleDocsDiffPlanner.BuildAsync(source, "doc-diff", session, checkpoint);
 
@@ -584,7 +584,7 @@ namespace OfficeIMO.Tests {
 
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             }));
-            var session = new GoogleWorkspaceSession(
+            var session = GoogleTestSession(
                 new FakeGoogleWorkspaceCredentialSource(),
                 new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
@@ -622,7 +622,7 @@ namespace OfficeIMO.Tests {
                     }
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions { Title = "Comments" });
 
@@ -674,7 +674,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Location = new GoogleDriveFileLocation { ExistingFileId = "doc-comments" },
@@ -719,7 +719,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
                 GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Location = new GoogleDriveFileLocation { ExistingFileId = "doc-comments" },
