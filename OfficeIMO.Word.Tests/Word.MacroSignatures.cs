@@ -313,6 +313,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MacroSigningRejectsFailedLowerProfileBeforeCommit() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureLowerProfilePolicy.docm");
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            string toolsDirectory = CreateFakeOfficeSipsDirectory();
+            int profileIndex = 0;
+            var runner = new RecordingMacroToolRunner(invocation => {
+                if (invocation.Arguments.Count > 0 && invocation.Arguments[0] == "sign") {
+                    profileIndex++;
+                    WordMacroProjectSignatureProfile profile = (WordMacroProjectSignatureProfile)profileIndex;
+                    AddMacroSignatureProfile(
+                        invocation.Arguments[invocation.Arguments.Count - 1],
+                        profile,
+                        certificate);
+                    if (profile == WordMacroProjectSignatureProfile.V3) {
+                        AddRawMacroSignatureProfile(
+                            invocation.Arguments[invocation.Arguments.Count - 1],
+                            WordMacroProjectSignatureProfile.Legacy,
+                            new byte[48]);
+                    }
+                }
+                return Success();
+            });
+            var dependencies = new WordMacroProjectSigningDependencies(
+                runner, new TestMacroSigningPlatform(isWindows: true));
+            var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
+
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
+                filePath, certificate.Thumbprint!, options, dependencies);
+
+            Assert.False(result.Succeeded);
+            Assert.True(result.MacroProjectPreserved);
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+            Assert.Contains(result.Findings, finding =>
+                finding.Code == "MacroSignatureProfilePolicyFailed" &&
+                finding.Profile == WordMacroProjectSignatureProfile.Legacy);
+        }
+
+        [Fact]
         public void MacroSigningReadbackFailurePreservesDetailedInspectionEvidence() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignatureReadbackDiagnostics.docm");
             string toolsDirectory = CreateFakeOfficeSipsDirectory();

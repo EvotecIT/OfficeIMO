@@ -40,20 +40,32 @@ namespace OfficeIMO.Word.Html {
 
         IEnumerable<INode> CreateComboBoxNodes(IDocument htmlDoc, WordComboBox comboBox, int formListIndex) {
             string listId = "word-combo-" + formListIndex.ToString(CultureInfo.InvariantCulture);
+            IReadOnlyList<(string Value, string DisplayText)> items = comboBox.ExportItems;
+            string? selectedValue = comboBox.SelectedValue;
+            string? selectedDisplayText = items
+                .FirstOrDefault(item =>
+                    string.Equals(item.Value, selectedValue, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(item.DisplayText, selectedValue, StringComparison.OrdinalIgnoreCase))
+                .DisplayText;
 
             var input = CreateOutputElement(htmlDoc, "input");
             input.SetAttribute("type", "text");
             input.SetAttribute("disabled", string.Empty);
             input.SetAttribute("list", listId);
-            if (!string.IsNullOrEmpty(comboBox.SelectedValue)) {
-                input.SetAttribute("value", comboBox.SelectedValue!);
+            if (!string.IsNullOrEmpty(selectedValue)) {
+                SetOutputAttribute(
+                    htmlDoc,
+                    input,
+                    "value",
+                    string.IsNullOrEmpty(selectedDisplayText) ? selectedValue! : selectedDisplayText!,
+                    "ComboBox:selected-display");
             }
             ApplyContentControlMetadata(input, comboBox.Alias, comboBox.Tag);
             yield return input;
 
             var dataList = CreateOutputElement(htmlDoc, "datalist");
             dataList.SetAttribute("id", listId);
-            foreach (var item in comboBox.ExportItems) {
+            foreach (var item in items) {
                 var option = CreateOutputElement(htmlDoc, "option");
                 SetOutputAttribute(htmlDoc, option, "value", item.Value, "ComboBoxOption:value");
                 SetOutputAttribute(htmlDoc, option, "label", item.DisplayText, "ComboBoxOption:label");

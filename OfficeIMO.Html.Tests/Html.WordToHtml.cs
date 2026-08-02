@@ -1021,6 +1021,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_ComboBox_UsesSelectedDisplayTextForDistinctInternalValue() {
+            using var doc = WordDocument.Create();
+            WordComboBox comboBox = doc.AddParagraph().AddComboBox(new[] { "placeholder" });
+            SdtContentComboBox properties = comboBox._sdtRun.SdtProperties!
+                .GetFirstChild<SdtContentComboBox>()!;
+            ListItem item = Assert.Single(properties.Elements<ListItem>());
+            item.Value = "internal-id";
+            item.DisplayText = "Visible label";
+            properties.LastValue = "internal-id";
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<input type=\"text\" disabled=\"\" list=\"word-combo-1\" value=\"Visible label\"", html,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<option value=\"internal-id\" label=\"Visible label\"", html,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_WordToHtml_DatePicker_ExportsDateInput() {
             using var doc = WordDocument.Create();
             var paragraph = doc.AddParagraph("Due: ");

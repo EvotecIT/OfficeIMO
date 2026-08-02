@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -279,6 +281,46 @@ namespace OfficeIMO.Tests {
                 null,
                 new object[] { loaded._wordprocessingDocument.MainDocumentPart!, comparisonWorkBudget })
                 ?? throw new InvalidOperationException("Effective-formatting limitation scan did not return a result.");
+
+            Assert.Equal("ResourceLimitExceeded", scanResult.ToString());
+            Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));
+        }
+
+        [Fact]
+        public void NumberingStyleCatalogConstructionConsumesDisclosureWorkBudget() {
+            string path = Path.Combine(_directoryWithFiles, "compare_structure_numbering_style_catalog_budget.docx");
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Bounded numbering style catalog");
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                for (int index = 0; index < 8; index++) {
+                    styles.Append(new Style {
+                        Type = StyleValues.Paragraph,
+                        StyleId = "BudgetStyle" + index
+                    });
+                }
+                document.Save();
+            }
+
+            using WordDocument loaded = WordDocument.Load(path);
+            object comparisonWorkBudget = CreateComparisonWorkBudget(1);
+            Type cacheType = typeof(WordDocumentComparer).GetNestedType(
+                "ParagraphNumberingStyleCatalogCache",
+                BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Numbering style catalog cache was not found.");
+            object cache = Activator.CreateInstance(cacheType, nonPublic: true)
+                ?? throw new InvalidOperationException("Numbering style catalog cache could not be created.");
+            MethodInfo containsNumberingFormatting = typeof(WordDocumentComparer).GetMethod(
+                "ContainsNumberingFormatting",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Numbering-formatting limitation scan was not found.");
+
+            object scanResult = containsNumberingFormatting.Invoke(
+                null,
+                new[] {
+                    loaded._wordprocessingDocument.MainDocumentPart!,
+                    comparisonWorkBudget,
+                    cache
+                }) ?? throw new InvalidOperationException("Numbering-formatting limitation scan returned no result.");
 
             Assert.Equal("ResourceLimitExceeded", scanResult.ToString());
             Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));

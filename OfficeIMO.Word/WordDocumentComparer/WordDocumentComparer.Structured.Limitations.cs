@@ -197,9 +197,14 @@ namespace OfficeIMO.Word {
             MainDocumentPart mainPart,
             ComparisonWorkBudget comparisonWorkBudget,
             ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
-            ParagraphNumberingStyleCatalog styleCatalog = numberingStyleCatalogs.GetOrCreate(mainPart);
+            if (!numberingStyleCatalogs.TryGetOrCreate(
+                    mainPart,
+                    comparisonWorkBudget,
+                    out ParagraphNumberingStyleCatalog? styleCatalog)) {
+                return ShapeScanResult.ResourceLimitExceeded;
+            }
             return ScanComparisonElements(mainPart, comparisonWorkBudget, element =>
-                element is Paragraph paragraph && ResolveParagraphNumberingProperties(paragraph, styleCatalog) != null);
+                element is Paragraph paragraph && ResolveParagraphNumberingProperties(paragraph, styleCatalog!) != null);
         }
 
         private static ShapeScanResult ContainsMoveMarkup(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>

@@ -295,6 +295,16 @@ namespace OfficeIMO.Word {
                         "Signing did not produce the required legacy, agile, and V3 VBA signature parts."));
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
                 }
+                WordMacroProjectSignaturePartInfo? rejectedProfile = stagedInfo.Signatures
+                    .OrderBy(signature => signature.Profile)
+                    .FirstOrDefault(signature => !ProfileAccepted(signature, options));
+                if (rejectedProfile != null) {
+                    findings.Add(Finding("MacroSignatureProfilePolicyFailed", WordSignatureValidationState.Failed,
+                        "The completed " + rejectedProfile.Profile +
+                        " VBA signature did not satisfy CMS, certificate, revocation, and timestamp policy.",
+                        rejectedProfile.Profile));
+                    return SigningResult(fullPath, true, false, true, stagedValidation, findings);
+                }
                 if (!stagedValidation.IsValidUnderPolicy) {
                     findings.Add(Finding("MacroSignatureReadbackFailed", WordSignatureValidationState.Failed,
                         "The completed V3 VBA signature did not satisfy content-binding and certificate policy."));
@@ -350,12 +360,8 @@ namespace OfficeIMO.Word {
             var result = new WordMacroProjectSignatureValidationResult(info, supported,
                 contentBindingStatus, findings.ToArray());
             WordMacroProjectSignaturePartInfo? selected = SelectHighestProfile(info);
-            bool cmsAccepted = !options.Inspection.ValidateCms || selected != null &&
-                selected.CmsParsed &&
-                selected.CryptographicStatus == WordSignatureValidationState.Passed &&
-                selected.CertificateChainStatus == WordSignatureValidationState.Passed &&
-                RevocationAccepted(selected, options) &&
-                TimestampAccepted(selected, options);
+            bool cmsAccepted = !options.Inspection.ValidateCms ||
+                selected != null && ProfileAccepted(selected, options);
             result.IsValidUnderPolicy = supported &&
                 contentBindingStatus == WordSignatureValidationState.Passed &&
                 info.HasMacroProject && info.HasSignatures &&
@@ -366,6 +372,16 @@ namespace OfficeIMO.Word {
                     (!finding.Profile.HasValue || selected == null || finding.Profile == selected.Profile));
             return result;
         }
+
+        private static bool ProfileAccepted(
+            WordMacroProjectSignaturePartInfo signature,
+            WordMacroProjectSignatureValidationOptions options) =>
+            signature.CmsParsed &&
+            signature.CryptographicStatus == WordSignatureValidationState.Passed &&
+            signature.CertificateChainStatus == WordSignatureValidationState.Passed &&
+            RevocationAccepted(signature, options) &&
+            TimestampAccepted(signature, options) &&
+            !signature.Findings.Any(finding => finding.State == WordSignatureValidationState.Failed);
 
         private static bool RevocationAccepted(
             WordMacroProjectSignaturePartInfo signature,

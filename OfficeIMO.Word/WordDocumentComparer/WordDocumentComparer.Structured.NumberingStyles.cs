@@ -58,10 +58,17 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            internal static ParagraphNumberingStyleCatalog Create(MainDocumentPart mainPart) {
-                Style[] styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                    .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                    .ToArray();
+            internal static ParagraphNumberingStyleCatalog? Create(
+                MainDocumentPart mainPart,
+                ComparisonWorkBudget? comparisonWorkBudget) {
+                var styles = new List<Style>();
+                IEnumerable<Style> candidates =
+                    (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                    .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>());
+                foreach (Style style in candidates) {
+                    if (comparisonWorkBudget != null && !comparisonWorkBudget.TryConsume(1)) return null;
+                    styles.Add(style);
+                }
                 ILookup<string, Style> stylesById = styles
                     .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
                     .ToLookup(style => style.StyleId!.Value!, StringComparer.Ordinal);
@@ -82,9 +89,20 @@ namespace OfficeIMO.Word {
 
             internal ParagraphNumberingStyleCatalog GetOrCreate(MainDocumentPart mainPart) {
                 if (_catalogs.TryGetValue(mainPart, out ParagraphNumberingStyleCatalog? catalog)) return catalog;
-                catalog = ParagraphNumberingStyleCatalog.Create(mainPart);
+                catalog = ParagraphNumberingStyleCatalog.Create(mainPart, comparisonWorkBudget: null)!;
                 _catalogs.Add(mainPart, catalog);
                 return catalog;
+            }
+
+            internal bool TryGetOrCreate(
+                MainDocumentPart mainPart,
+                ComparisonWorkBudget comparisonWorkBudget,
+                out ParagraphNumberingStyleCatalog? catalog) {
+                if (_catalogs.TryGetValue(mainPart, out catalog)) return true;
+                catalog = ParagraphNumberingStyleCatalog.Create(mainPart, comparisonWorkBudget);
+                if (catalog == null) return false;
+                _catalogs.Add(mainPart, catalog);
+                return true;
             }
         }
     }

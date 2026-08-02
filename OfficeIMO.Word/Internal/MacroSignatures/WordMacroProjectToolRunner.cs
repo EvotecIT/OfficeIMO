@@ -106,17 +106,28 @@ namespace OfficeIMO.Word {
                 if (args.Data == null) standardErrorCompleted.TrySetResult(true);
                 else output.Append(args.Data);
             };
+            WordMacroProjectProcessTree? processTree = null;
             try {
                 if (!process.Start()) {
                     return new WordMacroProjectToolResult(null, false,
                         "The external signing tool process did not start.");
                 }
+                if (!WordMacroProjectProcessTree.TryAttach(process, out processTree, out string containmentDetail)) {
+                    TryTerminateProcess(process, processTree);
+                    return new WordMacroProjectToolResult(null, false,
+                        "The external signing tool process tree could not be contained. " + containmentDetail);
+                }
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
                 bool exited = process.WaitForExit(checked((int)timeout.TotalMilliseconds));
                 if (!exited) {
-                    TryTerminateProcess(process);
+                    bool treeTerminated = processTree?.TerminateAndWait(
+                        TimeSpan.FromMilliseconds(ExitGraceMilliseconds)) ?? false;
+                    TryTerminateProcess(process, processTree, treeTerminated);
                     process.WaitForExit(ExitGraceMilliseconds);
+                    if (processTree != null && !treeTerminated) {
+                        output.Append("The contained signing process tree did not confirm termination within the bounded grace period.");
+                    }
                     DrainRedirectedOutput(process, standardOutputCompleted.Task, standardErrorCompleted.Task, output);
                     return new WordMacroProjectToolResult(null, true, output.ToString());
                 }
@@ -126,15 +137,23 @@ namespace OfficeIMO.Word {
                 exception is InvalidOperationException || exception is UnauthorizedAccessException ||
                 exception is PlatformNotSupportedException || exception is NotSupportedException) {
                 return new WordMacroProjectToolResult(null, false, exception.Message);
+            } finally {
+                processTree?.Dispose();
             }
         }
 
-        private static void TryTerminateProcess(Process process) {
+        private static void TryTerminateProcess(
+            Process process,
+            WordMacroProjectProcessTree? processTree,
+            bool processTreeAlreadyTerminated = false) {
+            if (processTree != null && !processTreeAlreadyTerminated) {
+                processTree.TerminateAndWait(TimeSpan.FromMilliseconds(ExitGraceMilliseconds));
+            }
             try {
 #if NET6_0_OR_GREATER
-                process.Kill(entireProcessTree: true);
+                if (!process.HasExited) process.Kill(entireProcessTree: true);
 #else
-                process.Kill();
+                if (!process.HasExited) process.Kill();
 #endif
             } catch (Exception exception) when (exception is InvalidOperationException ||
                 exception is Win32Exception || exception is NotSupportedException) {
