@@ -50,26 +50,9 @@ namespace OfficeIMO.Word {
             int selectedIndex) {
             var combo = _sdtRun.SdtProperties?.Elements<SdtContentComboBox>().FirstOrDefault()
                 ?? throw new InvalidOperationException("Combo box properties are missing from the structured document tag.");
-            combo.RemoveAllChildren<ListItem>();
-            foreach ((string value, string displayText) in items) {
-                combo.Append(new ListItem { Value = value, DisplayText = displayText });
-            }
-
-            (string selectedValue, string selectedDisplayText) = items[selectedIndex];
-            combo.LastValue = selectedValue;
-            var content = _sdtRun.SdtContentRun ?? (_sdtRun.SdtContentRun = new SdtContentRun());
-            var run = content.Elements<Run>().FirstOrDefault();
-            if (run == null) {
-                run = new Run();
-                content.Append(run);
-            }
-            var text = run.Elements<Text>().FirstOrDefault();
-            if (text == null) {
-                text = new Text();
-                run.Append(text);
-            }
-            text.Text = selectedDisplayText;
-            text.Space = SpaceProcessingModeValues.Preserve;
+            var selectedItem = WordContentControlListItems.SetImportedItems(
+                combo, _sdtRun, items, selectedIndex);
+            combo.LastValue = selectedItem.Value;
         }
 
         /// <summary>

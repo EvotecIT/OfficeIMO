@@ -1025,6 +1025,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_DropDownList_PreservesDistinctValuesAndDisplayTextOnRoundTrip() {
+            using var doc = WordDocument.Create();
+            WordDropDownList dropDown = doc.AddParagraph().AddDropDownList(new[] { "placeholder" });
+            ListItem item = dropDown._sdtRun.SdtProperties!
+                .GetFirstChild<SdtContentDropDownList>()!
+                .Elements<ListItem>()
+                .Single();
+            item.Value = "internal-id";
+            item.DisplayText = "Visible label";
+            dropDown.SelectedValue = "Visible label";
+
+            string html = doc.ToHtml();
+            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+
+            WordDropDownList imported = Assert.Single(roundTrip.DropDownLists);
+            Assert.Equal(new[] { "Visible label" }, imported.Items.ToArray());
+            Assert.Equal("Visible label", imported.SelectedValue);
+            ListItem importedItem = imported._sdtRun.SdtProperties!
+                .GetFirstChild<SdtContentDropDownList>()!
+                .Elements<ListItem>()
+                .Single();
+            Assert.Equal("internal-id", importedItem.Value!.Value);
+            Assert.Equal("Visible label", importedItem.DisplayText!.Value);
+        }
+
+        [Fact]
         public void Test_WordToHtml_ComboBox_ExportsInputWithDatalist() {
             using var doc = WordDocument.Create();
             var paragraph = doc.AddParagraph("Contact: ");

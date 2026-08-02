@@ -110,7 +110,8 @@ namespace OfficeIMO.Word.Html {
         private void ProcessSelect(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             var optionsList = element.QuerySelectorAll("option")
                 .Select(option => new {
-                    Text = GetOptionText(option),
+                    Value = GetOptionValue(option),
+                    DisplayText = NormalizeFormText(option.TextContent),
                     Selected = option.HasAttribute("selected")
                 })
                 .ToList();
@@ -124,7 +125,7 @@ namespace OfficeIMO.Word.Html {
             if (element.HasAttribute("multiple")) {
                 var selectedValues = optionsList
                     .Where(option => option.Selected)
-                    .Select(option => option.Text)
+                    .Select(option => option.Value)
                     .ToList();
                 currentParagraph.AddStructuredDocumentTag(string.Join("\n", selectedValues), alias, tag);
                 if (ShouldAddSpaceAfterInput(element)) {
@@ -134,9 +135,14 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var dropDown = currentParagraph.AddDropDownList(optionsList.Select(option => option.Text), alias, tag);
-            var selected = optionsList.FirstOrDefault(option => option.Selected)?.Text ?? optionsList[0].Text;
-            dropDown.SelectedValue = selected;
+            int selectedIndex = optionsList.FindIndex(option => option.Selected);
+            if (selectedIndex < 0) selectedIndex = 0;
+            var importedItems = optionsList
+                .Select(option => (option.Value, option.DisplayText))
+                .ToList();
+            var dropDown = currentParagraph.AddDropDownList(
+                importedItems.Select(option => option.DisplayText), alias, tag);
+            dropDown.SetImportedItems(importedItems, selectedIndex);
 
             if (ShouldAddSpaceAfterInput(element)) {
                 AddTextRun(currentParagraph, " ", formatting, options);
@@ -230,7 +236,7 @@ namespace OfficeIMO.Word.Html {
             return string.IsNullOrWhiteSpace(max) ? value! : $"{value} / {max}";
         }
 
-        private static string GetOptionText(IElement option) =>
+        private static string GetOptionValue(IElement option) =>
             NormalizeFormText(option.GetAttribute("value") ?? option.TextContent);
 
         private static List<IElement> GetRadioGroup(IElement element) {
@@ -387,7 +393,7 @@ namespace OfficeIMO.Word.Html {
 
             options = dataList.QuerySelectorAll("option")
                 .Select(option => {
-                    string displayText = GetOptionText(option);
+                    string displayText = GetOptionValue(option);
                     string value = option.GetAttribute("data-word-value") ?? displayText;
                     return (value, displayText);
                 })

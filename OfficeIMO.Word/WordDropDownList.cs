@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -36,6 +37,18 @@ namespace OfficeIMO.Word {
                 if (ddl == null) return Array.Empty<(string Value, string DisplayText)>();
                 return WordContentControlListItems.GetExportItems(ddl.Elements<ListItem>());
             }
+        }
+
+        /// <summary>
+        /// Restores distinct HTML option values and display labels after the public dropdown
+        /// builder has created the Open XML control with its display-text list.
+        /// </summary>
+        internal void SetImportedItems(
+            IReadOnlyList<(string Value, string DisplayText)> items,
+            int selectedIndex) {
+            var dropDown = _sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault()
+                ?? throw new InvalidOperationException("Dropdown list properties are missing from the structured document tag.");
+            WordContentControlListItems.SetImportedItems(dropDown, _sdtRun, items, selectedIndex);
         }
 
         /// <summary>
@@ -135,5 +148,32 @@ namespace OfficeIMO.Word {
                     item.Value?.Value ?? item.DisplayText?.Value ?? string.Empty,
                     item.DisplayText?.Value ?? item.Value?.Value ?? string.Empty))
                 .ToList();
+
+        internal static (string Value, string DisplayText) SetImportedItems(
+            OpenXmlCompositeElement listContainer,
+            SdtRun sdtRun,
+            IReadOnlyList<(string Value, string DisplayText)> items,
+            int selectedIndex) {
+            listContainer.RemoveAllChildren<ListItem>();
+            foreach ((string value, string displayText) in items) {
+                listContainer.Append(new ListItem { Value = value, DisplayText = displayText });
+            }
+
+            (string selectedValue, string selectedDisplayText) = items[selectedIndex];
+            var content = sdtRun.SdtContentRun ?? (sdtRun.SdtContentRun = new SdtContentRun());
+            var run = content.Elements<Run>().FirstOrDefault();
+            if (run == null) {
+                run = new Run();
+                content.Append(run);
+            }
+            var text = run.Elements<Text>().FirstOrDefault();
+            if (text == null) {
+                text = new Text();
+                run.Append(text);
+            }
+            text.Text = selectedDisplayText;
+            text.Space = SpaceProcessingModeValues.Preserve;
+            return (selectedValue, selectedDisplayText);
+        }
     }
 }
