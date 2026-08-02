@@ -20,6 +20,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task LoadAsync_NamedOptionsAndCancellationTokenRemainUnambiguous() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            try {
+                VisioDocument document = VisioDocument.Create(filePath);
+                document.AddPage("Page-1");
+                document.Save();
+                var options = new VisioLoadOptions();
+
+                VisioDocument pathLoaded = await VisioDocument.LoadAsync(
+                    filePath,
+                    cancellationToken: default,
+                    options: options);
+                using var stream = pathLoaded.ToStream();
+                VisioDocument streamLoaded = await VisioDocument.LoadAsync(
+                    stream,
+                    cancellationToken: default,
+                    options: options);
+
+                Assert.Single(pathLoaded.Pages);
+                Assert.Single(streamLoaded.Pages);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void CanRoundTripVisioDocument() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 

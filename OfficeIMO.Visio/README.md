@@ -46,8 +46,8 @@ document.Save();
 ## Editing existing diagrams
 
 `Load` materializes an editable diagram. File and stream entry points accept the
-same `VisioLoadOptions`; asynchronous overloads consistently place options
-before the cancellation token.
+same `VisioLoadOptions`. New asynchronous calls should use the options-first
+shape; token-first overloads remain available for source and binary compatibility.
 
 ```csharp
 using OfficeIMO.Drawing;

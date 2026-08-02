@@ -99,9 +99,7 @@ OfficeDocumentReadResult document = diagram.ToOfficeDocumentReadResult();
 
 ## What it emits
 
-- Page-aware chunks for `.vsdx` files. Template and macro-enabled packages are
-  not advertised until the document loader can prove those content types with
-  representative conversion fixtures.
+- Page-aware chunks for `.vsdx` files.
 - Shape Data as `ReaderTable` rows.
 - Pages, shapes, connectors, hyperlinks, and optional preview asset metadata in the shared read result envelope.
 - Point-based geometry and one topology `ReaderVisual` per page for graph-aware consumers.
@@ -111,6 +109,9 @@ OfficeDocumentReadResult document = diagram.ToOfficeDocumentReadResult();
 - Reader adapter configuration belongs here.
 - Visio package parsing and inspection belongs in `OfficeIMO.Visio`.
 - Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
+- The handler advertises the same 512 MiB default input limit enforced by
+  `VisioDocument.Load`; set `ReaderOptions.MaxInputBytes` explicitly to choose a
+  different bound.
 
 ## Targets and license
 

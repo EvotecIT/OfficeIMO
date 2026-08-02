@@ -43,6 +43,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Establish repeatable PowerPoint create/save, open/edit/save, image-export, and PDF-export baselines for small, normal, and large decks before setting regression budgets.
 - [ ] Improve Visio dense layout, label placement, routing, graph and data-driven diagrams, and editable existing-diagram workflows.
 - [ ] Expand the Visio stencil platform while preserving package licensing and unsupported content explicitly.
+- [ ] Prove Visio template, stencil, and macro-enabled package variants with representative load, reader, and conversion fixtures before advertising them beyond the current `.vsdx` boundary.
 - [ ] Keep generated Visio galleries structurally validated and visually reviewed across representative diagram families.
 - [ ] Harden optional desktop-reference validation without making Microsoft Office or Visio a runtime dependency.
 

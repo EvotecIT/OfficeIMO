@@ -30,6 +30,7 @@ public static class OfficeDocumentReaderBuilderVisioExtensions {
             Description = "Modular Visio adapter using OfficeIMO.Visio inspection snapshots.",
             Kind = ReaderInputKind.Visio,
             Extensions = new[] { ".vsdx" },
+            DefaultMaxInputBytes = global::OfficeIMO.Visio.VisioLoadOptions.DefaultMaxInputBytes,
             ReadPath = (path, readerOptions, ct) => VisioReaderAdapter.Read(
                 visioPath: path,
                 readerOptions: readerOptions,
