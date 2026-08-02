@@ -119,24 +119,14 @@ namespace OfficeIMO.Word {
                     standardErrorCompleted = ReadRedirectedOutput(nativeStandardError, output);
                 } else {
                     process = new Process { StartInfo = startInfo };
-                    var standardOutputSource = new TaskCompletionSource<bool>();
-                    var standardErrorSource = new TaskCompletionSource<bool>();
-                    standardOutputCompleted = standardOutputSource.Task;
-                    standardErrorCompleted = standardErrorSource.Task;
-                    process.OutputDataReceived += (_, args) => {
-                        if (args.Data == null) standardOutputSource.TrySetResult(true);
-                        else output.Append(args.Data);
-                    };
-                    process.ErrorDataReceived += (_, args) => {
-                        if (args.Data == null) standardErrorSource.TrySetResult(true);
-                        else output.Append(args.Data);
-                    };
                     if (!process.Start()) {
                         return new WordMacroProjectToolResult(null, false,
                             "The external signing tool process did not start.");
                     }
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
+                    nativeStandardOutput = process.StandardOutput;
+                    nativeStandardError = process.StandardError;
+                    standardOutputCompleted = ReadRedirectedOutput(nativeStandardOutput, output);
+                    standardErrorCompleted = ReadRedirectedOutput(nativeStandardError, output);
                 }
                 bool exited = process.WaitForExit(checked((int)timeout.TotalMilliseconds));
                 if (!exited) {
@@ -148,7 +138,6 @@ namespace OfficeIMO.Word {
                         output.Append("The contained signing process tree did not confirm termination within the bounded grace period.");
                     }
                     DrainRedirectedOutput(
-                        process,
                         standardOutputCompleted,
                         standardErrorCompleted,
                         nativeStandardOutput,
@@ -162,7 +151,6 @@ namespace OfficeIMO.Word {
                     output.Append("The contained signing process tree did not confirm termination after the wrapper exited.");
                 }
                 DrainRedirectedOutput(
-                    process,
                     standardOutputCompleted,
                     standardErrorCompleted,
                     nativeStandardOutput,
@@ -184,10 +172,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static Task ReadRedirectedOutput(TextReader reader, BoundedProcessOutput output) => Task.Run(() => {
+        internal static Task ReadRedirectedOutput(TextReader reader, BoundedProcessOutput output) => Task.Run(() => {
             try {
-                string? line;
-                while ((line = reader.ReadLine()) != null) output.Append(line);
+                var buffer = new char[1024];
+                int read;
+                while ((read = reader.Read(buffer, 0, buffer.Length)) > 0) {
+                    output.Append(buffer, read);
+                }
             } catch (Exception exception) when (exception is IOException || exception is ObjectDisposedException) {
             }
         });
@@ -211,7 +202,6 @@ namespace OfficeIMO.Word {
         }
 
         private static void DrainRedirectedOutput(
-            Process process,
             Task standardOutputCompleted,
             Task standardErrorCompleted,
             TextReader? nativeStandardOutput,
@@ -223,9 +213,6 @@ namespace OfficeIMO.Word {
             if (nativeStandardOutput != null || nativeStandardError != null) {
                 nativeStandardOutput?.Dispose();
                 nativeStandardError?.Dispose();
-            } else {
-                try { process.CancelOutputRead(); } catch (InvalidOperationException) { }
-                try { process.CancelErrorRead(); } catch (InvalidOperationException) { }
             }
             output.Append("Redirected process output did not close within the bounded drain period.");
         }
@@ -261,7 +248,7 @@ namespace OfficeIMO.Word {
         }
 #endif
 
-        private sealed class BoundedProcessOutput {
+        internal sealed class BoundedProcessOutput {
             private readonly int _maximum;
             private readonly StringBuilder _builder = new StringBuilder();
             private readonly object _sync = new object();
@@ -281,6 +268,19 @@ namespace OfficeIMO.Word {
                     _builder.Append(value);
                     if (_builder.Length < _maximum) _builder.AppendLine();
                     if (value.Length != line.Length) _truncated = true;
+                }
+            }
+
+            internal void Append(char[] buffer, int count) {
+                lock (_sync) {
+                    if (_builder.Length >= _maximum) {
+                        _truncated = true;
+                        return;
+                    }
+                    int remaining = _maximum - _builder.Length;
+                    int accepted = Math.Min(count, remaining);
+                    _builder.Append(buffer, 0, accepted);
+                    if (accepted != count) _truncated = true;
                 }
             }
 

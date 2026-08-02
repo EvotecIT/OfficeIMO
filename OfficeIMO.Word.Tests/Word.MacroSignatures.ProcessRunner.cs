@@ -6,6 +6,19 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public async Task MacroToolRunnerReadsNewlineFreeOutputInBoundedChunks() {
+            using var reader = new ChunkOnlyTextReader(4096);
+            var output = new WordMacroProjectProcessRunner.BoundedProcessOutput(64);
+
+            await WordMacroProjectProcessRunner.ReadRedirectedOutput(reader, output);
+
+            string value = output.ToString();
+            Assert.True(reader.ReadCount > 1);
+            Assert.StartsWith(new string('x', 64), value, StringComparison.Ordinal);
+            Assert.EndsWith("[output truncated]", value, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void MacroToolRunnerTimeoutDoesNotWaitForDescendantPipeHandles() {
             WordMacroProjectToolInvocation invocation = CreateLongRunningChildProcess();
             var runner = new WordMacroProjectProcessRunner();
@@ -98,6 +111,26 @@ namespace OfficeIMO.Tests {
             return new WordMacroProjectToolInvocation(
                 "/bin/sh",
                 new[] { "-c", "sleep 30 & wait" });
+        }
+
+        private sealed class ChunkOnlyTextReader : TextReader {
+            private int _remaining;
+
+            internal ChunkOnlyTextReader(int characters) => _remaining = characters;
+
+            internal int ReadCount { get; private set; }
+
+            public override string? ReadLine() =>
+                throw new InvalidOperationException("The bounded reader must not materialize complete lines.");
+
+            public override int Read(char[] buffer, int index, int count) {
+                if (_remaining == 0) return 0;
+                int read = Math.Min(count, _remaining);
+                for (int offset = 0; offset < read; offset++) buffer[index + offset] = 'x';
+                _remaining -= read;
+                ReadCount++;
+                return read;
+            }
         }
     }
 }

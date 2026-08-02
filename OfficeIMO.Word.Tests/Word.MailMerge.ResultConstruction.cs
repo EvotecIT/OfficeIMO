@@ -79,5 +79,27 @@ namespace OfficeIMO.Tests {
                 new[] { "Ada", string.Empty },
                 paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
         }
+
+        [Fact]
+        public void Test_MailMerge_ProcessesMultipleFieldMarkersWithinOneRun() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Name ")),
+                new Run(
+                    new FieldChar { FieldCharType = FieldCharValues.Separate },
+                    new Text("old result"),
+                    new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" },
+                removeFields: false);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal(WordMailMergeFieldStatus.Merged, Assert.Single(report.Fields).Status);
+            Assert.Equal("Ada", Assert.Single(paragraph.Descendants<Text>()).Text);
+        }
     }
 }

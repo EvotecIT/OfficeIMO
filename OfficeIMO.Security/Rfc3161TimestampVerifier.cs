@@ -46,11 +46,14 @@ public static class Rfc3161TimestampVerifier {
             BcX509Certificate? tsaCertificate = token.GetCertificates()
                 .EnumerateMatches(token.SignerID)
                 .FirstOrDefault();
+            tsaCertificate ??= CmsSignedDataVerifier.FindExtraCertificate(
+                token.SignerID,
+                effectiveCertificateValidation.ExtraCertificates);
             if (tsaCertificate == null) {
                 findings.Add(new SecurityFinding(
                     SecurityFindingSeverity.Error,
                     "TimestampCertificateMissing",
-                    "The timestamp token does not contain its TSA signing certificate."));
+                    "No TSA signing certificate matching the timestamp signer identifier was supplied or embedded."));
                 return CreateResult(
                     imprintValid ? SecurityValidationStatus.Indeterminate : SecurityValidationStatus.Invalid,
                     info,

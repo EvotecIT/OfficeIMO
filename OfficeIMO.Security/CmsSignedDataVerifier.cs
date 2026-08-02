@@ -6,6 +6,7 @@ using Org.BouncyCastle.Asn1.Pkcs;
 using Org.BouncyCastle.Cms;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities;
+using Org.BouncyCastle.Utilities.Collections;
 using BcX509Certificate = Org.BouncyCastle.X509.X509Certificate;
 
 namespace OfficeIMO.Security;
@@ -188,7 +189,7 @@ public static class CmsSignedDataVerifier {
         BcX509Certificate? bcSigner = signedData.GetCertificates()
             .EnumerateMatches(signer.SignerID)
             .FirstOrDefault();
-        bcSigner ??= FindExtraSignerCertificate(signer, options.CertificateValidation.ExtraCertificates);
+        bcSigner ??= FindExtraCertificate(signer.SignerID, options.CertificateValidation.ExtraCertificates);
 
         if (bcSigner == null) {
             findings.Add(new SecurityFinding(
@@ -558,12 +559,12 @@ public static class CmsSignedDataVerifier {
         }
     }
 
-    private static BcX509Certificate? FindExtraSignerCertificate(
-        SignerInformation signer,
+    internal static BcX509Certificate? FindExtraCertificate(
+        ISelector<BcX509Certificate> selector,
         X509Certificate2Collection extraCertificates) {
         foreach (X509Certificate2 certificate in extraCertificates) {
             BcX509Certificate candidate = DotNetUtilities.FromX509Certificate(certificate);
-            if (signer.SignerID.Match(candidate)) return candidate;
+            if (selector.Match(candidate)) return candidate;
         }
         return null;
     }

@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.CustomXmlDataProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
@@ -85,8 +86,8 @@ namespace OfficeIMO.Word {
                         ContainsNestedField(simpleField)
                             ? "A simple MERGEFIELD contains a nested field and cannot be processed deterministically."
                             : GetMalformedMergeFieldInstructionMessage(instruction)));
-                } else if (element is Run run &&
-                           run.GetFirstChild<FieldChar>()?.FieldCharType?.Value == FieldCharValues.Begin) {
+                } else if (element is Run run && run.Elements<FieldChar>().Any(fieldChar =>
+                               fieldChar.FieldCharType?.Value == FieldCharValues.Begin)) {
                     beginRunOrders[run] = order;
                 }
                 order++;
@@ -100,38 +101,33 @@ namespace OfficeIMO.Word {
                         foreach (ComplexFieldFrame activeField in activeFields) activeField.HasNestedField = true;
                     }
 
-                    var fieldChar = run.GetFirstChild<FieldChar>();
-                    if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-                        foreach (ComplexFieldFrame activeField in activeFields) {
-                            activeField.Runs.Add(run);
-                            activeField.HasNestedField = true;
+                    if (activeFields.Count > 0) AddRunToActiveFields(activeFields, run);
+                    foreach (FieldChar fieldChar in run.Elements<FieldChar>()) {
+                        if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin) {
+                            foreach (ComplexFieldFrame activeField in activeFields) {
+                                activeField.HasNestedField = true;
+                            }
+                            activeFields.Add(new ComplexFieldFrame(run, beginRunOrders[run]));
+                            continue;
                         }
-                        activeFields.Add(new ComplexFieldFrame(run, beginRunOrders[run]));
-                        continue;
-                    }
+                        if (fieldChar.FieldCharType?.Value != FieldCharValues.End || activeFields.Count == 0) {
+                            continue;
+                        }
 
-                    if (activeFields.Count == 0) {
-                        continue;
+                        ComplexFieldFrame completedField = activeFields[activeFields.Count - 1];
+                        activeFields.RemoveAt(activeFields.Count - 1);
+                        string instruction = ReadComplexFieldInstruction(completedField.Runs);
+                        if (!MergeFieldTypePattern.IsMatch(instruction)) {
+                            continue;
+                        }
+                        string? malformedMessage = completedField.HasNestedField
+                            ? "A complex MERGEFIELD contains a nested field and cannot be processed deterministically."
+                            : GetMalformedMergeFieldInstructionMessage(instruction);
+                        occurrences.Add(MergeFieldOccurrence.ForComplex(
+                            completedField.Order,
+                            completedField.Runs,
+                            malformedMessage));
                     }
-
-                    foreach (ComplexFieldFrame activeField in activeFields) activeField.Runs.Add(run);
-                    if (fieldChar?.FieldCharType?.Value != FieldCharValues.End) {
-                        continue;
-                    }
-
-                    ComplexFieldFrame completedField = activeFields[activeFields.Count - 1];
-                    activeFields.RemoveAt(activeFields.Count - 1);
-                    string instruction = ReadComplexFieldInstruction(completedField.Runs);
-                    if (!MergeFieldTypePattern.IsMatch(instruction)) {
-                        continue;
-                    }
-                    string? malformedMessage = completedField.HasNestedField
-                        ? "A complex MERGEFIELD contains a nested field and cannot be processed deterministically."
-                        : GetMalformedMergeFieldInstructionMessage(instruction);
-                    occurrences.Add(MergeFieldOccurrence.ForComplex(
-                        completedField.Order,
-                        completedField.Runs,
-                        malformedMessage));
                 }
 
                 foreach (ComplexFieldFrame activeField in activeFields) {
@@ -147,6 +143,15 @@ namespace OfficeIMO.Word {
             }
 
             return occurrences;
+        }
+
+        private static void AddRunToActiveFields(IEnumerable<ComplexFieldFrame> activeFields, Run run) {
+            foreach (ComplexFieldFrame activeField in activeFields) {
+                if (activeField.Runs.Count == 0 ||
+                    !ReferenceEquals(activeField.Runs[activeField.Runs.Count - 1], run)) {
+                    activeField.Runs.Add(run);
+                }
+            }
         }
 
         private static bool ContainsNestedField(SimpleField simpleField) =>
@@ -622,23 +627,22 @@ namespace OfficeIMO.Word {
 
         private static IEnumerable<string> EnumerateComplexFieldInstructions(OpenXmlElement root) {
             foreach (Paragraph paragraph in EnumerateParagraphs(root)) {
-                var activeFields = new List<List<string>>();
+                var activeFields = new List<StringBuilder>();
                 foreach (Run run in EnumerateParagraphOwnedRuns(paragraph)) {
-                    FieldChar? fieldChar = run.Elements<FieldChar>().FirstOrDefault();
-                    if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-                        var instruction = new List<string>();
-                        instruction.AddRange(run.Elements<FieldCode>().Select(code => code.Text));
-                        activeFields.Add(instruction);
-                        continue;
+                    foreach (OpenXmlElement child in run.ChildElements) {
+                        if (child is FieldChar fieldChar) {
+                            if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin) {
+                                activeFields.Add(new StringBuilder());
+                            } else if (fieldChar.FieldCharType?.Value == FieldCharValues.End &&
+                                       activeFields.Count > 0) {
+                                StringBuilder completed = activeFields[activeFields.Count - 1];
+                                activeFields.RemoveAt(activeFields.Count - 1);
+                                yield return completed.ToString();
+                            }
+                        } else if (child is FieldCode code && activeFields.Count > 0) {
+                            activeFields[activeFields.Count - 1].Append(code.Text);
+                        }
                     }
-
-                    if (activeFields.Count == 0) continue;
-                    List<string> currentInstruction = activeFields[activeFields.Count - 1];
-                    currentInstruction.AddRange(run.Elements<FieldCode>().Select(code => code.Text));
-                    if (fieldChar?.FieldCharType?.Value != FieldCharValues.End) continue;
-
-                    activeFields.RemoveAt(activeFields.Count - 1);
-                    yield return string.Concat(currentInstruction);
                 }
             }
         }

@@ -46,6 +46,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_RevisionDiagnosticsDescribeOnlyExportedStories() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Visible body");
+            document.Sections[0]
+                .GetOrCreateHeader(HeaderFooterValues.Default)
+                .AddParagraph("Tracked header ")
+                .AddInsertedText("revision", "Reviewer");
+
+            HtmlTextConversionResult excluded = document.ToHtmlResult(new WordToHtmlOptions {
+                ExportHeadersAndFooters = false
+            });
+            HtmlTextConversionResult included = document.ToHtmlResult(new WordToHtmlOptions {
+                ExportHeadersAndFooters = true
+            });
+
+            Assert.DoesNotContain(excluded.Report.Diagnostics, diagnostic =>
+                diagnostic.Code is "TrackedRevisionTextOmitted" or "TrackedRevisionsFlattened");
+            Assert.Contains(included.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "TrackedRevisionTextOmitted");
+        }
+
+        [Fact]
         public async Task Test_WordToHtml_ReusedOptionsKeepConcurrentDiagnosticsIsolated() {
             using var documentWithHeader = WordDocument.Create();
             documentWithHeader.AddParagraph("Header document body");

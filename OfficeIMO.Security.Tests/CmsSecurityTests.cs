@@ -356,33 +356,7 @@ public sealed class CmsSecurityTests {
     public void TimestampVerifier_ValidatesSignatureProfileAndMessageImprint() {
         byte[] timestampedData = Encoding.UTF8.GetBytes("PDF signature bytes");
         using X509Certificate2 certificate = CreateTimestampCertificate();
-        using RSA rsa = certificate.GetRSAPrivateKey() ?? throw new InvalidOperationException();
-        Org.BouncyCastle.X509.X509Certificate bcCertificate =
-            Org.BouncyCastle.Security.DotNetUtilities.FromX509Certificate(certificate);
-        Org.BouncyCastle.Crypto.AsymmetricKeyParameter privateKey =
-            Org.BouncyCastle.Security.DotNetUtilities.GetRsaKeyPair(rsa).Private;
-        var signerFactory = new Org.BouncyCastle.Crypto.Operators.Asn1SignatureFactory(
-            "SHA256WITHRSA",
-            privateKey);
-        Org.BouncyCastle.Cms.SignerInfoGenerator signer =
-            new Org.BouncyCastle.Cms.SignerInfoGeneratorBuilder().Build(signerFactory, bcCertificate);
-        var generator = new Org.BouncyCastle.Tsp.TimeStampTokenGenerator(
-            signer,
-            Org.BouncyCastle.Crypto.Operators.Asn1DigestFactory.Get("SHA256"),
-            new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.6.1.4.1.59069.1.1"),
-            isIssuerSerialIncluded: true);
-        generator.SetCertificates(new SingleCertificateStore(bcCertificate));
-        var requestGenerator = new Org.BouncyCastle.Tsp.TimeStampRequestGenerator();
-        requestGenerator.SetCertReq(true);
-        byte[] imprint = Org.BouncyCastle.Security.DigestUtilities.CalculateDigest("SHA256", timestampedData);
-        Org.BouncyCastle.Tsp.TimeStampRequest request = requestGenerator.Generate(
-            Org.BouncyCastle.Tsp.TspAlgorithms.Sha256,
-            imprint);
-        DateTime generationTime = DateTime.UtcNow.AddMinutes(-1);
-        byte[] encoded = generator.Generate(
-            request,
-            Org.BouncyCastle.Math.BigInteger.One,
-            generationTime).GetEncoded();
+        (byte[] encoded, DateTime generationTime) = CreateTimestampToken(timestampedData, certificate);
         DateTime? observedDefaultVerificationTime = null;
         var trust = new CertificateValidationOptions {
             ChainEvaluator = (_, chain) => {
@@ -422,6 +396,30 @@ public sealed class CmsSecurityTests {
         Assert.Contains(tampered.Findings, finding => finding.Code == "TimestampImprintMismatch");
         Assert.Equal(SecurityValidationStatus.Invalid, untrusted.Status);
         Assert.Equal(SecurityValidationStatus.Invalid, untrusted.CertificateValidation.ChainStatus);
+    }
+
+    [Fact]
+    public void TimestampVerifier_ResolvesOmittedTsaCertificateFromCallerExtras() {
+        byte[] timestampedData = Encoding.UTF8.GetBytes("timestamp with external TSA certificate");
+        using X509Certificate2 certificate = CreateTimestampCertificate();
+        (byte[] encoded, _) = CreateTimestampToken(
+            timestampedData,
+            certificate,
+            includeCertificate: false);
+        var trust = new CertificateValidationOptions {
+            ChainEvaluator = static (_, _) => true
+        };
+        trust.ExtraCertificates.Add(certificate);
+
+        Rfc3161TimestampVerificationResult result = Rfc3161TimestampVerifier.Verify(
+            encoded,
+            timestampedData,
+            trust);
+
+        Assert.Equal(SecurityValidationStatus.Valid, result.Status);
+        Assert.Equal(SecurityValidationStatus.Valid, result.CertificateValidation.ChainStatus);
+        Assert.DoesNotContain(result.Findings, finding => finding.Code == "TimestampCertificateMissing");
+        Assert.Equal(certificate.RawData, result.TsaCertificate);
     }
 
     [Theory]
@@ -526,6 +524,42 @@ public sealed class CmsSecurityTests {
             critical: true));
         request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+    }
+
+    private static (byte[] Encoded, DateTime GenerationTime) CreateTimestampToken(
+        byte[] timestampedData,
+        X509Certificate2 certificate,
+        bool includeCertificate = true) {
+        using RSA rsa = certificate.GetRSAPrivateKey() ?? throw new InvalidOperationException();
+        Org.BouncyCastle.X509.X509Certificate bcCertificate =
+            Org.BouncyCastle.Security.DotNetUtilities.FromX509Certificate(certificate);
+        Org.BouncyCastle.Crypto.AsymmetricKeyParameter privateKey =
+            Org.BouncyCastle.Security.DotNetUtilities.GetRsaKeyPair(rsa).Private;
+        var signerFactory = new Org.BouncyCastle.Crypto.Operators.Asn1SignatureFactory(
+            "SHA256WITHRSA",
+            privateKey);
+        Org.BouncyCastle.Cms.SignerInfoGenerator signer =
+            new Org.BouncyCastle.Cms.SignerInfoGeneratorBuilder().Build(signerFactory, bcCertificate);
+        var generator = new Org.BouncyCastle.Tsp.TimeStampTokenGenerator(
+            signer,
+            Org.BouncyCastle.Crypto.Operators.Asn1DigestFactory.Get("SHA256"),
+            new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.6.1.4.1.59069.1.1"),
+            isIssuerSerialIncluded: true);
+        if (includeCertificate) {
+            generator.SetCertificates(new SingleCertificateStore(bcCertificate));
+        }
+        var requestGenerator = new Org.BouncyCastle.Tsp.TimeStampRequestGenerator();
+        requestGenerator.SetCertReq(includeCertificate);
+        byte[] imprint = Org.BouncyCastle.Security.DigestUtilities.CalculateDigest("SHA256", timestampedData);
+        Org.BouncyCastle.Tsp.TimeStampRequest request = requestGenerator.Generate(
+            Org.BouncyCastle.Tsp.TspAlgorithms.Sha256,
+            imprint);
+        DateTime generationTime = DateTime.UtcNow.AddMinutes(-1);
+        byte[] encoded = generator.Generate(
+            request,
+            Org.BouncyCastle.Math.BigInteger.One,
+            generationTime).GetEncoded();
+        return (encoded, generationTime);
     }
 
     private sealed class SingleCertificateStore :
