@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -245,6 +246,39 @@ namespace OfficeIMO.Tests {
             Assert.Equal(60, gradientShape.FillTransparency);
             gradientShape.FillTransparency = null;
             Assert.DoesNotContain(gradient.Descendants<A.Alpha>(), _ => true);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void FillTransparencyMutatesPictureFillAlpha() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                10, 10, 100, 60);
+            ImagePart imagePart = slide.SlidePart.AddImagePart(
+                DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+            using (var image = new MemoryStream(
+                       PdfPngTestImages.CreateRgbPng(37, 99, 235))) {
+                imagePart.FeedData(image);
+            }
+            string relationshipId = slide.SlidePart.GetIdOfPart(imagePart);
+            ShapeProperties properties = ((Shape)shape.Element)
+                .ShapeProperties!;
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.InsertAfter(new A.BlipFill(
+                    new A.Blip { Embed = relationshipId },
+                    new A.Stretch(new A.FillRectangle())),
+                properties.GetFirstChild<A.PresetGeometry>()!);
+
+            shape.FillTransparency = 35;
+
+            A.Blip blip = properties.GetFirstChild<A.BlipFill>()!.Blip!;
+            Assert.Equal(65000, blip.GetFirstChild<A.AlphaModulationFixed>()!
+                .Amount!.Value);
+            Assert.Equal(35, shape.FillTransparency);
+            shape.FillTransparency = null;
+            Assert.Null(blip.GetFirstChild<A.AlphaModulationFixed>());
             Assert.Empty(presentation.ValidateDocument());
         }
 

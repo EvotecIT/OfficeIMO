@@ -42,6 +42,13 @@ namespace OfficeIMO.PowerPoint {
                     ? Array.Empty<OpenXmlCompositeElement>()
                     : GetFillColorChoices(props);
                 if (props != null && HasExplicitFillChoice(props)) {
+                    A.AlphaModulationFixed? imageAlpha = props
+                        .GetFirstChild<A.BlipFill>()?.Blip?
+                        .GetFirstChild<A.AlphaModulationFixed>();
+                    if (imageAlpha?.Amount?.Value is int imageAmount) {
+                        return (int)Math.Round((100000 - imageAmount)
+                            / 1000D);
+                    }
                     if (localColors.Count == 0) return null;
                     int? localAlpha = localColors[0]
                         .GetFirstChild<A.Alpha>()?.Val?.Value;
@@ -81,6 +88,15 @@ namespace OfficeIMO.PowerPoint {
             A.SolidFill? solid = props.GetFirstChild<A.SolidFill>();
             if (solid == null) {
                 if (HasExplicitFillChoice(props)) {
+                    A.BlipFill? pictureFill = props
+                        .GetFirstChild<A.BlipFill>();
+                    if (pictureFill != null) {
+                        A.Blip blip = pictureFill.Blip
+                            ?? throw new InvalidOperationException(
+                                "The picture fill has no image reference to receive transparency.");
+                        SetBlipAlpha(blip, opacity);
+                        return;
+                    }
                     foreach (OpenXmlCompositeElement fillColor in
                              GetFillColorChoices(props)) {
                         SetFillColorAlpha(fillColor, opacity);
@@ -122,6 +138,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SetFillColorAlpha(color, opacity);
+        }
+
+        private static void SetBlipAlpha(A.Blip blip, double? opacity) {
+            A.AlphaModulationFixed? alpha = blip
+                .GetFirstChild<A.AlphaModulationFixed>();
+            if (!opacity.HasValue) {
+                alpha?.Remove();
+                return;
+            }
+            alpha ??= new A.AlphaModulationFixed();
+            alpha.Amount = checked((int)Math.Round(opacity.Value * 100000D,
+                MidpointRounding.AwayFromZero));
+            if (alpha.Parent == null) blip.Append(alpha);
         }
 
         private OpenXmlElement? ResolveThemeFill() {

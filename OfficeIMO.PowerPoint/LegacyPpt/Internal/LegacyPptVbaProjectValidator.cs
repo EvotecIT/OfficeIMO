@@ -41,14 +41,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static bool TryValidateProjectMetadata(byte[] project) {
-            string text;
-            try {
-                text = Encoding.GetEncoding(1252,
-                    EncoderFallback.ExceptionFallback,
-                    DecoderFallback.ExceptionFallback).GetString(project);
-            } catch (DecoderFallbackException) {
-                return false;
-            }
+            string text = Encoding.ASCII.GetString(project);
             string[] lines = text.Split(new[] { '\r', '\n' },
                 StringSplitOptions.RemoveEmptyEntries);
             return lines.Any(line => line.StartsWith("ID=",

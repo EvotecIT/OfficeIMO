@@ -469,6 +469,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointShape_OutlineTransparencyMaterializesFixedThemeLine() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                20, 20, 120, 80);
+            Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            openXmlShape.ShapeProperties!.RemoveAllChildren<A.Outline>();
+            A.LineStyleList lineStyles = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.ThemePart!.Theme!.ThemeElements!
+                .FormatScheme!.LineStyleList!;
+            A.Outline fixedThemeLine = new A.Outline(
+                new A.SolidFill(
+                    new A.RgbColorModelHex { Val = "654321" }),
+                new A.PresetDash { Val = A.PresetLineDashValues.Dash }) {
+                Width = 38100
+            };
+            lineStyles.ReplaceChild(fixedThemeLine,
+                lineStyles.ChildElements[0]);
+            var referenceColor = new A.SchemeColor {
+                Val = A.SchemeColorValues.Accent2
+            };
+            openXmlShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(referenceColor) { Index = 1U },
+                new A.FillReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+
+            shape.OutlineTransparency = 40;
+
+            A.Outline local = openXmlShape.ShapeProperties!
+                .GetFirstChild<A.Outline>()!;
+            A.RgbColorModelHex localColor = local
+                .GetFirstChild<A.SolidFill>()!
+                .GetFirstChild<A.RgbColorModelHex>()!;
+            Assert.Equal("654321", localColor.Val!.Value);
+            Assert.Equal(60000, localColor.GetFirstChild<A.Alpha>()!.Val!.Value);
+            Assert.Equal(38100, local.Width!.Value);
+            Assert.Equal(A.PresetLineDashValues.Dash,
+                local.GetFirstChild<A.PresetDash>()!.Val!.Value);
+            Assert.Null(referenceColor.GetFirstChild<A.Alpha>());
+            Assert.Equal(40, shape.OutlineTransparency);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsSharedPolygonAndRejectsNonFreeformDescriptors() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),
@@ -485,6 +537,29 @@ namespace OfficeIMO.Tests {
             Assert.Null(shape.ShapeType);
             Assert.Throws<ArgumentException>(() => slide.AddCustomGeometryPoints(
                 OfficeShape.Rectangle(10, 10), 0, 0, 10, 10));
+        }
+
+        [Fact]
+        public void PowerPointSlide_RejectsUnrepresentableCustomGeometryCoordinatesBeforeMutation() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            int originalShapeCount = slide.Shapes.Count;
+            OfficeShape infiniteNormalized = OfficeShape.Path(double.Epsilon,
+                100D, OfficePathCommand.MoveTo(0D, 0D),
+                OfficePathCommand.LineTo(1D, 1D));
+            OfficeShape outOfRangeNormalized = OfficeShape.Path(1D, 100D,
+                OfficePathCommand.MoveTo(0D, 0D),
+                OfficePathCommand.LineTo(300000000D, 1D));
+
+            Assert.Throws<ArgumentException>(() =>
+                slide.AddCustomGeometryPoints(infiniteNormalized,
+                    0D, 0D, 100D, 100D));
+            Assert.Throws<ArgumentException>(() =>
+                slide.AddCustomGeometryPoints(outOfRangeNormalized,
+                    0D, 0D, 100D, 100D));
+            Assert.Equal(originalShapeCount, slide.Shapes.Count);
+            Assert.Empty(presentation.ValidateDocument());
         }
 
         [Fact]

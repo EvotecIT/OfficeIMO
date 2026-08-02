@@ -9,6 +9,8 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         private const long CustomGeometryCoordinateSize = 100000L;
+        private const long MinimumDrawingCoordinate = -27273042329600L;
+        private const long MaximumDrawingCoordinate = 27273042316900L;
         private const int MaximumCustomGeometryCommands = 20000;
 
         /// <summary>
@@ -34,6 +36,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new NotSupportedException(
                     "DrawingML custom geometry cannot faithfully encode the even-odd fill rule. Use a non-zero fill rule, remove the fill, or split the geometry into separate shapes.");
             }
+            A.CustomGeometry customGeometry = CreateCustomGeometry(
+                geometry, commands);
 
             PowerPointAutoShape result = AddShape(
                 A.ShapeTypeValues.Rectangle, left, top, width, height, name);
@@ -43,7 +47,7 @@ namespace OfficeIMO.PowerPoint {
             A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()
                 ?? throw new InvalidOperationException("The added shape has no transform.");
             properties.RemoveAllChildren<A.PresetGeometry>();
-            properties.InsertAfter(CreateCustomGeometry(geometry, commands), transform);
+            properties.InsertAfter(customGeometry, transform);
             ApplyCustomGeometryStyle(result, properties, geometry);
             return result;
         }
@@ -250,9 +254,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string ScaleCustomGeometryCoordinate(double value, double sourceSize) {
-            long scaled = (long)Math.Round(
-                value / sourceSize * CustomGeometryCoordinateSize,
+            double normalized = value / sourceSize
+                * CustomGeometryCoordinateSize;
+            double rounded = Math.Round(normalized,
                 MidpointRounding.AwayFromZero);
+            if (double.IsNaN(rounded) || double.IsInfinity(rounded)
+                || rounded < MinimumDrawingCoordinate
+                || rounded > MaximumDrawingCoordinate) {
+                throw new ArgumentException(
+                    "The shared path contains a coordinate that cannot be represented by DrawingML.");
+            }
+            long scaled = checked((long)rounded);
             return scaled.ToString(CultureInfo.InvariantCulture);
         }
 

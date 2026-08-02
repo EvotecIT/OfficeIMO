@@ -444,7 +444,8 @@ namespace OfficeIMO.Tests {
             bool corruptDirectoryRecords = false,
             bool omitModuleStream = false, uint moduleOffset = 0,
             string? ansiModuleName = null,
-            bool omitProjectStream = false) {
+            bool omitProjectStream = false,
+            byte[]? projectMetadata = null) {
             using var output = new MemoryStream();
             using (RootStorage root = RootStorage.Create(output,
                        CfbVersion.V3, StorageModeFlags.LeaveOpen)) {
@@ -474,7 +475,7 @@ namespace OfficeIMO.Tests {
                 }
                 if (!omitProjectStream) {
                     using CfbStream project = root.CreateStream("PROJECT");
-                    byte[] metadata = Encoding.ASCII.GetBytes(
+                    byte[] metadata = projectMetadata ?? Encoding.ASCII.GetBytes(
                         "ID=\"{00000000-0000-0000-0000-000000000000}\"\r\n"
                         + "Name=\"VBAProject\"\r\n"
                         + $"Module={ansiModuleName ?? moduleName}\r\n");

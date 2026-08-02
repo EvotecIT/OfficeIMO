@@ -65,6 +65,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompoundStorageValidation_AcceptsLocalizedProjectMetadata() {
+            byte[] prefix = System.Text.Encoding.ASCII.GetBytes(
+                "ID=\"{00000000-0000-0000-0000-000000000000}\"\r\nName=\"");
+            byte[] suffix = System.Text.Encoding.ASCII.GetBytes(
+                "\"\r\nModule=Localized\r\n");
+            byte[] metadata = prefix.Concat(new byte[] { 0x81, 0x40 })
+                .Concat(suffix).ToArray();
+            byte[] vbaStorage = CreateVbaTestProject("Localized",
+                "Sub Main(): End Sub", projectMetadata: metadata);
+
+            Assert.True(LegacyPptVbaProjectCodec.IsValidProject(vbaStorage,
+                new LegacyPptImportOptions(), out string? reason), reason);
+        }
+
+        [Fact]
         public void CompoundStorageValidation_RejectsMissingProjectStream() {
             byte[] vbaStorage = CreateVbaTestProject("MissingProject",
                 "Sub Main(): End Sub", omitProjectStream: true);

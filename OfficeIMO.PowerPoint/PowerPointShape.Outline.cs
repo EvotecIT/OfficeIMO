@@ -157,7 +157,25 @@ namespace OfficeIMO.PowerPoint {
                     "Opacity must be between 0 and 1.");
             }
 
-            A.Outline? outline = GetOutline(create: opacity != null);
+            A.Outline? outline = GetOutline();
+            A.Outline? themeOutline = ResolveThemeOutline();
+            OpenXmlElement? themeFill = themeOutline?.ChildElements
+                .FirstOrDefault(child => child is A.NoFill
+                    or A.SolidFill or A.GradientFill or A.PatternFill);
+            bool hasFixedThemeFill = opacity != null && themeFill != null
+                && !themeFill.Descendants<A.SchemeColor>().Any(color =>
+                    color.Val?.Value == A.SchemeColorValues.PhColor);
+            if (outline == null && hasFixedThemeFill) {
+                ShapeProperties? properties = GetShapeProperties(create: true);
+                outline = (A.Outline)themeOutline!.CloneNode(true);
+                InsertShapePropertyChild(properties!, outline);
+                foreach (OpenXmlCompositeElement fillColor in
+                         GetFillColorChoices(outline)) {
+                    SetColorAlpha(fillColor, opacity);
+                }
+                return;
+            }
+            outline ??= GetOutline(create: opacity != null);
             if (outline == null) {
                 return;
             }
@@ -165,6 +183,15 @@ namespace OfficeIMO.PowerPoint {
             A.SolidFill? solid = outline.GetFirstChild<A.SolidFill>();
             if (solid == null) {
                 if (HasExplicitFillChoice(outline)) {
+                    foreach (OpenXmlCompositeElement fillColor in
+                             GetFillColorChoices(outline)) {
+                        SetColorAlpha(fillColor, opacity);
+                    }
+                    return;
+                }
+                if (hasFixedThemeFill) {
+                    RemoveFillChoiceChildren(outline);
+                    InsertOutlineChild(outline, themeFill!.CloneNode(true));
                     foreach (OpenXmlCompositeElement fillColor in
                              GetFillColorChoices(outline)) {
                         SetColorAlpha(fillColor, opacity);
@@ -194,6 +221,31 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SetColorAlpha(color, opacity);
+        }
+
+        private A.Outline? ResolveThemeOutline() {
+            A.LineReference? reference = Element switch {
+                Shape shape => shape.ShapeStyle?.LineReference,
+                ConnectionShape connector => connector.ShapeStyle?.LineReference,
+                Picture picture => picture.ShapeStyle?.LineReference,
+                _ => null
+            };
+            uint? index = reference?.Index?.Value;
+            if (OwnerSlide == null || !index.HasValue || index.Value < 1U) {
+                return null;
+            }
+            A.FormatScheme? formatScheme = OwnerSlide.SlidePart
+                .ThemeOverridePart?.ThemeOverride?.FormatScheme
+                ?? OwnerSlide.SlidePart.SlideLayoutPart?.ThemeOverridePart?
+                    .ThemeOverride?.FormatScheme
+                ?? OwnerSlide.SlidePart.SlideLayoutPart?.SlideMasterPart?
+                    .ThemePart?.Theme?.ThemeElements?.FormatScheme;
+            OpenXmlElementList lines = formatScheme?
+                .GetFirstChild<A.LineStyleList>()?.ChildElements ?? default;
+            uint zeroBased = index.Value - 1U;
+            if (zeroBased >= unchecked((uint)lines.Count)) return null;
+            OpenXmlElement line = lines[unchecked((int)zeroBased)];
+            return line as A.Outline ?? line.GetFirstChild<A.Outline>();
         }
 
         private OpenXmlCompositeElement? GetShapeStyleLineColorChoice(

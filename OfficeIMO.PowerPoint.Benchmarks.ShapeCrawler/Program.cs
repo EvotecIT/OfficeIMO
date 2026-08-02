@@ -223,7 +223,7 @@ internal static class ShapeCrawlerBaselineRunner {
                 })
             };
             shapes.AddClusteredBarChart(390, 214, 500, 260, categories,
-                series, "Benchmark chart");
+                series, string.Empty);
         } else {
             shapes.AddTextBox(390, 238, 500, 110,
                 "Measured work includes editable text, vector shapes, package serialization, and rendering.");
