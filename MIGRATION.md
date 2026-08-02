@@ -425,6 +425,11 @@ options-first async overload keeps cancellation explicit:
 `LoadAsync(path, options, cancellationToken)`. Existing two-argument calls such
 as `LoadAsync(path, default)` continue to bind to the `CancellationToken`
 overload; use a typed or named token when the argument's purpose is not obvious.
+The former positional three-argument shape `LoadAsync(path, default, default)`
+is ambiguous while both the token-first compatibility overload and the
+options-first 3.1 overload are available. Replace it with
+`LoadAsync(path, options: null, cancellationToken: default)` (and use the same
+named arguments for the stream overload), or pass explicitly typed values.
 
 The modular Visio reader now registers `.vsdx` only. Earlier handler metadata
 listed `.vsdm`, `.vstx`, and `.vstm`, but the document loader did not accept
