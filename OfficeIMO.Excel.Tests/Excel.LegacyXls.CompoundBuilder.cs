@@ -138,6 +138,16 @@ namespace OfficeIMO.Tests {
                 return compound;
             }
 
+            internal static byte[] CreateWorkbookCompoundFileWithDeclaredWorkbookSize(
+                byte[] workbookStream,
+                uint declaredWorkbookSize) {
+                byte[] compound = CreateWorkbookCompoundFile(workbookStream);
+                int workbookLength = PadToRegularStream(workbookStream).Length;
+                int directoryOffset = SectorSize + workbookLength;
+                WriteUInt64(compound, directoryOffset + 128 + 120, declaredWorkbookSize);
+                return compound;
+            }
+
             internal static byte[] CreateMiniStreamWorkbookCompoundFileWithDeclaredMiniFatSectorCount(
                 byte[] workbookStream,
                 uint declaredMiniFatSectorCount) {

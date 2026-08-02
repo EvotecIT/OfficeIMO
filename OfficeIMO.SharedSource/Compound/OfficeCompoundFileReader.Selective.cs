@@ -63,6 +63,7 @@ namespace OfficeIMO.Drawing.Internal {
                 }
 
                 int physicalSectorCount = checked((int)((remainingBytes - sectorSize) / sectorSize));
+                long maximumPhysicalStreamBytes = checked((long)physicalSectorCount * sectorSize);
                 int fatSectorCount = checked((int)ReadUInt32(header, 44));
                 uint directoryStart = ReadUInt32(header, 48);
                 uint miniCutoff = ReadUInt32(header, 56);
@@ -88,7 +89,9 @@ namespace OfficeIMO.Drawing.Internal {
                     options.MaxDirectoryEntries, cancellationToken);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
-                if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > remainingBytes) {
+                if (root.Size < 0
+                    || root.Size > options.MaxTotalStreamBytes
+                    || root.Size > maximumPhysicalStreamBytes) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured or physical bounds.");
                 }
 
@@ -110,6 +113,7 @@ namespace OfficeIMO.Drawing.Internal {
                         (!isExternal && entry.Size > int.MaxValue)) {
                         throw new InvalidDataException($"Compound stream '{path}' has unsupported size {entry.Size}.");
                     }
+                    ValidateRegularStreamPhysicalBounds(path, entry.Size, miniCutoff, maximumPhysicalStreamBytes);
                     totalStreamBytes = checked(totalStreamBytes + entry.Size);
                     if (totalStreamBytes > options.MaxTotalStreamBytes) {
                         throw new InvalidDataException($"Compound stream bytes exceed {options.MaxTotalStreamBytes}.");

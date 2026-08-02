@@ -98,6 +98,30 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        [Fact]
+        public void OpenDataReader_XlsFastPathBoundsDeclaredRegularWorkbookBeforeBuildingItsChain() {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithDeclaredWorkbookSize(
+                LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream(),
+                1024 * 1024);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.OpenDataReader(
+                    compound,
+                    new ExcelReadOptions { HasHeaderRow = false }));
+
+            Assert.Contains("physical bounds", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void OpenDataReader_XlsFastPathPreservesTheCanonicalSchemaContract() {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
+                LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(compound);
+
+            global::OfficeIMO.Excel.Tests.DataReaderSchemaContractAssertions.AssertCanonicalSchema(reader);
+        }
+
         [Theory]
         [InlineData("Workbook")]
         [InlineData("Book")]

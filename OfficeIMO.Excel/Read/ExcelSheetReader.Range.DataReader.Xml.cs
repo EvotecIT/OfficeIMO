@@ -15,11 +15,6 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal sealed partial class ExcelSheetReader {
         private sealed class ExcelXmlRangeDataReader : DbDataReader {
-            private const string IsReadOnlyColumn = "IsReadOnly";
-            private const string IsRowVersionColumn = "IsRowVersion";
-            private const string IsAutoIncrementColumn = "IsAutoIncrement";
-            private const string BaseCatalogNameColumn = "BaseCatalogName";
-
             private readonly ExcelSheetReader _owner;
             private readonly Stream _stream = Stream.Null;
             private readonly XmlReader _reader = null!;
@@ -315,52 +310,8 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             [UnconditionalSuppressMessage("Trimming", "IL2111", Justification = "The schema table stores Type values as data and does not reflect over Type.TypeInitializer or other Type members.")]
-            public override DataTable GetSchemaTable() {
-                var schema = new DataTable("SchemaTable");
-                schema.Columns.Add(SchemaTableColumn.ColumnName, typeof(string));
-                schema.Columns.Add(SchemaTableColumn.ColumnOrdinal, typeof(int));
-                schema.Columns.Add(SchemaTableColumn.ColumnSize, typeof(int));
-                schema.Columns.Add(SchemaTableColumn.NumericPrecision, typeof(short));
-                schema.Columns.Add(SchemaTableColumn.NumericScale, typeof(short));
-                schema.Columns.Add(SchemaTableColumn.DataType, typeof(Type));
-                schema.Columns.Add(SchemaTableColumn.ProviderType, typeof(int));
-                schema.Columns.Add(SchemaTableColumn.IsLong, typeof(bool));
-                schema.Columns.Add(SchemaTableColumn.AllowDBNull, typeof(bool));
-                schema.Columns.Add(IsReadOnlyColumn, typeof(bool));
-                schema.Columns.Add(IsRowVersionColumn, typeof(bool));
-                schema.Columns.Add(SchemaTableColumn.IsUnique, typeof(bool));
-                schema.Columns.Add(SchemaTableColumn.IsKey, typeof(bool));
-                schema.Columns.Add(IsAutoIncrementColumn, typeof(bool));
-                schema.Columns.Add(SchemaTableColumn.BaseSchemaName, typeof(string));
-                schema.Columns.Add(BaseCatalogNameColumn, typeof(string));
-                schema.Columns.Add(SchemaTableColumn.BaseTableName, typeof(string));
-                schema.Columns.Add(SchemaTableColumn.BaseColumnName, typeof(string));
-
-                for (int i = 0; i < _fieldCount; i++) {
-                    var row = schema.NewRow();
-                    row[SchemaTableColumn.ColumnName] = _columnNames[i];
-                    row[SchemaTableColumn.ColumnOrdinal] = i;
-                    row[SchemaTableColumn.ColumnSize] = -1;
-                    row[SchemaTableColumn.NumericPrecision] = DBNull.Value;
-                    row[SchemaTableColumn.NumericScale] = DBNull.Value;
-                    row[SchemaTableColumn.DataType] = _columnTypes[i];
-                    row[SchemaTableColumn.ProviderType] = 0;
-                    row[SchemaTableColumn.IsLong] = false;
-                    row[SchemaTableColumn.AllowDBNull] = true;
-                    row[IsReadOnlyColumn] = true;
-                    row[IsRowVersionColumn] = false;
-                    row[SchemaTableColumn.IsUnique] = false;
-                    row[SchemaTableColumn.IsKey] = false;
-                    row[IsAutoIncrementColumn] = false;
-                    row[SchemaTableColumn.BaseSchemaName] = DBNull.Value;
-                    row[BaseCatalogNameColumn] = DBNull.Value;
-                    row[SchemaTableColumn.BaseTableName] = DBNull.Value;
-                    row[SchemaTableColumn.BaseColumnName] = _columnNames[i];
-                    schema.Rows.Add(row);
-                }
-
-                return schema;
-            }
+            public override DataTable GetSchemaTable() =>
+                ExcelDataReaderSchemaTable.Create(_fieldCount, GetName, GetFieldType);
 
             /// <inheritdoc />
             public override IEnumerator GetEnumerator() {

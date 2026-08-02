@@ -121,6 +121,7 @@ namespace OfficeIMO.Drawing.Internal {
                     if (entry.Size < 0 || entry.Size > options.MaxStreamBytes) {
                         throw new InvalidDataException($"Compound stream '{path}' has unsupported size {entry.Size}.");
                     }
+                    ValidateRegularStreamPhysicalBounds(path, entry.Size, miniCutoff, maximumPhysicalStreamBytes);
                     options.StreamSizeValidator?.Invoke(path, entry.Size);
                     selected = entry;
                 }
