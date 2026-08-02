@@ -180,6 +180,7 @@ namespace OfficeIMO.Drawing.Internal {
                     regularChain,
                     miniChain,
                     rootChain,
+                    root.Size,
                     leaveOpen,
                     cancellationToken);
                 return true;
@@ -276,6 +277,7 @@ namespace OfficeIMO.Drawing.Internal {
             private readonly IReadOnlyList<uint>? _regularChain;
             private readonly IReadOnlyList<uint>? _miniChain;
             private readonly IReadOnlyList<uint>? _rootChain;
+            private readonly long _rootSize;
             private readonly bool _leaveOpen;
             private readonly CancellationToken _cancellationToken;
             private long _position;
@@ -289,6 +291,7 @@ namespace OfficeIMO.Drawing.Internal {
                 IReadOnlyList<uint>? regularChain,
                 IReadOnlyList<uint>? miniChain,
                 IReadOnlyList<uint>? rootChain,
+                long rootSize,
                 bool leaveOpen,
                 CancellationToken cancellationToken) {
                 _source = source;
@@ -298,6 +301,7 @@ namespace OfficeIMO.Drawing.Internal {
                 _regularChain = regularChain;
                 _miniChain = miniChain;
                 _rootChain = rootChain;
+                _rootSize = rootSize;
                 _leaveOpen = leaveOpen;
                 _cancellationToken = cancellationToken;
             }
@@ -353,10 +357,13 @@ namespace OfficeIMO.Drawing.Internal {
                 int within = checked((int)(_position % MiniSectorSize));
                 uint miniSector = _miniChain![chainIndex];
                 long miniOffset = checked((long)miniSector * MiniSectorSize + within);
+                int read = Math.Min(count, MiniSectorSize - within);
+                if (miniOffset > _rootSize - read) {
+                    throw new InvalidDataException("Compound mini-sector points outside the declared root mini stream length.");
+                }
                 int rootIndex = checked((int)(miniOffset / _sectorSize));
                 int rootOffset = checked((int)(miniOffset % _sectorSize));
                 if (rootIndex >= _rootChain!.Count) throw new InvalidDataException("Compound mini-sector points outside the root mini stream.");
-                int read = Math.Min(count, MiniSectorSize - within);
                 long physical = checked(_basePosition + ((long)_rootChain[rootIndex] + 1) * _sectorSize + rootOffset);
                 ReadSource(physical, buffer, offset, read);
                 return read;

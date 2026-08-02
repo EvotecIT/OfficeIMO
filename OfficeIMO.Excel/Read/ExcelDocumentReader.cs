@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel {
         private readonly StylesCacheProvider _styles;
         private readonly Package? _ownedPackage;
         private readonly Stream? _ownedStream;
+        private readonly IDisposable? _ownedResource;
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
 
         private ExcelDocumentReader(
@@ -35,7 +36,8 @@ namespace OfficeIMO.Excel {
             bool owns,
             Package? ownedPackage = null,
             Stream? ownedStream = null,
-            OpenXmlPackagePartBufferReader? partBufferReader = null) {
+            OpenXmlPackagePartBufferReader? partBufferReader = null,
+            IDisposable? ownedResource = null) {
             _doc = doc;
             _owns = owns;
             _canStreamWorksheetParts = owns || doc.FileOpenAccess == FileAccess.Read;
@@ -43,6 +45,7 @@ namespace OfficeIMO.Excel {
             _opt.CancellationToken.ThrowIfCancellationRequested();
             _ownedPackage = ownedPackage;
             _ownedStream = ownedStream;
+            _ownedResource = ownedResource;
             _partBufferReader = partBufferReader;
             _dateSystem = GetWorkbookDateSystem(doc);
             _sst = SharedStringCache.Build(doc, _opt);
@@ -60,37 +63,52 @@ namespace OfficeIMO.Excel {
             }
 
             var effectiveOptions = options ?? new ExcelReadOptions();
-            long inputLength = new FileInfo(path).Length;
-            if (inputLength > effectiveOptions.MaxInputBytes) {
-                throw new InvalidDataException(
-                    $"Workbook input contains {inputLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
-            }
-
+            SharedReadOnlyFileSnapshot? snapshot = null;
+            Stream? documentStream = null;
             SpreadsheetDocument? document = null;
             OpenXmlPackagePartBufferReader? partBufferReader = null;
+            bool packageOpenAttempted = false;
             try {
-                document = SpreadsheetDocument.Open(path, isEditable: false);
-                partBufferReader = OpenXmlPackagePartBufferReader.TryOpen(path);
+                snapshot = SharedReadOnlyFileSnapshot.Open(path);
+                if (snapshot.Length > effectiveOptions.MaxInputBytes) {
+                    throw new InvalidDataException(
+                        $"Workbook input contains {snapshot.Length} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
+                }
+
+                documentStream = snapshot.CreateView();
+                packageOpenAttempted = true;
+                document = SpreadsheetDocument.Open(documentStream, isEditable: false);
+                partBufferReader = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
                 ExcelDocumentReader reader = new ExcelDocumentReader(
                     document,
                     effectiveOptions,
                     owns: true,
-                    partBufferReader: partBufferReader);
+                    ownedStream: documentStream,
+                    partBufferReader: partBufferReader,
+                    ownedResource: snapshot);
+                snapshot = null;
+                documentStream = null;
                 partBufferReader = null;
                 return reader;
             } catch (Exception ex) {
                 partBufferReader?.Dispose();
                 document?.Dispose();
-                if (!IsRecoverableOpenException(ex)) {
+                documentStream?.Dispose();
+                if (!packageOpenAttempted || !IsRecoverableOpenException(ex)) {
+                    snapshot?.Dispose();
                     throw;
                 }
 
                 byte[] bytes;
-                using (var stream = File.OpenRead(path)) {
-                    bytes = OfficeStreamReader.ReadAllBytes(
-                        stream,
-                        effectiveOptions.CancellationToken,
-                        effectiveOptions.MaxInputBytes);
+                try {
+                    using (Stream stream = snapshot!.CreateView()) {
+                        bytes = OfficeStreamReader.ReadAllBytes(
+                            stream,
+                            effectiveOptions.CancellationToken,
+                            effectiveOptions.MaxInputBytes);
+                    }
+                } finally {
+                    snapshot?.Dispose();
                 }
 
                 return OpenFromBytes(
@@ -535,7 +553,11 @@ namespace OfficeIMO.Excel {
                         try {
                             _ownedStream?.Dispose();
                         } finally {
-                            _partBufferReader?.Dispose();
+                            try {
+                                _partBufferReader?.Dispose();
+                            } finally {
+                                _ownedResource?.Dispose();
+                            }
                         }
                     }
                 }

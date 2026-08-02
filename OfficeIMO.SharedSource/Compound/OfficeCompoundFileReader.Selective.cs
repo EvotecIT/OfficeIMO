@@ -144,7 +144,7 @@ namespace OfficeIMO.Drawing.Internal {
                             if (destination == null || !destination.CanWrite) {
                                 throw new InvalidDataException("The external compound destination is not writable.");
                             }
-                            CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, basePosition,
+                            CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, root.Size, basePosition,
                                 sectorSize, physicalSectorCount, fatSectorIds,
                                 fatCache, cancellationToken);
                         }
@@ -152,7 +152,7 @@ namespace OfficeIMO.Drawing.Internal {
                         streams[path] = Array.Empty<byte>();
                     } else {
                         using (var destination = new MemoryStream(checked((int)entry.Size))) {
-                            CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, basePosition,
+                            CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, root.Size, basePosition,
                                 sectorSize, physicalSectorCount, fatSectorIds,
                                 fatCache, cancellationToken);
                             streams[path] = destination.ToArray();
@@ -181,14 +181,14 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static void CopyEntry(Stream input, Stream output, DirectoryEntry entry, uint miniCutoff,
-            IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain, long basePosition, int sectorSize,
+            IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain, long rootSize, long basePosition, int sectorSize,
             int physicalSectorCount, IReadOnlyList<uint> fatSectorIds,
             IDictionary<uint, byte[]> fatCache,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Size == 0) return;
             if (entry.Size < miniCutoff) {
-                CopyMiniChain(input, output, entry.StartSector, entry.Size, miniFat, rootChain,
+                CopyMiniChain(input, output, entry.StartSector, entry.Size, miniFat, rootChain, rootSize,
                     basePosition, sectorSize, cancellationToken);
                 return;
             }
@@ -254,7 +254,7 @@ namespace OfficeIMO.Drawing.Internal {
 
         private static void CopyMiniChain(Stream input, Stream output, uint startSector, long size,
             IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain,
-            long basePosition, int sectorSize,
+            long rootSize, long basePosition, int sectorSize,
             CancellationToken cancellationToken) {
             uint miniSector = startSector;
             long remaining = size;
@@ -265,6 +265,10 @@ namespace OfficeIMO.Drawing.Internal {
                     throw new InvalidDataException("Compound mini-sector chain is shorter than its declared size.");
                 }
                 long miniOffset = checked((long)miniSector * MiniSectorSize);
+                int write = checked((int)Math.Min(MiniSectorSize, remaining));
+                if (miniOffset > rootSize - write) {
+                    throw new InvalidDataException("Compound mini-sector points outside the declared root mini stream length.");
+                }
                 int rootSectorIndex = checked((int)(miniOffset / sectorSize));
                 int offsetWithinSector = checked((int)(miniOffset % sectorSize));
                 if (rootSectorIndex >= rootChain.Count || offsetWithinSector + MiniSectorSize > sectorSize) {
@@ -273,8 +277,7 @@ namespace OfficeIMO.Drawing.Internal {
                 long physicalOffset = checked(basePosition + ((long)rootChain[rootSectorIndex] + 1) * sectorSize +
                     offsetWithinSector);
                 byte[] bytes = ReadAt(input, physicalOffset,
-                    MiniSectorSize, cancellationToken);
-                int write = (int)Math.Min(bytes.Length, remaining);
+                    write, cancellationToken);
                 output.Write(bytes, 0, write);
                 remaining -= write;
                 miniSector = miniFat[(int)miniSector];

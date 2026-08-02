@@ -81,6 +81,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OpenDataReader_XlsFastPathRejectsMiniSectorBeyondDeclaredRootLength() {
+            byte[] compound = LegacyXlsCompoundTestBuilder
+                .CreateMiniStreamWorkbookCompoundFileWithWorkbookBeyondDeclaredRoot(
+                    LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.OpenDataReader(
+                    compound,
+                    new ExcelReadOptions { HasHeaderRow = false }));
+
+            Assert.Contains(
+                "declared root mini stream length",
+                exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void OpenDataReader_XlsFastPathBoundsDeclaredMiniFatBeforeReadingItsChain() {
             byte[] compound = LegacyXlsCompoundTestBuilder
                 .CreateMiniStreamWorkbookCompoundFileWithDeclaredMiniFatSectorCount(

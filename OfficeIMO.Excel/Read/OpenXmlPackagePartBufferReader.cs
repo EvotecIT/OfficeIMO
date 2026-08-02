@@ -19,30 +19,26 @@ namespace OfficeIMO.Excel {
             _archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
         }
 
-        internal static OpenXmlPackagePartBufferReader? TryOpen(string path) {
-            FileStream? stream = null;
+        /// <summary>
+        /// Opens a ZIP reader that takes ownership of the supplied stream, including when
+        /// the stream does not contain a readable ZIP archive.
+        /// </summary>
+        internal static OpenXmlPackagePartBufferReader? TryOpen(Stream stream) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
             try {
-                stream = new FileStream(
-                    path,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.ReadWrite | FileShare.Delete,
-                    bufferSize: 1,
-                    FileOptions.RandomAccess);
                 var reader = new OpenXmlPackagePartBufferReader(stream);
-                stream = null;
                 return reader;
             } catch (InvalidDataException) {
-                stream?.Dispose();
+                stream.Dispose();
                 return null;
             } catch (IOException) {
-                stream?.Dispose();
+                stream.Dispose();
                 return null;
             } catch (UnauthorizedAccessException) {
-                stream?.Dispose();
+                stream.Dispose();
                 return null;
             } catch (NotSupportedException) {
-                stream?.Dispose();
+                stream.Dispose();
                 return null;
             }
         }
