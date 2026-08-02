@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             var paragraph = CreateOutputElement(htmlDoc, "p");
-            paragraph.TextContent = comment.Text ?? string.Empty;
+            SetOutputText(htmlDoc, paragraph, comment.Text ?? string.Empty, "Comment:text");
             li.AppendChild(paragraph);
 
             var replies = comment.Replies;

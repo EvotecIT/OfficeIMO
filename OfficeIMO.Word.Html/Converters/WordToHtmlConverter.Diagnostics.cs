@@ -151,9 +151,9 @@ namespace OfficeIMO.Word.Html {
         private static bool IsOutputContentRoot(OpenXmlElement root, WordToHtmlOptions options) =>
             root is not DocumentFormat.OpenXml.Wordprocessing.Header &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Footer &&
-            (root is not DocumentFormat.OpenXml.Wordprocessing.Footnotes || options.ExportFootnotes) &&
-            (root is not DocumentFormat.OpenXml.Wordprocessing.Endnotes || options.ExportEndnotes) &&
-            (root is not DocumentFormat.OpenXml.Wordprocessing.Comments || options.ExportComments) &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.Footnotes &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.Endnotes &&
+            root is not DocumentFormat.OpenXml.Wordprocessing.Comments &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Styles &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Numbering &&
             root is not DocumentFormat.OpenXml.CustomProperties.Properties &&

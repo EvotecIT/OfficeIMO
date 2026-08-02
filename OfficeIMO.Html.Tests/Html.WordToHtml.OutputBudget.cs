@@ -624,7 +624,10 @@ namespace OfficeIMO.Tests {
                 }));
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
-            Assert.StartsWith("FootnoteReference:", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(
+                exception.LimitSource.StartsWith("FootnoteReference:", StringComparison.Ordinal) ||
+                exception.LimitSource is "GeneratedElement:sup" or "GeneratedElement:a",
+                "The repeated footnote output exceeded the budget at " + exception.LimitSource + ".");
             Assert.True(exception.Actual > exception.Limit);
         }
     }

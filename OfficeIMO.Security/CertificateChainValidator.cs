@@ -50,26 +50,21 @@ internal static class CertificateChainValidator {
                 certificate,
                 offlineCandidates,
                 MaxOfflineIssuerSignatureChecks);
-            if (offlinePath != OfflineCertificatePathSearchOutcome.Complete) {
-                findings.Add(new SecurityFinding(
-                    SecurityFindingSeverity.Warning,
-                    offlinePath == OfflineCertificatePathSearchOutcome.WorkLimitExceeded
-                        ? "CertificateOfflinePathSearchLimitExceeded"
-                        : "CertificateDownloadPolicyUnavailable",
-                    role + " certificate chain was not built because this runtime cannot enforce the requested no-download policy and " +
-                    (offlinePath == OfflineCertificatePathSearchOutcome.WorkLimitExceeded
-                        ? "the bounded offline issuer-path search exhausted its cryptographic work limit."
-                        : "the supplied certificates do not contain a complete verified issuer path."),
-                    signerIndex));
-                return Empty(usageAccepted
-                    ? SecurityValidationStatus.Indeterminate
-                    : SecurityValidationStatus.Invalid);
-            }
             findings.Add(new SecurityFinding(
-                SecurityFindingSeverity.Info,
-                "CertificateDownloadPolicyOfflineFallback",
-                role + " certificate chain uses the complete cryptographically verified issuer path supplied by the caller or signed object because this runtime cannot set DisableCertificateDownloads.",
+                SecurityFindingSeverity.Warning,
+                offlinePath == OfflineCertificatePathSearchOutcome.WorkLimitExceeded
+                    ? "CertificateOfflinePathSearchLimitExceeded"
+                    : "CertificateDownloadPolicyUnavailable",
+                role + " certificate chain was not built because this runtime cannot enforce the requested no-download policy. " +
+                (offlinePath == OfflineCertificatePathSearchOutcome.WorkLimitExceeded
+                    ? "The bounded offline issuer-path search exhausted its cryptographic work limit."
+                    : offlinePath == OfflineCertificatePathSearchOutcome.Complete
+                        ? "The supplied certificates contain a complete cryptographically verified issuer path, but platform trust and revocation cannot be evaluated without risking network retrieval."
+                        : "The supplied certificates do not contain a complete verified issuer path."),
                 signerIndex));
+            return Empty(usageAccepted
+                ? SecurityValidationStatus.Indeterminate
+                : SecurityValidationStatus.Invalid);
         }
         chain.ChainPolicy.UrlRetrievalTimeout = options.UrlRetrievalTimeout;
         if (options.VerificationTime.HasValue) {

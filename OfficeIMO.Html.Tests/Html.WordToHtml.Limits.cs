@@ -32,6 +32,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetExcludesUnreferencedNotesAndComments() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Visible body");
+            string orphanedText = new string('x', 8192);
+            WordParagraph footnoteReference = document.AddParagraph().AddFootNote(orphanedText);
+            footnoteReference._run!.Remove();
+            WordParagraph commentParagraph = document.AddParagraph("Unreviewed text");
+            commentParagraph.AddComment("Reviewer", "R", orphanedText);
+            foreach (CommentReference reference in commentParagraph._paragraph.Descendants<CommentReference>().ToList()) {
+                reference.Remove();
+            }
+
+            string html = document.ToHtmlResult(new WordToHtmlOptions {
+                MaxOutputCharacters = 4096,
+                ExportFootnotes = true,
+                ExportComments = true,
+                IncludeDefaultCss = false
+            }).RequireValue();
+
+            Assert.Contains("Visible body", html, StringComparison.Ordinal);
+            Assert.DoesNotContain(orphanedText, html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_WordToHtml_FieldDiagnosticOnlyDescribesExportedStories() {
             using var document = WordDocument.Create();
             document.AddParagraph("Visible body");

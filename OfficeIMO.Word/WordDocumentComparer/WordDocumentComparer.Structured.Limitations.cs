@@ -52,16 +52,16 @@ namespace OfficeIMO.Word {
             string message,
             ShapeScanResult sourceScan,
             ShapeScanResult targetScan) {
+            bool sourceContainsShape = sourceScan == ShapeScanResult.Present;
+            bool targetContainsShape = targetScan == ShapeScanResult.Present;
             if (sourceScan == ShapeScanResult.ResourceLimitExceeded || targetScan == ShapeScanResult.ResourceLimitExceeded) {
                 result.AddLimitation(new WordComparisonLimitation(
                     code + ".ResourceLimit",
                     "The bounded comparison-disclosure scan could not determine this shape for every input; increase or simplify the document before relying on shape-presence evidence.",
-                    false,
-                    false));
+                    sourceContainsShape,
+                    targetContainsShape));
                 return;
             }
-            bool sourceContainsShape = sourceScan == ShapeScanResult.Present;
-            bool targetContainsShape = targetScan == ShapeScanResult.Present;
             if (!sourceContainsShape && !targetContainsShape) return;
             result.AddLimitation(new WordComparisonLimitation(code, message, sourceContainsShape, targetContainsShape));
         }

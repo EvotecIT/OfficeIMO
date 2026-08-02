@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ComparisonDisclosureResourceLimitDoesNotEmitPartialShapeEvidence() {
+        public void ComparisonDisclosureResourceLimitRetainsConclusiveShapeEvidence() {
             var result = (WordComparisonResult)(Activator.CreateInstance(
                 typeof(WordComparisonResult),
                 BindingFlags.Instance | BindingFlags.NonPublic,
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
 
             WordComparisonLimitation limitation = Assert.Single(result.Limitations);
             Assert.Equal("EffectiveFormatting.ThemeResolution.ResourceLimit", limitation.Code);
-            Assert.False(limitation.SourceContainsShape);
+            Assert.True(limitation.SourceContainsShape);
             Assert.False(limitation.TargetContainsShape);
         }
 

@@ -261,11 +261,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(defaultDisableCertificateDownloads);
                 Assert.False(optedInDisableCertificateDownloads);
             } else {
+                Assert.False(defaultChainEvaluated);
                 Assert.True(optInChainEvaluated);
                 Assert.Contains(defaultValidation.Diagnostics, finding =>
-                    finding.Code == (defaultChainEvaluated
-                        ? "CertificateDownloadPolicyOfflineFallback"
-                        : "CertificateDownloadPolicyUnavailable"));
+                    finding.Code == "CertificateDownloadPolicyUnavailable");
             }
         }
 
@@ -290,10 +289,17 @@ namespace OfficeIMO.Tests {
             });
             WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
 
-            Assert.True(chainEvaluated);
-            Assert.Equal(WordSignatureValidationState.Passed, validation.CertificateChainStatus);
-            Assert.DoesNotContain(validation.Diagnostics, finding =>
-                finding.Code == "CertificateDownloadPolicyUnavailable");
+            if (typeof(X509ChainPolicy).GetProperty("DisableCertificateDownloads") != null) {
+                Assert.True(chainEvaluated);
+                Assert.Equal(WordSignatureValidationState.Passed, validation.CertificateChainStatus);
+                Assert.DoesNotContain(validation.Diagnostics, finding =>
+                    finding.Code == "CertificateDownloadPolicyUnavailable");
+            } else {
+                Assert.False(chainEvaluated);
+                Assert.Equal(WordSignatureValidationState.Unsupported, validation.CertificateChainStatus);
+                Assert.Contains(validation.Diagnostics, finding =>
+                    finding.Code == "CertificateDownloadPolicyUnavailable");
+            }
         }
 
         [Fact]

@@ -24,19 +24,11 @@ namespace OfficeIMO.Word {
                 .ToList();
             List<DataPart> sourceDataParts = _wordprocessingDocument.DataParts.ToList();
             EnsureSignatureSnapshotPartCount(sourceParts.Count, sourceDataParts.Count, options.MaxPackageParts);
-            foreach (OpenXmlPart sourcePart in sourceParts) {
-                EnsureSignatureSnapshotPartWithinLimit(sourcePart, options.MaxPartBytes);
-            }
-            foreach (DataPart sourceDataPart in sourceDataParts) {
-                EnsureSignatureSnapshotDataPartWithinLimit(sourceDataPart, options.MaxPartBytes);
-            }
-
             using var snapshot = new SignatureValidationSnapshotMemoryStream(options.MaxPackageBytes);
             snapshot.Write(encodedPackage, 0, encodedPackage.Length);
             var currentPartPayloads = new Dictionary<Uri, byte[]>();
-            var currentDataPartPayloads = sourceDataParts.ToDictionary(
-                part => part.Uri,
-                part => ReadCurrentSignatureSnapshotDataPart(part, options.MaxPartBytes));
+            var currentDataPartPayloads = new Dictionary<Uri, byte[]>();
+            long retainedPayloadBytes = 0;
             HashSet<Uri> encodedPartUris;
             using (var encodedStream = new MemoryStream(encodedPackage, writable: false)) {
                 using WordprocessingDocument encodedPackageDocument = WordprocessingDocument.Open(encodedStream, false);
@@ -45,6 +37,7 @@ namespace OfficeIMO.Word {
                         options.MaxPackageParts)
                     .ToDictionary(part => part.Uri);
                 List<DataPart> encodedDataParts = encodedPackageDocument.DataParts.ToList();
+                Dictionary<Uri, DataPart> encodedDataPartsByUri = encodedDataParts.ToDictionary(part => part.Uri);
                 EnsureSignatureSnapshotPartCount(encodedParts.Count, encodedDataParts.Count, options.MaxPackageParts);
                 encodedPartUris = new HashSet<Uri>(encodedParts.Keys.Concat(encodedDataParts.Select(part => part.Uri)));
                 foreach (OpenXmlPart sourcePart in sourceParts) {
@@ -59,8 +52,30 @@ namespace OfficeIMO.Word {
                         byte[] encodedPayload = SerializeSignatureSnapshotRoot(encodedRoot, options.MaxPartBytes);
                         if (currentPayload.SequenceEqual(encodedPayload)) continue;
                     }
-                    currentPartPayloads[sourcePart.Uri] = currentPayload ?? ReadCurrentSignatureSnapshotPart(
-                        sourcePart, options.MaxPartBytes);
+                    currentPayload ??= ReadCurrentSignatureSnapshotPart(sourcePart, options.MaxPartBytes);
+                    if (encodedParts.TryGetValue(sourcePart.Uri, out OpenXmlPart? encodedBinaryPart) &&
+                        currentPayload.SequenceEqual(ReadCurrentSignatureSnapshotPart(encodedBinaryPart, options.MaxPartBytes))) {
+                        continue;
+                    }
+                    ReserveSignatureSnapshotPayload(
+                        ref retainedPayloadBytes,
+                        currentPayload.LongLength,
+                        options.MaxTotalDigestBytes,
+                        sourcePart.Uri);
+                    currentPartPayloads[sourcePart.Uri] = currentPayload;
+                }
+                foreach (DataPart sourceDataPart in sourceDataParts) {
+                    byte[] currentPayload = ReadCurrentSignatureSnapshotDataPart(sourceDataPart, options.MaxPartBytes);
+                    if (encodedDataPartsByUri.TryGetValue(sourceDataPart.Uri, out DataPart? encodedDataPart) &&
+                        currentPayload.SequenceEqual(ReadCurrentSignatureSnapshotDataPart(encodedDataPart, options.MaxPartBytes))) {
+                        continue;
+                    }
+                    ReserveSignatureSnapshotPayload(
+                        ref retainedPayloadBytes,
+                        currentPayload.LongLength,
+                        options.MaxTotalDigestBytes,
+                        sourceDataPart.Uri);
+                    currentDataPartPayloads[sourceDataPart.Uri] = currentPayload;
                 }
             }
             ApplyCurrentSignatureSnapshotState(
@@ -86,18 +101,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void EnsureSignatureSnapshotPartWithinLimit(OpenXmlPart part, long maxPartBytes) {
-            using (Stream input = part.GetStream(FileMode.Open, FileAccess.Read)) {
-                if (input.CanSeek && input.Length > maxPartBytes) {
-                    throw new SignatureValidationSnapshotResourceException(
-                        (part.IsRootElementLoaded ? "A pending package part " : "The current package part ") +
-                        part.Uri + " exceeds the " +
-                        maxPartBytes + " byte validation limit.");
-                }
-                if (!input.CanSeek) CopySignatureSnapshotPart(input, Stream.Null, maxPartBytes, part.Uri);
-            }
-        }
-
         private static byte[] ReadCurrentSignatureSnapshotPart(OpenXmlPart part, long maxPartBytes) {
             if (part.IsRootElementLoaded && part.RootElement != null) {
                 return SerializeSignatureSnapshotRoot(part.RootElement, maxPartBytes);
@@ -115,21 +118,24 @@ namespace OfficeIMO.Word {
             return output.ToArray();
         }
 
-        private static void EnsureSignatureSnapshotDataPartWithinLimit(DataPart part, long maxPartBytes) {
-            using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
-            if (input.CanSeek && input.Length > maxPartBytes) {
-                throw new SignatureValidationSnapshotResourceException(
-                    "The current package data part " + part.Uri + " exceeds the " +
-                    maxPartBytes + " byte validation limit.");
-            }
-            if (!input.CanSeek) CopySignatureSnapshotPart(input, Stream.Null, maxPartBytes, part.Uri);
-        }
-
         private static byte[] ReadCurrentSignatureSnapshotDataPart(DataPart part, long maxPartBytes) {
             using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
             using var output = new MemoryStream();
             CopySignatureSnapshotPart(input, output, maxPartBytes, part.Uri);
             return output.ToArray();
+        }
+
+        private static void ReserveSignatureSnapshotPayload(
+            ref long retainedPayloadBytes,
+            long payloadBytes,
+            long maxRetainedPayloadBytes,
+            Uri partUri) {
+            if (payloadBytes > maxRetainedPayloadBytes - retainedPayloadBytes) {
+                throw new SignatureValidationSnapshotResourceException(
+                    "Pending package payloads exceed the " + maxRetainedPayloadBytes +
+                    " byte aggregate validation-snapshot retention limit while reading " + partUri + ".");
+            }
+            retainedPayloadBytes += payloadBytes;
         }
 
         private void ApplyCurrentSignatureSnapshotState(

@@ -121,6 +121,27 @@ namespace OfficeIMO.Tests {
                 string.Equals(element.Attribute("Id")?.Value, relationshipId, System.StringComparison.Ordinal));
         }
 
+        [Fact]
+        public void Test_DigitalSignature_ValidationSnapshotBoundsAggregateRetainedPayloads() {
+            string filePath = CreateSignedDocument("WordDigitalSignaturePendingAggregatePayloadLimit.docx");
+            using WordDocument loaded = WordDocument.Load(filePath);
+            for (int index = 0; index < 2; index++) {
+                MediaDataPart mediaDataPart = loaded._wordprocessingDocument.CreateMediaDataPart(MediaDataPartType.MpegVideo);
+                using var content = new MemoryStream(Enumerable.Repeat((byte)(index + 1), 80).ToArray());
+                mediaDataPart.FeedData(content);
+                loaded._wordprocessingDocument.MainDocumentPart!.AddVideoReferenceRelationship(mediaDataPart);
+            }
+
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+                MaxPartBytes = 1024 * 1024,
+                MaxTotalDigestBytes = 128
+            });
+
+            Assert.Contains(validation.Diagnostics, finding =>
+                finding.Code == "SignatureResourceLimitExceeded" &&
+                finding.Message.Contains("aggregate validation-snapshot retention limit", StringComparison.OrdinalIgnoreCase));
+        }
+
         private static byte[] CreateValidationSnapshot(WordDocument document) =>
             (byte[])typeof(WordDocument)
                 .GetMethod("CreateSignatureValidationSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
