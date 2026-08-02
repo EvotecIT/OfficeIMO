@@ -21,11 +21,11 @@ namespace OfficeIMO.Drawing {
                         "The source position must be within the readable stream length.",
                         nameof(source));
                 }
-                long packageBytes = sourceLength - originalPosition;
+                long packageBytes = sourceLength;
                 ValidateSourceSize(packageBytes, options);
                 var findings = new System.Collections.Generic.List<OfficePackageSecurityFinding>();
 
-                using var package = new SeekableReadWindowStream(source, originalPosition, packageBytes);
+                using var package = new SeekableReadWindowStream(source, 0, packageBytes);
                 var signature = new byte[8];
                 int signatureBytes = ReadPrefix(package, signature);
                 package.Position = 0;

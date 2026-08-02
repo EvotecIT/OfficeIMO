@@ -183,6 +183,30 @@ public sealed class DrawingOfficePackageSecurityTests {
     }
 
     [Fact]
+    public void SeekableStreamInspectionAlwaysStartsAtPackageOrigin() {
+        byte[] package = CreateZip(archive => {
+            AddEntry(archive, "[Content_Types].xml", "<Types />");
+            AddEntry(archive, "word/vbaProject.bin", "vba");
+        });
+        using var source = new MemoryStream(package, writable: false) { Position = 7 };
+
+        OfficePackageSecurityReport report = OfficePackageSecurityInspector.Inspect(
+            source,
+            OfficePackageSecurityOptions.UntrustedDefaults);
+
+        Assert.Equal(7, source.Position);
+        Assert.Equal(OfficePackageContainerKind.OpenXml, report.ContainerKind);
+        Assert.Contains(report.Findings, finding => finding.Rule == OfficePackageSecurityRule.Macros);
+
+        var sizeLimit = OfficePackageSecurityOptions.SecureDefaults;
+        sizeLimit.MaxPackageBytes = package.LongLength - 1;
+        OfficePackageSecurityException exception = Assert.Throws<OfficePackageSecurityException>(() =>
+            OfficePackageSecurityInspector.Validate(source, sizeLimit));
+        Assert.Equal(OfficePackageSecurityRule.PackageSize, exception.Rule);
+        Assert.Equal(7, source.Position);
+    }
+
+    [Fact]
     public void StreamInspectionRejectsPositionBeyondLength() {
         using var source = new MemoryStream(new byte[8]);
         source.Position = 16;

@@ -296,7 +296,7 @@ namespace OfficeIMO.Excel {
                 }
                 else if (direction == ExcelCellShiftDirection.Left && inRowBand) {
                     if (column >= c1 && column <= c2) {
-                        cell.Remove();
+                        RemoveCellWithValueMetadataCleanup(cell);
                         changed = true;
                     } else if (column > c2) {
                         cell.CellReference = A1.CellReference(row, column - columns);
@@ -304,7 +304,7 @@ namespace OfficeIMO.Excel {
                     }
                 } else if (direction == ExcelCellShiftDirection.Up && inColumnBand) {
                     if (row >= r1 && row <= r2) {
-                        cell.Remove();
+                        RemoveCellWithValueMetadataCleanup(cell);
                         changed = true;
                     } else if (row > r2) {
                         MoveCellTo(cell, row - rows, column);
@@ -373,8 +373,13 @@ namespace OfficeIMO.Excel {
                     destinationColumn + destinationColumns - 1);
                 _excelDocument.RewriteMovedRangeReferences(this, source, destinationRow, destinationColumn, transpose);
             }
-            RemoveCellsInRange(destinationRow, destinationColumn, destinationRow + destinationRows - 1, destinationColumn + destinationColumns - 1);
-            if (move) RemoveCellsInRange(sr1, sc1, sr2, sc2);
+            RemoveCellsInRange(
+                destinationRow,
+                destinationColumn,
+                destinationRow + destinationRows - 1,
+                destinationColumn + destinationColumns - 1,
+                source);
+            if (move) RemoveCellsInRange(sr1, sc1, sr2, sc2, source);
             foreach (var snapshot in snapshots) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int rowOffset = snapshot.Row - sr1;
@@ -679,10 +684,23 @@ namespace OfficeIMO.Excel {
             target.Remove();
         }
 
-        private void RemoveCellsInRange(int r1, int c1, int r2, int c2) {
-            foreach (Cell cell in WorksheetRoot.Descendants<Cell>().Where(cell =>
-                TryGetCellCoordinates(cell, out int row, out int column)
-                && row >= r1 && row <= r2 && column >= c1 && column <= c2).ToList()) cell.Remove();
+        private void RemoveCellsInRange(
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            ExcelReference? preservedMetadataRange = null) {
+            foreach ((Cell cell, int row, int column) in WorksheetRoot.Descendants<Cell>()
+                .Select(cell => TryGetCellCoordinates(cell, out int row, out int column)
+                    ? (Cell: cell, Row: row, Column: column)
+                    : (Cell: cell, Row: 0, Column: 0))
+                .Where(item => item.Row >= r1 && item.Row <= r2 && item.Column >= c1 && item.Column <= c2)
+                .ToList()) {
+                if (preservedMetadataRange?.Contains(row, column) != true) {
+                    ClearCellValueMetadata(cell);
+                }
+                cell.Remove();
+            }
             foreach (Row row in WorksheetRoot.Descendants<Row>().Where(row => !row.Elements<Cell>().Any()).ToList()) row.Remove();
         }
 

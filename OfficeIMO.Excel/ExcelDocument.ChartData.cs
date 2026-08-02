@@ -213,7 +213,34 @@ namespace OfficeIMO.Excel {
         internal bool IsOwnedChartDataSheet(string sheetName) {
             string? ownedSheetName = GetOwnedChartDataSheetName();
             if (!string.Equals(ownedSheetName, sheetName, StringComparison.OrdinalIgnoreCase)) return false;
-            return Sheets.Any(sheet => string.Equals(sheet.Name, ownedSheetName, StringComparison.OrdinalIgnoreCase) && sheet.Hidden);
+            Sheet? ownedSheet = WorkbookRoot.Sheets?.Elements<Sheet>().FirstOrDefault(sheet =>
+                string.Equals(sheet.Name?.Value, ownedSheetName, StringComparison.OrdinalIgnoreCase));
+            return ownedSheet?.State?.Value == SheetStateValues.Hidden
+                || ownedSheet?.State?.Value == SheetStateValues.VeryHidden;
+        }
+
+        private void ValidateOwnedChartDataSheetRemoval(string sheetName) {
+            if (!IsOwnedChartDataSheet(sheetName)) return;
+            if (GetOwnedChartDataReferences(sheetName).Count > 0) {
+                throw new InvalidOperationException(
+                    $"Worksheet '{sheetName}' contains data referenced by OfficeIMO-authored charts and cannot be removed while those charts exist.");
+            }
+        }
+
+        private void CompleteOwnedChartDataSheetRemoval(string sheetName) {
+            string? ownedSheetName = GetOwnedChartDataSheetName();
+            if (!string.Equals(ownedSheetName, sheetName, StringComparison.OrdinalIgnoreCase)) return;
+            foreach (DefinedName marker in WorkbookRoot.DefinedNames?.Elements<DefinedName>().Where(name =>
+                name.LocalSheetId == null
+                && string.Equals(name.Name?.Value, ChartDataOwnerDefinedName, StringComparison.OrdinalIgnoreCase)).ToList()
+                ?? Enumerable.Empty<DefinedName>()) {
+                marker.Remove();
+            }
+            lock (_chartDataLock) {
+                _chartDataSheet = null;
+                _chartDataNextRow = 0;
+                _chartDataFreeRows.Clear();
+            }
         }
 
         private string? GetOwnedChartDataSheetName() {

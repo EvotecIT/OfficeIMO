@@ -163,7 +163,7 @@ namespace OfficeIMO.Excel {
                             string? reference = cell.CellReference?.Value;
                             int column = reference == null ? 0 : GetColumnIndex(reference);
                             if (column >= firstColumn && column <= lastColumn) {
-                                cell.Remove();
+                                RemoveCellWithValueMetadataCleanup(cell);
                                 rowChanged = true;
                             } else if (column > lastColumn) {
                                 int cellRow = A1.ParseCellRef(reference!).Row;

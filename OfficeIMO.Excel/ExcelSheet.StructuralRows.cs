@@ -170,6 +170,10 @@ namespace OfficeIMO.Excel {
                     cancellationToken.ThrowIfCancellationRequested();
                     int rowIndex = checked((int)row.RowIndex!.Value);
                     if (rowIndex >= firstRow && rowIndex <= lastRemovedRow) {
+                        foreach (Cell cell in row.Elements<Cell>().ToList()) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            RemoveCellWithValueMetadataCleanup(cell);
+                        }
                         row.Remove();
                         continue;
                     }

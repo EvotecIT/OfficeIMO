@@ -619,10 +619,7 @@ namespace OfficeIMO.Excel {
             var timelineBindingMetadataDetails = DescribeParts(allParts, IsTimelineBindingMetadataPart);
             var externalLinkDetails = DescribePartsByUriOrContentType(allParts, "externalLink");
             IReadOnlyList<ExcelQueryBackedTableInfo> queryBackedTables = GetQueryBackedTables();
-            var managedQueryPartUris = new HashSet<Uri>(WorkbookPartRoot.WorksheetParts
-                .SelectMany(part => part.TableDefinitionParts)
-                .SelectMany(part => part.QueryTableParts)
-                .Select(part => part.Uri));
+            HashSet<Uri> managedQueryPartUris = GetManagedQueryPartUris(queryBackedTables);
             var managedConnectionIds = new HashSet<uint>(queryBackedTables.Select(item => item.ConnectionId));
             ConnectionsPart? nativeConnections = WorkbookPartRoot.ConnectionsPart;
             if (nativeConnections?.Connections?.Elements<Connection>().Any() == true

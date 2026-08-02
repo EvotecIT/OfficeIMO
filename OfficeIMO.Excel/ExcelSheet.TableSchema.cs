@@ -209,6 +209,7 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < columnNames.Count; index++) {
                 string name = columnNames[index]?.Trim() ?? string.Empty;
                 if (name.Length == 0) throw new ArgumentException($"Table column {index + 1} has no name.", nameof(columnNames));
+                if (name.Length > 32_767) throw new ArgumentException($"Table column {index + 1} exceeds Excel's cell-text limit.", nameof(columnNames));
                 if (!used.Add(name)) throw new ArgumentException($"Table column name '{name}' is duplicated.", nameof(columnNames));
                 result[index] = name;
             }

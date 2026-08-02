@@ -214,6 +214,11 @@ namespace OfficeIMO.Excel {
             cell.RemoveAttribute("vm", string.Empty);
         }
 
+        private void RemoveCellWithValueMetadataCleanup(Cell cell) {
+            ClearCellValueMetadata(cell);
+            cell.Remove();
+        }
+
         private bool TryResolveInCellImage(Cell cell, out OpenXmlPart? imagePart, out string altText) {
             if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) {
                 imagePart = null;
