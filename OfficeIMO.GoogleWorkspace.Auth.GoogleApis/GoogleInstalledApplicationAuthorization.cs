@@ -9,6 +9,9 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         public ClientSecrets? ClientSecrets { get; set; }
         public IReadOnlyList<string> Scopes { get; set; } = Array.Empty<string>();
         public string? UserId { get; set; }
+        public string? Account { get; set; }
+        /// <summary>Required for guarded mutations; resolves the authorized token's provider-issued identity and grants.</summary>
+        public GoogleWorkspaceCredentialBindingResolver? CredentialBindingResolver { get; set; }
         public IGoogleWorkspaceTokenStore? TokenStore { get; set; }
         public ICodeReceiver? CodeReceiver { get; set; }
 
@@ -62,8 +65,14 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         public static async Task<GoogleApisCredentialSource> AuthorizeAsync(
             GoogleInstalledApplicationAuthorizationOptions options,
             CancellationToken cancellationToken = default) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            options.Validate();
+            if (options.CredentialBindingResolver == null) {
+                throw new InvalidOperationException(
+                    "A provider-backed credential binding resolver is required before the authorized credential can be used for guarded mutations.");
+            }
             UserCredential credential = await AuthorizeCredentialAsync(options, cancellationToken).ConfigureAwait(false);
-            return new GoogleApisCredentialSource(credential);
+            return new GoogleApisCredentialSource(credential, null, options.Account, options.CredentialBindingResolver);
         }
     }
 }

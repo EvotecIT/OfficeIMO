@@ -46,8 +46,7 @@ namespace OfficeIMO.Tests {
                     context.MaxRetryElapsedTime, context.RateLimitPolicy,
                     GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
             };
-            var session = new GoogleWorkspaceSession(
-                new StaticAccessTokenCredentialSource("token"), options);
+            var session = new GoogleWorkspaceSession(VerifiedCredentialSource(options.ExpectedAccount!), options);
 
             GooglePresentationReference result = await presentation.ExportToGoogleSlidesAsync(session);
 
@@ -964,8 +963,12 @@ namespace OfficeIMO.Tests {
                     ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss
                     : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
                 RequiresAcceptedLoss(context) ? "test fixture operation without a conditional revision" : null);
-            return new GoogleWorkspaceSession(new StaticAccessTokenCredentialSource("token"), options);
+            return new GoogleWorkspaceSession(VerifiedCredentialSource(options.ExpectedAccount!), options);
         }
+        private static IGoogleWorkspaceCredentialSource VerifiedCredentialSource(string account) =>
+            new DelegateGoogleWorkspaceCredentialSource((scopes, _) => Task.FromResult(
+                GoogleWorkspaceAccessToken.FromVerifiedCredential("token", DateTimeOffset.UtcNow.AddMinutes(30),
+                    new GoogleWorkspaceCredentialBinding(account, scopes))));
         private static string TestExpectedRevision(GoogleWorkspaceOperationContext context) =>
             context.RevisionPreconditionKind switch {
                 GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,

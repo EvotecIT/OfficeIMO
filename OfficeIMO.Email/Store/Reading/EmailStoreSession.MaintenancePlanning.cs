@@ -41,6 +41,11 @@ public sealed partial class EmailStoreSession {
                 EmailStoreMaintenanceAction.None, "No defect or orphan signal was found inside the configured bounds.",
                 executableByOfficeImo: false, EmailDataLossRisk.None));
         }
+        string verifiedFingerprint = GetDurableSourceFingerprint(cancellationToken);
+        if (!StringComparer.Ordinal.Equals(fingerprint, verifiedFingerprint)) {
+            throw new InvalidOperationException(
+                "The email-store source changed while the maintenance plan was being prepared; discard the evidence and plan again against a stable source.");
+        }
         return new EmailStoreMaintenancePlan(fingerprint, Format, validation, recovery,
             recommendations.AsReadOnly());
     }

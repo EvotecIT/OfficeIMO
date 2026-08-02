@@ -91,7 +91,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 requiredScopes: Options.WriteScopes).ConfigureAwait(false);
             string sessionUri = GoogleDriveResumableSessionUri.Validate(initiation.GetHeader("Location")
                 ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI."));
-            GoogleWorkspaceHttpTransport.DeferredMutation create = BeginResumableFileCreate(sessionUri);
+            GoogleWorkspaceHttpTransport.DeferredMutation create = BeginResumableFileCreate(token, sessionUri);
             try {
                 if (content.LongLength == 0) {
                     GoogleWorkspaceHttpResponse response = await QueryResumableStatusAsync(
@@ -256,7 +256,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             long total,
             TranslationReport report,
             CancellationToken cancellationToken) {
-            return Transport.SendRawAsync(
+            return Transport.SendRawSafeProbeAsync(
                 token,
                 HttpMethod.Put,
                 sessionUri,
@@ -265,7 +265,6 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     content.Headers.TryAddWithoutValidation("Content-Range", $"bytes */{total}");
                     return content;
                 },
-                GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
                 cancellationToken,
@@ -281,8 +280,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             return "google-drive-resumable-upload-session:sha256:" + fingerprint;
         }
 
-        private GoogleWorkspaceHttpTransport.DeferredMutation BeginResumableFileCreate(string sessionUri) =>
-            Transport.BeginDeferredMutation(HttpMethod.Post,
+        private GoogleWorkspaceHttpTransport.DeferredMutation BeginResumableFileCreate(string token, string sessionUri) =>
+            Transport.BeginDeferredMutation(token, HttpMethod.Post,
                 ResumableSessionDiagnosticTarget(sessionUri) + ":file-create",
                 GoogleWorkspaceRequestSafety.NonIdempotent,
                 GoogleWorkspaceMutationKind.Create,

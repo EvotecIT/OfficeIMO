@@ -33,9 +33,13 @@ options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
         ? "package smoke operation without a conditional revision"
         : null);
 
-var session = new GoogleWorkspaceSession(new StaticAccessTokenCredentialSource("package-smoke-token"), options);
+var session = new GoogleWorkspaceSession(new DelegateGoogleWorkspaceCredentialSource((scopes, _) =>
+    Task.FromResult(GoogleWorkspaceAccessToken.FromVerifiedCredential(
+        "package-smoke-token", DateTimeOffset.UtcNow.AddMinutes(30),
+        new GoogleWorkspaceCredentialBinding(options.ExpectedAccount!, scopes)))), options);
+_ = await session.AcquireAccessTokenAsync(new[] { GoogleWorkspaceScopeCatalog.DriveFile });
 using var drive = new GoogleDriveClient(session);
-using (var transport = new GoogleWorkspaceHttpTransport(options)) {
+using (var transport = new GoogleWorkspaceHttpTransport(session)) {
     _ = await transport.SendJsonAsync<object>(
         "package-smoke-token",
         HttpMethod.Post,

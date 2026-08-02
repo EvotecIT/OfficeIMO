@@ -48,7 +48,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 SupportsAllDrives = configured.SupportsAllDrives,
                 MaxDownloadBytes = configured.MaxDownloadBytes,
             };
-            _transport = new GoogleWorkspaceHttpTransport(session.Options);
+            _transport = new GoogleWorkspaceHttpTransport(session);
         }
 
         public static IReadOnlyList<string> GetRequiredScopes(GoogleDriveOperation operation) {

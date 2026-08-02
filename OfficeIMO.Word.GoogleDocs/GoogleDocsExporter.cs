@@ -78,7 +78,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     ex);
             }
 
-            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var transport = new GoogleWorkspaceHttpTransport(session)) {
             using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
                 await ValidateDrivePlacementAsync(

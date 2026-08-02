@@ -531,7 +531,9 @@ namespace OfficeIMO.Tests {
 
             public Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(IEnumerable<string> scopes, CancellationToken cancellationToken = default) {
                 LastScopes = scopes.ToArray();
-                return Task.FromResult(new GoogleWorkspaceAccessToken("token", DateTimeOffset.UtcNow.AddHours(1), LastScopes));
+                return Task.FromResult(GoogleWorkspaceAccessToken.FromVerifiedCredential("token",
+                    DateTimeOffset.UtcNow.AddHours(1),
+                    new GoogleWorkspaceCredentialBinding("test@example.com", LastScopes)));
             }
         }
 

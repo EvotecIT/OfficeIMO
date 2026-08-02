@@ -601,10 +601,9 @@ namespace OfficeIMO.Tests {
 
         private sealed class FakeGoogleWorkspaceCredentialSource : IGoogleWorkspaceCredentialSource {
             public Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(IEnumerable<string> scopes, CancellationToken cancellationToken = default) {
-                return Task.FromResult(new GoogleWorkspaceAccessToken(
-                    "fake-access-token",
-                    DateTimeOffset.UtcNow.AddHours(1),
-                    scopes.ToArray()));
+                return Task.FromResult(GoogleWorkspaceAccessToken.FromVerifiedCredential(
+                    "fake-access-token", DateTimeOffset.UtcNow.AddHours(1),
+                    new GoogleWorkspaceCredentialBinding("test@example.com", scopes.ToArray())));
             }
         }
 

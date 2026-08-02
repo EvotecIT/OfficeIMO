@@ -27,7 +27,7 @@ using OfficeIMO.GoogleWorkspace;
 var receipts = new List<GoogleWorkspaceOperationReceipt>();
 var options = new GoogleWorkspaceSessionOptions {
     ApplicationName = "OfficeIMO Samples",
-    ExpectedAccount = "author@example.com",
+    ExpectedAccount = "service-account@project.iam.gserviceaccount.com",
     DefaultDriveId = "shared-drive-id",
     DefaultFolderId = "reports-folder-id",
     MaxRetryCount = 5,
@@ -60,9 +60,14 @@ options.OperationPolicyProvider = context => {
         acceptsLoss ? "application-approved operation and target" : null);
 };
 
-var session = new GoogleWorkspaceSession(
-    new StaticAccessTokenCredentialSource("<google-access-token>"), options);
+var credentialSource = GoogleServiceAccountCredentialSource.FromFile(
+    "service-account.json", options);
+var session = new GoogleWorkspaceSession(credentialSource, options);
 ```
+
+Raw static tokens remain useful for reads. For mutations, use the service-account source or a delegate that
+returns `GoogleWorkspaceAccessToken.FromVerifiedCredential` only after checking provider-issued account and
+scope evidence; a caller-entered account label or requested scope is not credential proof.
 
 ## What it provides
 

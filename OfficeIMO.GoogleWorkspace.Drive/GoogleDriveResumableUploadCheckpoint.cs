@@ -127,7 +127,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 state = checkpoint;
             }
 
-            GoogleWorkspaceHttpTransport.DeferredMutation create = BeginResumableFileCreate(state.SessionUri);
+            GoogleWorkspaceHttpTransport.DeferredMutation create = BeginResumableFileCreate(token, state.SessionUri);
             try {
                 GoogleWorkspaceHttpResponse status = await QueryResumableStatusAsync(token, state.SessionUri, length, report, cancellationToken).ConfigureAwait(false);
                 if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) {

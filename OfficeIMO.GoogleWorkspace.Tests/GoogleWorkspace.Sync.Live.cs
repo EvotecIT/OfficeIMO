@@ -4,6 +4,9 @@ using OfficeIMO.GoogleWorkspace.Sync;
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -38,7 +41,9 @@ namespace OfficeIMO.Tests {
                     isDelete ? GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss : GoogleWorkspaceDataLossDecision.RejectPotentialLoss,
                     isDelete ? "the disposable live-test folder" : null);
             };
-            var session = new GoogleWorkspaceSession(new StaticAccessTokenCredentialSource(token), sessionOptions);
+            var session = new GoogleWorkspaceSession(new DelegateGoogleWorkspaceCredentialSource(
+                (scopes, cancellationToken) => VerifyLiveTokenAsync(token, account, scopes, cancellationToken)),
+                sessionOptions);
             using var tracker = new GoogleWorkspaceChangeTracker(session);
             GoogleWorkspaceSyncCheckpoint checkpoint = await tracker.InitializeAsync(string.IsNullOrWhiteSpace(driveId) ? null : new[] { driveId! });
             string? fileId = null;
@@ -69,6 +74,35 @@ namespace OfficeIMO.Tests {
             Assert.Contains(receipts, receipt => receipt.Succeeded && receipt.Method == "DELETE" &&
                 receipt.Policy.ExpectedRevision == expectedRevision &&
                 receipt.Policy.DataLossDecision == GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss);
+        }
+
+        private static async Task<GoogleWorkspaceAccessToken> VerifyLiveTokenAsync(string token, string expectedAccount,
+            IReadOnlyList<string> requiredScopes, CancellationToken cancellationToken) {
+            using var http = new HttpClient();
+            using HttpResponseMessage response = await http.GetAsync(
+                "https://oauth2.googleapis.com/tokeninfo?access_token=" + Uri.EscapeDataString(token),
+                cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) {
+                throw new InvalidOperationException(
+                    $"Google token verification failed with status code {(int)response.StatusCode}.");
+            }
+            using JsonDocument document = JsonDocument.Parse(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+            string? account = document.RootElement.TryGetProperty("email", out JsonElement email)
+                ? email.GetString()
+                : null;
+            string? granted = document.RootElement.TryGetProperty("scope", out JsonElement scope)
+                ? scope.GetString()
+                : null;
+            if (!StringComparer.OrdinalIgnoreCase.Equals(account, expectedAccount)) {
+                throw new InvalidOperationException("The live Google token identity does not match GOOGLE_WORKSPACE_ACCOUNT.");
+            }
+            var grantedScopes = new HashSet<string>((granted ?? string.Empty)
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
+            if (requiredScopes.Any(required => !grantedScopes.Contains(required))) {
+                throw new InvalidOperationException("The live Google token does not contain every scope required by the operation.");
+            }
+            return GoogleWorkspaceAccessToken.FromVerifiedCredential(token, DateTimeOffset.UtcNow.AddMinutes(5),
+                new GoogleWorkspaceCredentialBinding(account!, requiredScopes));
         }
     }
 }
