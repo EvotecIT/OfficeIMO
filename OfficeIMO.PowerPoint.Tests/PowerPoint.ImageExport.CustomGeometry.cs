@@ -816,7 +816,7 @@ namespace OfficeIMO.Tests {
                 new A.ShapeGuideList(
                     new A.ShapeGuide { Name = "vectorX", Formula = "val 30000" },
                     new A.ShapeGuide { Name = "vectorY", Formula = "val 40000" },
-                    new A.ShapeGuide { Name = "angle", Formula = "at2 vectorY vectorX" },
+                    new A.ShapeGuide { Name = "angle", Formula = "at2 vectorX vectorY" },
                     new A.ShapeGuide { Name = "xOffset", Formula = "cat2 w vectorX vectorY" },
                     new A.ShapeGuide { Name = "yOffset", Formula = "sat2 h vectorX vectorY" },
                     new A.ShapeGuide { Name = "rightY", Formula = "sin h angle" }),

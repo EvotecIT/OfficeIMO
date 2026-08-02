@@ -414,8 +414,8 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 case "at2":
                     if (parts.Length == 3 &&
-                        TryResolveCustomGeometryCoordinate(parts[1], guides, out double arcTangentY) &&
-                        TryResolveCustomGeometryCoordinate(parts[2], guides, out double arcTangentX)) {
+                        TryResolveCustomGeometryCoordinate(parts[1], guides, out double arcTangentX) &&
+                        TryResolveCustomGeometryCoordinate(parts[2], guides, out double arcTangentY)) {
                         value = ConvertRadiansToCustomGeometryAngle(Math.Atan2(arcTangentY, arcTangentX));
                         return IsFiniteCustomGeometryValue(value);
                     }
