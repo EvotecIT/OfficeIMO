@@ -17,6 +17,9 @@ namespace OfficeIMO.Word {
         internal int? _tableOfContentIndex;
         internal TableOfContentStyle? _tableOfContentStyle;
         private MemoryStream? _ownedPackageStream;
+        // On .NET Framework, validation detaches the immutable encoded baseline from the
+        // writable package stream so later unsaved edits can be flushed without corrupting it.
+        private MemoryStream? _legacyValidationLivePackageStream;
         private bool _tableOfContentUpdateQueued;
         private bool _disposed;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;

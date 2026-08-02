@@ -1357,6 +1357,20 @@ namespace OfficeIMO.Tests {
             Assert.False(Assert.Single(validation.Signatures).IsValidUnderPolicy);
             Assert.False(validation.IsValidUnderPolicy);
             Assert.Equal(encodedPackageBeforeValidation, encodedPackageStream.ToArray());
+
+            loaded.AddParagraph("Second unsaved mutation after validation");
+            WordSignatureValidationReport repeatedValidation = loaded.ValidateSignatures(options);
+            Assert.Equal(WordSignatureValidationState.Failed, repeatedValidation.SignedPartDigestStatus);
+            Assert.False(repeatedValidation.IsValidUnderPolicy);
+            Assert.Equal(encodedPackageBeforeValidation, encodedPackageStream.ToArray());
+
+            using MemoryStream saved = loaded.ToStream(
+                options: new WordSaveOptions {
+                    SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+                });
+            using WordDocument reopened = WordDocument.Load(saved);
+            Assert.Contains(reopened.Paragraphs, paragraph =>
+                paragraph.Text == "Second unsaved mutation after validation");
         }
 
         [Fact]

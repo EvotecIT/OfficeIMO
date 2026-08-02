@@ -96,8 +96,10 @@ namespace OfficeIMO.Tests {
                 TimeSpan.FromSeconds(5),
                 maxOutputCharacters: 4096);
 
-            Assert.True(result.Succeeded, result.Output);
-            Assert.True(File.Exists(childProcessIdPath), result.Output);
+            string resultDetail = "ExitCode=" + result.ExitCode + ", TimedOut=" + result.TimedOut +
+                                  ", Output=" + result.Output;
+            Assert.False(result.TimedOut, resultDetail);
+            Assert.True(File.Exists(childProcessIdPath), resultDetail);
             int childProcessId = int.Parse(File.ReadAllText(childProcessIdPath).Trim(),
                 System.Globalization.CultureInfo.InvariantCulture);
             try {

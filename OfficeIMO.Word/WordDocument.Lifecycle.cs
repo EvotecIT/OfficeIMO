@@ -57,6 +57,18 @@ namespace OfficeIMO.Word {
             }
 
             var ownedPackageStream = _ownedPackageStream;
+            var legacyValidationLivePackageStream = _legacyValidationLivePackageStream;
+            if (legacyValidationLivePackageStream != null &&
+                !ReferenceEquals(legacyValidationLivePackageStream, ownedPackageStream)) {
+                try {
+                    legacyValidationLivePackageStream.Dispose();
+                } catch (ObjectDisposedException) {
+                    // Disposing an already disposed detached live package stream is harmless.
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
+                }
+                _legacyValidationLivePackageStream = null;
+            }
             if (ownedPackageStream != null) {
                 try {
                     ownedPackageStream.Dispose();
@@ -113,6 +125,18 @@ namespace OfficeIMO.Word {
             }
 
             var ownedPackageStream = _ownedPackageStream;
+            var legacyValidationLivePackageStream = _legacyValidationLivePackageStream;
+            if (legacyValidationLivePackageStream != null &&
+                !ReferenceEquals(legacyValidationLivePackageStream, ownedPackageStream)) {
+                try {
+                    legacyValidationLivePackageStream.Dispose();
+                } catch (ObjectDisposedException) {
+                    // Disposing an already disposed detached live package stream is harmless.
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
+                }
+                _legacyValidationLivePackageStream = null;
+            }
             if (ownedPackageStream != null) {
                 try {
                     ownedPackageStream.Dispose();

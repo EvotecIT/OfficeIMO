@@ -9,8 +9,9 @@ namespace OfficeIMO.Word {
             RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase);
 
         // System.IO.Packaging on .NET Framework invalidates ProgressiveCrcCalculatingStream after
-        // in-memory package edits. Clone is the supported way to materialize that live state without
-        // mutating the source package or rereading its stale part streams.
+        // in-memory package edits. Flush the live package once, retain that stream for the document,
+        // and keep the original encoded bytes in the validation baseline instead of rereading stale
+        // part streams through Clone.
 #pragma warning disable OOXML0001
         private byte[] CreateLegacyRuntimeSignatureValidationSnapshot(WordSignatureValidationOptions options) {
             IPackage sourcePackage = _wordprocessingDocument.GetPackage();
@@ -18,6 +19,7 @@ namespace OfficeIMO.Word {
                 sourcePackage,
                 options.MaxPackageParts,
                 "creating");
+            EnforceLegacyPendingRootSerializationBudgets(options);
             foreach (IPackagePart sourcePart in sourceParts) {
                 using Stream source = sourcePart.GetStream(FileMode.Open, FileAccess.Read);
                 if (source.CanSeek && source.Length > options.MaxPartBytes) {
@@ -28,9 +30,16 @@ namespace OfficeIMO.Word {
             }
 
             byte[] encodedPackage = _ownedPackageStream!.ToArray();
-            using var snapshot = new SignatureValidationSnapshotMemoryStream(options.MaxPackageBytes);
-            using (_wordprocessingDocument.Clone(snapshot, true)) { }
-            byte[] currentPackage = snapshot.ToArray();
+            MemoryStream livePackageStream = DetachLegacyValidationLivePackageStream(encodedPackage);
+            _wordprocessingDocument.Save();
+            sourcePackage.Save();
+            livePackageStream.Flush();
+            if (livePackageStream.Length > options.MaxPackageBytes) {
+                throw new SignatureValidationSnapshotResourceException(
+                    "The current OPC package exceeds the " + options.MaxPackageBytes +
+                    " byte validation-snapshot limit.");
+            }
+            byte[] currentPackage = livePackageStream.ToArray();
             HashSet<Uri> unchangedSerializedRoots = FindUnchangedSignatureSnapshotRoots(
                 currentPackage,
                 encodedPackage,
@@ -41,6 +50,8 @@ namespace OfficeIMO.Word {
                 encodedPackage,
                 options.MaxPartBytes);
             if (unchangedSerializedRoots.Count > 0 || unchangedRelationships.Count > 0) {
+                using var snapshot = new SignatureValidationSnapshotMemoryStream(options.MaxPackageBytes);
+                snapshot.Write(currentPackage, 0, currentPackage.Length);
                 snapshot.Position = 0;
                 using (var snapshotArchive = new ZipArchive(snapshot, ZipArchiveMode.Update, leaveOpen: true)) {
                     using var restorationArchive = new ZipArchive(
@@ -67,6 +78,39 @@ namespace OfficeIMO.Word {
             return currentPackage;
         }
 #pragma warning restore OOXML0001
+
+        private MemoryStream DetachLegacyValidationLivePackageStream(byte[] encodedPackage) {
+            if (_legacyValidationLivePackageStream != null) return _legacyValidationLivePackageStream;
+            MemoryStream livePackageStream = _ownedPackageStream!;
+            _legacyValidationLivePackageStream = livePackageStream;
+            _ownedPackageStream = new MemoryStream(encodedPackage, writable: false);
+            return livePackageStream;
+        }
+
+        private void EnforceLegacyPendingRootSerializationBudgets(WordSignatureValidationOptions options) {
+            MainDocumentPart? mainPart = _wordprocessingDocument.MainDocumentPart;
+            OpenXmlPartRootElement? mainRoot = mainPart?.IsRootElementLoaded == true
+                ? mainPart.RootElement
+                : null;
+            if (mainRoot != null) SerializeSignatureSnapshotRoot(mainRoot, options.MaxPartBytes);
+            List<OpenXmlPart> reachableParts;
+            try {
+                reachableParts = EnumerateSignatureSnapshotParts(
+                    _wordprocessingDocument,
+                    options.MaxPackageParts).ToList();
+            } catch (InvalidOperationException) {
+                // A pending part removal can leave a stale SDK relationship edge on .NET Framework.
+                // The package-level part enumeration above remains authoritative for current parts.
+                reachableParts = new List<OpenXmlPart>();
+            }
+            foreach (OpenXmlPart part in reachableParts) {
+                if (part.IsRootElementLoaded &&
+                    part.RootElement is OpenXmlPartRootElement root &&
+                    !ReferenceEquals(root, mainRoot)) {
+                    SerializeSignatureSnapshotRoot(root, options.MaxPartBytes);
+                }
+            }
+        }
 
         private static void RestoreSignatureSnapshotEntry(
             ZipArchive snapshotArchive,
@@ -146,42 +190,36 @@ namespace OfficeIMO.Word {
             byte[] encodedPackage,
             WordSignatureValidationOptions options) {
             long changedPayloadBytes = 0;
-            using var currentStream = new MemoryStream(currentPackage, writable: false);
-            using WordprocessingDocument currentDocument = WordprocessingDocument.Open(currentStream, false);
-            List<IPackagePart> currentParts = GetBoundedSignatureSnapshotPackageParts(
-                currentDocument.GetPackage(),
-                options.MaxPackageParts,
-                "verifying");
+            using var currentArchive = new ZipArchive(
+                new MemoryStream(currentPackage, writable: false), ZipArchiveMode.Read);
             using var encodedArchive = new ZipArchive(
-                new MemoryStream(encodedPackage, writable: false),
-                ZipArchiveMode.Read);
-            foreach (IPackagePart currentPart in currentParts) {
-                ZipArchiveEntry? encodedEntry = encodedArchive.GetEntry(GetSignatureSnapshotEntryName(currentPart.Uri));
-                using Stream currentPartStream = currentPart.GetStream(FileMode.Open, FileAccess.Read);
-                long currentLength;
-                bool unchanged;
-                if (encodedEntry == null) {
-                    currentLength = CopySignatureSnapshotPart(
-                        currentPartStream,
-                        Stream.Null,
-                        options.MaxPartBytes,
-                        currentPart.Uri);
-                    unchanged = false;
-                } else {
+                new MemoryStream(encodedPackage, writable: false), ZipArchiveMode.Read);
+            foreach (ZipArchiveEntry currentEntry in currentArchive.Entries.Where(entry =>
+                         !string.IsNullOrEmpty(entry.Name))) {
+                Uri currentUri = new Uri("/" + currentEntry.FullName, UriKind.Relative);
+                if (currentEntry.Length > options.MaxPartBytes) {
+                    throw new SignatureValidationSnapshotResourceException(
+                        "The current package part " + currentUri + " exceeds the " +
+                        options.MaxPartBytes + " byte validation limit.");
+                }
+                ZipArchiveEntry? encodedEntry = encodedArchive.GetEntry(currentEntry.FullName);
+                bool unchanged = false;
+                if (encodedEntry != null) {
+                    using Stream currentPartStream = currentEntry.Open();
                     using Stream encodedPartStream = encodedEntry.Open();
                     unchanged = CompareSignatureSnapshotParts(
                         currentPartStream,
                         encodedPartStream,
                         options.MaxPartBytes,
-                        currentPart.Uri,
-                        out currentLength);
+                        currentUri,
+                        out _);
                 }
                 if (!unchanged) {
                     ReserveSignatureSnapshotPayload(
                         ref changedPayloadBytes,
-                        currentLength,
+                        currentEntry.Length,
                         options.MaxTotalDigestBytes,
-                        currentPart.Uri);
+                        currentUri);
                 }
             }
         }
