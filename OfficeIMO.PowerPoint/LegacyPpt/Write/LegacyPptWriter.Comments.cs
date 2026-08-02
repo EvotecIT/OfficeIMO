@@ -103,18 +103,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 uint id = author.Id!.Value;
-                string name = author.Name?.Value ?? string.Empty;
-                string initials = author.Initials?.Value ?? string.Empty;
-                if (name.Length > 52 || initials.Length > 52 || name.IndexOf('\0') >= 0
-                    || initials.IndexOf('\0') >= 0) {
-                    reason = $"Classic comment author {id} exceeds the binary 52-character author or initials limit.";
+                if (!TryGetBinaryCompatibleClassicAuthorIdentity(author,
+                        out string name, out string initials,
+                        out string identity)) {
+                    reason = $"Classic comment author {id} has a blank or binary-incompatible name or initials.";
                     return false;
                 }
                 if (!HasCanonicalClassicAuthorColorIndex(author)) {
                     reason = $"Classic comment author {id} uses color index {author.ColorIndex.Value}; binary comments can retain only the canonical color index equal to the author id.";
                     return false;
                 }
-                string identity = name + "\0" + initials;
                 if (!identities.Add(identity)) {
                     reason = "Two classic comment author entries have the same name and initials and cannot be distinguished in binary PowerPoint.";
                     return false;
@@ -134,6 +132,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             author.Id?.HasValue == true
             && author.ColorIndex?.HasValue == true
             && author.ColorIndex.Value == author.Id.Value;
+
+        internal static bool TryGetBinaryCompatibleClassicAuthorIdentity(
+            P.CommentAuthor author,
+            out string name,
+            out string initials,
+            out string identity) {
+            name = author.Name?.Value ?? string.Empty;
+            initials = author.Initials?.Value ?? string.Empty;
+            identity = string.Empty;
+            if (string.IsNullOrWhiteSpace(name)
+                || author.Initials?.Value == null
+                || name.Length > 52 || initials.Length > 52
+                || name.IndexOf('\0') >= 0 || initials.IndexOf('\0') >= 0) {
+                return false;
+            }
+            identity = name + "\0" + initials;
+            return true;
+        }
 
         internal static bool HasCanonicalClassicAuthorLastIndex(
             uint authorId, uint lastIndex,

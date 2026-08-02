@@ -295,44 +295,26 @@ internal static class PowerPointBaselineRunner {
         OfficeColor background = slideIndex % 2 == 0
             ? OfficeColor.FromRgb(248, 250, 252)
             : OfficeColor.FromRgb(241, 245, 249);
-        if (CountPixelsDifferentFrom(image, background,
+        if (PowerPointBenchmarkVisualValidator.CountPixelsDifferentFrom(
+                image, background,
                 0, 0, 960, 540) < 1000) {
             throw new InvalidOperationException(
                 $"Image export slide {slideIndex + 1} lost its visible corpus content.");
         }
-        if (slideIndex % 3 == 0 && CountPixelsDifferentFrom(image, background,
+        if (slideIndex % 3 == 0
+            && PowerPointBenchmarkVisualValidator.CountPixelsDifferentFrom(
+                image, background,
                 40, 224, 300, 220) < 500) {
             throw new InvalidOperationException(
                 $"Image export slide {slideIndex + 1} lost its rendered table region.");
         }
-        if (slideIndex % 5 == 0 && CountPixelsDifferentFrom(image, background,
+        if (slideIndex % 5 == 0
+            && PowerPointBenchmarkVisualValidator.CountPixelsDifferentFrom(
+                image, background,
                 390, 214, 500, 260) < 500) {
             throw new InvalidOperationException(
                 $"Image export slide {slideIndex + 1} lost its rendered chart region.");
         }
-    }
-
-    private static int CountPixelsDifferentFrom(OfficeRasterImage image,
-        OfficeColor background, double leftPoints, double topPoints,
-        double widthPoints, double heightPoints) {
-        int left = Math.Max(0, (int)Math.Floor(leftPoints / 960D * image.Width));
-        int top = Math.Max(0, (int)Math.Floor(topPoints / 540D * image.Height));
-        int right = Math.Min(image.Width,
-            (int)Math.Ceiling((leftPoints + widthPoints) / 960D * image.Width));
-        int bottom = Math.Min(image.Height,
-            (int)Math.Ceiling((topPoints + heightPoints) / 540D * image.Height));
-        int different = 0;
-        for (int y = top; y < bottom; y++) {
-            for (int x = left; x < right; x++) {
-                OfficeColor pixel = image.GetPixel(x, y);
-                if (pixel.A > 0 && (Math.Abs(pixel.R - background.R)
-                                    + Math.Abs(pixel.G - background.G)
-                                    + Math.Abs(pixel.B - background.B)) > 12) {
-                    different++;
-                }
-            }
-        }
-        return different;
     }
 
     private static PowerPointBaselineMeasurement RunChildProbe(string operation,

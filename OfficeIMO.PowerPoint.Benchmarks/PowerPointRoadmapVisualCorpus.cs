@@ -131,17 +131,9 @@ internal static class PowerPointRoadmapVisualCorpus {
                 $"Visual corpus PNG slide {slideNumber} could not be decoded with valid dimensions.");
         }
         OfficeColor background = OfficeColor.FromRgb(248, 250, 252);
-        int visible = 0;
-        for (int y = 0; y < raster.Height; y++) {
-            for (int x = 0; x < raster.Width; x++) {
-                OfficeColor pixel = raster.GetPixel(x, y);
-                if (pixel.A > 0 && Math.Abs(pixel.R - background.R)
-                    + Math.Abs(pixel.G - background.G)
-                    + Math.Abs(pixel.B - background.B) > 12) {
-                    visible++;
-                }
-            }
-        }
+        int visible = PowerPointBenchmarkVisualValidator
+            .CountPixelsDifferentFrom(raster, background,
+                0D, 0D, 960D, 540D);
         if (visible < 1000) {
             throw new InvalidOperationException(
                 $"Visual corpus PNG slide {slideNumber} lost visible content.");
@@ -168,14 +160,25 @@ internal static class PowerPointRoadmapVisualCorpus {
                 CultureInfo.InvariantCulture, out double width) && width > 0D
             && double.TryParse(viewBox[3], NumberStyles.Float,
                 CultureInfo.InvariantCulture, out double height) && height > 0D;
-        bool hasVisibleContent = root?.Descendants().Any(element =>
-            element.Name.LocalName is "path" or "rect" or "circle"
-                or "ellipse" or "polygon" or "polyline" or "line"
-                or "text" or "image") == true;
-        if (root?.Name.LocalName != "svg" || !validDimensions
-            || !hasVisibleContent) {
+        if (root?.Name.LocalName != "svg" || !validDimensions) {
             throw new InvalidOperationException(
-                $"Visual corpus SVG slide {slideNumber} has no valid canvas or visible content.");
+                $"Visual corpus SVG slide {slideNumber} has no valid canvas.");
+        }
+        if (!OfficeSvgDrawingReader.TryRead(svg, out OfficeDrawing? drawing,
+                out int unsupportedFeatureCount) || drawing == null
+            || unsupportedFeatureCount != 0) {
+            throw new InvalidOperationException(
+                $"Visual corpus SVG slide {slideNumber} could not be fully projected through the shared vector reader.");
+        }
+        OfficeColor background = OfficeColor.FromRgb(248, 250, 252);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing,
+            scale: 1D, background: background);
+        int visible = PowerPointBenchmarkVisualValidator
+            .CountPixelsDifferentFrom(raster, background,
+                0D, 0D, 960D, 540D);
+        if (visible < 1000) {
+            throw new InvalidOperationException(
+                $"Visual corpus SVG slide {slideNumber} lost visible painted content.");
         }
     }
 

@@ -60,6 +60,43 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(long.MaxValue, 0L)]
+        [InlineData(long.MinValue, 0L)]
+        [InlineData(0L, long.MaxValue)]
+        [InlineData(0L, long.MinValue)]
+        public void AddSmartArtRejectsOffsetsOutsideDrawingRangeBeforeMutation(
+            long left, long top) {
+            string filePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
+                            new[] { "Plan", "Build" }, left, top,
+                            5486400L, 3200400L));
+
+                    Assert.Empty(slide.Shapes);
+                    presentation.Save();
+                }
+
+                using PresentationDocument document =
+                    PresentationDocument.Open(filePath, false);
+                SlidePart slidePart = document.PresentationPart!
+                    .SlideParts.Single();
+                Assert.Empty(slidePart.DiagramDataParts);
+                Assert.Empty(slidePart.DiagramLayoutDefinitionParts);
+                Assert.Empty(slidePart.DiagramStyleParts);
+                Assert.Empty(slidePart.DiagramColorsParts);
+                Assert.Empty(slidePart.Slide.Descendants<GraphicFrame>());
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
         [Fact]
         public void ImportedSmartArtPreservesEveryNodeParagraphInSemanticExports() {
             string filePath = Path.Combine(Path.GetTempPath(),

@@ -29,6 +29,48 @@ namespace OfficeIMO.Tests {
             AssertPreserved(presentation);
         }
 
+        [Fact]
+        public void FeatureReportPreservesBinaryIncompatibleClassicAuthorIdentity() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            CommentAuthor author = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!.CommentAuthorList!
+                .Elements<CommentAuthor>().Single();
+
+            author.Name = string.Empty;
+            AssertPreserved(presentation);
+
+            author.Name = new string('n', 53);
+            AssertPreserved(presentation);
+
+            author.Name = "Reviewer";
+            author.Initials = new string('i', 53);
+            AssertPreserved(presentation);
+        }
+
+        [Fact]
+        public void FeatureReportPreservesDuplicateClassicAuthorIdentity() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Alice", "A"), "First");
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Bob", "B"), "Second");
+            CommentAuthor[] authors = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!.CommentAuthorList!
+                .Elements<CommentAuthor>().OrderBy(author => author.Id!.Value)
+                .ToArray();
+
+            authors[1].Name = authors[0].Name!.Value;
+            authors[1].Initials = authors[0].Initials!.Value;
+
+            AssertPreserved(presentation);
+        }
+
         private static void AssertPreserved(
             PowerPointPresentation presentation) {
             PowerPointFeatureReport report = presentation.InspectFeatures();

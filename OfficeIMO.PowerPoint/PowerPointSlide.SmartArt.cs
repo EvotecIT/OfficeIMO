@@ -52,6 +52,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSmartArt AddSmartArt(PowerPointSmartArtType type, IEnumerable<string> nodeTexts,
             long left = 0L, long top = 0L, long width = 5486400L, long height = 3200400L) {
+            ValidateCoordinate(left, nameof(left), "SmartArt left offset");
+            ValidateCoordinate(top, nameof(top), "SmartArt top offset");
             if (width <= 0 || width > MaximumDrawingCoordinate) {
                 throw new ArgumentOutOfRangeException(nameof(width),
                     "Width must be representable by DrawingML.");

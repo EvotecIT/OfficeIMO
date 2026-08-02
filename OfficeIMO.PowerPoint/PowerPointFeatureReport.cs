@@ -1133,16 +1133,22 @@ namespace OfficeIMO.PowerPoint {
                 && _presentationPart.CommentAuthorsPart.CommentAuthorList == null) {
                 return false;
             }
-            if (classicAuthors.Any(author => author.Id?.Value == null
-                    || author.Name?.Value == null
-                    || author.Initials?.Value == null
+            var classicIdentities = new HashSet<string>(StringComparer.Ordinal);
+            foreach (P.CommentAuthor author in classicAuthors) {
+                if (author.Id?.Value == null
                     || author.LastIndex?.Value == null
                     || !LegacyPptWriter.HasCanonicalClassicAuthorColorIndex(
-                        author))
-                || classicAuthors.Where(author => author.Id?.Value != null)
-                    .GroupBy(author => author.Id!.Value).Any(group => group.Count() != 1)) {
-                return false;
+                        author)
+                    || !LegacyPptWriter
+                        .TryGetBinaryCompatibleClassicAuthorIdentity(author,
+                            out _, out _, out string identity)
+                    || !classicIdentities.Add(identity)) {
+                    return false;
+                }
             }
+            if (classicAuthors.Where(author => author.Id?.Value != null)
+                .GroupBy(author => author.Id!.Value)
+                .Any(group => group.Count() != 1)) return false;
 
             var classicAuthorIds = new HashSet<uint>(classicAuthors
                 .Select(author => author.Id!.Value));
