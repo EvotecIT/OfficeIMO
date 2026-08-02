@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using Xunit;
@@ -75,6 +76,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PublicMacroApi_RetainsFreshProjectsInStreamOutputs() {
+            byte[] project = CreateVbaTestProject("StreamModule",
+                "Sub StreamMacro()\nEnd Sub");
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.AddSlide().AddTitle("Macro stream output");
+            presentation.SetVbaProject(project);
+
+            AssertMacroEnabledBytes(presentation.ToBytes(), project);
+            AssertMacroEnabledBytes(
+                presentation.ToBytes(PowerPointFileFormat.Pptm), project);
+            using var inferredStream = new MemoryStream();
+            presentation.Save(inferredStream);
+            AssertMacroEnabledBytes(inferredStream.ToArray(), project);
+            using var stream = new MemoryStream();
+            presentation.Save(stream, PowerPointFileFormat.Pptm);
+            AssertMacroEnabledBytes(stream.ToArray(), project);
+            byte[] encrypted = presentation.ToEncryptedBytes(
+                "macro-stream-pass", PowerPointFileFormat.Pptm);
+            AssertEncryptedMacroEnabledBytes(encrypted,
+                "macro-stream-pass", project);
+            using var encryptedStream = new MemoryStream();
+            presentation.SaveEncrypted(encryptedStream,
+                "macro-save-pass", PowerPointFileFormat.Pptm);
+            AssertEncryptedMacroEnabledBytes(encryptedStream.ToArray(),
+                "macro-save-pass", project);
+
+            using PowerPointPresentation pptx = PowerPointPresentation.Load(
+                new MemoryStream(presentation.ToBytes(
+                    PowerPointFileFormat.Pptx)));
+            Assert.False(pptx.HasVbaProject);
+            Assert.Equal(PresentationDocumentType.Presentation,
+                pptx.OpenXmlDocument.DocumentType);
+        }
+
+        [Fact]
+        public void PowerPointFileFormat_PreservesLegacyOrdinalsAndAddsPptm() {
+            Assert.Equal(0, (int)PowerPointFileFormat.Pptx);
+            Assert.Equal(1, (int)PowerPointFileFormat.Ppt);
+            Assert.Equal(2, (int)PowerPointFileFormat.Pot);
+            Assert.Equal(3, (int)PowerPointFileFormat.Pps);
+            Assert.Equal(4, (int)PowerPointFileFormat.Pptm);
+        }
+
+        [Fact]
         public void PublicMacroApi_RejectsCorruptVbaHeadersAndDirectories() {
             byte[] badHeader = CreateVbaTestProject("BadHeader", "Sub Main(): End Sub",
                 corruptProjectHeader: true);
@@ -132,6 +178,27 @@ namespace OfficeIMO.Tests {
                 macros.SupportLevel);
             Assert.Throws<InvalidOperationException>(() =>
                 report.EnsureNoAdvancedFeatures());
+        }
+
+        private static void AssertMacroEnabledBytes(byte[] bytes,
+            byte[] expectedProject) {
+            using PowerPointPresentation loaded = PowerPointPresentation.Load(
+                new MemoryStream(bytes));
+            Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
+                loaded.OpenXmlDocument.DocumentType);
+            Assert.Equal(PowerPointFileFormat.Pptm, loaded.SourceFormat);
+            Assert.Equal(expectedProject, loaded.GetVbaProjectBytes());
+        }
+
+        private static void AssertEncryptedMacroEnabledBytes(byte[] bytes,
+            string password, byte[] expectedProject) {
+            using PowerPointPresentation loaded =
+                PowerPointPresentation.LoadEncrypted(
+                    new MemoryStream(bytes), password);
+            Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
+                loaded.OpenXmlDocument.DocumentType);
+            Assert.Equal(PowerPointFileFormat.Pptm, loaded.SourceFormat);
+            Assert.Equal(expectedProject, loaded.GetVbaProjectBytes());
         }
     }
 }

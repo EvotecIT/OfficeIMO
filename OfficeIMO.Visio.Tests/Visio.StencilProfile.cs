@@ -137,6 +137,8 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("critical", profile.StencilTags);
             Assert.Equal(new[] { "legacy", "values" },
                 VisioStencilMetadata.Split("legacy;values"));
+            Assert.Equal(new[] { "OfficeIMO.List.v1:1:a" },
+                VisioStencilMetadata.Split("OfficeIMO.List.v1:1:a"));
         }
 
         [Fact]

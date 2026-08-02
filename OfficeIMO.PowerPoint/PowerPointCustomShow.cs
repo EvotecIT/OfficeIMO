@@ -37,46 +37,27 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Adds a slide to the end of the custom show.</summary>
         public PowerPointCustomShow AddSlide(PowerPointSlide slide) {
-            List<PowerPointSlide> slides = Slides.ToList();
-            slides.Add(slide);
-            return SetSlides(slides);
+            _presentation.InsertCustomShowSlide(_customShow,
+                Slides.Count, slide);
+            return this;
         }
 
         /// <summary>Inserts a slide at the specified zero-based custom-show position.</summary>
         public PowerPointCustomShow InsertSlide(int index, PowerPointSlide slide) {
-            List<PowerPointSlide> slides = Slides.ToList();
-            if (index < 0 || index > slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
-            slides.Insert(index, slide);
-            return SetSlides(slides);
+            _presentation.InsertCustomShowSlide(_customShow, index, slide);
+            return this;
         }
 
         /// <summary>Removes the first matching slide from the custom show.</summary>
         public bool RemoveSlide(PowerPointSlide slide) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
-            List<PowerPointSlide> slides = Slides.ToList();
-            int index = slides.IndexOf(slide);
-            if (index < 0) return false;
-            slides.RemoveAt(index);
-            SetSlides(slides);
-            return true;
+            return _presentation.RemoveCustomShowSlide(_customShow, slide);
         }
 
         /// <summary>Moves a slide between zero-based custom-show positions.</summary>
         public PowerPointCustomShow MoveSlide(int sourceIndex, int destinationIndex) {
-            List<PowerPointSlide> slides = Slides.ToList();
-            if (sourceIndex < 0 || sourceIndex >= slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(sourceIndex));
-            }
-            if (destinationIndex < 0 || destinationIndex >= slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(destinationIndex));
-            }
-            if (sourceIndex == destinationIndex) return this;
-            PowerPointSlide slide = slides[sourceIndex];
-            slides.RemoveAt(sourceIndex);
-            slides.Insert(destinationIndex, slide);
-            return SetSlides(slides);
+            _presentation.MoveCustomShowSlide(_customShow, sourceIndex,
+                destinationIndex);
+            return this;
         }
 
         internal P.CustomShow OpenXmlElement => _customShow;
@@ -146,9 +127,18 @@ namespace OfficeIMO.PowerPoint {
 
         internal IReadOnlyList<PowerPointSlide> ResolveCustomShowSlides(
             P.CustomShow customShow) {
-            var slides = new List<PowerPointSlide>();
+            return ResolveCustomShowEntries(customShow)
+                .Select(item => item.Slide).ToList().AsReadOnly();
+        }
+
+        private IReadOnlyList<(P.SlideListEntry Entry,
+            PowerPointSlide Slide)> ResolveCustomShowEntries(
+            P.CustomShow customShow) {
+            var entries = new List<(P.SlideListEntry,
+                PowerPointSlide)>();
             foreach (P.SlideListEntry entry in customShow.SlideList?
-                         .Elements<P.SlideListEntry>() ?? Enumerable.Empty<P.SlideListEntry>()) {
+                         .Elements<P.SlideListEntry>()
+                     ?? Enumerable.Empty<P.SlideListEntry>()) {
                 string? relationshipId = entry.Id?.Value;
                 if (string.IsNullOrEmpty(relationshipId)
                     || !_presentationPart.TryGetPartById(relationshipId!, out OpenXmlPart? part)
@@ -157,17 +147,138 @@ namespace OfficeIMO.PowerPoint {
                 }
                 PowerPointSlide? slide = _slides.FirstOrDefault(current =>
                     ReferenceEquals(current.SlidePart, slidePart));
-                if (slide != null) slides.Add(slide);
+                if (slide != null) entries.Add((entry, slide));
             }
-            return slides;
+            return entries.AsReadOnly();
+        }
+
+        internal void InsertCustomShowSlide(P.CustomShow customShow,
+            int index, PowerPointSlide slide) {
+            ThrowIfDisposed();
+            RequireOwnedCustomShow(customShow);
+            PowerPointSlide resolvedSlide = ValidateCustomShowSlides(
+                new[] { slide })[0];
+            IReadOnlyList<(P.SlideListEntry Entry, PowerPointSlide Slide)>
+                entries = ResolveCustomShowEntries(customShow);
+            if (index < 0 || index > entries.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+            P.SlideList slideList = customShow.SlideList
+                ?? new P.SlideList();
+            var entry = new P.SlideListEntry {
+                Id = _presentationPart.GetIdOfPart(resolvedSlide.SlidePart)
+            };
+            InsertCustomShowEntry(slideList, entry, index, entries);
+            if (customShow.SlideList == null) {
+                customShow.SlideList = slideList;
+            }
+        }
+
+        internal bool RemoveCustomShowSlide(P.CustomShow customShow,
+            PowerPointSlide slide) {
+            ThrowIfDisposed();
+            RequireOwnedCustomShow(customShow);
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            IReadOnlyList<(P.SlideListEntry Entry, PowerPointSlide Slide)>
+                entries = ResolveCustomShowEntries(customShow);
+            (P.SlideListEntry Entry, PowerPointSlide Slide) match = entries
+                .FirstOrDefault(item => ReferenceEquals(item.Slide, slide));
+            if (match.Entry == null) return false;
+            if (entries.Count == 1) {
+                throw new InvalidOperationException(
+                    "A custom show requires at least one slide.");
+            }
+            match.Entry.Remove();
+            return true;
+        }
+
+        internal void MoveCustomShowSlide(P.CustomShow customShow,
+            int sourceIndex, int destinationIndex) {
+            ThrowIfDisposed();
+            RequireOwnedCustomShow(customShow);
+            IReadOnlyList<(P.SlideListEntry Entry, PowerPointSlide Slide)>
+                entries = ResolveCustomShowEntries(customShow);
+            if (sourceIndex < 0 || sourceIndex >= entries.Count) {
+                throw new ArgumentOutOfRangeException(nameof(sourceIndex));
+            }
+            if (destinationIndex < 0 || destinationIndex >= entries.Count) {
+                throw new ArgumentOutOfRangeException(nameof(destinationIndex));
+            }
+            if (sourceIndex == destinationIndex) return;
+            P.SlideListEntry moved = entries[sourceIndex].Entry;
+            moved.Remove();
+            var remaining = entries.Where((_, index) => index != sourceIndex)
+                .ToList().AsReadOnly();
+            InsertCustomShowEntry(customShow.SlideList!, moved,
+                destinationIndex, remaining);
+        }
+
+        private static void InsertCustomShowEntry(P.SlideList slideList,
+            P.SlideListEntry entry, int index,
+            IReadOnlyList<(P.SlideListEntry Entry, PowerPointSlide Slide)>
+                resolvedEntries) {
+            if (index < resolvedEntries.Count) {
+                slideList.InsertBefore(entry, resolvedEntries[index].Entry);
+                return;
+            }
+            if (resolvedEntries.Count > 0) {
+                slideList.InsertAfter(entry,
+                    resolvedEntries[resolvedEntries.Count - 1].Entry);
+                return;
+            }
+            OpenXmlElement? firstExtension = slideList.ChildElements
+                .FirstOrDefault(child => child is not P.SlideListEntry);
+            if (firstExtension != null) {
+                slideList.InsertBefore(entry, firstExtension);
+            } else {
+                slideList.Append(entry);
+            }
         }
 
         internal void SetCustomShowSlides(P.CustomShow customShow,
             IEnumerable<PowerPointSlide> slides) {
             ThrowIfDisposed();
             RequireOwnedCustomShow(customShow);
-            customShow.SlideList = CreateCustomShowSlideList(
-                ValidateCustomShowSlides(slides));
+            PowerPointSlide[] resolvedSlides = ValidateCustomShowSlides(slides);
+            P.SlideList slideList = customShow.SlideList
+                ?? new P.SlideList();
+            P.SlideListEntry[] existingEntries = slideList
+                .Elements<P.SlideListEntry>().ToArray();
+            var entriesByRelationship = new Dictionary<string,
+                Queue<P.SlideListEntry>>(StringComparer.Ordinal);
+            foreach (P.SlideListEntry entry in existingEntries) {
+                string? relationshipId = entry.Id?.Value;
+                if (string.IsNullOrEmpty(relationshipId)) continue;
+                if (!entriesByRelationship.TryGetValue(relationshipId!,
+                        out Queue<P.SlideListEntry>? entries)) {
+                    entries = new Queue<P.SlideListEntry>();
+                    entriesByRelationship.Add(relationshipId!, entries);
+                }
+                entries.Enqueue(entry);
+            }
+
+            var selectedEntries = new List<P.SlideListEntry>(
+                resolvedSlides.Length);
+            foreach (PowerPointSlide slide in resolvedSlides) {
+                string relationshipId = _presentationPart.GetIdOfPart(
+                    slide.SlidePart);
+                P.SlideListEntry entry = entriesByRelationship.TryGetValue(
+                        relationshipId, out Queue<P.SlideListEntry>? entries)
+                    && entries.Count > 0
+                        ? entries.Dequeue()
+                        : new P.SlideListEntry { Id = relationshipId };
+                selectedEntries.Add(entry);
+            }
+
+            foreach (P.SlideListEntry entry in existingEntries) {
+                entry.Remove();
+            }
+            for (int i = selectedEntries.Count - 1; i >= 0; i--) {
+                slideList.PrependChild(selectedEntries[i]);
+            }
+            if (customShow.SlideList == null) {
+                customShow.SlideList = slideList;
+            }
         }
 
         private P.CustomShow RequireOwnedCustomShow(PowerPointCustomShow customShow) {

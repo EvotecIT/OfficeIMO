@@ -11,9 +11,12 @@ namespace OfficeIMO.Visio {
     internal static class VisioStencilMetadata {
         private const string ListSeparator = ";";
         private const string EncodedListPrefix = "OfficeIMO.List.v1:";
+        private const string ListEncodingVersion = "length-prefixed-v1";
 
         internal static void Apply(VisioShape shape, VisioStencilShape stencil, string? catalogName) {
             Clear(shape);
+            bool encodeLists = RequiresEncodedLists(stencil.Keywords,
+                stencil.Aliases, stencil.Tags);
             Set(shape, VisioSemanticUserCells.StencilId, stencil.Id);
             Set(shape, VisioSemanticUserCells.StencilName, stencil.Name);
             Set(shape, VisioSemanticUserCells.StencilCategory, stencil.Category);
@@ -25,9 +28,14 @@ namespace OfficeIMO.Visio {
                 stencil.SourceLicense);
             Set(shape, VisioSemanticUserCells.StencilSourceAttribution,
                 stencil.SourceAttribution);
-            Set(shape, VisioSemanticUserCells.StencilKeywords, Join(stencil.Keywords));
-            Set(shape, VisioSemanticUserCells.StencilAliases, Join(stencil.Aliases));
-            Set(shape, VisioSemanticUserCells.StencilTags, Join(stencil.Tags));
+            Set(shape, VisioSemanticUserCells.StencilListEncoding,
+                encodeLists ? ListEncodingVersion : null);
+            Set(shape, VisioSemanticUserCells.StencilKeywords,
+                Join(stencil.Keywords, encodeLists));
+            Set(shape, VisioSemanticUserCells.StencilAliases,
+                Join(stencil.Aliases, encodeLists));
+            Set(shape, VisioSemanticUserCells.StencilTags,
+                Join(stencil.Tags, encodeLists));
             Set(shape, VisioSemanticUserCells.StencilIconNameU, stencil.IconNameU);
             Set(shape, VisioSemanticUserCells.StencilDefaultWidth, FormatDouble(stencil.DefaultWidth));
             Set(shape, VisioSemanticUserCells.StencilDefaultHeight, FormatDouble(stencil.DefaultHeight));
@@ -151,9 +159,12 @@ namespace OfficeIMO.Visio {
             master.StencilSourceAttribution = Get(values,
                 VisioSemanticUserCells.StencilSourceAttribution)
                 ?? master.StencilSourceAttribution;
-            master.StencilKeywords = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilKeywords)), master.StencilKeywords);
-            master.StencilAliases = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilAliases)), master.StencilAliases);
-            master.StencilTags = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilTags)), master.StencilTags);
+            bool encodedLists = string.Equals(Get(values,
+                VisioSemanticUserCells.StencilListEncoding),
+                ListEncodingVersion, StringComparison.Ordinal);
+            master.StencilKeywords = Coalesce(SplitList(Get(values, VisioSemanticUserCells.StencilKeywords), encodedLists), master.StencilKeywords);
+            master.StencilAliases = Coalesce(SplitList(Get(values, VisioSemanticUserCells.StencilAliases), encodedLists), master.StencilAliases);
+            master.StencilTags = Coalesce(SplitList(Get(values, VisioSemanticUserCells.StencilTags), encodedLists), master.StencilTags);
             master.StencilIconNameU = Get(values, VisioSemanticUserCells.StencilIconNameU) ?? master.StencilIconNameU;
             master.StencilDefaultWidth = GetDouble(values, VisioSemanticUserCells.StencilDefaultWidth) ?? master.StencilDefaultWidth;
             master.StencilDefaultHeight = GetDouble(values, VisioSemanticUserCells.StencilDefaultHeight) ?? master.StencilDefaultHeight;
@@ -167,6 +178,8 @@ namespace OfficeIMO.Visio {
 
         internal static IReadOnlyList<VisioUserCell> CreateMasterUserCells(VisioMaster master) {
             List<VisioUserCell> cells = new();
+            bool encodeLists = RequiresEncodedLists(master.StencilKeywords,
+                master.StencilAliases, master.StencilTags);
             Add(cells, VisioSemanticUserCells.StencilId, master.StencilId);
             Add(cells, VisioSemanticUserCells.StencilName, master.StencilName);
             Add(cells, VisioSemanticUserCells.StencilCategory, master.StencilCategory);
@@ -178,9 +191,14 @@ namespace OfficeIMO.Visio {
                 master.StencilSourceLicense);
             Add(cells, VisioSemanticUserCells.StencilSourceAttribution,
                 master.StencilSourceAttribution);
-            Add(cells, VisioSemanticUserCells.StencilKeywords, Join(master.StencilKeywords));
-            Add(cells, VisioSemanticUserCells.StencilAliases, Join(master.StencilAliases));
-            Add(cells, VisioSemanticUserCells.StencilTags, Join(master.StencilTags));
+            Add(cells, VisioSemanticUserCells.StencilListEncoding,
+                encodeLists ? ListEncodingVersion : null);
+            Add(cells, VisioSemanticUserCells.StencilKeywords,
+                Join(master.StencilKeywords, encodeLists));
+            Add(cells, VisioSemanticUserCells.StencilAliases,
+                Join(master.StencilAliases, encodeLists));
+            Add(cells, VisioSemanticUserCells.StencilTags,
+                Join(master.StencilTags, encodeLists));
             Add(cells, VisioSemanticUserCells.StencilIconNameU, master.StencilIconNameU);
             Add(cells, VisioSemanticUserCells.StencilDefaultWidth, FormatDouble(master.StencilDefaultWidth));
             Add(cells, VisioSemanticUserCells.StencilDefaultHeight, FormatDouble(master.StencilDefaultHeight));
@@ -219,6 +237,7 @@ namespace OfficeIMO.Visio {
                     string.Equals(name, VisioSemanticUserCells.StencilIsSupported, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilSourceLicense, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilSourceAttribution, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilListEncoding, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilKeywords, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilAliases, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilTags, StringComparison.OrdinalIgnoreCase) ||
@@ -243,7 +262,10 @@ namespace OfficeIMO.Visio {
         }
 
         internal static IReadOnlyList<string> GetUserCellList(IEnumerable<VisioInspectionUserCellSnapshot> userCells, string name) {
-            return Split(GetUserCellValue(userCells, name));
+            bool encodedLists = string.Equals(GetUserCellValue(userCells,
+                VisioSemanticUserCells.StencilListEncoding),
+                ListEncodingVersion, StringComparison.Ordinal);
+            return SplitList(GetUserCellValue(userCells, name), encodedLists);
         }
 
         internal static IReadOnlyList<string> Normalize(IEnumerable<string>? values) {
@@ -257,8 +279,13 @@ namespace OfficeIMO.Visio {
         }
 
         internal static string Join(IEnumerable<string>? values) {
+            return Join(values, encode: false);
+        }
+
+        private static string Join(IEnumerable<string>? values, bool encode) {
             IReadOnlyList<string> normalized = Normalize(values);
             if (normalized.Count == 0) return string.Empty;
+            if (!encode) return string.Join(ListSeparator, normalized);
             var builder = new StringBuilder(EncodedListPrefix);
             foreach (string item in normalized) {
                 builder.Append(item.Length.ToString(CultureInfo.InvariantCulture));
@@ -269,18 +296,29 @@ namespace OfficeIMO.Visio {
         }
 
         internal static IReadOnlyList<string> Split(string? value) {
+            return SplitList(value, encoded: false);
+        }
+
+        private static IReadOnlyList<string> SplitList(string? value,
+            bool encoded) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return Array.Empty<string>();
             }
 
-            if (value!.StartsWith(EncodedListPrefix,
+            if (encoded && value!.StartsWith(EncodedListPrefix,
                     StringComparison.Ordinal)
-                && TrySplitEncodedList(value, out IReadOnlyList<string> encoded)) {
-                return Normalize(encoded);
+                && TrySplitEncodedList(value, out IReadOnlyList<string> decoded)) {
+                return Normalize(decoded);
             }
 
             return Normalize(value!.Split(new[] { ListSeparator }, StringSplitOptions.RemoveEmptyEntries));
         }
+
+        private static bool RequiresEncodedLists(
+            params IEnumerable<string>?[] lists) => lists
+            .Where(list => list != null)
+            .SelectMany(list => list!)
+            .Any(value => value?.IndexOf(';') >= 0);
 
         private static bool TrySplitEncodedList(string value,
             out IReadOnlyList<string> items) {

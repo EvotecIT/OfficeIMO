@@ -184,6 +184,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CustomShowMutationsPreserveProducerListAndEntryMetadata() {
+            const string ProducerNamespace = "urn:officeimo:test";
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide first = presentation.AddSlide();
+            PowerPointSlide second = presentation.AddSlide();
+            PowerPointSlide third = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Producer show", new[] { first, second });
+            SlideList slideList = show.OpenXmlElement.SlideList!;
+            slideList.SetAttribute(new OpenXmlAttribute("producer",
+                "metadata", ProducerNamespace, "list"));
+            slideList.Append(new OpenXmlUnknownElement("producer",
+                "listExtension", ProducerNamespace));
+            SlideListEntry firstEntry = slideList
+                .Elements<SlideListEntry>().First();
+            firstEntry.SetAttribute(new OpenXmlAttribute("producer",
+                "metadata", ProducerNamespace, "first"));
+
+            show.SetSlides(new[] { second, first });
+            show.AddSlide(third);
+            show.InsertSlide(1, first);
+            show.MoveSlide(3, 0);
+            Assert.True(show.RemoveSlide(second));
+
+            Assert.Equal(new[] { third, first, first }, show.Slides);
+            Assert.Equal("list", slideList.GetAttribute("metadata",
+                ProducerNamespace).Value);
+            Assert.Contains(slideList.ChildElements, child =>
+                child.LocalName == "listExtension"
+                && child.NamespaceUri == ProducerNamespace);
+            string firstRelationshipId = presentation.OpenXmlDocument
+                .PresentationPart!.GetIdOfPart(first.SlidePart);
+            SlideListEntry preservedFirst = Assert.Single(slideList
+                .Elements<SlideListEntry>(), entry =>
+                entry.Id?.Value == firstRelationshipId
+                && entry.GetAttributes().Any(attribute =>
+                    attribute.LocalName == "metadata"
+                    && attribute.NamespaceUri == ProducerNamespace
+                    && attribute.Value == "first"));
+            Assert.Same(firstEntry, preservedFirst);
+        }
+
+        [Fact]
+        public void CustomShowDuplicateMutationsPreservePositionalEntryMetadata() {
+            const string ProducerNamespace = "urn:officeimo:test";
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Duplicate show", new[] { slide, slide });
+            SlideListEntry[] entries = show.OpenXmlElement.SlideList!
+                .Elements<SlideListEntry>().ToArray();
+            entries[0].SetAttribute(new OpenXmlAttribute("producer",
+                "metadata", ProducerNamespace, "first"));
+            entries[1].SetAttribute(new OpenXmlAttribute("producer",
+                "metadata", ProducerNamespace, "second"));
+
+            Assert.True(show.RemoveSlide(slide));
+            Assert.Same(entries[1], Assert.Single(show.OpenXmlElement
+                .SlideList!.Elements<SlideListEntry>()));
+            show.InsertSlide(0, slide);
+            show.MoveSlide(1, 0);
+
+            SlideListEntry[] finalEntries = show.OpenXmlElement.SlideList!
+                .Elements<SlideListEntry>().ToArray();
+            Assert.Equal(2, finalEntries.Length);
+            Assert.Same(entries[1], finalEntries[0]);
+            Assert.Contains(finalEntries[0].GetAttributes(), attribute =>
+                attribute.LocalName == "metadata"
+                && attribute.NamespaceUri == ProducerNamespace
+                && attribute.Value == "second");
+            Assert.DoesNotContain(finalEntries[1].GetAttributes(),
+                attribute => attribute.LocalName == "metadata"
+                    && attribute.NamespaceUri == ProducerNamespace);
+        }
+
+        [Fact]
         public void CustomShows_RemoveZeroIdentifierAlsoRemovesTargetingActions() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
