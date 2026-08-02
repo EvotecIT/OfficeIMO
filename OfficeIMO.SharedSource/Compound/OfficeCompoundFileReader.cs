@@ -97,10 +97,14 @@ namespace OfficeIMO.Drawing.Internal {
                 int difatSectorCount = checked((int)ReadUInt32(bytes, 72));
 
                 int physicalSectorCount = (bytes.Length - sectorSize) / sectorSize;
-                if (fatSectorCount < 0 || fatSectorCount > physicalSectorCount || difatSectorCount < 0 ||
-                    difatSectorCount > physicalSectorCount) {
-                    throw new InvalidDataException("Compound file allocation table counts exceed the file size.");
-                }
+                long maximumPhysicalStreamBytes = checked((long)physicalSectorCount * sectorSize);
+                ValidateAllocationTableCounts(
+                    fatSectorCount,
+                    difatSectorCount,
+                    miniFatSectorCount,
+                    physicalSectorCount,
+                    sectorSize,
+                    options.MaxTotalStreamBytes);
 
                 List<uint> fatSectorIds = ReadDifat(bytes, sectorSize, firstDifat, difatSectorCount, fatSectorCount, cancellationToken);
                 uint[] fat = ReadFat(bytes, sectorSize, fatSectorIds, cancellationToken);
@@ -114,8 +118,11 @@ namespace OfficeIMO.Drawing.Internal {
                     cancellationToken);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
-                if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > int.MaxValue) {
-                    throw new InvalidDataException("Compound file mini stream exceeds configured bounds.");
+                if (root.Size < 0
+                    || root.Size > options.MaxTotalStreamBytes
+                    || root.Size > maximumPhysicalStreamBytes
+                    || root.Size > int.MaxValue) {
+                    throw new InvalidDataException("Compound file mini stream exceeds configured or physical bounds.");
                 }
 
                 IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries, cancellationToken);
@@ -132,6 +139,7 @@ namespace OfficeIMO.Drawing.Internal {
                     if (entry.Size < 0 || entry.Size > options.MaxStreamBytes || entry.Size > int.MaxValue) {
                         throw new InvalidDataException($"Compound stream '{entry.Name}' has unsupported size {entry.Size}.");
                     }
+                    ValidateRegularStreamPhysicalBounds(path, entry.Size, miniCutoff, maximumPhysicalStreamBytes);
                     totalStreamBytes = checked(totalStreamBytes + entry.Size);
                     if (totalStreamBytes > options.MaxTotalStreamBytes) {
                         throw new InvalidDataException($"Compound stream bytes exceed {options.MaxTotalStreamBytes}.");
@@ -173,6 +181,40 @@ namespace OfficeIMO.Drawing.Internal {
                 compoundFile = null;
                 error = $"The OLE compound file could not be read. {ex.Message}";
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Rejects allocation-table declarations before any table-sized buffer is created.
+        /// </summary>
+        private static void ValidateAllocationTableCounts(
+            int fatSectorCount,
+            int difatSectorCount,
+            int miniFatSectorCount,
+            int physicalSectorCount,
+            int sectorSize,
+            long maximumTableBytes) {
+            long miniFatBytes = checked((long)miniFatSectorCount * sectorSize);
+            if (fatSectorCount > physicalSectorCount
+                || difatSectorCount > physicalSectorCount
+                || miniFatSectorCount > physicalSectorCount
+                || miniFatBytes > maximumTableBytes) {
+                throw new InvalidDataException(
+                    "Compound allocation table counts exceed configured or physical bounds.");
+            }
+        }
+
+        /// <summary>
+        /// Rejects regular-stream declarations that cannot fit in the compound file before chain-sized storage is allocated.
+        /// </summary>
+        private static void ValidateRegularStreamPhysicalBounds(
+            string path,
+            long size,
+            uint miniCutoff,
+            long maximumPhysicalStreamBytes) {
+            if (size >= miniCutoff && size > maximumPhysicalStreamBytes) {
+                throw new InvalidDataException(
+                    $"Compound stream '{path}' exceeds physical bounds.");
             }
         }
 

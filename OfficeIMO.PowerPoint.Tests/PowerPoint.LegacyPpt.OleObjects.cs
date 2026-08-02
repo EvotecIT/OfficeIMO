@@ -413,7 +413,7 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(oversizedLogical, writable: false),
                 "Package"));
 
-            Assert.Contains("Compound stream bytes exceed",
+            Assert.Contains("exceeds physical bounds",
                 addException.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(slide.OleObjects);
             using var original = new MemoryStream(valid, writable: false);
@@ -422,7 +422,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException updateException = Assert.Throws<
                 InvalidDataException>(() => ole.UpdateData(
                 new MemoryStream(oversizedLogical, writable: false)));
-            Assert.Contains("Compound stream bytes exceed",
+            Assert.Contains("exceeds physical bounds",
                 updateException.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(valid, ole.GetData());
         }

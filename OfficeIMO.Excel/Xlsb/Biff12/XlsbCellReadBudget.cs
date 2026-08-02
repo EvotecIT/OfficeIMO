@@ -21,6 +21,13 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
             _remaining--;
         }
 
+        internal void Consume(int count) {
+            if (count < 0 || count > _remaining) {
+                ThrowExceeded();
+            }
+            _remaining -= count;
+        }
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void ThrowExceeded() =>
             throw new InvalidDataException(

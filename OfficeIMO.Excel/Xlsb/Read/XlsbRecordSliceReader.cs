@@ -12,12 +12,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly int _length;
         private readonly int _maxRecordBytes;
         private readonly XlsbRecordReadBudget _budget;
+        private readonly bool _consumeRecordBudget;
 
         internal XlsbRecordSliceReader(
             byte[] bytes,
             int maxRecordBytes,
             XlsbRecordReadBudget budget,
-            int? length = null) {
+            int? length = null,
+            bool consumeRecordBudget = true) {
             _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
             _length = length ?? bytes.Length;
             if (_length < 0 || _length > bytes.Length) {
@@ -25,10 +27,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
             _maxRecordBytes = maxRecordBytes;
             _budget = budget ?? throw new ArgumentNullException(nameof(budget));
+            _consumeRecordBudget = consumeRecordBudget;
         }
 
         internal int Position { get; set; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryRead(out XlsbRecordSlice record) {
             if (Position == _length) {
                 record = default;
@@ -63,11 +67,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int payloadOffset = Position;
             Position += size;
-            _budget.Consume();
+            if (_consumeRecordBudget) {
+                _budget.Consume();
+            }
             record = new XlsbRecordSlice(_bytes, recordOffset, type, payloadOffset, size);
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadVariableLengthValue() {
             int value = 0;
             for (int index = 0; index < 4; index++) {
@@ -81,6 +88,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             throw new InvalidDataException("The BIFF12 record size header is invalid.");
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadRequiredByte(string fieldName) {
             if (Position >= _length) {
                 throw new EndOfStreamException($"The BIFF12 stream ended inside the {fieldName} header.");
@@ -324,6 +332,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 | (_bytes[offset + 3] << 24));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal int ReadInt32() => unchecked((int)ReadUInt32());
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
