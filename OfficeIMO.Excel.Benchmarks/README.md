@@ -43,13 +43,15 @@ BenchmarkDotNet classes:
 
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsxBenchmarks*"
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsBenchmarks*"
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsbBenchmarks*"
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*XlsbOfficeIMOPipelineBenchmarks*"
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-officeimo 100
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-sylvan 100
 ```
 
-The XLSX lane includes OfficeIMO, Sylvan.Data.Excel, ExcelDataReader,
+The XLS lane includes OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader. The
+XLSX lane includes OfficeIMO, Sylvan.Data.Excel, ExcelDataReader,
 ClosedXML, EPPlus, and MiniExcel. The XLSB lane includes only the compatible
 readers: OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader. Every implementation
 reads the same fourteen typed columns and must produce the same row count, cell

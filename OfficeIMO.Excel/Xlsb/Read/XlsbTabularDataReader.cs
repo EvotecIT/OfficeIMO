@@ -1,6 +1,7 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Projection;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Package;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data.Common;
 using System.Globalization;
@@ -31,7 +32,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private const int BrtEndSheetData = 146;
         private const int BrtWsDim = 148;
 
-        private readonly XlsbStreamRecordSliceReader _records;
+        private readonly XlsbRecordSliceReader _records;
+        private readonly XlsbPooledPartStream _worksheetPart;
         private readonly IReadOnlyList<string> _sharedStrings;
         private readonly bool[] _dateStyles;
         private readonly bool _uses1904DateSystem;
@@ -58,6 +60,30 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal XlsbTabularDataReader(
             Stream worksheetPart,
+            IReadOnlyList<string> sharedStrings,
+            bool[] dateStyles,
+            bool uses1904DateSystem,
+            bool hasHeaderRow,
+            ExcelReadOptions options,
+            XlsbImportOptions limits,
+            XlsbRecordReadBudget recordBudget,
+            XlsbCellReadBudget cellBudget,
+            CancellationToken cancellationToken)
+            : this(
+                CreatePooledPart(worksheetPart, limits, cancellationToken),
+                sharedStrings,
+                dateStyles,
+                uses1904DateSystem,
+                hasHeaderRow,
+                options,
+                limits,
+                recordBudget,
+                cellBudget,
+                cancellationToken) {
+        }
+
+        internal XlsbTabularDataReader(
+            XlsbPooledPartStream worksheetPart,
             IReadOnlyList<string> sharedStrings,
             bool[] dateStyles,
             bool uses1904DateSystem,
@@ -105,12 +131,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             // Discovery validates the complete immutable worksheet before the reader is exposed.
             // The delivery pass can therefore decode it without repeating those same checks.
-            var records = new XlsbStreamRecordSliceReader(
-                worksheetPart ?? throw new ArgumentNullException(nameof(worksheetPart)),
+            var records = new XlsbRecordSliceReader(
+                worksheetPart.Buffer,
                 limits.MaxRecordBytes,
                 recordBudget ?? throw new ArgumentNullException(nameof(recordBudget)),
+                worksheetPart.DataLength,
                 consumeRecordBudget: false);
             _records = records;
+            _worksheetPart = worksheetPart;
             _lastDataRow = actualLastDataRow;
             try {
                 FindSheetData(
@@ -189,7 +217,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     ? BufferSchemaRows()
                     : null;
             } catch {
-                records.Dispose();
+                worksheetPart.Dispose();
                 throw;
             }
         }
@@ -242,51 +270,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int currentRowIndex = _pendingRowIndex;
             _hasPendingRow = false;
-            bool reachedRowBoundary = false;
-            if (_cancellationToken.CanBeCanceled) {
-                while (_records.TryRead(out XlsbRecordSlice record)) {
-                    CheckCancellation();
-                    if (record.Type == BrtRowHdr) {
-                        if (TrySetPendingRow(record)) {
-                            reachedRowBoundary = true;
-                            break;
-                        }
-
-                        continue;
-                    }
-
-                    if (record.Type == BrtEndSheetData) {
-                        _reachedEndSheetData = true;
-                        reachedRowBoundary = true;
-                        break;
-                    }
-
-                    if (IsCellRecord(record.Type)) {
-                        StoreCell(record);
-                    }
-                }
-            } else {
-                while (_records.TryRead(out XlsbRecordSlice record)) {
-                    if (record.Type == BrtRowHdr) {
-                        if (TrySetPendingRow(record)) {
-                            reachedRowBoundary = true;
-                            break;
-                        }
-
-                        continue;
-                    }
-
-                    if (record.Type == BrtEndSheetData) {
-                        _reachedEndSheetData = true;
-                        reachedRowBoundary = true;
-                        break;
-                    }
-
-                    if (IsCellRecord(record.Type)) {
-                        StoreCell(record);
-                    }
-                }
-            }
+            bool reachedRowBoundary = _options.CellValueConverter == null
+                ? ReadCurrentRowRecordsFast()
+                : ReadCurrentRowRecordsConverted();
 
             if (!reachedRowBoundary) {
                 throw new InvalidDataException(
@@ -311,7 +297,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             _closed = true;
-            _records.Dispose();
+            _worksheetPart.Dispose();
             _schemaRows?.Clear();
         }
 

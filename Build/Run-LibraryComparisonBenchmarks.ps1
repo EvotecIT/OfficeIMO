@@ -3,7 +3,7 @@ param(
     [string] $RunMode = 'quick',
     [ValidateSet('net8.0', 'net10.0')]
     [string] $Framework = 'net10.0',
-    [ValidateSet('all', 'csv', 'csvwrite', 'xlsx', 'xlsxwrite', 'xlsb')]
+    [ValidateSet('all', 'csv', 'csvwrite', 'xls', 'xlsx', 'xlsxwrite', 'xlsb')]
     [string] $Workload = 'all',
     [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
@@ -66,6 +66,13 @@ $definitions = [ordered]@{
             'Sylvan_WriteDataReader|RowCount=25000&Shape=Quoted'
             'Sylvan_WriteDataReader|RowCount=25000&Shape=Multiline'
         )
+    }
+    xls = [pscustomobject]@{
+        Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
+        Filter = '*MarkPflug65KXlsBenchmarks*'
+        ComparisonId = "markpflug-65k-xls-typed-$Framework"
+        Suite = 'OfficeIMO.Excel.Xls.MarkPflug65K'
+        ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
     }
     xlsx = [pscustomobject]@{
         Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'

@@ -194,7 +194,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new KeyNotFoundException($"Table '{tableName}' was not found.");
             }
 
-            Stream part = _parts.ReadSeekablePart(sheet.PartName, cancellationToken);
+            XlsbPooledPartStream part = _parts.ReadSeekablePart(sheet.PartName, cancellationToken);
             try {
                 return new XlsbTabularDataReader(
                     part,

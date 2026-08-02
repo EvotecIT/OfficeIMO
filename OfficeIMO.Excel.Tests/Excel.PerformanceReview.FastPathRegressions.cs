@@ -127,6 +127,39 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 
+        [Fact]
+        public void PerformanceReview_FileSnapshotKeepsAllViewsOnOneFileIdentity() {
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Snapshot.{Guid.NewGuid():N}.xlsx");
+            string replacementPath = path + ".replacement";
+            byte[] original = Encoding.UTF8.GetBytes("original workbook snapshot");
+            byte[] replacement = Encoding.UTF8.GetBytes("replacement workbook snapshot");
+            try {
+                File.WriteAllBytes(path, original);
+                File.WriteAllBytes(replacementPath, replacement);
+                using var snapshot = SharedReadOnlyFileSnapshot.Open(path);
+                using Stream firstView = snapshot.CreateView();
+
+                File.Delete(path);
+                File.Move(replacementPath, path);
+
+                using Stream secondView = snapshot.CreateView();
+                Assert.Equal(original, ReadSnapshot(firstView));
+                Assert.Equal(original, ReadSnapshot(secondView));
+                Assert.Equal(replacement, File.ReadAllBytes(path));
+            } finally {
+                File.Delete(path);
+                File.Delete(replacementPath);
+            }
+        }
+
+        private static byte[] ReadSnapshot(Stream stream) {
+            using var output = new MemoryStream();
+            stream.CopyTo(output);
+            return output.ToArray();
+        }
+
         private static byte[] RewriteFirstWorksheetAsUtf16(byte[] packageBytes) {
             using var package = new MemoryStream();
             package.Write(packageBytes, 0, packageBytes.Length);

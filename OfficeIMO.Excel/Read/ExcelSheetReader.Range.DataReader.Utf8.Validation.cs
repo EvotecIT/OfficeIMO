@@ -129,15 +129,15 @@ namespace OfficeIMO.Excel {
                 valueStart = -1;
                 valueLength = -1;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
-                    if (tag.IsEnd && LocalNameEquals(tag, "c")) {
+                    if (tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "c")) {
                         return true;
                     }
 
-                    if (!tag.IsEnd && kind == Utf8CellKind.InlineString && LocalNameEquals(tag, "is")) {
+                    if (!tag.IsEnd && IsUnprefixedTag(tag) && kind == Utf8CellKind.InlineString && LocalNameEquals(tag, "is")) {
                         return TryIndexSimpleInlineStringCell(ref position, tag, cellIndex);
                     }
 
-                    if (tag.IsEnd || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
+                    if (tag.IsEnd || !IsUnprefixedTag(tag) || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
                         return false;
                     }
 
@@ -163,6 +163,7 @@ namespace OfficeIMO.Excel {
 
                     if (!TryReadNextTag(ref position, _length, out Utf8Tag endTag)
                         || !endTag.IsEnd
+                        || !IsUnprefixedTag(endTag)
                         || !LocalNamesEqual(tag, endTag)
                         || ContainsByte(tag.End + 1, endTag.Start, (byte)'<')) {
                         return false;

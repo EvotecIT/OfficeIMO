@@ -80,6 +80,17 @@ namespace OfficeIMO.Tests {
                 return CreateRootStreamCompoundFile(streams);
             }
 
+            internal static byte[] CreateWorkbookCompoundFileWithNestedWorkbookStream(
+                byte[] workbookStream,
+                string nestedStreamName) {
+                return OfficeCompoundFileWriter.Write(new[] {
+                    new OfficeCompoundStream("Workbook", workbookStream),
+                    new OfficeCompoundStream(
+                        "ObjectPool/" + nestedStreamName,
+                        Encoding.ASCII.GetBytes("nested non-workbook payload"))
+                });
+            }
+
             internal static byte[] CreateCompoundHeaderWithInvalidSectorChain() {
                 byte[] bytes = new byte[SectorSize];
                 byte[] signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
@@ -117,6 +128,42 @@ namespace OfficeIMO.Tests {
                 output.Write(BuildMiniFat(usedMiniSectorCount), 0, SectorSize);
                 output.Write(BuildMiniStreamFat(), 0, SectorSize);
                 return output.ToArray();
+            }
+
+            internal static byte[] CreateMiniStreamWorkbookCompoundFileWithDeclaredRootSize(
+                byte[] workbookStream,
+                uint declaredRootSize) {
+                byte[] compound = CreateMiniStreamWorkbookCompoundFile(workbookStream);
+                WriteUInt64(compound, (2 * SectorSize) + 120, declaredRootSize);
+                return compound;
+            }
+
+            internal static byte[] CreateMiniStreamWorkbookCompoundFileWithWorkbookBeyondDeclaredRoot(
+                byte[] workbookStream) {
+                byte[] compound = CreateMiniStreamWorkbookCompoundFile(workbookStream);
+                int directoryOffset = 2 * SectorSize;
+                WriteUInt64(compound, directoryOffset + 120, MiniSectorSize);
+                WriteUInt32(compound, directoryOffset + 128 + 116, 1);
+                WriteUInt64(compound, directoryOffset + 128 + 120, 1);
+                return compound;
+            }
+
+            internal static byte[] CreateWorkbookCompoundFileWithDeclaredWorkbookSize(
+                byte[] workbookStream,
+                uint declaredWorkbookSize) {
+                byte[] compound = CreateWorkbookCompoundFile(workbookStream);
+                int workbookLength = PadToRegularStream(workbookStream).Length;
+                int directoryOffset = SectorSize + workbookLength;
+                WriteUInt64(compound, directoryOffset + 128 + 120, declaredWorkbookSize);
+                return compound;
+            }
+
+            internal static byte[] CreateMiniStreamWorkbookCompoundFileWithDeclaredMiniFatSectorCount(
+                byte[] workbookStream,
+                uint declaredMiniFatSectorCount) {
+                byte[] compound = CreateMiniStreamWorkbookCompoundFile(workbookStream);
+                WriteUInt32(compound, 64, declaredMiniFatSectorCount);
+                return compound;
             }
 
             internal static byte[] CreateDifatWorkbookCompoundFile(byte[] workbookStream) {

@@ -63,6 +63,7 @@ namespace OfficeIMO.Drawing.Internal {
                 }
 
                 int physicalSectorCount = checked((int)((remainingBytes - sectorSize) / sectorSize));
+                long maximumPhysicalStreamBytes = checked((long)physicalSectorCount * sectorSize);
                 int fatSectorCount = checked((int)ReadUInt32(header, 44));
                 uint directoryStart = ReadUInt32(header, 48);
                 uint miniCutoff = ReadUInt32(header, 56);
@@ -70,9 +71,13 @@ namespace OfficeIMO.Drawing.Internal {
                 int miniFatSectorCount = checked((int)ReadUInt32(header, 64));
                 uint firstDifat = ReadUInt32(header, 68);
                 int difatSectorCount = checked((int)ReadUInt32(header, 72));
-                if (fatSectorCount > physicalSectorCount || difatSectorCount > physicalSectorCount) {
-                    throw new InvalidDataException("Compound allocation table counts exceed the file size.");
-                }
+                ValidateAllocationTableCounts(
+                    fatSectorCount,
+                    difatSectorCount,
+                    miniFatSectorCount,
+                    physicalSectorCount,
+                    sectorSize,
+                    options.MaxTotalStreamBytes);
 
                 List<uint> fatSectorIds = ReadFatSectorIds(stream, basePosition, header, sectorSize,
                     physicalSectorCount, firstDifat, difatSectorCount,
@@ -84,7 +89,9 @@ namespace OfficeIMO.Drawing.Internal {
                     options.MaxDirectoryEntries, cancellationToken);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
-                if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > remainingBytes) {
+                if (root.Size < 0
+                    || root.Size > options.MaxTotalStreamBytes
+                    || root.Size > maximumPhysicalStreamBytes) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured or physical bounds.");
                 }
 
@@ -106,6 +113,7 @@ namespace OfficeIMO.Drawing.Internal {
                         (!isExternal && entry.Size > int.MaxValue)) {
                         throw new InvalidDataException($"Compound stream '{path}' has unsupported size {entry.Size}.");
                     }
+                    ValidateRegularStreamPhysicalBounds(path, entry.Size, miniCutoff, maximumPhysicalStreamBytes);
                     totalStreamBytes = checked(totalStreamBytes + entry.Size);
                     if (totalStreamBytes > options.MaxTotalStreamBytes) {
                         throw new InvalidDataException($"Compound stream bytes exceed {options.MaxTotalStreamBytes}.");
@@ -136,7 +144,7 @@ namespace OfficeIMO.Drawing.Internal {
                             if (destination == null || !destination.CanWrite) {
                                 throw new InvalidDataException("The external compound destination is not writable.");
                             }
-                            CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, basePosition,
+                            CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, root.Size, basePosition,
                                 sectorSize, physicalSectorCount, fatSectorIds,
                                 fatCache, cancellationToken);
                         }
@@ -144,7 +152,7 @@ namespace OfficeIMO.Drawing.Internal {
                         streams[path] = Array.Empty<byte>();
                     } else {
                         using (var destination = new MemoryStream(checked((int)entry.Size))) {
-                            CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, basePosition,
+                            CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, root.Size, basePosition,
                                 sectorSize, physicalSectorCount, fatSectorIds,
                                 fatCache, cancellationToken);
                             streams[path] = destination.ToArray();
@@ -173,14 +181,14 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static void CopyEntry(Stream input, Stream output, DirectoryEntry entry, uint miniCutoff,
-            IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain, long basePosition, int sectorSize,
+            IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain, long rootSize, long basePosition, int sectorSize,
             int physicalSectorCount, IReadOnlyList<uint> fatSectorIds,
             IDictionary<uint, byte[]> fatCache,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Size == 0) return;
             if (entry.Size < miniCutoff) {
-                CopyMiniChain(input, output, entry.StartSector, entry.Size, miniFat, rootChain,
+                CopyMiniChain(input, output, entry.StartSector, entry.Size, miniFat, rootChain, rootSize,
                     basePosition, sectorSize, cancellationToken);
                 return;
             }
@@ -229,13 +237,14 @@ namespace OfficeIMO.Drawing.Internal {
             CancellationToken cancellationToken) {
             int required = checked((int)((size + sectorSize - 1) / sectorSize));
             var result = new List<uint>(required);
-            var visited = new HashSet<uint>();
+            var visited = new bool[physicalSectorCount];
             uint sector = startSector;
             while (result.Count < required) {
                 if (sector == EndOfChain || sector == FreeSect || sector >= physicalSectorCount ||
-                    !visited.Add(sector)) {
+                    visited[sector]) {
                     throw new InvalidDataException("Compound mini stream chain is shorter than its declared size.");
                 }
+                visited[sector] = true;
                 result.Add(sector);
                 sector = ReadFatEntry(input, basePosition, sector, sectorSize, physicalSectorCount,
                     fatSectorIds, fatCache, cancellationToken);
@@ -245,7 +254,7 @@ namespace OfficeIMO.Drawing.Internal {
 
         private static void CopyMiniChain(Stream input, Stream output, uint startSector, long size,
             IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain,
-            long basePosition, int sectorSize,
+            long rootSize, long basePosition, int sectorSize,
             CancellationToken cancellationToken) {
             uint miniSector = startSector;
             long remaining = size;
@@ -256,6 +265,10 @@ namespace OfficeIMO.Drawing.Internal {
                     throw new InvalidDataException("Compound mini-sector chain is shorter than its declared size.");
                 }
                 long miniOffset = checked((long)miniSector * MiniSectorSize);
+                int write = checked((int)Math.Min(MiniSectorSize, remaining));
+                if (miniOffset > rootSize - write) {
+                    throw new InvalidDataException("Compound mini-sector points outside the declared root mini stream length.");
+                }
                 int rootSectorIndex = checked((int)(miniOffset / sectorSize));
                 int offsetWithinSector = checked((int)(miniOffset % sectorSize));
                 if (rootSectorIndex >= rootChain.Count || offsetWithinSector + MiniSectorSize > sectorSize) {
@@ -264,8 +277,7 @@ namespace OfficeIMO.Drawing.Internal {
                 long physicalOffset = checked(basePosition + ((long)rootChain[rootSectorIndex] + 1) * sectorSize +
                     offsetWithinSector);
                 byte[] bytes = ReadAt(input, physicalOffset,
-                    MiniSectorSize, cancellationToken);
-                int write = (int)Math.Min(bytes.Length, remaining);
+                    write, cancellationToken);
                 output.Write(bytes, 0, write);
                 remaining -= write;
                 miniSector = miniFat[(int)miniSector];

@@ -215,10 +215,10 @@ public sealed class OfficeCompoundFileContractTests {
             new OfficeCompoundStream("Property", new byte[] { 1 })
         });
         int directoryOffset = checked(((int)ReadUInt32(compound, 48) + 1) * 512);
-        WriteUInt64(compound, directoryOffset + 120, 512);
+        WriteUInt64(compound, directoryOffset + 120, 2048);
         var readerOptions = new EmailReaderOptions(
             maxInputBytes: 8192,
-            maxCompoundDirectoryEntries: 4,
+            maxCompoundDirectoryEntries: 32,
             maxDecodedPropertyBytes: 1,
             maxTotalAttachmentBytes: 1);
 
@@ -226,7 +226,8 @@ public sealed class OfficeCompoundFileContractTests {
             EmailCompoundReadPolicy.Create(readerOptions), out _, out string? error);
 
         Assert.False(success);
-        Assert.Contains("mini stream exceeds configured bounds", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("mini stream exceeds configured or physical bounds", error,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -235,9 +236,9 @@ public sealed class OfficeCompoundFileContractTests {
             new OfficeCompoundStream("Property", new byte[] { 1 })
         });
         int directoryOffset = checked(((int)ReadUInt32(compound, 48) + 1) * 512);
-        WriteUInt64(compound, directoryOffset + 120, 512);
+        WriteUInt64(compound, directoryOffset + 120, 1536);
         var options = new OfficeCompoundReadOptions(
-            maxTotalStreamBytes: 1);
+            maxTotalStreamBytes: 1024);
 
         using var source = new MemoryStream(compound);
         bool success = OfficeCompoundFileReader.TryReadSelective(source, options,
@@ -247,6 +248,28 @@ public sealed class OfficeCompoundFileContractTests {
 
         Assert.False(success);
         Assert.Contains("mini stream exceeds configured or physical bounds", error,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SelectiveReaderRejectsMiniSectorBeyondDeclaredRootLength() {
+        byte[] compound = OfficeCompoundFileWriter.Write(new[] {
+            new OfficeCompoundStream("Property", new byte[] { 1 })
+        });
+        int directoryOffset = checked(((int)ReadUInt32(compound, 48) + 1) * 512);
+        WriteUInt64(compound, directoryOffset + 120, 0);
+
+        using var source = new MemoryStream(compound);
+        bool success = OfficeCompoundFileReader.TryReadSelective(
+            source,
+            OfficeCompoundReadOptions.Default,
+            (_, _) => false,
+            (_, _) => throw new InvalidOperationException("No stream should be externalized."),
+            out _,
+            out string? error);
+
+        Assert.False(success);
+        Assert.Contains("declared root mini stream length", error,
             StringComparison.OrdinalIgnoreCase);
     }
 

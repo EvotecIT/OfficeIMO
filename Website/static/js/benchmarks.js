@@ -370,6 +370,7 @@
     var names = {
       'markpflug-65k-csv-decoded-net10.0': 'CSV · decoded strings',
       'csv-25k-datareader-write-net10.0': 'CSV · IDataReader write',
+      'markpflug-65k-xls-typed-net10.0': 'XLS · typed values',
       'markpflug-65k-xlsx-typed-net10.0': 'XLSX · typed values',
       'xlsx-25k-datareader-write-net10.0': 'XLSX · IDataReader write',
       'markpflug-65k-xlsb-typed-net10.0': 'XLSB · typed values'
