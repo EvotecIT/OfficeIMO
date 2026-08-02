@@ -86,8 +86,7 @@ namespace OfficeIMO.Word {
                         ContainsNestedField(simpleField)
                             ? "A simple MERGEFIELD contains a nested field and cannot be processed deterministically."
                             : GetMalformedMergeFieldInstructionMessage(instruction)));
-                } else if (element is Run run && run.Elements<FieldChar>().Any(fieldChar =>
-                               fieldChar.FieldCharType?.Value == FieldCharValues.Begin)) {
+                } else if (element is Run run && ContainsFieldMarker(run, FieldCharValues.Begin)) {
                     beginRunOrders[run] = order;
                 }
                 order++;
@@ -101,8 +100,12 @@ namespace OfficeIMO.Word {
                         foreach (ComplexFieldFrame activeField in activeFields) activeField.HasNestedField = true;
                     }
 
+                    FieldChar? firstFieldChar = run.GetFirstChild<FieldChar>();
+                    if (activeFields.Count == 0 && firstFieldChar == null) continue;
                     if (activeFields.Count > 0) AddRunToActiveFields(activeFields, run);
-                    foreach (FieldChar fieldChar in run.Elements<FieldChar>()) {
+                    if (firstFieldChar == null) continue;
+                    for (int childIndex = 0; childIndex < run.ChildElements.Count; childIndex++) {
+                        if (run.ChildElements[childIndex] is not FieldChar fieldChar) continue;
                         if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin) {
                             foreach (ComplexFieldFrame activeField in activeFields) {
                                 activeField.HasNestedField = true;
@@ -143,6 +146,20 @@ namespace OfficeIMO.Word {
             }
 
             return occurrences;
+        }
+
+        private static bool ContainsFieldMarker(Run run, FieldCharValues marker) {
+            FieldChar? firstFieldChar = run.GetFirstChild<FieldChar>();
+            if (firstFieldChar == null) return false;
+            if (firstFieldChar.FieldCharType?.Value == marker) return true;
+            for (int index = 0; index < run.ChildElements.Count; index++) {
+                if (run.ChildElements[index] is FieldChar fieldChar &&
+                    !ReferenceEquals(fieldChar, firstFieldChar) &&
+                    fieldChar.FieldCharType?.Value == marker) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void AddRunToActiveFields(IEnumerable<ComplexFieldFrame> activeFields, Run run) {
@@ -629,7 +646,9 @@ namespace OfficeIMO.Word {
             foreach (Paragraph paragraph in EnumerateParagraphs(root)) {
                 var activeFields = new List<StringBuilder>();
                 foreach (Run run in EnumerateParagraphOwnedRuns(paragraph)) {
-                    foreach (OpenXmlElement child in run.ChildElements) {
+                    if (activeFields.Count == 0 && run.GetFirstChild<FieldChar>() == null) continue;
+                    for (int childIndex = 0; childIndex < run.ChildElements.Count; childIndex++) {
+                        OpenXmlElement child = run.ChildElements[childIndex];
                         if (child is FieldChar fieldChar) {
                             if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin) {
                                 activeFields.Add(new StringBuilder());
