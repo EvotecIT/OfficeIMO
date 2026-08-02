@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Xml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -51,6 +52,7 @@ namespace OfficeIMO.Excel {
             ValidateModernChartPlacement(row, column, widthPixels, heightPixels);
             string layout = GetModernChartLayout(chartType);
             ValidateModernChartData(data);
+            ValidateModernChartText(title, nameof(title));
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
             ExcelSheet dataSheet = _excelDocument.GetOrCreateChartDataSheet();
@@ -127,6 +129,29 @@ namespace OfficeIMO.Excel {
             }
             if (data.Series.Any(series => series.Values.Any(value => double.IsNaN(value) || double.IsInfinity(value)))) {
                 throw new ArgumentException("Modern chart series values must be finite numbers.", nameof(data));
+            }
+            if (data.Categories.Any(category => !IsValidModernChartText(category))
+                || data.Series.Any(series => !IsValidModernChartText(series.Name))) {
+                throw new ArgumentException(
+                    "Modern chart categories and series names must contain valid Excel XML text.",
+                    nameof(data));
+            }
+        }
+
+        internal static void ValidateModernChartText(string? text, string parameterName) {
+            if (!IsValidModernChartText(text)) {
+                throw new ArgumentException("Modern chart text must contain valid Excel XML text.", parameterName);
+            }
+        }
+
+        private static bool IsValidModernChartText(string? text) {
+            string value = text ?? string.Empty;
+            if (value.Length > 32_767) return false;
+            try {
+                XmlConvert.VerifyXmlChars(value);
+                return true;
+            } catch (XmlException) {
+                return false;
             }
         }
 

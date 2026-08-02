@@ -42,6 +42,7 @@ namespace OfficeIMO.Excel {
             get => _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty;
             set {
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentNullException(nameof(value));
+                ExcelSheet.ValidateModernChartText(value, nameof(value));
                 EnsureAttached();
                 Xdr.NonVisualDrawingProperties properties = _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties
                     ?? throw new InvalidOperationException("Modern chart drawing properties are missing.");
@@ -51,7 +52,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Detected native ChartEx layout.</summary>
-        public ExcelModernChartType ChartType => ExcelSheet.ParseModernChartType(GetSeries().FirstOrDefault()?.GetAttribute("layoutId", string.Empty).Value);
+        public ExcelModernChartType ChartType {
+            get {
+                string? relationshipId = GetChartRelationshipId(_frame);
+                ExtendedChartPart? part = relationshipId == null ? null : TryGetChartPart(relationshipId);
+                return ExcelSheet.ParseModernChartType(part?.ChartSpace?.Descendants<Cx.Series>()
+                    .FirstOrDefault()?.GetAttribute("layoutId", string.Empty).Value);
+            }
+        }
 
         /// <summary>Known authored data range, when this wrapper created the chart.</summary>
         public ExcelChartDataRange? DataRange { get; private set; }
@@ -62,6 +70,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Sets the chart title while preserving unrelated imported ChartEx markup.</summary>
         public ExcelModernChart SetTitle(string? title) {
+            ExcelSheet.ValidateModernChartText(title, nameof(title));
             ExtendedChartPart part = GetChartPart();
             Cx.ChartSpace root = part.ChartSpace ?? throw new InvalidOperationException("Modern chart root is missing.");
             Cx.Chart chart = root.GetFirstChild<Cx.Chart>()
@@ -245,9 +254,13 @@ namespace OfficeIMO.Excel {
 
         private ExtendedChartPart GetChartPart(string relationshipId) {
             EnsureAttached();
-            return _drawingsPart.GetPartById(relationshipId) as ExtendedChartPart
+            return TryGetChartPart(relationshipId)
                 ?? throw new InvalidOperationException("Modern chart part is missing.");
         }
+
+        private ExtendedChartPart? TryGetChartPart(string relationshipId) => _drawingsPart.Parts
+            .FirstOrDefault(pair => string.Equals(pair.RelationshipId, relationshipId, StringComparison.Ordinal))
+            .OpenXmlPart as ExtendedChartPart;
 
         private void EnsureAttached() {
             if (_frame.Parent == null

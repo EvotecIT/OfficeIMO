@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 
@@ -87,6 +88,41 @@ namespace OfficeIMO.Drawing.Internal {
                 if (generatedPath.Length > 0) TryDelete(generatedPath);
                 throw;
             }
+        }
+
+        internal static void CopyUnixFileMode(string sourcePath, string destinationPath) {
+#if NET6_0_OR_GREATER
+            if (!OperatingSystem.IsWindows()) {
+                File.SetUnixFileMode(destinationPath, File.GetUnixFileMode(sourcePath));
+            }
+#else
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                CopyUnixFileModePortable(sourcePath, destinationPath);
+            }
+#endif
+        }
+
+        internal static void CopyUnixFileModePortable(string sourcePath, string destinationPath) {
+            MethodInfo? getMode = typeof(File).GetMethod(
+                "GetUnixFileMode",
+                BindingFlags.Public | BindingFlags.Static,
+                binder: null,
+                types: new[] { typeof(string) },
+                modifiers: null);
+            Type? modeType = getMode?.ReturnType;
+            MethodInfo? setMode = modeType == null ? null : typeof(File).GetMethod(
+                "SetUnixFileMode",
+                BindingFlags.Public | BindingFlags.Static,
+                binder: null,
+                types: new[] { typeof(string), modeType },
+                modifiers: null);
+            if (getMode == null || setMode == null) {
+                throw new PlatformNotSupportedException(
+                    "This runtime cannot preserve Unix file permissions during atomic replacement.");
+            }
+
+            object mode = getMode.Invoke(null, new object[] { sourcePath })!;
+            setMode.Invoke(null, new[] { (object)destinationPath, mode });
         }
 
         private static void TryDelete(string path) {

@@ -271,7 +271,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static MaterializedQueryResult MaterializeQueryResult(
+        private MaterializedQueryResult MaterializeQueryResult(
             ExcelQueryExecutionResult result,
             ExcelQueryExecutionPolicy policy,
             CancellationToken cancellationToken) {
@@ -315,7 +315,7 @@ namespace OfficeIMO.Excel {
             return new MaterializedQueryResult(columns, rows);
         }
 
-        private static object? NormalizeQueryCellValue(object? value) {
+        private object? NormalizeQueryCellValue(object? value) {
             if (value == null || value == DBNull.Value) return null;
             switch (value) {
                 case double number when double.IsNaN(number) || double.IsInfinity(number):
@@ -336,9 +336,17 @@ namespace OfficeIMO.Excel {
                 case sbyte:
                 case bool:
                 case DateTime:
-                case DateTimeOffset:
                 case TimeSpan:
                     return value;
+                case DateTimeOffset dateTimeOffset:
+                    return CoerceValueHelper.TryConvertDateTimeOffset(
+                        dateTimeOffset,
+                        DateTimeOffsetWriteStrategy,
+                        DateSystem,
+                        out DateTime converted,
+                        out _)
+                            ? converted
+                            : dateTimeOffset.ToString("o", CultureInfo.InvariantCulture);
 #if NET6_0_OR_GREATER
                 case DateOnly:
                 case TimeOnly:

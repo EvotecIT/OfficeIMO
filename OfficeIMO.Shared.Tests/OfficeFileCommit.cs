@@ -235,6 +235,29 @@ namespace OfficeIMO.Shared.Tests {
                 if (Directory.Exists(root)) Directory.Delete(root, true);
             }
         }
+
+        [Fact]
+        public void NetStandardUnixFallback_CopiesDestinationModeBeforeReplacement() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string source = Path.Combine(root, "source.bin");
+            string staging = Path.Combine(root, "staging.bin");
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(source, new byte[] { 1 });
+            File.WriteAllBytes(staging, new byte[] { 2 });
+
+            try {
+                File.SetUnixFileMode(source, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+                File.SetUnixFileMode(staging, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+
+                OfficeTemporaryFile.CopyUnixFileModePortable(source, staging);
+
+                Assert.Equal(File.GetUnixFileMode(source), File.GetUnixFileMode(staging));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
 #endif
     }
 }

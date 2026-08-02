@@ -101,27 +101,41 @@ internal static class CoerceValueHelper {
             throw new ArgumentNullException(nameof(dateTimeOffsetStrategy));
         }
 
-        DateTime converted;
+        return TryConvertDateTimeOffset(
+                value,
+                dateTimeOffsetStrategy,
+                dateSystem,
+                out _,
+                out double serial)
+            ? HandleNumber(serial)
+            : HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);
+    }
+
+    internal static bool TryConvertDateTimeOffset(
+        DateTimeOffset value,
+        Func<DateTimeOffset, DateTime> dateTimeOffsetStrategy,
+        ExcelDateSystem dateSystem,
+        out DateTime converted,
+        out double serial) {
         try {
             converted = dateTimeOffsetStrategy(value);
         } catch (Exception ex) {
             throw new InvalidOperationException("The configured DateTimeOffset write strategy threw an exception.", ex);
         }
 
+        if (value.UtcDateTime < ExcelMinimumSupportedDate) {
+            serial = 0D;
+            return false;
+        }
         try {
-            // Excel cannot represent serial dates earlier than 1900-01-01. Detect this
-            // using the original UTC timestamp so the fallback works reliably regardless
-            // of the configured write strategy or local time zone.
-            if (value.UtcDateTime < ExcelMinimumSupportedDate) {
-                return HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);
-            }
-
-            double serial = ExcelDateSystemConverter.ToSerial(converted, dateSystem);
-            return HandleNumber(serial);
+            serial = ExcelDateSystemConverter.ToSerial(converted, dateSystem);
+            return true;
         } catch (ArgumentException) {
-            return HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);
+            serial = 0D;
+            return false;
         } catch (OverflowException) {
-            return HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);
+            serial = 0D;
+            return false;
         }
     }
 
