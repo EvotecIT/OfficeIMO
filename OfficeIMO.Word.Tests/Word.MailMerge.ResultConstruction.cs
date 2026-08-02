@@ -153,5 +153,51 @@ namespace OfficeIMO.Tests {
                 element => Assert.Equal("Ada", Assert.IsType<Text>(element).Text),
                 element => Assert.Equal(FieldCharValues.End, Assert.IsType<FieldChar>(element).FieldCharType!.Value));
         }
+
+        [Fact]
+        public void Test_MailMerge_RemovingSameRunFieldPreservesSurroundingText() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(new Run(
+                new Text("Before "),
+                new FieldChar { FieldCharType = FieldCharValues.Begin },
+                new FieldCode(" MERGEFIELD Name "),
+                new FieldChar { FieldCharType = FieldCharValues.Separate },
+                new Text("old"),
+                new FieldChar { FieldCharType = FieldCharValues.End },
+                new Text(" after")));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" },
+                removeFields: true);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal("Before Ada after", paragraph.InnerText);
+            Assert.Empty(paragraph.Descendants<FieldChar>());
+            Assert.Empty(paragraph.Descendants<FieldCode>());
+        }
+
+        [Fact]
+        public void Test_MailMerge_RemovingSplitBoundaryFieldPreservesSurroundingText() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(
+                new Run(new Text("Before "), new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Name ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("old")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }, new Text(" after")));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" },
+                removeFields: true);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal("Before Ada after", paragraph.InnerText);
+            Assert.Empty(paragraph.Descendants<FieldChar>());
+            Assert.Empty(paragraph.Descendants<FieldCode>());
+        }
     }
 }

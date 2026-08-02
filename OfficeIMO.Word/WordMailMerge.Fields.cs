@@ -293,10 +293,12 @@ namespace OfficeIMO.Word {
                     ?? GetComplexFieldResultRuns(fieldRuns).FirstOrDefault()
                     ?? fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null)
                     ?? fieldRuns.FirstOrDefault();
-                var replacement = CreateReplacementRun(formattedValue, sourceRun);
-                fieldRuns[0].InsertBeforeSelf(replacement);
-                foreach (var run in fieldRuns) {
-                    run.Remove();
+                if (!ReplaceComplexFieldRangeWithText(fieldRuns, formattedValue, sourceRun)) {
+                    var replacement = CreateReplacementRun(formattedValue, sourceRun);
+                    fieldRuns[0].InsertBeforeSelf(replacement);
+                    foreach (var run in fieldRuns) {
+                        run.Remove();
+                    }
                 }
 
                 AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
