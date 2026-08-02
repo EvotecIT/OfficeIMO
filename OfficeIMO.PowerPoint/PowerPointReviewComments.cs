@@ -12,7 +12,14 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointCommentAuthor {
         /// <summary>Creates a review author identity.</summary>
         public PowerPointCommentAuthor(string name, string? initials = null,
-            string? userId = null, string? providerId = null) {
+            string? userId = null, string? providerId = null)
+            : this(name, initials, userId, providerId,
+                synthesizeMissingInitials: true) {
+        }
+
+        private PowerPointCommentAuthor(string name, string? initials,
+            string? userId, string? providerId,
+            bool synthesizeMissingInitials) {
             if (name != null) {
                 PowerPointXmlValueValidator.ValidateCharacters(name,
                     nameof(name), "Author name");
@@ -34,15 +41,18 @@ namespace OfficeIMO.PowerPoint {
                     nameof(name));
             }
             string normalizedName = name!.Trim();
-            string normalizedInitials = string.IsNullOrWhiteSpace(initials)
-                ? CreateInitials(normalizedName)
-                : initials!.Trim();
+            string? suppliedInitials = string.IsNullOrWhiteSpace(initials)
+                ? null : initials!.Trim();
+            string normalizedInitials = suppliedInitials
+                ?? CreateInitials(normalizedName);
             string? normalizedUserId = string.IsNullOrWhiteSpace(userId)
                 ? null : userId!.Trim();
             string? normalizedProviderId = string.IsNullOrWhiteSpace(providerId)
                 ? null : providerId!.Trim();
             Name = normalizedName;
             Initials = normalizedInitials;
+            ModernInitials = synthesizeMissingInitials
+                ? normalizedInitials : suppliedInitials;
             UserId = normalizedUserId;
             ProviderId = normalizedProviderId;
         }
@@ -51,10 +61,17 @@ namespace OfficeIMO.PowerPoint {
         public string Name { get; }
         /// <summary>Short initials displayed by classic review surfaces.</summary>
         public string Initials { get; }
+        internal string? ModernInitials { get; }
         /// <summary>Optional modern author identity.</summary>
         public string? UserId { get; }
         /// <summary>Optional modern identity provider.</summary>
         public string? ProviderId { get; }
+
+        internal static PowerPointCommentAuthor FromImportedModern(
+            string name, string? initials, string? userId,
+            string? providerId) => new PowerPointCommentAuthor(name,
+                initials, userId, providerId,
+                synthesizeMissingInitials: false);
 
         private static string CreateInitials(string name) {
             string[] words = name.Split(new[] { ' ', '\t' },
@@ -616,7 +633,7 @@ namespace OfficeIMO.PowerPoint {
             var created = new P188.Author {
                 Id = CreateModernCommentId(),
                 Name = author.Name,
-                Initials = author.Initials,
+                Initials = author.ModernInitials,
                 UserId = ResolveModernCommentUserId(author),
                 ProviderId = ResolveModernCommentProviderId(author)
             };
@@ -633,7 +650,8 @@ namespace OfficeIMO.PowerPoint {
                     StringComparison.OrdinalIgnoreCase));
             return author == null
                 ? new PowerPointCommentAuthor("Unknown")
-                : new PowerPointCommentAuthor(author.Name?.Value ?? "Unknown",
+                : PowerPointCommentAuthor.FromImportedModern(
+                    author.Name?.Value ?? "Unknown",
                     author.Initials?.Value, author.UserId?.Value, author.ProviderId?.Value);
         }
 
@@ -892,14 +910,14 @@ namespace OfficeIMO.PowerPoint {
         private static bool ModernAuthorExactlyMatches(P188.Author candidate,
             PowerPointCommentAuthor author) =>
             string.Equals(candidate.Name?.Value, author.Name, StringComparison.Ordinal)
-            && string.Equals(candidate.Initials?.Value, author.Initials, StringComparison.Ordinal)
+            && string.Equals(candidate.Initials?.Value, author.ModernInitials, StringComparison.Ordinal)
             && string.Equals(candidate.UserId?.Value, author.UserId, StringComparison.Ordinal)
             && string.Equals(candidate.ProviderId?.Value, author.ProviderId, StringComparison.Ordinal);
 
         private static bool ModernAuthorMatchesCreatedDefaults(P188.Author candidate,
             PowerPointCommentAuthor author) =>
             string.Equals(candidate.Name?.Value, author.Name, StringComparison.Ordinal)
-            && string.Equals(candidate.Initials?.Value, author.Initials, StringComparison.Ordinal)
+            && string.Equals(candidate.Initials?.Value, author.ModernInitials, StringComparison.Ordinal)
             && string.Equals(candidate.UserId?.Value,
                 ResolveModernCommentUserId(author), StringComparison.Ordinal)
             && string.Equals(candidate.ProviderId?.Value,

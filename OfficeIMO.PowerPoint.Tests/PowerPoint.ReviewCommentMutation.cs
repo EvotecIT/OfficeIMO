@@ -135,9 +135,12 @@ namespace OfficeIMO.Tests {
                 .Single();
             author.UserId = null;
             author.ProviderId = null;
+            author.Initials = null;
             string id = author.Id!.Value!;
             PowerPointModernComment comment = Assert.Single(
                 presentation.GetModernComments(slide));
+
+            Assert.Equal("I", comment.Author.Initials);
 
             comment.SetAuthor(comment.Author);
 
@@ -147,6 +150,7 @@ namespace OfficeIMO.Tests {
                 .SelectMany(part => part.AuthorList!.Elements<P188.Author>())
                 .Single();
             Assert.Equal(id, retained.Id!.Value);
+            Assert.Null(retained.Initials);
             Assert.Null(retained.UserId);
             Assert.Null(retained.ProviderId);
         }

@@ -653,9 +653,11 @@ namespace OfficeIMO.PowerPoint {
                              ?? Enumerable.Empty<A.HyperlinkType>())) {
                 string? action = hyperlink.Action?.Value;
                 if (!PowerPointCustomShowAction.IsCustomShowAction(action)) continue;
-                if (!PowerPointCustomShowAction.TryParseSupported(action,
-                        out uint targetId, out _)) {
-                    details.Add("A slide contains an unsupported custom-show action.");
+                if (!PowerPointCustomShowAction.TryValidateSupportedHyperlink(
+                        hyperlink, out uint targetId, out _,
+                        out string? reason)) {
+                    details.Add("A slide contains an unsupported custom-show hyperlink: "
+                        + reason);
                 } else if (!ids.Contains(targetId)) {
                     details.Add($"A slide custom-show action targets missing identifier {targetId}.");
                 }

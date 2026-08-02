@@ -37,6 +37,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_PreservesExtendedCustomShowHyperlink() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Valid", new[] { slide });
+            Shape shape = Assert.IsType<Shape>(
+                slide.AddRectangle(0, 0, 914400, 914400).Element);
+            var hyperlink = new A.HyperlinkOnClick {
+                Id = "rIdUnexpected",
+                Action = "ppaction://customshow?id=" + show.Id,
+                Tooltip = "Unexpected tip"
+            };
+            hyperlink.Append(new OpenXmlUnknownElement("a14", "extLst",
+                "http://schemas.microsoft.com/office/drawing/2010/main"));
+            shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(hyperlink);
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding customShows = Assert.Single(
+                report.FindFeatures("Custom shows"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                customShows.SupportLevel);
+            Assert.Contains(customShows.Details, detail =>
+                detail.Contains("unsupported custom-show hyperlink",
+                    StringComparison.OrdinalIgnoreCase));
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+            Assert.False(presentation.AnalyzeLegacyPptWrite().CanWrite);
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsEditableAndPartiallyEditableFeatures() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");

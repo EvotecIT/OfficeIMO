@@ -239,12 +239,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 soundIdReference = sound!.Id;
             }
 
-            if (TryParseCustomShowAction(action, out uint customShowId,
-                    out bool returnsToSlide)) {
-                if (!string.IsNullOrEmpty(relationshipId) || screenTip != null
+            if (PowerPointCustomShowAction.IsCustomShowAction(action)) {
+                if (!PowerPointCustomShowAction.TryValidateSupportedHyperlink(
+                        typedHyperlink, out uint customShowId,
+                        out bool returnsToSlide, out reason)
                     || !TryResolveCustomShowName(slidePart, customShowId,
                         out string? customShowName)) {
-                    reason = "Custom-show actions require a valid show id and cannot combine a relationship or screen tip.";
+                    reason ??= "Custom-show actions require a valid show id.";
                     return false;
                 }
                 if (returnsToSlide) flags |= 0x04;
@@ -388,11 +389,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             return false;
         }
-
-        private static bool TryParseCustomShowAction(string? action,
-            out uint customShowId, out bool returnsToSlide) =>
-            PowerPointCustomShowAction.TryParseSupported(action,
-                out customShowId, out returnsToSlide);
 
         private static bool TryResolveCustomShowName(SlidePart slidePart,
             uint customShowId, out string? name) {
