@@ -135,12 +135,12 @@ namespace OfficeIMO.PowerPoint {
         public bool RemoveCustomShow(PowerPointCustomShow customShow) {
             ThrowIfDisposed();
             P.CustomShow owned = RequireOwnedCustomShow(customShow);
-            uint id = owned.Id?.Value ?? 0U;
+            uint? id = owned.Id?.Value;
             owned.Remove();
             if (PresentationRoot.CustomShowList?.Elements<P.CustomShow>().Any() == false) {
                 PresentationRoot.CustomShowList.Remove();
             }
-            if (id != 0U) RemoveCustomShowLinks(id);
+            if (id.HasValue) RemoveCustomShowLinks(id.Value);
             return true;
         }
 

@@ -179,17 +179,14 @@ public static class OfficeDiagramDrawingRenderer {
     private static List<NodeBox> LayoutPyramid(
         OfficeDiagramSnapshot snapshot) {
         int count = snapshot.Nodes.Count;
-        double cellHeight = snapshot.HeightPoints / count;
         var result = new List<NodeBox>(count);
         for (int index = 0; index < count; index++) {
-            double progress = (index + 1D) / count;
-            double nodeWidth = snapshot.WidthPoints * (0.25D + 0.68D * progress);
-            double nodeHeight = Math.Min(Math.Max(10D, cellHeight * 0.76D),
-                Math.Max(1D, cellHeight - 4D));
-            result.Add(new NodeBox(
-                (snapshot.WidthPoints - nodeWidth) / 2D,
-                index * cellHeight + (cellHeight - nodeHeight) / 2D,
-                nodeWidth, nodeHeight));
+            OfficeDiagramNodeBounds bounds =
+                OfficeDiagramLayoutGeometry.GetPyramidNodeBounds(
+                    count, index, snapshot.WidthPoints,
+                    snapshot.HeightPoints);
+            result.Add(new NodeBox(bounds.X, bounds.Y,
+                bounds.Width, bounds.Height));
         }
         return result;
     }

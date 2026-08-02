@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -34,10 +36,24 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int? OutlineTransparency {
             get {
-                A.SolidFill? solid = GetOutline()?.GetFirstChild<A.SolidFill>();
-                OpenXmlCompositeElement? color = solid == null
-                    ? GetShapeStyleLineColorChoice(createPlaceholder: false)
-                    : GetColorChoice(solid);
+                A.Outline? outline = GetOutline();
+                IReadOnlyList<OpenXmlCompositeElement> localColors = outline == null
+                    ? Array.Empty<OpenXmlCompositeElement>()
+                    : GetOutlineFillColorChoices(outline);
+                if (outline != null && HasExplicitOutlineFill(outline)) {
+                    if (localColors.Count == 0) return null;
+                    int? localAlpha = localColors[0]
+                        .GetFirstChild<A.Alpha>()?.Val?.Value;
+                    if (localAlpha == null || localColors.Any(color =>
+                            color.GetFirstChild<A.Alpha>()?.Val?.Value
+                                != localAlpha)) {
+                        return null;
+                    }
+                    return (int)Math.Round((100000 - localAlpha.Value)
+                        / 1000D);
+                }
+                OpenXmlCompositeElement? color =
+                    GetShapeStyleLineColorChoice(createPlaceholder: false);
                 int? alpha = color?.GetFirstChild<A.Alpha>()?.Val?.Value;
                 return alpha == null
                     ? null
@@ -148,6 +164,13 @@ namespace OfficeIMO.PowerPoint {
 
             A.SolidFill? solid = outline.GetFirstChild<A.SolidFill>();
             if (solid == null) {
+                if (HasExplicitOutlineFill(outline)) {
+                    foreach (OpenXmlCompositeElement fillColor in
+                             GetOutlineFillColorChoices(outline)) {
+                        SetColorAlpha(fillColor, opacity);
+                    }
+                    return;
+                }
                 OpenXmlCompositeElement? styleColor =
                     GetShapeStyleLineColorChoice(createPlaceholder: opacity != null);
                 if (styleColor != null) {
@@ -171,6 +194,42 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SetColorAlpha(color, opacity);
+        }
+
+        private static bool HasExplicitOutlineFill(A.Outline outline) =>
+            outline.ChildElements.Any(child => child is A.NoFill
+                or A.SolidFill or A.GradientFill or A.PatternFill);
+
+        private static IReadOnlyList<OpenXmlCompositeElement>
+            GetOutlineFillColorChoices(A.Outline outline) {
+            A.SolidFill? solid = outline.GetFirstChild<A.SolidFill>();
+            if (solid != null) {
+                OpenXmlCompositeElement? color = GetColorChoice(solid);
+                return color == null
+                    ? Array.Empty<OpenXmlCompositeElement>()
+                    : new[] { color };
+            }
+
+            A.GradientFill? gradient = outline.GetFirstChild<A.GradientFill>();
+            if (gradient != null) {
+                return gradient.Descendants<A.GradientStop>()
+                    .Select(GetColorChoice)
+                    .Where(color => color != null)
+                    .Cast<OpenXmlCompositeElement>()
+                    .ToArray();
+            }
+
+            A.PatternFill? pattern = outline.GetFirstChild<A.PatternFill>();
+            if (pattern != null) {
+                return pattern.ChildElements
+                    .OfType<OpenXmlCompositeElement>()
+                    .Select(GetColorChoice)
+                    .Where(color => color != null)
+                    .Cast<OpenXmlCompositeElement>()
+                    .ToArray();
+            }
+
+            return Array.Empty<OpenXmlCompositeElement>();
         }
 
         private OpenXmlCompositeElement? GetShapeStyleLineColorChoice(

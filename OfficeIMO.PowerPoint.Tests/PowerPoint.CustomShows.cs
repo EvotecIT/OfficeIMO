@@ -1,8 +1,10 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public sealed class PowerPointCustomShowTests {
@@ -80,6 +82,31 @@ namespace OfficeIMO.Tests {
                 first.RenameCustomShow(foreignShow, "Still foreign"));
             Assert.Throws<InvalidOperationException>(() =>
                 first.RemoveCustomShow(foreignShow));
+        }
+
+        [Fact]
+        public void CustomShows_RemoveZeroIdentifierAlsoRemovesTargetingActions() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape actionShape = slide.AddRectanglePoints(
+                20, 20, 120, 60);
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Imported zero", new[] { slide });
+            show.OpenXmlElement.Id = 0U;
+            NonVisualDrawingProperties actionProperties =
+                ((Shape)actionShape.Element).NonVisualShapeProperties!
+                .NonVisualDrawingProperties!;
+            actionProperties.Append(new A.HyperlinkOnClick {
+                Id = string.Empty,
+                Action = "ppaction://customshow?id=0&return=true"
+            });
+
+            Assert.True(presentation.RemoveCustomShow(show));
+
+            Assert.Empty(slide.SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>());
+            Assert.Empty(presentation.ValidateDocument());
         }
     }
 }

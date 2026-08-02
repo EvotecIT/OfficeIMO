@@ -93,4 +93,34 @@ public partial class DrawingTests {
             Assert.InRange(startY, root.Y, root.Y + root.Shape.Height);
         }
     }
+
+    [Fact]
+    public void OfficeDiagramDrawingRenderer_PyramidUsesAuthoredNormalizedGeometry() {
+        var snapshot = new OfficeDiagramSnapshot("Priorities",
+            OfficeDiagramKind.Pyramid,
+            new[] { "A", "B", "C", "D" }, 320D, 180D);
+
+        OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot,
+            includeBackground: false);
+        OfficeDrawingShape[] nodes = drawing.Shapes
+            .Where(shape => shape.Shape.Kind != OfficeShapeKind.Line)
+            .ToArray();
+
+        Assert.Equal(4, nodes.Length);
+        for (int index = 0; index < nodes.Length; index++) {
+            double progress = index / 3D;
+            double expectedWidth = 320D * (0.28D + 0.5D * progress);
+            double cellHeight = 180D * 0.82D / 4D;
+            double expectedHeight = Math.Min(180D * 0.19D,
+                cellHeight * 0.86D);
+            double expectedCenterY = 180D * 0.09D
+                + (index + 0.5D) * cellHeight;
+            Assert.Equal(expectedWidth, nodes[index].Shape.Width, 6);
+            Assert.Equal(expectedHeight, nodes[index].Shape.Height, 6);
+            Assert.Equal((320D - expectedWidth) / 2D,
+                nodes[index].X, 6);
+            Assert.Equal(expectedCenterY - expectedHeight / 2D,
+                nodes[index].Y, 6);
+        }
+    }
 }

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using OfficeIMO.Drawing;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
@@ -189,13 +190,14 @@ namespace OfficeIMO.PowerPoint {
                 CreateAlgorithm(Dgm.AlgorithmValues.Composite));
             Dgm.Constraints constraints = new();
             int count = Math.Max(1, nodeCount);
-            double height = Math.Min(0.19D, 0.82D / count * 0.86D);
             for (int index = 0; index < count; index++) {
-                double progress = count == 1 ? 1D : index / (double)(count - 1);
+                OfficeDiagramNodeBounds bounds =
+                    OfficeDiagramLayoutGeometry.GetPyramidNodeBounds(
+                        count, index, 1D, 1D);
                 AppendPositionConstraints(constraints, $"level{index + 1}",
-                    width: 0.28D + 0.5D * progress, height: height,
-                    centerX: 0.5D,
-                    centerY: 0.09D + (index + 0.5D) * (0.82D / count));
+                    width: bounds.Width, height: bounds.Height,
+                    centerX: bounds.X + bounds.Width / 2D,
+                    centerY: bounds.Y + bounds.Height / 2D);
             }
             constraints.Append(new Dgm.Constraint {
                 Type = Dgm.ConstraintValues.PrimaryFontSize,
