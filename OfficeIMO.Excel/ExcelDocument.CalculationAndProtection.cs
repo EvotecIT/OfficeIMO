@@ -13,7 +13,9 @@ namespace OfficeIMO.Excel {
         private readonly ConcurrentDictionary<Uri, long> _formulaRecalculationVersions = new();
         private readonly ConcurrentDictionary<Uri, long> _formulaAuthoredRecalculationVersions = new();
         private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaAuthoredVersions = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaCellRecalculationVersions = new();
         private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyBaselines = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaCellDependencyRecalculationVersions = new();
         private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyMutationVersions = new();
 
         /// <summary>
@@ -61,6 +63,10 @@ namespace OfficeIMO.Excel {
                 && authoredVersion > baseline) {
                 baseline = authoredVersion;
             }
+            if (_formulaCellRecalculationVersions.TryGetValue((worksheetPart.Uri, cellReference), out long cellRecalculationVersion)
+                && cellRecalculationVersion > baseline) {
+                baseline = cellRecalculationVersion;
+            }
 
             return mutationVersion > baseline;
         }
@@ -68,6 +74,16 @@ namespace OfficeIMO.Excel {
         internal void MarkFormulaSheetRecalculated(WorksheetPart worksheetPart, long mutationVersion) {
             _formulaRecalculationVersions[worksheetPart.Uri] = mutationVersion;
             _formulaAuthoredRecalculationVersions[worksheetPart.Uri] =
+                Interlocked.Read(ref _formulaAuthoredMutationVersion);
+        }
+
+        internal void MarkFormulaCellRecalculated(
+            WorksheetPart worksheetPart,
+            string cellReference,
+            long mutationVersion) {
+            var key = (worksheetPart.Uri, cellReference);
+            _formulaCellRecalculationVersions[key] = mutationVersion;
+            _formulaCellDependencyRecalculationVersions[key] =
                 Interlocked.Read(ref _formulaAuthoredMutationVersion);
         }
 
@@ -79,6 +95,12 @@ namespace OfficeIMO.Excel {
             if (_formulaDependencyBaselines.TryGetValue((worksheetPart.Uri, cellReference), out long authoredVersion)
                 && authoredVersion > baseline) {
                 baseline = authoredVersion;
+            }
+            if (_formulaCellDependencyRecalculationVersions.TryGetValue(
+                    (worksheetPart.Uri, cellReference),
+                    out long cellRecalculationVersion)
+                && cellRecalculationVersion > baseline) {
+                baseline = cellRecalculationVersion;
             }
             return baseline;
         }

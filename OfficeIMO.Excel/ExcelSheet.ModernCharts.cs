@@ -13,30 +13,34 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Enumerates native and imported ChartEx drawings on this worksheet.</summary>
         public IEnumerable<ExcelModernChart> ModernCharts {
-            get {
-                DrawingsPart? drawingsPart = _worksheetPart.DrawingsPart;
-                if (drawingsPart?.WorksheetDrawing == null) return Enumerable.Empty<ExcelModernChart>();
-                return drawingsPart.WorksheetDrawing.Descendants<Xdr.GraphicFrame>()
-                    .Where(frame => string.Equals(
-                        frame.Graphic?.GraphicData?.Uri?.Value,
-                        ChartExGraphicDataUri,
-                        StringComparison.Ordinal))
-                    .Select(frame => {
-                        ExtendedChartPart? part = TryGetModernChartPart(frame, drawingsPart);
-                        return new ExcelModernChart(
-                            frame,
-                            drawingsPart,
-                            this,
-                            part == null ? null : TryExtractModernChartDataRange(part));
-                    })
-                    .ToArray();
-            }
+            get => Locking.ExecuteRead(_excelDocument.EnsureLock(), GetModernChartsCore);
         }
 
         /// <summary>Returns a native or imported ChartEx drawing by non-visual name.</summary>
         public ExcelModernChart? GetModernChart(string name) {
             if (string.IsNullOrWhiteSpace(name)) return null;
-            return ModernCharts.FirstOrDefault(chart => string.Equals(chart.Name, name, StringComparison.OrdinalIgnoreCase));
+            return Locking.ExecuteRead(_excelDocument.EnsureLock(), () =>
+                GetModernChartsCore().FirstOrDefault(chart =>
+                    string.Equals(chart.Name, name, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        private ExcelModernChart[] GetModernChartsCore() {
+            DrawingsPart? drawingsPart = _worksheetPart.DrawingsPart;
+            if (drawingsPart?.WorksheetDrawing == null) return Array.Empty<ExcelModernChart>();
+            return drawingsPart.WorksheetDrawing.Descendants<Xdr.GraphicFrame>()
+                .Where(frame => string.Equals(
+                    frame.Graphic?.GraphicData?.Uri?.Value,
+                    ChartExGraphicDataUri,
+                    StringComparison.Ordinal))
+                .Select(frame => {
+                    ExtendedChartPart? part = TryGetModernChartPart(frame, drawingsPart);
+                    return new ExcelModernChart(
+                        frame,
+                        drawingsPart,
+                        this,
+                        part == null ? null : TryExtractModernChartDataRange(part));
+                })
+                .ToArray();
         }
 
         /// <summary>Adds a native ChartEx chart backed by OfficeIMO's shared hidden chart-data owner.</summary>
@@ -235,7 +239,7 @@ namespace OfficeIMO.Excel {
 
             bool hasHeaderRow = firstRow > 1;
             if (hasHeaderRow) {
-                ExcelSheet dataSheet = _excelDocument[sheetName];
+                ExcelSheet dataSheet = _excelDocument.GetSheetForLockedOperation(sheetName);
                 Cx.Series[] series = root?.Descendants<Cx.Series>().ToArray() ?? Array.Empty<Cx.Series>();
                 hasHeaderRow = series.Length == data.Length;
                 for (int index = 0; hasHeaderRow && index < series.Length; index++) {

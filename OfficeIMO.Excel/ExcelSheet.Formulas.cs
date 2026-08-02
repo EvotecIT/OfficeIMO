@@ -126,11 +126,13 @@ namespace OfficeIMO.Excel {
                     [Name] = _formulaEvaluationSharedDefinitions
                 };
                 bool changed = false;
+                bool allFormulasEvaluated = true;
 
                 try {
                     foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList()) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
+                            allFormulasEvaluated = false;
                             if (_formulaEvaluationGuardState.DependencyGuardBlocked) {
                                 if (cell.CellValue != null) {
                                     cell.CellValue = null;
@@ -148,6 +150,10 @@ namespace OfficeIMO.Excel {
 
                         SetFormulaCachedValue(cell, result);
                         cell.CellFormula!.CalculateCell = false;
+                        _excelDocument.MarkFormulaCellRecalculated(
+                            _worksheetPart,
+                            cell.CellReference?.Value ?? string.Empty,
+                            formulaInputMutationVersion);
                         changed = true;
                         count++;
                     }
@@ -167,7 +173,9 @@ namespace OfficeIMO.Excel {
                     ClearCellTextSharedStringCache();
                 }
 
-                _excelDocument.MarkFormulaSheetRecalculated(_worksheetPart, formulaInputMutationVersion);
+                if (allFormulasEvaluated) {
+                    _excelDocument.MarkFormulaSheetRecalculated(_worksheetPart, formulaInputMutationVersion);
+                }
 
                 WorksheetRoot.Save();
             });
