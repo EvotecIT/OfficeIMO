@@ -76,6 +76,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ClassicCommentMutation_ReusesFreeAuthorIdWhenMaximumIsOccupied() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            CommentAuthorsPart authorsPart = presentation.OpenXmlDocument
+                .PresentationPart!.AddNewPart<CommentAuthorsPart>();
+            authorsPart.CommentAuthorList = new P.CommentAuthorList(
+                new P.CommentAuthor {
+                    Id = uint.MaxValue,
+                    Name = "Maximum",
+                    Initials = "M",
+                    LastIndex = 0U,
+                    ColorIndex = 0U
+                });
+
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Available", "A"), "Review");
+
+            Assert.Equal(0U, GetClassicAuthor(presentation, "Available").Id!.Value);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void ModernComments_CreateEditReplyReassignRemove_AndRoundTripPptx() {
             using var stream = new MemoryStream();
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {

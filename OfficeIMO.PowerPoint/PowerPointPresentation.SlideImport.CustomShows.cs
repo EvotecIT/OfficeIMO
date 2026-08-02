@@ -320,7 +320,8 @@ namespace OfficeIMO.PowerPoint {
             uint preferredId,
             ISet<uint> usedIds) {
             if (usedIds.Add(preferredId)) return preferredId;
-            uint candidate = FindAvailableCustomShowId(usedIds, 0U);
+            uint candidate = FindAvailableUInt32Id(usedIds, 0U,
+                "custom-show");
             usedIds.Add(candidate);
             return candidate;
         }

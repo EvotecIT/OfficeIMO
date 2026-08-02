@@ -1,3 +1,4 @@
+using System.Globalization;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
@@ -5,7 +6,7 @@ using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         private static Dgm.LayoutDefinition CreateSmartArtLayoutDefinition(
-            PowerPointSmartArtType type, int nodeCount) {
+            PowerPointSmartArtType type, int nodeCount, double aspectRatio) {
             Dgm.LayoutDefinition layout = new() {
                 UniqueId = GetSmartArtLayoutId(type)
             };
@@ -19,12 +20,13 @@ namespace OfficeIMO.PowerPoint {
                 Type = GetSmartArtCategory(type),
                 Priority = 400U
             }));
-            layout.Append(CreateSmartArtRootLayoutNode(type, nodeCount));
+            layout.Append(CreateSmartArtRootLayoutNode(type, nodeCount,
+                aspectRatio));
             return layout;
         }
 
         private static Dgm.LayoutNode CreateSmartArtRootLayoutNode(
-            PowerPointSmartArtType type, int nodeCount) {
+            PowerPointSmartArtType type, int nodeCount, double aspectRatio) {
             switch (type) {
                 case PowerPointSmartArtType.BasicProcess:
                     return CreateLinearSmartArtLayout();
@@ -33,9 +35,9 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointSmartArtType.BasicCycle:
                     return CreateCycleSmartArtLayout();
                 case PowerPointSmartArtType.BasicList:
-                    return CreateSnakeSmartArtLayout(matrix: false, nodeCount: nodeCount);
+                    return CreateListSmartArtLayout(nodeCount, aspectRatio);
                 case PowerPointSmartArtType.BasicMatrix:
-                    return CreateSnakeSmartArtLayout(matrix: true, nodeCount: nodeCount);
+                    return CreateMatrixSmartArtLayout(nodeCount);
                 case PowerPointSmartArtType.BasicPyramid:
                     return CreatePyramidSmartArtLayout(nodeCount);
                 case PowerPointSmartArtType.BasicRelationship:
@@ -60,40 +62,35 @@ namespace OfficeIMO.PowerPoint {
             return root;
         }
 
-        private static Dgm.LayoutNode CreateSnakeSmartArtLayout(bool matrix,
-            int nodeCount) {
-            if (matrix) {
-                return CreateMatrixSmartArtLayout(nodeCount);
+        private static Dgm.LayoutNode CreateListSmartArtLayout(int nodeCount,
+            double aspectRatio) {
+            Dgm.LayoutNode root = CreateSmartArtCanvas("list",
+                CreateAlgorithm(Dgm.AlgorithmValues.Composite,
+                    (Dgm.ParameterIdValues.AspectRatio,
+                        aspectRatio.ToString("R",
+                            CultureInfo.InvariantCulture))));
+            Dgm.Constraints constraints = new();
+            int count = Math.Max(1, nodeCount);
+            double nodeHeight = 0.68D / count;
+            for (int index = 0; index < count; index++) {
+                string name = $"listNode{index + 1}";
+                AppendPositionConstraints(constraints, name,
+                    width: 0.94D, height: nodeHeight,
+                    centerX: 0.5D, centerY: (index + 0.5D) / count);
             }
-            Dgm.Algorithm algorithm = CreateAlgorithm(Dgm.AlgorithmValues.Snake,
-                (Dgm.ParameterIdValues.GrowDirection, "tL"),
-                (Dgm.ParameterIdValues.FlowDirection, "row"),
-                (Dgm.ParameterIdValues.ContinueDirection, "sameDir"),
-                (Dgm.ParameterIdValues.Offset, "ctr"));
-            Dgm.LayoutNode root = CreateSmartArtCanvas("list", algorithm);
-            Dgm.Constraints constraints = CreateRootNodeConstraints("node",
-                heightToWidth: 0.6D, fontSize: 42D);
             constraints.Append(new Dgm.Constraint {
-                Type = Dgm.ConstraintValues.Width,
-                For = Dgm.ConstraintRelationshipValues.Child,
-                ForName = "sibTrans",
-                ReferenceType = Dgm.ConstraintValues.Width,
-                ReferenceFor = Dgm.ConstraintRelationshipValues.Child,
-                ReferenceForName = "node",
-                Fact = 0.1D
-            });
-            constraints.Append(new Dgm.Constraint {
-                Type = Dgm.ConstraintValues.Spacing,
-                ReferenceType = Dgm.ConstraintValues.Width,
-                ReferenceFor = Dgm.ConstraintRelationshipValues.Child,
-                ReferenceForName = "sibTrans"
+                Type = Dgm.ConstraintValues.PrimaryFontSize,
+                For = Dgm.ConstraintRelationshipValues.Descendant,
+                PointType = Dgm.ElementValues.Node,
+                Operator = Dgm.BoolOperatorValues.Equal,
+                Val = 42D
             });
             root.Append(constraints);
             root.Append(new Dgm.RuleList());
-            Dgm.ForEach nodes = CreateNodeIterator("listNodes",
-                CreateTextLayoutNode("node", "rect", square: false));
-            nodes.Append(CreateSiblingSpacerIterator("listSpacing"));
-            root.Append(nodes);
+            for (int index = 1; index <= count; index++) {
+                root.Append(CreateIndexedTextLayoutNode($"listNode{index}",
+                    "rect", (uint)index, square: false));
+            }
             return root;
         }
 

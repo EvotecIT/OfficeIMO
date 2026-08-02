@@ -33,7 +33,8 @@ namespace OfficeIMO.PowerPoint {
 
             List<string> nodes = NormalizeSmartArtNodes(nodeTexts);
             uint shapeId = AllocateShapeId();
-            var (layoutRelId, colorsRelId, styleRelId, dataRelId) = AddSmartArtParts(type, nodes);
+            var (layoutRelId, colorsRelId, styleRelId, dataRelId) = AddSmartArtParts(
+                type, nodes, width, height);
             string name = GenerateUniqueName("SmartArt");
             GraphicFrame frame = CreateSmartArtFrame(shapeId, name, layoutRelId, colorsRelId, styleRelId,
                 dataRelId, left, top, width, height);
@@ -59,7 +60,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private (string layoutRelId, string colorsRelId, string styleRelId, string dataRelId) AddSmartArtParts(
-            PowerPointSmartArtType type, IReadOnlyList<string> nodeTexts) {
+            PowerPointSmartArtType type, IReadOnlyList<string> nodeTexts,
+            long width, long height) {
             switch (type) {
                 case PowerPointSmartArtType.BasicProcess:
                 case PowerPointSmartArtType.BasicHierarchy:
@@ -68,7 +70,8 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointSmartArtType.BasicMatrix:
                 case PowerPointSmartArtType.BasicPyramid:
                 case PowerPointSmartArtType.BasicRelationship:
-                    return AddSemanticSmartArtParts(type, nodeTexts);
+                    return AddSemanticSmartArtParts(type, nodeTexts,
+                        width, height);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type,
                         "Unsupported SmartArt type.");
@@ -76,9 +79,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private (string layoutRelId, string colorsRelId, string styleRelId, string dataRelId)
-            AddSemanticSmartArtParts(PowerPointSmartArtType type, IReadOnlyList<string> nodeTexts) {
+            AddSemanticSmartArtParts(PowerPointSmartArtType type,
+                IReadOnlyList<string> nodeTexts, long width, long height) {
             DiagramLayoutDefinitionPart layoutPart = _slidePart.AddNewPart<DiagramLayoutDefinitionPart>();
-            PopulateSmartArtLayout(layoutPart, type, nodeTexts.Count);
+            PopulateSmartArtLayout(layoutPart, type, nodeTexts.Count,
+                width / (double)height);
             DiagramColorsPart colorsPart = _slidePart.AddNewPart<DiagramColorsPart>();
             PopulateSmartArtColors(colorsPart);
             DiagramStylePart stylePart = _slidePart.AddNewPart<DiagramStylePart>();
@@ -112,8 +117,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void PopulateSmartArtLayout(DiagramLayoutDefinitionPart part,
-            PowerPointSmartArtType type, int nodeCount) {
-            part.LayoutDefinition = CreateSmartArtLayoutDefinition(type, nodeCount);
+            PowerPointSmartArtType type, int nodeCount, double aspectRatio) {
+            part.LayoutDefinition = CreateSmartArtLayoutDefinition(type,
+                nodeCount, aspectRatio);
         }
 
         private static void PopulateSmartArtData(DiagramDataPart part, PowerPointSmartArtType type,

@@ -641,11 +641,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static uint AllocateClassicAuthorId(P.CommentAuthorList authors) {
-            uint[] ids = authors.Elements<P.CommentAuthor>()
+            var usedIds = new HashSet<uint>(authors.Elements<P.CommentAuthor>()
                 .Where(author => author.Id?.Value != null)
-                .Select(author => author.Id!.Value).ToArray();
-            if (ids.Length == 0) return 0U;
-            return checked(ids.Max() + 1U);
+                .Select(author => author.Id!.Value));
+            return FindAvailableUInt32Id(usedIds, 0U,
+                "classic-comment-author");
         }
 
         private static bool ModernAuthorMatches(P188.Author candidate,

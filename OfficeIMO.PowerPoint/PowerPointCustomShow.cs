@@ -228,18 +228,19 @@ namespace OfficeIMO.PowerPoint {
                 .Where(show => show.Id?.Value != null)
                 .Select(show => show.Id!.Value)
                 ?? Enumerable.Empty<uint>());
-            return FindAvailableCustomShowId(usedIds, 1U);
+            return FindAvailableUInt32Id(usedIds, 1U,
+                "custom-show");
         }
 
-        private static uint FindAvailableCustomShowId(
-            ISet<uint> usedIds, uint firstCandidate) {
+        private static uint FindAvailableUInt32Id(
+            ISet<uint> usedIds, uint firstCandidate, string identifierKind) {
             uint candidate = firstCandidate;
             do {
                 if (!usedIds.Contains(candidate)) return candidate;
                 candidate = candidate == uint.MaxValue ? 0U : candidate + 1U;
             } while (candidate != firstCandidate);
             throw new InvalidOperationException(
-                "The presentation has no available custom-show identifiers.");
+                $"The presentation has no available {identifierKind} identifiers.");
         }
     }
 }

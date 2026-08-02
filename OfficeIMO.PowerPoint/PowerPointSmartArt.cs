@@ -48,21 +48,9 @@ namespace OfficeIMO.PowerPoint {
                 string category = ((string?)properties?.Attribute("loCatId")
                     ?? (string?)properties?.Attribute("loTypeId")
                     ?? string.Empty).ToLowerInvariant();
-                OfficeDiagramKind kind;
-                if (category.IndexOf("hierarchy", StringComparison.Ordinal) >= 0) {
-                    kind = OfficeDiagramKind.Hierarchy;
-                } else if (category.IndexOf("cycle", StringComparison.Ordinal) >= 0) {
-                    kind = OfficeDiagramKind.Cycle;
-                } else if (category.IndexOf("matrix", StringComparison.Ordinal) >= 0) {
-                    kind = OfficeDiagramKind.Matrix;
-                } else if (category.IndexOf("pyramid", StringComparison.Ordinal) >= 0) {
-                    kind = OfficeDiagramKind.Pyramid;
-                } else if (category.IndexOf("relationship", StringComparison.Ordinal) >= 0) {
-                    kind = OfficeDiagramKind.Relationship;
-                } else if (category.IndexOf("list", StringComparison.Ordinal) >= 0) {
-                    kind = OfficeDiagramKind.List;
-                } else {
-                    kind = OfficeDiagramKind.Process;
+                if (!TryResolveDiagramKind(category, out OfficeDiagramKind kind)) {
+                    snapshot = null!;
+                    return false;
                 }
                 if (!TryReadRepresentableTopology(xdoc, ns, textBodies,
                         kind, out IReadOnlyList<string> nodes)) {
@@ -76,6 +64,37 @@ namespace OfficeIMO.PowerPoint {
                 snapshot = null!;
                 return false;
             }
+        }
+
+        private static bool TryResolveDiagramKind(string category,
+            out OfficeDiagramKind kind) {
+            category = category.Trim();
+            if (category == "hierarchy"
+                || category.EndsWith("/layout/hierarchy1", StringComparison.Ordinal)) {
+                kind = OfficeDiagramKind.Hierarchy;
+            } else if (category == "cycle"
+                || category.EndsWith("/layout/cycle2", StringComparison.Ordinal)) {
+                kind = OfficeDiagramKind.Cycle;
+            } else if (category == "matrix"
+                || category.EndsWith("/layout/matrix3", StringComparison.Ordinal)) {
+                kind = OfficeDiagramKind.Matrix;
+            } else if (category == "pyramid"
+                || category.EndsWith("/layout/pyramid1", StringComparison.Ordinal)) {
+                kind = OfficeDiagramKind.Pyramid;
+            } else if (category == "relationship"
+                || category.EndsWith("/layout/radial1", StringComparison.Ordinal)) {
+                kind = OfficeDiagramKind.Relationship;
+            } else if (category == "list"
+                || category.EndsWith("/layout/default", StringComparison.Ordinal)) {
+                kind = OfficeDiagramKind.List;
+            } else if (category == "process"
+                || category.EndsWith("/layout/process1", StringComparison.Ordinal)) {
+                kind = OfficeDiagramKind.Process;
+            } else {
+                kind = default;
+                return false;
+            }
+            return true;
         }
 
         private static bool TryReadRepresentableTopology(

@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
@@ -236,6 +237,34 @@ namespace OfficeIMO.Tests {
             Assert.Empty(slide.SmartArts);
         }
 
+        [Fact]
+        public void ImportedSmartArtRejectsUnknownCategoryBeforeSemanticProjection() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSmartArt smartArt = slide.AddSmartArt(
+                PowerPointSmartArtType.BasicProcess,
+                new[] { "Discover", "Deliver" });
+            DiagramDataPart dataPart = Assert.Single(slide.SlidePart
+                .DiagramDataParts);
+            XDocument data;
+            using (Stream stream = dataPart.GetStream(FileMode.Open,
+                       FileAccess.Read)) {
+                data = XDocument.Load(stream);
+            }
+            XNamespace dgm =
+                "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+            XElement properties = data.Descendants(dgm + "prSet")
+                .Single(element => element.Attribute("loCatId") != null);
+            properties.SetAttributeValue("loCatId", "picture");
+            using (Stream stream = dataPart.GetStream(FileMode.Create,
+                       FileAccess.Write)) {
+                data.Save(stream);
+            }
+
+            Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
+        }
+
         [Theory]
         [InlineData(PowerPointSmartArtType.BasicHierarchy, OfficeDiagramKind.Hierarchy)]
         [InlineData(PowerPointSmartArtType.BasicList, OfficeDiagramKind.List)]
@@ -308,7 +337,7 @@ namespace OfficeIMO.Tests {
             PowerPointSmartArtType type, Dgm.LayoutDefinition layout) {
             Dgm.AlgorithmValues expectedAlgorithm = type switch {
                 PowerPointSmartArtType.BasicHierarchy => Dgm.AlgorithmValues.Composite,
-                PowerPointSmartArtType.BasicList => Dgm.AlgorithmValues.Snake,
+                PowerPointSmartArtType.BasicList => Dgm.AlgorithmValues.Composite,
                 PowerPointSmartArtType.BasicMatrix => Dgm.AlgorithmValues.Composite,
                 PowerPointSmartArtType.BasicPyramid => Dgm.AlgorithmValues.Composite,
                 PowerPointSmartArtType.BasicRelationship => Dgm.AlgorithmValues.Cycle,
@@ -325,6 +354,24 @@ namespace OfficeIMO.Tests {
                         StringComparison.Ordinal) == true));
                 Assert.Equal(4, layout.Descendants<Dgm.Shape>().Count(shape =>
                     shape.Type?.Value == "roundRect"));
+            } else if (type == PowerPointSmartArtType.BasicList) {
+                Dgm.Parameter aspectRatio = Assert.Single(
+                    algorithm.Elements<Dgm.Parameter>(), parameter =>
+                        parameter.Type?.Value ==
+                        Dgm.ParameterIdValues.AspectRatio);
+                Assert.Equal(16D / 9D, double.Parse(aspectRatio.Val!.Value!,
+                    CultureInfo.InvariantCulture), 8);
+                Dgm.LayoutNode[] nodes = layout.Descendants<Dgm.LayoutNode>()
+                    .Where(node => node.Name?.Value?.StartsWith("listNode",
+                        StringComparison.Ordinal) == true).ToArray();
+                Assert.Equal(4, nodes.Length);
+                Assert.All(nodes, node => Assert.Equal("rect",
+                    node.GetFirstChild<Dgm.Shape>()?.Type?.Value));
+                Assert.Equal(4, layout.Descendants<Dgm.Constraint>().Count(
+                    constraint => constraint.Type?.Value ==
+                        Dgm.ConstraintValues.CenterWidth
+                        && constraint.ForName?.Value?.StartsWith("listNode",
+                            StringComparison.Ordinal) == true));
             } else if (type == PowerPointSmartArtType.BasicMatrix) {
                 Assert.Equal(4, layout.Descendants<Dgm.LayoutNode>().Count(node =>
                     node.Name?.Value?.StartsWith("matrixNode",
@@ -341,10 +388,6 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(algorithm.Elements<Dgm.Parameter>(), parameter =>
                     parameter.Type?.Value == Dgm.ParameterIdValues.CenterShapeMapping
                     && parameter.Val?.Value == "fNode");
-            } else {
-                Assert.Contains(algorithm.Elements<Dgm.Parameter>(), parameter =>
-                    parameter.Type?.Value == Dgm.ParameterIdValues.FlowDirection
-                    && parameter.Val?.Value == "row");
             }
         }
 
