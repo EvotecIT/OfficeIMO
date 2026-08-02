@@ -267,7 +267,12 @@ namespace OfficeIMO.Tests {
                 .ShapeProperties!;
             properties.RemoveAllChildren<A.SolidFill>();
             properties.InsertAfter(new A.BlipFill(
-                    new A.Blip { Embed = relationshipId },
+                    new A.Blip(
+                        new A.AlphaModulation { Val = 50000 },
+                        new A.AlphaOffset { Val = 10000 },
+                        new A.AlphaReplace { Alpha = 90000 }) {
+                        Embed = relationshipId
+                    },
                     new A.Stretch(new A.FillRectangle())),
                 properties.GetFirstChild<A.PresetGeometry>()!);
 
@@ -276,6 +281,10 @@ namespace OfficeIMO.Tests {
             A.Blip blip = properties.GetFirstChild<A.BlipFill>()!.Blip!;
             Assert.Equal(65000, blip.GetFirstChild<A.AlphaModulationFixed>()!
                 .Amount!.Value);
+            Assert.DoesNotContain(blip.ChildElements,
+                child => child.LocalName != "alphaModFix"
+                    && child.LocalName.StartsWith("alpha",
+                        StringComparison.Ordinal));
             Assert.Equal(35, shape.FillTransparency);
             shape.FillTransparency = null;
             Assert.Null(blip.GetFirstChild<A.AlphaModulationFixed>());

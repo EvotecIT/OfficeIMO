@@ -127,6 +127,7 @@ namespace OfficeIMO.PowerPoint {
             bool hasMove = false;
             bool hasDraw = false;
             OfficePoint currentPoint = default;
+            OfficePoint currentSubpathStart = default;
 
             foreach (DocumentFormat.OpenXml.OpenXmlElement child in path.ChildElements) {
                 if (child is A.MoveTo moveTo) {
@@ -136,6 +137,7 @@ namespace OfficeIMO.PowerPoint {
 
                     commands.Add(OfficePathCommand.MoveTo(point));
                     currentPoint = point;
+                    currentSubpathStart = point;
                     hasMove = true;
                 } else if (child is A.LineTo lineTo) {
                     if (!hasMove || !TryGetCustomGeometryPoint(lineTo.Point, scaleX, scaleY, guides, out OfficePoint point)) {
@@ -176,6 +178,7 @@ namespace OfficeIMO.PowerPoint {
                     }
 
                     commands.Add(OfficePathCommand.Close());
+                    currentPoint = currentSubpathStart;
                 } else {
                     return false;
                 }

@@ -18,9 +18,10 @@ internal static class OfficeOpenXmlThemeColorResolver {
     internal static OfficeColor? ResolveColor(
         OpenXmlElement? container,
         A.ColorScheme? colorScheme,
-        A.SchemeColor? placeholderColor = null) {
+        OpenXmlElement? placeholderColor = null) {
         OpenXmlElement? colorElement = FindColorElement(container);
-        return ResolveColorElement(colorElement, colorScheme, placeholderColor);
+        return ResolveColorElement(colorElement, colorScheme,
+            FindColorElement(placeholderColor));
     }
 
     internal static OfficeColor? ResolveSchemeColor(A.ColorScheme? colorScheme, string? scheme) {
@@ -77,7 +78,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
     private static OfficeColor? ResolveColorElement(
         OpenXmlElement? colorElement,
         A.ColorScheme? colorScheme,
-        A.SchemeColor? placeholderColor) {
+        OpenXmlElement? placeholderColor) {
         if (colorElement == null) {
             return null;
         }
@@ -85,6 +86,10 @@ internal static class OfficeOpenXmlThemeColorResolver {
         OfficeColor? color;
         if (colorElement is A.RgbColorModelHex rgbColor) {
             color = ParseRgb(rgbColor.Val?.Value);
+        } else if (colorElement is A.RgbColorModelPercentage scRgbColor) {
+            color = ParseScRgb(scRgbColor);
+        } else if (colorElement is A.HslColor hslColor) {
+            color = ParseHsl(hslColor);
         } else if (colorElement is A.SystemColor systemColor) {
             color = ParseRgb(systemColor.LastColor?.Value);
         } else if (colorElement is A.SchemeColor schemeColor) {
@@ -189,12 +194,15 @@ internal static class OfficeOpenXmlThemeColorResolver {
             return null;
         }
 
-        if (container is A.RgbColorModelHex or A.SystemColor or A.SchemeColor or A.PresetColor) {
+        if (container is A.RgbColorModelHex or A.RgbColorModelPercentage
+            or A.HslColor or A.SystemColor or A.SchemeColor or A.PresetColor) {
             return container;
         }
 
         return container.GetFirstChild<A.RgbColorModelHex>()
-            ?? (OpenXmlElement?)container.GetFirstChild<A.SchemeColor>()
+            ?? (OpenXmlElement?)container.GetFirstChild<A.RgbColorModelPercentage>()
+            ?? container.GetFirstChild<A.HslColor>()
+            ?? container.GetFirstChild<A.SchemeColor>()
             ?? (OpenXmlElement?)container.GetFirstChild<A.SystemColor>()
             ?? container.GetFirstChild<A.PresetColor>();
     }
@@ -210,6 +218,53 @@ internal static class OfficeOpenXmlThemeColorResolver {
 
     private static OfficeColor? ParseRgb(string? value) =>
         OfficeColor.TryParseHex(value, out OfficeColor color) ? color : (OfficeColor?)null;
+
+    private static OfficeColor? ParseScRgb(A.RgbColorModelPercentage color) {
+        if (color.RedPortion?.Value is not int red
+            || color.GreenPortion?.Value is not int green
+            || color.BluePortion?.Value is not int blue) {
+            return null;
+        }
+        return OfficeColor.FromRgb(
+            ToChannel(255D * red / 100000D),
+            ToChannel(255D * green / 100000D),
+            ToChannel(255D * blue / 100000D));
+    }
+
+    private static OfficeColor? ParseHsl(A.HslColor color) {
+        if (color.HueValue?.Value is not int hue
+            || color.SatValue?.Value is not int saturation
+            || color.LumValue?.Value is not int luminance) {
+            return null;
+        }
+        double normalizedHue = ((hue / 60000D) % 360D + 360D) % 360D;
+        double normalizedSaturation = ClampUnit(saturation / 100000D);
+        double normalizedLuminance = ClampUnit(luminance / 100000D);
+        double chroma = (1D - Math.Abs(2D * normalizedLuminance - 1D))
+            * normalizedSaturation;
+        double sector = normalizedHue / 60D;
+        double intermediate = chroma * (1D - Math.Abs(sector % 2D - 1D));
+        double red;
+        double green;
+        double blue;
+        if (sector < 1D) {
+            red = chroma; green = intermediate; blue = 0D;
+        } else if (sector < 2D) {
+            red = intermediate; green = chroma; blue = 0D;
+        } else if (sector < 3D) {
+            red = 0D; green = chroma; blue = intermediate;
+        } else if (sector < 4D) {
+            red = 0D; green = intermediate; blue = chroma;
+        } else if (sector < 5D) {
+            red = intermediate; green = 0D; blue = chroma;
+        } else {
+            red = chroma; green = 0D; blue = intermediate;
+        }
+        double match = normalizedLuminance - chroma / 2D;
+        return OfficeColor.FromRgb(ToChannel(255D * (red + match)),
+            ToChannel(255D * (green + match)),
+            ToChannel(255D * (blue + match)));
+    }
 
     private static string? GetSchemeValue(A.SchemeColor? schemeColor) {
         string? attribute = schemeColor?.GetAttribute("val", string.Empty).Value;

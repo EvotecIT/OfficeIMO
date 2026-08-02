@@ -846,6 +846,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesktopReferenceLaneDerivesExpectedContentFromRenderedPaint() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(100, 100);
+
+            PowerPointSlide offCanvas = presentation.AddSlide();
+            PowerPointAutoShape offCanvasShape = offCanvas.AddRectanglePoints(
+                120, 120, 20, 20);
+            offCanvasShape.FillColor = "FF0000";
+            Assert.False(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(offCanvas));
+
+            PowerPointSlide unpainted = presentation.AddSlide();
+            PowerPointAutoShape unpaintedShape = unpainted.AddRectanglePoints(
+                20, 20, 40, 40);
+            ShapeProperties unpaintedProperties = ((Shape)unpaintedShape.Element)
+                .ShapeProperties!;
+            unpaintedProperties.RemoveAllChildren<A.SolidFill>();
+            unpaintedProperties.InsertAfter(new A.NoFill(),
+                unpaintedProperties.GetFirstChild<A.PresetGeometry>()!);
+            unpaintedProperties.Append(new A.Outline(new A.NoFill()));
+            Assert.False(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(unpainted));
+
+            PowerPointSlide transparent = presentation.AddSlide();
+            PowerPointAutoShape transparentShape = transparent
+                .AddRectanglePoints(20, 20, 40, 40);
+            transparentShape.FillColor = "FF0000";
+            transparentShape.FillTransparency = 100;
+            Assert.False(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(transparent));
+
+            PowerPointSlide visible = presentation.AddSlide();
+            PowerPointAutoShape visibleShape = visible.AddRectanglePoints(
+                20, 20, 40, 40);
+            visibleShape.FillColor = "FF0000";
+            Assert.True(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(visible));
+        }
+
+        [Fact]
         public void DesktopReferenceLaneFailsClosedWhenMacroSecurityCannotBeSet() {
             Assert.False(PowerPointDesktopReferenceRenderer
                 .TryConfigureApplicationSecurity(new object(),

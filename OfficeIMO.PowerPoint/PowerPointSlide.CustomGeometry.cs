@@ -23,6 +23,10 @@ namespace OfficeIMO.PowerPoint {
             if (geometry == null) throw new ArgumentNullException(nameof(geometry));
             if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ValidateCustomGeometryTransformCoordinate(left, nameof(left));
+            ValidateCustomGeometryTransformCoordinate(top, nameof(top));
+            ValidateCustomGeometryExtent(width, nameof(width));
+            ValidateCustomGeometryExtent(height, nameof(height));
             ValidateCustomGeometryOpacity(geometry.FillOpacity,
                 nameof(geometry.FillOpacity));
             ValidateCustomGeometryOpacity(geometry.StrokeOpacity,
@@ -401,6 +405,23 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException(
                     $"Custom geometry {propertyName} must be finite and between 0 and 1.",
                     "geometry");
+            }
+        }
+
+        private static void ValidateCustomGeometryTransformCoordinate(long value,
+            string parameterName) {
+            if (value < MinimumDrawingCoordinate
+                || value > MaximumDrawingCoordinate) {
+                throw new ArgumentOutOfRangeException(parameterName,
+                    $"Custom geometry coordinates must be between {MinimumDrawingCoordinate} and {MaximumDrawingCoordinate} EMUs.");
+            }
+        }
+
+        private static void ValidateCustomGeometryExtent(long value,
+            string parameterName) {
+            if (value > MaximumDrawingCoordinate) {
+                throw new ArgumentOutOfRangeException(parameterName,
+                    $"Custom geometry extents must not exceed {MaximumDrawingCoordinate} EMUs.");
             }
         }
     }

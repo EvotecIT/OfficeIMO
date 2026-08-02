@@ -209,28 +209,15 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool HasExpectedVisibleContent(PowerPointSlide slide) {
-            if (slide.Shapes.Count > 0
-                || HasDrawableContent(slide.SlidePart.Slide)
-                || HasDrawableContent(slide.SlidePart.SlideLayoutPart?.SlideLayout)
-                || HasDrawableContent(slide.SlidePart.SlideLayoutPart?
-                    .SlideMasterPart?.SlideMaster)) {
-                return true;
-            }
-            PowerPointSlideBackground background = slide.GetBackground();
-            if (background.Kind == PowerPointSlideBackgroundKind.None) return false;
-            if (background.Kind != PowerPointSlideBackgroundKind.SolidColor) {
-                return true;
-            }
-            return OfficeColor.TryParse(background.Color, out OfficeColor color)
-                && (color.A < 250 || color.R < 245 || color.G < 245
-                    || color.B < 245);
+        internal static bool HasExpectedVisibleContent(PowerPointSlide slide) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            OfficeImageExportResult rendered = slide.ExportImage(
+                OfficeImageExportFormat.Png);
+            return OfficePngReader.TryDecode(rendered.Bytes,
+                       out OfficeRasterImage? image)
+                   && image != null
+                   && HasMeaningfulNonWhiteContent(image);
         }
-
-        private static bool HasDrawableContent(DocumentFormat.OpenXml.OpenXmlElement?
-            root) => root?.Descendants().Any(element => element is P.Shape
-                or P.Picture or P.GraphicFrame or P.GroupShape
-                or P.ConnectionShape) == true;
 
         private static bool HasMeaningfulNonWhiteContent(OfficeRasterImage image) {
             int requiredPixels = Math.Min(16, checked(image.Width * image.Height));
@@ -238,8 +225,15 @@ namespace OfficeIMO.PowerPoint {
             for (int y = 0; y < image.Height; y++) {
                 for (int x = 0; x < image.Width; x++) {
                     OfficeColor pixel = image.GetPixel(x, y);
-                    if (pixel.A > 0 && (pixel.A < 250 || pixel.R < 245
-                        || pixel.G < 245 || pixel.B < 245)) {
+                    if (pixel.A == 0) continue;
+                    int alpha = pixel.A;
+                    int red = (pixel.R * alpha + 255 * (255 - alpha) + 127)
+                        / 255;
+                    int green = (pixel.G * alpha + 255 * (255 - alpha) + 127)
+                        / 255;
+                    int blue = (pixel.B * alpha + 255 * (255 - alpha) + 127)
+                        / 255;
+                    if (red < 245 || green < 245 || blue < 245) {
                         visiblePixels++;
                         if (visiblePixels >= requiredPixels) return true;
                     }

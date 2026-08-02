@@ -1160,6 +1160,12 @@ namespace OfficeIMO.PowerPoint {
                         || comment.Position?.X?.Value == null
                         || comment.Position.Y?.Value == null
                         || comment.Text == null
+                        || comment.Text.Text?.Length > 32000
+                        || comment.Text.Text?.IndexOf('\0') >= 0
+                        || comment.Position.X.Value < int.MinValue
+                        || comment.Position.X.Value > int.MaxValue
+                        || comment.Position.Y.Value < int.MinValue
+                        || comment.Position.Y.Value > int.MaxValue
                         || !classicAuthorIds.Contains(comment.AuthorId.Value)
                         || !classicCommentKeys.Add((comment.AuthorId.Value,
                             comment.Index.Value))) {

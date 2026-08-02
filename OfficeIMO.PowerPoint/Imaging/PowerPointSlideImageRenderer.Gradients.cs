@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
             radial = null;
             fallback = default;
             if (!TryGetShapeFillGradient(source, out A.GradientFill? gradient,
-                    out A.SchemeColor? placeholderColor)) {
+                    out OpenXmlElement? placeholderColor)) {
                 return ShapeFillGradientProjection.None;
             }
             if (!TryResolveGradientStops(gradient!, colorScheme, placeholderColor,
@@ -121,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool TryGetShapeFillGradient(PowerPointShape source,
             out A.GradientFill? gradient,
-            out A.SchemeColor? placeholderColor) {
+            out OpenXmlElement? placeholderColor) {
             gradient = null;
             placeholderColor = null;
             P.ShapeProperties? properties = GetOpenXmlShapeProperties(source);
@@ -145,7 +145,7 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            placeholderColor = fillReference?.GetFirstChild<A.SchemeColor>();
+            placeholderColor = fillReference;
             return true;
         }
 
@@ -202,7 +202,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool TryResolveGradientStops(A.GradientFill gradient,
             A.ColorScheme? colorScheme,
-            A.SchemeColor? placeholderColor,
+            OpenXmlElement? placeholderColor,
             out IReadOnlyList<OfficeGradientStop>? result) {
             result = null;
             A.GradientStop[] sourceStops = gradient.GetFirstChild<A.GradientStopList>()?

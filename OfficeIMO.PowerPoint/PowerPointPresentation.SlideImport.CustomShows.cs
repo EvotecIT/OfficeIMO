@@ -255,6 +255,12 @@ namespace OfficeIMO.PowerPoint {
                 resolved.Add(slidePart);
             }
 
+            if (resolved.Count == 0) {
+                customShow = null;
+                slides = Array.Empty<SlidePart>();
+                return false;
+            }
+
             customShow = matches[0];
             slides = resolved.ToArray();
             return true;

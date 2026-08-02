@@ -526,7 +526,7 @@ namespace OfficeIMO.PowerPoint {
                 ?? themeFill?.GetFirstChild<A.SolidFill>();
             OfficeColor? themeColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
                 themeSolid, colorScheme,
-                fillReference?.GetFirstChild<A.SchemeColor>());
+                fillReference);
             if (themeColor.HasValue) {
                 color = themeColor.Value;
                 return true;
@@ -563,7 +563,7 @@ namespace OfficeIMO.PowerPoint {
                 ?? themeLine?.GetFirstChild<A.SolidFill>();
             OfficeColor? themeColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
                 themeSolid, colorScheme,
-                lineReference?.GetFirstChild<A.SchemeColor>());
+                lineReference);
             if (themeColor.HasValue) {
                 color = themeColor.Value;
                 return true;

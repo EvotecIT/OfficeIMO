@@ -230,6 +230,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportDiscardsActionsTargetingEmptyCustomShows() {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide requested = source.AddSlide();
+            PowerPointAutoShape actionShape = requested.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            source.OpenXmlDocument.PresentationPart!.Presentation!
+                .CustomShowList = new CustomShowList(
+                    new CustomShow(new SlideList()) {
+                        Id = 17U,
+                        Name = "Empty tour"
+                    });
+            GetNonVisualProperties(actionShape).Append(
+                new A.HyperlinkOnClick {
+                    Id = string.Empty,
+                    Action = "ppaction://customshow?id=17&return=true"
+                });
+
+            using PowerPointPresentation target =
+                PowerPointPresentation.Create();
+
+            PowerPointSlide imported = target.ImportSlide(source, 0);
+
+            Assert.Empty(imported.SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>());
+            Assert.Null(target.OpenXmlDocument.PresentationPart!
+                .Presentation!.CustomShowList);
+            Assert.Empty(target.ValidateDocument());
+        }
+
+        [Fact]
         public void ImportPreservesStructuralRelationshipsThatShareMalformedActionIds() {
             using PowerPointPresentation source =
                 PowerPointPresentation.Create();

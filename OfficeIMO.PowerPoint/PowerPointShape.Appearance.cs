@@ -151,10 +151,15 @@ namespace OfficeIMO.PowerPoint {
                 alpha?.Remove();
                 return;
             }
+            foreach (OpenXmlElement transform in blip.ChildElements
+                         .Where(child => child.LocalName.StartsWith("alpha",
+                             StringComparison.Ordinal)).ToArray()) {
+                transform.Remove();
+            }
             alpha ??= new A.AlphaModulationFixed();
             alpha.Amount = checked((int)Math.Round(opacity.Value * 100000D,
                 MidpointRounding.AwayFromZero));
-            if (alpha.Parent == null) blip.Append(alpha);
+            blip.Append(alpha);
         }
 
         private OpenXmlElement? ResolveThemeFill() {
