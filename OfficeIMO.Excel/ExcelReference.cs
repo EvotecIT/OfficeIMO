@@ -316,7 +316,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static string NormalizeQualifierForComparison(string? qualifier) {
-            return UnquoteQualifierToken(qualifier?.Trim() ?? string.Empty);
+            string value = qualifier?.Trim() ?? string.Empty;
+            int separatelyQuotedSeparator = value.IndexOf("':'", StringComparison.Ordinal);
+            if (separatelyQuotedSeparator >= 0) {
+                return UnquoteQualifierToken(value.Substring(0, separatelyQuotedSeparator + 1))
+                    + ":"
+                    + UnquoteQualifierToken(value.Substring(separatelyQuotedSeparator + 2));
+            }
+            return UnquoteQualifierToken(value);
         }
 
         private static string UnquoteQualifierToken(string value) {

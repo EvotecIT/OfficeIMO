@@ -666,11 +666,11 @@ namespace OfficeIMO.Excel {
 
         private bool TrySaveDirectDataSetPackageToFile(string targetPath, ExcelSaveOptions? options, CancellationToken ct, out string? skipReason) {
             skipReason = null;
-            var temporaryPath = CreateTemporarySavePath(targetPath);
+            string temporaryPath = string.Empty;
             byte[]? packageBytes = null;
 
             try {
-                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                using (var fs = CreateTemporarySaveFile(targetPath, FileOptions.None, out temporaryPath)) {
                     if (!TryWriteDirectDataSetPackage(fs, options, updateDocumentState: false, ct, out skipReason)) {
                         return false;
                     }

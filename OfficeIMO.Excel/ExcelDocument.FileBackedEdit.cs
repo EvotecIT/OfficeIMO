@@ -137,15 +137,12 @@ namespace OfficeIMO.Excel {
             PrepareWorkbookForSave(options);
             PackagePropertiesSnapshot properties = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
             long temporaryLimit = ResolveFileBackedTemporaryPackageLimit(options);
-            string temporaryPath = CreateTemporarySavePath(targetPath);
+            string temporaryPath = string.Empty;
             try {
-                using (var stagedFile = new FileStream(
-                    temporaryPath,
-                    FileMode.CreateNew,
-                    FileAccess.ReadWrite,
-                    FileShare.None,
-                    81920,
-                    FileOptions.SequentialScan))
+                using (var stagedFile = CreateTemporarySaveFile(
+                    targetPath,
+                    FileOptions.SequentialScan,
+                    out temporaryPath))
                 using (var bounded = new ExcelBoundedSeekableStream(
                     stagedFile,
                     temporaryLimit,

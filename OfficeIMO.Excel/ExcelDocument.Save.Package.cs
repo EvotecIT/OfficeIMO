@@ -216,8 +216,11 @@ namespace OfficeIMO.Excel {
             _requiresSavePreflight = false;
         }
 
-        private static string CreateTemporarySavePath(string targetPath) {
-            return OfficeFileCommit.CreateTemporaryPath(targetPath);
+        private static FileStream CreateTemporarySaveFile(
+            string targetPath,
+            FileOptions options,
+            out string temporaryPath) {
+            return OfficeFileCommit.CreateTemporaryFile(targetPath, options, out temporaryPath);
         }
 
         private static void ReplaceTargetFile(string temporaryPath, string targetPath) {
@@ -230,7 +233,7 @@ namespace OfficeIMO.Excel {
 
         private bool TrySaveWithSimplePackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason, CancellationToken ct = default, bool alreadyPrepared = false) {
             skipReason = null;
-            var temporaryPath = CreateTemporarySavePath(targetPath);
+            string temporaryPath = string.Empty;
             byte[]? packageBytes = null;
 
             try {
@@ -238,7 +241,7 @@ namespace OfficeIMO.Excel {
                     PrepareWorkbookForSave(options);
                 }
 
-                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                using (var fs = CreateTemporarySaveFile(targetPath, FileOptions.None, out temporaryPath)) {
                     if (!TryWriteSimpleWorkbookPackage(fs, options, updateDocumentState: false, out skipReason, ct)) {
                         return false;
                     }
@@ -274,11 +277,11 @@ namespace OfficeIMO.Excel {
 
         private bool TrySaveWithExtendedPackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason, CancellationToken ct = default) {
             skipReason = null;
-            var temporaryPath = CreateTemporarySavePath(targetPath);
+            string temporaryPath = string.Empty;
             byte[]? packageBytes = null;
 
             try {
-                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                using (var fs = CreateTemporarySaveFile(targetPath, FileOptions.None, out temporaryPath)) {
                     if (!TryWriteExtendedWorkbookPackage(fs, options, updateDocumentState: false, out skipReason, ct)) {
                         return false;
                     }

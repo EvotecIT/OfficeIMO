@@ -17,13 +17,22 @@ namespace OfficeIMO.Drawing.Internal {
             if (suffix == null) throw new ArgumentNullException(nameof(suffix));
 
             path = Path.Combine(Path.GetTempPath(), prefix + Guid.NewGuid().ToString("N") + suffix);
+            return CreateAtPath(path, 81920, options | FileOptions.DeleteOnClose);
+        }
+
+        internal static FileStream CreateAtPath(
+            string path,
+            int bufferSize,
+            FileOptions options) {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Temporary file path cannot be empty.", nameof(path));
+            if (bufferSize < 1) throw new ArgumentOutOfRangeException(nameof(bufferSize));
 #if NET6_0_OR_GREATER
             var streamOptions = new FileStreamOptions {
                 Mode = FileMode.CreateNew,
                 Access = FileAccess.ReadWrite,
                 Share = FileShare.None,
-                BufferSize = 81920,
-                Options = options | FileOptions.DeleteOnClose
+                BufferSize = bufferSize,
+                Options = options
             };
             if (!OperatingSystem.IsWindows()) {
                 streamOptions.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
@@ -31,7 +40,7 @@ namespace OfficeIMO.Drawing.Internal {
             return new FileStream(path, streamOptions);
 #else
             var stream = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
-                FileShare.None, 81920, options | FileOptions.DeleteOnClose);
+                FileShare.None, bufferSize, options);
             try {
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                     && ChangeMode(path, OwnerFileMode) != 0) {

@@ -129,6 +129,39 @@ namespace OfficeIMO.Shared.Tests {
 
 #if NET6_0_OR_GREATER
         [Fact]
+        public void CreateTemporaryFile_UsesOwnerOnlyUnixMode() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "private.xlsx");
+            string temporaryPath = string.Empty;
+            Directory.CreateDirectory(root);
+
+            try {
+                using (OfficeFileCommit.CreateTemporaryFile(
+                    destination,
+                    FileOptions.SequentialScan,
+                    out temporaryPath)) {
+                    const UnixFileMode accessBits = UnixFileMode.UserRead
+                        | UnixFileMode.UserWrite
+                        | UnixFileMode.UserExecute
+                        | UnixFileMode.GroupRead
+                        | UnixFileMode.GroupWrite
+                        | UnixFileMode.GroupExecute
+                        | UnixFileMode.OtherRead
+                        | UnixFileMode.OtherWrite
+                        | UnixFileMode.OtherExecute;
+                    Assert.Equal(
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                        File.GetUnixFileMode(temporaryPath) & accessBits);
+                }
+            } finally {
+                OfficeFileCommit.DeleteIfExists(temporaryPath);
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
         public void CommitTemporaryFile_PreservesRestrictiveUnixMode() {
             if (OperatingSystem.IsWindows()) return;
 
