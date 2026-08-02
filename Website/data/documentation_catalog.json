@@ -9,7 +9,7 @@
     "validationProjectCount": 19,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39677
+    "conceptualWordCount": 39633
   },
   "categories": [
     {
@@ -781,7 +781,7 @@
       "description": "Excel workbook adapter for OfficeIMO.Reader.Core.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
-      "sourceFileCount": 9,
+      "sourceFileCount": 8,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,

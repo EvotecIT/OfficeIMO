@@ -357,6 +357,80 @@ namespace OfficeIMO.Tests {
                     cancellationToken: cancellation.Token));
         }
 
+        [Fact]
+        public async Task ExcelDataReaderHttpLoadAcceptsLegacyXlsCompoundFile() {
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Http.{Guid.NewGuid():N}.xls");
+            try {
+                using (var document = ExcelDocument.Create(path)) {
+                    ExcelSheet sheet = document.AddWorksheet("Legacy");
+                    sheet.CellValue(1, 1, "Id");
+                    sheet.CellValue(2, 1, 7);
+                    document.Save();
+                }
+
+                byte[] workbookBytes = File.ReadAllBytes(path);
+                using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
+                    Task.FromResult(CreateWorkbookResponse(workbookBytes)));
+
+                using ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(
+                    new Uri("https://example.test/workbook.xls"),
+                    httpOptions: new ExcelHttpLoadOptions { HttpMessageHandler = handler });
+
+                Assert.Equal("Legacy", reader.CurrentSheetName);
+                Assert.True(reader.Read());
+                Assert.Equal(7, reader.GetInt32(0));
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public async Task ExcelDataReaderHttpLoadObservesReadOptionsCancellationToken() {
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StreamContent(new BlockingReadStream())
+                }));
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAsync<TaskCanceledException>(() =>
+                ExcelDocument.OpenDataReaderAsync(
+                    new Uri("https://example.test/workbook.xlsx"),
+                    new ExcelReadOptions { CancellationToken = cancellation.Token },
+                    new ExcelHttpLoadOptions { HttpMessageHandler = handler }));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ExcelDataReaderHttpLoadKeepsLinkedCancellationForReaderLifetime(
+            bool cancelOptionsToken) {
+            byte[] workbookBytes = CreateRemoteWorkbookBytes();
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
+                Task.FromResult(CreateWorkbookResponse(workbookBytes)));
+            using var methodCancellation = new CancellationTokenSource();
+            using var optionsCancellation = new CancellationTokenSource();
+            var options = new ExcelReadOptions {
+                CancellationToken = optionsCancellation.Token
+            };
+
+            using ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(
+                new Uri("https://example.test/workbook.xlsx"),
+                options,
+                new ExcelHttpLoadOptions { HttpMessageHandler = handler },
+                methodCancellation.Token);
+
+            if (cancelOptionsToken) {
+                optionsCancellation.Cancel();
+            } else {
+                methodCancellation.Cancel();
+            }
+
+            Assert.Throws<OperationCanceledException>(() => reader.Read());
+        }
+
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {

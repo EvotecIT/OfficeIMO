@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.CSV;
@@ -147,7 +148,18 @@ public sealed partial class CsvObjectWriter : IDisposable
     /// <remarks>
     /// The method streams rows without materializing a document and reuses one row buffer for the whole reader.
     /// </remarks>
-    public void WriteDataReader(IDataReader reader)
+    public void WriteDataReader(IDataReader reader) =>
+        WriteDataReader(reader, CancellationToken.None);
+
+    /// <summary>
+    /// Writes all rows from an <see cref="IDataReader"/> using the reader field names as CSV columns.
+    /// </summary>
+    /// <param name="reader">Source data reader positioned before the first row.</param>
+    /// <param name="cancellationToken">Token observed while projecting and writing rows.</param>
+    /// <remarks>
+    /// The method streams rows without materializing a document and reuses one row buffer for the whole reader.
+    /// </remarks>
+    public void WriteDataReader(IDataReader reader, CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
         if (reader == null)
@@ -155,6 +167,7 @@ public sealed partial class CsvObjectWriter : IDisposable
             throw new ArgumentNullException(nameof(reader));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         var fieldCount = reader.FieldCount;
         if (fieldCount <= 0)
         {
@@ -164,6 +177,7 @@ public sealed partial class CsvObjectWriter : IDisposable
         var columns = new string[fieldCount];
         for (var i = 0; i < fieldCount; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             columns[i] = reader.GetName(i);
         }
 
@@ -180,8 +194,14 @@ public sealed partial class CsvObjectWriter : IDisposable
 #endif
         var rowValues = new object[fieldCount];
         var useBufferedValues = true;
-        while (reader.Read())
+        while (true)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!reader.Read())
+            {
+                break;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
 #if NET6_0_OR_GREATER
             if (defaultFieldKinds != null)
             {
@@ -194,6 +214,7 @@ public sealed partial class CsvObjectWriter : IDisposable
                     _options.Culture);
                 if (_rowBuffer.Length >= CsvWriter.DataReaderFlushThreshold)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
                 }
 
@@ -218,6 +239,7 @@ public sealed partial class CsvObjectWriter : IDisposable
 #if NET6_0_OR_GREATER
         if (defaultFieldKinds != null)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
         }
 #endif

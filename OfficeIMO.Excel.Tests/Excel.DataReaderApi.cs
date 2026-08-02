@@ -14,9 +14,7 @@ namespace OfficeIMO.Excel.Tests;
 public partial class Excel {
     [Fact]
     public void DataReaderApi_UsesOpenForSourcesAndCreateForOpenDocuments() {
-        Assert.DoesNotContain(
-            typeof(ExcelDocument).Assembly.GetExportedTypes(),
-            static type => type.Name.EndsWith("DataReader", StringComparison.Ordinal));
+        Assert.Contains(typeof(ExcelWorkbookDataReader), typeof(ExcelDocument).Assembly.GetExportedTypes());
 
         MethodInfo[] methods = typeof(ExcelDocument).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
@@ -25,21 +23,21 @@ public partial class Excel {
             method.Name == "OpenDataReader"
             && method.IsStatic
             && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(string)
-            && method.ReturnType == typeof(DbDataReader));
+            && method.ReturnType == typeof(ExcelWorkbookDataReader));
         Assert.Contains(methods, static method =>
             method.Name == "OpenDataReader"
             && method.IsStatic
             && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Stream)
-            && method.ReturnType == typeof(DbDataReader));
+            && method.ReturnType == typeof(ExcelWorkbookDataReader));
         Assert.Contains(methods, static method =>
             method.Name == "OpenDataReader"
             && method.IsStatic
             && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(byte[])
-            && method.ReturnType == typeof(DbDataReader));
+            && method.ReturnType == typeof(ExcelWorkbookDataReader));
         Assert.Contains(methods, static method =>
             method.Name == "CreateDataReader"
             && !method.IsStatic
-            && method.ReturnType == typeof(DbDataReader));
+            && method.ReturnType == typeof(ExcelWorkbookDataReader));
     }
 
     [Fact]
@@ -56,16 +54,70 @@ public partial class Excel {
                 document.Save();
             }
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            Assert.Equal(new[] { "First", "Second" }, reader.SheetNames);
+            Assert.Equal("First", reader.CurrentSheetName);
+            Assert.Equal(0, reader.CurrentSheetIndex);
+            Assert.Equal(0, reader.CurrentResultIndex);
             Assert.True(reader.Read());
             Assert.Equal("One", reader.GetString(0));
             Assert.True(reader.NextResult());
+            Assert.Equal(1, reader.CurrentSheetIndex);
+            Assert.Equal(1, reader.CurrentResultIndex);
+            Assert.Equal("Second", reader.CurrentSheetName);
             Assert.True(reader.Read());
             Assert.Equal("Two", reader.GetString(0));
             Assert.False(reader.NextResult());
         } finally {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void OpenDataReader_SelectsWorksheetIndexAndA1Range() {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        document.AddWorksheet("Ignore").CellValue(1, 1, "Ignored");
+        ExcelSheet selected = document.AddWorksheet("Data");
+        selected.CellValue(1, 1, "Skip");
+        selected.CellValue(1, 2, "Name");
+        selected.CellValue(2, 1, 1);
+        selected.CellValue(2, 2, "Ada");
+
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            document.ToBytes(),
+            new ExcelReadOptions { SheetIndex = 1, A1Range = "B1:B2" });
+
+        Assert.Equal("Data", reader.CurrentSheetName);
+        Assert.Equal(1, reader.CurrentSheetIndex);
+        Assert.Equal(0, reader.CurrentResultIndex);
+        Assert.Equal("Name", reader.GetName(0));
+        Assert.True(reader.Read());
+        Assert.Equal("Ada", reader.GetString(0));
+        Assert.False(reader.NextResult());
+    }
+
+    [Fact]
+    public void OpenDataReader_RejectsSheetNameAndIndexTogether() {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        document.AddWorksheet("Data").CellValue(1, 1, "Value");
+
+        Assert.Throws<ArgumentException>(() => ExcelDocument.OpenDataReader(
+            document.ToBytes(),
+            new ExcelReadOptions { SheetName = "Data", SheetIndex = 0 }));
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbSupportsA1RangeThroughCanonicalEntryPoint() {
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            GetDataReaderXlsbFixture("basic-values-formula.xlsb"),
+            new ExcelReadOptions { A1Range = "B1:B3" });
+
+        Assert.Equal("Amount", reader.GetName(0));
+        Assert.True(reader.Read());
+        Assert.Equal(42, reader.GetInt32(0));
+        Assert.True(reader.Read());
+        Assert.Equal(50, reader.GetInt32(0));
+        Assert.False(reader.Read());
     }
 
     [Fact]
@@ -703,6 +755,26 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_ProjectedXlsbEnforcesSharedStringCharacterLimitsDuringImport() {
+        string path = GetDataReaderXlsbFixture("basic-values-formula.xlsb");
+
+        Assert.Throws<InvalidDataException>(() =>
+            ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    A1Range = "A1:B5",
+                    MaxSharedStringItemCharacters = 3
+                }));
+        Assert.Throws<InvalidDataException>(() =>
+            ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    A1Range = "A1:B5",
+                    MaxSharedStringCharacters = 5
+                }));
+    }
+
+    [Fact]
     public void OpenDataReader_PreCancelledLegacyXlsStopsBeforeLoading() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -856,6 +928,21 @@ public partial class Excel {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => reader.Read());
+    }
+
+    [Fact]
+    public void Load_XlsbImportObservesConfiguredCancellation() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => ExcelDocument.Load(
+            GetDataReaderXlsbFixture("basic-values-formula.xlsb"),
+            new ExcelLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                XlsbImportOptions = new Xlsb.XlsbImportOptions {
+                    CancellationToken = cancellation.Token
+                }
+            }));
     }
 
     [Fact]

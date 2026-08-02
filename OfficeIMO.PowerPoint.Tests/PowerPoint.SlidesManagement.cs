@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests {
     public class PowerPointSlidesManagement {
@@ -247,6 +248,56 @@ namespace OfficeIMO.Tests {
 
             File.Delete(sourcePath);
             File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void CanImportSlideFromReadOnlyPresentation() {
+            string sourcePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string targetPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation source = PowerPointPresentation.Create(sourcePath)) {
+                    PowerPointSlide sourceSlide = source.AddSlide();
+                    sourceSlide.AddTextBox("Read-only source");
+                    sourceSlide.AddChart();
+                    sourceSlide.Notes.Text = "Read-only notes";
+                    sourceSlide.Hidden = true;
+                    source.Save();
+                }
+
+                using (PowerPointPresentation source = PowerPointPresentation.Load(sourcePath,
+                           new PowerPointLoadOptions {
+                               AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                               PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.Explicit
+                           }))
+                using (PowerPointPresentation target = PowerPointPresentation.Create(targetPath)) {
+                    ChartPart sourceChartPart = source.OpenXmlDocument.PresentationPart!
+                        .SlideParts.Single().ChartParts.Single();
+                    sourceChartPart.ChartSpace!.RoundedCorners = new C.RoundedCorners { Val = true };
+                    PowerPointSlide imported = target.ImportSlide(source, 0);
+
+                    Assert.Equal("Read-only source", imported.TextBoxes.Single().Text);
+                    Assert.Equal("Read-only notes", imported.Notes.Text);
+                    Assert.True(imported.Hidden);
+                    Assert.True(target.OpenXmlDocument.PresentationPart!
+                        .SlideParts.Single().ChartParts.Single()
+                        .ChartSpace!.RoundedCorners!.Val!.Value);
+                    target.Save();
+                    Assert.Empty(target.ValidateDocument());
+                }
+
+                using (PowerPointPresentation target = PowerPointPresentation.Load(targetPath)) {
+                    Assert.Equal("Read-only source", target.Slides[0].TextBoxes.Single().Text);
+                    Assert.Equal("Read-only notes", target.Slides[0].Notes.Text);
+                    Assert.True(target.Slides[0].Hidden);
+                    Assert.True(target.OpenXmlDocument.PresentationPart!
+                        .SlideParts.Single().ChartParts.Single()
+                        .ChartSpace!.RoundedCorners!.Val!.Value);
+                }
+            } finally {
+                if (File.Exists(sourcePath)) File.Delete(sourcePath);
+                if (File.Exists(targetPath)) File.Delete(targetPath);
+            }
         }
 
         [Fact]

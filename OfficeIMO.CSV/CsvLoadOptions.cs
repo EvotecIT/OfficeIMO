@@ -140,11 +140,7 @@ public sealed class CsvLoadOptions
     /// </summary>
     public bool AllowEmptyLines { get; set; }
 
-    /// <summary>
-    /// Gets or sets the load mode controlling materialization behavior. Default is <see cref="CsvLoadMode.InMemory"/>.
-    /// Use <see cref="CsvLoadMode.Stream"/> for very large files when you only need forward-only enumeration; prefer InMemory when you plan to sort/filter/transform.
-    /// </summary>
-    public CsvLoadMode Mode { get; set; } = CsvLoadMode.InMemory;
+    internal CsvLoadMode Mode { get; set; } = CsvLoadMode.InMemory;
 
     /// <summary>
     /// Gets or sets the text encoding to use when reading from files. Defaults to UTF-8 if not provided.
