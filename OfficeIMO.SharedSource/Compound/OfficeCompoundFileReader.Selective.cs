@@ -229,13 +229,14 @@ namespace OfficeIMO.Drawing.Internal {
             CancellationToken cancellationToken) {
             int required = checked((int)((size + sectorSize - 1) / sectorSize));
             var result = new List<uint>(required);
-            var visited = new HashSet<uint>();
+            var visited = new bool[physicalSectorCount];
             uint sector = startSector;
             while (result.Count < required) {
                 if (sector == EndOfChain || sector == FreeSect || sector >= physicalSectorCount ||
-                    !visited.Add(sector)) {
+                    visited[sector]) {
                     throw new InvalidDataException("Compound mini stream chain is shorter than its declared size.");
                 }
+                visited[sector] = true;
                 result.Add(sector);
                 sector = ReadFatEntry(input, basePosition, sector, sectorSize, physicalSectorCount,
                     fatSectorIds, fatCache, cancellationToken);

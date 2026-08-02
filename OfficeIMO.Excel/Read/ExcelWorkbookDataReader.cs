@@ -11,11 +11,12 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Projection;
+using OfficeIMO.Excel.LegacyXls.Read;
 using OfficeIMO.Excel.Xlsb.Read;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Package-owned ADO.NET projection for XLSX, XLSM, and XLSB workbook worksheets.
+    /// Package-owned ADO.NET projection for XLSX, XLSM, XLSB, and BIFF8 XLS workbook worksheets.
     /// </summary>
     public sealed class ExcelWorkbookDataReader : DbDataReader {
         private readonly IReadOnlyList<SheetSelection> _sheets;
@@ -127,6 +128,16 @@ namespace OfficeIMO.Excel {
         }
 
         internal static ExcelWorkbookDataReader OpenLegacy(string path, ExcelReadOptions options) {
+            if (CanUseLegacyFastPath(options)) {
+                try {
+                    return CreateLegacy(
+                        LegacyXlsTabularWorkbook.Open(path, options, options.CancellationToken),
+                        options);
+                } catch (LegacyXlsFastPathNotSupportedException) {
+                    // Unsupported legacy variants retain the full import/projection path.
+                }
+            }
+
             options.CancellationToken.ThrowIfCancellationRequested();
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             byte[] bytes = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadRemainingBytes(
@@ -137,8 +148,24 @@ namespace OfficeIMO.Excel {
         }
 
         internal static ExcelWorkbookDataReader OpenLegacy(byte[] bytes, ExcelReadOptions options) {
+            if (CanUseLegacyFastPath(options)) {
+                try {
+                    return CreateLegacy(
+                        LegacyXlsTabularWorkbook.Open(bytes, options, options.CancellationToken),
+                        options);
+                } catch (LegacyXlsFastPathNotSupportedException) {
+                    // Unsupported legacy variants retain the full import/projection path.
+                }
+            }
+
             return OpenLegacyCore(bytes, sourcePath: null, options);
         }
+
+        private static bool CanUseLegacyFastPath(ExcelReadOptions options) =>
+            string.IsNullOrWhiteSpace(options.A1Range)
+            && !options.InferSchema
+            && options.CellValueConverter == null
+            && options.UseCachedFormulaResult;
 
         private static ExcelWorkbookDataReader OpenLegacyCore(
             byte[] bytes,
@@ -264,6 +291,27 @@ namespace OfficeIMO.Excel {
 
         private static ExcelWorkbookDataReader CreateBinary(
             XlsbTabularWorkbook owner,
+            ExcelReadOptions options) {
+            try {
+                IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
+                return new ExcelWorkbookDataReader(
+                    sheets,
+                    index => owner.OpenTable(
+                        sheets[index].Name,
+                        options.HasHeaderRow,
+                        options,
+                        options.CancellationToken),
+                    owner,
+                    options.Culture,
+                    options.CancellationToken);
+            } catch {
+                owner.Dispose();
+                throw;
+            }
+        }
+
+        private static ExcelWorkbookDataReader CreateLegacy(
+            LegacyXlsTabularWorkbook owner,
             ExcelReadOptions options) {
             try {
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);

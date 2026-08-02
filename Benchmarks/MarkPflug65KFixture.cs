@@ -11,6 +11,7 @@ internal static class MarkPflug65KFixture {
     internal const int ExpectedRows = 65_535;
     internal const int ExpectedColumns = 14;
     internal const string CsvFileName = "65K_Records_Data.csv";
+    internal const string XlsFileName = "65K_Records_Data.xls";
     internal const string XlsxFileName = "65K_Records_Data.xlsx";
     internal const string XlsbFileName = "65K_Records_Data.xlsb";
 
@@ -21,6 +22,7 @@ internal static class MarkPflug65KFixture {
     private static readonly IReadOnlyDictionary<string, string> Hashes =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
             [CsvFileName] = "AC959F43CF1077B71D310E6E49E3C168BA63A448F1855D45F44E734273EBA490",
+            [XlsFileName] = "294102433C1527E5FCF48B6E4F1A707852633E623B8A20D184F5BAC926843DD6",
             [XlsxFileName] = "0F44D3E06454508DBD2CDBAF701B04160637162AB71471616D8ADC59D2EDD3A8",
             [XlsbFileName] = "9F03F160D32272CBE57D6023C73748D6C450783738FCD84CC552B03C00E23CC8"
         };
@@ -30,6 +32,7 @@ internal static class MarkPflug65KFixture {
         ?? Path.Combine(Path.GetTempPath(), "OfficeIMO", "Benchmarks", "Fixtures", SourceCommit);
 
     internal static string CsvPath => Path.Combine(Root, CsvFileName);
+    internal static string XlsPath => Path.Combine(Root, XlsFileName);
     internal static string XlsxPath => Path.Combine(Root, XlsxFileName);
     internal static string XlsbPath => Path.Combine(Root, XlsbFileName);
 

@@ -37,6 +37,9 @@ namespace OfficeIMO.Excel {
             private int _maximumCellRow;
             private int _minimumCellColumn = int.MaxValue;
             private int _maximumCellColumn;
+            private int _sheetDataContentStart = -1;
+            private int _sheetDataEndTagStart = -1;
+            private bool _sheetDataSupportsFastValidation = true;
             private int _lastDateStyleIndex = -1;
             private bool _lastDateStyleResult;
             private bool _cellsFitWithinRange = true;
@@ -86,10 +89,17 @@ namespace OfficeIMO.Excel {
 
                 byte[]? buffer = null;
                 try {
-                    using var stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
-                    RewindWorksheetStream(stream);
-                    if (!TryReadWorksheetBuffer(stream, ct, out buffer, out int length)) {
-                        return false;
+                    int length;
+                    if (!owner.TryReadWorksheetPartBuffer(
+                            MaximumBufferSize,
+                            ct,
+                            out buffer,
+                            out length)) {
+                        using var stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                        RewindWorksheetStream(stream);
+                        if (!TryReadWorksheetBuffer(stream, ct, out buffer, out length)) {
+                            return false;
+                        }
                     }
 
                     var candidate = new ExcelUtf8RangeRowSource(
@@ -107,7 +117,9 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
 
-                        candidate.ValidateBufferedWorksheetXml(ct);
+                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated()) {
+                            candidate.ValidateBufferedWorksheetXml(ct);
+                        }
                     } catch {
                         candidate.Dispose();
                         throw;
@@ -309,7 +321,7 @@ namespace OfficeIMO.Excel {
                 Utf8Tag sheetData = default;
                 bool foundSheetData = false;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
-                    if (!tag.IsEnd && LocalNameEquals(tag, "sheetData")) {
+                    if (!tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "sheetData")) {
                         sheetData = tag;
                         foundSheetData = true;
                         break;
@@ -323,16 +335,26 @@ namespace OfficeIMO.Excel {
                 if (sheetData.IsEmpty) {
                     return true;
                 }
+                _sheetDataContentStart = sheetData.End + 1;
 
                 int nextImplicitRow = 1;
                 int previousRow = 0;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
-                    if (tag.IsEnd && LocalNameEquals(tag, "sheetData")) {
+                    if (tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "sheetData")) {
+                        _sheetDataEndTagStart = tag.Start;
                         return !_parseFailed;
                     }
 
-                    if (tag.IsEnd || !LocalNameEquals(tag, "row")) {
+                    if (tag.IsEnd || !IsUnprefixedTag(tag) || !LocalNameEquals(tag, "row")) {
                         return false;
+                    }
+
+                    if (!ValidateCanonicalTagAttributes(
+                            tag,
+                            out bool rowDeclaresDefaultNamespace,
+                            out _)
+                        || rowDeclaresDefaultNamespace) {
+                        _sheetDataSupportsFastValidation = false;
                     }
 
                     if (!TryGetAttribute(tag, "r", out bool hasRowReference, out int rowReferenceStart, out int rowReferenceLength)) {
@@ -377,17 +399,34 @@ namespace OfficeIMO.Excel {
                 bool rowWithinRange) {
                 int nextColumn = 1;
                 int previousColumn = 0;
-                while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
-                    if (tag.IsEnd && LocalNameEquals(tag, "row")) {
-                        return true;
+                while (position < _length) {
+                    int originalPosition = position;
+                    int originalNextColumn = nextColumn;
+                    bool compactTag = TryReadCompactCellStartTag(
+                        ref position,
+                        ref nextColumn,
+                        out Utf8Tag tag,
+                        out int columnIndex,
+                        out Utf8CellKind kind,
+                        out int styleIndex);
+                    if (!compactTag) {
+                        position = originalPosition;
+                        nextColumn = originalNextColumn;
+                        if (!TryReadNextTag(ref position, _length, out tag)) {
+                            return false;
+                        }
+                        if (tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "row")) {
+                            return true;
+                        }
+                        _sheetDataSupportsFastValidation = false;
+                        if (tag.IsEnd
+                            || !IsUnprefixedTag(tag)
+                            || !LocalNameEquals(tag, "c")
+                            || !TryGetCellAttributes(tag, ref nextColumn, out columnIndex, out kind, out styleIndex)) {
+                            return false;
+                        }
                     }
-
-                    if (tag.IsEnd || !LocalNameEquals(tag, "c")) {
-                        return false;
-                    }
-
-                    if (!TryGetCellAttributes(tag, ref nextColumn, out int columnIndex, out Utf8CellKind kind, out int styleIndex)
-                        || columnIndex <= previousColumn) {
+                    if (columnIndex <= previousColumn) {
                         return false;
                     }
 
@@ -413,15 +452,27 @@ namespace OfficeIMO.Excel {
                     bool hasCachedValue = false;
                     int valueStart = -1;
                     int valueLength = -1;
-                    if (!tag.IsEmpty && !TryIndexCell(
-                            ref position,
-                            cellIndex,
-                            kind,
-                            out sharedFormulaFollower,
-                            out hasCachedValue,
-                            out valueStart,
-                            out valueLength)) {
-                        return false;
+                    if (!tag.IsEmpty) {
+                        int contentPosition = position;
+                        if (!TryIndexCompactValueCell(
+                                ref position,
+                                cellIndex,
+                                out hasCachedValue,
+                                out valueStart,
+                                out valueLength)) {
+                            _sheetDataSupportsFastValidation = false;
+                            position = contentPosition;
+                            if (!TryIndexCell(
+                                    ref position,
+                                    cellIndex,
+                                    kind,
+                                    out sharedFormulaFollower,
+                                    out hasCachedValue,
+                                    out valueStart,
+                                    out valueLength)) {
+                                return false;
+                            }
+                        }
                     }
 
                     ValidateIndexedCell(
@@ -452,6 +503,7 @@ namespace OfficeIMO.Excel {
                 if (!TryReadNextTag(ref position, _length, out Utf8Tag textTag)
                     || ContainsNonWhitespace(contentBoundary, textTag.Start)
                     || textTag.IsEnd
+                    || !IsUnprefixedTag(textTag)
                     || !LocalNameEquals(textTag, "t")) {
                     return false;
                 }
@@ -462,6 +514,7 @@ namespace OfficeIMO.Excel {
                 if (!textTag.IsEmpty) {
                     if (!TryReadNextTag(ref position, _length, out Utf8Tag textEndTag)
                         || !textEndTag.IsEnd
+                        || !IsUnprefixedTag(textEndTag)
                         || !LocalNamesEqual(textTag, textEndTag)
                         || ContainsByte(textTag.End + 1, textEndTag.Start, (byte)'<')) {
                         return false;
@@ -475,6 +528,7 @@ namespace OfficeIMO.Excel {
                 if (!TryReadNextTag(ref position, _length, out Utf8Tag inlineStringEndTag)
                     || ContainsNonWhitespace(nextBoundary, inlineStringEndTag.Start)
                     || !inlineStringEndTag.IsEnd
+                    || !IsUnprefixedTag(inlineStringEndTag)
                     || !LocalNamesEqual(inlineStringTag, inlineStringEndTag)) {
                     return false;
                 }
@@ -491,6 +545,7 @@ namespace OfficeIMO.Excel {
                 return TryReadNextTag(ref position, _length, out Utf8Tag cellEndTag)
                     && !ContainsNonWhitespace(contentBoundary, cellEndTag.Start)
                     && cellEndTag.IsEnd
+                    && IsUnprefixedTag(cellEndTag)
                     && LocalNameEquals(cellEndTag, "c");
             }
 
@@ -878,6 +933,9 @@ namespace OfficeIMO.Excel {
 
             private static bool IsAsciiWhitespace(byte value) =>
                 value == (byte)' ' || value == (byte)'\t' || value == (byte)'\r' || value == (byte)'\n';
+
+            private static bool IsUnprefixedTag(Utf8Tag tag) =>
+                tag.NameStart == tag.LocalNameStart;
 
             private static bool IsTagNameTerminator(byte value) =>
                 IsAsciiWhitespace(value) || value == (byte)'/' || value == (byte)'>';

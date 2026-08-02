@@ -71,6 +71,84 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 .ToList();
         }
 
+        /// <summary>
+        /// Reads only shared-string text for forward-only tabular consumers. Rich-text run
+        /// metadata is skipped in place so the fast path does not allocate one metadata object
+        /// and formatting buffer for every string.
+        /// </summary>
+        internal static List<string> ReadSharedStringTexts(
+            IReadOnlyList<byte[]> payloads,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            int recordOffset,
+            int maxItems,
+            int maxItemCharacters,
+            long maxCharacters) {
+            var strings = new List<string>();
+            if (payloads.Count == 0 || payloads[0].Length < 8) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-SST-SHORT",
+                    "The shared string table record is too short.",
+                    recordOffset: recordOffset,
+                    recordType: (ushort)BiffRecordType.Sst));
+                return strings;
+            }
+
+            var reader = new BiffStringSegmentReader(payloads);
+            _ = reader.ReadUInt32Raw();
+            uint uniqueCount = reader.ReadUInt32Raw();
+            if (uniqueCount > maxItems) {
+                throw new InvalidDataException(
+                    $"XLS shared-string count {uniqueCount} exceeds the configured limit of {maxItems}.");
+            }
+            strings.Capacity = checked((int)uniqueCount);
+            long totalCharacters = 0;
+            for (uint index = 0; index < uniqueCount && reader.HasData; index++) {
+                int characterCount;
+                try {
+                    characterCount = reader.ReadUInt16Raw();
+                } catch (InvalidDataException ex) {
+                    diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Warning,
+                        "XLS-BIFF-SST-STRING-INVALID",
+                        FormattableString.Invariant($"Shared string index {index} could not be read. {ex.Message}"),
+                        recordOffset: recordOffset,
+                        recordType: (ushort)BiffRecordType.Sst));
+                    break;
+                }
+                if (characterCount > maxItemCharacters) {
+                    throw new InvalidDataException(
+                        $"Shared string index {index} declares {characterCount} characters, exceeding the configured limit of {maxItemCharacters}.");
+                }
+                totalCharacters = checked(totalCharacters + characterCount);
+                if (totalCharacters > maxCharacters) {
+                    throw new InvalidDataException(
+                        $"XLS shared strings contain more than the configured {maxCharacters} characters.");
+                }
+                try {
+                    strings.Add(ReadSegmentedUnicodeTextBody(reader, characterCount));
+                } catch (InvalidDataException ex) {
+                    diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Warning,
+                        "XLS-BIFF-SST-STRING-INVALID",
+                        FormattableString.Invariant($"Shared string index {index} could not be read. {ex.Message}"),
+                        recordOffset: recordOffset,
+                        recordType: (ushort)BiffRecordType.Sst));
+                    break;
+                }
+            }
+            if ((uint)strings.Count != uniqueCount && diagnostics.Count == 0) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-SST-STRING-INVALID",
+                    FormattableString.Invariant(
+                        $"The shared string table ended after {strings.Count} of {uniqueCount} declared unique strings."),
+                    recordOffset: recordOffset,
+                    recordType: (ushort)BiffRecordType.Sst));
+            }
+            return strings;
+        }
+
         internal static List<BiffStringValue> ReadSharedStringValues(IReadOnlyList<byte[]> payloads, List<LegacyXlsImportDiagnostic> diagnostics, int recordOffset) {
             var strings = new List<BiffStringValue>();
             if (payloads.Count == 0 || payloads[0].Length < 8) {
@@ -233,6 +311,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<LegacyXlsTextFormattingRun> formattingRuns = ParseFormattingRuns(formattingRunBytes, 0, richTextRuns);
             reader.SkipStringVariableBytes(checked((int)extendedSize));
             return new BiffStringValue(value, formattingRuns);
+        }
+
+        private static string ReadSegmentedUnicodeTextBody(BiffStringSegmentReader reader, int charCount) {
+            byte options = reader.ReadByteRaw();
+            bool isUtf16 = (options & 0x01) != 0;
+            bool hasExtended = (options & 0x04) != 0;
+            bool hasRichText = (options & 0x08) != 0;
+            ushort richTextRuns = hasRichText ? reader.ReadUInt16Raw() : (ushort)0;
+            uint extendedSize = hasExtended ? reader.ReadUInt32Raw() : 0U;
+            string value = reader.ReadStringCharacters(charCount, isUtf16);
+            if (richTextRuns > 0) reader.SkipStringVariableBytes(checked(richTextRuns * 4));
+            if (extendedSize > 0) reader.SkipStringVariableBytes(checked((int)extendedSize));
+            return value;
         }
 
         private static IReadOnlyList<LegacyXlsTextFormattingRun> ParseFormattingRuns(byte[] bytes, int offset, ushort count) {

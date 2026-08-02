@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel {
         private readonly ExcelReadOptions _opt;
         private readonly ExcelDateSystem _dateSystem;
         private readonly bool _canStreamWorksheetPart;
+        private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
         private StylesCache? _stylesCache;
         private List<string>? _sharedStringItems;
         private bool? _hasWorksheetPartStreamContent;
@@ -34,7 +35,15 @@ namespace OfficeIMO.Excel {
         private static readonly object BoxedTrue = true;
         private static readonly object BoxedFalse = false;
 
-        internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCacheProvider styles, ExcelReadOptions opt, ExcelDateSystem dateSystem, bool canStreamWorksheetPart) {
+        internal ExcelSheetReader(
+            string sheetName,
+            WorksheetPart wsPart,
+            SharedStringCache sst,
+            StylesCacheProvider styles,
+            ExcelReadOptions opt,
+            ExcelDateSystem dateSystem,
+            bool canStreamWorksheetPart,
+            OpenXmlPackagePartBufferReader? partBufferReader = null) {
             _sheetName = sheetName;
             _wsPart = wsPart;
             _sst = sst;
@@ -42,6 +51,23 @@ namespace OfficeIMO.Excel {
             _opt = opt;
             _dateSystem = dateSystem;
             _canStreamWorksheetPart = canStreamWorksheetPart;
+            _partBufferReader = partBufferReader;
+        }
+
+        private bool TryReadWorksheetPartBuffer(
+            int maximumBytes,
+            CancellationToken cancellationToken,
+            out byte[]? buffer,
+            out int length) {
+            buffer = null;
+            length = 0;
+            return _partBufferReader != null
+                && _partBufferReader.TryRead(
+                _wsPart.Uri,
+                maximumBytes,
+                cancellationToken,
+                out buffer,
+                out length);
         }
 
         private DateTime FromExcelSerialDate(double serial) => ExcelDateSystemConverter.FromSerial(serial, _dateSystem);

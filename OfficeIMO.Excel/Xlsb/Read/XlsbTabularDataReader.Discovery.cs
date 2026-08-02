@@ -1,10 +1,14 @@
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Package;
+using System.Buffers.Binary;
 using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
+        private const int DiscoveryBudgetBatchSize = 1024;
+
         private static void DiscoverDataColumns(
-            Stream worksheetPart,
+            XlsbPooledPartStream worksheetPart,
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
@@ -16,24 +20,19 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int lastColumn,
             out int firstDataRow,
             out int lastDataRow) {
-            if (!worksheetPart.CanSeek) {
-                throw new InvalidOperationException(
-                    "XLSB reads require a seekable worksheet part for schema discovery.");
-            }
-
             firstColumn = int.MaxValue;
             lastColumn = -1;
             firstDataRow = -1;
             lastDataRow = -1;
             int currentRow = -1;
             int previousCellColumn = -1;
-            long startPosition = worksheetPart.Position;
-            try {
-                using var scanner = new XlsbStreamRecordSliceReader(
-                    worksheetPart,
-                    limits.MaxRecordBytes,
-                    recordBudget,
-                    leaveOpen: true);
+            var scanner = new XlsbRecordSliceReader(
+                worksheetPart.Buffer,
+                limits.MaxRecordBytes,
+                recordBudget,
+                worksheetPart.DataLength,
+                consumeRecordBudget: false);
+            {
                 bool inSheetData = false;
                 bool sawBeginSheetData = false;
                 bool sawEndSheetData = false;
@@ -41,10 +40,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int firstRecordType = -1;
                 int lastRecordType = -1;
                 int recordsSinceCancellationCheck = 0;
+                int pendingRecordBudget = 0;
+                int pendingCellBudget = 0;
                 var currentRowSpanBounds = new int[32];
                 int currentRowSpanCount = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 while (scanner.TryRead(out XlsbRecordSlice record)) {
+                    pendingRecordBudget++;
+                    if (pendingRecordBudget == DiscoveryBudgetBatchSize) {
+                        recordBudget.Consume(pendingRecordBudget);
+                        pendingRecordBudget = 0;
+                    }
                     if (firstRecordType < 0) {
                         firstRecordType = record.Type;
                     }
@@ -123,10 +129,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             $"The XLSB cell record at offset {record.RecordOffset} appears before a row header.");
                     }
 
-                    cellBudget.Consume();
-                    EnsureFormulaModeSupported(
-                        record.Type,
-                        useCachedFormulaResult);
+                    pendingCellBudget++;
+                    if (pendingCellBudget == DiscoveryBudgetBatchSize) {
+                        cellBudget.Consume(pendingCellBudget);
+                        pendingCellBudget = 0;
+                    }
+                    if (!useCachedFormulaResult) {
+                        EnsureFormulaModeSupported(record.Type, useCachedFormulaResult);
+                    }
                     if (firstDataRow < 0) {
                         firstDataRow = currentRow;
                     }
@@ -145,15 +155,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             $"The XLSB cell record at offset {record.RecordOffset} is duplicated or out of order within its row.");
                     }
                     previousCellColumn = column;
-                    bool covered = false;
-                    for (int index = 0; index < currentRowSpanCount; index++) {
-                        int offset = index * 2;
-                        if (currentRowSpanBounds[offset] <= column
-                            && column <= currentRowSpanBounds[offset + 1]) {
-                            covered = true;
-                            break;
-                        }
-                    }
+                    bool covered = currentRowSpanCount == 1
+                        ? currentRowSpanBounds[0] <= column && column <= currentRowSpanBounds[1]
+                        : IsCoveredByRowSpan(currentRowSpanBounds, currentRowSpanCount, column);
                     if (!covered) {
                         throw new InvalidDataException(
                             $"The XLSB cell record at offset {record.RecordOffset} for column {column} is not covered by its BrtRowHdr column spans.");
@@ -164,6 +168,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
+                recordBudget.Consume(pendingRecordBudget);
+                cellBudget.Consume(pendingCellBudget);
                 if (firstRecordType != BrtBeginSheet
                     || lastRecordType != BrtEndSheet) {
                     throw new InvalidDataException(
@@ -181,9 +187,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     throw new InvalidDataException(
                         "The XLSB worksheet ended before the required BrtEndSheetData record.");
                 }
-            } finally {
-                worksheetPart.Position = startPosition;
             }
+        }
+
+        private static bool IsCoveredByRowSpan(int[] spanBounds, int spanCount, int column) {
+            for (int index = 0; index < spanCount; index++) {
+                int offset = index * 2;
+                if (spanBounds[offset] <= column && column <= spanBounds[offset + 1]) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void ReadWorksheetDimension(
@@ -217,6 +231,53 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int styleCount,
             int sharedStringCount,
             int maxStringCharacters) {
+            if (record.Size >= sizeof(int) + sizeof(uint)) {
+                byte[] bytes = record.Bytes;
+                int position = record.PayloadOffset;
+                int column = BinaryPrimitives.ReadInt32LittleEndian(
+                    bytes.AsSpan(position, sizeof(int)));
+                uint styleIndex = BinaryPrimitives.ReadUInt32LittleEndian(
+                    bytes.AsSpan(position + sizeof(int), sizeof(uint))) & 0x00FFFFFFU;
+                if (styleIndex >= styleCount) {
+                    throw new InvalidDataException(
+                        $"The XLSB cell record at offset {record.RecordOffset} refers to missing cell format " +
+                        $"{styleIndex}; the styles part exposes {styleCount} format(s).");
+                }
+
+                int valuePosition = position + sizeof(int) + sizeof(uint);
+                int valueBytes = record.Size - sizeof(int) - sizeof(uint);
+                switch (record.Type) {
+                    case BrtCellBlank:
+                        return column;
+                    case BrtCellRk:
+                    case BrtCellIsst:
+                        if (valueBytes >= sizeof(uint)) {
+                            if (record.Type == BrtCellIsst) {
+                                uint sharedStringIndex = BinaryPrimitives.ReadUInt32LittleEndian(
+                                    bytes.AsSpan(valuePosition, sizeof(uint)));
+                                if (sharedStringIndex >= sharedStringCount) {
+                                    throw new InvalidDataException(
+                                        $"The XLSB cell record at offset {record.RecordOffset} refers to missing shared string " +
+                                        $"{sharedStringIndex}; the shared-string part exposes {sharedStringCount} item(s).");
+                                }
+                            }
+                            return column;
+                        }
+                        break;
+                    case BrtCellError:
+                    case BrtCellBool:
+                        if (valueBytes >= sizeof(byte)) {
+                            return column;
+                        }
+                        break;
+                    case BrtCellReal:
+                        if (valueBytes >= sizeof(double)) {
+                            return column;
+                        }
+                        break;
+                }
+            }
+
             try {
                 var cursor = record.CreateCursor();
                 int column = cursor.ReadInt32();

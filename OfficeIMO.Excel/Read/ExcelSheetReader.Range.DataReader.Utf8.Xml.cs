@@ -31,13 +31,17 @@ namespace OfficeIMO.Excel {
             private bool TryReadNextTag(ref int position, int limit, out Utf8Tag tag) {
                 tag = default;
                 while (position < limit) {
-                    int relative = _buffer!.AsSpan(position, limit - position).IndexOf((byte)'<');
-                    if (relative < 0) {
-                        position = limit;
-                        return false;
+                    int start;
+                    if (_buffer![position] == (byte)'<') {
+                        start = position;
+                    } else {
+                        int relative = _buffer.AsSpan(position, limit - position).IndexOf((byte)'<');
+                        if (relative < 0) {
+                            position = limit;
+                            return false;
+                        }
+                        start = position + relative;
                     }
-
-                    int start = position + relative;
                     if (start + 1 >= limit) {
                         _parseFailed = true;
                         position = limit;

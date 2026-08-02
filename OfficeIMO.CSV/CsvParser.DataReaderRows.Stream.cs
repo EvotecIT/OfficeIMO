@@ -222,6 +222,7 @@ internal static partial class CsvParser
     private struct CsvDataReaderStreamRowVisitor : ICsvFieldSpanVisitor
     {
         private readonly char[] _buffer;
+        private static readonly string[] SingleCharacterStrings = CreateSingleCharacterStrings();
         private int[] _starts;
         private int[] _lengths;
         private string?[] _materialized;
@@ -345,11 +346,33 @@ internal static partial class CsvParser
             string? materialized = _materialized[ordinal];
             if (materialized is null)
             {
-                materialized = new string(_buffer, _starts[ordinal], _lengths[ordinal]);
+                ReadOnlySpan<char> value = _buffer.AsSpan(_starts[ordinal], _lengths[ordinal]);
+                materialized = TryGetCachedString(value)
+                    ?? new string(_buffer, _starts[ordinal], _lengths[ordinal]);
                 _materialized[ordinal] = materialized;
             }
 
             return materialized;
+        }
+
+        private static string? TryGetCachedString(ReadOnlySpan<char> value)
+        {
+            return value.Length switch
+            {
+                0 => string.Empty,
+                1 when value[0] < SingleCharacterStrings.Length => SingleCharacterStrings[value[0]],
+                _ => null
+            };
+        }
+
+        private static string[] CreateSingleCharacterStrings()
+        {
+            var values = new string[128];
+            for (int index = 0; index < values.Length; index++)
+            {
+                values[index] = new string((char)index, 1);
+            }
+            return values;
         }
 
         internal bool IsMissing(int ordinal)

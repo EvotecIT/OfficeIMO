@@ -27,8 +27,15 @@ namespace OfficeIMO.Excel {
         private readonly StylesCacheProvider _styles;
         private readonly Package? _ownedPackage;
         private readonly Stream? _ownedStream;
+        private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
 
-        private ExcelDocumentReader(SpreadsheetDocument doc, ExcelReadOptions opt, bool owns, Package? ownedPackage = null, Stream? ownedStream = null) {
+        private ExcelDocumentReader(
+            SpreadsheetDocument doc,
+            ExcelReadOptions opt,
+            bool owns,
+            Package? ownedPackage = null,
+            Stream? ownedStream = null,
+            OpenXmlPackagePartBufferReader? partBufferReader = null) {
             _doc = doc;
             _owns = owns;
             _canStreamWorksheetParts = owns || doc.FileOpenAccess == FileAccess.Read;
@@ -36,6 +43,7 @@ namespace OfficeIMO.Excel {
             _opt.CancellationToken.ThrowIfCancellationRequested();
             _ownedPackage = ownedPackage;
             _ownedStream = ownedStream;
+            _partBufferReader = partBufferReader;
             _dateSystem = GetWorkbookDateSystem(doc);
             _sst = SharedStringCache.Build(doc, _opt);
             _styles = new StylesCacheProvider(doc);
@@ -59,10 +67,19 @@ namespace OfficeIMO.Excel {
             }
 
             SpreadsheetDocument? document = null;
+            OpenXmlPackagePartBufferReader? partBufferReader = null;
             try {
                 document = SpreadsheetDocument.Open(path, isEditable: false);
-                return new ExcelDocumentReader(document, effectiveOptions, owns: true);
+                partBufferReader = OpenXmlPackagePartBufferReader.TryOpen(path);
+                ExcelDocumentReader reader = new ExcelDocumentReader(
+                    document,
+                    effectiveOptions,
+                    owns: true,
+                    partBufferReader: partBufferReader);
+                partBufferReader = null;
+                return reader;
             } catch (Exception ex) {
+                partBufferReader?.Dispose();
                 document?.Dispose();
                 if (!IsRecoverableOpenException(ex)) {
                     throw;
@@ -157,7 +174,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheetReader GetSheet(string name) {
             if (TryGetSheetByNameXmlFast(name, out string? fastSheetName, out WorksheetPart? fastWorksheetPart)) {
-                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts);
+                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
             }
 
             var wb = WorkbookRoot;
@@ -175,7 +192,7 @@ namespace OfficeIMO.Excel {
                 throw new KeyNotFoundException($"Sheet '{name}' is not a worksheet.");
             }
 
-            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts);
+            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
         }
 
         private bool TryGetWorksheetPart(Sheet sheet, out WorksheetPart? worksheetPart) {
@@ -509,9 +526,19 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void Dispose() {
             if (_owns) {
-                _doc.Dispose();
-                _ownedPackage?.Close();
-                _ownedStream?.Dispose();
+                try {
+                    _doc.Dispose();
+                } finally {
+                    try {
+                        _ownedPackage?.Close();
+                    } finally {
+                        try {
+                            _ownedStream?.Dispose();
+                        } finally {
+                            _partBufferReader?.Dispose();
+                        }
+                    }
+                }
             }
         }
 
@@ -525,6 +552,7 @@ namespace OfficeIMO.Excel {
             MemoryStream? packageStream = null;
             Package? package = null;
             SpreadsheetDocument? document = null;
+            OpenXmlPackagePartBufferReader? partBufferReader = null;
             try {
                 if (normalizeContentTypes) {
                     packageStream = new MemoryStream(bytes.Length + 4096);
@@ -540,18 +568,32 @@ namespace OfficeIMO.Excel {
                 package = Package.Open(packageStream, FileMode.Open, FileAccess.Read);
                 effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
                 document = SpreadsheetDocument.Open(package);
-                return new ExcelDocumentReader(document, effectiveOptions, owns: true, package, packageStream);
+                partBufferReader = normalizeContentTypes
+                    ? null
+                    : OpenXmlPackagePartBufferReader.TryOpen(bytes);
+                ExcelDocumentReader reader = new ExcelDocumentReader(
+                    document,
+                    effectiveOptions,
+                    owns: true,
+                    package,
+                    packageStream,
+                    partBufferReader);
+                partBufferReader = null;
+                return reader;
             } catch (Exception ex) when (!normalizeContentTypes && IsRecoverableOpenException(ex)) {
+                partBufferReader?.Dispose();
                 document?.Dispose();
                 package?.Close();
                 packageStream?.Dispose();
                 return OpenFromBytes(bytes, effectiveOptions, normalizeContentTypes: true, contextMessage);
             } catch (Exception ex) when (IsRecoverableOpenException(ex)) {
+                partBufferReader?.Dispose();
                 document?.Dispose();
                 package?.Close();
                 packageStream?.Dispose();
                 throw new IOException($"{contextMessage} See inner exception for details.", ex);
             } catch {
+                partBufferReader?.Dispose();
                 document?.Dispose();
                 package?.Close();
                 packageStream?.Dispose();
