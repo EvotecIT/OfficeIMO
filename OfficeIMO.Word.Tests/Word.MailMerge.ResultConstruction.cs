@@ -101,5 +101,57 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordMailMergeFieldStatus.Merged, Assert.Single(report.Fields).Status);
             Assert.Equal("Ada", Assert.Single(paragraph.Descendants<Text>()).Text);
         }
+
+        [Fact]
+        public void Test_MailMerge_InsertsMissingResultBetweenMarkersWithinOneRun() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Name ")),
+                new Run(
+                    new FieldChar { FieldCharType = FieldCharValues.Separate },
+                    new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" },
+                removeFields: false);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal(WordMailMergeFieldStatus.Merged, Assert.Single(report.Fields).Status);
+            Run markerRun = paragraph.Elements<Run>().Last();
+            Assert.Collection(
+                markerRun.ChildElements,
+                element => Assert.Equal(FieldCharValues.Separate, Assert.IsType<FieldChar>(element).FieldCharType!.Value),
+                element => Assert.Equal("Ada", Assert.IsType<Text>(element).Text),
+                element => Assert.Equal(FieldCharValues.End, Assert.IsType<FieldChar>(element).FieldCharType!.Value));
+        }
+
+        [Fact]
+        public void Test_MailMerge_CompletesEntireComplexFieldWithinOneRun() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(new Run(
+                new FieldChar { FieldCharType = FieldCharValues.Begin },
+                new FieldCode(" MERGEFIELD Name "),
+                new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" },
+                removeFields: false);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal(WordMailMergeFieldStatus.Merged, Assert.Single(report.Fields).Status);
+            Run fieldRun = Assert.Single(paragraph.Elements<Run>());
+            Assert.Collection(
+                fieldRun.ChildElements,
+                element => Assert.Equal(FieldCharValues.Begin, Assert.IsType<FieldChar>(element).FieldCharType!.Value),
+                element => Assert.Equal(" MERGEFIELD Name ", Assert.IsType<FieldCode>(element).Text),
+                element => Assert.Equal(FieldCharValues.Separate, Assert.IsType<FieldChar>(element).FieldCharType!.Value),
+                element => Assert.Equal("Ada", Assert.IsType<Text>(element).Text),
+                element => Assert.Equal(FieldCharValues.End, Assert.IsType<FieldChar>(element).FieldCharType!.Value));
+        }
     }
 }

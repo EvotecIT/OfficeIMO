@@ -305,12 +305,14 @@ namespace OfficeIMO.Word {
 
             var resultRuns = GetComplexFieldResultRuns(fieldRuns).ToList();
             if (!SetComplexFieldResultText(fieldRuns, resultRuns, formattedValue)) {
-                Run endRun = fieldRuns[fieldRuns.Count - 1];
-                Run? sourceRun = fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null);
-                if (!fieldRuns.Any(run => run.GetFirstChild<FieldChar>()?.FieldCharType?.Value == FieldCharValues.Separate)) {
-                    endRun.InsertBeforeSelf(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+                if (!InsertComplexFieldResultBeforeEnd(fieldRuns, formattedValue)) {
+                    Run endRun = fieldRuns[fieldRuns.Count - 1];
+                    Run? sourceRun = fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null);
+                    if (!fieldRuns.Any(run => ContainsFieldMarker(run, FieldCharValues.Separate))) {
+                        endRun.InsertBeforeSelf(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+                    }
+                    endRun.InsertBeforeSelf(CreateReplacementRun(formattedValue, sourceRun));
                 }
-                endRun.InsertBeforeSelf(CreateReplacementRun(formattedValue, sourceRun));
             }
             AddMergeResult(results, name, instruction, WordMailMergeFieldStatus.Merged, formattedValue, "Merge field '" + name + "' was updated.");
         }
@@ -489,6 +491,44 @@ namespace OfficeIMO.Word {
             return markerAwareTextElements.Count > 0
                 ? SetFieldResultTextElements(markerAwareTextElements, value)
                 : SetFieldResultText(resultRuns, value);
+        }
+
+        private static bool InsertComplexFieldResultBeforeEnd(IReadOnlyList<Run> fieldRuns, string value) {
+            foreach (Run run in fieldRuns) {
+                bool separatorInRun = false;
+                bool instructionInRun = false;
+                for (int i = 0; i < run.ChildElements.Count; i++) {
+                    OpenXmlElement child = run.ChildElements[i];
+                    if (child is FieldCode) {
+                        instructionInRun = true;
+                        continue;
+                    }
+                    if (!(child is FieldChar fieldChar)) continue;
+
+                    FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                    if (fieldCharType == FieldCharValues.Begin) {
+                        instructionInRun = true;
+                        continue;
+                    }
+                    if (fieldCharType == FieldCharValues.Separate) {
+                        separatorInRun = true;
+                        continue;
+                    }
+                    if (fieldCharType != FieldCharValues.End) continue;
+
+                    if (!separatorInRun && !instructionInRun) return false;
+                    if (!separatorInRun) {
+                        run.InsertBefore(
+                            new FieldChar { FieldCharType = FieldCharValues.Separate },
+                            fieldChar);
+                    }
+                    run.InsertBefore(
+                        new Text(value) { Space = SpaceProcessingModeValues.Preserve },
+                        fieldChar);
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static bool SetFieldResultText(IEnumerable<Run> runs, string value) {
