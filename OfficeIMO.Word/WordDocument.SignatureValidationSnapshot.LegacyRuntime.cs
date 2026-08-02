@@ -10,6 +10,11 @@ namespace OfficeIMO.Word {
         private static bool RequiresLegacyRuntimeSignatureSnapshot() =>
             RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase);
 
+        private static byte[]? CaptureLegacyValidationEncodedPackage(byte[] sourceBytes, bool readOnly) =>
+            !readOnly && RequiresLegacyRuntimeSignatureSnapshot()
+                ? (byte[])sourceBytes.Clone()
+                : null;
+
         // System.IO.Packaging on .NET Framework invalidates ProgressiveCrcCalculatingStream after
         // in-memory package edits. Flush the live package once, retain that stream for the document,
         // and keep the original encoded bytes in the validation baseline instead of rereading stale
@@ -35,7 +40,12 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            byte[] encodedPackage = _ownedPackageStream!.ToArray();
+            byte[] encodedPackage = _legacyValidationEncodedPackageBytes ?? _ownedPackageStream!.ToArray();
+            if (encodedPackage.LongLength > options.MaxPackageBytes) {
+                throw new SignatureValidationSnapshotResourceException(
+                    "The encoded OPC package exceeds the " + options.MaxPackageBytes +
+                    " byte validation-snapshot limit.");
+            }
             MemoryStream livePackageStream = DetachLegacyValidationLivePackageStream(encodedPackage);
             _wordprocessingDocument.Save();
             sourcePackage.Save();
@@ -68,6 +78,7 @@ namespace OfficeIMO.Word {
             MemoryStream livePackageStream = _ownedPackageStream!;
             _legacyValidationLivePackageStream = livePackageStream;
             _ownedPackageStream = new MemoryStream(encodedPackage, writable: false);
+            _legacyValidationEncodedPackageBytes = null;
             return livePackageStream;
         }
 

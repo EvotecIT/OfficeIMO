@@ -80,6 +80,7 @@ namespace OfficeIMO.Word {
 
                 _ownedPackageStream = null;
             }
+            _legacyValidationEncodedPackageBytes = null;
 
             if (this.OriginalStream != null) {
                 // Original stream is owned by the caller and should remain open.
@@ -148,6 +149,7 @@ namespace OfficeIMO.Word {
 
                 _ownedPackageStream = null;
             }
+            _legacyValidationEncodedPackageBytes = null;
 
             if (this.OriginalStream != null) {
                 // Original stream is owned by the caller and should remain open.

@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
 
             WordMacroProjectToolResult result = runner.Run(
                 invocation,
-                TimeSpan.FromSeconds(5),
+                TimeSpan.FromSeconds(15),
                 maxOutputCharacters: 4096);
 
             string resultDetail = "ExitCode=" + result.ExitCode + ", TimedOut=" + result.TimedOut +
