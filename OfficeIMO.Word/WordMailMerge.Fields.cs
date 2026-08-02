@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
                         simpleField,
                         ContainsNestedField(simpleField)
                             ? "A simple MERGEFIELD contains a nested field and cannot be processed deterministically."
-                            : null));
+                            : GetMalformedMergeFieldInstructionMessage(instruction)));
                 } else if (element is Run run &&
                            run.GetFirstChild<FieldChar>()?.FieldCharType?.Value == FieldCharValues.Begin) {
                     beginRunOrders[run] = order;
@@ -125,14 +125,13 @@ namespace OfficeIMO.Word {
                     if (!MergeFieldTypePattern.IsMatch(instruction)) {
                         continue;
                     }
-                    if (completedField.HasNestedField) {
-                        occurrences.Add(MergeFieldOccurrence.ForComplex(
-                            completedField.Order,
-                            completedField.Runs,
-                            "A complex MERGEFIELD contains a nested field and cannot be processed deterministically."));
-                    } else {
-                        occurrences.Add(MergeFieldOccurrence.ForComplex(completedField.Order, completedField.Runs));
-                    }
+                    string? malformedMessage = completedField.HasNestedField
+                        ? "A complex MERGEFIELD contains a nested field and cannot be processed deterministically."
+                        : GetMalformedMergeFieldInstructionMessage(instruction);
+                    occurrences.Add(MergeFieldOccurrence.ForComplex(
+                        completedField.Order,
+                        completedField.Runs,
+                        malformedMessage));
                 }
 
                 foreach (ComplexFieldFrame activeField in activeFields) {
@@ -153,6 +152,14 @@ namespace OfficeIMO.Word {
         private static bool ContainsNestedField(SimpleField simpleField) =>
             simpleField.Descendants().Any(element =>
                 element is SimpleField or FieldChar or FieldCode);
+
+        private static string? GetMalformedMergeFieldInstructionMessage(string instruction) {
+            WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction);
+            if (parsed.FieldType != WordFieldType.MergeField || parsed.Instructions.Count != 1) {
+                return "A MERGEFIELD instruction must contain exactly one field name.";
+            }
+            return null;
+        }
 
         private static IEnumerable<Paragraph> EnumerateParagraphs(OpenXmlElement root) {
             if (root is Paragraph paragraph) {
@@ -519,7 +526,7 @@ namespace OfficeIMO.Word {
             }
 
             var parser = new WordFieldParser(fieldInstruction!);
-            if (parser.WordFieldType != WordFieldType.MergeField || parser.Instructions.Count == 0) {
+            if (parser.WordFieldType != WordFieldType.MergeField || parser.Instructions.Count != 1) {
                 return null;
             }
 

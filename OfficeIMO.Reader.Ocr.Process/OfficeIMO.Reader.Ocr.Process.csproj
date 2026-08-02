@@ -27,6 +27,10 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Processes\OfficeWindowsSuspendedProcess.cs" Link="Internal\Processes\OfficeWindowsSuspendedProcess.cs" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
     <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
   </ItemGroup>

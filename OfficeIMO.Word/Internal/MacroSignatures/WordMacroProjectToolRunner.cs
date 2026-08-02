@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using OfficeIMO.Processes.Internal;
 
 namespace OfficeIMO.Word {
     internal sealed class WordMacroProjectToolInvocation {
@@ -94,31 +95,49 @@ namespace OfficeIMO.Word {
             startInfo.Arguments = string.Join(" ", invocation.Arguments.Select(QuoteWindowsArgument));
 #endif
 
-            using var process = new Process { StartInfo = startInfo };
             var output = new BoundedProcessOutput(maxOutputCharacters);
-            var standardOutputCompleted = new TaskCompletionSource<bool>();
-            var standardErrorCompleted = new TaskCompletionSource<bool>();
-            process.OutputDataReceived += (_, args) => {
-                if (args.Data == null) standardOutputCompleted.TrySetResult(true);
-                else output.Append(args.Data);
-            };
-            process.ErrorDataReceived += (_, args) => {
-                if (args.Data == null) standardErrorCompleted.TrySetResult(true);
-                else output.Append(args.Data);
-            };
+            Process? process = null;
+            TextReader? nativeStandardOutput = null;
+            TextReader? nativeStandardError = null;
+            Task? standardOutputCompleted = null;
+            Task? standardErrorCompleted = null;
             WordMacroProjectProcessTree? processTree = null;
             try {
-                if (!process.Start()) {
-                    return new WordMacroProjectToolResult(null, false,
-                        "The external signing tool process did not start.");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    if (!WordMacroProjectProcessTree.TryStart(
+                        startInfo,
+                        out processTree,
+                        out OfficeWindowsSuspendedProcessResult? startedProcess,
+                        out string containmentDetail)) {
+                        return new WordMacroProjectToolResult(null, false,
+                            "The external signing tool process tree could not be contained. " + containmentDetail);
+                    }
+                    process = startedProcess!.Process;
+                    nativeStandardOutput = startedProcess.StandardOutput;
+                    nativeStandardError = startedProcess.StandardError;
+                    standardOutputCompleted = ReadRedirectedOutput(nativeStandardOutput, output);
+                    standardErrorCompleted = ReadRedirectedOutput(nativeStandardError, output);
+                } else {
+                    process = new Process { StartInfo = startInfo };
+                    var standardOutputSource = new TaskCompletionSource<bool>();
+                    var standardErrorSource = new TaskCompletionSource<bool>();
+                    standardOutputCompleted = standardOutputSource.Task;
+                    standardErrorCompleted = standardErrorSource.Task;
+                    process.OutputDataReceived += (_, args) => {
+                        if (args.Data == null) standardOutputSource.TrySetResult(true);
+                        else output.Append(args.Data);
+                    };
+                    process.ErrorDataReceived += (_, args) => {
+                        if (args.Data == null) standardErrorSource.TrySetResult(true);
+                        else output.Append(args.Data);
+                    };
+                    if (!process.Start()) {
+                        return new WordMacroProjectToolResult(null, false,
+                            "The external signing tool process did not start.");
+                    }
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
                 }
-                if (!WordMacroProjectProcessTree.TryAttach(process, out processTree, out string containmentDetail)) {
-                    TryTerminateProcess(process, processTree);
-                    return new WordMacroProjectToolResult(null, false,
-                        "The external signing tool process tree could not be contained. " + containmentDetail);
-                }
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
                 bool exited = process.WaitForExit(checked((int)timeout.TotalMilliseconds));
                 if (!exited) {
                     bool treeTerminated = processTree?.TerminateAndWait(
@@ -128,19 +147,50 @@ namespace OfficeIMO.Word {
                     if (processTree != null && !treeTerminated) {
                         output.Append("The contained signing process tree did not confirm termination within the bounded grace period.");
                     }
-                    DrainRedirectedOutput(process, standardOutputCompleted.Task, standardErrorCompleted.Task, output);
+                    DrainRedirectedOutput(
+                        process,
+                        standardOutputCompleted,
+                        standardErrorCompleted,
+                        nativeStandardOutput,
+                        nativeStandardError,
+                        output);
                     return new WordMacroProjectToolResult(null, true, output.ToString());
                 }
-                DrainRedirectedOutput(process, standardOutputCompleted.Task, standardErrorCompleted.Task, output);
+                bool remainingTreeTerminated = processTree?.TerminateAndWait(
+                    TimeSpan.FromMilliseconds(ExitGraceMilliseconds)) ?? true;
+                if (processTree != null && !remainingTreeTerminated) {
+                    output.Append("The contained signing process tree did not confirm termination after the wrapper exited.");
+                }
+                DrainRedirectedOutput(
+                    process,
+                    standardOutputCompleted,
+                    standardErrorCompleted,
+                    nativeStandardOutput,
+                    nativeStandardError,
+                    output);
+                if (!remainingTreeTerminated) {
+                    return new WordMacroProjectToolResult(null, false, output.ToString());
+                }
                 return new WordMacroProjectToolResult(process.ExitCode, false, output.ToString());
             } catch (Exception exception) when (exception is Win32Exception || exception is IOException ||
                 exception is InvalidOperationException || exception is UnauthorizedAccessException ||
                 exception is PlatformNotSupportedException || exception is NotSupportedException) {
                 return new WordMacroProjectToolResult(null, false, exception.Message);
             } finally {
+                nativeStandardOutput?.Dispose();
+                nativeStandardError?.Dispose();
                 processTree?.Dispose();
+                process?.Dispose();
             }
         }
+
+        private static Task ReadRedirectedOutput(TextReader reader, BoundedProcessOutput output) => Task.Run(() => {
+            try {
+                string? line;
+                while ((line = reader.ReadLine()) != null) output.Append(line);
+            } catch (Exception exception) when (exception is IOException || exception is ObjectDisposedException) {
+            }
+        });
 
         private static void TryTerminateProcess(
             Process process,
@@ -164,12 +214,19 @@ namespace OfficeIMO.Word {
             Process process,
             Task standardOutputCompleted,
             Task standardErrorCompleted,
+            TextReader? nativeStandardOutput,
+            TextReader? nativeStandardError,
             BoundedProcessOutput output) {
             if (Task.WaitAll(new[] { standardOutputCompleted, standardErrorCompleted }, ExitGraceMilliseconds)) {
                 return;
             }
-            try { process.CancelOutputRead(); } catch (InvalidOperationException) { }
-            try { process.CancelErrorRead(); } catch (InvalidOperationException) { }
+            if (nativeStandardOutput != null || nativeStandardError != null) {
+                nativeStandardOutput?.Dispose();
+                nativeStandardError?.Dispose();
+            } else {
+                try { process.CancelOutputRead(); } catch (InvalidOperationException) { }
+                try { process.CancelErrorRead(); } catch (InvalidOperationException) { }
+            }
             output.Append("Redirected process output did not close within the bounded drain period.");
         }
 

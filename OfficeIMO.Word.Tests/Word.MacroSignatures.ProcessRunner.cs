@@ -56,6 +56,39 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void MacroToolRunnerContainsWindowsDescendantBeforeWrapperCanExit() {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+            string childProcessIdPath = Path.Combine(
+                _directoryWithFiles,
+                "macro-tool-immediate-child-" + Guid.NewGuid().ToString("N") + ".txt");
+            string wrapperCommand =
+                "$child = Start-Process -FilePath powershell.exe " +
+                "-ArgumentList '-NoLogo','-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru; " +
+                "Set-Content -LiteralPath '" + childProcessIdPath.Replace("'", "''") + "' -Value $child.Id; exit 0";
+            var invocation = new WordMacroProjectToolInvocation(
+                "powershell.exe",
+                new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", wrapperCommand });
+            var runner = new WordMacroProjectProcessRunner();
+
+            WordMacroProjectToolResult result = runner.Run(
+                invocation,
+                TimeSpan.FromSeconds(5),
+                maxOutputCharacters: 4096);
+
+            Assert.True(result.Succeeded, result.Output);
+            Assert.True(File.Exists(childProcessIdPath), result.Output);
+            int childProcessId = int.Parse(File.ReadAllText(childProcessIdPath).Trim(),
+                System.Globalization.CultureInfo.InvariantCulture);
+            try {
+                using Process child = Process.GetProcessById(childProcessId);
+                Assert.True(child.WaitForExit(1000),
+                    "The immediately spawned signing descendant " + childProcessId + " was still running.");
+            } catch (ArgumentException) {
+                // Closing the launch-time Job Object already removed the descendant.
+            }
+        }
+
         private static WordMacroProjectToolInvocation CreateLongRunningChildProcess() {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 return new WordMacroProjectToolInvocation(

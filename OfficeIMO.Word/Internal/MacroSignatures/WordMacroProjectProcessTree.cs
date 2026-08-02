@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Win32.SafeHandles;
+using OfficeIMO.Processes.Internal;
 
 namespace OfficeIMO.Word {
     /// <summary>Contains a native signing process and its descendants on supported Windows runtimes.</summary>
@@ -14,13 +15,18 @@ namespace OfficeIMO.Word {
 
         private WordMacroProjectProcessTree(SafeFileHandle job) => _job = job;
 
-        internal static bool TryAttach(
-            Process process,
+        internal static bool TryStart(
+            ProcessStartInfo startInfo,
             out WordMacroProjectProcessTree? processTree,
+            out OfficeWindowsSuspendedProcessResult? startedProcess,
             out string detail) {
             processTree = null;
+            startedProcess = null;
             detail = string.Empty;
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return true;
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                detail = "Suspended process containment is available on Windows only.";
+                return false;
+            }
 
             SafeFileHandle job = CreateJobObject(IntPtr.Zero, null);
             if (job.IsInvalid) {
@@ -35,13 +41,27 @@ namespace OfficeIMO.Word {
                     }
                 };
                 int size = Marshal.SizeOf(typeof(JobObjectExtendedLimitInformation));
-                if (!SetInformationJobObject(job, JobObjectExtendedLimitInformationClass, ref limits, size) ||
-                    !AssignProcessToJobObject(job, process.Handle)) {
+                if (!SetInformationJobObject(job, JobObjectExtendedLimitInformationClass, ref limits, size)) {
                     detail = new Win32Exception(Marshal.GetLastWin32Error()).Message;
                     return false;
                 }
                 processTree = new WordMacroProjectProcessTree(job);
+                WordMacroProjectProcessTree attachedTree = processTree;
                 job = null!;
+                try {
+                    startedProcess = OfficeWindowsSuspendedProcess.Start(
+                        startInfo,
+                        prepareContainment: () => { },
+                        processHandle => AssignProcessToJobObject(attachedTree._job, processHandle));
+                } catch (Exception exception) when (exception is Win32Exception ||
+                    exception is IOException || exception is InvalidOperationException ||
+                    exception is UnauthorizedAccessException || exception is PlatformNotSupportedException ||
+                    exception is NotSupportedException) {
+                    detail = exception.Message;
+                    processTree.Dispose();
+                    processTree = null;
+                    return false;
+                }
                 return true;
             } finally {
                 job?.Dispose();

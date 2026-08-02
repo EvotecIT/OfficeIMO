@@ -378,6 +378,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_RejectsExtraPositionalInstructionsAsMalformed() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(
+                new SimpleField(new Run(new Text("simple placeholder"))) {
+                    Instruction = " MERGEFIELD Simple Extra "
+                },
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Complex Extra ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("complex placeholder")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Simple", "Complex" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> {
+                    ["Simple"] = "simple value",
+                    ["Complex"] = "complex value"
+                });
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Equal(2, preflight.Issues.Count(issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MalformedMergeField));
+            Assert.Equal(2, execution.Fields.Count(result =>
+                result.Status == WordMailMergeFieldStatus.MalformedField));
+            Assert.Equal(0, execution.MergedCount);
+            Assert.Contains("simple placeholder", body.InnerText, StringComparison.Ordinal);
+            Assert.Contains("complex placeholder", body.InnerText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_MailMerge_UnsupportedSwitchLeavesFieldInPlaceAndReportsIt() {
             using WordDocument document = WordDocument.Create();
             Body body = document._document.MainDocumentPart!.Document.Body!;

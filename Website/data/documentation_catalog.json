@@ -872,7 +872,7 @@
       "description": "Optional process-protocol OCR engine for OfficeIMO.Reader.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Ocr.Process/OfficeIMO.Reader.Ocr.Process.csproj",
-      "sourceFileCount": 10,
+      "sourceFileCount": 9,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
