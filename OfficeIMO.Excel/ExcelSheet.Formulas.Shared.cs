@@ -344,8 +344,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                Match reference = ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Match(formula, cursor);
-                if (!reference.Success || reference.Index != cursor) {
+                Match reference = ExcelFormulaReferenceRewriter.SharedFormulaReferenceAtCursorRegex.Match(formula, cursor);
+                if (!reference.Success) {
                     return false;
                 }
 

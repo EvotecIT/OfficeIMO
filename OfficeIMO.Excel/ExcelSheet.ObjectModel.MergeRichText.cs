@@ -128,6 +128,7 @@ namespace OfficeIMO.Excel {
                 cell.CellValue = null;
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
                 cell.InlineString = inline;
+                _excelDocument.MarkFormulaInputMutation();
                 ClearHeaderCache();
             });
         }

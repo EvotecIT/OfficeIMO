@@ -1,13 +1,61 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private long _formulaInputMutationVersion;
+        private readonly ConcurrentDictionary<Uri, long> _formulaRecalculationVersions = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaAuthoredVersions = new();
+
         /// <summary>
         /// Formula calculation and cached-result policy used during save.
         /// </summary>
         public ExcelCalculationOptions Calculation { get; } = new ExcelCalculationOptions();
+
+        internal void MarkFormulaInputMutation() {
+            Interlocked.Increment(ref _formulaInputMutationVersion);
+        }
+
+        internal long CaptureFormulaInputMutationVersion() =>
+            Interlocked.Read(ref _formulaInputMutationVersion);
+
+        internal bool HasFormulaInputMutationsAfterLastRecalculation(WorksheetPart worksheetPart) {
+            long mutationVersion = Interlocked.Read(ref _formulaInputMutationVersion);
+            return mutationVersion > 0
+                && (!_formulaRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)
+                    || recalculationVersion < mutationVersion);
+        }
+
+        internal void MarkFormulaAuthored(WorksheetPart worksheetPart, string cellReference) {
+            _formulaAuthoredVersions[(worksheetPart.Uri, cellReference)] =
+                Interlocked.Read(ref _formulaInputMutationVersion);
+        }
+
+        internal bool HasFormulaInputMutationsAfterFormulaBaseline(WorksheetPart worksheetPart, string cellReference) {
+            long mutationVersion = Interlocked.Read(ref _formulaInputMutationVersion);
+            if (mutationVersion == 0) {
+                return false;
+            }
+
+            long baseline = 0;
+            if (_formulaRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)) {
+                baseline = recalculationVersion;
+            }
+            if (_formulaAuthoredVersions.TryGetValue((worksheetPart.Uri, cellReference), out long authoredVersion)
+                && authoredVersion > baseline) {
+                baseline = authoredVersion;
+            }
+
+            return mutationVersion > baseline;
+        }
+
+        internal void MarkFormulaSheetRecalculated(WorksheetPart worksheetPart, long mutationVersion) {
+            _formulaRecalculationVersions[worksheetPart.Uri] = mutationVersion;
+        }
 
         /// <summary>
         /// Returns true when workbook-level structure or window protection is present.

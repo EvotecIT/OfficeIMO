@@ -106,6 +106,7 @@ namespace OfficeIMO.Excel {
             int count = 0;
             WriteLock(() => {
                 MaterializePendingDirectCellValues();
+                long formulaInputMutationVersion = _excelDocument.CaptureFormulaInputMutationVersion();
 
                 var previousCache = _formulaEvaluationCache;
                 var previousDepthCache = _formulaEvaluationDepthCache;
@@ -165,6 +166,8 @@ namespace OfficeIMO.Excel {
                     MarkRequiresSavePreparation();
                     ClearCellTextSharedStringCache();
                 }
+
+                _excelDocument.MarkFormulaSheetRecalculated(_worksheetPart, formulaInputMutationVersion);
 
                 WorksheetRoot.Save();
             });
@@ -340,6 +343,7 @@ namespace OfficeIMO.Excel {
                     foreach (Cell cell in formulaCells) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         string formula = ResolveCellFormulaText(cell, sharedFormulaDefinitions);
+                        string cellReference = cell.CellReference?.Value ?? string.Empty;
                         bool supported = TryEvaluateFormulaCellValue(cell, out _, sharedFormulaDefinitions);
                         IReadOnlyList<string> dependencies = GetFormulaDependencies(
                             cell.CellReference?.Value,
@@ -353,10 +357,12 @@ namespace OfficeIMO.Excel {
                         ExcelFormulaArrayInfo? arrayInfo = CreateFormulaArrayInfo(cell, metadata);
                         formulas.Add(new ExcelFormulaCellInfo(
                             Name,
-                            cell.CellReference?.Value ?? string.Empty,
+                            cellReference,
                             formula,
                             cell.CellValue?.Text,
-                            packageRequestsRecalculation || (cell.CellFormula!.CalculateCell?.Value ?? false),
+                            packageRequestsRecalculation
+                                || (cell.CellFormula!.CalculateCell?.Value ?? false)
+                                || _excelDocument.HasFormulaInputMutationsAfterFormulaBaseline(_worksheetPart, cellReference),
                             supported,
                             supported ? null : GetUnsupportedFormulaReason(formula),
                             dependencies,
@@ -471,6 +477,7 @@ namespace OfficeIMO.Excel {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
+                _excelDocument.MarkFormulaAuthored(_worksheetPart, A1.CellReference(r1, c1));
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
                         if (row == r1 && column == c1) continue;
@@ -499,6 +506,7 @@ namespace OfficeIMO.Excel {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
+                _excelDocument.MarkFormulaAuthored(_worksheetPart, A1.CellReference(r1, c1));
                 WorksheetRoot.Save();
             });
         }

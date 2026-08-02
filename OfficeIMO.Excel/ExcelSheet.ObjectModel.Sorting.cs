@@ -41,6 +41,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 RemapSortedRangeMetadata(rowMap, firstDataRow, r2, c1, c2);
+                if (rowMap.Count > 0) {
+                    _excelDocument.MarkFormulaInputMutation();
+                }
                 WorksheetRoot.Save();
                 ClearHeaderCache();
             });

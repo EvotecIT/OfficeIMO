@@ -25,6 +25,7 @@ namespace OfficeIMO.Excel {
                 ApplyAutomaticCellFormatting(cell, originalValue, p.Type);
             }
 
+            _excelDocument.MarkFormulaInputMutation();
             ClearHeaderCache();
         }
 
@@ -127,6 +128,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            _excelDocument.MarkFormulaInputMutation();
             ClearHeaderCache();
             return true;
         }

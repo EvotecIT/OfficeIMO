@@ -98,8 +98,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 System.Text.RegularExpressions.Match match =
-                    ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Match(formula, cursor);
-                if (match.Success && match.Index == cursor
+                    ExcelFormulaReferenceRewriter.SharedFormulaReferenceAtCursorRegex.Match(formula, cursor);
+                if (match.Success
                     && !IsSpacedFunctionCall(formula, match)
                     && ExcelReference.TryParse(TrimSpill(match.Value), out ExcelReference? reference)) {
                     AddText(nodes, formula, textStart, cursor - textStart);

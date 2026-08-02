@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -107,6 +108,11 @@ namespace OfficeIMO.Excel {
             string? password = null,
             string? securityDescriptor = null) {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
+            string normalizedName = name.Trim();
+            ValidateAllowedEditRangeXmlText(normalizedName, nameof(name));
+            if (!string.IsNullOrWhiteSpace(securityDescriptor)) {
+                ValidateAllowedEditRangeXmlText(securityDescriptor!, nameof(securityDescriptor));
+            }
             IReadOnlyList<string> normalized = NormalizeRegionReferences(ranges);
             if (!IsProtected) {
                 throw new InvalidOperationException("Allowed-edit ranges require worksheet protection. Call Protect first.");
@@ -116,9 +122,9 @@ namespace OfficeIMO.Excel {
                 Worksheet worksheet = WorksheetRoot;
                 ProtectedRanges container = worksheet.GetFirstChild<ProtectedRanges>() ?? worksheet.AppendChild(new ProtectedRanges());
                 ProtectedRange? existing = container.Elements<ProtectedRange>()
-                    .FirstOrDefault(item => string.Equals(item.Name?.Value, name.Trim(), StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(item => string.Equals(item.Name?.Value, normalizedName, StringComparison.OrdinalIgnoreCase));
                 ProtectedRange target = existing ?? container.AppendChild(new ProtectedRange());
-                target.Name = name.Trim();
+                target.Name = normalizedName;
                 target.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", normalized) };
                 string? hash = ExcelProtectionHash.ResolveLegacyHash(password, null);
                 target.Password = hash;
@@ -136,6 +142,17 @@ namespace OfficeIMO.Excel {
                 EnsureWorksheetElementOrder();
                 worksheet.Save();
             });
+        }
+
+        private static void ValidateAllowedEditRangeXmlText(string value, string parameterName) {
+            try {
+                XmlConvert.VerifyXmlChars(value);
+            } catch (XmlException exception) {
+                throw new ArgumentException(
+                    "Allowed-edit range metadata contains characters that are invalid in XML.",
+                    parameterName,
+                    exception);
+            }
         }
 
         /// <summary>Removes a named allowed-edit region.</summary>

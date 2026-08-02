@@ -154,6 +154,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (worksheetChanged) {
+                    if (options.HasFlag(ExcelClearOptions.Values)
+                        || options.HasFlag(ExcelClearOptions.Formulas)) {
+                        _excelDocument.MarkFormulaInputMutation();
+                    }
                     ws.Save();
                     ClearHeaderCache();
                 }
