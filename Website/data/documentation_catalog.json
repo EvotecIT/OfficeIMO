@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 153,
-    "productionComponentCount": 91,
+    "projectCount": 154,
+    "productionComponentCount": 92,
     "testProjectCount": 31,
     "benchmarkProjectCount": 13,
     "validationProjectCount": 19,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39633
+    "conceptualWordCount": 39660
   },
   "categories": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 13
+      "componentCount": 14
     },
     {
       "name": "Foundations and integrations",
@@ -626,7 +626,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
       "sourceFileCount": 933,
-      "referencingTestProjectCount": 10,
+      "referencingTestProjectCount": 11,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf"
@@ -976,8 +976,8 @@
       "description": "Visio adapter for OfficeIMO.Reader using OfficeIMO.Visio inspection snapshots.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
-      "sourceFileCount": 5,
-      "referencingTestProjectCount": 2,
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Visio"
@@ -1126,13 +1126,26 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio"
     },
     {
+      "name": "OfficeIMO.Visio.Pdf",
+      "packageId": "OfficeIMO.Visio.Pdf",
+      "category": "Formats and interoperability",
+      "description": "First-party loss-aware Visio to PDF conversion for OfficeIMO.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/visio/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio.Pdf"
+    },
+    {
       "name": "OfficeIMO.Word",
       "packageId": "OfficeIMO.Word",
       "category": "Office documents",
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 638,
+      "sourceFileCount": 639,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",

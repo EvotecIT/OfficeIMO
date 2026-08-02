@@ -1098,6 +1098,7 @@
         "../OfficeIMO.Security/OfficeIMO.Security.csproj",
         "../OfficeIMO.Tool/OfficeIMO.Tool.csproj",
         "../OfficeIMO.Visio/OfficeIMO.Visio.csproj",
+        "../OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
         "../OfficeIMO.Word/OfficeIMO.Word.csproj",
         "../OfficeIMO.Word.GoogleDocs/OfficeIMO.Word.GoogleDocs.csproj",
         "../OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj",

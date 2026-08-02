@@ -11,6 +11,42 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderVisioModularTests {
     [Fact]
+    public void DocumentReaderVisio_LoadedDocumentUsesTheSameSourceIdAsPathRead() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+        VisioDocument created = VisioDocument.Create(path);
+        created.AddPage("Source identity");
+        created.Save();
+
+        try {
+            OfficeDocumentReadResult pathResult = VisioReaderAdapter.ReadDocument(path);
+            VisioDocument loaded = VisioDocument.Load(path);
+            OfficeDocumentReadResult loadedResult = loaded.ToOfficeDocumentReadResult();
+
+            Assert.Equal(pathResult.Source.SourceId, loadedResult.Source.SourceId);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderVisio_AdvertisesDefaultAndMapsExplicitReaderInputLimits() {
+        ReaderHandlerCapability capability = Assert.Single(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(),
+            item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
+
+        Assert.Equal(VisioLoadOptions.DefaultMaxInputBytes, capability.DefaultMaxInputBytes);
+        Assert.Equal(
+            VisioLoadOptions.DefaultMaxInputBytes,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("diagram.vsdx"));
+        Assert.Null(VisioReaderAdapter.CreateLoadOptions(new ReaderOptions()));
+
+        VisioLoadOptions mapped = Assert.IsType<VisioLoadOptions>(
+            VisioReaderAdapter.CreateLoadOptions(new ReaderOptions { MaxInputBytes = 700L * 1024L * 1024L }));
+
+        Assert.Equal(700L * 1024L * 1024L, mapped.MaxInputBytes);
+    }
+
+    [Fact]
     public void DocumentReaderVisio_ReadVisio_EmitsPageChunkWithShapeDataTable() {
         using MemoryStream stream = BuildSampleVisio();
 
@@ -132,6 +168,30 @@ public sealed class ReaderVisioModularTests {
         Assert.Equal(5, table.TotalRowCount);
         Assert.True(table.Truncated);
         Assert.DoesNotContain(table.Rows, row => row[3] == "Key5");
+    }
+
+    [Fact]
+    public void DocumentReaderVisio_LoadedDocumentNormalizesReaderOptions() {
+        using MemoryStream stream = BuildManyShapeDataRowsVisio();
+        VisioDocument document = VisioDocument.Load(stream);
+
+        OfficeDocumentReadResult result = document.ToOfficeDocumentReadResult(
+            readerOptions: new ReaderOptions {
+                MaxChars = 0,
+                MaxTableRows = -1
+            });
+
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Single(table.Rows);
+        Assert.True(table.Truncated);
+        Assert.NotNull(result.Chunks);
+        Assert.Contains(result.Chunks!, chunk =>
+            (chunk.Text?.Length ?? 0) > 1
+            || (chunk.Markdown?.Length ?? 0) > 1);
+        Assert.All(result.Chunks!, chunk => {
+            Assert.True((chunk.Text ?? string.Empty).Length <= 256);
+            Assert.True((chunk.Markdown ?? string.Empty).Length <= 256);
+        });
     }
 
     [Fact]
