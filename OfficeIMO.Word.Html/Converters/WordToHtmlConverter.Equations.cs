@@ -233,13 +233,13 @@ namespace OfficeIMO.Word.Html {
             }
 
             IElement anchor = CreateOutputElement(htmlDocument, "a");
-            anchor.SetAttribute("href", href);
+            SetOutputAttribute(htmlDocument, anchor, "href", href!, "EquationHyperlink:href");
             if (!string.IsNullOrEmpty(hyperlink.Tooltip)) {
-                anchor.SetAttribute("title", hyperlink.Tooltip);
+                SetOutputAttribute(htmlDocument, anchor, "title", hyperlink.Tooltip!, "EquationHyperlink:title");
             }
             string? targetFrame = hyperlink._hyperlink.TargetFrame?.Value;
             if (!string.IsNullOrEmpty(targetFrame)) {
-                anchor.SetAttribute("target", targetFrame);
+                SetOutputAttribute(htmlDocument, anchor, "target", targetFrame!, "EquationHyperlink:target");
             }
             return anchor;
         }

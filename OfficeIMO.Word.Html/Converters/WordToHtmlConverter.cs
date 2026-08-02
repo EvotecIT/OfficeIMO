@@ -503,7 +503,7 @@ namespace OfficeIMO.Word.Html {
                         }
                         if (!string.IsNullOrEmpty(href)) {
                             var a = CreateOutputElement(htmlDoc, "a");
-                            a.SetAttribute("href", href);
+                            SetOutputAttribute(htmlDoc, a, "href", href!, "Hyperlink:href");
                             a.AppendChild(node);
                             node = a;
                         }

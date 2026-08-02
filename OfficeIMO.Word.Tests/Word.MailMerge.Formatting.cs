@@ -289,6 +289,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_DatePictureSupportsAbbreviatedMeridiem() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(new Paragraph(new SimpleField(new Run(new Text("date"))) {
+                Instruction = " MERGEFIELD EventTime \\@ \"h:mm A/P\" "
+            }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> {
+                    ["EventTime"] = "2026-07-31T22:00:00+02:00"
+                });
+
+            WordMailMergeFieldResult result = Assert.Single(report.Fields);
+            Assert.Equal(WordMailMergeFieldStatus.Merged, result.Status);
+            Assert.Equal("10:00 P", result.Value);
+            Assert.Contains("10:00 P", body.InnerText, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_MailMerge_ExecutionReportIgnoresOrdinaryWordFields() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(
+                new Paragraph(new SimpleField(new Run(new Text("1"))) { Instruction = " PAGE " }),
+                new Paragraph(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" TOC \\o \"1-3\" ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("Table of contents")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })),
+                new Paragraph(new SimpleField(new Run(new Text("name"))) { Instruction = " MERGEFIELD Name " }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" });
+
+            Assert.True(report.IsComplete);
+            Assert.Equal("Name", Assert.Single(report.Fields).Name);
+            report.EnsureComplete();
+            Assert.Contains("PAGE", body.InnerXml, System.StringComparison.Ordinal);
+            Assert.Contains("TOC", body.InnerXml, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_MailMerge_ExecutionReportIncludesMalformedSimpleAndComplexFields() {
             using WordDocument document = WordDocument.Create();
             Body body = document._document.MainDocumentPart!.Document.Body!;

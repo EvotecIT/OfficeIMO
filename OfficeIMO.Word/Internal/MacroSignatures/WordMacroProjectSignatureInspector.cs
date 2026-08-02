@@ -35,7 +35,8 @@ namespace OfficeIMO.Word {
             WordMacroProjectSignatureInspectionOptions? options,
             InspectionBudget? operationBudget,
             WordMacroProjectSignatureProfile? profileFilter = null,
-            bool? validateCmsOverride = null) {
+            bool? validateCmsOverride = null,
+            Action? afterSnapshotCaptured = null) {
             options ??= new WordMacroProjectSignatureInspectionOptions();
             ValidateOptions(options);
             operationBudget ??= new InspectionBudget(options);
@@ -64,10 +65,15 @@ namespace OfficeIMO.Word {
             long? discoveredVbaLength = null;
             string? discoveredVbaHash = null;
             try {
+                byte[] packageBytes;
                 using (FileStream packageStream = File.OpenRead(fullPath)) {
-                    OfficePackageSecurityInspector.Validate(packageStream, options.PackageSecurity);
+                    packageBytes = OfficePackageSecurityInspector.ReadAndValidate(
+                        packageStream,
+                        options.PackageSecurity);
                 }
-                using (WordprocessingDocument document = WordprocessingDocument.Open(fullPath, false)) {
+                afterSnapshotCaptured?.Invoke();
+                using (var documentStream = new MemoryStream(packageBytes, writable: false))
+                using (WordprocessingDocument document = WordprocessingDocument.Open(documentStream, false)) {
                     discoveredVbaUri = document.MainDocumentPart?.VbaProjectPart?.Uri;
                 }
                 if (discoveredVbaUri == null) {
@@ -76,7 +82,8 @@ namespace OfficeIMO.Word {
                     return Empty(fullPath, macroEnabled, findings);
                 }
 
-                using (Package package = Package.Open(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                using (var packageStream = new MemoryStream(packageBytes, writable: false))
+                using (Package package = Package.Open(packageStream, FileMode.Open, FileAccess.Read)) {
                     if (!package.PartExists(discoveredVbaUri)) {
                         findings.Add(Finding("MacroProjectPartMissing", WordSignatureValidationState.Failed,
                             "The VBA project relationship target is missing from the package."));

@@ -74,6 +74,11 @@ namespace OfficeIMO.Word {
             int order = 0;
             foreach (OpenXmlElement element in root.Descendants()) {
                 if (element is SimpleField simpleField) {
+                    string instruction = simpleField.Instruction?.Value ?? string.Empty;
+                    if (!MergeFieldTypePattern.IsMatch(instruction)) {
+                        order++;
+                        continue;
+                    }
                     occurrences.Add(MergeFieldOccurrence.ForSimple(
                         order,
                         simpleField,
@@ -117,7 +122,10 @@ namespace OfficeIMO.Word {
                     ComplexFieldFrame completedField = activeFields[activeFields.Count - 1];
                     activeFields.RemoveAt(activeFields.Count - 1);
                     string instruction = ReadComplexFieldInstruction(completedField.Runs);
-                    if (completedField.HasNestedField && MergeFieldTypePattern.IsMatch(instruction)) {
+                    if (!MergeFieldTypePattern.IsMatch(instruction)) {
+                        continue;
+                    }
+                    if (completedField.HasNestedField) {
                         occurrences.Add(MergeFieldOccurrence.ForComplex(
                             completedField.Order,
                             completedField.Runs,
@@ -128,6 +136,10 @@ namespace OfficeIMO.Word {
                 }
 
                 foreach (ComplexFieldFrame activeField in activeFields) {
+                    string instruction = ReadComplexFieldInstruction(activeField.Runs);
+                    if (!MergeFieldTypePattern.IsMatch(instruction)) {
+                        continue;
+                    }
                     occurrences.Add(MergeFieldOccurrence.ForComplex(
                         activeField.Order,
                         activeField.Runs,

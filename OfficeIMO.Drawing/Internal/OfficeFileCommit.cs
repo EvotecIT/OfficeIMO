@@ -250,7 +250,33 @@ namespace OfficeIMO.Drawing.Internal {
             string temporaryPath,
             string targetPath,
             Func<string, bool> destinationMatchesExpected,
-            Func<string, bool>? installedFileMatchesExpected = null) {
+            Func<string, bool>? installedFileMatchesExpected = null) =>
+            TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
+                temporaryPath,
+                targetPath,
+                destinationMatchesExpected,
+                installedFileMatchesExpected,
+                afterFirstRollbackReplacement: null);
+
+        internal static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedForTesting(
+            string temporaryPath,
+            string targetPath,
+            Func<string, bool> destinationMatchesExpected,
+            Func<string, bool>? installedFileMatchesExpected,
+            Action<string> afterFirstRollbackReplacement) =>
+            TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
+                temporaryPath,
+                targetPath,
+                destinationMatchesExpected,
+                installedFileMatchesExpected,
+                afterFirstRollbackReplacement);
+
+        private static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
+            string temporaryPath,
+            string targetPath,
+            Func<string, bool> destinationMatchesExpected,
+            Func<string, bool>? installedFileMatchesExpected,
+            Action<string>? afterFirstRollbackReplacement) {
             if (string.IsNullOrWhiteSpace(temporaryPath)) {
                 throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
             }
@@ -265,6 +291,7 @@ namespace OfficeIMO.Drawing.Internal {
             string backupPath = CreateTemporaryPath(fullTargetPath);
             string displacedPath = CreateTemporaryPath(fullTargetPath);
             bool targetContainsTemporary = false;
+            bool preserveBackupPath = false;
             bool preserveDisplacedPath = false;
             string installedTemporaryIdentity = ComputeFileIdentity(temporaryPath);
             try {
@@ -288,6 +315,8 @@ namespace OfficeIMO.Drawing.Internal {
                     displacedPath,
                     installedTemporaryIdentity,
                     ref targetContainsTemporary,
+                    ref preserveBackupPath,
+                    afterFirstRollbackReplacement,
                     ref preserveDisplacedPath);
                 return false;
             } catch (Exception commitException) {
@@ -299,6 +328,8 @@ namespace OfficeIMO.Drawing.Internal {
                             displacedPath,
                             installedTemporaryIdentity,
                             ref targetContainsTemporary,
+                            ref preserveBackupPath,
+                            afterFirstRollbackReplacement,
                             ref preserveDisplacedPath);
                     } catch (Exception rollbackException) {
                         throw new IOException(
@@ -309,7 +340,7 @@ namespace OfficeIMO.Drawing.Internal {
                 }
                 throw;
             } finally {
-                if (!targetContainsTemporary) DeleteIfExists(backupPath);
+                if (!targetContainsTemporary && !preserveBackupPath) DeleteIfExists(backupPath);
                 if (!preserveDisplacedPath) DeleteIfExists(displacedPath);
             }
         }
@@ -320,9 +351,13 @@ namespace OfficeIMO.Drawing.Internal {
             string displacedPath,
             string installedTemporaryIdentity,
             ref bool targetContainsTemporary,
+            ref bool preserveBackupPath,
+            Action<string>? afterFirstRollbackReplacement,
             ref bool preserveDisplacedPath) {
+            string restoredDestinationIdentity = ComputeFileIdentity(backupPath);
             ExecuteWithRetry(() => File.Replace(backupPath, targetPath, displacedPath));
             targetContainsTemporary = false;
+            afterFirstRollbackReplacement?.Invoke(targetPath);
             if (installedTemporaryIdentity.Length == 0 ||
                 string.Equals(installedTemporaryIdentity, ComputeFileIdentity(displacedPath), StringComparison.Ordinal)) {
                 DeleteIfExists(displacedPath);
@@ -334,7 +369,16 @@ namespace OfficeIMO.Drawing.Internal {
             preserveDisplacedPath = true;
             ExecuteWithRetry(() => File.Replace(displacedPath, targetPath, backupPath));
             preserveDisplacedPath = false;
-            DeleteIfExists(backupPath);
+            preserveBackupPath = true;
+            if (string.Equals(restoredDestinationIdentity, ComputeFileIdentity(backupPath), StringComparison.Ordinal)) {
+                preserveBackupPath = false;
+                DeleteIfExists(backupPath);
+                return;
+            }
+
+            throw new IOException(
+                "A newer concurrent save was displaced during guarded rollback and remains recoverable at '" +
+                backupPath + "'.");
         }
 
         private static string ComputeFileIdentity(string path) {

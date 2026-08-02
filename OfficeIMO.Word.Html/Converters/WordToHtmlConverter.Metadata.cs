@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Html {
             ApplyDocumentShellMetadata(document, htmlDoc);
 
             var charset = CreateOutputElement(htmlDoc, "meta");
-            SetMetadataAttribute(htmlDoc, charset, "charset", "UTF-8", "DocumentMetadata:charset");
+            SetOutputAttribute(htmlDoc, charset, "charset", "UTF-8", "DocumentMetadata:charset");
             head.AppendChild(charset);
 
             var props = document.BuiltinDocumentProperties;
@@ -40,9 +40,9 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(name)) {
                     var meta = CreateOutputElement(htmlDoc, "meta");
-                    SetMetadataAttribute(htmlDoc, meta, "name", name, "AdditionalMeta:name");
+                    SetOutputAttribute(htmlDoc, meta, "name", name, "AdditionalMeta:name");
                     if (!string.IsNullOrEmpty(content)) {
-                        SetMetadataAttribute(htmlDoc, meta, "content", content, "AdditionalMeta:content");
+                        SetOutputAttribute(htmlDoc, meta, "content", content, "AdditionalMeta:content");
                     }
                     head.AppendChild(meta);
                 }
@@ -52,8 +52,8 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(rel) && !string.IsNullOrEmpty(href)) {
                     var link = CreateOutputElement(htmlDoc, "link");
-                    SetMetadataAttribute(htmlDoc, link, "rel", rel, "AdditionalLink:rel");
-                    SetMetadataAttribute(htmlDoc, link, "href", href, "AdditionalLink:href");
+                    SetOutputAttribute(htmlDoc, link, "rel", rel, "AdditionalLink:rel");
+                    SetOutputAttribute(htmlDoc, link, "href", href, "AdditionalLink:href");
                     head.AppendChild(link);
                 }
             }
@@ -68,7 +68,7 @@ namespace OfficeIMO.Word.Html {
         private static void ApplyDocumentShellMetadata(WordDocument document, IDocument htmlDoc) {
             var language = document.Settings.Language;
             if (!string.IsNullOrWhiteSpace(language)) {
-                SetMetadataAttribute(
+                SetOutputAttribute(
                     htmlDoc,
                     htmlDoc.DocumentElement,
                     "lang",
@@ -80,8 +80,8 @@ namespace OfficeIMO.Word.Html {
         private static void AddMeta(IDocument htmlDoc, IElement head, string name, string? value) {
             if (!string.IsNullOrEmpty(value)) {
                 var meta = CreateOutputElement(htmlDoc, "meta");
-                SetMetadataAttribute(htmlDoc, meta, "name", name, "DocumentMetadata:" + name + ":name");
-                SetMetadataAttribute(htmlDoc, meta, "content", value!, "DocumentMetadata:" + name);
+                SetOutputAttribute(htmlDoc, meta, "name", name, "DocumentMetadata:" + name + ":name");
+                SetOutputAttribute(htmlDoc, meta, "content", value!, "DocumentMetadata:" + name);
                 head.AppendChild(meta);
             }
         }
@@ -97,25 +97,11 @@ namespace OfficeIMO.Word.Html {
             }
 
             var meta = CreateOutputElement(htmlDoc, "meta");
-            SetMetadataAttribute(htmlDoc, meta, "name", "word:custom:" + name, "CustomDocumentMetadata:name");
-            SetMetadataAttribute(htmlDoc, meta, "content", value, "CustomDocumentMetadata:content");
-            SetMetadataAttribute(htmlDoc, meta, "data-word-custom-property", name, "CustomDocumentMetadata:property-name");
-            SetMetadataAttribute(htmlDoc, meta, "data-property-type", property.PropertyType.ToString(), "CustomDocumentMetadata:property-type");
+            SetOutputAttribute(htmlDoc, meta, "name", "word:custom:" + name, "CustomDocumentMetadata:name");
+            SetOutputAttribute(htmlDoc, meta, "content", value, "CustomDocumentMetadata:content");
+            SetOutputAttribute(htmlDoc, meta, "data-word-custom-property", name, "CustomDocumentMetadata:property-name");
+            SetOutputAttribute(htmlDoc, meta, "data-property-type", property.PropertyType.ToString(), "CustomDocumentMetadata:property-type");
             head.AppendChild(meta);
-        }
-
-        private static void SetMetadataAttribute(
-            IDocument htmlDoc,
-            IElement element,
-            string name,
-            string value,
-            string source) {
-            ReserveOutputCharacters(
-                htmlDoc,
-                GetHtmlEncodedLength(value, attributeValue: true),
-                "Generated HTML metadata exceeds the configured output-character limit before DOM construction.",
-                source);
-            element.SetAttribute(name, value);
         }
 
         private static void SetMetadataText(

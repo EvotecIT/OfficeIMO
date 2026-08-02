@@ -23,6 +23,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MacroSignatureInspectorParsesTheBoundedSnapshotThatPassedSecurityInspection() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureInspectionSnapshot.docm");
+            string replacementPath = Path.Combine(_directoryWithFiles, "MacroSignatureInspectionReplacement.docm");
+            using (WordDocument replacement = WordDocument.Create(replacementPath)) {
+                replacement.AddParagraph("Replacement without a macro project");
+                replacement.Save();
+            }
+
+            WordMacroProjectSignatureInfo info = WordMacroProjectSignatureInspector.Inspect(
+                filePath,
+                options: null,
+                operationBudget: null,
+                profileFilter: null,
+                validateCmsOverride: null,
+                afterSnapshotCaptured: () => File.Copy(replacementPath, filePath, overwrite: true));
+
+            Assert.True(info.HasMacroProject, string.Join(" | ", info.Findings.Select(finding => finding.Message)));
+            Assert.NotNull(info.MacroProjectPartUri);
+            Assert.NotNull(info.MacroProjectSha256);
+            Assert.False(WordDocument.InspectMacroProjectSignatures(filePath).HasMacroProject);
+        }
+
+        [Fact]
         public void MacroSignatureInspectorParsesAllProfilesAndCmsSigner() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignatureProfiles.docm");
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate("CN=OfficeIMO VBA Signing Test");

@@ -211,6 +211,43 @@ namespace OfficeIMO.Shared.Tests {
             }
         }
 
+        [Fact]
+        public void GuardedAtomicCommit_PreservesSaveDisplacedBySecondRollbackReplacement() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporary = Path.Combine(root, "artifact.staged.bin");
+            byte[] expectedOriginal = { 1, 2, 3, 4 };
+            byte[] staged = { 9, 8, 7 };
+            byte[] firstConcurrentSave = { 5, 6, 7, 8 };
+            byte[] secondConcurrentSave = { 4, 3, 2, 1 };
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, expectedOriginal);
+            File.WriteAllBytes(temporary, staged);
+
+            try {
+                IOException exception = Assert.Throws<IOException>(() =>
+                    OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchangedForTesting(
+                        temporary,
+                        destination,
+                        displaced => {
+                            Assert.Equal(expectedOriginal, File.ReadAllBytes(displaced));
+                            File.WriteAllBytes(destination, firstConcurrentSave);
+                            return false;
+                        },
+                        installedFileMatchesExpected: null,
+                        afterFirstRollbackReplacement: target => File.WriteAllBytes(target, secondConcurrentSave)));
+
+                Assert.Equal(firstConcurrentSave, File.ReadAllBytes(destination));
+                string preservedPath = Assert.Single(
+                    Directory.GetFiles(root),
+                    path => !string.Equals(path, destination, StringComparison.Ordinal));
+                Assert.Equal(secondConcurrentSave, File.ReadAllBytes(preservedPath));
+                Assert.Contains(preservedPath, exception.Message, StringComparison.Ordinal);
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
 #if NET6_0_OR_GREATER
         [Fact]
         public void CommitTemporaryFile_PreservesRestrictiveUnixMode() {

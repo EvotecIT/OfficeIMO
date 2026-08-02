@@ -91,14 +91,12 @@ namespace OfficeIMO.Word {
                 return false;
             });
             if (documentScan != ShapeScanResult.Absent) return documentScan;
-            if (hasRunWithoutStyle) {
-                ShapeScanResult defaultStylesScan = ContainsThemeAttribute(
-                    mainPart.StyleDefinitionsPart?.Styles?.DocDefaults, comparisonWorkBudget);
-                if (defaultStylesScan != ShapeScanResult.Absent) return defaultStylesScan;
-                defaultStylesScan = ContainsThemeAttribute(
-                    mainPart.StylesWithEffectsPart?.Styles?.DocDefaults, comparisonWorkBudget);
-                if (defaultStylesScan != ShapeScanResult.Absent) return defaultStylesScan;
-            }
+            ShapeScanResult defaultStylesScan = ContainsThemeAttribute(
+                mainPart.StyleDefinitionsPart?.Styles?.DocDefaults, comparisonWorkBudget);
+            if (defaultStylesScan != ShapeScanResult.Absent) return defaultStylesScan;
+            defaultStylesScan = ContainsThemeAttribute(
+                mainPart.StylesWithEffectsPart?.Styles?.DocDefaults, comparisonWorkBudget);
+            if (defaultStylesScan != ShapeScanResult.Absent) return defaultStylesScan;
 
             IReadOnlyList<Style> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
             if (styleBudgetExhausted) return ShapeScanResult.ResourceLimitExceeded;

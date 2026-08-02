@@ -246,6 +246,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsDocumentDefaultThemeUnderExplicitCharacterStyles() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_styled_doc_defaults_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Explicitly styled themed text");
+                document.Save();
+            }
+            SetFirstRunCharacterStyle(sourcePath, "DefaultParagraphFont");
+            SetDocDefaultsThemeFont(sourcePath, ThemeFontValues.MinorHighAnsi);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_styled_doc_defaults_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Explicitly styled themed text");
+                document.Save();
+            }
+            SetFirstRunCharacterStyle(targetPath, "DefaultParagraphFont");
+            SetDocDefaultsThemeFont(targetPath, ThemeFontValues.MajorHighAnsi);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureReportsThemeLimitationFromDefaultParagraphStyle() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_default_style_theme_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -544,6 +570,14 @@ namespace OfficeIMO.Tests {
             run.RunProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color {
                 ThemeColor = themeColor
             };
+            wordDocument.MainDocumentPart.Document.Save();
+        }
+
+        private static void SetFirstRunCharacterStyle(string path, string styleId) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Run run = wordDocument.MainDocumentPart!.Document.Body!.Descendants<Run>().First();
+            run.RunProperties ??= new RunProperties();
+            run.RunProperties.RunStyle = new RunStyle { Val = styleId };
             wordDocument.MainDocumentPart.Document.Save();
         }
 

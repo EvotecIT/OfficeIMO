@@ -87,7 +87,17 @@ namespace OfficeIMO.Word {
             return DateTimePictureState.Absent;
         }
 
-        private static string NormalizeDateTimeFormat(string format) =>
-            Regex.Replace(format, "am/pm", "tt", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static string NormalizeDateTimeFormat(string format) {
+            string normalized = Regex.Replace(
+                format,
+                "am/pm",
+                "tt",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return Regex.Replace(
+                normalized,
+                "a/p",
+                "t",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
     }
 }
