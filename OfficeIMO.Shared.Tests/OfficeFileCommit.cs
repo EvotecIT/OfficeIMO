@@ -237,6 +237,50 @@ namespace OfficeIMO.Shared.Tests {
         }
 
         [Fact]
+        public void CommitTemporaryFile_NewDestinationUsesNormalUnixCreationMode() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string baseline = Path.Combine(root, "baseline.bin");
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporaryPath = string.Empty;
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(baseline, new byte[] { 1 });
+
+            try {
+                using (FileStream staging = OfficeFileCommit.CreateTemporaryFile(
+                    destination,
+                    FileOptions.SequentialScan,
+                    out temporaryPath)) {
+                    staging.WriteByte(2);
+                }
+                const UnixFileMode accessBits = UnixFileMode.UserRead
+                    | UnixFileMode.UserWrite
+                    | UnixFileMode.UserExecute
+                    | UnixFileMode.GroupRead
+                    | UnixFileMode.GroupWrite
+                    | UnixFileMode.GroupExecute
+                    | UnixFileMode.OtherRead
+                    | UnixFileMode.OtherWrite
+                    | UnixFileMode.OtherExecute;
+                Assert.Equal(
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                    File.GetUnixFileMode(temporaryPath) & accessBits);
+
+                OfficeFileCommit.CommitTemporaryFile(temporaryPath, destination);
+                temporaryPath = string.Empty;
+
+                Assert.Equal(
+                    File.GetUnixFileMode(baseline) & accessBits,
+                    File.GetUnixFileMode(destination) & accessBits);
+                Assert.Equal(new byte[] { 2 }, File.ReadAllBytes(destination));
+            } finally {
+                OfficeFileCommit.DeleteIfExists(temporaryPath);
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
         public void NetStandardUnixFallback_CopiesDestinationModeBeforeReplacement() {
             if (OperatingSystem.IsWindows()) return;
 

@@ -102,6 +102,26 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
         }
 
+        internal static void ApplyDefaultUnixCreationMode(string path) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+
+            string? directory = Path.GetDirectoryName(path);
+            string probePath = Path.Combine(
+                string.IsNullOrEmpty(directory) ? "." : directory,
+                ".officeimo-mode-" + Guid.NewGuid().ToString("N") + ".tmp");
+            try {
+                using (new FileStream(
+                    probePath,
+                    FileMode.CreateNew,
+                    FileAccess.ReadWrite,
+                    FileShare.None)) {
+                }
+                CopyUnixFileMode(probePath, path);
+            } finally {
+                TryDelete(probePath);
+            }
+        }
+
         internal static void CopyUnixFileModePortable(string sourcePath, string destinationPath) {
             MethodInfo? getMode = typeof(File).GetMethod(
                 "GetUnixFileMode",

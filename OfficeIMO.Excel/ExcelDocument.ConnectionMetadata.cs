@@ -244,8 +244,20 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ReadOpenXmlPartText(OpenXmlPart part) {
-            if (part is ConnectionsPart connectionsPart && connectionsPart.Connections != null) {
-                string xml = connectionsPart.Connections.OuterXml;
+            if (part is ConnectionsPart connectionsPart && connectionsPart.IsRootElementLoaded) {
+                Connections? connections = connectionsPart.Connections;
+                if (connections == null) return string.Empty;
+                try {
+                    ExcelSheet.MeasureMutationSnapshotRoot(
+                        connections,
+                        MaximumWorkbookConnectionMetadataCharacters,
+                        MaximumWorkbookConnectionMetadataCharacters);
+                } catch (InvalidOperationException exception) {
+                    throw new InvalidDataException(
+                        $"Workbook connection metadata exceeds {MaximumWorkbookConnectionMetadataCharacters} characters.",
+                        exception);
+                }
+                string xml = connections.OuterXml;
                 if (xml.Length > MaximumWorkbookConnectionMetadataCharacters) {
                     throw new InvalidDataException(
                         $"Workbook connection metadata exceeds {MaximumWorkbookConnectionMetadataCharacters} characters.");

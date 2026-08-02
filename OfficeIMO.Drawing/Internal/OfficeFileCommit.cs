@@ -423,6 +423,7 @@ namespace OfficeIMO.Drawing.Internal {
 
             try {
                 if (File.Exists(targetPath)) return false;
+                OfficeTemporaryFile.ApplyDefaultUnixCreationMode(sourcePath);
                 try {
                     ExecuteWithRetry(() => File.Move(sourcePath, targetPath));
                     return true;

@@ -347,6 +347,12 @@ namespace OfficeIMO.Excel {
             int destinationColumns = transpose ? sourceRows : sourceColumns;
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             NormalizeImplicitCellReferences();
+            PrepareRangeTransferDestinationMetadata(
+                source,
+                destinationRow,
+                destinationColumn,
+                destinationRow + destinationRows - 1,
+                destinationColumn + destinationColumns - 1);
             var snapshots = WorksheetRoot.Descendants<Cell>()
                 .Where(cell => TryGetCellCoordinates(cell, out int row, out int column) && source.Contains(row, column))
                 .Select(cell => {
@@ -702,6 +708,24 @@ namespace OfficeIMO.Excel {
                 cell.Remove();
             }
             foreach (Row row in WorksheetRoot.Descendants<Row>().Where(row => !row.Elements<Cell>().Any()).ToList()) row.Remove();
+        }
+
+        private void PrepareRangeTransferDestinationMetadata(
+            ExcelReference source,
+            int r1,
+            int c1,
+            int r2,
+            int c2) {
+            foreach ((Cell cell, int row, int column) in WorksheetRoot.Descendants<Cell>()
+                .Select(cell => TryGetCellCoordinates(cell, out int row, out int column)
+                    ? (Cell: cell, Row: row, Column: column)
+                    : (Cell: cell, Row: 0, Column: 0))
+                .Where(item => item.Row >= r1 && item.Row <= r2
+                    && item.Column >= c1 && item.Column <= c2
+                    && !source.Contains(item.Row, item.Column))
+                .ToList()) {
+                ClearCellValueMetadata(cell);
+            }
         }
 
         private static bool TryGetCellCoordinates(Cell cell, out int row, out int column) {

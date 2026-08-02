@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -301,6 +302,11 @@ namespace OfficeIMO.Excel {
                 string name = columnNames[index]?.Trim() ?? string.Empty;
                 if (name.Length == 0) throw new ArgumentException($"Table column {index + 1} has no name.", nameof(columnNames));
                 if (name.Length > 32_767) throw new ArgumentException($"Table column {index + 1} exceeds Excel's cell-text limit.", nameof(columnNames));
+                try {
+                    XmlConvert.VerifyXmlChars(name);
+                } catch (XmlException exception) {
+                    throw new ArgumentException($"Table column {index + 1} contains characters that are invalid in XML.", nameof(columnNames), exception);
+                }
                 if (!used.Add(name)) throw new ArgumentException($"Table column name '{name}' is duplicated.", nameof(columnNames));
                 result[index] = name;
             }
