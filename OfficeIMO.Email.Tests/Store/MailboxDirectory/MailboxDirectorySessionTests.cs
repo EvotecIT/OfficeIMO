@@ -150,7 +150,16 @@ public sealed class MailboxDirectorySessionTests {
             File.Delete(path);
             Assert.Equal(0, CreateNamedPipe(path, 0x180));
 
-            Task<Exception> read = Task.Run(() => Record.Exception(() => session.ReadItem(reference)));
+            using var readStarted = new ManualResetEventSlim();
+            Task<Exception> read = Task.Factory.StartNew(
+                () => {
+                    readStarted.Set();
+                    return Record.Exception(() => session.ReadItem(reference));
+                },
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            Assert.True(readStarted.Wait(TimeSpan.FromSeconds(2)), "The dedicated reader did not start.");
             bool completedWithoutWriter = ReferenceEquals(
                 await Task.WhenAny(read, Task.Delay(TimeSpan.FromMilliseconds(500))),
                 read);

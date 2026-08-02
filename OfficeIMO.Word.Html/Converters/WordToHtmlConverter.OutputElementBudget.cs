@@ -35,6 +35,13 @@ namespace OfficeIMO.Word.Html {
             budget.ReserveCharacters(characters, message, source);
         }
 
+        private static void ReleaseOutputCharacters(IDocument owner, long characters) {
+            if (!OutputConstructionBudgets.TryGetValue(owner, out OutputConstructionBudget? budget)) {
+                throw new InvalidOperationException("The HTML output construction budget was not initialized.");
+            }
+            budget.ReleaseCharacters(characters);
+        }
+
         private static void SetOutputAttribute(
             IDocument owner,
             IElement element,
@@ -103,6 +110,11 @@ namespace OfficeIMO.Word.Html {
                         _options.MaxOutputCharacters);
                 }
                 _minimumOutputCharacters = projectedCharacters;
+            }
+
+            internal void ReleaseCharacters(long characters) {
+                if (characters < 0) throw new ArgumentOutOfRangeException(nameof(characters));
+                _minimumOutputCharacters = Math.Max(0, _minimumOutputCharacters - characters);
             }
         }
     }

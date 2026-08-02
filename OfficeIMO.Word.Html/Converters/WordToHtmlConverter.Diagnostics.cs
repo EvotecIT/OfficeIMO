@@ -147,6 +147,9 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
+        // Header and footer parts are intentionally excluded here. A shared part can be emitted
+        // once per section, so AppendHeaderFooterRegion measures and reserves its source content
+        // immediately before every emitted region rather than charging the package part once.
         private static bool IsOutputContentRoot(OpenXmlElement root, WordToHtmlOptions options) =>
             root is not DocumentFormat.OpenXml.Wordprocessing.Header &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Footer &&

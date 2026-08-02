@@ -10,6 +10,15 @@ namespace OfficeIMO.Word.Html {
             IElement context,
             WordEquation equation,
             WordToHtmlOptions options) {
+            string label = equation.Text;
+            if (equation.Representation == WordEquationRepresentation.EquationField) {
+                // InspectExport charged the cached field result as ordinary Word text. The
+                // MathML projection replaces that source text, so release it before charging
+                // the generated mtext and accessibility label that actually reach the output.
+                ReleaseOutputCharacters(
+                    htmlDocument,
+                    GetHtmlEncodedLength(label, attributeValue: false));
+            }
             long remaining = GetRemainingOutputCharacters(htmlDocument);
             string mathMl;
             try {
@@ -29,7 +38,6 @@ namespace OfficeIMO.Word.Html {
                 mathMl.Length,
                 "Generated MathML exceeds the configured HTML output-character limit before DOM construction.",
                 "EquationMathMl");
-            string label = equation.Text;
             ReserveOutputCharacters(
                 htmlDocument,
                 " aria-label=\"\"".Length + GetHtmlEncodedLength(label, attributeValue: true),

@@ -462,6 +462,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetCountsSharedHeaderSourceAttributesPerSection() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Body");
+            WordSection firstSection = document.Sections[0];
+            WordParagraph headerParagraph = firstSection
+                .GetOrCreateHeader(HeaderFooterValues.Default)
+                .AddParagraph();
+            headerParagraph._paragraph.Append(new Run(
+                new RunProperties(new RunFonts { Ascii = new string('F', 2048) }),
+                new Text("Header")));
+            string relationshipId = firstSection._sectionProperties
+                .GetFirstChild<HeaderReference>()!.Id!;
+            for (int index = 0; index < 2; index++) {
+                WordSection section = document.AddSection(SectionMarkValues.NextPage);
+                section._sectionProperties.InsertAt(new HeaderReference {
+                    Type = HeaderFooterValues.Default,
+                    Id = relationshipId
+                }, 0);
+                section.Header.Default = firstSection.Header.Default;
+                section.AddParagraph("Section " + index);
+            }
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    ExportHeadersAndFooters = true,
+                    IncludeDefaultCss = false,
+                    IncludeFontStyles = true,
+                    MaxOutputCharacters = 5_000
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.StartsWith("HeaderFooter:header:default:section-", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetBoundsMathMlBeforeFragmentParsing() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph()._paragraph.Append(
@@ -476,6 +512,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
             Assert.Equal("EquationMathMl", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetDoesNotRetainReplacedEquationFieldText() {
+            using WordDocument document = WordDocument.Create();
+            string cachedResult = new string('x', 4096);
+            document.AddParagraph()._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" EQ \\f(a,b) ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text(cachedResult)),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            string expected = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false
+            }).RequireValue();
+
+            HtmlTextConversionResult bounded = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = expected.Length + 512
+            });
+
+            Assert.True(bounded.Succeeded);
+            Assert.Equal(expected, bounded.RequireValue());
+            Assert.Equal(2, bounded.RequireValue().Split(
+                new[] { cachedResult },
+                StringSplitOptions.None).Length - 1);
         }
 
         [Fact]
