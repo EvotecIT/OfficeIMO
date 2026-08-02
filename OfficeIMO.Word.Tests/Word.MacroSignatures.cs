@@ -450,12 +450,9 @@ namespace OfficeIMO.Tests {
         [VbaOfficeSipInteropFact]
         public void MacroSigningInteroperatesWithMicrosoftOfficeSipAndDetectsTampering() {
             TraceOfficeSipInterop("document-create:start");
-            string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
+            string sourcePath = Environment.GetEnvironmentVariable("OFFICEIMO_VBA_INTEROP_DOCUMENT_PATH")!;
             string filePath = Path.Combine(_directoryWithFiles, "MacroSignatureOfficeSips.docm");
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddMacro(macroPath);
-                document.Save();
-            }
+            File.Copy(sourcePath, filePath, overwrite: true);
             TraceOfficeSipInterop("document-create:complete");
 
             TraceOfficeSipInterop("certificate-create:start");

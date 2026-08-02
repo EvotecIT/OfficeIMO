@@ -575,6 +575,9 @@ jobs:
           $runtimeUrl = 'https://download.microsoft.com/download/1/6/5/165255e7-1014-4d0a-b094-b6a430a6bffc/vcredist_x64.exe'
           $runtimeSha256 = 'F3B7A76D84D23F91957AA18456A14B4E90609E4CE8194C5653384ED38DADA6F3'
           $runtimePath = Join-Path $env:RUNNER_TEMP 'vcredist_2010_sp1_x64.exe'
+          $interopDocumentUrl = 'https://raw.githubusercontent.com/apache/poi/f613a72d8c591751caca83b45637a1b653cea833/test-data/document/SimpleMacro.docm'
+          $interopDocumentSha256 = 'FD591958FCF5322F72C0A740E9606309C949254BDA4C3D9BD966481DDF220563'
+          $interopDocumentPath = Join-Path $env:RUNNER_TEMP 'OfficeSips-SimpleMacro.docm'
           $extractRoot = Join-Path $env:RUNNER_TEMP 'OfficeSips'
           $outerDirectory = Join-Path $extractRoot 'outer'
           $toolsDirectory = Join-Path $extractRoot 'tools'
@@ -598,6 +601,11 @@ jobs:
           }
           if (-not (Test-Path -LiteralPath $runtimeDll)) {
             throw 'The OfficeSips VBE7 dependency msvcr100.dll is unavailable after runtime setup.'
+          }
+          Invoke-WebRequest -Uri $interopDocumentUrl -OutFile $interopDocumentPath
+          $actualInteropDocumentSha256 = (Get-FileHash -LiteralPath $interopDocumentPath -Algorithm SHA256).Hash
+          if ($actualInteropDocumentSha256 -ne $interopDocumentSha256) {
+            throw "VBA interoperability document checksum mismatch: $actualInteropDocumentSha256"
           }
           & 7z.exe x $downloadPath "-o$outerDirectory" -y | Out-Null
           $sipPath = Get-ChildItem -LiteralPath $outerDirectory -Filter msosipx.dll -Recurse |
@@ -640,6 +648,7 @@ jobs:
             $env:OFFICEIMO_RUN_VBA_SIP_INTEROP = '1'
             $env:OFFICEIMO_VBA_SIP_DIRECTORY = Split-Path -Parent $clearPath
             $env:OFFICEIMO_SIGNTOOL_PATH = $signToolPath
+            $env:OFFICEIMO_VBA_INTEROP_DOCUMENT_PATH = $interopDocumentPath
             dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj `
               --configuration $env:BUILD_CONFIGURATION `
               --framework net8.0 `
