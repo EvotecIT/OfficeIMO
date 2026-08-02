@@ -257,7 +257,11 @@ namespace OfficeIMO.Word {
             }
 
             if (removeFields) {
-                Run? sourceRun = GetComplexFieldResultRuns(fieldRuns).FirstOrDefault()
+                Run? sourceRun = GetComplexFieldResultTextElements(fieldRuns)
+                    .Select(text => text.Parent as Run)
+                    .OfType<Run>()
+                    .FirstOrDefault()
+                    ?? GetComplexFieldResultRuns(fieldRuns).FirstOrDefault()
                     ?? fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null)
                     ?? fieldRuns.FirstOrDefault();
                 var replacement = CreateReplacementRun(formattedValue, sourceRun);
@@ -271,7 +275,7 @@ namespace OfficeIMO.Word {
             }
 
             var resultRuns = GetComplexFieldResultRuns(fieldRuns).ToList();
-            if (!SetFieldResultText(resultRuns, formattedValue)) {
+            if (!SetComplexFieldResultText(fieldRuns, resultRuns, formattedValue)) {
                 Run endRun = fieldRuns[fieldRuns.Count - 1];
                 Run? sourceRun = fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null);
                 if (!fieldRuns.Any(run => run.GetFirstChild<FieldChar>()?.FieldCharType?.Value == FieldCharValues.Separate)) {
@@ -427,6 +431,37 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private static IEnumerable<Text> GetComplexFieldResultTextElements(
+            IReadOnlyList<Run> fieldRuns) {
+            bool afterSeparator = false;
+            foreach (Run run in fieldRuns) {
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    if (child is FieldChar fieldChar) {
+                        if (fieldChar.FieldCharType?.Value == FieldCharValues.Separate) {
+                            afterSeparator = true;
+                            continue;
+                        }
+                        if (fieldChar.FieldCharType?.Value == FieldCharValues.End) {
+                            yield break;
+                        }
+                    }
+                    if (afterSeparator && child is Text text) {
+                        yield return text;
+                    }
+                }
+            }
+        }
+
+        private static bool SetComplexFieldResultText(
+            IReadOnlyList<Run> fieldRuns,
+            IReadOnlyList<Run> resultRuns,
+            string value) {
+            List<Text> markerAwareTextElements = GetComplexFieldResultTextElements(fieldRuns).ToList();
+            return markerAwareTextElements.Count > 0
+                ? SetFieldResultTextElements(markerAwareTextElements, value)
+                : SetFieldResultText(resultRuns, value);
+        }
+
         private static bool SetFieldResultText(IEnumerable<Run> runs, string value) {
             List<Run> resultRuns = runs.ToList();
             var textElements = resultRuns
@@ -439,6 +474,10 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
+            return SetFieldResultTextElements(textElements, value);
+        }
+
+        private static bool SetFieldResultTextElements(IReadOnlyList<Text> textElements, string value) {
             textElements[0].Text = value;
             textElements[0].Space = SpaceProcessingModeValues.Preserve;
             for (int i = 1; i < textElements.Count; i++) {

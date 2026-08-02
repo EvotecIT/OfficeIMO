@@ -109,6 +109,7 @@ namespace OfficeIMO.Word {
                 stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
                 WordPackageSnapshot.CopyBounded(fullPath, stagingPath, options.MaxPackageBytes);
                 string sourcePackageHash = WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
+                EnsurePackagePartCountWithinLimit(stagingPath, options);
                 PrepareDigitalSignatureMetadata(stagingPath);
                 byte[] packageBytes = File.ReadAllBytes(stagingPath);
                 SigningPayload payload = CreateSignature(packageBytes, signingCertificates, signingKey, options);
@@ -164,7 +165,15 @@ namespace OfficeIMO.Word {
             if (packageLength > options.MaxPackageBytes) {
                 throw new InvalidDataException("The signed package exceeds the " + options.MaxPackageBytes + " byte signing limit.");
             }
-            using var archive = new OfficePackageSignatureArchive(File.ReadAllBytes(packagePath), options.MaxPackageParts);
+            EnsurePackagePartCountWithinLimit(packagePath, options);
+        }
+
+        private static void EnsurePackagePartCountWithinLimit(
+            string packagePath,
+            OfficePackageSigningOptions options) {
+            using var archive = new OfficePackageSignatureArchive(
+                File.ReadAllBytes(packagePath),
+                options.MaxPackageParts);
         }
 
         private static IReadOnlyList<X509Certificate2> ValidateSigningCertificates(X509Certificate2 signer, OfficePackageSigningOptions options) {

@@ -100,6 +100,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesGeneratedStyleCssBeforeDomAssignment() {
+            using WordDocument document = WordDocument.Create();
+            const string styleId = "BudgetedStyle";
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                new Style(
+                    new StyleRunProperties(
+                        new RunFonts { Ascii = new string('A', 8192) })) {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId
+                });
+            document.AddParagraph("Styled content").SetStyleId(styleId);
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    IncludeParagraphClasses = true,
+                    MaxOutputCharacters = 4096
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("GeneratedStyleCss", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetReservesRelationshipBackedHyperlinkBeforeDomAssignment() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph().AddHyperLink(

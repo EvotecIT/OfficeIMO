@@ -462,21 +462,19 @@ namespace OfficeIMO.Tests {
             using X509Certificate2 certificate = CreateOfficeSipSigningCertificate();
             TraceOfficeSipInterop("certificate-create:complete");
             using var personalStore = new X509Store(StoreName.My, StoreLocation.CurrentUser);
-            using var rootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
             TraceOfficeSipInterop("certificate-store-open:start");
             personalStore.Open(OpenFlags.ReadWrite);
-            rootStore.Open(OpenFlags.ReadWrite);
             TraceOfficeSipInterop("certificate-store-open:complete");
-            TraceOfficeSipInterop("certificate-store-add:start");
+            TraceOfficeSipInterop("certificate-personal-store-add:start");
             personalStore.Add(certificate);
-            rootStore.Add(new X509Certificate2(certificate.Export(X509ContentType.Cert)));
-            TraceOfficeSipInterop("certificate-store-add:complete");
+            TraceOfficeSipInterop("certificate-personal-store-add:complete");
             try {
                 var options = new WordMacroProjectSigningOptions {
                     SignToolPath = Environment.GetEnvironmentVariable("OFFICEIMO_SIGNTOOL_PATH"),
                     OfficeSipsDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_VBA_SIP_DIRECTORY"),
                     ToolTimeout = TimeSpan.FromSeconds(30)
                 };
+                TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
                 var dependencies = new WordMacroProjectSigningDependencies(
                     new TracingOfficeSipToolRunner(new WordMacroProjectProcessRunner()),
                     new TracingOfficeSipPlatform(new WordMacroProjectWindowsPlatform()));
@@ -510,7 +508,6 @@ namespace OfficeIMO.Tests {
             } finally {
                 TraceOfficeSipInterop("certificate-store-remove:start");
                 RemoveCertificatesByThumbprint(personalStore, certificate.Thumbprint);
-                RemoveCertificatesByThumbprint(rootStore, certificate.Thumbprint);
                 TraceOfficeSipInterop("certificate-store-remove:complete");
             }
         }

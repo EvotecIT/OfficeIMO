@@ -363,7 +363,7 @@ namespace OfficeIMO.Drawing {
             return externalCount;
         }
 
-        private static void ValidateOptions(OfficePackageSecurityOptions options) {
+        internal static void ValidateOptions(OfficePackageSecurityOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (options.MaxPackageBytes < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageBytes));
             if (options.MaxPartCount < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPartCount));

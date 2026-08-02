@@ -1,5 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -21,6 +22,26 @@ namespace OfficeIMO.Tests {
             foreach (Action<OfficeIMO.Security.CmsVerificationOptions> invalidate in invalidLimits) {
                 var options = new WordMacroProjectSignatureInspectionOptions();
                 invalidate(options.CmsVerification);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    WordDocument.InspectMacroProjectSignatures(filePath, options));
+            }
+        }
+
+        [Fact]
+        public void MacroSignatureInspectionRejectsEveryInvalidNestedPackageLimitBeforeReadingThePackage() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureInvalidPackageLimits.docm");
+            Action<OfficePackageSecurityOptions>[] invalidLimits = {
+                options => options.MaxPackageBytes = 0,
+                options => options.MaxPartCount = 0,
+                options => options.MaxPartUncompressedBytes = 0,
+                options => options.MaxTotalUncompressedBytes = 0,
+                options => options.MaxCompressionRatio = 0
+            };
+
+            foreach (Action<OfficePackageSecurityOptions> invalidate in invalidLimits) {
+                var options = new WordMacroProjectSignatureInspectionOptions();
+                invalidate(options.PackageSecurity);
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                     WordDocument.InspectMacroProjectSignatures(filePath, options));

@@ -123,6 +123,7 @@ namespace OfficeIMO.Word {
             if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
             if (options.MaxTotalSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalSignatureBytes));
             if (options.MaxRelationships <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRelationships));
+            OfficePackageSecurityInspector.ValidateOptions(options.PackageSecurity);
             CmsSignedDataVerifier.ValidateOptions(options.CmsVerification);
         }
 

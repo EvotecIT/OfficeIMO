@@ -102,6 +102,12 @@ namespace OfficeIMO.Word {
                     options.MaxCertificateBytes,
                     certificateByteBudget,
                     findings));
+                AddCallerCertificateCandidates(
+                    options.CertificateValidation.ExtraCertificates,
+                    options.MaxCertificates,
+                    options.MaxCertificateBytes,
+                    certificateByteBudget,
+                    certificates);
                 XmlElement? signatureValue = ReadSignatureValue(document, findings, signaturePartInfo.Uri);
                 WordSignatureValidationState cryptographicStatus;
                 IReadOnlyList<X509Certificate2> matchingSigners = Array.Empty<X509Certificate2>();
@@ -113,7 +119,7 @@ namespace OfficeIMO.Word {
                 } else if (certificates.Count == 0) {
                     cryptographicStatus = WordSignatureValidationState.Unsupported;
                     findings.Add(Finding("SignerCertificateMissing", cryptographicStatus,
-                        "No embedded or related X.509 signer certificate was found.", signaturePartInfo.Uri));
+                        "No embedded, related, or caller-supplied X.509 signer certificate was found.", signaturePartInfo.Uri));
                 } else {
                     cryptographicStatus = ValidateSignedXml(
                         document,
@@ -467,6 +473,36 @@ namespace OfficeIMO.Word {
             }
             return result;
         }
+
+        private static void AddCallerCertificateCandidates(
+            X509Certificate2Collection callerCertificates,
+            int maxCertificates,
+            long maxCertificateBytes,
+            OfficePackageCertificateByteBudget certificateByteBudget,
+            List<X509Certificate2> certificates) {
+            var identities = new HashSet<string>(
+                certificates.Select(GetCertificateCandidateIdentity),
+                StringComparer.OrdinalIgnoreCase);
+            foreach (X509Certificate2 candidate in callerCertificates) {
+                string identity = GetCertificateCandidateIdentity(candidate);
+                if (!identities.Add(identity)) continue;
+                if (certificates.Count >= maxCertificates) {
+                    throw new InvalidDataException(
+                        "The XML signature exceeds the " + maxCertificates + " certificate limit.");
+                }
+                byte[] rawCertificate = candidate.RawData;
+                if (rawCertificate.LongLength > maxCertificateBytes) {
+                    throw new InvalidDataException(
+                        "A caller-supplied signature certificate exceeds the " +
+                        maxCertificateBytes + " byte limit.");
+                }
+                certificateByteBudget.Reserve(rawCertificate.LongLength);
+                certificates.Add(LoadCertificate(rawCertificate));
+            }
+        }
+
+        private static string GetCertificateCandidateIdentity(X509Certificate2 certificate) =>
+            certificate.Thumbprint ?? Convert.ToBase64String(certificate.RawData);
 
         private static IReadOnlyList<XmlElement> GetEmbeddedSignerCertificateElements(XmlDocument signatureXml) {
             XmlElement? signature = signatureXml.DocumentElement;
