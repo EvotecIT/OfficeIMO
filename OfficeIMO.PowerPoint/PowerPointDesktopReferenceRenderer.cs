@@ -95,7 +95,12 @@ namespace OfficeIMO.PowerPoint {
             try {
                 application = Activator.CreateInstance(powerPointType);
                 if (application == null) throw new InvalidOperationException("PowerPoint application could not be created.");
-                TrySetProperty(application, "AutomationSecurity", 3);
+                if (!TryConfigureApplicationSecurity(application,
+                        out string securityMessage)) {
+                    return new PowerPointReferenceRenderResult(
+                        PowerPointReferenceRenderStatus.Failed,
+                        securityMessage);
+                }
                 presentations = GetProperty(application, "Presentations");
                 presentation = InvokeMethod(presentations, "Open", fullPath, -1, 0, 0);
                 InvokeMethod(presentation, "Export", fullOutput, "PNG", 0, 0);
@@ -195,13 +200,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Late-bound COM members are supplied by installed PowerPoint Desktop and are outside the managed trimming graph.")]
-        private static void TrySetProperty(object target, string name,
+        internal static void SetRequiredProperty(object target, string name,
             object value) {
+            target.GetType().InvokeMember(name, BindingFlags.SetProperty,
+                null, target, new[] { value });
+        }
+
+        internal static bool TryConfigureApplicationSecurity(object application,
+            out string message) {
             try {
-                target.GetType().InvokeMember(name, BindingFlags.SetProperty,
-                    null, target, new[] { value });
-            } catch {
-                // Older PowerPoint versions may not expose every quiet/security automation property.
+                SetRequiredProperty(application, "AutomationSecurity", 3);
+                message = string.Empty;
+                return true;
+            } catch (Exception exception) {
+                message = "PowerPoint Desktop reference rendering could not force-disable macros: "
+                    + GetRootMessage(exception);
+                return false;
             }
         }
 

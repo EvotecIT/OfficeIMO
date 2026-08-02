@@ -30,10 +30,9 @@ namespace OfficeIMO.PowerPoint {
             }
             if (geometry.FillColor.HasValue
                 && geometry.FillRule == OfficeFillRule.EvenOdd
-                && commands.Count(command => command.Kind
-                    == OfficePathCommandKind.MoveTo) > 1) {
+                && !CanEncodeEvenOddFillAsNonZero(commands)) {
                 throw new NotSupportedException(
-                    "DrawingML custom geometry cannot faithfully encode an even-odd fill across multiple contours. Use a non-zero fill rule, remove the fill, or split the contours into separate shapes.");
+                    "DrawingML custom geometry cannot faithfully encode the even-odd fill rule. Use a non-zero fill rule, remove the fill, or split the geometry into separate shapes.");
             }
 
             PowerPointAutoShape result = AddShape(
@@ -48,6 +47,86 @@ namespace OfficeIMO.PowerPoint {
             ApplyCustomGeometryStyle(result, properties, geometry);
             return result;
         }
+
+        private static bool CanEncodeEvenOddFillAsNonZero(
+            IReadOnlyList<OfficePathCommand> commands) {
+            if (commands.Count(command => command.Kind
+                    == OfficePathCommandKind.MoveTo) != 1
+                || commands.Any(command => command.Kind is not (
+                    OfficePathCommandKind.MoveTo or OfficePathCommandKind.LineTo
+                    or OfficePathCommandKind.Close))) {
+                return false;
+            }
+
+            List<OfficePoint> points = commands
+                .Where(command => command.Kind is OfficePathCommandKind.MoveTo
+                    or OfficePathCommandKind.LineTo)
+                .Select(command => command.Point)
+                .ToList();
+            if (points.Count > 1 && PointsEqual(points[0],
+                    points[points.Count - 1])) {
+                points.RemoveAt(points.Count - 1);
+            }
+            if (points.Count < 3 || points.Select(point => (point.X, point.Y))
+                    .Distinct().Count() != points.Count) {
+                return false;
+            }
+
+            double signedArea = 0D;
+            for (int index = 0; index < points.Count; index++) {
+                OfficePoint current = points[index];
+                OfficePoint next = points[(index + 1) % points.Count];
+                signedArea += current.X * next.Y - next.X * current.Y;
+            }
+            if (Math.Abs(signedArea) <= 1E-9D) return false;
+
+            for (int first = 0; first < points.Count; first++) {
+                int firstNext = (first + 1) % points.Count;
+                for (int second = first + 1; second < points.Count; second++) {
+                    int secondNext = (second + 1) % points.Count;
+                    if (first == second || firstNext == second
+                        || secondNext == first) continue;
+                    if (SegmentsIntersect(points[first], points[firstNext],
+                            points[second], points[secondNext])) return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool SegmentsIntersect(OfficePoint firstStart,
+            OfficePoint firstEnd, OfficePoint secondStart,
+            OfficePoint secondEnd) {
+            double firstSide = Cross(firstStart, firstEnd, secondStart);
+            double secondSide = Cross(firstStart, firstEnd, secondEnd);
+            double thirdSide = Cross(secondStart, secondEnd, firstStart);
+            double fourthSide = Cross(secondStart, secondEnd, firstEnd);
+            const double epsilon = 1E-9D;
+            if (Math.Abs(firstSide) <= epsilon && IsOnSegment(firstStart,
+                    firstEnd, secondStart, epsilon)) return true;
+            if (Math.Abs(secondSide) <= epsilon && IsOnSegment(firstStart,
+                    firstEnd, secondEnd, epsilon)) return true;
+            if (Math.Abs(thirdSide) <= epsilon && IsOnSegment(secondStart,
+                    secondEnd, firstStart, epsilon)) return true;
+            if (Math.Abs(fourthSide) <= epsilon && IsOnSegment(secondStart,
+                    secondEnd, firstEnd, epsilon)) return true;
+            return (firstSide > 0D) != (secondSide > 0D)
+                && (thirdSide > 0D) != (fourthSide > 0D);
+        }
+
+        private static bool IsOnSegment(OfficePoint start, OfficePoint end,
+            OfficePoint point, double epsilon) => point.X
+                >= Math.Min(start.X, end.X) - epsilon
+                && point.X <= Math.Max(start.X, end.X) + epsilon
+                && point.Y >= Math.Min(start.Y, end.Y) - epsilon
+                && point.Y <= Math.Max(start.Y, end.Y) + epsilon;
+
+        private static double Cross(OfficePoint start, OfficePoint end,
+            OfficePoint point) => (end.X - start.X) * (point.Y - start.Y)
+                - (end.Y - start.Y) * (point.X - start.X);
+
+        private static bool PointsEqual(OfficePoint first,
+            OfficePoint second) => first.X.Equals(second.X)
+                && first.Y.Equals(second.Y);
 
         /// <summary>Adds shared custom geometry using point measurements.</summary>
         public PowerPointAutoShape AddCustomGeometryPoints(OfficeShape geometry, double leftPoints,

@@ -337,10 +337,19 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Structure", "Sections", PowerPointFeatureSupportLevel.Editable, GetSections().Count, null,
                 "Sections can be authored, inspected, renamed, moved, and synchronized with slides.");
             PowerPointCustomShow[] customShows = CustomShows.ToArray();
-            Add(features, "Presentation", "Custom shows", PowerPointFeatureSupportLevel.Editable,
+            IReadOnlyList<string> unsafeCustomShowDetails =
+                DescribeUnsafeCustomShowStructure();
+            bool customShowsAreEditable = unsafeCustomShowDetails.Count == 0;
+            Add(features, "Presentation", "Custom shows", customShowsAreEditable
+                    ? PowerPointFeatureSupportLevel.Editable
+                    : PowerPointFeatureSupportLevel.Preserved,
                 customShows.Length, null,
-                "Named slide sequences can be authored, inspected, renamed, reordered, and removed while linked actions remain synchronized.",
-                customShows.Select(show => $"{show.Name}: {show.Slides.Count} slide(s)").ToList());
+                customShowsAreEditable
+                    ? "Named slide sequences can be authored, inspected, renamed, reordered, and removed while linked actions remain synchronized."
+                    : "Malformed or producer-extended custom-show structures are preserved but are not safe for the editable custom-show surface.",
+                customShowsAreEditable
+                    ? customShows.Select(show => $"{show.Name}: {show.Slides.Count} slide(s)").ToList()
+                    : unsafeCustomShowDetails);
             Add(features, "Content", "Text boxes", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTextBoxes), null,
                 "Text boxes, runs, common formatting, markdown import, hyperlinks, and replacement are editable.");
             Add(features, "Content", "Tables", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTables), null,
@@ -552,6 +561,72 @@ namespace OfficeIMO.PowerPoint {
                     pending.Push((pair.OpenXmlPart, depth + 1));
                 }
             }
+        }
+
+        private IReadOnlyList<string> DescribeUnsafeCustomShowStructure() {
+            CustomShowList? list = PresentationRoot.CustomShowList;
+            if (list == null) return Array.Empty<string>();
+
+            var details = new List<string>();
+            if (list.ChildElements.Any(child => child is not CustomShow)) {
+                details.Add("Custom-show list contains unsupported producer extension children.");
+            }
+
+            CustomShow[] shows = list.Elements<CustomShow>().ToArray();
+            var ids = new HashSet<uint>();
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int index = 0; index < shows.Length; index++) {
+                CustomShow show = shows[index];
+                string scope = $"Custom show {index + 1}";
+                if (show.Id?.Value is not uint id) {
+                    details.Add(scope + " has no identifier.");
+                } else if (!ids.Add(id)) {
+                    details.Add(scope + $" duplicates identifier {id}.");
+                }
+
+                string? name = show.Name?.Value;
+                if (string.IsNullOrWhiteSpace(name)) {
+                    details.Add(scope + " has no name.");
+                } else if (!names.Add(name!)) {
+                    details.Add(scope + $" duplicates name '{name}'.");
+                }
+
+                if (show.ChildElements.Any(child => child is not SlideList)) {
+                    details.Add(scope + " contains unsupported producer extension children.");
+                }
+                SlideList? slideList = show.GetFirstChild<SlideList>();
+                if (slideList == null) {
+                    details.Add(scope + " has no slide list.");
+                    continue;
+                }
+                if (slideList.ChildElements.Any(child => child is not SlideListEntry)) {
+                    details.Add(scope + " slide list contains unsupported producer extension children.");
+                }
+
+                SlideListEntry[] entries = slideList.Elements<SlideListEntry>()
+                    .ToArray();
+                if (entries.Length == 0) {
+                    details.Add(scope + " has an empty slide list.");
+                }
+                for (int entryIndex = 0; entryIndex < entries.Length;
+                     entryIndex++) {
+                    SlideListEntry entry = entries[entryIndex];
+                    if (entry.ChildElements.Count > 0) {
+                        details.Add(scope + $" slide {entryIndex + 1} contains unsupported producer extension children.");
+                    }
+                    string? relationshipId = entry.Id?.Value;
+                    if (string.IsNullOrWhiteSpace(relationshipId)
+                        || !_presentationPart.TryGetPartById(relationshipId!,
+                            out OpenXmlPart? part)
+                        || part is not SlidePart slidePart
+                        || !_slides.Any(slide => ReferenceEquals(
+                            slide.SlidePart, slidePart))) {
+                        details.Add(scope + $" slide {entryIndex + 1} has an unresolved slide relationship.");
+                    }
+                }
+            }
+
+            return details.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
 
         private static List<string> DescribePackageFoundationParts(IEnumerable<OpenXmlPart> parts) {

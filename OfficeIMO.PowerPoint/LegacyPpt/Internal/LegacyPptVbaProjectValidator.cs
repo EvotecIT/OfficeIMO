@@ -304,8 +304,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (!TryReadRecord(bytes, ref position, 0x001A,
                         out int streamNameOffset, out int streamNameLength)
                     || streamNameLength == 0
-                    || !TryReadSizedRecord(bytes, ref position, 0x0032, null,
-                        true)
+                    || !TryReadRecord(bytes, ref position, 0x0032,
+                        out int unicodeStreamNameOffset,
+                        out int unicodeStreamNameLength)
+                    || unicodeStreamNameLength == 0
+                    || unicodeStreamNameLength % 2 != 0
                     || !TryReadSizedRecord(bytes, ref position, 0x001C, null,
                         false)
                     || !TryReadSizedRecord(bytes, ref position, 0x0048, null,
@@ -330,8 +333,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (!TryReadSizedRecord(bytes, ref position, 0x002B, 0,
                         false)) return false;
 
-                string? streamName = TryDecode(bytes, streamNameOffset,
+                string? ansiStreamName = TryDecode(bytes, streamNameOffset,
                     streamNameLength, codePage);
+                string? unicodeStreamName = TryDecodeUnicode(bytes,
+                    unicodeStreamNameOffset, unicodeStreamNameLength);
+                string? streamName = !string.IsNullOrWhiteSpace(unicodeStreamName)
+                    ? unicodeStreamName
+                    : ansiStreamName;
                 uint moduleOffset = ReadUInt32(bytes, moduleOffsetPosition);
                 byte[]? moduleStream = streams
                     .Where(pair => string.Equals(pair.Key,
@@ -369,6 +377,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     .GetString(bytes, offset, length);
             } catch (Exception exception) when (exception is ArgumentException
                 || exception is NotSupportedException) {
+                return null;
+            }
+        }
+
+        private static string? TryDecodeUnicode(byte[] bytes, int offset,
+            int length) {
+            if (length == 0 || length % 2 != 0) return null;
+            try {
+                return new UnicodeEncoding(false, false, true)
+                    .GetString(bytes, offset, length);
+            } catch (DecoderFallbackException) {
                 return null;
             }
         }

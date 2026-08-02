@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
@@ -89,6 +90,41 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentException>(() =>
                 first.RenameCustomShow(show, "Invalid\u0001name"));
             Assert.Equal("Local", show.Name);
+        }
+
+        [Fact]
+        public void FeatureReportPreservesMalformedOrExtendedCustomShows() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Primary", new[] { slide });
+            CustomShowList list = presentation.OpenXmlDocument.PresentationPart!
+                .Presentation!.CustomShowList!;
+            list.Append(new CustomShow {
+                Id = show.Id,
+                Name = "Duplicate",
+                SlideList = new SlideList(new SlideListEntry {
+                    Id = "rUnresolved"
+                })
+            });
+            list.Append(new OpenXmlUnknownElement("p14", "extLst",
+                "http://schemas.microsoft.com/office/powerpoint/2010/main"));
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding finding = Assert.Single(
+                report.FindFeatures("Custom shows"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                finding.SupportLevel);
+            Assert.Contains(finding.Details, detail => detail.Contains(
+                "duplicates identifier", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(finding.Details, detail => detail.Contains(
+                "unresolved slide relationship", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(finding.Details, detail => detail.Contains(
+                "extension", StringComparison.OrdinalIgnoreCase));
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
         }
 
         [Fact]

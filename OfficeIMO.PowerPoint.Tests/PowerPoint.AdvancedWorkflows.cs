@@ -723,6 +723,15 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void DesktopReferenceLaneFailsClosedWhenMacroSecurityCannotBeSet() {
+            Assert.False(PowerPointDesktopReferenceRenderer
+                .TryConfigureApplicationSecurity(new object(),
+                    out string message));
+            Assert.Contains("force-disable macros", message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         private static void FeedXml(OpenXmlPart part, string xml) {
             using var data = new MemoryStream(Encoding.UTF8.GetBytes(xml));
             part.FeedData(data);

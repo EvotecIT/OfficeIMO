@@ -214,8 +214,9 @@ namespace OfficeIMO.PowerPoint {
                 .SelectMany(properties => properties.Descendants<A.LatinFont>())
                 .Select(font => font.Typeface?.Value)
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
-            A.Run[] textRuns = title.Descendants<C.RichText>()
-                .SelectMany(richText => richText.Descendants<A.Run>())
+            OpenXmlElement[] textRuns = title.Descendants<C.RichText>()
+                .SelectMany(richText => richText.Descendants()
+                    .Where(element => element is A.Run or A.Field))
                 .Where(run => run.GetFirstChild<A.Text>() != null)
                 .ToArray();
             if (textRuns.Length == 0) {
@@ -237,7 +238,7 @@ namespace OfficeIMO.PowerPoint {
             return explicitFonts.Length == 1 ? explicitFonts[0] : null;
         }
 
-        private static string? ReadTitleRunTypeface(A.Run run) {
+        private static string? ReadTitleRunTypeface(OpenXmlElement run) {
             string? runTypeface = run.GetFirstChild<A.RunProperties>()?
                 .GetFirstChild<A.LatinFont>()?.Typeface?.Value;
             if (!string.IsNullOrWhiteSpace(runTypeface)) return runTypeface;

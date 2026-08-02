@@ -19,6 +19,7 @@ namespace OfficeIMO.Tests {
                 OfficePathCommand.LineTo(24, 100),
                 OfficePathCommand.Close());
             sharedPath.FillColor = OfficeColor.FromRgb(14, 165, 233);
+            sharedPath.FillRule = OfficeFillRule.NonZero;
             sharedPath.StrokeColor = OfficeColor.FromRgb(12, 74, 110);
             sharedPath.StrokeWidth = 2.25D;
 
@@ -54,15 +55,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_RejectsFilledMultiContourEvenOddGeometry() {
+        public void PowerPointSlide_RejectsEveryFilledEvenOddGeometry() {
             OfficeShape geometry = OfficeShape.Path(
                 OfficePathCommand.MoveTo(0, 0),
                 OfficePathCommand.LineTo(100, 0),
                 OfficePathCommand.LineTo(100, 100),
-                OfficePathCommand.Close(),
-                OfficePathCommand.MoveTo(25, 25),
-                OfficePathCommand.LineTo(75, 25),
-                OfficePathCommand.LineTo(75, 75),
+                OfficePathCommand.LineTo(0, 100),
+                OfficePathCommand.LineTo(0, 0),
+                OfficePathCommand.LineTo(100, 0),
+                OfficePathCommand.LineTo(100, 100),
+                OfficePathCommand.LineTo(0, 100),
                 OfficePathCommand.Close());
             geometry.FillColor = OfficeColor.FromRgb(14, 165, 233);
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
@@ -72,6 +74,16 @@ namespace OfficeIMO.Tests {
                 slide.AddCustomGeometryPoints(geometry, 10, 10, 100, 100));
             Assert.Contains("even-odd", error.Message,
                 StringComparison.OrdinalIgnoreCase);
+
+            OfficeShape selfIntersecting = OfficeShape.Polygon(
+                new OfficePoint(0, 0),
+                new OfficePoint(100, 100),
+                new OfficePoint(0, 100),
+                new OfficePoint(100, 0));
+            selfIntersecting.FillColor = OfficeColor.FromRgb(14, 165, 233);
+            Assert.Throws<NotSupportedException>(() =>
+                slide.AddCustomGeometryPoints(selfIntersecting,
+                    10, 10, 100, 100));
 
             geometry.FillRule = OfficeFillRule.NonZero;
             Assert.NotNull(slide.AddCustomGeometryPoints(geometry,

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -53,38 +54,43 @@ namespace OfficeIMO.Visio.Stencils {
             if (defaultWidth <= 0) throw new ArgumentOutOfRangeException(nameof(defaultWidth), "Default width must be positive.");
             if (defaultHeight <= 0) throw new ArgumentOutOfRangeException(nameof(defaultHeight), "Default height must be positive.");
 
-            Id = id;
-            Name = name;
-            MasterNameU = masterNameU;
-            Category = category;
+            Id = ValidateXmlValue(id, nameof(id));
+            Name = ValidateXmlValue(name, nameof(name));
+            MasterNameU = ValidateXmlValue(masterNameU, nameof(masterNameU));
+            Category = ValidateXmlValue(category, nameof(category));
             DefaultWidth = defaultWidth;
             DefaultHeight = defaultHeight;
-            Keywords = (keywords ?? Enumerable.Empty<string>())
+            Keywords = ValidateXmlValues(keywords, nameof(keywords))
                 .Where(keyword => !string.IsNullOrWhiteSpace(keyword))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList()
                 .AsReadOnly();
-            Aliases = (aliases ?? Enumerable.Empty<string>())
+            Aliases = ValidateXmlValues(aliases, nameof(aliases))
                 .Where(alias => !string.IsNullOrWhiteSpace(alias))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList()
                 .AsReadOnly();
-            Tags = (tags ?? Enumerable.Empty<string>())
+            Tags = ValidateXmlValues(tags, nameof(tags))
                 .Where(tag => !string.IsNullOrWhiteSpace(tag))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList()
                 .AsReadOnly();
-            IconNameU = string.IsNullOrWhiteSpace(iconNameU) ? masterNameU : iconNameU!;
+            IconNameU = string.IsNullOrWhiteSpace(iconNameU)
+                ? MasterNameU
+                : ValidateXmlValue(iconNameU!, nameof(iconNameU));
             DefaultUnit = defaultUnit;
-            SourcePackagePath = string.IsNullOrWhiteSpace(sourcePackagePath) ? null : sourcePackagePath;
+            SourcePackagePath = NormalizeOptional(sourcePackagePath,
+                nameof(sourcePackagePath));
             PreviewImage = previewImage;
             SourceConnectionPoints = (sourceConnectionPoints ?? Enumerable.Empty<VisioStencilConnectionPoint>())
                 .Where(point => point != null)
                 .ToList()
                 .AsReadOnly();
             IsSupported = isSupported;
-            SourceLicense = NormalizeOptional(sourceLicense);
-            SourceAttribution = NormalizeOptional(sourceAttribution);
+            SourceLicense = NormalizeOptional(sourceLicense,
+                nameof(sourceLicense));
+            SourceAttribution = NormalizeOptional(sourceAttribution,
+                nameof(sourceAttribution));
         }
 
         /// <summary>
@@ -173,7 +179,29 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         public string IconNameU { get; }
 
-        private static string? NormalizeOptional(string? value) =>
-            string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
+        private static string? NormalizeOptional(string? value,
+            string parameterName) => string.IsNullOrWhiteSpace(value)
+                ? null
+                : ValidateXmlValue(value!.Trim(), parameterName);
+
+        private static IEnumerable<string> ValidateXmlValues(
+            IEnumerable<string>? values, string parameterName) {
+            foreach (string value in values ?? Enumerable.Empty<string>()) {
+                if (value != null) yield return ValidateXmlValue(value,
+                    parameterName);
+            }
+        }
+
+        private static string ValidateXmlValue(string value,
+            string parameterName) {
+            try {
+                XmlConvert.VerifyXmlChars(value);
+                return value;
+            } catch (XmlException exception) {
+                throw new ArgumentException(
+                    "Stencil metadata contains characters that cannot be represented in XML.",
+                    parameterName, exception);
+            }
+        }
     }
 }

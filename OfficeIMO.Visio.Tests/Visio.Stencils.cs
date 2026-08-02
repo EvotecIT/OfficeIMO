@@ -534,6 +534,20 @@ namespace OfficeIMO.Tests {
             Assert.Single(loadedDocument.Pages[0].Connectors);
         }
 
+        [Theory]
+        [InlineData("Invalid\u0001license", null)]
+        [InlineData(null, "Invalid\u0001attribution")]
+        public void StencilShapeRejectsXmlInvalidProvenance(string? sourceLicense,
+            string? sourceAttribution) {
+            Assert.Throws<ArgumentException>(() => new VisioStencilShape(
+                "vendor.shape", "Vendor shape", "VendorShape", "Vendor",
+                1, 1, keywords: null, aliases: null, tags: null,
+                iconNameU: null, defaultUnit: null, sourcePackagePath: null,
+                previewImage: null, sourceConnectionPoints: null,
+                isSupported: false, sourceLicense: sourceLicense,
+                sourceAttribution: sourceAttribution));
+        }
+
         [Fact]
         public void StencilCatalogManifestPreservesLicensingAndUnsupportedState() {
             VisioStencilCatalog source = VisioStencilCatalog.Create(
