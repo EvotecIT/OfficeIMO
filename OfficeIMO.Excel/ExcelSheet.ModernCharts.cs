@@ -117,6 +117,11 @@ namespace OfficeIMO.Excel {
             if (data.Series.Count == 0 || data.Categories.Count == 0) {
                 throw new ArgumentException("Modern charts require at least one category and one series.", nameof(data));
             }
+            if (data.Series.Count >= A1.MaxColumns) {
+                throw new ArgumentException(
+                    "Modern chart data must fit one category column and all series within the worksheet column limit.",
+                    nameof(data));
+            }
             if (data.Series.Any(series => series.Values.Count != data.Categories.Count)) {
                 throw new ArgumentException("Modern chart series must match the category count.", nameof(data));
             }

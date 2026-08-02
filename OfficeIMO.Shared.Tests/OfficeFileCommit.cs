@@ -162,6 +162,60 @@ namespace OfficeIMO.Shared.Tests {
         }
 
         [Fact]
+        public void NetStandardUnixFallback_CreatesOwnerOnlyFileAtomicallyAndSupportsDeleteOnClose() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string retainedPath = Path.Combine(root, "retained.tmp");
+            string unlinkedPath = Path.Combine(root, "unlinked.tmp");
+            string occupiedPath = Path.Combine(root, "occupied.tmp");
+            Directory.CreateDirectory(root);
+
+            try {
+                using (FileStream stream = OfficeTemporaryFile.CreateUnixOwnerOnly(
+                    retainedPath,
+                    4096,
+                    FileOptions.None)) {
+                    const UnixFileMode accessBits = UnixFileMode.UserRead
+                        | UnixFileMode.UserWrite
+                        | UnixFileMode.UserExecute
+                        | UnixFileMode.GroupRead
+                        | UnixFileMode.GroupWrite
+                        | UnixFileMode.GroupExecute
+                        | UnixFileMode.OtherRead
+                        | UnixFileMode.OtherWrite
+                        | UnixFileMode.OtherExecute;
+                    Assert.Equal(
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                        File.GetUnixFileMode(retainedPath) & accessBits);
+                    stream.WriteByte(1);
+                }
+
+                using (FileStream stream = OfficeTemporaryFile.CreateUnixOwnerOnly(
+                    unlinkedPath,
+                    4096,
+                    FileOptions.DeleteOnClose)) {
+                    Assert.True(File.Exists(unlinkedPath));
+                    stream.WriteByte(2);
+                    Assert.Equal(1L, stream.Length);
+                }
+                Assert.False(File.Exists(unlinkedPath));
+
+                File.WriteAllBytes(occupiedPath, new byte[] { 7, 8, 9 });
+                Assert.Throws<IOException>(() => OfficeTemporaryFile.CreateUnixOwnerOnly(
+                    occupiedPath,
+                    4096,
+                    FileOptions.None));
+                Assert.Equal(new byte[] { 7, 8, 9 }, File.ReadAllBytes(occupiedPath));
+            } finally {
+                OfficeFileCommit.DeleteIfExists(retainedPath);
+                OfficeFileCommit.DeleteIfExists(unlinkedPath);
+                OfficeFileCommit.DeleteIfExists(occupiedPath);
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
         public void CommitTemporaryFile_PreservesRestrictiveUnixMode() {
             if (OperatingSystem.IsWindows()) return;
 

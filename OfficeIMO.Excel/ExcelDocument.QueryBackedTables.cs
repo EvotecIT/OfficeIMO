@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
                     if (table == null) continue;
                     QueryTablePart? queryPart = tablePart.QueryTableParts.FirstOrDefault();
                     if (queryPart?.QueryTable?.ConnectionId?.Value is not uint connectionId) continue;
-                    connections.TryGetValue(connectionId, out var connection);
+                    if (!connections.TryGetValue(connectionId, out var connection)) continue;
                     string tableName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
                     results.Add(new ExcelQueryBackedTableInfo(
                         connectionId,

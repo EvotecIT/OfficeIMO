@@ -128,7 +128,12 @@ namespace OfficeIMO.Excel {
 
                 string normalizedRange = A1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + A1.CellReference(targetBounds.r2, targetBounds.c2);
                 table.Reference = normalizedRange;
-                if (rangeChanged) RemapTableResizeSortReferences(table, currentBounds, targetBounds);
+                if (rangeChanged) RemapTableResizeSortReferences(
+                    table,
+                    currentBounds,
+                    targetBounds,
+                    headerRows,
+                    totalsRows);
                 AutoFilter? filter = table.GetFirstChild<AutoFilter>();
                 if (filter != null) {
                     int filterLastRow = Math.Max(targetBounds.r1, targetBounds.r2 - totalsRows);
@@ -219,7 +224,13 @@ namespace OfficeIMO.Excel {
         private static void RemapTableResizeSortReferences(
             Table table,
             (int r1, int c1, int r2, int c2) currentBounds,
-            (int r1, int c1, int r2, int c2) targetBounds) {
+            (int r1, int c1, int r2, int c2) targetBounds,
+            int headerRows,
+            int totalsRows) {
+            int currentDataFirstRow = currentBounds.r1 + headerRows;
+            int currentDataLastRow = currentBounds.r2 - totalsRows;
+            int targetDataFirstRow = targetBounds.r1 + headerRows;
+            int targetDataLastRow = targetBounds.r2 - totalsRows;
             foreach (OpenXmlElement element in table.Descendants().Where(element =>
                 string.Equals(element.LocalName, "sortState", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(element.LocalName, "sortCondition", StringComparison.OrdinalIgnoreCase)).ToList()) {
@@ -236,10 +247,22 @@ namespace OfficeIMO.Excel {
                     element.Remove();
                     continue;
                 }
-                int mappedR1 = r1 == currentBounds.r1 ? targetBounds.r1 : Math.Max(r1, targetBounds.r1);
+                int mappedR1 = r1 == currentBounds.r1
+                    ? targetBounds.r1
+                    : r1 == currentDataFirstRow
+                        ? targetDataFirstRow
+                        : Math.Max(r1, targetBounds.r1);
                 int mappedC1 = c1 == currentBounds.c1 ? targetBounds.c1 : Math.Max(c1, targetBounds.c1);
-                int mappedR2 = r2 == currentBounds.r2 ? targetBounds.r2 : Math.Min(r2, targetBounds.r2);
+                int mappedR2 = r2 == currentBounds.r2
+                    ? targetBounds.r2
+                    : r2 == currentDataLastRow
+                        ? targetDataLastRow
+                        : Math.Min(r2, targetBounds.r2);
                 int mappedC2 = c2 == currentBounds.c2 ? targetBounds.c2 : Math.Min(c2, targetBounds.c2);
+                if (mappedR1 > mappedR2 || mappedC1 > mappedC2) {
+                    element.Remove();
+                    continue;
+                }
                 element.SetAttribute(new OpenXmlAttribute(
                     referenceAttribute.Value.Prefix,
                     referenceAttribute.Value.LocalName,

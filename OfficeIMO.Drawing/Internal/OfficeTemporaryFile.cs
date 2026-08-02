@@ -1,13 +1,13 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
+using Microsoft.Win32.SafeHandles;
 
 namespace OfficeIMO.Drawing.Internal {
     /// <summary>Creates owner-only, non-shareable temporary files that the operating system deletes on close.</summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     internal static class OfficeTemporaryFile {
-        private const uint OwnerFileMode = 0x180; // 0600
-
         internal static FileStream Create(
             string prefix,
             string suffix,
@@ -39,29 +39,67 @@ namespace OfficeIMO.Drawing.Internal {
             }
             return new FileStream(path, streamOptions);
 #else
-            var stream = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return CreateUnixOwnerOnly(path, bufferSize, options);
+            }
+            return new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
                 FileShare.None, bufferSize, options);
+#endif
+        }
+
+        internal static FileStream CreateUnixOwnerOnly(string path, int bufferSize, FileOptions options) {
+            string? directory = Path.GetDirectoryName(path);
+            string templatePath = Path.Combine(
+                string.IsNullOrEmpty(directory) ? "." : directory,
+                ".officeimo-XXXXXX");
+            byte[] template = Encoding.UTF8.GetBytes(templatePath + "\0");
+            int descriptor = CreateOwnerOnlyTemporaryFile(template);
+            if (descriptor < 0) {
+                throw new IOException(
+                    "Unable to create an owner-only temporary file (OS error "
+                    + Marshal.GetLastWin32Error() + ").");
+            }
+
+            var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
+            int terminator = Array.IndexOf(template, (byte)0);
+            string generatedPath = Encoding.UTF8.GetString(template, 0, terminator < 0 ? template.Length : terminator);
+            bool targetLinked = false;
             try {
-                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    && ChangeMode(path, OwnerFileMode) != 0) {
+                if (LinkFile(generatedPath, path) != 0) {
                     throw new IOException(
-                        "Unable to restrict temporary-file permissions (OS error "
+                        "Unable to reserve the owner-only temporary-file path (OS error "
                         + Marshal.GetLastWin32Error() + ").");
                 }
-                return stream;
+                targetLinked = true;
+                if (UnlinkFile(generatedPath) != 0) {
+                    throw new IOException(
+                        "Unable to remove the owner-only temporary-file staging link (OS error "
+                        + Marshal.GetLastWin32Error() + ").");
+                }
+                generatedPath = string.Empty;
+                handle.Dispose();
+                handle = null!;
+                return new FileStream(path, FileMode.Open, FileAccess.ReadWrite,
+                    FileShare.None, bufferSize, options);
             } catch {
-                stream.Dispose();
-                TryDelete(path);
+                handle?.Dispose();
+                if (targetLinked) TryDelete(path);
+                if (generatedPath.Length > 0) TryDelete(generatedPath);
                 throw;
             }
-#endif
         }
 
         private static void TryDelete(string path) {
             try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
 
-        [DllImport("libc", EntryPoint = "chmod", SetLastError = true)]
-        private static extern int ChangeMode(string path, uint mode);
+        [DllImport("libc", EntryPoint = "mkstemp", SetLastError = true)]
+        private static extern int CreateOwnerOnlyTemporaryFile([In, Out] byte[] template);
+
+        [DllImport("libc", EntryPoint = "link", SetLastError = true)]
+        private static extern int LinkFile(string existingPath, string newPath);
+
+        [DllImport("libc", EntryPoint = "unlink", SetLastError = true)]
+        private static extern int UnlinkFile(string path);
     }
 }

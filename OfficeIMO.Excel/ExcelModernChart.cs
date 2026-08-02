@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel {
                     ?? throw new InvalidOperationException("Modern chart plot area is missing.");
                 plotArea.Append((Cx.PlotAreaRegion)replacementRegion.CloneNode(true));
             } else {
-                currentRegion.Parent!.ReplaceChild((Cx.PlotAreaRegion)replacementRegion.CloneNode(true), currentRegion);
+                MergePlotAreaSeries(currentRegion, replacementRegion);
             }
             part.ChartSpace.Save();
             _sheet.MarkRequiresSavePreparation();
@@ -200,6 +200,46 @@ namespace OfficeIMO.Excel {
 
         private Cx.Series[] GetSeries() => GetChartPart().ChartSpace?.Descendants<Cx.Series>().ToArray()
             ?? Array.Empty<Cx.Series>();
+
+        private static void MergePlotAreaSeries(Cx.PlotAreaRegion currentRegion, Cx.PlotAreaRegion replacementRegion) {
+            Cx.Series[] currentSeries = currentRegion.Elements<Cx.Series>().ToArray();
+            Cx.Series[] replacementSeries = replacementRegion.Elements<Cx.Series>().ToArray();
+            int retainedCount = Math.Min(currentSeries.Length, replacementSeries.Length);
+            for (int index = 0; index < retainedCount; index++) {
+                CopySeriesAttribute(currentSeries[index], replacementSeries[index], "layoutId");
+                CopySeriesAttribute(currentSeries[index], replacementSeries[index], "ownerIdx");
+                ReplaceSeriesChild(currentSeries[index], replacementSeries[index], "tx");
+                ReplaceSeriesChild(currentSeries[index], replacementSeries[index], "dataId");
+            }
+
+            for (int index = replacementSeries.Length; index < currentSeries.Length; index++) {
+                currentSeries[index].Remove();
+            }
+
+            OpenXmlElement? insertionPoint = currentSeries.LastOrDefault(series => series.Parent != null);
+            for (int index = currentSeries.Length; index < replacementSeries.Length; index++) {
+                var clone = (Cx.Series)replacementSeries[index].CloneNode(true);
+                if (insertionPoint == null) currentRegion.PrependChild(clone);
+                else currentRegion.InsertAfter(clone, insertionPoint);
+                insertionPoint = clone;
+            }
+        }
+
+        private static void CopySeriesAttribute(Cx.Series current, Cx.Series replacement, string localName) {
+            OpenXmlAttribute attribute = replacement.GetAttributes().First(item =>
+                string.Equals(item.LocalName, localName, StringComparison.Ordinal));
+            current.SetAttribute(attribute);
+        }
+
+        private static void ReplaceSeriesChild(Cx.Series current, Cx.Series replacement, string localName) {
+            OpenXmlElement replacementChild = replacement.ChildElements.First(element =>
+                string.Equals(element.LocalName, localName, StringComparison.Ordinal));
+            OpenXmlElement? currentChild = current.ChildElements.FirstOrDefault(element =>
+                string.Equals(element.LocalName, localName, StringComparison.Ordinal));
+            OpenXmlElement clone = replacementChild.CloneNode(true);
+            if (currentChild == null) current.Append(clone);
+            else current.ReplaceChild(clone, currentChild);
+        }
 
         private ExtendedChartPart GetChartPart() => GetChartPart(GetChartRelationshipId());
 
