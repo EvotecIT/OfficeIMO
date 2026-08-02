@@ -207,7 +207,9 @@ namespace OfficeIMO.Excel {
                 TableColumns? columns = table!.TableColumns;
                 if (columns == null) continue;
                 List<TableColumn> existing = columns.Elements<TableColumn>().ToList();
+                bool schemaChanged = false;
                 if (!deleting && firstColumn > c1 && firstColumn <= c2) {
+                    schemaChanged = true;
                     int offset = firstColumn - c1;
                     uint nextId = existing.Select(item => item.Id?.Value ?? 0U).DefaultIfEmpty().Max() + 1U;
                     var used = new HashSet<string>(existing.Select(item => item.Name?.Value ?? string.Empty), StringComparer.OrdinalIgnoreCase);
@@ -228,6 +230,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
                 } else if (deleting && firstColumn <= c2 && lastColumn >= c1) {
+                    schemaChanged = true;
                     int removeStart = Math.Max(firstColumn, c1) - c1;
                     int removeEnd = Math.Min(lastColumn, c2) - c1;
                     string[] removedNames = existing.Skip(removeStart).Take(removeEnd - removeStart + 1)
@@ -248,6 +251,12 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 columns.Count = (uint)columns.Elements<TableColumn>().Count();
+                if (schemaChanged) {
+                    string[] names = columns.Elements<TableColumn>()
+                        .Select(column => column.Name?.Value ?? string.Empty)
+                        .ToArray();
+                    SynchronizeQueryTableSchema(table, columns, names);
+                }
             }
             return pendingHeaders;
         }

@@ -143,6 +143,7 @@ namespace OfficeIMO.Excel {
         private static bool ContainsFunction(string formula, string requested, StringComparison comparison) {
             int index = 0;
             bool inString = false;
+            IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(formula);
             while (index < formula.Length) {
                 char current = formula[index];
                 if (current == '"') {
@@ -167,7 +168,9 @@ namespace OfficeIMO.Excel {
                 int cursor = index;
                 while (cursor < formula.Length && char.IsWhiteSpace(formula[cursor])) cursor++;
                 if (cursor < formula.Length && formula[cursor] == '(') {
-                    string name = NormalizeFunctionName(formula.Substring(start, index - start));
+                    string token = formula.Substring(start, index - start);
+                    if (lexicalBindings.Any(binding => binding.Shadows(token, start, token.Length))) continue;
+                    string name = NormalizeFunctionName(token);
                     if (string.Equals(name, NormalizeFunctionName(requested), comparison)) return true;
                 }
             }

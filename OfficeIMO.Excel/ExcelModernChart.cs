@@ -42,6 +42,7 @@ namespace OfficeIMO.Excel {
             get => _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty;
             set {
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentNullException(nameof(value));
+                EnsureAttached();
                 Xdr.NonVisualDrawingProperties properties = _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties
                     ?? throw new InvalidOperationException("Modern chart drawing properties are missing.");
                 properties.Name = value.Trim();
@@ -102,6 +103,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Modern charts require at least one category and one series.", nameof(data));
             }
             ExcelSheet.ValidateModernChartData(data);
+            ExtendedChartPart part = GetChartPart();
             string layout = ExcelSheet.GetModernChartLayout(ChartType);
             int pointCount = data.Categories.Count;
             ExcelChartDataRange updatedRange = currentRange.WithSize(pointCount, data.Series.Count);
@@ -123,7 +125,6 @@ namespace OfficeIMO.Excel {
                     orientation: updatedRange.Orientation);
             }
 
-            ExtendedChartPart part = GetChartPart();
             Cx.ChartSpace root = part.ChartSpace ?? throw new InvalidOperationException("Modern chart root is missing.");
             Cx.ChartSpace replacement = ExcelSheet.BuildModernChartSpace(
                 data,
@@ -154,6 +155,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Moves and resizes the one-cell chart anchor.</summary>
         public ExcelModernChart SetPlacement(int row, int column, int widthPixels, int heightPixels) {
             ExcelSheet.ValidateModernChartPlacement(row, column, widthPixels, heightPixels);
+            EnsureAttached();
             Xdr.OneCellAnchor anchor = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()
                 ?? throw new InvalidOperationException("Only one-cell modern chart anchors can be repositioned.");
             anchor.FromMarker = new Xdr.FromMarker(
@@ -202,8 +204,17 @@ namespace OfficeIMO.Excel {
         private ExtendedChartPart GetChartPart() => GetChartPart(GetChartRelationshipId());
 
         private ExtendedChartPart GetChartPart(string relationshipId) {
+            EnsureAttached();
             return _drawingsPart.GetPartById(relationshipId) as ExtendedChartPart
                 ?? throw new InvalidOperationException("Modern chart part is missing.");
+        }
+
+        private void EnsureAttached() {
+            if (_frame.Parent == null
+                || _drawingsPart.WorksheetDrawing?.Descendants<Xdr.GraphicFrame>()
+                    .Any(frame => ReferenceEquals(frame, _frame)) != true) {
+                throw new InvalidOperationException("Modern chart is no longer attached to the worksheet drawing.");
+            }
         }
 
         private string GetChartRelationshipId() => GetChartRelationshipId(_frame)
