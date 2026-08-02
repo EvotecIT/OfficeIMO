@@ -97,6 +97,41 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
+        [Theory]
+        [InlineData("nul\0text")]
+        public void ClassicCommentMutation_RejectsBinaryIncompatibleText(
+            string invalidText) {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Reviewer", "R");
+
+            Assert.Throws<ArgumentException>(() =>
+                presentation.AddClassicComment(slide, author, invalidText));
+            Assert.Empty(presentation.GetClassicComments(slide));
+
+            PowerPointClassicComment comment = presentation.AddClassicComment(
+                slide, author, "Valid");
+            Assert.Throws<ArgumentException>(() => comment.Text = invalidText);
+            Assert.Equal("Valid", comment.Text);
+        }
+
+        [Fact]
+        public void ClassicCommentMutation_RejectsTextAboveBinaryLimit() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Reviewer", "R");
+            string invalidText = new string('x', 32001);
+
+            Assert.Throws<ArgumentException>(() =>
+                presentation.AddClassicComment(slide, author, invalidText));
+            PowerPointClassicComment comment = presentation.AddClassicComment(
+                slide, author, "Valid");
+            Assert.Throws<ArgumentException>(() => comment.Text = invalidText);
+            Assert.Equal("Valid", comment.Text);
+        }
+
         [Fact]
         public void ModernComments_CreateEditReplyReassignRemove_AndRoundTripPptx() {
             using var stream = new MemoryStream();

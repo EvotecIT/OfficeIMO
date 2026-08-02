@@ -77,8 +77,11 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 try {
+                    OfficeShape projectedShape = OfficeShape.Path(
+                        width, height, commands);
+                    projectedShape.FillRule = OfficeFillRule.NonZero;
                     resolved.Add(new CustomGeometryPathProjection(
-                        OfficeShape.Path(width, height, commands),
+                        projectedShape,
                         fillMode != A.PathFillModeValues.None,
                         path.Stroke?.Value != false));
                 } catch (ArgumentException) {

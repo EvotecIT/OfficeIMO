@@ -80,6 +80,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_ProjectsCustomGeometryWithNonZeroFillRule() {
+            OfficeShape geometry = OfficeShape.Path(
+                OfficePathCommand.MoveTo(0, 0),
+                OfficePathCommand.LineTo(100, 0),
+                OfficePathCommand.LineTo(100, 100),
+                OfficePathCommand.LineTo(0, 100),
+                OfficePathCommand.Close(),
+                OfficePathCommand.MoveTo(25, 25),
+                OfficePathCommand.LineTo(75, 25),
+                OfficePathCommand.LineTo(75, 75),
+                OfficePathCommand.LineTo(25, 75),
+                OfficePathCommand.Close());
+            geometry.FillRule = OfficeFillRule.NonZero;
+            geometry.FillColor = OfficeColor.FromRgb(14, 165, 233);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddCustomGeometryPoints(geometry, 10, 10, 100, 100);
+
+            PowerPointSlideVisualSnapshot snapshot =
+                slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
+                    IncludeSlideBackground = false
+                });
+
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), element => element.X == 10D
+                    && element.Y == 10D);
+            Assert.Equal(OfficeFillRule.NonZero, rendered.Shape.FillRule);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsCombinedCustomGeometryStrokeOpacity() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),

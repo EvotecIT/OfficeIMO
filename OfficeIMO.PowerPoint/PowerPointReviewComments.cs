@@ -76,7 +76,8 @@ namespace OfficeIMO.PowerPoint {
         public string Text {
             get => RequireAttached().Text?.Text ?? string.Empty;
             set {
-                ValidateText(value);
+                PowerPointPresentation.ValidateClassicCommentText(
+                    value, nameof(value));
                 RequireAttached().Text = new P.Text(value);
             }
         }
@@ -140,11 +141,6 @@ namespace OfficeIMO.PowerPoint {
             return position;
         }
 
-        private static void ValidateText(string value) {
-            if (string.IsNullOrWhiteSpace(value)) {
-                throw new ArgumentException("Comment text cannot be empty.", nameof(value));
-            }
-        }
     }
 
     /// <summary>Editable modern threaded PowerPoint comment.</summary>
@@ -375,7 +371,7 @@ namespace OfficeIMO.PowerPoint {
             DateTime? created = null) {
             EnsureCommentSlide(slide);
             if (author == null) throw new ArgumentNullException(nameof(author));
-            ValidateCommentText(text);
+            ValidateClassicCommentText(text, nameof(text));
             P.CommentAuthor commentAuthor = GetOrCreateClassicCommentAuthor(author);
             var comment = new P.Comment(
                 new P.Position { X = x, Y = y }, new P.Text(text)) {
@@ -629,6 +625,24 @@ namespace OfficeIMO.PowerPoint {
         internal static void ValidateCommentText(string text) {
             if (string.IsNullOrWhiteSpace(text)) {
                 throw new ArgumentException("Comment text cannot be empty.", nameof(text));
+            }
+        }
+
+        internal static void ValidateClassicCommentText(string text,
+            string parameterName) {
+            if (string.IsNullOrWhiteSpace(text)) {
+                throw new ArgumentException("Comment text cannot be empty.",
+                    parameterName);
+            }
+            if (text.Length > 32000) {
+                throw new ArgumentException(
+                    "Classic comment text cannot exceed 32,000 characters.",
+                    parameterName);
+            }
+            if (text.IndexOf('\0') >= 0) {
+                throw new ArgumentException(
+                    "Classic comment text cannot contain a NUL character.",
+                    parameterName);
             }
         }
 

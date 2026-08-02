@@ -184,8 +184,17 @@ namespace OfficeIMO.PowerPoint {
                     .Cast<string>()
                     .Distinct(StringComparer.Ordinal)
                     .ToArray();
+                string[] actionRelationshipIds = links
+                    .Select(link => link.Id?.Value)
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Cast<string>()
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray();
                 foreach (A.HyperlinkType link in links) link.Remove();
                 root.Save();
+                foreach (string relationshipId in actionRelationshipIds) {
+                    RemoveActionRelationshipIfUnused(part, relationshipId);
+                }
                 foreach (string relationshipId in soundRelationshipIds) {
                     PowerPointEmbeddedSound.RemoveIfUnused(part,
                         relationshipId);

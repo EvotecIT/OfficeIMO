@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using Xunit;
@@ -125,6 +126,47 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { uint.MaxValue, 1U },
                 presentation.CustomShows.Select(show => show.Id));
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void CustomShows_RemoveActionRelationshipsOwnedByDeletedShow() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide source = presentation.AddSlide();
+            PowerPointSlide target = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Linked", new[] { target });
+            HyperlinkRelationship external = source.SlidePart
+                .AddHyperlinkRelationship(
+                    new Uri("https://example.test/custom-show"), true);
+            const string InternalRelationshipId = "rIdCustomShowTarget";
+            source.SlidePart.AddPart(target.SlidePart,
+                InternalRelationshipId);
+            AppendCustomShowAction(source.AddRectanglePoints(
+                    20, 20, 120, 60), show.Id, external.Id);
+            AppendCustomShowAction(source.AddRectanglePoints(
+                    20, 100, 120, 60), show.Id,
+                InternalRelationshipId);
+
+            Assert.True(presentation.RemoveCustomShow(show));
+
+            Assert.Empty(source.SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>());
+            Assert.Empty(source.SlidePart.HyperlinkRelationships);
+            Assert.DoesNotContain(source.SlidePart.Parts,
+                pair => pair.RelationshipId == InternalRelationshipId);
+            Assert.Equal(2, presentation.Slides.Count);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        private static void AppendCustomShowAction(PowerPointAutoShape shape,
+            uint showId, string relationshipId) {
+            NonVisualDrawingProperties properties = ((Shape)shape.Element)
+                .NonVisualShapeProperties!.NonVisualDrawingProperties!;
+            properties.Append(new A.HyperlinkOnClick {
+                Id = relationshipId,
+                Action = "ppaction://customshow?id=" + showId
+            });
         }
     }
 }
