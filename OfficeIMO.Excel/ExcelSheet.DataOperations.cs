@@ -680,8 +680,10 @@ namespace OfficeIMO.Excel {
         private AutoFilter GetOrReplaceAutoFilter(Worksheet worksheet, string range, out Table? tableOwner) {
             Table[] matchingTables = _worksheetPart.TableDefinitionParts
                 .Select(part => part.Table)
-                .Where(table => table?.GetFirstChild<AutoFilter>() is AutoFilter filter
-                    && AutoFilterRangesMatch(filter.Reference?.Value, range))
+                .Where(table => table != null
+                    && TryGetTableAutoFilterRange(table, out string tableFilterRange)
+                    && (AutoFilterRangesMatch(table.Reference?.Value, range)
+                        || AutoFilterRangesMatch(tableFilterRange, range)))
                 .Cast<Table>()
                 .ToArray();
             if (matchingTables.Length > 1) {
@@ -689,7 +691,22 @@ namespace OfficeIMO.Excel {
             }
             if (matchingTables.Length == 1) {
                 tableOwner = matchingTables[0];
-                return tableOwner.GetFirstChild<AutoFilter>()!;
+                TryGetTableAutoFilterRange(tableOwner, out string tableFilterRange);
+                AutoFilter? worksheetFilter = worksheet.GetFirstChild<AutoFilter>();
+                if (worksheetFilter != null
+                    && AutoFilterRangesOverlap(worksheetFilter.Reference?.Value, tableOwner.Reference?.Value)) {
+                    worksheetFilter.Remove();
+                }
+                AutoFilter? tableFilter = tableOwner.GetFirstChild<AutoFilter>();
+                if (tableFilter == null) {
+                    tableFilter = new AutoFilter { Reference = tableFilterRange };
+                    TableColumns? tableColumns = tableOwner.GetFirstChild<TableColumns>();
+                    if (tableColumns == null) tableOwner.Append(tableFilter);
+                    else tableOwner.InsertBefore(tableFilter, tableColumns);
+                } else {
+                    tableFilter.Reference = tableFilterRange;
+                }
+                return tableFilter;
             }
             tableOwner = null;
             return GetOrReplaceWorksheetAutoFilter(worksheet, range);
@@ -731,6 +748,36 @@ namespace OfficeIMO.Excel {
                 && existingC1 == requestedC1
                 && existingR2 == requestedR2
                 && existingC2 == requestedC2;
+        }
+
+        private static bool AutoFilterRangesOverlap(string? firstRange, string? secondRange) {
+            if (!ExcelReference.TryParse(firstRange, out ExcelReference? first)
+                || !ExcelReference.TryParse(secondRange, out ExcelReference? second)
+                || first!.IsQualified
+                || second!.IsQualified) {
+                return false;
+            }
+            first.GetBounds(out int firstR1, out int firstC1, out int firstR2, out int firstC2);
+            second.GetBounds(out int secondR1, out int secondC1, out int secondR2, out int secondC2);
+            return firstR1 <= secondR2
+                && firstR2 >= secondR1
+                && firstC1 <= secondC2
+                && firstC2 >= secondC1;
+        }
+
+        private static bool TryGetTableAutoFilterRange(Table table, out string range) {
+            range = string.Empty;
+            if (table.HeaderRowCount?.Value == 0U
+                || !A1.TryParseRange(table.Reference?.Value ?? string.Empty, out int r1, out int c1, out int r2, out int c2)) {
+                return false;
+            }
+            int totalsRows = table.TotalsRowShown?.Value == true
+                ? Math.Max(1, checked((int)(table.TotalsRowCount?.Value ?? 1U)))
+                : 0;
+            int filterLastRow = r2 - totalsRows;
+            if (filterLastRow < r1) return false;
+            range = A1.CellReference(r1, c1) + ":" + A1.CellReference(filterLastRow, c2);
+            return true;
         }
 
         private static string ValidateAutoFilterColumnOffset(string range, uint columnId) {

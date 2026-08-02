@@ -317,7 +317,11 @@ namespace OfficeIMO.Excel {
                     this,
                     formulaCells,
                     sharedFormulaDefinitions);
-                Metadata? metadata = _excelDocument.WorkbookPartRoot.CellMetadataPart?.Metadata;
+                CellMetadataPart? metadataPart = _excelDocument.WorkbookPartRoot.CellMetadataPart;
+                if (metadataPart != null && !metadataPart.IsRootElementLoaded) {
+                    ValidateInCellImageMetadataPart(metadataPart, "Cell metadata");
+                }
+                Metadata? metadata = metadataPart?.Metadata;
                 CalculationProperties? calculation = WorkbookRoot.GetFirstChild<CalculationProperties>();
                 bool packageRequestsRecalculation = calculation?.FullCalculationOnLoad?.Value == true
                     || calculation?.ForceFullCalculation?.Value == true
@@ -362,7 +366,8 @@ namespace OfficeIMO.Excel {
                             cell.CellValue?.Text,
                             packageRequestsRecalculation
                                 || (cell.CellFormula!.CalculateCell?.Value ?? false)
-                                || _excelDocument.HasFormulaInputMutationsAfterFormulaBaseline(_worksheetPart, cellReference),
+                                || _excelDocument.HasFormulaInputMutationsAfterFormulaBaseline(_worksheetPart, cellReference)
+                                || HasFormulaDependencyMutationsAfterBaseline(cellReference, dependencies),
                             supported,
                             supported ? null : GetUnsupportedFormulaReason(formula),
                             dependencies,
@@ -381,6 +386,35 @@ namespace OfficeIMO.Excel {
 
                 return formulas;
             });
+        }
+
+        private bool HasFormulaDependencyMutationsAfterBaseline(
+            string cellReference,
+            IReadOnlyList<string> dependencies) {
+            if (dependencies.Count == 0) return false;
+            long baseline = _excelDocument.GetFormulaDependencyBaseline(_worksheetPart, cellReference);
+            foreach (string dependency in dependencies) {
+                if (!TryResolveFormulaDependencyReference(
+                    dependency,
+                    out ExcelSheet dependencySheet,
+                    out int firstRow,
+                    out int firstColumn,
+                    out int lastRow,
+                    out int lastColumn,
+                    out _)) {
+                    continue;
+                }
+                if (_excelDocument.HasFormulaDependencyMutationAfter(
+                    dependencySheet.WorksheetPart,
+                    firstRow,
+                    firstColumn,
+                    lastRow,
+                    lastColumn,
+                    baseline)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static ExcelFormulaArrayInfo? CreateFormulaArrayInfo(
@@ -474,6 +508,7 @@ namespace OfficeIMO.Excel {
 
                 var topLeft = GetCell(r1, c1);
                 bool retainsCachedValue = topLeft.CellValue != null;
+                ClearCellValueMetadata(topLeft);
                 topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
@@ -489,6 +524,7 @@ namespace OfficeIMO.Excel {
                     for (int column = c1; column <= c2; column++) {
                         if (row == r1 && column == c1) continue;
                         var cell = GetCell(row, column);
+                        ClearCellValueMetadata(cell);
                         cell.CellFormula = null;
                         cell.CellValue = null;
                     }
@@ -500,14 +536,23 @@ namespace OfficeIMO.Excel {
 
         internal void SetLegacyArrayFormula(string a1Range, string formula) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
-            if (!A1.TryParseRange(a1Range, out int r1, out int c1, out _, out _)) {
+            int r2;
+            int c2;
+            if (!A1.TryParseRange(a1Range, out int r1, out int c1, out r2, out c2)) {
                 (r1, c1) = A1.ParseCellRef(a1Range);
                 if (r1 <= 0 || c1 <= 0) {
                     throw new ArgumentException($"Invalid A1 range '{a1Range}'.", nameof(a1Range));
                 }
+                r2 = r1;
+                c2 = c1;
             }
 
             WriteLock(() => {
+                for (int row = r1; row <= r2; row++) {
+                    for (int column = c1; column <= c2; column++) {
+                        ClearCellValueMetadata(GetCell(row, column));
+                    }
+                }
                 var topLeft = GetCell(r1, c1);
                 bool retainsCachedValue = topLeft.CellValue != null;
                 topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {

@@ -266,6 +266,23 @@ namespace OfficeIMO.Excel {
             return MaterializeSheets(elements);
         }
 
+        internal List<ExcelSheet> GetSheetsForLockedOperation()
+        {
+            if (SheetCachingEnabled && !_sheetCacheDirty && _cachedSheets != null) {
+                return CloneSheetCache();
+            }
+            return BuildSheetsWithoutCaching();
+        }
+
+        internal ExcelSheet GetSheetForLockedOperation(string sheetName)
+        {
+            ExcelSheet? sheet = GetSheetsForLockedOperation().FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, sheetName, StringComparison.OrdinalIgnoreCase));
+            return sheet ?? throw new ArgumentOutOfRangeException(
+                nameof(sheetName),
+                $"Sheet '{sheetName}' not found.");
+        }
+
         internal void InvalidateSheetCache()
         {
             Locking.ExecuteWrite(EnsureLock(), MarkSheetCacheDirty);

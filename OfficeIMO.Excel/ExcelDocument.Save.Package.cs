@@ -506,14 +506,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ThrowIfOpenXmlValidationFails(string packagePath, ExcelSaveOptions? options) {
+        internal static void ThrowIfOpenXmlValidationFails(
+            string packagePath,
+            ExcelSaveOptions? options,
+            CancellationToken cancellationToken = default) {
             if (options?.ValidateOpenXml != true) return;
 
+            cancellationToken.ThrowIfCancellationRequested();
             using SpreadsheetDocument document = SpreadsheetDocument.Open(packagePath, false);
             var validator = new OpenXmlValidator();
-            var errors = validator.Validate(document)
+            var errors = validator.Validate(document, cancellationToken)
                 .Select(error => $"{error.ErrorType}: {error.Description} at {error.Path}")
                 .ToArray();
+            cancellationToken.ThrowIfCancellationRequested();
             if (errors.Length > 0) {
                 throw new InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
             }

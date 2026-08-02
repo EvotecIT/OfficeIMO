@@ -2,14 +2,19 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System;
+using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private long _formulaInputMutationVersion;
+        private long _formulaAuthoredMutationVersion;
         private readonly ConcurrentDictionary<Uri, long> _formulaRecalculationVersions = new();
+        private readonly ConcurrentDictionary<Uri, long> _formulaAuthoredRecalculationVersions = new();
         private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaAuthoredVersions = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyBaselines = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyMutationVersions = new();
 
         /// <summary>
         /// Formula calculation and cached-result policy used during save.
@@ -34,11 +39,12 @@ namespace OfficeIMO.Excel {
             WorksheetPart worksheetPart,
             string cellReference,
             bool retainedCachedValue = false) {
-            _formulaAuthoredVersions[(worksheetPart.Uri, cellReference)] =
-                Interlocked.Read(ref _formulaInputMutationVersion);
-            if (retainedCachedValue) {
-                MarkFormulaInputMutation();
-            }
+            var key = (worksheetPart.Uri, cellReference);
+            _formulaAuthoredVersions[key] = Interlocked.Read(ref _formulaInputMutationVersion);
+            long dependencyVersion = Interlocked.Increment(ref _formulaAuthoredMutationVersion);
+            _formulaDependencyBaselines[key] = dependencyVersion;
+            _formulaDependencyMutationVersions[key] = dependencyVersion;
+            if (retainedCachedValue) MarkFormulaInputMutation();
         }
 
         internal bool HasFormulaInputMutationsAfterFormulaBaseline(WorksheetPart worksheetPart, string cellReference) {
@@ -61,6 +67,55 @@ namespace OfficeIMO.Excel {
 
         internal void MarkFormulaSheetRecalculated(WorksheetPart worksheetPart, long mutationVersion) {
             _formulaRecalculationVersions[worksheetPart.Uri] = mutationVersion;
+            _formulaAuthoredRecalculationVersions[worksheetPart.Uri] =
+                Interlocked.Read(ref _formulaAuthoredMutationVersion);
+        }
+
+        internal long GetFormulaDependencyBaseline(WorksheetPart worksheetPart, string cellReference) {
+            long baseline = 0;
+            if (_formulaAuthoredRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)) {
+                baseline = recalculationVersion;
+            }
+            if (_formulaDependencyBaselines.TryGetValue((worksheetPart.Uri, cellReference), out long authoredVersion)
+                && authoredVersion > baseline) {
+                baseline = authoredVersion;
+            }
+            return baseline;
+        }
+
+        internal bool HasFormulaDependencyMutationAfter(
+            WorksheetPart worksheetPart,
+            int firstRow,
+            int firstColumn,
+            int lastRow,
+            int lastColumn,
+            long baseline) {
+            long cellCount = (long)(lastRow - firstRow + 1) * (lastColumn - firstColumn + 1);
+            if (cellCount <= 4096L) {
+                for (int row = firstRow; row <= lastRow; row++) {
+                    for (int column = firstColumn; column <= lastColumn; column++) {
+                        if (_formulaDependencyMutationVersions.TryGetValue(
+                                (worksheetPart.Uri, A1.CellReference(row, column)),
+                                out long mutationVersion)
+                            && mutationVersion > baseline) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            foreach (KeyValuePair<(Uri WorksheetUri, string CellReference), long> item in _formulaDependencyMutationVersions) {
+                if (item.Value <= baseline
+                    || item.Key.WorksheetUri != worksheetPart.Uri
+                    || !A1.TryParseCellReferenceFast(item.Key.CellReference, out int row, out int column)) {
+                    continue;
+                }
+                if (row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>

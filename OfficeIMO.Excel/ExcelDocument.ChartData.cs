@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
             ExcelChartDataRange currentRange,
             ExcelChartDataRange? retainedRange = null) {
             if (currentRange == null || !IsOwnedChartDataSheet(currentRange.SheetName)) return;
-            ExcelSheet dataSheet = this[currentRange.SheetName];
+            ExcelSheet dataSheet = GetSheetForLockedOperation(currentRange.SheetName);
             ExcelReference current = ExcelReference.Parse(currentRange.DataRangeA1);
             ExcelReference? retained = retainedRange != null
                 && string.Equals(currentRange.SheetName, retainedRange.SheetName, StringComparison.OrdinalIgnoreCase)

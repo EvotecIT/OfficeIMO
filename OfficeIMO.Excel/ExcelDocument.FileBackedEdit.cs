@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 ExcelPackageUtilities.NormalizeContentTypes(temporaryPath);
                 EnsureFileBackedTemporaryPackageWithinLimit(temporaryPath, temporaryLimit);
-                ThrowIfOpenXmlValidationFails(temporaryPath, options);
+                ThrowIfOpenXmlValidationFails(temporaryPath, options, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 ReplaceTargetFile(temporaryPath, targetPath);

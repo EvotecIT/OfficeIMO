@@ -43,11 +43,13 @@ namespace OfficeIMO.Excel {
             set {
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentNullException(nameof(value));
                 ExcelSheet.ValidateModernChartText(value, nameof(value));
-                EnsureAttached();
-                Xdr.NonVisualDrawingProperties properties = _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties
-                    ?? throw new InvalidOperationException("Modern chart drawing properties are missing.");
-                properties.Name = value.Trim();
-                SaveDrawing();
+                Locking.ExecuteWrite(_sheet.Document.EnsureLock(), () => {
+                    EnsureAttached();
+                    Xdr.NonVisualDrawingProperties properties = _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties
+                        ?? throw new InvalidOperationException("Modern chart drawing properties are missing.");
+                    properties.Name = value.Trim();
+                    SaveDrawing();
+                });
             }
         }
 
@@ -71,147 +73,157 @@ namespace OfficeIMO.Excel {
         /// <summary>Sets the chart title while preserving unrelated imported ChartEx markup.</summary>
         public ExcelModernChart SetTitle(string? title) {
             ExcelSheet.ValidateModernChartText(title, nameof(title));
-            ExtendedChartPart part = GetChartPart();
-            Cx.ChartSpace root = part.ChartSpace ?? throw new InvalidOperationException("Modern chart root is missing.");
-            Cx.Chart chart = root.GetFirstChild<Cx.Chart>()
-                ?? throw new InvalidOperationException("Modern chart content is missing.");
-            chart.RemoveAllChildren<Cx.ChartTitle>();
-            if (!string.IsNullOrWhiteSpace(title)) {
-                var chartTitle = new Cx.ChartTitle(
-                    new Cx.Text(
-                        new Cx.TextData(
-                            new Cx.VXsdstring(title!.Trim()))));
-                Cx.PlotArea? plotArea = chart.GetFirstChild<Cx.PlotArea>();
-                if (plotArea == null) chart.Append(chartTitle);
-                else chart.InsertBefore(chartTitle, plotArea);
-            }
-            part.ChartSpace.Save();
-            _sheet.MarkRequiresSavePreparation();
-            return this;
+            return Locking.ExecuteWrite(_sheet.Document.EnsureLock(), () => {
+                ExtendedChartPart part = GetChartPart();
+                Cx.ChartSpace root = part.ChartSpace ?? throw new InvalidOperationException("Modern chart root is missing.");
+                Cx.Chart chart = root.GetFirstChild<Cx.Chart>()
+                    ?? throw new InvalidOperationException("Modern chart content is missing.");
+                chart.RemoveAllChildren<Cx.ChartTitle>();
+                if (!string.IsNullOrWhiteSpace(title)) {
+                    var chartTitle = new Cx.ChartTitle(
+                        new Cx.Text(
+                            new Cx.TextData(
+                                new Cx.VXsdstring(title!.Trim()))));
+                    Cx.PlotArea? plotArea = chart.GetFirstChild<Cx.PlotArea>();
+                    if (plotArea == null) chart.Append(chartTitle);
+                    else chart.InsertBefore(chartTitle, plotArea);
+                }
+                part.ChartSpace.Save();
+                _sheet.MarkRequiresSavePreparation();
+                return this;
+            });
         }
 
         /// <summary>Changes the native series layout while preserving data, formatting, and unknown siblings.</summary>
         public ExcelModernChart SetChartType(ExcelModernChartType chartType) {
             string layout = ExcelSheet.GetModernChartLayout(chartType);
-            Cx.Series[] series = GetSeries();
-            if (series.Length == 0) throw new InvalidOperationException("Modern chart has no series to mutate.");
-            foreach (Cx.Series item in series) {
-                item.SetAttribute(new OpenXmlAttribute("layoutId", string.Empty, layout));
-            }
-            GetChartPart().ChartSpace!.Save();
-            _sheet.MarkRequiresSavePreparation();
-            return this;
+            return Locking.ExecuteWrite(_sheet.Document.EnsureLock(), () => {
+                Cx.Series[] series = GetSeries();
+                if (series.Length == 0) throw new InvalidOperationException("Modern chart has no series to mutate.");
+                foreach (Cx.Series item in series) {
+                    item.SetAttribute(new OpenXmlAttribute("layoutId", string.Empty, layout));
+                }
+                GetChartPart().ChartSpace!.Save();
+                _sheet.MarkRequiresSavePreparation();
+                return this;
+            });
         }
 
         /// <summary>Updates data for an OfficeIMO-authored chart while preserving unrelated ChartEx siblings and formatting.</summary>
         public ExcelModernChart UpdateData(ExcelChartData data) {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            ExcelChartDataRange currentRange = DataRange
-                ?? throw new InvalidOperationException("Imported ChartEx data cannot be replaced without an explicit authored data range.");
-            if (data.Series.Count == 0 || data.Categories.Count == 0) {
-                throw new ArgumentException("Modern charts require at least one category and one series.", nameof(data));
-            }
-            ExcelSheet.ValidateModernChartData(data);
-            ExtendedChartPart part = GetChartPart();
-            Cx.ChartSpace root = part.ChartSpace ?? throw new InvalidOperationException("Modern chart root is missing.");
-            Cx.Chart chart = root.GetFirstChild<Cx.Chart>()
-                ?? throw new InvalidOperationException("Modern chart content is missing.");
-            Cx.PlotArea plotArea = chart.GetFirstChild<Cx.PlotArea>()
-                ?? throw new InvalidOperationException("Modern chart plot area is missing.");
-            Cx.PlotAreaRegion? currentRegion = plotArea.GetFirstChild<Cx.PlotAreaRegion>();
-            string layout = ExcelSheet.GetModernChartLayout(ChartType);
-            int pointCount = data.Categories.Count;
-            ExcelChartDataRange updatedRange = currentRange.WithSize(pointCount, data.Series.Count);
-            ExcelSheet dataSheet = _sheet.Document[updatedRange.SheetName];
-            bool sharedRange = _sheet.Document.IsOwnedChartDataRangeShared(currentRange, part);
-            if (sharedRange
-                || pointCount > currentRange.CategoryCount
-                || data.Series.Count > currentRange.SeriesCount) {
-                int startRow = _sheet.Document.ReserveChartDataStartRow(dataSheet, pointCount + 1);
-                updatedRange = dataSheet.WriteChartData(
-                    data,
-                    startRow,
-                    currentRange.StartColumn,
-                    includeHeaderRow: currentRange.HasHeaderRow,
-                    orientation: currentRange.Orientation);
-            } else {
-                dataSheet.WriteChartData(
-                    data,
-                    updatedRange.StartRow,
-                    updatedRange.StartColumn,
-                    includeHeaderRow: updatedRange.HasHeaderRow,
-                    orientation: updatedRange.Orientation);
-            }
+            return Locking.ExecuteWrite(_sheet.Document.EnsureLock(), () => {
+                ExcelChartDataRange currentRange = DataRange
+                    ?? throw new InvalidOperationException("Imported ChartEx data cannot be replaced without an explicit authored data range.");
+                if (data.Series.Count == 0 || data.Categories.Count == 0) {
+                    throw new ArgumentException("Modern charts require at least one category and one series.", nameof(data));
+                }
+                ExcelSheet.ValidateModernChartData(data);
+                ExtendedChartPart part = GetChartPart();
+                Cx.ChartSpace root = part.ChartSpace ?? throw new InvalidOperationException("Modern chart root is missing.");
+                Cx.Chart chart = root.GetFirstChild<Cx.Chart>()
+                    ?? throw new InvalidOperationException("Modern chart content is missing.");
+                Cx.PlotArea plotArea = chart.GetFirstChild<Cx.PlotArea>()
+                    ?? throw new InvalidOperationException("Modern chart plot area is missing.");
+                Cx.PlotAreaRegion? currentRegion = plotArea.GetFirstChild<Cx.PlotAreaRegion>();
+                string layout = ExcelSheet.GetModernChartLayout(ChartType);
+                int pointCount = data.Categories.Count;
+                ExcelChartDataRange updatedRange = currentRange.WithSize(pointCount, data.Series.Count);
+                ExcelSheet dataSheet = _sheet.Document.GetSheetForLockedOperation(updatedRange.SheetName);
+                bool sharedRange = _sheet.Document.IsOwnedChartDataRangeShared(currentRange, part);
+                if (sharedRange
+                    || pointCount > currentRange.CategoryCount
+                    || data.Series.Count > currentRange.SeriesCount) {
+                    int startRow = _sheet.Document.ReserveChartDataStartRow(dataSheet, pointCount + 1);
+                    updatedRange = dataSheet.WriteChartData(
+                        data,
+                        startRow,
+                        currentRange.StartColumn,
+                        includeHeaderRow: currentRange.HasHeaderRow,
+                        orientation: currentRange.Orientation);
+                } else {
+                    dataSheet.WriteChartData(
+                        data,
+                        updatedRange.StartRow,
+                        updatedRange.StartColumn,
+                        includeHeaderRow: updatedRange.HasHeaderRow,
+                        orientation: updatedRange.Orientation);
+                }
 
-            Cx.ChartSpace replacement = ExcelSheet.BuildModernChartSpace(
-                data,
-                updatedRange,
-                layout,
-                Title);
-            Cx.ChartData replacementData = replacement.GetFirstChild<Cx.ChartData>()!;
-            Cx.ChartData? currentData = root.GetFirstChild<Cx.ChartData>();
-            if (currentData == null) root.Append((Cx.ChartData)replacementData.CloneNode(true));
-            else root.ReplaceChild((Cx.ChartData)replacementData.CloneNode(true), currentData);
+                Cx.ChartSpace replacement = ExcelSheet.BuildModernChartSpace(
+                    data,
+                    updatedRange,
+                    layout,
+                    Title);
+                Cx.ChartData replacementData = replacement.GetFirstChild<Cx.ChartData>()!;
+                Cx.ChartData? currentData = root.GetFirstChild<Cx.ChartData>();
+                if (currentData == null) root.Append((Cx.ChartData)replacementData.CloneNode(true));
+                else root.ReplaceChild((Cx.ChartData)replacementData.CloneNode(true), currentData);
 
-            Cx.PlotAreaRegion replacementRegion = replacement.Descendants<Cx.PlotAreaRegion>().First();
-            if (currentRegion == null) {
-                plotArea.Append((Cx.PlotAreaRegion)replacementRegion.CloneNode(true));
-            } else {
-                MergePlotAreaSeries(currentRegion, replacementRegion);
-            }
-            part.ChartSpace.Save();
-            _sheet.MarkRequiresSavePreparation();
-            DataRange = updatedRange;
-            _sheet.Document.ReleaseOwnedChartDataRange(
-                currentRange,
-                sharedRange ? currentRange : updatedRange);
-            return this;
+                Cx.PlotAreaRegion replacementRegion = replacement.Descendants<Cx.PlotAreaRegion>().First();
+                if (currentRegion == null) {
+                    plotArea.Append((Cx.PlotAreaRegion)replacementRegion.CloneNode(true));
+                } else {
+                    MergePlotAreaSeries(currentRegion, replacementRegion);
+                }
+                part.ChartSpace.Save();
+                _sheet.MarkRequiresSavePreparation();
+                DataRange = updatedRange;
+                _sheet.Document.ReleaseOwnedChartDataRange(
+                    currentRange,
+                    sharedRange ? currentRange : updatedRange);
+                return this;
+            });
         }
 
         /// <summary>Moves and resizes the one-cell chart anchor.</summary>
         public ExcelModernChart SetPlacement(int row, int column, int widthPixels, int heightPixels) {
             ExcelSheet.ValidateModernChartPlacement(row, column, widthPixels, heightPixels);
-            EnsureAttached();
-            Xdr.OneCellAnchor anchor = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()
-                ?? throw new InvalidOperationException("Only one-cell modern chart anchors can be repositioned.");
-            anchor.FromMarker = new Xdr.FromMarker(
-                new Xdr.ColumnId((column - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                new Xdr.ColumnOffset("0"),
-                new Xdr.RowId((row - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                new Xdr.RowOffset("0"));
-            long width = (long)Math.Round(widthPixels * 9525D);
-            long height = (long)Math.Round(heightPixels * 9525D);
-            anchor.Extent = new Xdr.Extent { Cx = width, Cy = height };
-            Xdr.Transform? transform = _frame.Transform;
-            if (transform != null) transform.Extents = new DocumentFormat.OpenXml.Drawing.Extents { Cx = width, Cy = height };
-            SaveDrawing();
-            return this;
+            return Locking.ExecuteWrite(_sheet.Document.EnsureLock(), () => {
+                EnsureAttached();
+                Xdr.OneCellAnchor anchor = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()
+                    ?? throw new InvalidOperationException("Only one-cell modern chart anchors can be repositioned.");
+                anchor.FromMarker = new Xdr.FromMarker(
+                    new Xdr.ColumnId((column - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    new Xdr.ColumnOffset("0"),
+                    new Xdr.RowId((row - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    new Xdr.RowOffset("0"));
+                long width = (long)Math.Round(widthPixels * 9525D);
+                long height = (long)Math.Round(heightPixels * 9525D);
+                anchor.Extent = new Xdr.Extent { Cx = width, Cy = height };
+                Xdr.Transform? transform = _frame.Transform;
+                if (transform != null) transform.Extents = new DocumentFormat.OpenXml.Drawing.Extents { Cx = width, Cy = height };
+                SaveDrawing();
+                return this;
+            });
         }
 
         /// <summary>Removes this chart drawing and its owned ChartEx part.</summary>
         public void Remove() {
-            string relationshipId = GetChartRelationshipId();
-            ExtendedChartPart part = GetChartPart(relationshipId);
-            OpenXmlElement? anchor = _frame.Parent;
-            anchor?.Remove();
-            bool partStillReferenced = _drawingsPart.WorksheetDrawing?.Descendants<Xdr.GraphicFrame>()
-                .Any(frame => string.Equals(GetChartRelationshipId(frame), relationshipId, StringComparison.Ordinal)) == true;
-            if (!partStillReferenced) {
-                _drawingsPart.DeletePart(part);
-                if (DataRange != null) _sheet.Document.ReleaseOwnedChartDataRange(DataRange);
-            }
-            if (_drawingsPart.WorksheetDrawing?.ChildElements.Any() == true) {
-                SaveDrawing();
-                return;
-            }
-            DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = _sheet.WorksheetPart.Worksheet
-                ?? throw new InvalidOperationException("Worksheet root is missing.");
-            DocumentFormat.OpenXml.Spreadsheet.Drawing? drawing = worksheet
-                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-            drawing?.Remove();
-            _sheet.WorksheetPart.DeletePart(_drawingsPart);
-            worksheet.Save();
-            _sheet.MarkRequiresSavePreparation();
+            Locking.ExecuteWrite(_sheet.Document.EnsureLock(), () => {
+                string relationshipId = GetChartRelationshipId();
+                ExtendedChartPart part = GetChartPart(relationshipId);
+                OpenXmlElement? anchor = _frame.Parent;
+                anchor?.Remove();
+                bool partStillReferenced = _drawingsPart.WorksheetDrawing?.Descendants<Xdr.GraphicFrame>()
+                    .Any(frame => string.Equals(GetChartRelationshipId(frame), relationshipId, StringComparison.Ordinal)) == true;
+                if (!partStillReferenced) {
+                    _drawingsPart.DeletePart(part);
+                    if (DataRange != null) _sheet.Document.ReleaseOwnedChartDataRange(DataRange);
+                }
+                if (_drawingsPart.WorksheetDrawing?.ChildElements.Any() == true) {
+                    SaveDrawing();
+                    return;
+                }
+                DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = _sheet.WorksheetPart.Worksheet
+                    ?? throw new InvalidOperationException("Worksheet root is missing.");
+                DocumentFormat.OpenXml.Spreadsheet.Drawing? drawing = worksheet
+                    .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
+                drawing?.Remove();
+                _sheet.WorksheetPart.DeletePart(_drawingsPart);
+                worksheet.Save();
+                _sheet.MarkRequiresSavePreparation();
+            });
         }
 
         private Cx.Series[] GetSeries() => GetChartPart().ChartSpace?.Descendants<Cx.Series>().ToArray()

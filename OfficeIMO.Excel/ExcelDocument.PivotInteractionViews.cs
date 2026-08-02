@@ -174,54 +174,57 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns native slicer and timeline views across the workbook.</summary>
         public IReadOnlyList<ExcelPivotInteractionInfo> GetPivotInteractions() {
-            var interactions = new List<ExcelPivotInteractionInfo>();
-            var slicerCaches = WorkbookPartRoot.SlicerCacheParts
-                .Where(part => part.SlicerCacheDefinition != null)
-                .GroupBy(part => part.SlicerCacheDefinition!.Name?.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
-            var timelineCaches = WorkbookPartRoot.TimeLineCacheParts
-                .Where(part => part.TimelineCacheDefinition != null)
-                .GroupBy(part => part.TimelineCacheDefinition!.Name?.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            MaterializeDeferredDataSetImport();
+            return Locking.ExecuteRead(EnsureLock(), () => {
+                var interactions = new List<ExcelPivotInteractionInfo>();
+                var slicerCaches = WorkbookPartRoot.SlicerCacheParts
+                    .Where(part => part.SlicerCacheDefinition != null)
+                    .GroupBy(part => part.SlicerCacheDefinition!.Name?.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                var timelineCaches = WorkbookPartRoot.TimeLineCacheParts
+                    .Where(part => part.TimelineCacheDefinition != null)
+                    .GroupBy(part => part.TimelineCacheDefinition!.Name?.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
-            foreach (ExcelSheet sheet in Sheets) {
-                foreach (SlicersPart part in sheet.WorksheetPart.SlicersParts) {
-                    foreach (X14.Slicer view in part.Slicers?.Elements<X14.Slicer>() ?? Enumerable.Empty<X14.Slicer>()) {
-                        string cacheName = view.Cache?.Value ?? string.Empty;
-                        slicerCaches.TryGetValue(cacheName, out SlicerCachePart? cache);
-                        X14.SlicerCachePivotTable? pivot = cache?.SlicerCacheDefinition?
-                            .SlicerCachePivotTables?.Elements<X14.SlicerCachePivotTable>().FirstOrDefault();
-                        interactions.Add(new ExcelPivotInteractionInfo(
-                            ExcelPivotInteractionCacheKind.Slicer,
-                            view.Name?.Value ?? string.Empty,
-                            cacheName,
-                            cache?.SlicerCacheDefinition?.SourceName?.Value ?? string.Empty,
-                            pivot?.Name?.Value,
-                            sheet.Name,
-                            sheet.WorksheetPart.GetIdOfPart(part)));
+                foreach (ExcelSheet sheet in GetSheetsForLockedOperation()) {
+                    foreach (SlicersPart part in sheet.WorksheetPart.SlicersParts) {
+                        foreach (X14.Slicer view in part.Slicers?.Elements<X14.Slicer>() ?? Enumerable.Empty<X14.Slicer>()) {
+                            string cacheName = view.Cache?.Value ?? string.Empty;
+                            slicerCaches.TryGetValue(cacheName, out SlicerCachePart? cache);
+                            X14.SlicerCachePivotTable? pivot = cache?.SlicerCacheDefinition?
+                                .SlicerCachePivotTables?.Elements<X14.SlicerCachePivotTable>().FirstOrDefault();
+                            interactions.Add(new ExcelPivotInteractionInfo(
+                                ExcelPivotInteractionCacheKind.Slicer,
+                                view.Name?.Value ?? string.Empty,
+                                cacheName,
+                                cache?.SlicerCacheDefinition?.SourceName?.Value ?? string.Empty,
+                                pivot?.Name?.Value,
+                                sheet.Name,
+                                sheet.WorksheetPart.GetIdOfPart(part)));
+                        }
+                    }
+                    foreach (TimeLinePart part in sheet.WorksheetPart.TimeLineParts) {
+                        foreach (X15.Timeline view in part.Timelines?.Elements<X15.Timeline>() ?? Enumerable.Empty<X15.Timeline>()) {
+                            string cacheName = view.Cache?.Value ?? string.Empty;
+                            timelineCaches.TryGetValue(cacheName, out TimeLineCachePart? cache);
+                            X15.TimelineCachePivotTable? pivot = cache?.TimelineCacheDefinition?
+                                .TimelineCachePivotTables?.Elements<X15.TimelineCachePivotTable>().FirstOrDefault();
+                            interactions.Add(new ExcelPivotInteractionInfo(
+                                ExcelPivotInteractionCacheKind.Timeline,
+                                view.Name?.Value ?? string.Empty,
+                                cacheName,
+                                cache?.TimelineCacheDefinition?.SourceName?.Value ?? string.Empty,
+                                pivot?.Name?.Value,
+                                sheet.Name,
+                                sheet.WorksheetPart.GetIdOfPart(part)));
+                        }
                     }
                 }
-                foreach (TimeLinePart part in sheet.WorksheetPart.TimeLineParts) {
-                    foreach (X15.Timeline view in part.Timelines?.Elements<X15.Timeline>() ?? Enumerable.Empty<X15.Timeline>()) {
-                        string cacheName = view.Cache?.Value ?? string.Empty;
-                        timelineCaches.TryGetValue(cacheName, out TimeLineCachePart? cache);
-                        X15.TimelineCachePivotTable? pivot = cache?.TimelineCacheDefinition?
-                            .TimelineCachePivotTables?.Elements<X15.TimelineCachePivotTable>().FirstOrDefault();
-                        interactions.Add(new ExcelPivotInteractionInfo(
-                            ExcelPivotInteractionCacheKind.Timeline,
-                            view.Name?.Value ?? string.Empty,
-                            cacheName,
-                            cache?.TimelineCacheDefinition?.SourceName?.Value ?? string.Empty,
-                            pivot?.Name?.Value,
-                            sheet.Name,
-                            sheet.WorksheetPart.GetIdOfPart(part)));
-                    }
-                }
-            }
-            return interactions
-                .OrderBy(item => item.WorksheetName, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+                return interactions
+                    .OrderBy(item => item.WorksheetName, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            });
         }
 
         /// <summary>Removes one native slicer or timeline view and optionally its unused cache.</summary>
