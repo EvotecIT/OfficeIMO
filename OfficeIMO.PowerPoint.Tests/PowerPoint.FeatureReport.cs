@@ -1894,6 +1894,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_PreservesClassicCommentsOutsideBinaryIndexRange() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            Comment comment = presentation.OpenXmlDocument.PresentationPart!
+                .SlideParts.Single().SlideCommentsPart!.CommentList!
+                .Elements<Comment>().Single();
+            CommentAuthor author = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!.CommentAuthorList!
+                .Elements<CommentAuthor>().Single();
+            comment.Index = uint.MaxValue;
+            author.LastIndex = uint.MaxValue;
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_PreservesCommentGraphsWithUnusedAuthors() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

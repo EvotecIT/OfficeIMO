@@ -45,13 +45,26 @@ internal static class PowerPointBaselineRunner {
     internal static int RunBaseline(string[] args) {
         string? scaleFilter = GetOption(args, "--scale");
         string? jsonPath = GetOption(args, "--json");
+        string? corpusDirectory = GetOption(args, "--corpus-dir");
         IReadOnlyList<string> scales = string.IsNullOrWhiteSpace(scaleFilter)
             ? PowerPointBenchmarkCorpus.Scales
             : new[] { PowerPointBenchmarkCorpus.Get(scaleFilter!).Scale };
         var measurements = new List<PowerPointBaselineMeasurement>();
         foreach (string scale in scales) {
+            string? sharedSourcePath = null;
+            if (!string.IsNullOrWhiteSpace(corpusDirectory)) {
+                string fullCorpusDirectory = Path.GetFullPath(corpusDirectory!);
+                Directory.CreateDirectory(fullCorpusDirectory);
+                PowerPointBenchmarkFixture fixture =
+                    PowerPointBenchmarkCorpus.Get(scale);
+                sharedSourcePath = Path.Combine(fullCorpusDirectory,
+                    fixture.Scale + ".pptx");
+                File.WriteAllBytes(sharedSourcePath,
+                    PowerPointBenchmarkCorpus.CreatePackage(fixture));
+            }
             foreach (string operation in Operations) {
-                PowerPointBaselineMeasurement measurement = RunChildProbe(operation, scale);
+                PowerPointBaselineMeasurement measurement = RunChildProbe(
+                    operation, scale, sharedSourcePath);
                 measurements.Add(measurement);
                 Console.WriteLine(
                     $"{operation,-16} {scale,-6} " +
@@ -323,10 +336,12 @@ internal static class PowerPointBaselineRunner {
     }
 
     private static PowerPointBaselineMeasurement RunChildProbe(string operation,
-        string scale) {
-        string? sourcePath = null;
+        string scale, string? sharedSourcePath) {
+        string? sourcePath = string.Equals(operation, "CreateSave",
+            StringComparison.OrdinalIgnoreCase) ? null : sharedSourcePath;
+        bool ownsSourcePath = false;
         if (!string.Equals(operation, "CreateSave",
-                StringComparison.OrdinalIgnoreCase)) {
+                StringComparison.OrdinalIgnoreCase) && sourcePath == null) {
             sourcePath = Path.Combine(Path.GetTempPath(),
                 "OfficeIMO-PowerPoint-Benchmark-" + Guid.NewGuid().ToString("N")
                 + ".pptx");
@@ -334,6 +349,7 @@ internal static class PowerPointBaselineRunner {
                 PowerPointBenchmarkCorpus.Get(scale);
             File.WriteAllBytes(sourcePath,
                 PowerPointBenchmarkCorpus.CreatePackage(fixture));
+            ownsSourcePath = true;
         }
         try {
             string processPath = Environment.ProcessPath
@@ -367,7 +383,7 @@ internal static class PowerPointBaselineRunner {
                 ?? throw new InvalidOperationException(
                     $"Probe {operation}/{scale} returned no measurement.");
         } finally {
-            if (sourcePath != null && File.Exists(sourcePath)) {
+            if (ownsSourcePath && sourcePath != null && File.Exists(sourcePath)) {
                 File.Delete(sourcePath);
             }
         }

@@ -12,6 +12,11 @@ dotnet run --project OfficeIMO.PowerPoint.Benchmarks/OfficeIMO.PowerPoint.Benchm
 
 Use `--scale Small`, `--scale Normal`, or `--scale Large` for a shorter run. Each operation runs in a separate child process so process memory from another workflow does not leak into its peak-working-set result. For open workflows, the parent creates the source fixture before starting the probe; the probe includes reading that source from disk in the measured workflow without including fixture authoring in its process-lifetime peak.
 
+For a ShapeCrawler comparison, add `--corpus-dir <path>` to this command,
+then pass that same directory to the ShapeCrawler runner. This writes one
+package per selected scale and guarantees both open/edit/save probes consume
+the exact same bytes.
+
 Generate the repeatable visual corpus used for structural and visual review:
 
 ```powershell
@@ -37,4 +42,4 @@ Compare like with like: the same runtime, architecture, build configuration, sca
 
 Do not add budgets from a single run. Capture repeatable baselines on Windows and at least one non-Windows environment, inspect variance, then set headroom that catches regressions without failing on normal machine noise.
 
-The current evidence and interpretation are recorded in [BASELINE.md](BASELINE.md). `OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler` is an opt-in comparison project outside the normal solution. It mirrors the editable slide dimensions, styling, text/vector/table/two-series-chart mix, and edit cadence used by the OfficeIMO create/save and open/edit/save lanes. Both producers compile the same semantic validator, while the third-party dependency remains isolated from product and routine benchmark builds.
+The current evidence and interpretation are recorded in [BASELINE.md](BASELINE.md). `OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler` is an opt-in comparison project outside the normal solution. Its open/edit/save lane requires the same prebuilt corpus used by OfficeIMO; its create/save lane mirrors the editable slide dimensions, styling, text/vector/table/two-series-chart mix, and edit cadence. Both producers compile the same semantic validator, while the third-party dependency remains isolated from product and routine benchmark builds.

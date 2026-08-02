@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using OfficeIMO.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Outcome of an opt-in PowerPoint Desktop reference render.</summary>
@@ -77,12 +78,16 @@ namespace OfficeIMO.PowerPoint {
             Directory.CreateDirectory(fullOutput);
             ClearExistingSlideImages(fullOutput);
             int expectedSlideCount;
+            bool[] slidesWithVisibleContent;
             try {
                 using PowerPointPresentation source = PowerPointPresentation.Load(
                     fullPath, new PowerPointLoadOptions {
                         AccessMode = DocumentAccessMode.ReadOnly
                     });
                 expectedSlideCount = source.Slides.Count;
+                slidesWithVisibleContent = source.Slides
+                    .Select(HasExpectedVisibleContent)
+                    .ToArray();
             } catch (Exception ex) {
                 return new PowerPointReferenceRenderResult(
                     PowerPointReferenceRenderStatus.Failed,
@@ -108,6 +113,7 @@ namespace OfficeIMO.PowerPoint {
                 InvokeMethod(application, "Quit");
                 string[] images = GetSlideImagesInOrder(fullOutput);
                 return !ValidateSlideImages(images, expectedSlideCount,
+                        slidesWithVisibleContent,
                         out string validationMessage)
                     ? new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Failed,
                         validationMessage)
@@ -146,9 +152,24 @@ namespace OfficeIMO.PowerPoint {
                 .ToArray();
 
         internal static bool ValidateSlideImages(IReadOnlyList<string> imagePaths,
-            int expectedSlideCount, out string message) {
+            int expectedSlideCount, out string message) =>
+            ValidateSlideImages(imagePaths, expectedSlideCount,
+                Enumerable.Repeat(true, Math.Max(0, expectedSlideCount)).ToArray(),
+                out message);
+
+        internal static bool ValidateSlideImages(IReadOnlyList<string> imagePaths,
+            int expectedSlideCount, IReadOnlyList<bool> slidesWithVisibleContent,
+            out string message) {
             if (expectedSlideCount < 0) {
                 throw new ArgumentOutOfRangeException(nameof(expectedSlideCount));
+            }
+            if (slidesWithVisibleContent == null) {
+                throw new ArgumentNullException(nameof(slidesWithVisibleContent));
+            }
+            if (slidesWithVisibleContent.Count != expectedSlideCount) {
+                throw new ArgumentException(
+                    "Visible-content flags must match the expected slide count.",
+                    nameof(slidesWithVisibleContent));
             }
             if (expectedSlideCount == 0 || imagePaths.Count == 0) {
                 message = "PowerPoint Desktop exported no slide images.";
@@ -177,9 +198,54 @@ namespace OfficeIMO.PowerPoint {
                     message = "PowerPoint Desktop created an invalid PNG slide image: " + path;
                     return false;
                 }
+                if (slidesWithVisibleContent[index]
+                    && !HasMeaningfulNonWhiteContent(image)) {
+                    message = "PowerPoint Desktop created a blank PNG for slide "
+                        + (index + 1) + ": " + path;
+                    return false;
+                }
             }
             message = string.Empty;
             return true;
+        }
+
+        private static bool HasExpectedVisibleContent(PowerPointSlide slide) {
+            if (slide.Shapes.Count > 0
+                || HasDrawableContent(slide.SlidePart.Slide)
+                || HasDrawableContent(slide.SlidePart.SlideLayoutPart?.SlideLayout)
+                || HasDrawableContent(slide.SlidePart.SlideLayoutPart?
+                    .SlideMasterPart?.SlideMaster)) {
+                return true;
+            }
+            PowerPointSlideBackground background = slide.GetBackground();
+            if (background.Kind == PowerPointSlideBackgroundKind.None) return false;
+            if (background.Kind != PowerPointSlideBackgroundKind.SolidColor) {
+                return true;
+            }
+            return OfficeColor.TryParse(background.Color, out OfficeColor color)
+                && (color.A < 250 || color.R < 245 || color.G < 245
+                    || color.B < 245);
+        }
+
+        private static bool HasDrawableContent(DocumentFormat.OpenXml.OpenXmlElement?
+            root) => root?.Descendants().Any(element => element is P.Shape
+                or P.Picture or P.GraphicFrame or P.GroupShape
+                or P.ConnectionShape) == true;
+
+        private static bool HasMeaningfulNonWhiteContent(OfficeRasterImage image) {
+            int requiredPixels = Math.Min(16, checked(image.Width * image.Height));
+            int visiblePixels = 0;
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    OfficeColor pixel = image.GetPixel(x, y);
+                    if (pixel.A > 0 && (pixel.A < 250 || pixel.R < 245
+                        || pixel.G < 245 || pixel.B < 245)) {
+                        visiblePixels++;
+                        if (visiblePixels >= requiredPixels) return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private static bool TryGetSlideNumber(string path, out int number) {

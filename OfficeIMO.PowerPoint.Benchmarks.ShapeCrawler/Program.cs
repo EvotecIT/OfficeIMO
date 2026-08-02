@@ -25,13 +25,28 @@ internal static class ShapeCrawlerBaselineRunner {
 
         string? scaleFilter = GetOption(args, "--scale");
         string? jsonPath = GetOption(args, "--json");
+        string? corpusDirectory = GetOption(args, "--corpus-dir");
+        if (string.IsNullOrWhiteSpace(corpusDirectory)) {
+            Console.Error.WriteLine(
+                "--corpus-dir is required so OpenEditSave uses the exact same prebuilt input as the OfficeIMO lane.");
+            return 2;
+        }
+        string fullCorpusDirectory = Path.GetFullPath(corpusDirectory!);
         IReadOnlyList<BenchmarkFixture> fixtures = string.IsNullOrWhiteSpace(scaleFilter)
             ? Scales.Select(GetFixture).ToArray()
             : new[] { GetFixture(scaleFilter!) };
         var measurements = new List<BaselineMeasurement>();
         foreach (BenchmarkFixture fixture in fixtures) {
+            string sourcePath = Path.Combine(fullCorpusDirectory,
+                fixture.Scale + ".pptx");
+            if (!File.Exists(sourcePath)) {
+                Console.Error.WriteLine("Shared benchmark corpus was not found: "
+                    + sourcePath);
+                return 2;
+            }
             foreach (string operation in Operations) {
-                BaselineMeasurement measurement = RunChildProbe(operation, fixture.Scale);
+                BaselineMeasurement measurement = RunChildProbe(operation,
+                    fixture.Scale, sourcePath);
                 measurements.Add(measurement);
                 Console.WriteLine(
                     $"{operation,-12} {fixture.Scale,-6} " +
@@ -276,51 +291,44 @@ internal static class ShapeCrawlerBaselineRunner {
         return shapeCount;
     }
 
-    private static BaselineMeasurement RunChildProbe(string operation, string scale) {
-        string? sourcePath = null;
-        if (!string.Equals(operation, "CreateSave",
-                StringComparison.OrdinalIgnoreCase)) {
-            sourcePath = Path.Combine(Path.GetTempPath(),
-                "OfficeIMO-ShapeCrawler-Benchmark-"
-                + Guid.NewGuid().ToString("N") + ".pptx");
-            File.WriteAllBytes(sourcePath, CreatePackage(GetFixture(scale)));
+    private static BaselineMeasurement RunChildProbe(string operation,
+        string scale, string sharedSourcePath) {
+        string? sourcePath = string.Equals(operation, "CreateSave",
+            StringComparison.OrdinalIgnoreCase) ? null : sharedSourcePath;
+        if (sourcePath != null && !File.Exists(sourcePath)) {
+            throw new FileNotFoundException(
+                "Shared benchmark corpus was not found.", sourcePath);
         }
-        try {
-            string processPath = Environment.ProcessPath
-                ?? throw new InvalidOperationException("Unable to resolve benchmark process path.");
-            var startInfo = new ProcessStartInfo {
-                FileName = processPath,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            if (string.Equals(Path.GetFileNameWithoutExtension(processPath),
-                    "dotnet", StringComparison.OrdinalIgnoreCase)) {
-                startInfo.ArgumentList.Add(Assembly.GetEntryAssembly()!.Location);
-            }
-            startInfo.ArgumentList.Add("--probe");
-            startInfo.ArgumentList.Add(operation);
-            startInfo.ArgumentList.Add(scale);
-            if (sourcePath != null) startInfo.ArgumentList.Add(sourcePath);
-            using Process child = Process.Start(startInfo)
-                ?? throw new InvalidOperationException("Unable to start benchmark probe process.");
-            string output = child.StandardOutput.ReadToEnd();
-            string error = child.StandardError.ReadToEnd();
-            child.WaitForExit();
-            if (child.ExitCode != 0) {
-                throw new InvalidOperationException(
-                    $"Probe {operation}/{scale} failed: {error}");
-            }
-            return JsonSerializer.Deserialize<BaselineMeasurement>(output,
-                    JsonOptions)
-                ?? throw new InvalidOperationException(
-                    $"Probe {operation}/{scale} returned no measurement.");
-        } finally {
-            if (sourcePath != null && File.Exists(sourcePath)) {
-                File.Delete(sourcePath);
-            }
+        string processPath = Environment.ProcessPath
+            ?? throw new InvalidOperationException("Unable to resolve benchmark process path.");
+        var startInfo = new ProcessStartInfo {
+            FileName = processPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        if (string.Equals(Path.GetFileNameWithoutExtension(processPath),
+                "dotnet", StringComparison.OrdinalIgnoreCase)) {
+            startInfo.ArgumentList.Add(Assembly.GetEntryAssembly()!.Location);
         }
+        startInfo.ArgumentList.Add("--probe");
+        startInfo.ArgumentList.Add(operation);
+        startInfo.ArgumentList.Add(scale);
+        if (sourcePath != null) startInfo.ArgumentList.Add(sourcePath);
+        using Process child = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Unable to start benchmark probe process.");
+        string output = child.StandardOutput.ReadToEnd();
+        string error = child.StandardError.ReadToEnd();
+        child.WaitForExit();
+        if (child.ExitCode != 0) {
+            throw new InvalidOperationException(
+                $"Probe {operation}/{scale} failed: {error}");
+        }
+        return JsonSerializer.Deserialize<BaselineMeasurement>(output,
+                JsonOptions)
+            ?? throw new InvalidOperationException(
+                $"Probe {operation}/{scale} returned no measurement.");
     }
 
     private static BenchmarkFixture GetFixture(string scale) => scale.ToLowerInvariant() switch {

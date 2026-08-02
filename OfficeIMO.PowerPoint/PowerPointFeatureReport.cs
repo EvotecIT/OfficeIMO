@@ -1155,6 +1155,7 @@ namespace OfficeIMO.PowerPoint {
                 foreach (P.Comment comment in part.CommentList.Elements<P.Comment>()) {
                     if (comment.AuthorId?.Value == null
                         || comment.Index?.Value == null
+                        || comment.Index.Value > int.MaxValue
                         || comment.DateTime?.Value == null
                         || comment.Position?.X?.Value == null
                         || comment.Position.Y?.Value == null

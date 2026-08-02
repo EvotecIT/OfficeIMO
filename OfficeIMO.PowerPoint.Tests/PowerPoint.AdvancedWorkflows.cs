@@ -814,6 +814,32 @@ namespace OfficeIMO.Tests {
                 Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
                     new[] { first, second }, 2, out string invalidMessage));
                 Assert.Contains("invalid PNG", invalidMessage, StringComparison.Ordinal);
+
+                string blank = Path.Combine(output, "Slide1.png");
+                File.WriteAllBytes(blank, VisualBaselineTestSupport.CreateRgbPng(
+                    2, 2, Enumerable.Repeat((byte)255, 12).ToArray()));
+                Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
+                    new[] { blank }, 1, new[] { true }, out string blankMessage));
+                Assert.Contains("blank PNG", blankMessage,
+                    StringComparison.Ordinal);
+
+                string noisy = Path.Combine(output, "Slide1.png");
+                File.WriteAllBytes(noisy, VisualBaselineTestSupport.CreateRgbPng(
+                    2, 2, new byte[] {
+                        0, 0, 0, 255, 255, 255,
+                        255, 255, 255, 255, 255, 255
+                    }));
+                Assert.False(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
+                    new[] { noisy }, 1, new[] { true },
+                    out string noisyMessage));
+                Assert.Contains("blank PNG", noisyMessage,
+                    StringComparison.Ordinal);
+
+                File.WriteAllBytes(blank, VisualBaselineTestSupport.CreateRgbPng(
+                    2, 2, Enumerable.Repeat((byte)255, 12).ToArray()));
+                Assert.True(PowerPointDesktopReferenceRenderer.ValidateSlideImages(
+                    new[] { blank }, 1, new[] { false },
+                    out string intentionallyBlankMessage), intentionallyBlankMessage);
             } finally {
                 if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
             }

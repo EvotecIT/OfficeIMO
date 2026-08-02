@@ -1043,6 +1043,42 @@ namespace OfficeIMO.Tests {
             Assert.Contains("stroke=\"none\"", svgText, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void PowerPointSlide_CustomGeometryDoesNotApplyEffectsToInvisiblePaths() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape freeform = slide.AddShapePoints(
+                A.ShapeTypeValues.Rectangle, 20, 20, 120, 80);
+            freeform.FillColor = "22C55E";
+            freeform.OutlineColor = "1E3A8A";
+            freeform.SetShadow("000000", distancePoints: 8,
+                angleDegrees: 45, transparencyPercent: 0);
+
+            Shape shape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<Shape>().Last();
+            ShapeProperties properties = shape.ShapeProperties!;
+            A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()!;
+            properties.RemoveAllChildren<A.PresetGeometry>();
+            properties.InsertAfter(CreateInvisibleAndVisibleCustomGeometry(),
+                transform);
+
+            OfficeDrawingShape[] rendered = slide.CreateVisualSnapshot().Drawing
+                .Elements.OfType<OfficeDrawingShape>()
+                .Where(element => element.X == 20D && element.Y == 20D)
+                .ToArray();
+
+            Assert.Equal(2, rendered.Length);
+            OfficeDrawingShape invisible = Assert.Single(rendered,
+                item => item.Shape.FillColor == null
+                    && item.Shape.StrokeColor == null);
+            OfficeDrawingShape visible = Assert.Single(rendered,
+                item => item.Shape.FillColor != null);
+            Assert.Null(invisible.Shape.Shadow);
+            Assert.Null(invisible.Shape.Glow);
+            Assert.NotNull(visible.Shape.Shadow);
+        }
+
         private static A.CustomGeometry CreateDiamondCustomGeometry() {
             return new A.CustomGeometry(
                 new A.PathList(
@@ -1081,6 +1117,30 @@ namespace OfficeIMO.Tests {
                         Height = 100000L,
                         Fill = A.PathFillModeValues.None,
                         Stroke = true
+                    },
+                    new A.Path(
+                        new A.MoveTo(new A.Point { X = "10000", Y = "60000" }),
+                        new A.LineTo(new A.Point { X = "90000", Y = "60000" }),
+                        new A.LineTo(new A.Point { X = "90000", Y = "90000" }),
+                        new A.LineTo(new A.Point { X = "10000", Y = "90000" }),
+                        new A.CloseShapePath()) {
+                        Width = 100000L,
+                        Height = 100000L,
+                        Fill = A.PathFillModeValues.Norm,
+                        Stroke = false
+                    }));
+        }
+
+        private static A.CustomGeometry CreateInvisibleAndVisibleCustomGeometry() {
+            return new A.CustomGeometry(
+                new A.PathList(
+                    new A.Path(
+                        new A.MoveTo(new A.Point { X = "10000", Y = "20000" }),
+                        new A.LineTo(new A.Point { X = "90000", Y = "20000" })) {
+                        Width = 100000L,
+                        Height = 100000L,
+                        Fill = A.PathFillModeValues.None,
+                        Stroke = false
                     },
                     new A.Path(
                         new A.MoveTo(new A.Point { X = "10000", Y = "60000" }),

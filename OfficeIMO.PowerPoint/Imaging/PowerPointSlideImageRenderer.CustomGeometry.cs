@@ -47,6 +47,10 @@ namespace OfficeIMO.PowerPoint {
                     drawingShape.StrokeStartMarker = null;
                     drawingShape.StrokeEndMarker = null;
                 }
+                if (!projection.HasFill && !projection.HasStroke) {
+                    drawingShape.Glow = null;
+                    drawingShape.Shadow = null;
+                }
                 ApplyShapeTransform(drawingShape, shape, width, height);
                 drawing.AddShape(drawingShape, left, top);
             }
