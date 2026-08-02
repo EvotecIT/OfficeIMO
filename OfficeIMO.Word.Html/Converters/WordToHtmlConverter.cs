@@ -257,13 +257,17 @@ namespace OfficeIMO.Word.Html {
                                     srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                                 }
                                 SetOutputAttribute(htmlDoc, imgSvg, "src", srcSvg, "Image:src");
-                                if (imgObj.Width.HasValue) imgSvg.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
-                                if (imgObj.Height.HasValue) imgSvg.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
+                                if (imgObj.Width.HasValue) {
+                                    SetOutputAttribute(imgSvg, "width", ((int)Math.Round(imgObj.Width.Value)).ToString(CultureInfo.InvariantCulture), "Image:width");
+                                }
+                                if (imgObj.Height.HasValue) {
+                                    SetOutputAttribute(imgSvg, "height", ((int)Math.Round(imgObj.Height.Value)).ToString(CultureInfo.InvariantCulture), "Image:height");
+                                }
                                 if (!string.IsNullOrEmpty(imgObj.Description)) {
-                                    imgSvg.AlternativeText = imgObj.Description;
+                                    SetOutputAttribute(imgSvg, "alt", imgObj.Description!, "Image:alt");
                                 }
                                 if (!string.IsNullOrEmpty(imgObj.Title)) {
-                                    imgSvg.SetAttribute("title", imgObj.Title!);
+                                    SetOutputAttribute(imgSvg, "title", imgObj.Title!, "Image:title");
                                 }
                                 target.Add(imgSvg);
                             }
@@ -282,15 +286,19 @@ namespace OfficeIMO.Word.Html {
                             if (imgObj.IsExternal || !options.EmbedImagesAsBase64) {
                                 SetOutputAttribute(htmlDoc, img, "src", src, "Image:src");
                             } else {
-                                img.Source = src;
+                                SetOutputAttributeAfterValueReservation(htmlDoc, img, "src", src, "Image:src");
                             }
-                            if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
-                            if (imgObj.Height.HasValue) img.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
+                            if (imgObj.Width.HasValue) {
+                                SetOutputAttribute(img, "width", ((int)Math.Round(imgObj.Width.Value)).ToString(CultureInfo.InvariantCulture), "Image:width");
+                            }
+                            if (imgObj.Height.HasValue) {
+                                SetOutputAttribute(img, "height", ((int)Math.Round(imgObj.Height.Value)).ToString(CultureInfo.InvariantCulture), "Image:height");
+                            }
                             if (!string.IsNullOrEmpty(imgObj.Description)) {
-                                img.AlternativeText = imgObj.Description;
+                                SetOutputAttribute(img, "alt", imgObj.Description!, "Image:alt");
                             }
                             if (!string.IsNullOrEmpty(imgObj.Title)) {
-                                img.SetAttribute("title", imgObj.Title!);
+                                SetOutputAttribute(img, "title", imgObj.Title!, "Image:title");
                             }
                             target.Add(img);
                         }
@@ -544,7 +552,7 @@ namespace OfficeIMO.Word.Html {
 
                     if (run.FontSize != null) {
                         var span = CreateOutputElement(htmlDoc, "span");
-                        span.SetAttribute("style", $"font-size:{run.FontSize.Value}pt");
+                        SetOutputAttribute(span, "style", $"font-size:{run.FontSize.Value}pt", "RunFormatting:font-size");
                         span.AppendChild(node);
                         node = span;
                     }
@@ -552,12 +560,12 @@ namespace OfficeIMO.Word.Html {
                     // Caps / SmallCaps
                     if (run.CapsStyle == CapsStyle.SmallCaps) {
                         var span = CreateOutputElement(htmlDoc, "span");
-                        span.SetAttribute("style", "font-variant:small-caps");
+                        SetOutputAttribute(span, "style", "font-variant:small-caps", "RunFormatting:caps");
                         span.AppendChild(node);
                         node = span;
                     } else if (run.CapsStyle == CapsStyle.Caps) {
                         var span = CreateOutputElement(htmlDoc, "span");
-                        span.SetAttribute("style", "text-transform:uppercase");
+                        SetOutputAttribute(span, "style", "text-transform:uppercase", "RunFormatting:caps");
                         span.AppendChild(node);
                         node = span;
                     }
@@ -588,7 +596,7 @@ namespace OfficeIMO.Word.Html {
                         }
                         if (inlineStyles.Count > 0) {
                             var span = CreateOutputElement(htmlDoc, "span");
-                            span.SetAttribute("style", string.Join(";", inlineStyles));
+                            SetOutputAttribute(span, "style", string.Join(";", inlineStyles), "RunFormatting:color-highlight");
                             span.AppendChild(node);
                             node = span;
                         }
@@ -596,7 +604,7 @@ namespace OfficeIMO.Word.Html {
 
                     if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                         var spanClass = CreateOutputElement(htmlDoc, "span");
-                        spanClass.SetAttribute("class", GetSafeStyleClassName(run.CharacterStyleId));
+                        SetOutputAttribute(spanClass, "class", GetSafeStyleClassName(run.CharacterStyleId), "RunFormatting:class");
                         spanClass.AppendChild(node);
                         node = spanClass;
                         runStyles.Add(run.CharacterStyleId!);
@@ -605,7 +613,7 @@ namespace OfficeIMO.Word.Html {
                     var runLanguage = NormalizeRunLanguage(run.Language, document.Settings.Language);
                     if (!string.IsNullOrEmpty(runLanguage)) {
                         var spanLanguage = CreateOutputElement(htmlDoc, "span");
-                        spanLanguage.SetAttribute("lang", runLanguage);
+                        SetOutputAttribute(spanLanguage, "lang", runLanguage!, "RunFormatting:language");
                         spanLanguage.AppendChild(node);
                         node = spanLanguage;
                     }
@@ -677,7 +685,7 @@ namespace OfficeIMO.Word.Html {
                     var parts = name.Split(new[] { ':' }, 2);
                     if (parts.Length == 2 && IsStructuralTag(parts[0])) {
                         var structEl = CreateOutputElement(htmlDoc, parts[0]);
-                        structEl.SetAttribute("id", parts[1]);
+                        SetOutputAttribute(structEl, "id", parts[1], "StructuralBookmark:id");
                         AppendParagraph(structEl, para, suppressStructuralBookmark: true);
                         parent.AppendChild(structEl);
                         return;
@@ -710,15 +718,15 @@ namespace OfficeIMO.Word.Html {
                     || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
                 var element = CreateOutputElement(htmlDoc, isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
                 if (isBlockQuote && TryGetBlockquoteCiteAttribute(para, out var blockquoteCite)) {
-                    element.SetAttribute("cite", blockquoteCite);
+                    SetOutputAttribute(element, "cite", blockquoteCite, "Paragraph:cite");
                 }
                 ApplyBookmarkId(element, para);
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
-                    element.SetAttribute("class", GetSafeStyleClassName(para.StyleId));
+                    SetOutputAttribute(element, "class", GetSafeStyleClassName(para.StyleId), "Paragraph:class");
                     paragraphStyles.Add(para.StyleId!);
                 }
                 if (para.BiDi) {
-                    element.SetAttribute("dir", "rtl");
+                    SetOutputAttribute(element, "dir", "rtl", "Paragraph:direction");
                 }
                 // Inline paragraph styles: alignment, shading background, and paragraph borders
                 List<string> pStyles = new();
@@ -768,7 +776,7 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
                 if (pStyles.Count > 0) {
-                    element.SetAttribute("style", string.Join(";", pStyles));
+                    SetOutputAttribute(element, "style", string.Join(";", pStyles), "Paragraph:style");
                 }
                 AppendRuns(element, para);
                 parent.AppendChild(element);
@@ -778,7 +786,7 @@ namespace OfficeIMO.Word.Html {
                 var item = CreateOutputElement(htmlDoc, GetDefinitionListTagName(para));
                 ApplyBookmarkId(item, para);
                 if (para.BiDi) {
-                    item.SetAttribute("dir", "rtl");
+                    SetOutputAttribute(item, "dir", "rtl", "ListItem:direction");
                 }
                 AppendRuns(item, para);
                 definitionList.AppendChild(item);
@@ -791,10 +799,10 @@ namespace OfficeIMO.Word.Html {
                 var caption = CreateOutputElement(htmlDoc, "caption");
                 ApplyBookmarkId(caption, captionParagraph);
                 if (captionParagraph.BiDi) {
-                    caption.SetAttribute("dir", "rtl");
+                    SetOutputAttribute(caption, "dir", "rtl", "TableCaption:direction");
                 }
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionParagraph.StyleId)) {
-                    caption.SetAttribute("class", GetSafeStyleClassName(captionParagraph.StyleId));
+                    SetOutputAttribute(caption, "class", GetSafeStyleClassName(captionParagraph.StyleId), "TableCaption:class");
                     paragraphStyles.Add(captionParagraph.StyleId!);
                 }
                 AppendRuns(caption, captionParagraph);
@@ -823,7 +831,7 @@ namespace OfficeIMO.Word.Html {
                     tableStyles.Add(!string.IsNullOrEmpty(tableCellSpacing) ? "border-collapse:separate" : "border-collapse:collapse");
                 }
                 if (tableStyles.Count > 0) {
-                    tableEl.SetAttribute("style", string.Join(";", tableStyles));
+                    SetOutputAttribute(tableEl, "style", string.Join(";", tableStyles), "Table:style");
                 }
                 if (captionParagraph != null) {
                     AppendTableCaption(tableEl, captionParagraph);
@@ -853,7 +861,7 @@ namespace OfficeIMO.Word.Html {
                         }
                         var cellElement = CreateOutputElement(htmlDoc, isHeaderRow ? "th" : "td");
                         if (isHeaderRow) {
-                            cellElement.SetAttribute("scope", "col");
+                            SetOutputAttribute(cellElement, "scope", "col", "TableCell:scope");
                         }
                         int colSpan = 1;
                         int rowSpan = 1;
@@ -864,7 +872,7 @@ namespace OfficeIMO.Word.Html {
                                 cc++;
                             }
                             if (colSpan > 1) {
-                                cellElement.SetAttribute("colspan", colSpan.ToString());
+                                SetOutputAttribute(cellElement, "colspan", colSpan.ToString(CultureInfo.InvariantCulture), "TableCell:colspan");
                             }
                         }
                         if (cell.VerticalMerge == MergedCellValues.Restart) {
@@ -874,7 +882,7 @@ namespace OfficeIMO.Word.Html {
                                 rr++;
                             }
                             if (rowSpan > 1) {
-                                cellElement.SetAttribute("rowspan", rowSpan.ToString());
+                                SetOutputAttribute(cellElement, "rowspan", rowSpan.ToString(CultureInfo.InvariantCulture), "TableCell:rowspan");
                             }
                         }
 
@@ -908,7 +916,7 @@ namespace OfficeIMO.Word.Html {
                             cellStyles.AddRange(borderCss);
                         }
                         if (cellStyles.Count > 0) {
-                            cellElement.SetAttribute("style", string.Join(";", cellStyles));
+                            SetOutputAttribute(cellElement, "style", string.Join(";", cellStyles), "TableCell:style");
                         }
 
                         IElement? cellDefinitionList = null;
@@ -1122,18 +1130,18 @@ namespace OfficeIMO.Word.Html {
                     var listEl = CreateOutputElement(htmlDoc, listTag);
                     if (ordered) {
                         if (listIndices.TryGetValue(paragraph, out var indexInfo)) {
-                            listEl.SetAttribute("start", indexInfo.Index.ToString());
+                            SetOutputAttribute(listEl, "start", indexInfo.Index.ToString(CultureInfo.InvariantCulture), "List:start");
                         } else {
-                            listEl.SetAttribute("start", listInfo.Start.ToString());
+                            SetOutputAttribute(listEl, "start", listInfo.Start.ToString(CultureInfo.InvariantCulture), "List:start");
                         }
                     }
                     var typeAttr = GetListType(listInfo);
                     if (!string.IsNullOrEmpty(typeAttr)) {
-                        listEl.SetAttribute("type", typeAttr);
+                        SetOutputAttribute(listEl, "type", typeAttr!, "List:type");
                     }
                     var listStyle = GetListStyle(listInfo);
                     if (options.IncludeListStyles && !string.IsNullOrEmpty(listStyle)) {
-                        listEl.SetAttribute("style", $"list-style-type:{listStyle}");
+                        SetOutputAttribute(listEl, "style", $"list-style-type:{listStyle}", "List:style");
                     }
                     if (options.IncludeListDefinitions) {
                         ApplyListDefinition(listEl, listInfo, listStyle, listDefinitions);
@@ -1227,7 +1235,7 @@ namespace OfficeIMO.Word.Html {
                                 AppendRuns(figure, paragraph);
                                 var figCap = CreateOutputElement(htmlDoc, "figcaption");
                                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionPara.StyleId)) {
-                                    figCap.SetAttribute("class", GetSafeStyleClassName(captionPara.StyleId));
+                                    SetOutputAttribute(figCap, "class", GetSafeStyleClassName(captionPara.StyleId), "FigureCaption:class");
                                     paragraphStyles.Add(captionPara.StyleId!);
                                 }
                                 AppendRuns(figCap, captionPara);
@@ -1240,7 +1248,7 @@ namespace OfficeIMO.Word.Html {
                                 ApplyBookmarkId(figure, imagePara);
                                 var figCap = CreateOutputElement(htmlDoc, "figcaption");
                                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(paragraph.StyleId)) {
-                                    figCap.SetAttribute("class", GetSafeStyleClassName(paragraph.StyleId));
+                                    SetOutputAttribute(figCap, "class", GetSafeStyleClassName(paragraph.StyleId), "FigureCaption:class");
                                     paragraphStyles.Add(paragraph.StyleId!);
                                 }
                                 AppendRuns(figCap, paragraph);

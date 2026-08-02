@@ -56,6 +56,30 @@ namespace OfficeIMO.Word.Html {
             element.SetAttribute(name, value);
         }
 
+        private static void SetOutputAttribute(
+            IElement element,
+            string name,
+            string value,
+            string source) {
+            IDocument owner = element.Owner ??
+                throw new InvalidOperationException("The HTML output element is not attached to an owning document.");
+            SetOutputAttribute(owner, element, name, value, source);
+        }
+
+        private static void SetOutputAttributeAfterValueReservation(
+            IDocument owner,
+            IElement element,
+            string name,
+            string value,
+            string source) {
+            ReserveOutputCharacters(
+                owner,
+                name.Length + 4L,
+                "Generated HTML attribute syntax exceeds the configured output-character limit before DOM construction.",
+                source);
+            element.SetAttribute(name, value);
+        }
+
         private static void SetOutputText(
             IDocument owner,
             IElement element,

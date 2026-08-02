@@ -44,7 +44,7 @@ namespace OfficeIMO.Word.Html {
                     var col = CreateOutputElement(htmlDoc, "col");
                     var widthCss = GetWidthCss(type, width);
                     if (!string.IsNullOrEmpty(widthCss)) {
-                        col.SetAttribute("style", $"width:{widthCss}");
+                        SetOutputAttribute(col, "style", $"width:{widthCss}", "TableColumn:style");
                     }
                     colGroup.AppendChild(col);
                 }

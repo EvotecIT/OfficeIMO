@@ -47,6 +47,7 @@ namespace OfficeIMO.Word.Html {
                 .ParseFragment(mathMl, context)
                 .OfType<IElement>()
                 .FirstOrDefault();
+            // The complete serialized aria-label attribute was reserved before fragment parsing.
             mathNode?.SetAttribute("aria-label", label);
             return mathNode;
         }
@@ -122,15 +123,19 @@ namespace OfficeIMO.Word.Html {
             }
             if (run.FontSize != null) {
                 var span = CreateOutputElement(htmlDocument, "span");
-                span.SetAttribute("style", $"font-size:{run.FontSize.Value}pt");
+                SetOutputAttribute(span, "style", $"font-size:{run.FontSize.Value}pt", "EquationRunFormatting:font-size");
                 span.AppendChild(node);
                 node = span;
             }
             if (run.CapsStyle == CapsStyle.SmallCaps || run.CapsStyle == CapsStyle.Caps) {
                 var span = CreateOutputElement(htmlDocument, "span");
-                span.SetAttribute("style", run.CapsStyle == CapsStyle.SmallCaps
-                    ? "font-variant:small-caps"
-                    : "text-transform:uppercase");
+                SetOutputAttribute(
+                    span,
+                    "style",
+                    run.CapsStyle == CapsStyle.SmallCaps
+                        ? "font-variant:small-caps"
+                        : "text-transform:uppercase",
+                    "EquationRunFormatting:caps");
                 span.AppendChild(node);
                 node = span;
             }
@@ -156,14 +161,14 @@ namespace OfficeIMO.Word.Html {
                 }
                 if (styles.Count > 0) {
                     var span = CreateOutputElement(htmlDocument, "span");
-                    span.SetAttribute("style", string.Join(";", styles));
+                    SetOutputAttribute(span, "style", string.Join(";", styles), "EquationRunFormatting:color-highlight");
                     span.AppendChild(node);
                     node = span;
                 }
             }
             if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                 var span = CreateOutputElement(htmlDocument, "span");
-                span.SetAttribute("class", GetSafeStyleClassName(run.CharacterStyleId));
+                SetOutputAttribute(span, "class", GetSafeStyleClassName(run.CharacterStyleId), "EquationRunFormatting:class");
                 span.AppendChild(node);
                 node = span;
                 runStyles.Add(run.CharacterStyleId!);
@@ -171,7 +176,7 @@ namespace OfficeIMO.Word.Html {
             string? language = NormalizeRunLanguage(run.Language, documentLanguage);
             if (!string.IsNullOrEmpty(language)) {
                 var span = CreateOutputElement(htmlDocument, "span");
-                span.SetAttribute("lang", language);
+                SetOutputAttribute(span, "lang", language!, "EquationRunFormatting:language");
                 span.AppendChild(node);
                 node = span;
             }
@@ -205,11 +210,11 @@ namespace OfficeIMO.Word.Html {
                     StringComparison.OrdinalIgnoreCase);
                 if (!string.IsNullOrEmpty(highlightCss) &&
                     (normalizedRunBackground != null || !isDefaultMarkHighlight)) {
-                    semanticNode.SetAttribute("style", $"background-color:{highlightCss}");
+                    SetOutputAttribute(semanticNode, "style", $"background-color:{highlightCss}", "EquationSemanticFormatting:highlight");
                 } else if (normalizedRunBackground != null) {
-                    semanticNode.SetAttribute("style", $"background-color:#{normalizedRunBackground}");
+                    SetOutputAttribute(semanticNode, "style", $"background-color:#{normalizedRunBackground}", "EquationSemanticFormatting:highlight");
                 } else if (run.Highlight == HighlightColorValues.None) {
-                    semanticNode.SetAttribute("style", "background-color:transparent");
+                    SetOutputAttribute(semanticNode, "style", "background-color:transparent", "EquationSemanticFormatting:highlight");
                 }
             } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
                 semanticNode = CreateOutputElement(htmlDocument, "cite");
@@ -224,7 +229,7 @@ namespace OfficeIMO.Word.Html {
                         dateTime = parsed.ToString("o");
                     }
                 }
-                semanticNode.SetAttribute("datetime", dateTime);
+                SetOutputAttribute(semanticNode, "datetime", dateTime, "EquationSemanticFormatting:datetime");
             } else if (string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {
                 semanticNode = CreateOutputElement(htmlDocument, "code");
             } else {

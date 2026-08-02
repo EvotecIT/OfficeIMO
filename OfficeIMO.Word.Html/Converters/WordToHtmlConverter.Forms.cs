@@ -5,11 +5,11 @@ namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         IElement CreateCheckBoxInput(IDocument htmlDoc, WordCheckBox checkBox) {
             var input = CreateOutputElement(htmlDoc, "input");
-            input.SetAttribute("type", "checkbox");
-            input.SetAttribute("disabled", string.Empty);
+            SetOutputAttribute(input, "type", "checkbox", "CheckBox:type");
+            SetOutputAttribute(input, "disabled", string.Empty, "CheckBox:disabled");
 
             if (checkBox.IsChecked) {
-                input.SetAttribute("checked", string.Empty);
+                SetOutputAttribute(input, "checked", string.Empty, "CheckBox:checked");
             }
 
             ApplyContentControlMetadata(input, checkBox.Alias, checkBox.Tag);
@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Html {
 
         IElement CreateDropDownListSelect(IDocument htmlDoc, WordDropDownList dropDownList) {
             var select = CreateOutputElement(htmlDoc, "select");
-            select.SetAttribute("disabled", string.Empty);
+            SetOutputAttribute(select, "disabled", string.Empty, "DropDown:disabled");
             ApplyContentControlMetadata(select, dropDownList.Alias, dropDownList.Tag);
 
             foreach (var item in dropDownList.ExportItems) {
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word.Html {
 
                 if (string.Equals(item.Value, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(item.DisplayText, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
-                    option.SetAttribute("selected", string.Empty);
+                    SetOutputAttribute(option, "selected", string.Empty, "DropDownOption:selected");
                 }
 
                 select.AppendChild(option);
@@ -49,9 +49,9 @@ namespace OfficeIMO.Word.Html {
                 .DisplayText;
 
             var input = CreateOutputElement(htmlDoc, "input");
-            input.SetAttribute("type", "text");
-            input.SetAttribute("disabled", string.Empty);
-            input.SetAttribute("list", listId);
+            SetOutputAttribute(input, "type", "text", "ComboBox:type");
+            SetOutputAttribute(input, "disabled", string.Empty, "ComboBox:disabled");
+            SetOutputAttribute(input, "list", listId, "ComboBox:list");
             if (!string.IsNullOrEmpty(selectedValue)) {
                 SetOutputAttribute(
                     htmlDoc,
@@ -64,7 +64,7 @@ namespace OfficeIMO.Word.Html {
             yield return input;
 
             var dataList = CreateOutputElement(htmlDoc, "datalist");
-            dataList.SetAttribute("id", listId);
+            SetOutputAttribute(dataList, "id", listId, "ComboBoxList:id");
             foreach (var item in items) {
                 var option = CreateOutputElement(htmlDoc, "option");
                 SetOutputAttribute(htmlDoc, option, "value", item.Value, "ComboBoxOption:value");
@@ -77,10 +77,10 @@ namespace OfficeIMO.Word.Html {
 
         IElement CreateDatePickerInput(IDocument htmlDoc, WordDatePicker datePicker) {
             var input = CreateOutputElement(htmlDoc, "input");
-            input.SetAttribute("type", "date");
-            input.SetAttribute("disabled", string.Empty);
+            SetOutputAttribute(input, "type", "date", "DatePicker:type");
+            SetOutputAttribute(input, "disabled", string.Empty, "DatePicker:disabled");
             if (datePicker.Date.HasValue) {
-                input.SetAttribute("value", datePicker.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                SetOutputAttribute(input, "value", datePicker.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "DatePicker:value");
             }
             ApplyContentControlMetadata(input, datePicker.Alias, datePicker.Tag);
             return input;
@@ -89,17 +89,17 @@ namespace OfficeIMO.Word.Html {
         IElement CreateStructuredDocumentTagInput(IDocument htmlDoc, WordStructuredDocumentTag structuredDocumentTag) {
             if (HasLineBreaks(structuredDocumentTag.Text)) {
                 var textArea = CreateOutputElement(htmlDoc, "textarea");
-                textArea.SetAttribute("disabled", string.Empty);
+                SetOutputAttribute(textArea, "disabled", string.Empty, "ContentControl:disabled");
                 textArea.TextContent = structuredDocumentTag.Text ?? string.Empty;
                 ApplyContentControlMetadata(textArea, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
                 return textArea;
             }
 
             var input = CreateOutputElement(htmlDoc, "input");
-            input.SetAttribute("type", "text");
-            input.SetAttribute("disabled", string.Empty);
+            SetOutputAttribute(input, "type", "text", "ContentControl:type");
+            SetOutputAttribute(input, "disabled", string.Empty, "ContentControl:disabled");
             if (!string.IsNullOrEmpty(structuredDocumentTag.Text)) {
-                input.SetAttribute("value", structuredDocumentTag.Text!);
+                SetOutputAttribute(input, "value", structuredDocumentTag.Text!, "ContentControl:value");
             }
             ApplyContentControlMetadata(input, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
             return input;
@@ -110,11 +110,11 @@ namespace OfficeIMO.Word.Html {
 
         static void ApplyContentControlMetadata(IElement element, string? alias, string? tag) {
             if (!string.IsNullOrEmpty(alias)) {
-                element.SetAttribute("aria-label", alias!);
+                SetOutputAttribute(element, "aria-label", alias!, "ContentControl:aria-label");
             }
 
             if (!string.IsNullOrEmpty(tag)) {
-                element.SetAttribute("data-tag", tag!);
+                SetOutputAttribute(element, "data-tag", tag!, "ContentControl:data-tag");
             }
         }
     }

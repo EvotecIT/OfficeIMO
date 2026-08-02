@@ -83,6 +83,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesGeneratedRunAttributesBeforeDomAssignment() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            for (int index = 0; index < 64; index++) {
+                paragraph.AddText("x").SetFontSize(12);
+            }
+            string expected = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false
+            }).RequireValue();
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = expected.Length - 1
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("RunFormatting:font-size", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetExcludesOpenXmlOnlyTextAttributes() {
             using WordDocument document = WordDocument.Create();
             for (int index = 0; index < 256; index++) {

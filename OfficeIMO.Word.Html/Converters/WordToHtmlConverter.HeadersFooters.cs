@@ -61,9 +61,9 @@ namespace OfficeIMO.Word.Html {
 
             var element = CreateOutputElement(htmlDoc, tagName);
             var kind = string.Equals(tagName, "header", StringComparison.OrdinalIgnoreCase) ? "header" : "footer";
-            element.SetAttribute("class", $"word-{kind} word-{kind}-{type}");
-            element.SetAttribute("data-section-index", sectionIndex.ToString(CultureInfo.InvariantCulture));
-            element.SetAttribute("data-type", type);
+            SetOutputAttribute(element, "class", $"word-{kind} word-{kind}-{type}", "HeaderFooter:class");
+            SetOutputAttribute(element, "data-section-index", sectionIndex.ToString(CultureInfo.InvariantCulture), "HeaderFooter:section-index");
+            SetOutputAttribute(element, "data-type", type, "HeaderFooter:type");
 
             foreach (var child in headerFooter.Elements) {
                 cancellationToken.ThrowIfCancellationRequested();
