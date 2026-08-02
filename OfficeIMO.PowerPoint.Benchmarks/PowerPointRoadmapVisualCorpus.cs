@@ -1,6 +1,9 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.Pdf;
 using PdfCore = OfficeIMO.Pdf;
+using System.Globalization;
+using System.Text;
+using System.Xml.Linq;
 
 namespace OfficeIMO.PowerPoint.Benchmarks;
 
@@ -104,6 +107,8 @@ internal static class PowerPointRoadmapVisualCorpus {
                     string.Join(" | ", failures.Select(failure => failure.Message)) +
                     $" (without charts: {withoutCharts}; without tables: {withoutTables})");
             }
+            ValidatePng(image.Bytes, index + 1);
+            ValidateSvg(vectors[index].Bytes, index + 1);
             File.WriteAllBytes(Path.Combine(imagesDirectory,
                 $"slide-{index + 1:00}.png"), image.Bytes);
             File.WriteAllBytes(Path.Combine(vectorsDirectory,
@@ -116,6 +121,61 @@ internal static class PowerPointRoadmapVisualCorpus {
             "powerpoint-roadmap-visual-corpus.pdf"), pdf);
         Console.WriteLine($"Created {reopened.Slides.Count} validated slides in {root}");
         return 0;
+    }
+
+    private static void ValidatePng(byte[] png, int slideNumber) {
+        if (!OfficePngReader.TryDecode(png, out OfficeRasterImage? raster)
+            || raster == null || raster.Width <= 0 || raster.Height <= 0) {
+            throw new InvalidOperationException(
+                $"Visual corpus PNG slide {slideNumber} could not be decoded with valid dimensions.");
+        }
+        OfficeColor background = OfficeColor.FromRgb(248, 250, 252);
+        int visible = 0;
+        for (int y = 0; y < raster.Height; y++) {
+            for (int x = 0; x < raster.Width; x++) {
+                OfficeColor pixel = raster.GetPixel(x, y);
+                if (pixel.A > 0 && Math.Abs(pixel.R - background.R)
+                    + Math.Abs(pixel.G - background.G)
+                    + Math.Abs(pixel.B - background.B) > 12) {
+                    visible++;
+                }
+            }
+        }
+        if (visible < 1000) {
+            throw new InvalidOperationException(
+                $"Visual corpus PNG slide {slideNumber} lost visible content.");
+        }
+    }
+
+    private static void ValidateSvg(byte[] svg, int slideNumber) {
+        XDocument document;
+        try {
+            document = XDocument.Parse(Encoding.UTF8.GetString(svg),
+                LoadOptions.None);
+        } catch (Exception exception) when (exception is InvalidOperationException
+            || exception is System.Xml.XmlException) {
+            throw new InvalidOperationException(
+                $"Visual corpus SVG slide {slideNumber} is not valid XML.",
+                exception);
+        }
+        XElement? root = document.Root;
+        string[] viewBox = (root?.Attribute("viewBox")?.Value
+                ?? string.Empty).Split(new[] { ' ', ',' },
+                StringSplitOptions.RemoveEmptyEntries);
+        bool validDimensions = viewBox.Length == 4
+            && double.TryParse(viewBox[2], NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double width) && width > 0D
+            && double.TryParse(viewBox[3], NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double height) && height > 0D;
+        bool hasVisibleContent = root?.Descendants().Any(element =>
+            element.Name.LocalName is "path" or "rect" or "circle"
+                or "ellipse" or "polygon" or "polyline" or "line"
+                or "text" or "image") == true;
+        if (root?.Name.LocalName != "svg" || !validDimensions
+            || !hasVisibleContent) {
+            throw new InvalidOperationException(
+                $"Visual corpus SVG slide {slideNumber} has no valid canvas or visible content.");
+        }
     }
 
     private static void ValidatePdf(byte[] pdf, int expectedPageCount) {

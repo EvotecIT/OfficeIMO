@@ -266,6 +266,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedSmartArtRejectsModifiedRecognizedLayoutBeforeProjection() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
+                PowerPointSmartArtType.BasicProcess,
+                new[] { "Discover", "Deliver" });
+            Dgm.LayoutDefinition layout = Assert.Single(presentation.Slides[0]
+                .SlidePart.DiagramLayoutDefinitionParts).LayoutDefinition!;
+            Dgm.Shape shape = layout.Descendants<Dgm.Shape>().First();
+            shape.Type = "ellipse";
+
+            Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
+        }
+
+        [Fact]
         public void ImportedSmartArtRejectsUnrepresentableQuickAndColorStyles() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

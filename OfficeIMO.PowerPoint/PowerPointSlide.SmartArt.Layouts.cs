@@ -5,7 +5,7 @@ using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
-        private static Dgm.LayoutDefinition CreateSmartArtLayoutDefinition(
+        internal static Dgm.LayoutDefinition CreateSmartArtLayoutDefinition(
             PowerPointSmartArtType type, int nodeCount, double aspectRatio) {
             Dgm.LayoutDefinition layout = new() {
                 UniqueId = GetSmartArtLayoutId(type)

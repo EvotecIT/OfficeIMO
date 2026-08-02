@@ -83,6 +83,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_RejectsCustomGeometryGradientsBeforeMutation() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            OfficeShape fillGradient = OfficeShape.Polygon(
+                new OfficePoint(0, 0), new OfficePoint(100, 0),
+                new OfficePoint(50, 100));
+            fillGradient.FillColor = OfficeColor.FromRgb(37, 99, 235);
+            fillGradient.FillGradient = OfficeLinearGradient.Horizontal(
+                OfficeColor.FromRgb(37, 99, 235),
+                OfficeColor.FromRgb(14, 165, 233));
+            Assert.Throws<NotSupportedException>(() =>
+                slide.AddCustomGeometryPoints(fillGradient,
+                    10, 10, 100, 100));
+
+            OfficeShape strokeGradient = OfficeShape.Path(
+                OfficePathCommand.MoveTo(0, 0),
+                OfficePathCommand.LineTo(100, 100));
+            strokeGradient.StrokeRadialGradient =
+                OfficeRadialGradient.Centered(
+                    OfficeColor.FromRgb(37, 99, 235),
+                    OfficeColor.FromRgb(14, 165, 233));
+            Assert.Throws<NotSupportedException>(() =>
+                slide.AddCustomGeometryPoints(strokeGradient,
+                    10, 10, 100, 100));
+            Assert.Empty(slide.Shapes);
+        }
+
+        [Fact]
         public void PowerPointSlide_RejectsEveryFilledEvenOddGeometry() {
             OfficeShape geometry = OfficeShape.Path(
                 OfficePathCommand.MoveTo(0, 0),

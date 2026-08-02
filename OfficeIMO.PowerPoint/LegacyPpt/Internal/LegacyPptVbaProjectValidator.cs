@@ -44,10 +44,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             string text = Encoding.ASCII.GetString(project);
             string[] lines = text.Split(new[] { '\r', '\n' },
                 StringSplitOptions.RemoveEmptyEntries);
-            return lines.Any(line => line.StartsWith("ID=",
-                       StringComparison.OrdinalIgnoreCase))
-                && lines.Any(line => line.StartsWith("Name=",
-                    StringComparison.OrdinalIgnoreCase));
+            string? id = TryGetProjectRecordValue(lines, "ID");
+            string? name = TryGetProjectRecordValue(lines, "Name");
+            return Guid.TryParse(id, out _)
+                && !string.IsNullOrWhiteSpace(name);
+        }
+
+        private static string? TryGetProjectRecordValue(
+            IEnumerable<string> lines, string key) {
+            string prefix = key + "=";
+            string? raw = lines.FirstOrDefault(line => line.StartsWith(
+                prefix, StringComparison.OrdinalIgnoreCase));
+            if (raw == null) return null;
+            string value = raw.Substring(prefix.Length).Trim();
+            if (value.Length >= 2 && value[0] == '"'
+                && value[value.Length - 1] == '"') {
+                value = value.Substring(1, value.Length - 2).Trim();
+            }
+            return value.Length == 0 ? null : value;
         }
 
         private static bool TryDecompressDirectory(byte[] input,
@@ -364,11 +378,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     .Select(pair => pair.Value)
                     .FirstOrDefault();
                 if (string.IsNullOrWhiteSpace(streamName)
-                    || moduleStream == null || moduleOffset > moduleStream.Length) {
+                    || moduleStream == null || moduleOffset >= moduleStream.Length
+                    || !TryValidateCompressedModuleStream(moduleStream,
+                        checked((int)moduleOffset))) {
                     return false;
                 }
             }
             return true;
+        }
+
+        private static bool TryValidateCompressedModuleStream(byte[] stream,
+            int offset) {
+            int length = stream.Length - offset;
+            if (length <= 0) return false;
+            var container = new byte[length];
+            Buffer.BlockCopy(stream, offset, container, 0, length);
+            return TryDecompressDirectory(container, out _, out _);
         }
 
         private static bool TryReadLengthPrefixedBytes(byte[] bytes,

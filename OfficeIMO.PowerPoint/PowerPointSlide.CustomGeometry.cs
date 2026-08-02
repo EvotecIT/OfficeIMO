@@ -36,6 +36,13 @@ namespace OfficeIMO.PowerPoint {
                 throw new NotSupportedException(
                     "DrawingML custom geometry cannot faithfully encode the even-odd fill rule. Use a non-zero fill rule, remove the fill, or split the geometry into separate shapes.");
             }
+            if (geometry.FillGradient != null
+                || geometry.FillRadialGradient != null
+                || geometry.StrokeGradient != null
+                || geometry.StrokeRadialGradient != null) {
+                throw new NotSupportedException(
+                    "PowerPoint custom geometry does not yet project shared fill or stroke gradients. Remove the gradients or use a supported solid style.");
+            }
             if (geometry.StrokeColor.HasValue) {
                 PowerPointShape.ToDrawingLineWidth(geometry.StrokeWidth,
                     nameof(geometry));

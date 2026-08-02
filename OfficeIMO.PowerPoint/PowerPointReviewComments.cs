@@ -215,7 +215,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Creation timestamp.</summary>
         public DateTime? Created {
             get => RequireAttached().Created?.Value;
-            set => RequireAttached().Created = value;
+            set {
+                if (!value.HasValue) {
+                    throw new ArgumentNullException(nameof(value),
+                        "Modern comments require a creation timestamp.");
+                }
+                RequireAttached().Created = value.Value;
+            }
         }
 
         /// <summary>Comment X position.</summary>
@@ -356,7 +362,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Creation timestamp.</summary>
         public DateTime? Created {
             get => RequireAttached().Created?.Value;
-            set => RequireAttached().Created = value;
+            set {
+                if (!value.HasValue) {
+                    throw new ArgumentNullException(nameof(value),
+                        "Modern comment replies require a creation timestamp.");
+                }
+                RequireAttached().Created = value.Value;
+            }
         }
 
         /// <summary>Reassigns the reply to an existing or newly created author.</summary>

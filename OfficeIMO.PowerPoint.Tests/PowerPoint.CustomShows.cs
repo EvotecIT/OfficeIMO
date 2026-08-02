@@ -156,6 +156,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReportPreservesCustomShowExtendedAttributes() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddCustomShow("Primary", new[] { slide });
+            CustomShowList list = presentation.OpenXmlDocument
+                .PresentationPart!.Presentation!.CustomShowList!;
+            CustomShow show = list.Elements<CustomShow>().Single();
+            SlideList slideList = show.SlideList!;
+            SlideListEntry entry = slideList.Elements<SlideListEntry>()
+                .Single();
+            foreach (OpenXmlElement element in new OpenXmlElement[] {
+                         list, show, slideList, entry
+                     }) {
+                element.SetAttribute(new OpenXmlAttribute("producer",
+                    "metadata", "urn:officeimo:test", "retained"));
+            }
+
+            PowerPointFeatureFinding finding = Assert.Single(
+                presentation.InspectFeatures().FindFeatures("Custom shows"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                finding.SupportLevel);
+            Assert.Contains(finding.Details, detail => detail.Contains(
+                "attributes", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void CustomShows_RemoveZeroIdentifierAlsoRemovesTargetingActions() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

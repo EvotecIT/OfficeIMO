@@ -394,6 +394,29 @@ namespace OfficeIMO.Tests {
                 capability.Note);
         }
 
+        [Fact]
+        public void VbaValidationRejectsMalformedProjectRecordsAndModuleContainers() {
+            byte[] emptyProjectName = CreateVbaTestProject("Module1",
+                "Sub Main()\r\nEnd Sub\r\n", projectMetadata:
+                Encoding.ASCII.GetBytes(
+                    "ID=\"{00000000-0000-0000-0000-000000000000}\"\r\n"
+                    + "Name=\"\"\r\nModule=Module1\r\n"));
+            byte[] invalidProjectId = CreateVbaTestProject("Module1",
+                "Sub Main()\r\nEnd Sub\r\n", projectMetadata:
+                Encoding.ASCII.GetBytes(
+                    "ID=\"not-a-guid\"\r\nName=\"VBAProject\"\r\n"
+                    + "Module=Module1\r\n"));
+            byte[] corruptModule = CreateVbaTestProject("Module1",
+                "Sub Main()\r\nEnd Sub\r\n", corruptModuleContainer: true);
+
+            Assert.False(LegacyPptVbaProjectCodec.IsValidProject(
+                emptyProjectName, out _));
+            Assert.False(LegacyPptVbaProjectCodec.IsValidProject(
+                invalidProjectId, out _));
+            Assert.False(LegacyPptVbaProjectCodec.IsValidProject(
+                corruptModule, out _));
+        }
+
         private static void SetVbaProject(PowerPointPresentation presentation,
             byte[] bytes) {
             PresentationPart presentationPart = presentation.OpenXmlDocument
@@ -445,7 +468,8 @@ namespace OfficeIMO.Tests {
             bool omitModuleStream = false, uint moduleOffset = 0,
             string? ansiModuleName = null,
             bool omitProjectStream = false,
-            byte[]? projectMetadata = null) {
+            byte[]? projectMetadata = null,
+            bool corruptModuleContainer = false) {
             using var output = new MemoryStream();
             using (RootStorage root = RootStorage.Create(output,
                        CfbVersion.V3, StorageModeFlags.LeaveOpen)) {
@@ -467,10 +491,13 @@ namespace OfficeIMO.Tests {
                 if (!omitModuleStream) {
                     using CfbStream module = vba.CreateStream(moduleName);
                     byte[] sourceBytes = Encoding.UTF8.GetBytes(moduleText);
+                    byte[] storedSource = corruptModuleContainer
+                        ? sourceBytes
+                        : CompressVbaSource(sourceBytes);
                     byte[] moduleBytes = new byte[checked((int)moduleOffset
-                        + sourceBytes.Length)];
-                    Buffer.BlockCopy(sourceBytes, 0, moduleBytes,
-                        checked((int)moduleOffset), sourceBytes.Length);
+                        + storedSource.Length)];
+                    Buffer.BlockCopy(storedSource, 0, moduleBytes,
+                        checked((int)moduleOffset), storedSource.Length);
                     module.Write(moduleBytes, 0, moduleBytes.Length);
                 }
                 if (!omitProjectStream) {
@@ -481,6 +508,30 @@ namespace OfficeIMO.Tests {
                         + $"Module={ansiModuleName ?? moduleName}\r\n");
                     project.Write(metadata, 0, metadata.Length);
                 }
+            }
+            return output.ToArray();
+        }
+
+        private static byte[] CompressVbaSource(byte[] source) {
+            using var output = new MemoryStream();
+            output.WriteByte(0x01);
+            int offset = 0;
+            while (offset < source.Length) {
+                int count = Math.Min(3600, source.Length - offset);
+                using var payload = new MemoryStream();
+                int end = offset + count;
+                while (offset < end) {
+                    payload.WriteByte(0);
+                    int literals = Math.Min(8, end - offset);
+                    payload.Write(source, offset, literals);
+                    offset += literals;
+                }
+                int chunkSize = checked((int)payload.Length + 2);
+                ushort header = checked((ushort)(0xB000 | (chunkSize - 3)));
+                output.WriteByte((byte)header);
+                output.WriteByte((byte)(header >> 8));
+                payload.Position = 0;
+                payload.CopyTo(output);
             }
             return output.ToArray();
         }

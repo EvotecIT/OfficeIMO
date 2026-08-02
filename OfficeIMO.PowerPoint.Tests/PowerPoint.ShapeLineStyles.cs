@@ -282,6 +282,25 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
+        [Fact]
+        public void FillTransparencyRejectsInheritedGroupFill() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointAutoShape shape = presentation.AddSlide()
+                .AddRectanglePoints(10, 10, 100, 60);
+            ShapeProperties properties = ((Shape)shape.Element)
+                .ShapeProperties!;
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.InsertAfter(new A.GroupFill(),
+                properties.GetFirstChild<A.PresetGeometry>()!);
+
+            Assert.Throws<NotSupportedException>(() =>
+                shape.FillTransparency = 35);
+
+            Assert.NotNull(properties.GetFirstChild<A.GroupFill>());
+            Assert.Null(properties.GetFirstChild<A.SolidFill>());
+        }
+
         private static string CreateTempFilePath(string extension) {
             string path = Path.GetTempFileName();
             File.Delete(path);

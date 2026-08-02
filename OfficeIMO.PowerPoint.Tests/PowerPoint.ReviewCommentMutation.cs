@@ -323,12 +323,18 @@ namespace OfficeIMO.Tests {
                 slide, author, "Valid");
             PowerPointModernCommentReply reply = comment.AddReply(author,
                 "Valid reply");
+            Assert.Throws<ArgumentNullException>(() =>
+                comment.Created = null);
+            Assert.Throws<ArgumentNullException>(() =>
+                reply.Created = null);
             Assert.Throws<ArgumentException>(() => comment.Text = "Bad\u0001text");
             Assert.Throws<ArgumentException>(() => reply.Text = "Bad\u000Btext");
             Assert.Throws<ArgumentException>(() =>
                 comment.AddReply(author, "Bad\u000Ctext"));
             Assert.Equal("Valid", comment.Text);
             Assert.Equal("Valid reply", reply.Text);
+            Assert.NotNull(comment.Created);
+            Assert.NotNull(reply.Created);
             Assert.Single(comment.Replies);
             Assert.Empty(presentation.ValidateDocument());
         }

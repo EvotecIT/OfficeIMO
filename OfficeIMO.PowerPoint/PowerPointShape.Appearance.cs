@@ -85,6 +85,11 @@ namespace OfficeIMO.PowerPoint {
 
             ShapeProperties? props = GetShapeProperties(create: opacity != null);
             if (props == null) return;
+            if (opacity.HasValue
+                && props.GetFirstChild<A.GroupFill>() != null) {
+                throw new NotSupportedException(
+                    "Fill transparency cannot be changed while the shape inherits a group fill. Materialize a local fill first.");
+            }
             A.SolidFill? solid = props.GetFirstChild<A.SolidFill>();
             if (solid == null) {
                 if (HasExplicitFillChoice(props)) {

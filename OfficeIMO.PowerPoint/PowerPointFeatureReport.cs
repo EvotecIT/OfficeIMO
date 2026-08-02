@@ -572,6 +572,9 @@ namespace OfficeIMO.PowerPoint {
             if (list == null) return Array.Empty<string>();
 
             var details = new List<string>();
+            if (list.ExtendedAttributes.Any()) {
+                details.Add("Custom-show list contains unsupported producer attributes.");
+            }
             if (list.ChildElements.Any(child => child is not CustomShow)) {
                 details.Add("Custom-show list contains unsupported producer extension children.");
             }
@@ -582,6 +585,9 @@ namespace OfficeIMO.PowerPoint {
             for (int index = 0; index < shows.Length; index++) {
                 CustomShow show = shows[index];
                 string scope = $"Custom show {index + 1}";
+                if (show.ExtendedAttributes.Any()) {
+                    details.Add(scope + " contains unsupported producer attributes.");
+                }
                 if (show.Id?.Value is not uint id) {
                     details.Add(scope + " has no identifier.");
                 } else if (!ids.Add(id)) {
@@ -607,6 +613,9 @@ namespace OfficeIMO.PowerPoint {
                     details.Add(scope + " has no slide list.");
                     continue;
                 }
+                if (slideList.ExtendedAttributes.Any()) {
+                    details.Add(scope + " slide list contains unsupported producer attributes.");
+                }
                 if (slideList.ChildElements.Any(child => child is not SlideListEntry)) {
                     details.Add(scope + " slide list contains unsupported producer extension children.");
                 }
@@ -619,6 +628,9 @@ namespace OfficeIMO.PowerPoint {
                 for (int entryIndex = 0; entryIndex < entries.Length;
                      entryIndex++) {
                     SlideListEntry entry = entries[entryIndex];
+                    if (entry.ExtendedAttributes.Any()) {
+                        details.Add(scope + $" slide {entryIndex + 1} contains unsupported producer attributes.");
+                    }
                     if (entry.ChildElements.Count > 0) {
                         details.Add(scope + $" slide {entryIndex + 1} contains unsupported producer extension children.");
                     }
@@ -1132,6 +1144,7 @@ namespace OfficeIMO.PowerPoint {
 
             var classicAuthorIds = new HashSet<uint>(classicAuthors
                 .Select(author => author.Id!.Value));
+            var referencedClassicAuthorIds = new HashSet<uint>();
             var classicCommentKeys = new HashSet<(uint AuthorId, uint Index)>();
             foreach (SlideCommentsPart part in Slides.Select(slide =>
                          slide.SlidePart.SlideCommentsPart).Where(part => part != null)!) {
@@ -1148,6 +1161,7 @@ namespace OfficeIMO.PowerPoint {
                             comment.Index.Value))) {
                         return false;
                     }
+                    referencedClassicAuthorIds.Add(comment.AuthorId.Value);
                 }
             }
 
@@ -1173,6 +1187,8 @@ namespace OfficeIMO.PowerPoint {
                 StringComparer.OrdinalIgnoreCase);
             var modernCommentIds = new HashSet<string>(
                 StringComparer.OrdinalIgnoreCase);
+            var referencedModernAuthorIds = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
             foreach (PowerPointCommentPart part in Slides
                          .SelectMany(slide => slide.SlidePart.Parts
                              .Select(pair => pair.OpenXmlPart))
@@ -1181,25 +1197,29 @@ namespace OfficeIMO.PowerPoint {
                 foreach (P188.Comment comment in part.CommentList
                              .Elements<P188.Comment>()) {
                     if (!HasEditableModernCommentFields(comment,
-                            modernAuthorIds, modernCommentIds)) {
+                            modernAuthorIds, modernCommentIds,
+                            referencedModernAuthorIds)) {
                         return false;
                     }
                     foreach (P188.CommentReply reply in comment
                                  .Descendants<P188.CommentReply>()) {
                         if (!HasEditableModernCommentFields(reply,
-                                modernAuthorIds, modernCommentIds)) {
+                                modernAuthorIds, modernCommentIds,
+                                referencedModernAuthorIds)) {
                             return false;
                         }
                     }
                 }
             }
-            return true;
+            return classicAuthorIds.SetEquals(referencedClassicAuthorIds)
+                && modernAuthorIds.SetEquals(referencedModernAuthorIds);
         }
 
         private static bool HasEditableModernCommentFields(
             OpenXmlCompositeElement comment,
             ISet<string> authorIds,
-            ISet<string> commentIds) {
+            ISet<string> commentIds,
+            ISet<string> referencedAuthorIds) {
             string? id;
             string? authorId;
             bool hasStatus;
@@ -1217,13 +1237,15 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 return false;
             }
-            return !string.IsNullOrWhiteSpace(id)
+            bool valid = !string.IsNullOrWhiteSpace(id)
                 && !string.IsNullOrWhiteSpace(authorId)
                 && hasStatus
                 && hasCreated
                 && comment.GetFirstChild<P188.TextBodyType>() != null
                 && authorIds.Contains(authorId!)
                 && commentIds.Add(id!);
+            if (valid) referencedAuthorIds.Add(authorId!);
+            return valid;
         }
 
         private static bool IsValidEditableVbaProject(VbaProjectPart? part) {

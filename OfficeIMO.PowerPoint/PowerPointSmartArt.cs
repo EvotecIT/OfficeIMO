@@ -69,6 +69,11 @@ namespace OfficeIMO.PowerPoint {
                     snapshot = null!;
                     return false;
                 }
+                if (!HasRepresentableLayoutDefinition(kind,
+                        textBodies.Count)) {
+                    snapshot = null!;
+                    return false;
+                }
                 snapshot = new OfficeDiagramSnapshot(Name, kind, nodes,
                     WidthPoints, HeightPoints, style);
                 return true;
@@ -76,6 +81,36 @@ namespace OfficeIMO.PowerPoint {
                 snapshot = null!;
                 return false;
             }
+        }
+
+        private bool HasRepresentableLayoutDefinition(OfficeDiagramKind kind,
+            int nodeCount) {
+            Dgm.RelationshipIds? relationshipIds = GraphicFrame
+                .Descendants<Dgm.RelationshipIds>().SingleOrDefault();
+            string? relationshipId = relationshipIds?.LayoutPart?.Value;
+            if (string.IsNullOrWhiteSpace(relationshipId)
+                || !_slidePart.TryGetPartById(relationshipId!,
+                    out OpenXmlPart? relatedPart)
+                || relatedPart is not DiagramLayoutDefinitionPart layoutPart
+                || layoutPart.LayoutDefinition == null
+                || HeightPoints <= 0D) {
+                return false;
+            }
+            PowerPointSmartArtType type = kind switch {
+                OfficeDiagramKind.Process => PowerPointSmartArtType.BasicProcess,
+                OfficeDiagramKind.Hierarchy => PowerPointSmartArtType.BasicHierarchy,
+                OfficeDiagramKind.Cycle => PowerPointSmartArtType.BasicCycle,
+                OfficeDiagramKind.List => PowerPointSmartArtType.BasicList,
+                OfficeDiagramKind.Matrix => PowerPointSmartArtType.BasicMatrix,
+                OfficeDiagramKind.Pyramid => PowerPointSmartArtType.BasicPyramid,
+                OfficeDiagramKind.Relationship => PowerPointSmartArtType.BasicRelationship,
+                _ => throw new ArgumentOutOfRangeException(nameof(kind))
+            };
+            Dgm.LayoutDefinition expected = PowerPointSlide
+                .CreateSmartArtLayoutDefinition(type, nodeCount,
+                    WidthPoints / HeightPoints);
+            return string.Equals(layoutPart.LayoutDefinition.OuterXml,
+                expected.OuterXml, StringComparison.Ordinal);
         }
 
         private bool TryReadRepresentableStyle(XElement? properties,
