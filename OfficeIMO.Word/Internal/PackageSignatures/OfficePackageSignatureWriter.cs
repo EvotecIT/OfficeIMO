@@ -31,6 +31,8 @@ namespace OfficeIMO.Word {
         public int MaxCertificates { get; set; } = 64;
         public long MaxCertificateBytes { get; set; } = 4L * 1024 * 1024;
         public long MaxTotalCertificateBytes { get; set; } = 64L * 1024 * 1024;
+        internal Action<string>? BeforeValidation { get; set; }
+        internal Func<string, string, int, string?>? ValidateBeforeCommit { get; set; }
         internal Action<string, string>? BeforeCommit { get; set; }
     }
 
@@ -115,7 +117,19 @@ namespace OfficeIMO.Word {
                 SigningPayload payload = CreateSignature(packageBytes, signingCertificates, signingKey, options);
                 SignaturePartWriteResult write = AddSignaturePart(stagingPath, payload.SignatureXml);
                 EnsureSignedPackageWithinLimits(stagingPath, options);
+                options.BeforeValidation?.Invoke(stagingPath);
+                string validationInputHash = WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
+                string? validationFailure = options.ValidateBeforeCommit?.Invoke(
+                    stagingPath,
+                    write.SignaturePartUri,
+                    write.SignatureCount);
                 string validatedPackageHash = WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
+                if (!string.Equals(validationInputHash, validatedPackageHash, StringComparison.Ordinal)) {
+                    return Failed(fullPath, "The staging package changed during validation readback; the original source was preserved.");
+                }
+                if (!string.IsNullOrWhiteSpace(validationFailure)) {
+                    return Failed(fullPath, validationFailure!);
+                }
                 options.BeforeCommit?.Invoke(stagingPath, fullPath);
                 if (!string.Equals(
                     validatedPackageHash,

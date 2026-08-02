@@ -190,17 +190,29 @@ namespace OfficeIMO.Word {
         /// <returns>A signing result with details and validation readback when available.</returns>
         public static WordPackageSigningResult TrySignPackage(string filePath, X509Certificate2 certificate, WordPackageSigningOptions? options = null) {
             WordPackageSigningOptions effectiveOptions = options ?? new WordPackageSigningOptions();
-            OfficePackageSigningResult packageResult = OfficePackageSignatureWriter.Sign(filePath, certificate, effectiveOptions.ToPackageOptions());
             WordSignatureValidationReport? validationReport = null;
-
-            if (packageResult.Succeeded) {
-                using WordDocument document = Load(filePath, CreateSigningReadbackLoadOptions(effectiveOptions));
+            string? createdSignaturePartUri = null;
+            OfficePackageSigningOptions packageOptions = effectiveOptions.ToPackageOptions();
+            packageOptions.ValidateBeforeCommit = (stagingPath, signaturePartUri, signatureCount) => {
+                createdSignaturePartUri = signaturePartUri;
+                using WordDocument document = Load(stagingPath, CreateSigningReadbackLoadOptions(effectiveOptions));
                 validationReport = document.ValidateSignatures(CreateSigningReadbackOptions(
                     effectiveOptions,
-                    packageResult.SignatureCount));
-            }
+                    signatureCount));
+                WordSignaturePartValidationResult? createdSignature = validationReport.Signatures.FirstOrDefault(signature =>
+                    string.Equals(signature.SignaturePart.Uri, signaturePartUri, StringComparison.OrdinalIgnoreCase));
+                if (WordPackageSigningResult.IsCreatedSignatureValidationSuccessful(createdSignature)) return null;
 
-            return new WordPackageSigningResult(packageResult, validationReport);
+                string detail = validationReport.Findings.FirstOrDefault()
+                    ?? "The created signature was missing or failed cryptographic or package-reference digest validation.";
+                return "The created package signature failed validation readback before atomic commit: " + detail;
+            };
+            OfficePackageSigningResult packageResult = OfficePackageSignatureWriter.Sign(
+                filePath,
+                certificate,
+                packageOptions);
+
+            return new WordPackageSigningResult(packageResult, validationReport, createdSignaturePartUri);
         }
 
         internal static WordLoadOptions CreateSigningReadbackLoadOptions(

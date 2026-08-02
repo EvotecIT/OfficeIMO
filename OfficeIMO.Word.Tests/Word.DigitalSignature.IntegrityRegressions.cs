@@ -89,6 +89,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_SigningRejectsFailedValidationReadbackBeforeCommit() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureFailedPreCommitReadback.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Original signed content");
+                document.Save();
+            }
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            var options = new WordPackageSigningOptions {
+                BeforeValidation = stagingPath => TamperDocumentText(stagingPath, "Tampered staged content")
+            };
+
+            WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, certificate, options);
+
+            Assert.False(result.Succeeded);
+            Assert.NotNull(result.CreatedSignatureValidation);
+            Assert.Equal(WordSignatureValidationState.Failed, result.CreatedSignatureValidation!.SignaturePart.SignedReferences
+                .Single(reference => reference.Uri.StartsWith("/word/document.xml", StringComparison.OrdinalIgnoreCase))
+                .DigestVerificationStatus);
+            Assert.Contains(result.Details, detail =>
+                detail.Contains("before atomic commit", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+            using WordprocessingDocument preserved = WordprocessingDocument.Open(filePath, false);
+            Assert.Null(preserved.DigitalSignatureOriginPart);
+
+            WordPackageSigningException exception = Assert.Throws<WordPackageSigningException>(() =>
+                WordDocument.SignPackage(filePath, certificate, options));
+            Assert.False(exception.Result.Succeeded);
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_SigningBoundsRelationshipSelectorsBeforeSignatureXmlConstruction() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureRelationshipSelectorBudget.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -192,6 +225,20 @@ namespace OfficeIMO.Tests {
             ZipArchiveEntry replacement = archive.CreateEntry(entryName, CompressionLevel.Optimal);
             using Stream output = replacement.Open();
             relationships.Save(output);
+        }
+
+        private static void TamperDocumentText(string filePath, string replacementText) {
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            const string entryName = "word/document.xml";
+            ZipArchiveEntry entry = archive.GetEntry(entryName)!;
+            XDocument document;
+            using (Stream input = entry.Open()) document = XDocument.Load(input);
+            XElement text = document.Descendants().First(element => element.Name.LocalName == "t");
+            text.Value = replacementText;
+            entry.Delete();
+            ZipArchiveEntry replacement = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+            using Stream output = replacement.Open();
+            document.Save(output);
         }
     }
 }

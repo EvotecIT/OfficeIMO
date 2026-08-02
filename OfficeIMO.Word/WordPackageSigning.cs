@@ -139,6 +139,8 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the maximum aggregate encoded certificate bytes embedded in the created signature. Defaults to 64 MiB.</summary>
         public long MaxTotalCertificateBytes { get; set; } = 64L * 1024 * 1024;
 
+        internal Action<string>? BeforeValidation { get; set; }
+
         internal OfficePackageSigningOptions ToPackageOptions() {
             return new OfficePackageSigningOptions {
                 PartUris = PartUris,
@@ -156,7 +158,8 @@ namespace OfficeIMO.Word {
                 MaxSignatureBytes = MaxSignatureBytes,
                 MaxCertificates = MaxCertificates,
                 MaxCertificateBytes = MaxCertificateBytes,
-                MaxTotalCertificateBytes = MaxTotalCertificateBytes
+                MaxTotalCertificateBytes = MaxTotalCertificateBytes,
+                BeforeValidation = BeforeValidation
             };
         }
     }
@@ -167,7 +170,8 @@ namespace OfficeIMO.Word {
     public sealed class WordPackageSigningResult {
         internal WordPackageSigningResult(
             OfficePackageSigningResult packageResult,
-            WordSignatureValidationReport? validationReport) {
+            WordSignatureValidationReport? validationReport,
+            string? createdSignaturePartUri = null) {
             var details = new List<string>(packageResult.Details);
             if (validationReport != null && !validationReport.IsValidUnderPolicy) {
                 details.AddRange(validationReport.Findings);
@@ -175,13 +179,16 @@ namespace OfficeIMO.Word {
 
             FilePath = packageResult.FilePath;
             IsSupported = packageResult.IsSupported;
-            Succeeded = packageResult.Succeeded;
             SignedPartCount = packageResult.SignedPartCount;
             SignedRelationshipSelectorCount = packageResult.SignedRelationshipSelectorCount;
             SignatureCount = packageResult.SignatureCount;
             SignaturePartUri = packageResult.SignaturePartUri;
             CreatedSignatureValidation = validationReport?.Signatures.FirstOrDefault(signature =>
-                string.Equals(signature.SignaturePart.Uri, packageResult.SignaturePartUri, StringComparison.OrdinalIgnoreCase));
+                string.Equals(
+                    signature.SignaturePart.Uri,
+                    createdSignaturePartUri ?? packageResult.SignaturePartUri,
+                    StringComparison.OrdinalIgnoreCase));
+            Succeeded = packageResult.Succeeded && IsCreatedSignatureValidationSuccessful(CreatedSignatureValidation);
             Details = details;
             ValidationReport = validationReport;
         }
@@ -218,24 +225,26 @@ namespace OfficeIMO.Word {
 
         internal bool CreatedSignatureReadbackSucceeded {
             get {
-                WordSignaturePartValidationResult? validation = CreatedSignatureValidation;
-                WordSignaturePartInfo? signaturePart = validation?.SignaturePart;
-                if (!Succeeded ||
-                    validation?.CryptographicStatus != WordSignatureValidationState.Passed ||
+                return Succeeded && IsCreatedSignatureValidationSuccessful(CreatedSignatureValidation);
+            }
+        }
+
+        internal static bool IsCreatedSignatureValidationSuccessful(WordSignaturePartValidationResult? validation) {
+            WordSignaturePartInfo? signaturePart = validation?.SignaturePart;
+            if (validation?.CryptographicStatus != WordSignatureValidationState.Passed ||
                     signaturePart == null ||
                     signaturePart.HasParseError ||
                     string.IsNullOrWhiteSpace(signaturePart.SignatureMethodAlgorithm) ||
                     signaturePart.SignedReferences.Count == 0) {
-                    return false;
-                }
-
-                return signaturePart.SignedReferences.All(reference =>
-                    reference.IsPackagePartReference &&
-                    reference.TargetPartExists == true &&
-                    !string.IsNullOrWhiteSpace(reference.DigestMethodAlgorithm) &&
-                    reference.HasDigestValue &&
-                    reference.DigestVerificationStatus == WordSignatureValidationState.Passed);
+                return false;
             }
+
+            return signaturePart.SignedReferences.All(reference =>
+                reference.IsPackagePartReference &&
+                reference.TargetPartExists == true &&
+                !string.IsNullOrWhiteSpace(reference.DigestMethodAlgorithm) &&
+                reference.HasDigestValue &&
+                reference.DigestVerificationStatus == WordSignatureValidationState.Passed);
         }
 
         internal static WordPackageSigningResult Failed(string filePath, bool isSupported, IReadOnlyList<string> details) {
