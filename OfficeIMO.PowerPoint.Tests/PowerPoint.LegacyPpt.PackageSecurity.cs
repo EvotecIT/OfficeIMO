@@ -47,6 +47,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompoundStorageValidation_RetainsBoundedVbaModulePayloads() {
+            byte[] vbaStorage = CreateVbaTestProject("Módulo",
+                "Sub Main(): End Sub", moduleOffset: 4);
+
+            Assert.True(LegacyPptVbaProjectCodec.IsValidProject(vbaStorage,
+                new LegacyPptImportOptions(), out string? reason), reason);
+        }
+
+        [Fact]
         public async Task PresentationFacade_EnforcesPackageSecurityPolicies() {
             byte[] packageBytes;
             using (PowerPointPresentation source =

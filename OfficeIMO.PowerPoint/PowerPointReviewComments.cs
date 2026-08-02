@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Xml;
 using DocumentFormat.OpenXml.Packaging;
 using P = DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -651,13 +650,8 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(text)) {
                 throw new ArgumentException("Comment text cannot be empty.", nameof(text));
             }
-            try {
-                XmlConvert.VerifyXmlChars(text);
-            } catch (XmlException exception) {
-                throw new ArgumentException(
-                    "Comment text contains characters that are not valid in Open XML.",
-                    nameof(text), exception);
-            }
+            PowerPointXmlValueValidator.ValidateCharacters(text,
+                nameof(text), "Comment text");
         }
 
         internal static void ValidateClassicCommentText(string text,
@@ -676,6 +670,8 @@ namespace OfficeIMO.PowerPoint {
                     "Classic comment text cannot contain a NUL character.",
                     parameterName);
             }
+            PowerPointXmlValueValidator.ValidateCharacters(text,
+                parameterName, "Classic comment text");
         }
 
         internal static void ValidateClassicCommentPosition(long value,

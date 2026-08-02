@@ -62,13 +62,20 @@ internal static class ShapeCrawlerBaselineRunner {
     }
 
     private static int RunProbe(string[] args) {
-        if (args.Length != 2 || !Operations.Contains(args[0], StringComparer.OrdinalIgnoreCase)) {
+        bool createSave = args.Length >= 1 && string.Equals(args[0],
+            "CreateSave", StringComparison.OrdinalIgnoreCase);
+        if ((args.Length != 2 && args.Length != 3)
+            || !Operations.Contains(args[0], StringComparer.OrdinalIgnoreCase)
+            || createSave && args.Length != 2
+            || !createSave && args.Length != 3) {
             Console.Error.WriteLine(
-                "Usage: --probe <CreateSave|OpenEditSave> <Small|Normal|Large>");
+                "Usage: --probe <CreateSave|OpenEditSave> <Small|Normal|Large> [source.pptx]");
             return 2;
         }
         try {
-            Console.WriteLine(JsonSerializer.Serialize(Measure(args[0], GetFixture(args[1])), JsonOptions));
+            Console.WriteLine(JsonSerializer.Serialize(Measure(args[0],
+                GetFixture(args[1]), args.Length == 3 ? args[2] : null),
+                JsonOptions));
             return 0;
         } catch (Exception exception) {
             Console.Error.WriteLine(exception);
@@ -76,14 +83,15 @@ internal static class ShapeCrawlerBaselineRunner {
         }
     }
 
-    private static BaselineMeasurement Measure(string operation, BenchmarkFixture fixture) {
-        byte[]? source = string.Equals(operation, "CreateSave", StringComparison.OrdinalIgnoreCase)
-            ? null
-            : CreatePackage(fixture);
+    private static BaselineMeasurement Measure(string operation,
+        BenchmarkFixture fixture, string? sourcePath) {
+        long inputBytes = sourcePath == null
+            ? 0L
+            : new FileInfo(sourcePath).Length;
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var stopwatch = Stopwatch.StartNew();
-        byte[] result = Execute(operation, fixture, source);
+        byte[] result = Execute(operation, fixture, sourcePath);
         stopwatch.Stop();
         long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
         using Process process = Process.GetCurrentProcess();
@@ -95,20 +103,22 @@ internal static class ShapeCrawlerBaselineRunner {
             fixture.Scale,
             fixture.SlideCount,
             shapeCount,
-            source?.LongLength ?? 0L,
+            inputBytes,
             result.LongLength,
             stopwatch.Elapsed.TotalMilliseconds,
             allocated,
             peakWorkingSet);
     }
 
-    private static byte[] Execute(string operation, BenchmarkFixture fixture, byte[]? source) {
+    private static byte[] Execute(string operation, BenchmarkFixture fixture,
+        string? sourcePath) {
         if (string.Equals(operation, "CreateSave", StringComparison.OrdinalIgnoreCase)) {
             return CreatePackage(fixture);
         }
-        if (!string.Equals(operation, "OpenEditSave", StringComparison.OrdinalIgnoreCase) || source == null) {
+        if (!string.Equals(operation, "OpenEditSave", StringComparison.OrdinalIgnoreCase) || sourcePath == null) {
             throw new ArgumentException("Unknown operation: " + operation, nameof(operation));
         }
+        byte[] source = File.ReadAllBytes(sourcePath);
         using var input = new MemoryStream(source, writable: false);
         using var presentation = new Presentation(input);
         for (int index = 1; index <= presentation.Slides.Count; index += 10) {
@@ -267,33 +277,50 @@ internal static class ShapeCrawlerBaselineRunner {
     }
 
     private static BaselineMeasurement RunChildProbe(string operation, string scale) {
-        string processPath = Environment.ProcessPath
-            ?? throw new InvalidOperationException("Unable to resolve benchmark process path.");
-        var startInfo = new ProcessStartInfo {
-            FileName = processPath,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        if (string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet",
+        string? sourcePath = null;
+        if (!string.Equals(operation, "CreateSave",
                 StringComparison.OrdinalIgnoreCase)) {
-            startInfo.ArgumentList.Add(Assembly.GetEntryAssembly()!.Location);
+            sourcePath = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-ShapeCrawler-Benchmark-"
+                + Guid.NewGuid().ToString("N") + ".pptx");
+            File.WriteAllBytes(sourcePath, CreatePackage(GetFixture(scale)));
         }
-        startInfo.ArgumentList.Add("--probe");
-        startInfo.ArgumentList.Add(operation);
-        startInfo.ArgumentList.Add(scale);
-        using Process child = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Unable to start benchmark probe process.");
-        string output = child.StandardOutput.ReadToEnd();
-        string error = child.StandardError.ReadToEnd();
-        child.WaitForExit();
-        if (child.ExitCode != 0) {
-            throw new InvalidOperationException($"Probe {operation}/{scale} failed: {error}");
+        try {
+            string processPath = Environment.ProcessPath
+                ?? throw new InvalidOperationException("Unable to resolve benchmark process path.");
+            var startInfo = new ProcessStartInfo {
+                FileName = processPath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            if (string.Equals(Path.GetFileNameWithoutExtension(processPath),
+                    "dotnet", StringComparison.OrdinalIgnoreCase)) {
+                startInfo.ArgumentList.Add(Assembly.GetEntryAssembly()!.Location);
+            }
+            startInfo.ArgumentList.Add("--probe");
+            startInfo.ArgumentList.Add(operation);
+            startInfo.ArgumentList.Add(scale);
+            if (sourcePath != null) startInfo.ArgumentList.Add(sourcePath);
+            using Process child = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Unable to start benchmark probe process.");
+            string output = child.StandardOutput.ReadToEnd();
+            string error = child.StandardError.ReadToEnd();
+            child.WaitForExit();
+            if (child.ExitCode != 0) {
+                throw new InvalidOperationException(
+                    $"Probe {operation}/{scale} failed: {error}");
+            }
+            return JsonSerializer.Deserialize<BaselineMeasurement>(output,
+                    JsonOptions)
+                ?? throw new InvalidOperationException(
+                    $"Probe {operation}/{scale} returned no measurement.");
+        } finally {
+            if (sourcePath != null && File.Exists(sourcePath)) {
+                File.Delete(sourcePath);
+            }
         }
-        return JsonSerializer.Deserialize<BaselineMeasurement>(output, JsonOptions)
-            ?? throw new InvalidOperationException(
-                $"Probe {operation}/{scale} returned no measurement.");
     }
 
     private static BenchmarkFixture GetFixture(string scale) => scale.ToLowerInvariant() switch {

@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
             string moduleText, bool corruptDirectory = false,
             bool corruptProjectHeader = false,
             bool corruptDirectoryRecords = false,
-            bool omitModuleStream = false) {
+            bool omitModuleStream = false, uint moduleOffset = 0) {
             using var output = new MemoryStream();
             using (RootStorage root = RootStorage.Create(output,
                        CfbVersion.V3, StorageModeFlags.LeaveOpen)) {
@@ -451,7 +451,7 @@ namespace OfficeIMO.Tests {
                     byte[] directoryBytes = corruptDirectory
                         ? new byte[] { 0x01, 0x00, 0x00 }
                         : CreateVbaDirectory(moduleName,
-                            corruptDirectoryRecords);
+                            corruptDirectoryRecords, moduleOffset);
                     directory.Write(directoryBytes, 0, directoryBytes.Length);
                 }
                 using (CfbStream project = vba.CreateStream("_VBA_PROJECT")) {
@@ -462,7 +462,11 @@ namespace OfficeIMO.Tests {
                 }
                 if (!omitModuleStream) {
                     using CfbStream module = vba.CreateStream(moduleName);
-                    byte[] moduleBytes = Encoding.UTF8.GetBytes(moduleText);
+                    byte[] sourceBytes = Encoding.UTF8.GetBytes(moduleText);
+                    byte[] moduleBytes = new byte[checked((int)moduleOffset
+                        + sourceBytes.Length)];
+                    Buffer.BlockCopy(sourceBytes, 0, moduleBytes,
+                        checked((int)moduleOffset), sourceBytes.Length);
                     module.Write(moduleBytes, 0, moduleBytes.Length);
                 }
                 using (CfbStream project = root.CreateStream("PROJECT")) {
@@ -473,8 +477,9 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateVbaDirectory(string projectName,
-            bool corruptRecords = false) {
-            byte[] name = Encoding.ASCII.GetBytes(projectName);
+            bool corruptRecords = false, uint moduleOffset = 0) {
+            byte[] name = projectName.Select(character => checked((byte)character))
+                .ToArray();
             using var records = new MemoryStream();
             using (var writer = new BinaryWriter(records, Encoding.UTF8,
                        leaveOpen: true)) {
@@ -504,7 +509,12 @@ namespace OfficeIMO.Tests {
                     Array.Empty<byte>());
                 WriteVbaDirectoryRecord(writer, 0x0048,
                     Array.Empty<byte>());
-                WriteVbaDirectoryRecord(writer, 0x0031, new byte[4]);
+                WriteVbaDirectoryRecord(writer, 0x0031, new[] {
+                    (byte)moduleOffset,
+                    (byte)(moduleOffset >> 8),
+                    (byte)(moduleOffset >> 16),
+                    (byte)(moduleOffset >> 24)
+                });
                 WriteVbaDirectoryRecord(writer, 0x001E, new byte[4]);
                 WriteVbaDirectoryRecord(writer, 0x002C, new byte[2]);
                 WriteVbaDirectoryRecord(writer, 0x0021,

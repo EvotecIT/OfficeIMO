@@ -189,6 +189,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("Custom-show name cannot be empty.", nameof(name));
             }
             string normalized = name.Trim();
+            PowerPointXmlValueValidator.ValidateCharacters(normalized,
+                nameof(name), "Custom-show name");
             bool duplicate = PresentationRoot.CustomShowList?
                 .Elements<P.CustomShow>()
                 .Any(show => !ReferenceEquals(show, except)

@@ -83,6 +83,12 @@ namespace OfficeIMO.Tests {
                 first.RenameCustomShow(foreignShow, "Still foreign"));
             Assert.Throws<InvalidOperationException>(() =>
                 first.RemoveCustomShow(foreignShow));
+
+            Assert.Throws<ArgumentException>(() =>
+                first.AddCustomShow("Invalid\u0001name", new[] { local }));
+            Assert.Throws<ArgumentException>(() =>
+                first.RenameCustomShow(show, "Invalid\u0001name"));
+            Assert.Equal("Local", show.Name);
         }
 
         [Fact]

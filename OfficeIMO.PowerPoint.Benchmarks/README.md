@@ -10,7 +10,7 @@ Run all four workflows at small, normal, and large scales:
 dotnet run --project OfficeIMO.PowerPoint.Benchmarks/OfficeIMO.PowerPoint.Benchmarks.csproj -c Release -f net10.0 -- --json .benchmark-artifacts/powerpoint/baseline.json
 ```
 
-Use `--scale Small`, `--scale Normal`, or `--scale Large` for a shorter run. Each operation runs in a separate child process so process memory from another workflow does not leak into its peak-working-set result.
+Use `--scale Small`, `--scale Normal`, or `--scale Large` for a shorter run. Each operation runs in a separate child process so process memory from another workflow does not leak into its peak-working-set result. For open workflows, the parent creates the source fixture before starting the probe; the probe includes reading that source from disk in the measured workflow without including fixture authoring in its process-lifetime peak.
 
 Generate the repeatable visual corpus used for structural and visual review:
 

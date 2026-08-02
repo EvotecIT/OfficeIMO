@@ -21,14 +21,19 @@ internal static class PowerPointBaselineRunner {
     };
 
     internal static int RunProbe(string[] args) {
-        if (args.Length != 2 || !Operations.Contains(args[0],
-                StringComparer.OrdinalIgnoreCase)) {
+        bool createSave = args.Length >= 1 && string.Equals(args[0],
+            "CreateSave", StringComparison.OrdinalIgnoreCase);
+        if ((args.Length != 2 && args.Length != 3)
+            || !Operations.Contains(args[0], StringComparer.OrdinalIgnoreCase)
+            || createSave && args.Length != 2
+            || !createSave && args.Length != 3) {
             Console.Error.WriteLine(
-                "Usage: --probe <CreateSave|OpenEditSave|OpenImageExport|OpenPdfExport> <Small|Normal|Large>");
+                "Usage: --probe <CreateSave|OpenEditSave|OpenImageExport|OpenPdfExport> <Small|Normal|Large> [source.pptx]");
             return 2;
         }
         try {
-            PowerPointBaselineMeasurement measurement = Measure(args[0], args[1]);
+            PowerPointBaselineMeasurement measurement = Measure(args[0],
+                args[1], args.Length == 3 ? args[2] : null);
             Console.WriteLine(JsonSerializer.Serialize(measurement, JsonOptions));
             return 0;
         } catch (Exception exception) {
@@ -74,17 +79,18 @@ internal static class PowerPointBaselineRunner {
         return 0;
     }
 
-    private static PowerPointBaselineMeasurement Measure(string operation, string scale) {
+    private static PowerPointBaselineMeasurement Measure(string operation,
+        string scale, string? sourcePath) {
         PowerPointBenchmarkFixture fixture = PowerPointBenchmarkCorpus.Get(scale);
-        byte[]? source = string.Equals(operation, "CreateSave",
-            StringComparison.OrdinalIgnoreCase)
-            ? null
-            : PowerPointBenchmarkCorpus.CreatePackage(fixture);
+        long inputBytes = sourcePath == null
+            ? 0L
+            : new FileInfo(sourcePath).Length;
 
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var stopwatch = Stopwatch.StartNew();
-        PowerPointOperationResult result = Execute(operation, fixture, source);
+        PowerPointOperationResult result = Execute(operation, fixture,
+            sourcePath);
         stopwatch.Stop();
         long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
         using Process process = Process.GetCurrentProcess();
@@ -96,7 +102,7 @@ internal static class PowerPointBaselineRunner {
             fixture.Scale,
             fixture.SlideCount,
             result.ShapeCount,
-            source?.LongLength ?? 0L,
+            inputBytes,
             result.OutputBytes,
             stopwatch.Elapsed.TotalMilliseconds,
             allocated,
@@ -104,12 +110,13 @@ internal static class PowerPointBaselineRunner {
     }
 
     private static PowerPointOperationResult Execute(string operation,
-        PowerPointBenchmarkFixture fixture, byte[]? source) {
+        PowerPointBenchmarkFixture fixture, string? sourcePath) {
         if (string.Equals(operation, "CreateSave", StringComparison.OrdinalIgnoreCase)) {
             byte[] bytes = PowerPointBenchmarkCorpus.CreatePackage(fixture);
             return PowerPointOperationResult.Package(bytes);
         }
-        if (source == null) throw new InvalidOperationException("Benchmark source package is unavailable.");
+        if (sourcePath == null) throw new InvalidOperationException("Benchmark source package is unavailable.");
+        byte[] source = File.ReadAllBytes(sourcePath);
         if (string.Equals(operation, "OpenEditSave", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
@@ -317,34 +324,53 @@ internal static class PowerPointBaselineRunner {
 
     private static PowerPointBaselineMeasurement RunChildProbe(string operation,
         string scale) {
-        string processPath = Environment.ProcessPath
-            ?? throw new InvalidOperationException("Unable to resolve benchmark process path.");
-        var startInfo = new ProcessStartInfo {
-            FileName = processPath,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        if (string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet",
+        string? sourcePath = null;
+        if (!string.Equals(operation, "CreateSave",
                 StringComparison.OrdinalIgnoreCase)) {
-            startInfo.ArgumentList.Add(Assembly.GetEntryAssembly()!.Location);
+            sourcePath = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-PowerPoint-Benchmark-" + Guid.NewGuid().ToString("N")
+                + ".pptx");
+            PowerPointBenchmarkFixture fixture =
+                PowerPointBenchmarkCorpus.Get(scale);
+            File.WriteAllBytes(sourcePath,
+                PowerPointBenchmarkCorpus.CreatePackage(fixture));
         }
-        startInfo.ArgumentList.Add("--probe");
-        startInfo.ArgumentList.Add(operation);
-        startInfo.ArgumentList.Add(scale);
-        using Process child = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Unable to start benchmark probe process.");
-        string output = child.StandardOutput.ReadToEnd();
-        string error = child.StandardError.ReadToEnd();
-        child.WaitForExit();
-        if (child.ExitCode != 0) {
-            throw new InvalidOperationException(
-                $"Probe {operation}/{scale} failed: {error}");
+        try {
+            string processPath = Environment.ProcessPath
+                ?? throw new InvalidOperationException("Unable to resolve benchmark process path.");
+            var startInfo = new ProcessStartInfo {
+                FileName = processPath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            if (string.Equals(Path.GetFileNameWithoutExtension(processPath),
+                    "dotnet", StringComparison.OrdinalIgnoreCase)) {
+                startInfo.ArgumentList.Add(Assembly.GetEntryAssembly()!.Location);
+            }
+            startInfo.ArgumentList.Add("--probe");
+            startInfo.ArgumentList.Add(operation);
+            startInfo.ArgumentList.Add(scale);
+            if (sourcePath != null) startInfo.ArgumentList.Add(sourcePath);
+            using Process child = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Unable to start benchmark probe process.");
+            string output = child.StandardOutput.ReadToEnd();
+            string error = child.StandardError.ReadToEnd();
+            child.WaitForExit();
+            if (child.ExitCode != 0) {
+                throw new InvalidOperationException(
+                    $"Probe {operation}/{scale} failed: {error}");
+            }
+            return JsonSerializer.Deserialize<PowerPointBaselineMeasurement>(
+                    output, JsonOptions)
+                ?? throw new InvalidOperationException(
+                    $"Probe {operation}/{scale} returned no measurement.");
+        } finally {
+            if (sourcePath != null && File.Exists(sourcePath)) {
+                File.Delete(sourcePath);
+            }
         }
-        return JsonSerializer.Deserialize<PowerPointBaselineMeasurement>(output, JsonOptions)
-            ?? throw new InvalidOperationException(
-                $"Probe {operation}/{scale} returned no measurement.");
     }
 
     private static string? GetOption(string[] args, string name) {

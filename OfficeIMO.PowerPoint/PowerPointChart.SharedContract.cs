@@ -225,9 +225,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string?[] resolvedFonts = textRuns.Select(run =>
-                    run.GetFirstChild<A.RunProperties>()?
-                        .GetFirstChild<A.LatinFont>()?.Typeface?.Value
-                    ?? defaultTypeface)
+                    ReadTitleRunTypeface(run) ?? defaultTypeface)
                 .ToArray();
             if (resolvedFonts.Any(value => string.IsNullOrWhiteSpace(value)
                     || IsThemeFontToken(value))) {
@@ -237,6 +235,17 @@ namespace OfficeIMO.PowerPoint {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             return explicitFonts.Length == 1 ? explicitFonts[0] : null;
+        }
+
+        private static string? ReadTitleRunTypeface(A.Run run) {
+            string? runTypeface = run.GetFirstChild<A.RunProperties>()?
+                .GetFirstChild<A.LatinFont>()?.Typeface?.Value;
+            if (!string.IsNullOrWhiteSpace(runTypeface)) return runTypeface;
+            A.Paragraph? paragraph = run.Ancestors<A.Paragraph>()
+                .FirstOrDefault();
+            return paragraph?.GetFirstChild<A.ParagraphProperties>()?
+                .GetFirstChild<A.DefaultRunProperties>()?
+                .GetFirstChild<A.LatinFont>()?.Typeface?.Value;
         }
 
         private static bool IsRelevantBodyTextArea(OpenXmlElement element) {

@@ -73,6 +73,34 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
+    public void SharedSnapshot_UsesTitleParagraphDefaultRunFont() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChartPoints(
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D })
+            }), 40, 40, 500, 300);
+        chart.SetTitle("Trajectory");
+        C.Chart openXmlChart = presentation.OpenXmlDocument.PresentationPart!
+            .SlideParts.Single().ChartParts.Single().ChartSpace!
+            .GetFirstChild<C.Chart>()!;
+        A.Paragraph paragraph = openXmlChart.GetFirstChild<C.Title>()!
+            .GetFirstChild<C.ChartText>()!.GetFirstChild<C.RichText>()!
+            .GetFirstChild<A.Paragraph>()!;
+        foreach (A.RunProperties properties in paragraph
+                     .Descendants<A.RunProperties>()) {
+            properties.RemoveAllChildren<A.LatinFont>();
+        }
+        paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+        paragraph.ParagraphProperties.RemoveAllChildren<A.DefaultRunProperties>();
+        paragraph.ParagraphProperties.Append(new A.DefaultRunProperties(
+            new A.LatinFont { Typeface = "Georgia" }));
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal("Georgia", snapshot.Style.TitleFontFamily);
+    }
+
+    [Fact]
     public void SharedSnapshot_DoesNotPromoteConflictingBodyFonts() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointSlide slide = presentation.AddSlide();

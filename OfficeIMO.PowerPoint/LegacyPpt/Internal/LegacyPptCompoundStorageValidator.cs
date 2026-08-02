@@ -2,8 +2,8 @@ using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>
-    /// Validates embedded compound storages without retaining their logical
-    /// payload streams or permitting aliased-stream expansion.
+    /// Validates embedded compound storages while retaining bounded VBA
+    /// streams needed to verify the declared module graph.
     /// </summary>
     internal static class LegacyPptCompoundStorageValidator {
         internal static bool TryRead(byte[] bytes,
@@ -22,9 +22,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             using var source = new MemoryStream(bytes, writable: false);
             return OfficeCompoundFileReader.TryReadSelective(source,
                 readOptions, externalize: (name, _) =>
-                    !string.Equals(name, "VBA/dir",
-                        StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(name, "VBA/_VBA_PROJECT",
+                    !name.StartsWith("VBA/",
                         StringComparison.OrdinalIgnoreCase),
                 openExternalDestination: (_, _) => Stream.Null,
                 out compound, out reason);

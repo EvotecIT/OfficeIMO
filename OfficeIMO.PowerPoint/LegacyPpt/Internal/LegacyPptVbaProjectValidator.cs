@@ -8,6 +8,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal static class LegacyPptVbaProjectValidator {
         private const int MaximumDirectoryLength = 16 * 1024 * 1024;
 
+        static LegacyPptVbaProjectValidator() {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        }
+
         internal static bool TryValidate(
             IReadOnlyDictionary<string, byte[]> streams, out string? reason) {
             if (!streams.TryGetValue("VBA/_VBA_PROJECT", out byte[]? project)
@@ -363,7 +367,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             try {
                 return Encoding.GetEncoding(codePage)
                     .GetString(bytes, offset, length);
-            } catch (ArgumentException) {
+            } catch (Exception exception) when (exception is ArgumentException
+                || exception is NotSupportedException) {
                 return null;
             }
         }

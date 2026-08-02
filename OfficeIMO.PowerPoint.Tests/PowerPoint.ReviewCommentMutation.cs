@@ -125,6 +125,7 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [InlineData("nul\0text")]
+        [InlineData("control\u0001text")]
         public void ClassicCommentMutation_RejectsBinaryIncompatibleText(
             string invalidText) {
             using PowerPointPresentation presentation =
