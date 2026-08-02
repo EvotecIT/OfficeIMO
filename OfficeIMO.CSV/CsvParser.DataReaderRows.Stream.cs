@@ -346,23 +346,23 @@ internal static partial class CsvParser
             string? materialized = _materialized[ordinal];
             if (materialized is null)
             {
-                ReadOnlySpan<char> value = _buffer.AsSpan(_starts[ordinal], _lengths[ordinal]);
-                materialized = TryGetCachedString(value)
-                    ?? new string(_buffer, _starts[ordinal], _lengths[ordinal]);
+                int start = _starts[ordinal];
+                int length = _lengths[ordinal];
+                if (length == 1)
+                {
+                    char value = _buffer[start];
+                    materialized = value < SingleCharacterStrings.Length
+                        ? SingleCharacterStrings[value]
+                        : new string(_buffer, start, length);
+                }
+                else
+                {
+                    materialized = new string(_buffer, start, length);
+                }
                 _materialized[ordinal] = materialized;
             }
 
             return materialized;
-        }
-
-        private static string? TryGetCachedString(ReadOnlySpan<char> value)
-        {
-            return value.Length switch
-            {
-                0 => string.Empty,
-                1 when value[0] < SingleCharacterStrings.Length => SingleCharacterStrings[value[0]],
-                _ => null
-            };
         }
 
         private static string[] CreateSingleCharacterStrings()

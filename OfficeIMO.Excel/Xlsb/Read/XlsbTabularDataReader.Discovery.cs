@@ -26,12 +26,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             lastDataRow = -1;
             int currentRow = -1;
             int previousCellColumn = -1;
-            var scanner = new XlsbRecordSliceReader(
-                worksheetPart.Buffer,
-                limits.MaxRecordBytes,
-                recordBudget,
-                worksheetPart.DataLength,
-                consumeRecordBudget: false);
+            byte[] bytes = worksheetPart.Buffer;
+            int dataLength = worksheetPart.DataLength;
+            int position = 0;
             {
                 bool inSheetData = false;
                 bool sawBeginSheetData = false;
@@ -45,22 +42,77 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 var currentRowSpanBounds = new int[32];
                 int currentRowSpanCount = 0;
                 cancellationToken.ThrowIfCancellationRequested();
-                while (scanner.TryRead(out XlsbRecordSlice record)) {
+                // Discovery is the full-buffer validation pass. Fuse BIFF12 framing with the
+                // common fixed-cell checks so large worksheets are validated once without a
+                // method dispatch and record-object path for every cell.
+                while (position < dataLength) {
+                    int recordOffset = position;
+                    int firstTypeByte = bytes[position++];
+                    int recordType = firstTypeByte & 0x7F;
+                    if ((firstTypeByte & 0x80) != 0) {
+                        if (position == dataLength) {
+                            throw new EndOfStreamException(
+                                "The BIFF12 stream ended inside the record type header.");
+                        }
+                        int secondTypeByte = bytes[position++];
+                        recordType |= (secondTypeByte & 0x7F) << 7;
+                        if (recordType < 128) {
+                            throw new InvalidDataException(
+                                "The BIFF12 record type uses a non-canonical two-byte encoding.");
+                        }
+                    }
+
+                    if (position == dataLength) {
+                        throw new EndOfStreamException(
+                            "The BIFF12 stream ended inside the record size header.");
+                    }
+                    int sizeByte = bytes[position++];
+                    int recordSize = sizeByte & 0x7F;
+                    if ((sizeByte & 0x80) != 0) {
+                        bool complete = false;
+                        for (int sizeIndex = 1; sizeIndex < 4; sizeIndex++) {
+                            if (position == dataLength) {
+                                throw new EndOfStreamException(
+                                    "The BIFF12 stream ended inside the record size header.");
+                            }
+                            sizeByte = bytes[position++];
+                            recordSize |= (sizeByte & 0x7F) << (sizeIndex * 7);
+                            if ((sizeByte & 0x80) == 0) {
+                                complete = true;
+                                break;
+                            }
+                        }
+                        if (!complete) {
+                            throw new InvalidDataException(
+                                "The BIFF12 record size header is invalid.");
+                        }
+                    }
+                    if (recordSize > limits.MaxRecordBytes) {
+                        throw new InvalidDataException(
+                            $"The BIFF12 record at offset {recordOffset} declares {recordSize} payload bytes, exceeding the configured limit of {limits.MaxRecordBytes} bytes.");
+                    }
+                    if (recordSize > dataLength - position) {
+                        throw new EndOfStreamException(
+                            $"The BIFF12 record at offset {recordOffset} declares {recordSize} payload bytes but only {dataLength - position} remain.");
+                    }
+                    int payloadOffset = position;
+                    position += recordSize;
+
                     pendingRecordBudget++;
                     if (pendingRecordBudget == DiscoveryBudgetBatchSize) {
                         recordBudget.Consume(pendingRecordBudget);
                         pendingRecordBudget = 0;
                     }
                     if (firstRecordType < 0) {
-                        firstRecordType = record.Type;
+                        firstRecordType = recordType;
                     }
-                    lastRecordType = record.Type;
+                    lastRecordType = recordType;
                     recordsSinceCancellationCheck++;
                     if ((recordsSinceCancellationCheck & 1023) == 0) {
                         cancellationToken.ThrowIfCancellationRequested();
                     }
 
-                    if (record.Type == BrtWsDim) {
+                    if (recordType == BrtWsDim) {
                         if (sawDimension) {
                             throw new InvalidDataException(
                                 "The XLSB worksheet contains more than one BrtWsDim record.");
@@ -70,11 +122,19 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 "The XLSB worksheet contains a misplaced BrtWsDim record.");
                         }
 
-                        ReadWorksheetDimension(record, out _, out _);
+                        ReadWorksheetDimension(
+                            new XlsbRecordSlice(
+                                bytes,
+                                recordOffset,
+                                recordType,
+                                payloadOffset,
+                                recordSize),
+                            out _,
+                            out _);
                         sawDimension = true;
                         continue;
                     }
-                    if (record.Type == BrtBeginSheetData) {
+                    if (recordType == BrtBeginSheetData) {
                         if (sawBeginSheetData) {
                             throw new InvalidDataException(
                                 "The XLSB worksheet contains duplicate or nested BrtBeginSheetData records.");
@@ -88,7 +148,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         inSheetData = true;
                         continue;
                     }
-                    if (record.Type == BrtEndSheetData) {
+                    if (recordType == BrtEndSheetData) {
                         if (!inSheetData) {
                             throw new InvalidDataException(
                                 "The XLSB worksheet contains BrtEndSheetData without a matching BrtBeginSheetData record.");
@@ -100,16 +160,21 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         continue;
                     }
                     if (!inSheetData) {
-                        if (record.Type == BrtRowHdr || IsCellRecord(record.Type)) {
+                        if (recordType == BrtRowHdr || IsCellRecord(recordType)) {
                             throw new InvalidDataException(
-                                $"The XLSB row or cell record at offset {record.RecordOffset} appears outside BrtBeginSheetData/BrtEndSheetData.");
+                                $"The XLSB row or cell record at offset {recordOffset} appears outside BrtBeginSheetData/BrtEndSheetData.");
                         }
 
                         continue;
                     }
-                    if (record.Type == BrtRowHdr) {
+                    if (recordType == BrtRowHdr) {
                         int nextRow = ValidateRowHeader(
-                            record,
+                            new XlsbRecordSlice(
+                                bytes,
+                                recordOffset,
+                                recordType,
+                                payloadOffset,
+                                recordSize),
                             currentRowSpanBounds,
                             out currentRowSpanCount);
                         if (currentRow >= 0 && nextRow <= currentRow) {
@@ -121,12 +186,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         previousCellColumn = -1;
                         continue;
                     }
-                    if (!IsCellRecord(record.Type)) {
+                    if (!IsCellRecord(recordType)) {
                         continue;
                     }
                     if (currentRow < 0) {
                         throw new InvalidDataException(
-                            $"The XLSB cell record at offset {record.RecordOffset} appears before a row header.");
+                            $"The XLSB cell record at offset {recordOffset} appears before a row header.");
                     }
 
                     pendingCellBudget++;
@@ -135,24 +200,74 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         pendingCellBudget = 0;
                     }
                     if (!useCachedFormulaResult) {
-                        EnsureFormulaModeSupported(record.Type, useCachedFormulaResult);
+                        EnsureFormulaModeSupported(recordType, useCachedFormulaResult);
                     }
                     if (firstDataRow < 0) {
                         firstDataRow = currentRow;
                     }
                     lastDataRow = currentRow;
-                    int column = ValidateCellPayloadStructure(
-                        record,
-                        styleCount,
-                        sharedStringCount,
-                        limits.MaxStringCharacters);
+                    int column;
+                    if (recordSize >= sizeof(int) + sizeof(uint)
+                        && recordType is >= BrtCellBlank and <= BrtCellIsst) {
+                        column = BinaryPrimitives.ReadInt32LittleEndian(
+                            bytes.AsSpan(payloadOffset, sizeof(int)));
+                        uint styleIndex = BinaryPrimitives.ReadUInt32LittleEndian(
+                            bytes.AsSpan(payloadOffset + sizeof(int), sizeof(uint))) & 0x00FFFFFFU;
+                        if (styleIndex >= styleCount) {
+                            throw new InvalidDataException(
+                                $"The XLSB cell record at offset {recordOffset} refers to missing cell format " +
+                                $"{styleIndex}; the styles part exposes {styleCount} format(s).");
+                        }
+
+                        int valueBytes = recordSize - sizeof(int) - sizeof(uint);
+                        bool validFixedPayload = recordType switch {
+                            BrtCellBlank => true,
+                            BrtCellRk => valueBytes >= sizeof(uint),
+                            BrtCellError or BrtCellBool => valueBytes >= sizeof(byte),
+                            BrtCellReal => valueBytes >= sizeof(double),
+                            BrtCellIsst => valueBytes >= sizeof(uint),
+                            _ => false
+                        };
+                        if (validFixedPayload && recordType == BrtCellIsst) {
+                            uint sharedStringIndex = BinaryPrimitives.ReadUInt32LittleEndian(
+                                bytes.AsSpan(payloadOffset + sizeof(int) + sizeof(uint), sizeof(uint)));
+                            if (sharedStringIndex >= sharedStringCount) {
+                                throw new InvalidDataException(
+                                    $"The XLSB cell record at offset {recordOffset} refers to missing shared string " +
+                                    $"{sharedStringIndex}; the shared-string part exposes {sharedStringCount} item(s).");
+                            }
+                        }
+                        if (!validFixedPayload) {
+                            column = ValidateCellPayloadStructure(
+                                new XlsbRecordSlice(
+                                    bytes,
+                                    recordOffset,
+                                    recordType,
+                                    payloadOffset,
+                                    recordSize),
+                                styleCount,
+                                sharedStringCount,
+                                limits.MaxStringCharacters);
+                        }
+                    } else {
+                        column = ValidateCellPayloadStructure(
+                            new XlsbRecordSlice(
+                                bytes,
+                                recordOffset,
+                                recordType,
+                                payloadOffset,
+                                recordSize),
+                            styleCount,
+                            sharedStringCount,
+                            limits.MaxStringCharacters);
+                    }
                     if (column < 0 || column >= A1.MaxColumns) {
                         throw new InvalidDataException(
-                            $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
+                            $"The XLSB cell record at offset {recordOffset} contains invalid column index {column}.");
                     }
                     if (column <= previousCellColumn) {
                         throw new InvalidDataException(
-                            $"The XLSB cell record at offset {record.RecordOffset} is duplicated or out of order within its row.");
+                            $"The XLSB cell record at offset {recordOffset} is duplicated or out of order within its row.");
                     }
                     previousCellColumn = column;
                     bool covered = currentRowSpanCount == 1
@@ -160,11 +275,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         : IsCoveredByRowSpan(currentRowSpanBounds, currentRowSpanCount, column);
                     if (!covered) {
                         throw new InvalidDataException(
-                            $"The XLSB cell record at offset {record.RecordOffset} for column {column} is not covered by its BrtRowHdr column spans.");
+                            $"The XLSB cell record at offset {recordOffset} for column {column} is not covered by its BrtRowHdr column spans.");
                     }
 
-                    firstColumn = Math.Min(firstColumn, column);
-                    lastColumn = Math.Max(lastColumn, column);
+                    if (column < firstColumn) {
+                        firstColumn = column;
+                    }
+                    if (column > lastColumn) {
+                        lastColumn = column;
+                    }
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
