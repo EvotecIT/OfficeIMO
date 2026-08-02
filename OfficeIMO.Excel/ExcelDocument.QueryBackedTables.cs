@@ -82,19 +82,22 @@ namespace OfficeIMO.Excel {
 
         private bool HasQueryBackedTableNameConflict(string connectionName, string tableName) {
             IReadOnlyDictionary<uint, (string Name, string Command)> connections = ReadNativeQueryConnections();
+            if (connections.Values.Any(connection =>
+                string.Equals(connection.Name, connectionName, StringComparison.OrdinalIgnoreCase))) {
+                return true;
+            }
             foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
                 foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                     Table? table = tablePart.Table;
                     QueryTablePart? queryPart = tablePart.QueryTableParts.FirstOrDefault();
                     if (table == null
                         || queryPart?.QueryTable?.ConnectionId?.Value is not uint connectionId
-                        || !connections.TryGetValue(connectionId, out var connection)) {
+                        || !connections.ContainsKey(connectionId)) {
                         continue;
                     }
 
                     string existingTableName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
-                    if (string.Equals(connection.Name, connectionName, StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(existingTableName, tableName, StringComparison.OrdinalIgnoreCase)) {
+                    if (string.Equals(existingTableName, tableName, StringComparison.OrdinalIgnoreCase)) {
                         return true;
                     }
                 }
@@ -221,7 +224,7 @@ namespace OfficeIMO.Excel {
                 $"Query-backed table or connection '{connectionOrTableName}' is ambiguous; use a unique table name.");
             ExcelQueryBackedTableInfo source = matches[0];
             ExcelSheet sheet = this[source.WorksheetName];
-            sheet.RemoveQueryBackedTableBinding(source.TableName, preserveTable);
+            sheet.RemoveQueryBackedTableBinding(source.TableName, source.ConnectionId, preserveTable);
 
             RemoveUnusedAuthoredQueryConnections(new[] { source.ConnectionId });
             MarkMetadataPartChanged();

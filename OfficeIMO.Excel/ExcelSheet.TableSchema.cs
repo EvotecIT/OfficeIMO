@@ -44,6 +44,7 @@ namespace OfficeIMO.Excel {
                 table.Name = resolved;
                 table.DisplayName = resolved;
                 table.Save();
+                SynchronizeQueryTableNames(table, resolved);
                 _excelDocument.RemoveReservedTableName(oldName);
                 _excelDocument.ReserveTableName(resolved);
                 _excelDocument.RewriteTableNameReferences(
@@ -56,6 +57,18 @@ namespace OfficeIMO.Excel {
                 result = resolved;
             });
             return result!;
+        }
+
+        private void SynchronizeQueryTableNames(Table table, string name) {
+            TableDefinitionPart? tablePart = _worksheetPart.TableDefinitionParts
+                .FirstOrDefault(part => ReferenceEquals(part.Table, table));
+            if (tablePart == null) return;
+            foreach (QueryTablePart queryPart in tablePart.QueryTableParts) {
+                QueryTable? queryTable = queryPart.QueryTable;
+                if (queryTable == null) continue;
+                queryTable.Name = name;
+                queryTable.Save();
+            }
         }
 
         /// <summary>

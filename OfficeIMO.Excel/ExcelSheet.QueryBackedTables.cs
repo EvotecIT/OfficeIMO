@@ -4,13 +4,20 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        internal void RemoveQueryBackedTableBinding(string tableName, bool preserveTable) {
+        internal void RemoveQueryBackedTableBinding(
+            string tableName,
+            uint expectedConnectionId,
+            bool preserveTable) {
             ApplyTransactionalMutation(_ => {
                 TableDefinitionPart tablePart = _worksheetPart.TableDefinitionParts.FirstOrDefault(part =>
                     string.Equals(part.Table?.Name?.Value ?? part.Table?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase))
                     ?? throw new InvalidOperationException($"Query-backed table '{tableName}' was not found on worksheet '{Name}'.");
                 QueryTablePart queryPart = tablePart.QueryTableParts.FirstOrDefault()
                     ?? throw new InvalidOperationException($"Table '{tableName}' is not query-backed.");
+                if (queryPart.QueryTable?.ConnectionId?.Value != expectedConnectionId) {
+                    throw new InvalidOperationException(
+                        $"Query-backed table '{tableName}' changed before its binding could be removed.");
+                }
                 tablePart.DeletePart(queryPart);
                 if (!preserveTable) {
                     string relationshipId = _worksheetPart.GetIdOfPart(tablePart);

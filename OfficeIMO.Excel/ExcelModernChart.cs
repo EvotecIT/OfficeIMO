@@ -47,7 +47,14 @@ namespace OfficeIMO.Excel {
                     EnsureAttached();
                     Xdr.NonVisualDrawingProperties properties = _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties
                         ?? throw new InvalidOperationException("Modern chart drawing properties are missing.");
-                    properties.Name = value.Trim();
+                    string resolved = value.Trim();
+                    bool duplicate = _drawingsPart.WorksheetDrawing?.Descendants<Xdr.NonVisualDrawingProperties>()
+                        .Any(candidate => !ReferenceEquals(candidate, properties)
+                            && string.Equals(candidate.Name?.Value, resolved, StringComparison.OrdinalIgnoreCase)) == true;
+                    if (duplicate) {
+                        throw new InvalidOperationException($"Worksheet drawing name '{resolved}' is already in use.");
+                    }
+                    properties.Name = resolved;
                     SaveDrawing();
                 });
             }

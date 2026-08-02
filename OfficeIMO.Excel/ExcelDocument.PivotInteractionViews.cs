@@ -96,28 +96,31 @@ namespace OfficeIMO.Excel {
             string worksheetName,
             ExcelTimelineViewOptions? options = null) {
             options ??= new ExcelTimelineViewOptions();
-            ExcelPivotTableInfo pivot = ValidatePivotInteractionBinding(pivotTableName, sourceField);
-            PivotTablePart pivotPart = FindPivotTablePart(pivot)
-                ?? throw new InvalidOperationException($"Pivot table '{pivot.Name}' has no package part.");
-            if (!IsDateOnlyPivotSourceField(pivot, sourceField.Trim())) {
-                throw new ArgumentException(
-                    $"Field '{sourceField}' is not a date-only source field and cannot be used for a timeline.",
-                    nameof(sourceField));
-            }
             ExcelSheet targetSheet = ResolvePivotInteractionWorksheet(worksheetName);
             ValidatePivotInteractionPlacement(options.Row, options.Column, options.WidthPixels, options.HeightPixels);
             if (!Enum.IsDefined(typeof(ExcelTimelineLevel), options.Level)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Timeline level is invalid.");
             }
-            TimeLineCachePart? compatibleCache = FindCompatibleTimelineCache(pivot, sourceField.Trim(), options.CacheName);
-            (DateTime Minimum, DateTime Maximum)? sourceBounds = null;
-            if (compatibleCache == null) {
-                CacheField sourceCacheField = GetPivotSourceCacheField(pivotPart, sourceField.Trim(), out _);
-                sourceBounds = GetTimelineBounds(sourceCacheField, pivot);
-            }
 
             ExcelPivotInteractionInfo? created = null;
             targetSheet.ApplyTransactionalMutation(_ => {
+                ExcelPivotTableInfo pivot = ValidatePivotInteractionBinding(pivotTableName, sourceField);
+                PivotTablePart pivotPart = FindPivotTablePart(pivot)
+                    ?? throw new InvalidOperationException($"Pivot table '{pivot.Name}' has no package part.");
+                if (!IsDateOnlyPivotSourceField(pivot, sourceField.Trim())) {
+                    throw new ArgumentException(
+                        $"Field '{sourceField}' is not a date-only source field and cannot be used for a timeline.",
+                        nameof(sourceField));
+                }
+                TimeLineCachePart? compatibleCache = FindCompatibleTimelineCache(
+                    pivot,
+                    sourceField.Trim(),
+                    options.CacheName);
+                (DateTime Minimum, DateTime Maximum)? sourceBounds = null;
+                if (compatibleCache == null) {
+                    CacheField sourceCacheField = GetPivotSourceCacheField(pivotPart, sourceField.Trim(), out int _);
+                    sourceBounds = GetTimelineBounds(sourceCacheField, pivot);
+                }
                 string viewName = ResolveNativeInteractionName(
                     options.Name,
                     "Timeline_" + sourceField.Trim(),
@@ -508,7 +511,8 @@ namespace OfficeIMO.Excel {
             if (values.Count == 0 && !string.IsNullOrWhiteSpace(pivot.SourceSheet)
                 && !string.IsNullOrWhiteSpace(pivot.SourceRange)
                 && A1.TryParseRange(pivot.SourceRange!.Replace("$", string.Empty), out int r1, out int c1, out int r2, out int c2)) {
-                ExcelSheet? sheet = Sheets.FirstOrDefault(item => string.Equals(item.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
+                ExcelSheet? sheet = GetPivotInteractionSheetsForCurrentLock().FirstOrDefault(item =>
+                    string.Equals(item.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
                 List<CacheField> fields = FindPivotTablePart(pivot)?.PivotTableCacheDefinitionPart?.PivotCacheDefinition?
                     .CacheFields?.Elements<CacheField>().Where(field => field.DatabaseField?.Value != false).ToList() ?? new List<CacheField>();
                 int fieldIndex = fields.FindIndex(field => string.Equals(field.Name?.Value, cacheField.Name?.Value, StringComparison.OrdinalIgnoreCase));
