@@ -63,7 +63,7 @@ internal static partial class DocumentReaderEngine {
             : null;
     }
 
-    private static ReaderOptions NormalizeOptions(ReaderOptions? options) {
+    internal static ReaderOptions NormalizeOptions(ReaderOptions? options) {
         ReaderOptions? source = options;
         var clone = new ReaderOptions {
             MaxInputBytes = source?.MaxInputBytes,

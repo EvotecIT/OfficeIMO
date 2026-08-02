@@ -25,7 +25,10 @@ public sealed partial class CsvDocument
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
-        var options = loadOptions?.Clone() ?? new CsvLoadOptions { Mode = CsvLoadMode.Stream };
+        var options = loadOptions?.Clone() ?? new CsvLoadOptions();
+        // OpenDataReader is the forward-only entry point. Reader routing remains
+        // internal so callers cannot accidentally request streaming through Load.
+        options.Mode = CsvLoadMode.Stream;
         readerOptions ??= new CsvDataReaderOptions();
         if (readerOptions.SchemaSampleSize <= 0)
         {
@@ -123,7 +126,8 @@ public sealed partial class CsvDocument
             throw new ArgumentException("Stream must be readable.", nameof(stream));
         }
 
-        var options = loadOptions?.Clone() ?? new CsvLoadOptions { Mode = CsvLoadMode.Stream };
+        var options = loadOptions?.Clone() ?? new CsvLoadOptions();
+        options.Mode = CsvLoadMode.Stream;
         readerOptions ??= new CsvDataReaderOptions();
         if (readerOptions.SchemaSampleSize <= 0)
         {

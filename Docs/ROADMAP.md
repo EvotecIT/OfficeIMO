@@ -45,6 +45,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Extend typed Visio editing for advanced nested containers, deeper swimlane metadata and automatic lane assignment, and richer threaded comment and author workflows.
 - [ ] Complete advanced Visio resize-to-content and broader whole-diagram relayout and polish for dense imported diagrams.
 - [ ] Add typed Visio APIs for data graphics, legends, and additional high-value ShapeSheet sections and formulas while continuing to preserve unmodeled package content explicitly.
+- [ ] Prove Visio template, stencil, and macro-enabled package variants with representative load, reader, and conversion fixtures before advertising them beyond the current `.vsdx` boundary.
 
 ## PDF, HTML, and image rendering
 

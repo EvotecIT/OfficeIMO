@@ -135,9 +135,11 @@ and DOC/XLS/XLSB loss policies, see the
 using OfficeIMO.Excel;
 
 using var reader = ExcelDocument.OpenDataReader("input.xlsx", new ExcelReadOptions {
-    SheetName = "Data",
+    SheetIndex = 0,
+    A1Range = "A1:B1000",
     NumericAsDecimal = true
 });
+Console.WriteLine(reader.CurrentSheetName);
 while (reader.Read()) {
     string name = reader.GetString(reader.GetOrdinal("Full Name"));
     decimal value = reader.GetDecimal(reader.GetOrdinal("Value"));
@@ -145,9 +147,12 @@ while (reader.Read()) {
 }
 ```
 
-`ExcelDocument.OpenDataReader` is the package-owned read-only entry point for
+`ExcelDocument.OpenDataReader` returns an `ExcelWorkbookDataReader`, the package-owned read-only entry point for
 XLSX, XLSM, XLSB, and BIFF8 XLS. It discovers used ranges and exposes
-additional worksheets through `NextResult()`. Legacy XLS is projected through
+additional worksheets through `NextResult()`. Select one worksheet with
+`SheetName` or the zero-based `SheetIndex`, and select an explicit range with
+`A1Range`. `CurrentSheetName` and `CurrentSheetIndex` identify the active workbook sheet;
+`CurrentResultIndex` identifies its position in the selected results. Legacy XLS is projected through
 the package's existing first-party reader; use `ExcelDocument.Load` when the
 workbook must be inspected, edited, or saved again. CSV uses the parallel
 `CsvDocument.OpenDataReader` API from the separate `OfficeIMO.CSV` package.
@@ -201,11 +206,10 @@ var sheet = document["Data"];
 sheet.ValidationList("C2:C100", new[] { "New", "Processed", "Hold" });
 sheet.Range("D2:D100").Validate.WholeNumberBetween(1, 10, errorMessage: "Use 1 through 10");
 
-List<RowModel> rows = document.Read()
-    .Sheet("Data")
-    .Range("A1:C100")
-    .AsObjects<RowModel>()
-    .ToList();
+List<RowModel> rows = sheet.RowsAs<RowModel>("A1:C100").ToList();
+
+// Omitting the range maps the populated worksheet range.
+List<RowModel> populatedRows = sheet.RowsAs<RowModel>().ToList();
 
 public sealed class RowModel {
     public string Name { get; set; } = "";
@@ -335,7 +339,9 @@ document.Save("report.xlsx", new ExcelSaveOptions {
 ### Preflight a workbook before choosing a workflow
 
 ```csharp
-using var document = ExcelDocument.Load("incoming.xlsx", readOnly: true);
+using var document = ExcelDocument.Load(
+    "incoming.xlsx",
+    new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
 ExcelFeatureReport report = document.InspectFeatures();
 

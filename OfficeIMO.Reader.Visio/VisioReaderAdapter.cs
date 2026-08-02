@@ -17,7 +17,7 @@ internal static partial class VisioReaderAdapter {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(visioPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(visioPath, effectiveReaderOptions.ComputeHashes);
-        VisioDocument document = VisioDocument.Load(visioPath);
+        VisioDocument document = VisioDocument.Load(visioPath, CreateLoadOptions(effectiveReaderOptions));
         foreach (var chunk in Read(document, source, effectiveReaderOptions, cancellationToken)) {
             yield return chunk;
         }
@@ -44,7 +44,7 @@ internal static partial class VisioReaderAdapter {
                 parseStream.Position = 0;
             }
 
-            VisioDocument document = VisioDocument.Load(parseStream);
+            VisioDocument document = VisioDocument.Load(parseStream, CreateLoadOptions(effectiveReaderOptions));
             foreach (var chunk in Read(document, source, effectiveReaderOptions, cancellationToken)) {
                 yield return chunk;
             }
@@ -58,12 +58,11 @@ internal static partial class VisioReaderAdapter {
     /// <summary>
     /// Reads an already loaded Visio document and emits normalized page chunks.
     /// </summary>
-    public static IEnumerable<ReaderChunk> Read(VisioDocument document, string sourceName = "document.vsdx", ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
+    public static IEnumerable<ReaderChunk> Read(VisioDocument document, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
-        var logicalSourceName = NormalizeLogicalSourceName(sourceName, "document.vsdx");
+        var logicalSourceName = NormalizeLogicalSourceName(sourceName ?? document.FilePath, "document.vsdx");
         var source = new SourceMetadata {
             Path = logicalSourceName,
             SourceId = BuildSourceId(logicalSourceName)
@@ -73,6 +72,11 @@ internal static partial class VisioReaderAdapter {
             yield return chunk;
         }
     }
+
+    internal static VisioLoadOptions? CreateLoadOptions(ReaderOptions readerOptions) =>
+        readerOptions.MaxInputBytes.HasValue
+            ? new VisioLoadOptions { MaxInputBytes = readerOptions.MaxInputBytes }
+            : null;
 
     private static IEnumerable<ReaderChunk> Read(VisioDocument document, SourceMetadata source, ReaderOptions readerOptions, CancellationToken cancellationToken) {
         VisioInspectionSnapshot snapshot = document.CreateInspectionSnapshot();

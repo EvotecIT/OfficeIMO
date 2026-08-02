@@ -93,6 +93,7 @@
     <ProjectReference Include="..\OfficeIMO.Rtf.Pdf\OfficeIMO.Rtf.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
     <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Visio.Pdf\OfficeIMO.Visio.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
@@ -184,6 +185,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Rtf.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Security" />
     <TrimmerRootAssembly Include="OfficeIMO.Visio" />
+    <TrimmerRootAssembly Include="OfficeIMO.Visio.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Word" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.GoogleDocs" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Html" />

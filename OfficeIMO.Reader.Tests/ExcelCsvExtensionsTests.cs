@@ -1,5 +1,8 @@
 using System.Data;
 using System.Globalization;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 using OfficeIMO.Reader.Csv;
@@ -10,17 +13,103 @@ namespace OfficeIMO.Reader.Tests;
 
 public class ExcelCsvExtensionsTests {
     [Fact]
+    public void CsvImportChecksMethodCancellationBeforeCreatingReaders() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var loadOptions = new CsvLoadOptions();
+        var options = new ExcelCsvImportOptions { LoadOptions = loadOptions };
+        CsvDocument csv = CsvDocument.Parse("Name\r\nAlpha");
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+        ExcelSheet sheet = document.AddWorksheet("Existing");
+
+        Assert.Throws<OperationCanceledException>(() =>
+            document.ImportCsv(csv, options, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() =>
+            sheet.ImportCsvText("Name\r\nAlpha", options, cancellation.Token));
+
+        Assert.False(loadOptions.CancellationToken.CanBeCanceled);
+        Assert.Single(document.Sheets);
+    }
+
+    [Fact]
+    public void EmptyCsvImportReturnsAnEmptyRange() {
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+
+        ExcelCsvImportResult result = document.ImportCsvText(
+            string.Empty,
+            new ExcelCsvImportOptions { SheetName = "Empty" });
+
+        Assert.Equal("Empty", result.SheetName);
+        Assert.Equal(string.Empty, result.Range);
+        Assert.Equal("A1:A1", document["Empty"].GetUsedRangeA1());
+    }
+
+    [Fact]
+    public void CsvTextImportPreservesUnicodeRegardlessOfFileEncodingOption() {
+        var options = new ExcelCsvImportOptions {
+            SheetName = "Imported",
+            LoadOptions = new CsvLoadOptions { Encoding = Encoding.ASCII },
+            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+        };
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+
+        document.ImportCsvText("Name\r\nélève", options);
+        ExcelSheet existing = document.AddWorksheet("Existing");
+        existing.ImportCsvText("Name\r\n東京", options);
+
+        Assert.True(document["Imported"].TryGetCellText(2, 1, out string? imported));
+        Assert.Equal("élève", imported);
+        Assert.True(existing.TryGetCellText(2, 1, out string? existingValue));
+        Assert.Equal("東京", existingValue);
+    }
+
+    [Fact]
+    public void SaveAsExcelPassesCancellationIntoWorkbookSerialization() {
+        CsvDocument csv = CsvDocument.Parse("Name\r\nAlpha");
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CancelOnAsyncWriteStream(cancellation);
+
+        Assert.ThrowsAny<OperationCanceledException>(() => csv.SaveAsExcel(
+            destination,
+            saveOptions: new ExcelSaveOptions { DisableFastPackageWriter = true },
+            cancellationToken: cancellation.Token));
+        Assert.Equal(0, destination.Length);
+    }
+
+    [Fact]
+    public void WorksheetCsvExportHonorsReadOptionsCancellationBeforeWriting() {
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Name");
+        sheet.CellValue(2, 1, "Alpha");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var readOptions = new ExcelReadOptions { CancellationToken = cancellation.Token };
+        using var destination = new MemoryStream();
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            sheet.SaveAsCsv(destination, readOptions: readOptions));
+        Assert.Equal(0, destination.Length);
+    }
+
+    [Fact]
     public void WorksheetCsvRoundTripPreservesQuotedAndMultilineFields() {
         const string csv = "Name,Note,Amount\r\nAlpha,\"Hello, \"\"world\"\"\",10.5\r\nBeta,\"Line\r\nbreak\",20\r\n";
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
         ExcelSheet sheet = document.AddWorksheet("Data");
 
-        string range = sheet.FromCsv(csv);
+        ExcelCsvImportResult imported = sheet.ImportCsvText(csv, new ExcelCsvImportOptions {
+            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+        });
         using DataTable table = sheet.ToDataTable("A1:C3");
         string exported = sheet.ToCsv("A1:C3");
 
-        Assert.Equal("A1:C3", range);
+        Assert.Equal("A1:C3", imported.Range);
         Assert.Equal("Hello, \"world\"", table.Rows[0]["Note"]);
         Assert.Equal("Line\r\nbreak", table.Rows[1]["Note"]);
         Assert.Contains("\"Hello, \"\"world\"\"\"", exported);
@@ -28,20 +117,42 @@ public class ExcelCsvExtensionsTests {
     }
 
     [Fact]
-    public void WorksheetCsvImportPreservesWideAndSparseRows() {
-        const string csv = "Name,Value\r\nAlpha,1,Extra\r\nBeta,,\r\n";
+    public void WorksheetCsvExportPreservesFirstDataRowWhenThereIsNoHeader() {
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Alpha");
+        sheet.CellValue(1, 2, 10);
+        sheet.CellValue(2, 1, "Beta");
+        sheet.CellValue(2, 2, 20);
+        var saveOptions = new CsvSaveOptions { IncludeHeader = true, NewLine = "\n" };
+
+        string exported = sheet.ToCsv("A1:B2", headersInFirstRow: false, csvOptions: saveOptions);
+        CsvDocument csv = sheet.ToCsvDocument("A1:B2", headersInFirstRow: false);
+        CsvRow[] rows = csv.AsEnumerable().ToArray();
+
+        Assert.Equal("Alpha,10\nBeta,20\n", exported);
+        Assert.True(saveOptions.IncludeHeader);
+        Assert.Equal(2, rows.Length);
+        Assert.Equal("Alpha", rows[0][0]);
+        Assert.Equal("Beta", rows[1][0]);
+    }
+
+    [Fact]
+    public void WorksheetCsvImportUsesCanonicalMismatchPolicy() {
+        const string csv = "Name,Value\r\nAlpha,1,Extra\r\nBeta,\r\n";
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
         ExcelSheet sheet = document.AddWorksheet("Data");
 
-        string range = sheet.FromCsv(csv);
-        using DataTable table = sheet.ToDataTable("A1:C3");
+        ExcelCsvImportResult imported = sheet.ImportCsvText(csv, new ExcelCsvImportOptions {
+            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+        });
+        using DataTable table = sheet.ToDataTable("A1:B3");
 
-        Assert.Equal("A1:C3", range);
-        Assert.Equal(new[] { "Name", "Value", "Column3" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
-        Assert.Equal("Extra", table.Rows[0]["Column3"]);
+        Assert.Equal("A1:B3", imported.Range);
+        Assert.Equal(new[] { "Name", "Value" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
         Assert.Equal(string.Empty, table.Rows[1]["Value"]);
-        Assert.Equal(string.Empty, table.Rows[1]["Column3"]);
     }
 
     [Fact]
@@ -49,20 +160,44 @@ public class ExcelCsvExtensionsTests {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
 
-        ExcelDelimitedImportResult result = document.ImportDelimitedText(
+        ExcelCsvImportResult result = document.ImportCsvText(
             "Name;Amount\r\nAlpha;10.5\r\nBeta;11.75",
-            new ExcelDelimitedImportOptions {
-                Culture = CultureInfo.InvariantCulture,
+            new ExcelCsvImportOptions {
+                LoadOptions = new CsvLoadOptions {
+                    DetectDelimiter = true,
+                    Culture = CultureInfo.InvariantCulture
+                },
                 SheetName = "Import",
                 TableName = "ImportData"
             });
 
-        Assert.Equal(';', result.Delimiter);
         Assert.Equal("Import", result.SheetName);
-        Assert.Equal("ImportData", result.TableName);
         Assert.Equal("A1:B3", result.Range);
-        Assert.Equal(2, result.RowCount);
-        Assert.Equal(2, result.ColumnCount);
+        document.Save();
+        stream.Position = 0;
+        using ExcelDocument reloaded = ExcelDocument.Load(
+            stream,
+            new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+        Assert.Equal("ImportData", reloaded.GetTables().Single().Name);
+    }
+
+    [Fact]
+    public void CsvImportDefaultsTableNameToTheEffectiveWorksheetName() {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream)) {
+            document.ImportCsvText(
+                "Name,Amount\r\nAlpha,10.5",
+                new ExcelCsvImportOptions { SheetName = "Orders" });
+            document.Save();
+        }
+
+        stream.Position = 0;
+        using ExcelDocument reloaded = ExcelDocument.Load(
+            stream,
+            new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+        ExcelTableInfo table = Assert.Single(reloaded.GetTables());
+        Assert.Equal("Orders", table.Name);
+        Assert.Equal("Orders", table.SheetName);
     }
 
     [Fact]
@@ -70,36 +205,36 @@ public class ExcelCsvExtensionsTests {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
 
-        ExcelDelimitedImportResult result = document.ImportDelimitedText(
+        ExcelCsvImportResult result = document.ImportCsvText(
             "\"generated\r\nstill,has,commas\"\r\nName;Amount\r\nAlpha;10.5",
-            new ExcelDelimitedImportOptions {
+            new ExcelCsvImportOptions {
                 SheetName = "Import",
-                SkipInitialRecords = 1
+                LoadOptions = new CsvLoadOptions {
+                    DetectDelimiter = true,
+                    SkipInitialRecords = 1
+                }
             });
 
-        Assert.Equal(';', result.Delimiter);
         Assert.Equal("A1:B2", result.Range);
-        Assert.Equal(1, result.RowCount);
         Assert.True(document["Import"].TryGetCellText(2, 2, out string? amount));
         Assert.Equal("10.5", amount);
     }
 
     [Fact]
-    public void DelimitedFileImportPreservesFieldsBeyondHeader() {
+    public void CsvFileImportUsesCanonicalHeaderWidth() {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Reader.Csv." + Guid.NewGuid().ToString("N") + ".csv");
         try {
             File.WriteAllText(path, "Name\r\nAlpha,10.5\r\nBeta,11.75");
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
 
-            ExcelDelimitedImportResult result = document.ImportDelimitedFile(path, new ExcelDelimitedImportOptions {
+            ExcelCsvImportResult result = document.ImportCsvFile(path, new ExcelCsvImportOptions {
                 SheetName = "Import"
             });
 
-            Assert.Equal("A1:B3", result.Range);
-            Assert.Equal(2, result.ColumnCount);
-            Assert.True(document["Import"].TryGetCellText(1, 2, out string? header));
-            Assert.Equal("Column2", header);
+            Assert.Equal("A1:A3", result.Range);
+            Assert.True(document["Import"].TryGetCellText(2, 1, out string? name));
+            Assert.Equal("Alpha", name);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -118,18 +253,36 @@ public class ExcelCsvExtensionsTests {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
 
-            ExcelDelimitedImportResult result = document.ImportDelimitedFile(path, new ExcelDelimitedImportOptions {
-                Culture = CultureInfo.InvariantCulture,
-                SheetName = "Import"
+            ExcelCsvImportResult result = document.ImportCsvFile(path, new ExcelCsvImportOptions {
+                SheetName = "Import",
+                LoadOptions = new CsvLoadOptions {
+                    DetectDelimiter = true,
+                    Culture = CultureInfo.InvariantCulture
+                }
             });
 
-            Assert.Equal(';', result.Delimiter);
             Assert.Equal("A1:B3", result.Range);
-            Assert.Equal(2, result.RowCount);
             Assert.True(document["Import"].TryGetCellText(2, 2, out string? amount));
             Assert.Equal("10.5", amount);
         } finally {
             if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    private sealed class CancelOnAsyncWriteStream : MemoryStream {
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancelOnAsyncWriteStream(CancellationTokenSource cancellation) {
+            _cancellation = cancellation;
+        }
+
+        public override Task WriteAsync(
+            byte[] buffer,
+            int offset,
+            int count,
+            CancellationToken cancellationToken) {
+            _cancellation.Cancel();
+            return base.WriteAsync(buffer, offset, count, cancellationToken);
         }
     }
 }

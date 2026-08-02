@@ -12,10 +12,11 @@ namespace OfficeIMO.CSV.Tests;
 public class CsvDataReaderTests
 {
     [Theory]
-    [InlineData(CsvLoadMode.InMemory)]
-    [InlineData(CsvLoadMode.Stream)]
-    public void CreateDataReader_WithInferredSchema_PreservesDuplicateHeaderOrdinals(CsvLoadMode mode)
+    [InlineData(0)]
+    [InlineData(1)]
+    public void CreateDataReader_WithInferredSchema_PreservesDuplicateHeaderOrdinals(int modeValue)
     {
+        CsvLoadMode mode = (CsvLoadMode)modeValue;
         var doc = CsvDocument.Parse(
             "Value,Value\n1,Alpha\n2,Beta\n",
             new CsvLoadOptions

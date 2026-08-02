@@ -5,7 +5,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Describes how a CSV document should be loaded and iterated.
 /// </summary>
-public enum CsvLoadMode
+internal enum CsvLoadMode
 {
     /// <summary>
     /// Loads all rows into memory. Transformations are allowed.

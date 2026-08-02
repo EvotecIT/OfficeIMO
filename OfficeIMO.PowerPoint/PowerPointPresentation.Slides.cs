@@ -420,7 +420,6 @@ namespace OfficeIMO.PowerPoint {
                 var mediaPartMap = new Dictionary<DataPart, MediaDataPart>();
                 for (int offset = 0; offset < importSources.Count; offset++) {
                     PowerPointSlide sourceSlide = importSources[offset];
-                    sourceSlide.Save();
                     Slide sourceRoot = sourceSlide.SlidePart.Slide
                         ?? throw new InvalidOperationException(
                             "Source slide is missing its slide definition.");
@@ -539,7 +538,6 @@ namespace OfficeIMO.PowerPoint {
         private static void ValidateSlideImportSources(
             IEnumerable<PowerPointSlide> importSources) {
             foreach (PowerPointSlide sourceSlide in importSources) {
-                sourceSlide.Save();
                 _ = sourceSlide.SlidePart.Slide
                     ?? throw new InvalidOperationException(
                         "Source slide is missing its slide definition.");

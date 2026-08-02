@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 154,
-    "productionComponentCount": 91,
+    "projectCount": 155,
+    "productionComponentCount": 92,
     "testProjectCount": 31,
     "benchmarkProjectCount": 14,
     "validationProjectCount": 19,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39854
+    "conceptualWordCount": 39837
   },
   "categories": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 13
+      "componentCount": 14
     },
     {
       "name": "Foundations and integrations",
@@ -781,7 +781,7 @@
       "description": "Excel workbook adapter for OfficeIMO.Reader.Core.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
-      "sourceFileCount": 9,
+      "sourceFileCount": 8,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -976,8 +976,8 @@
       "description": "Visio adapter for OfficeIMO.Reader using OfficeIMO.Visio inspection snapshots.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
-      "sourceFileCount": 5,
-      "referencingTestProjectCount": 2,
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Visio"
@@ -1124,6 +1124,19 @@
       "docsUrl": "/docs/visio/",
       "apiUrl": "/api/visio/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio"
+    },
+    {
+      "name": "OfficeIMO.Visio.Pdf",
+      "packageId": "OfficeIMO.Visio.Pdf",
+      "category": "Formats and interoperability",
+      "description": "First-party loss-aware Visio to PDF conversion for OfficeIMO.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/visio/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio.Pdf"
     },
     {
       "name": "OfficeIMO.Word",
