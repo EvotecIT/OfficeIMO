@@ -97,10 +97,13 @@ namespace OfficeIMO.Drawing.Internal {
                 int difatSectorCount = checked((int)ReadUInt32(bytes, 72));
 
                 int physicalSectorCount = (bytes.Length - sectorSize) / sectorSize;
-                if (fatSectorCount < 0 || fatSectorCount > physicalSectorCount || difatSectorCount < 0 ||
-                    difatSectorCount > physicalSectorCount) {
-                    throw new InvalidDataException("Compound file allocation table counts exceed the file size.");
-                }
+                ValidateAllocationTableCounts(
+                    fatSectorCount,
+                    difatSectorCount,
+                    miniFatSectorCount,
+                    physicalSectorCount,
+                    sectorSize,
+                    options.MaxTotalStreamBytes);
 
                 List<uint> fatSectorIds = ReadDifat(bytes, sectorSize, firstDifat, difatSectorCount, fatSectorCount, cancellationToken);
                 uint[] fat = ReadFat(bytes, sectorSize, fatSectorIds, cancellationToken);
@@ -173,6 +176,26 @@ namespace OfficeIMO.Drawing.Internal {
                 compoundFile = null;
                 error = $"The OLE compound file could not be read. {ex.Message}";
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Rejects allocation-table declarations before any table-sized buffer is created.
+        /// </summary>
+        private static void ValidateAllocationTableCounts(
+            int fatSectorCount,
+            int difatSectorCount,
+            int miniFatSectorCount,
+            int physicalSectorCount,
+            int sectorSize,
+            long maximumTableBytes) {
+            long miniFatBytes = checked((long)miniFatSectorCount * sectorSize);
+            if (fatSectorCount > physicalSectorCount
+                || difatSectorCount > physicalSectorCount
+                || miniFatSectorCount > physicalSectorCount
+                || miniFatBytes > maximumTableBytes) {
+                throw new InvalidDataException(
+                    "Compound allocation table counts exceed configured or physical bounds.");
             }
         }
 

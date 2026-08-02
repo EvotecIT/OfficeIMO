@@ -294,7 +294,8 @@ namespace OfficeIMO.Excel {
                                && !sawEncoding
                                && !sawStandalone
                                && AsciiEquals(nameStart, nameLength, "encoding")) {
-                        if (!IsValidXmlEncodingName(valueStart, valueLength)) {
+                        if (!AsciiEqualsIgnoreCase(valueStart, valueLength, "utf-8")
+                            && !AsciiEqualsIgnoreCase(valueStart, valueLength, "utf8")) {
                             return false;
                         }
                         sawEncoding = true;
@@ -317,27 +318,6 @@ namespace OfficeIMO.Excel {
                 nextPosition = instructionEnd + 2;
                 return true;
             }
-
-            private bool IsValidXmlEncodingName(int start, int length) {
-                if (length == 0 || !IsAsciiLetter(_buffer![start])) {
-                    return false;
-                }
-                for (int index = start + 1; index < start + length; index++) {
-                    byte value = _buffer![index];
-                    if (!IsAsciiLetter(value)
-                        && value is not (>= (byte)'0' and <= (byte)'9')
-                        and not (byte)'.'
-                        and not (byte)'_'
-                        and not (byte)'-') {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            private static bool IsAsciiLetter(byte value) =>
-                value is >= (byte)'A' and <= (byte)'Z'
-                or >= (byte)'a' and <= (byte)'z';
 
             private bool HasOnlyRootDefaultNamespace() {
                 int searchStart = 0;

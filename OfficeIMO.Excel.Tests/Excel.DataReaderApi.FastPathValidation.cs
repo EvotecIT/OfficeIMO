@@ -77,6 +77,32 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData("UTF-16")]
+    [InlineData("bogus")]
+    public void OpenDataReader_RejectsIncompatibleXmlDeclarationEncodingOnCompactFastPath(
+        string encodingName) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            const string encodingMarker = "encoding=\"";
+            int valueStart = worksheetXml.IndexOf(encodingMarker, StringComparison.Ordinal)
+                + encodingMarker.Length;
+            Assert.True(valueStart >= encodingMarker.Length);
+            int valueEnd = worksheetXml.IndexOf('"', valueStart);
+            Assert.True(valueEnd > valueStart);
+            string malformedXml = worksheetXml.Substring(0, valueStart)
+                + encodingName
+                + worksheetXml.Substring(valueEnd);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void OpenDataReader_RejectsAdjacentCellAttributesOnCompactFastPath() {
         string path = CreateCompactFastPathWorkbook();

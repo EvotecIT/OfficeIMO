@@ -80,6 +80,24 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        [Fact]
+        public void OpenDataReader_XlsFastPathBoundsDeclaredMiniFatBeforeReadingItsChain() {
+            byte[] compound = LegacyXlsCompoundTestBuilder
+                .CreateMiniStreamWorkbookCompoundFileWithDeclaredMiniFatSectorCount(
+                    LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream(),
+                    1024);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.OpenDataReader(
+                    compound,
+                    new ExcelReadOptions { HasHeaderRow = false }));
+
+            Assert.Contains(
+                "allocation table counts exceed configured or physical bounds",
+                exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         [Theory]
         [InlineData("Workbook")]
         [InlineData("Book")]

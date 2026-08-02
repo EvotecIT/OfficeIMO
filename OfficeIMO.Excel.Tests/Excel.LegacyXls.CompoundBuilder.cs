@@ -138,6 +138,14 @@ namespace OfficeIMO.Tests {
                 return compound;
             }
 
+            internal static byte[] CreateMiniStreamWorkbookCompoundFileWithDeclaredMiniFatSectorCount(
+                byte[] workbookStream,
+                uint declaredMiniFatSectorCount) {
+                byte[] compound = CreateMiniStreamWorkbookCompoundFile(workbookStream);
+                WriteUInt32(compound, 64, declaredMiniFatSectorCount);
+                return compound;
+            }
+
             internal static byte[] CreateDifatWorkbookCompoundFile(byte[] workbookStream) {
                 const int workbookSectorCount = 8;
                 const int dataSectorCount = 13960;

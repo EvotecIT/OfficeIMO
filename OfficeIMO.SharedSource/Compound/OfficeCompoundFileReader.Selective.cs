@@ -70,9 +70,13 @@ namespace OfficeIMO.Drawing.Internal {
                 int miniFatSectorCount = checked((int)ReadUInt32(header, 64));
                 uint firstDifat = ReadUInt32(header, 68);
                 int difatSectorCount = checked((int)ReadUInt32(header, 72));
-                if (fatSectorCount > physicalSectorCount || difatSectorCount > physicalSectorCount) {
-                    throw new InvalidDataException("Compound allocation table counts exceed the file size.");
-                }
+                ValidateAllocationTableCounts(
+                    fatSectorCount,
+                    difatSectorCount,
+                    miniFatSectorCount,
+                    physicalSectorCount,
+                    sectorSize,
+                    options.MaxTotalStreamBytes);
 
                 List<uint> fatSectorIds = ReadFatSectorIds(stream, basePosition, header, sectorSize,
                     physicalSectorCount, firstDifat, difatSectorCount,
