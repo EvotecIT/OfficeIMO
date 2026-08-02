@@ -248,7 +248,7 @@ namespace OfficeIMO.PowerPoint {
                 A.PresetDash => 1,
                 A.CustomDash => 1,
                 A.Round => 2,
-                A.Bevel => 2,
+                A.LineJoinBevel => 2,
                 A.Miter => 2,
                 A.HeadEnd => 3,
                 A.TailEnd => 4,

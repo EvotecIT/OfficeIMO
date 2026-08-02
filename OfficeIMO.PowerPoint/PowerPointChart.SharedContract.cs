@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Internal;
@@ -171,20 +172,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
-            string?[] bodyTypefaceValues = chart.Descendants<C.TextProperties>()
-                .Where(properties => !properties.Ancestors<C.Title>().Any())
-                .SelectMany(properties => properties.Descendants<A.LatinFont>())
-                .Select(font => font.Typeface?.Value)
-                .Where(value => !string.IsNullOrWhiteSpace(value))
+            OpenXmlElement[] bodyTextAreas = chart.Descendants()
+                .Where(IsRelevantBodyTextArea)
                 .ToArray();
-            string[] bodyFonts = bodyTypefaceValues
-                .Where(value => !IsThemeFontToken(value))
-                .Select(value => value!)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+            string?[] bodyFonts = bodyTextAreas
+                .Select(ReadExplicitBodyTypeface)
                 .ToArray();
-            string? bodyFont = bodyTypefaceValues.Any(IsThemeFontToken)
-                ? null
-                : bodyFonts.Length == 1 ? bodyFonts[0] : null;
+            string? bodyFont = bodyFonts.Length > 0
+                && bodyFonts.All(value => value != null)
+                && bodyFonts.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
+                    ? bodyFonts[0]
+                    : null;
             string? titleTypeface = chart.GetFirstChild<C.Title>()?
                 .Descendants<A.LatinFont>()
                 .Select(font => font.Typeface?.Value)
@@ -196,6 +194,38 @@ namespace OfficeIMO.PowerPoint {
                 ? null
                 : new OfficeChartStyle(fontFamily: bodyFont,
                     titleFontFamily: titleFont);
+        }
+
+        private static string? ReadExplicitBodyTypeface(
+            OpenXmlElement textArea) {
+            string?[] typefaces = textArea.Descendants<C.TextProperties>()
+                .Where(properties => !properties.Ancestors<C.Title>().Any())
+                .SelectMany(properties => properties.Descendants<A.LatinFont>())
+                .Select(font => font.Typeface?.Value)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+            if (typefaces.Length == 0 || typefaces.Any(IsThemeFontToken)) {
+                return null;
+            }
+            string[] explicitFonts = typefaces.Select(value => value!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            return explicitFonts.Length == 1 ? explicitFonts[0] : null;
+        }
+
+        private static bool IsRelevantBodyTextArea(OpenXmlElement element) {
+            if (element is C.Legend or C.CategoryAxis or C.ValueAxis
+                or C.DateAxis or C.SeriesAxis or C.DisplayUnitsLabel
+                or C.DataTable or C.TrendlineLabel) {
+                return true;
+            }
+            if (element is not C.DataLabels labels) return false;
+            return labels.GetFirstChild<C.ShowValue>()?.Val?.Value == true
+                || labels.GetFirstChild<C.ShowCategoryName>()?.Val?.Value == true
+                || labels.GetFirstChild<C.ShowSeriesName>()?.Val?.Value == true
+                || labels.GetFirstChild<C.ShowPercent>()?.Val?.Value == true
+                || labels.GetFirstChild<C.ShowBubbleSize>()?.Val?.Value == true
+                || labels.GetFirstChild<C.ShowLegendKey>()?.Val?.Value == true;
         }
 
         private static bool IsThemeFontToken(string? typeface) =>

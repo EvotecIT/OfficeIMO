@@ -65,6 +65,22 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
+    public void SharedSnapshot_DoesNotPromoteOnePartialBodyFont() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(
+            new[] { "Q1", "Q2" },
+            new[] { new OfficeChartSeries("Actual", new[] { 10D, 20D }) });
+        PowerPointChart chart = slide.AddChartPoints(
+            OfficeChartKind.ColumnClustered, data, 40, 40, 500, 300);
+        chart.SetLegendTextStyle(fontName: "Arial");
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartStyle.Default.FontFamily,
+            snapshot.Style.FontFamily);
+    }
+
+    [Fact]
     public void SharedSnapshot_DoesNotProjectThemeFontTokensAsLiteralFamilies() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointSlide slide = presentation.AddSlide();

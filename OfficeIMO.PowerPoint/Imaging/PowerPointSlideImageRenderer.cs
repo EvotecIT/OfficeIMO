@@ -609,7 +609,7 @@ namespace OfficeIMO.PowerPoint {
                 return OfficeStrokeLineJoin.Round;
             }
 
-            if (outline.GetFirstChild<A.Bevel>() != null) {
+            if (outline.GetFirstChild<A.LineJoinBevel>() != null) {
                 return OfficeStrokeLineJoin.Bevel;
             }
 

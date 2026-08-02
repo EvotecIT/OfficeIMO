@@ -197,12 +197,85 @@ namespace OfficeIMO.PowerPoint {
             result.OutlineColor = geometry.StrokeColor?.ToRgbHex();
             if (geometry.StrokeColor is OfficeColor stroke) {
                 result.OutlineWidthPoints = geometry.StrokeWidth;
+                result.OutlineDash = MapCustomGeometryDash(
+                    geometry.StrokeDashStyle);
                 double combinedOpacity = CombineOpacity(stroke.A,
                     geometry.StrokeOpacity);
                 if (combinedOpacity < 1D) {
                     result.SetOutlineOpacity(combinedOpacity);
                 }
+                A.Outline outline = properties.GetFirstChild<A.Outline>()
+                    ?? throw new InvalidOperationException(
+                        "The added shape has no outline.");
+                ApplyCustomGeometryLineCapAndJoin(outline, geometry);
+                ApplyCustomGeometryLineMarkers(outline, geometry);
             }
+        }
+
+        private static A.PresetLineDashValues MapCustomGeometryDash(
+            OfficeStrokeDashStyle dashStyle) => dashStyle switch {
+                OfficeStrokeDashStyle.Dash => A.PresetLineDashValues.Dash,
+                OfficeStrokeDashStyle.Dot => A.PresetLineDashValues.Dot,
+                OfficeStrokeDashStyle.DashDot => A.PresetLineDashValues.DashDot,
+                OfficeStrokeDashStyle.DashDotDot =>
+                    A.PresetLineDashValues.LargeDashDotDot,
+                _ => A.PresetLineDashValues.Solid
+            };
+
+        private static void ApplyCustomGeometryLineCapAndJoin(
+            A.Outline outline, OfficeShape geometry) {
+            outline.CapType = geometry.StrokeLineCap switch {
+                OfficeStrokeLineCap.Round => A.LineCapValues.Round,
+                OfficeStrokeLineCap.Square => A.LineCapValues.Square,
+                OfficeStrokeLineCap.Butt => A.LineCapValues.Flat,
+                _ => (A.LineCapValues?)null
+            };
+            outline.RemoveAllChildren<A.Round>();
+            outline.RemoveAllChildren<A.LineJoinBevel>();
+            outline.RemoveAllChildren<A.Miter>();
+            if (geometry.StrokeLineJoin == OfficeStrokeLineJoin.Round) {
+                outline.Append(new A.Round());
+            } else if (geometry.StrokeLineJoin == OfficeStrokeLineJoin.Bevel) {
+                outline.Append(new A.LineJoinBevel());
+            } else if (geometry.StrokeLineJoin == OfficeStrokeLineJoin.Miter) {
+                outline.Append(new A.Miter());
+            }
+        }
+
+        private static void ApplyCustomGeometryLineMarkers(A.Outline outline,
+            OfficeShape geometry) {
+            outline.RemoveAllChildren<A.HeadEnd>();
+            outline.RemoveAllChildren<A.TailEnd>();
+            if (geometry.StrokeStartMarker != null) {
+                outline.Append(CreateCustomGeometryLineEnd<A.HeadEnd>(
+                    geometry.StrokeStartMarker, geometry.StrokeWidth));
+            }
+            if (geometry.StrokeEndMarker != null) {
+                outline.Append(CreateCustomGeometryLineEnd<A.TailEnd>(
+                    geometry.StrokeEndMarker, geometry.StrokeWidth));
+            }
+        }
+
+        private static T CreateCustomGeometryLineEnd<T>(OfficeLineMarker marker,
+            double strokeWidth) where T : A.LineEndPropertiesType, new() {
+            double width = marker.Width / Math.Max(strokeWidth, 0.01D);
+            double length = marker.Length / Math.Max(strokeWidth, 0.01D);
+            return new T {
+                Type = marker.Kind switch {
+                    OfficeLineMarkerKind.Triangle => A.LineEndValues.Triangle,
+                    OfficeLineMarkerKind.Stealth => A.LineEndValues.Stealth,
+                    OfficeLineMarkerKind.Diamond => A.LineEndValues.Diamond,
+                    OfficeLineMarkerKind.Oval => A.LineEndValues.Oval,
+                    OfficeLineMarkerKind.Arrow => A.LineEndValues.Arrow,
+                    _ => A.LineEndValues.None
+                },
+                Width = width < 3.75D ? A.LineEndWidthValues.Small
+                    : width > 5.25D ? A.LineEndWidthValues.Large
+                    : A.LineEndWidthValues.Medium,
+                Length = length < 5D ? A.LineEndLengthValues.Small
+                    : length > 7D ? A.LineEndLengthValues.Large
+                    : A.LineEndLengthValues.Medium
+            };
         }
 
         private static double CombineOpacity(byte colorAlpha,

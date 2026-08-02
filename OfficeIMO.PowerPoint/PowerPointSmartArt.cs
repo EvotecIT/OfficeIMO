@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -144,6 +145,8 @@ namespace OfficeIMO.PowerPoint {
 
             var parentByNode = new Dictionary<string, string>(
                 StringComparer.Ordinal);
+            var sourceOrderByNode = new Dictionary<string, uint>(
+                StringComparer.Ordinal);
             foreach (XElement connection in xdoc.Descendants(ns.dgm + "cxn")) {
                 string? type = (string?)connection.Attribute("type");
                 if (!string.IsNullOrWhiteSpace(type)
@@ -164,6 +167,14 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
                 parentByNode.Add(destination!, source!);
+                string? sourceOrder = (string?)connection.Attribute("srcOrd");
+                if (!string.IsNullOrWhiteSpace(sourceOrder)) {
+                    if (!uint.TryParse(sourceOrder, NumberStyles.None,
+                            CultureInfo.InvariantCulture, out uint parsedOrder)) {
+                        return false;
+                    }
+                    sourceOrderByNode.Add(destination!, parsedOrder);
+                }
             }
             if (parentByNode.Count != nodeById.Count) return false;
 
@@ -174,8 +185,8 @@ namespace OfficeIMO.PowerPoint {
                         !documentIds.Contains(parent))) {
                     return false;
                 }
-                nodes = nodeById.Values.OrderBy(node => node.Index)
-                    .Select(node => node.Text).ToArray();
+                nodes = OrderSemanticNodes(nodeById, sourceOrderByNode)
+                    .Select(node => node.Value.Text).ToArray();
                 return true;
             }
 
@@ -191,13 +202,24 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
             nodes = new[] { nodeById[rootId] }
-                .Concat(nodeById.Where(pair => pair.Key != rootId)
-                    .Select(pair => pair.Value)
-                    .OrderBy(node => node.Index))
+                .Concat(OrderSemanticNodes(nodeById.Where(pair =>
+                        pair.Key != rootId), sourceOrderByNode)
+                    .Select(pair => pair.Value))
                 .Select(node => node.Text)
                 .ToArray();
             return true;
         }
+
+        private static IOrderedEnumerable<KeyValuePair<string,
+            (int Index, string Text)>> OrderSemanticNodes(
+            IEnumerable<KeyValuePair<string, (int Index, string Text)>> nodes,
+            IReadOnlyDictionary<string, uint> sourceOrderByNode) =>
+            nodes.OrderBy(node => sourceOrderByNode.ContainsKey(node.Key)
+                    ? 0
+                    : 1)
+                .ThenBy(node => sourceOrderByNode.TryGetValue(node.Key,
+                    out uint sourceOrder) ? sourceOrder : uint.MaxValue)
+                .ThenBy(node => node.Value.Index);
 
         /// <summary>
         ///     Gets the text of an editable SmartArt node.
@@ -257,9 +279,12 @@ namespace OfficeIMO.PowerPoint {
 
         private static string ReadNodeText(XElement textBody, XNamespace a) =>
             string.Join("\n", textBody.Elements(a + "p")
-                .Select(paragraph => string.Concat(paragraph
-                    .Descendants(a + "t")
-                    .Select(text => (string?)text ?? string.Empty))));
+                .Select(paragraph => string.Concat(paragraph.Descendants()
+                    .Where(element => element.Name == a + "t"
+                        || element.Name == a + "br")
+                    .Select(element => element.Name == a + "br"
+                        ? "\n"
+                        : (string?)element ?? string.Empty))));
 
         private DiagramDataPart GetDiagramDataPart() {
             Dgm.RelationshipIds relationshipIds = GraphicFrame.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>()

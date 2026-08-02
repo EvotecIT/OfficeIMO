@@ -91,13 +91,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Classic comment X position.</summary>
         public long X {
             get => RequirePosition().X?.Value ?? 0L;
-            set => RequirePosition().X = value;
+            set {
+                PowerPointPresentation.ValidateClassicCommentPosition(
+                    value, nameof(value));
+                RequirePosition().X = value;
+            }
         }
 
         /// <summary>Classic comment Y position.</summary>
         public long Y {
             get => RequirePosition().Y?.Value ?? 0L;
-            set => RequirePosition().Y = value;
+            set {
+                PowerPointPresentation.ValidateClassicCommentPosition(
+                    value, nameof(value));
+                RequirePosition().Y = value;
+            }
         }
 
         /// <summary>Reassigns the comment to an existing or newly created author.</summary>
@@ -372,6 +380,8 @@ namespace OfficeIMO.PowerPoint {
             EnsureCommentSlide(slide);
             if (author == null) throw new ArgumentNullException(nameof(author));
             ValidateClassicCommentText(text, nameof(text));
+            ValidateClassicCommentPosition(x, nameof(x));
+            ValidateClassicCommentPosition(y, nameof(y));
             P.CommentAuthor commentAuthor = GetOrCreateClassicCommentAuthor(author);
             var comment = new P.Comment(
                 new P.Position { X = x, Y = y }, new P.Text(text)) {
@@ -432,6 +442,7 @@ namespace OfficeIMO.PowerPoint {
         internal void ThrowIfDisposedForCommentApi() => ThrowIfDisposed();
 
         internal P.CommentAuthor GetOrCreateClassicCommentAuthor(PowerPointCommentAuthor author) {
+            ValidateClassicCommentAuthor(author);
             CommentAuthorsPart? part = _presentationPart.CommentAuthorsPart;
             if (part == null) {
                 part = _presentationPart.AddNewPart<CommentAuthorsPart>();
@@ -643,6 +654,29 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException(
                     "Classic comment text cannot contain a NUL character.",
                     parameterName);
+            }
+        }
+
+        internal static void ValidateClassicCommentPosition(long value,
+            string parameterName) {
+            if (value < int.MinValue || value > int.MaxValue) {
+                throw new ArgumentOutOfRangeException(parameterName,
+                    "Classic comment positions must fit in the binary PowerPoint signed 32-bit coordinate range.");
+            }
+        }
+
+        private static void ValidateClassicCommentAuthor(
+            PowerPointCommentAuthor author) {
+            if (author.Name.Length > 52 || author.Initials.Length > 52) {
+                throw new ArgumentException(
+                    "Classic comment author names and initials cannot exceed 52 characters.",
+                    nameof(author));
+            }
+            if (author.Name.IndexOf('\0') >= 0
+                || author.Initials.IndexOf('\0') >= 0) {
+                throw new ArgumentException(
+                    "Classic comment author names and initials cannot contain a NUL character.",
+                    nameof(author));
             }
         }
 

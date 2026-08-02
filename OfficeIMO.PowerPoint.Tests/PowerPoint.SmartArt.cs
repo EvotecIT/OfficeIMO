@@ -92,6 +92,13 @@ namespace OfficeIMO.Tests {
                         .Select(point => point.Element(dgm + "t")
                             ?? point.Element(dgm + "txBody"))
                         .First(body => body != null)!;
+                    XElement firstParagraph = textBody.Elements(a + "p")
+                        .Single();
+                    XElement firstRun = firstParagraph.Elements(a + "r")
+                        .Single();
+                    firstRun.AddAfterSelf(new XElement(a + "br"),
+                        new XElement(a + "r",
+                            new XElement(a + "t", "After break")));
                     textBody.Add(new XElement(a + "p",
                         new XElement(a + "r",
                             new XElement(a + "t", "Second paragraph")),
@@ -107,13 +114,13 @@ namespace OfficeIMO.Tests {
                 PowerPointSmartArt smartArt = Assert.Single(
                     imported.Slides[0].SmartArts);
                 Assert.Equal(1, smartArt.NodeCount);
-                Assert.Equal("First paragraph\nSecond paragraph",
+                Assert.Equal("First paragraph\nAfter break\nSecond paragraph",
                     smartArt.GetNodeText(0));
-                Assert.Equal("First paragraph\nSecond paragraph",
+                Assert.Equal("First paragraph\nAfter break\nSecond paragraph",
                     Assert.Single(smartArt.GetNodeTexts()));
                 Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                     out OfficeDiagramSnapshot snapshot));
-                Assert.Equal("First paragraph\nSecond paragraph",
+                Assert.Equal("First paragraph\nAfter break\nSecond paragraph",
                     Assert.Single(snapshot.Nodes));
 
                 OfficeImageExportResult svg = imported.Slides[0].ExportImage(
@@ -121,11 +128,65 @@ namespace OfficeIMO.Tests {
                 string svgText = Encoding.UTF8.GetString(svg.Bytes);
                 Assert.Contains("First paragraph", svgText,
                     StringComparison.Ordinal);
+                Assert.Contains("After break", svgText,
+                    StringComparison.Ordinal);
                 Assert.Contains("Second paragraph", svgText,
                     StringComparison.Ordinal);
 
                 smartArt.SetNodeText(0, "Replacement");
                 Assert.Equal("Replacement", smartArt.GetNodeText(0));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void ImportedSmartArtUsesConnectionOrderForSemanticNodes() {
+            string filePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddSmartArt(
+                        PowerPointSmartArtType.BasicProcess,
+                        new[] { "First", "Second", "Third" });
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document =
+                       PresentationDocument.Open(filePath, true)) {
+                    DiagramDataPart dataPart = document.PresentationPart!
+                        .SlideParts.Single().DiagramDataParts.Single();
+                    XDocument data;
+                    using (Stream input = dataPart.GetStream(
+                               FileMode.Open, FileAccess.Read)) {
+                        data = XDocument.Load(input);
+                    }
+                    XNamespace dgm =
+                        "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+                    XElement pointList = data.Descendants(dgm + "ptLst")
+                        .Single();
+                    XElement[] nodes = pointList.Elements(dgm + "pt")
+                        .Where(point => point.Attribute("type") == null)
+                        .ToArray();
+                    for (int index = nodes.Length - 1; index >= 0; index--) {
+                        XElement node = nodes[index];
+                        node.Remove();
+                        pointList.Add(node);
+                    }
+                    using Stream output = dataPart.GetStream(
+                        FileMode.Create, FileAccess.Write);
+                    data.Save(output);
+                }
+
+                using PowerPointPresentation imported =
+                    PowerPointPresentation.Load(filePath);
+                PowerPointSmartArt smartArt = Assert.Single(
+                    imported.Slides[0].SmartArts);
+                Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
+                    out OfficeDiagramSnapshot snapshot));
+                Assert.Equal(new[] { "First", "Second", "Third" },
+                    snapshot.Nodes);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

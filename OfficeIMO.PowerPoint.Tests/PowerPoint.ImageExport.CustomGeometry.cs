@@ -140,6 +140,74 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_AuthorsCompleteCustomGeometryStrokeStyle() {
+            OfficeShape path = OfficeShape.Path(
+                OfficePathCommand.MoveTo(0, 100),
+                OfficePathCommand.LineTo(50, 0),
+                OfficePathCommand.LineTo(100, 100));
+            path.StrokeColor = OfficeColor.FromRgb(37, 99, 235);
+            path.StrokeWidth = 2D;
+            path.StrokeDashStyle = OfficeStrokeDashStyle.DashDot;
+            path.StrokeLineCap = OfficeStrokeLineCap.Round;
+            path.StrokeLineJoin = OfficeStrokeLineJoin.Bevel;
+            path.StrokeStartMarker = new OfficeLineMarker(
+                OfficeLineMarkerKind.Triangle, 9D, 12D);
+            path.StrokeEndMarker = new OfficeLineMarker(
+                OfficeLineMarkerKind.Diamond, 12D, 16D);
+
+            using var stream = new System.IO.MemoryStream();
+            using (PowerPointPresentation presentation =
+                   PowerPointPresentation.Create(stream)) {
+                presentation.AddSlide().AddCustomGeometryPoints(path,
+                    20, 20, 120, 80);
+                var validation = presentation.ValidateDocument();
+                Assert.True(validation.Count == 0, string.Join(
+                    Environment.NewLine, validation.Select(error =>
+                        error.Description + Environment.NewLine
+                        + error.Node?.OuterXml)));
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(stream);
+            PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
+                Assert.Single(reopened.Slides[0].Shapes));
+            A.Outline outline = authored.Element.Descendants<A.Outline>()
+                .Single();
+            Assert.Equal(A.PresetLineDashValues.DashDot,
+                outline.GetFirstChild<A.PresetDash>()!.Val!.Value);
+            Assert.Equal(A.LineCapValues.Round, outline.CapType!.Value);
+            Assert.NotNull(outline.GetFirstChild<A.LineJoinBevel>());
+            A.HeadEnd head = outline.GetFirstChild<A.HeadEnd>()!;
+            Assert.Equal(A.LineEndValues.Triangle, head.Type!.Value);
+            Assert.Equal(A.LineEndWidthValues.Medium, head.Width!.Value);
+            Assert.Equal(A.LineEndLengthValues.Medium, head.Length!.Value);
+            A.TailEnd tail = outline.GetFirstChild<A.TailEnd>()!;
+            Assert.Equal(A.LineEndValues.Diamond, tail.Type!.Value);
+            Assert.Equal(A.LineEndWidthValues.Large, tail.Width!.Value);
+            Assert.Equal(A.LineEndLengthValues.Large, tail.Length!.Value);
+            PowerPointSlideVisualSnapshot snapshot = reopened.Slides[0]
+                .CreateVisualSnapshot(new PowerPointImageExportOptions {
+                    IncludeSlideBackground = false
+                });
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing
+                .Elements.OfType<OfficeDrawingShape>(), element =>
+                    element.X == 20D && element.Y == 20D);
+            Assert.Equal(OfficeStrokeDashStyle.DashDot,
+                rendered.Shape.StrokeDashStyle);
+            Assert.Equal(OfficeStrokeLineCap.Round,
+                rendered.Shape.StrokeLineCap);
+            Assert.Equal(OfficeStrokeLineJoin.Bevel,
+                rendered.Shape.StrokeLineJoin);
+            Assert.Equal(OfficeLineMarkerKind.Triangle,
+                rendered.Shape.StrokeStartMarker!.Kind);
+            Assert.Equal(OfficeLineMarkerKind.Diamond,
+                rendered.Shape.StrokeEndMarker!.Kind);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsCombinedCustomGeometryFillOpacity() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),
@@ -208,7 +276,7 @@ namespace OfficeIMO.Tests {
             themeOutline.CapType = A.LineCapValues.Round;
             themeOutline.RemoveAllChildren<A.PresetDash>();
             themeOutline.RemoveAllChildren<A.Round>();
-            themeOutline.RemoveAllChildren<A.Bevel>();
+            themeOutline.RemoveAllChildren<A.LineJoinBevel>();
             themeOutline.RemoveAllChildren<A.Miter>();
             A.SolidFill themeFill = themeOutline.GetFirstChild<A.SolidFill>()!;
             A.PresetDash themeDash = themeOutline.InsertAfter(

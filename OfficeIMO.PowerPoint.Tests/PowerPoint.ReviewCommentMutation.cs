@@ -133,6 +133,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ClassicCommentMutation_RejectsBinaryIncompatibleAuthors() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCommentAuthor longName = new(new string('n', 53), "N");
+            PowerPointCommentAuthor longInitials = new("Name",
+                new string('i', 53));
+            PowerPointCommentAuthor nulName = new("Name\0Suffix", "N");
+
+            Assert.Throws<ArgumentException>(() =>
+                presentation.AddClassicComment(slide, longName, "Review"));
+            Assert.Throws<ArgumentException>(() =>
+                presentation.AddClassicComment(slide, longInitials, "Review"));
+            Assert.Throws<ArgumentException>(() =>
+                presentation.AddClassicComment(slide, nulName, "Review"));
+            Assert.Empty(presentation.GetClassicComments(slide));
+
+            PowerPointClassicComment comment = presentation.AddClassicComment(
+                slide, new PowerPointCommentAuthor("Valid", "V"), "Review");
+            Assert.Throws<ArgumentException>(() => comment.SetAuthor(longName));
+            Assert.Equal("Valid", comment.Author.Name);
+        }
+
+        [Fact]
+        public void ClassicCommentMutation_RejectsPositionsOutsideBinaryRange() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Reviewer", "R");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                presentation.AddClassicComment(slide, author, "Review",
+                    (long)int.MaxValue + 1L, 0L));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                presentation.AddClassicComment(slide, author, "Review",
+                    0L, (long)int.MinValue - 1L));
+            Assert.Empty(presentation.GetClassicComments(slide));
+
+            PowerPointClassicComment comment = presentation.AddClassicComment(
+                slide, author, "Valid", 10L, 20L);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                comment.X = long.MaxValue);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                comment.Y = long.MinValue);
+            Assert.Equal(10L, comment.X);
+            Assert.Equal(20L, comment.Y);
+        }
+
+        [Fact]
         public void ModernComments_CreateEditReplyReassignRemove_AndRoundTripPptx() {
             using var stream = new MemoryStream();
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {

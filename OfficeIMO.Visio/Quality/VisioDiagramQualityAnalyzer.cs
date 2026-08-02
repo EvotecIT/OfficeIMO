@@ -398,8 +398,7 @@ namespace OfficeIMO.Visio {
         private static bool HasDeterministicRoute(VisioConnector connector) {
             return connector.Waypoints.Count > 0 ||
                    connector.Kind == ConnectorKind.RightAngle ||
-                   connector.Kind == ConnectorKind.Straight ||
-                   connector.Kind == ConnectorKind.Curved;
+                   connector.Kind == ConnectorKind.Straight;
         }
 
         private static List<Point> BuildConnectorPath(VisioConnector connector) {
