@@ -692,43 +692,37 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidateConnectionParameterCapacity(int firstRow, int count) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) {
-                return;
-            }
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in connections.Elements<Connection>()) {
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
-                    if (parameter.Cell?.Value is string text
-                        && ExcelReference.TryParse(text, out ExcelReference? reference)
-                        && ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) {
-                        ValidateReferenceListDoesNotOverflow(text, firstRow, count);
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots()) {
+                foreach (Connection connection in root.Connections.Elements<Connection>()) {
+                    foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                        if (parameter.Cell?.Value is string text
+                            && ExcelReference.TryParse(text, out ExcelReference? reference)
+                            && ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) {
+                            ValidateReferenceListDoesNotOverflow(text, firstRow, count);
+                        }
                     }
                 }
             }
         }
 
         private void ValidateConnectionParameterDeletion(int firstDeletedRow, int lastDeletedRow) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) {
-                return;
-            }
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in connections.Elements<Connection>()) {
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
-                    if (parameter.Cell?.Value is not string reference
-                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
-                        || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)
-                        || !TryParseReference(reference, out var bounds)
-                        || bounds.r1 < firstDeletedRow
-                        || bounds.r1 > lastDeletedRow) {
-                        continue;
-                    }
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots()) {
+                foreach (Connection connection in root.Connections.Elements<Connection>()) {
+                    foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                        if (parameter.Cell?.Value is not string reference
+                            || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
+                            || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)
+                            || !TryParseReference(reference, out var bounds)
+                            || bounds.r1 < firstDeletedRow
+                            || bounds.r1 > lastDeletedRow) {
+                            continue;
+                        }
 
-                    throw new InvalidOperationException(
-                        $"Cannot delete cell-backed connection parameter reference '{reference}'. Update or remove the parameter first.");
+                        throw new InvalidOperationException(
+                            $"Cannot delete cell-backed connection parameter reference '{reference}'. Update or remove the parameter first.");
+                    }
                 }
             }
         }

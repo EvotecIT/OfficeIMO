@@ -604,25 +604,24 @@ namespace OfficeIMO.Excel {
             int destinationRow,
             int destinationColumn,
             bool transpose) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) return;
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            bool changed = false;
-            foreach (Connection connection in connections.Elements<Connection>()) {
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
-                    if (parameter.Cell?.Value is not string value
-                        || !ExcelReference.TryParse(value, out ExcelReference? reference)
-                        || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
-                    ExcelReference mapped = ExcelDocument.TransformMovedRangeReference(
-                        reference!, source, destinationRow, destinationColumn, transpose);
-                    string rewritten = mapped.ToString();
-                    if (string.Equals(value, rewritten, StringComparison.OrdinalIgnoreCase)) continue;
-                    parameter.Cell = rewritten;
-                    changed = true;
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots()) {
+                bool changed = false;
+                foreach (Connection connection in root.Connections.Elements<Connection>()) {
+                    foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                        if (parameter.Cell?.Value is not string value
+                            || !ExcelReference.TryParse(value, out ExcelReference? reference)
+                            || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
+                        ExcelReference mapped = ExcelDocument.TransformMovedRangeReference(
+                            reference!, source, destinationRow, destinationColumn, transpose);
+                        string rewritten = mapped.ToString();
+                        if (string.Equals(value, rewritten, StringComparison.OrdinalIgnoreCase)) continue;
+                        parameter.Cell = rewritten;
+                        changed = true;
+                    }
                 }
+                if (changed) root.Save();
             }
-            if (changed) connections.Save();
         }
 
         private void ValidateCellShiftConnectionParameters(
@@ -630,26 +629,25 @@ namespace OfficeIMO.Excel {
             ExcelCellShiftDirection direction,
             bool inserting,
             MutationPlanScanBudget? budget) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) return;
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart, budget);
-            foreach (Connection connection in InspectMutationPlanElements(connections.Elements<Connection>(), budget)) {
-                foreach (Parameter parameter in InspectMutationPlanElements(connection.Descendants<Parameter>(), budget)) {
-                    if (parameter.Cell?.Value is not string value
-                        || !ExcelReference.TryParse(value, out ExcelReference? reference)
-                        || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
-                    ExcelReference? mapped;
-                    try {
-                        mapped = ExcelDocument.TransformCellShiftReference(reference!, affected, direction, inserting);
-                    } catch (Exception exception) when (exception is OverflowException || exception is ArgumentOutOfRangeException) {
-                        throw new InvalidOperationException(
-                            $"Cell insertion would move cell-backed connection parameter '{value}' beyond worksheet limits.",
-                            exception);
-                    }
-                    if (mapped == null) {
-                        throw new InvalidOperationException(
-                            $"Cannot delete cell-backed connection parameter reference '{value}'. Update or remove the parameter first.");
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots(budget)) {
+                foreach (Connection connection in InspectMutationPlanElements(root.Connections.Elements<Connection>(), budget)) {
+                    foreach (Parameter parameter in InspectMutationPlanElements(connection.Descendants<Parameter>(), budget)) {
+                        if (parameter.Cell?.Value is not string value
+                            || !ExcelReference.TryParse(value, out ExcelReference? reference)
+                            || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
+                        ExcelReference? mapped;
+                        try {
+                            mapped = ExcelDocument.TransformCellShiftReference(reference!, affected, direction, inserting);
+                        } catch (Exception exception) when (exception is OverflowException || exception is ArgumentOutOfRangeException) {
+                            throw new InvalidOperationException(
+                                $"Cell insertion would move cell-backed connection parameter '{value}' beyond worksheet limits.",
+                                exception);
+                        }
+                        if (mapped == null) {
+                            throw new InvalidOperationException(
+                                $"Cannot delete cell-backed connection parameter reference '{value}'. Update or remove the parameter first.");
+                        }
                     }
                 }
             }
@@ -659,29 +657,28 @@ namespace OfficeIMO.Excel {
             ExcelReference affected,
             ExcelCellShiftDirection direction,
             bool inserting) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) return;
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            bool changed = false;
-            foreach (Connection connection in connections.Elements<Connection>()) {
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
-                    if (parameter.Cell?.Value is not string value
-                        || !ExcelReference.TryParse(value, out ExcelReference? reference)
-                        || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
-                    ExcelReference? mapped = ExcelDocument.TransformCellShiftReference(
-                        reference!, affected, direction, inserting);
-                    if (mapped == null) {
-                        throw new InvalidOperationException(
-                            $"Cannot delete cell-backed connection parameter reference '{value}'. Update or remove the parameter first.");
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots()) {
+                bool changed = false;
+                foreach (Connection connection in root.Connections.Elements<Connection>()) {
+                    foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                        if (parameter.Cell?.Value is not string value
+                            || !ExcelReference.TryParse(value, out ExcelReference? reference)
+                            || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) continue;
+                        ExcelReference? mapped = ExcelDocument.TransformCellShiftReference(
+                            reference!, affected, direction, inserting);
+                        if (mapped == null) {
+                            throw new InvalidOperationException(
+                                $"Cannot delete cell-backed connection parameter reference '{value}'. Update or remove the parameter first.");
+                        }
+                        string rewritten = mapped.ToString();
+                        if (string.Equals(value, rewritten, StringComparison.OrdinalIgnoreCase)) continue;
+                        parameter.Cell = rewritten;
+                        changed = true;
                     }
-                    string rewritten = mapped.ToString();
-                    if (string.Equals(value, rewritten, StringComparison.OrdinalIgnoreCase)) continue;
-                    parameter.Cell = rewritten;
-                    changed = true;
                 }
+                if (changed) root.Save();
             }
-            if (changed) connections.Save();
         }
 
         private void PutClonedCell(int row, int column, Cell clone) {

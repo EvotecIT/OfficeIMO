@@ -114,11 +114,27 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetInCellImageCore(int row, int column, Stream imageStream, string contentType, string altText) {
+            _ = SetInCellImageCore(row, column, imageStream, contentType, altText, reusableImagePart: null);
+        }
+
+        private OpenXmlPart SetInCellImageCore(
+            int row,
+            int column,
+            Stream? imageStream,
+            string contentType,
+            string altText,
+            OpenXmlPart? reusableImagePart) {
             Cell cell = GetCell(row, column);
-            if (cell.ValueMetaIndex != null
-                && TryReplaceExclusiveInCellImage(cell, imageStream, contentType, altText)) {
+            if (reusableImagePart == null
+                && cell.ValueMetaIndex != null
+                && TryReplaceExclusiveInCellImage(
+                    cell,
+                    imageStream!,
+                    contentType,
+                    altText,
+                    out OpenXmlPart? replacedImagePart)) {
                 SetInCellImageCellValue(cell);
-                return;
+                return replacedImagePart!;
             }
 
             WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
@@ -140,12 +156,37 @@ namespace OfficeIMO.Excel {
                 .FirstOrDefault(part => string.Equals(part.RelationshipType, RichValueRelRelationshipType, StringComparison.Ordinal))
                 ?? workbookPart.AddExtendedPart(RichValueRelRelationshipType, RichValueRelContentType, "xml");
             RichRel.RichValueRels relationships = LoadRichValueRelationships(relationshipPart);
-            ExtendedPart imagePart = relationshipPart.AddExtendedPart(ImageRelationshipType, contentType, GetImageExtension(contentType));
-            imagePart.FeedData(imageStream);
-            string imageRelationshipId = relationshipPart.GetIdOfPart(imagePart);
-            uint relationshipIndex = (uint)relationships.Elements<RichRel.RichValueRelRelationship>().Count();
-            relationships.Append(new RichRel.RichValueRelRelationship { Id = imageRelationshipId });
-            SaveExtendedRoot(relationshipPart, relationships);
+            OpenXmlPart resolvedImagePart;
+            string imageRelationshipId;
+            uint relationshipIndex;
+            if (reusableImagePart != null) {
+                if (!relationshipPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, reusableImagePart))) {
+                    throw new InvalidOperationException("The reusable in-cell image asset is not owned by the target rich-value relationship part.");
+                }
+                resolvedImagePart = reusableImagePart;
+                imageRelationshipId = relationshipPart.GetIdOfPart(reusableImagePart);
+                List<RichRel.RichValueRelRelationship> existingRelationships = relationships
+                    .Elements<RichRel.RichValueRelRelationship>()
+                    .ToList();
+                int existingIndex = existingRelationships.FindIndex(item =>
+                    string.Equals(item.Id?.Value, imageRelationshipId, StringComparison.Ordinal));
+                if (existingIndex >= 0) {
+                    relationshipIndex = (uint)existingIndex;
+                } else {
+                    relationshipIndex = (uint)existingRelationships.Count;
+                    relationships.Append(new RichRel.RichValueRelRelationship { Id = imageRelationshipId });
+                    SaveExtendedRoot(relationshipPart, relationships);
+                }
+            } else {
+                if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
+                ExtendedPart imagePart = relationshipPart.AddExtendedPart(ImageRelationshipType, contentType, GetImageExtension(contentType));
+                imagePart.FeedData(imageStream);
+                resolvedImagePart = imagePart;
+                imageRelationshipId = relationshipPart.GetIdOfPart(imagePart);
+                relationshipIndex = (uint)relationships.Elements<RichRel.RichValueRelRelationship>().Count();
+                relationships.Append(new RichRel.RichValueRelRelationship { Id = imageRelationshipId });
+                SaveExtendedRoot(relationshipPart, relationships);
+            }
 
             uint valueIndex = (uint)values.Elements<Rich.RichValue>().Count();
             Rich.RichValue value = CreateLocalImageValue(structureIndex, relationshipIndex, altText, structures);
@@ -167,11 +208,13 @@ namespace OfficeIMO.Excel {
             SetInCellImageCellValue(cell);
             cell.ValueMetaIndex = valueMetadata.Count;
             metadata.Save();
+            return resolvedImagePart;
         }
 
         internal void CopyInCellImagesTo(ExcelSheet targetSheet) {
             if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) return;
             bool copied = false;
+            var copiedAssets = new Dictionary<OpenXmlPart, OpenXmlPart>();
             foreach (Cell sourceCell in WorksheetRoot.Descendants<Cell>()) {
                 if (!lookup!.TryResolve(sourceCell, out OpenXmlPart? imagePart, out string altText)
                     || imagePart == null
@@ -180,8 +223,25 @@ namespace OfficeIMO.Excel {
                 }
 
                 (int row, int column) = A1.ParseCellRef(cellReference);
-                using Stream imageStream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-                targetSheet.SetInCellImageCore(row, column, imageStream, imagePart.ContentType, altText);
+                if (copiedAssets.TryGetValue(imagePart, out OpenXmlPart? copiedAsset)) {
+                    _ = targetSheet.SetInCellImageCore(
+                        row,
+                        column,
+                        imageStream: null,
+                        imagePart.ContentType,
+                        altText,
+                        copiedAsset);
+                } else {
+                    using Stream imageStream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+                    OpenXmlPart targetImagePart = targetSheet.SetInCellImageCore(
+                        row,
+                        column,
+                        imageStream,
+                        imagePart.ContentType,
+                        altText,
+                        reusableImagePart: null);
+                    copiedAssets.Add(imagePart, targetImagePart);
+                }
                 copied = true;
             }
 

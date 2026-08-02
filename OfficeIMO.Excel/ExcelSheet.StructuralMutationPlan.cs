@@ -494,10 +494,9 @@ namespace OfficeIMO.Excel {
                     queryConnectionIds.Add(connectionId);
                 }
             }
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections != null) {
+            foreach (WorkbookConnectionRoot connectionRoot in LoadWorkbookConnectionRoots(budget)) {
                 budget.Consume();
-                foreach (Connection connection in connections.Elements<Connection>()) {
+                foreach (Connection connection in connectionRoot.Connections.Elements<Connection>()) {
                     budget.Consume();
                     bool isTargetConnection = connection.Id?.Value is uint connectionId
                         && queryConnectionIds.Contains(connectionId);

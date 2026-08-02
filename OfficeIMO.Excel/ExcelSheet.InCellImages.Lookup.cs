@@ -185,7 +185,9 @@ namespace OfficeIMO.Excel {
             Cell cell,
             Stream imageStream,
             string contentType,
-            string altText) {
+            string altText,
+            out OpenXmlPart? resolvedImagePart) {
+            resolvedImagePart = null;
             if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)
                 || !lookup!.TryResolveSlot(cell.ValueMetaIndex?.Value ?? 0U, out InCellImageSlot slot)
                 || !IsExclusiveInCellImageSlot(lookup, slot)) {
@@ -204,6 +206,7 @@ namespace OfficeIMO.Excel {
             if (imageStream.CanSeek) imageStream.Position = 0;
             if (string.Equals(currentImagePart.ContentType, contentType, StringComparison.OrdinalIgnoreCase)) {
                 currentImagePart.FeedData(imageStream);
+                resolvedImagePart = currentImagePart;
             } else {
                 ExtendedPart replacement = lookup.RelationshipPart.AddExtendedPart(
                     ImageRelationshipType,
@@ -214,6 +217,7 @@ namespace OfficeIMO.Excel {
                 var relationships = new RichRel.RichValueRels(lookup.Relationships.Select(item => item.CloneNode(true)));
                 SaveExtendedRoot(lookup.RelationshipPart, relationships);
                 lookup.RelationshipPart.DeletePart(currentImagePart);
+                resolvedImagePart = replacement;
             }
             SetRichValueAltText(slot.Value, slot.Structure, altText);
             slot.Value.Ancestors<Rich.RichValueData>().FirstOrDefault()?.Save();

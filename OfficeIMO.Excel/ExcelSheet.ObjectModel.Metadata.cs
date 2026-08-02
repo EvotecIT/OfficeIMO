@@ -180,46 +180,40 @@ namespace OfficeIMO.Excel {
             int rowDelta,
             int? lastDeletedRow,
             CancellationToken cancellationToken = default) {
-            ConnectionsPart? connectionsPart = WorkbookPartRoot.ConnectionsPart;
-            Connections? connections = connectionsPart?.Connections;
-            if (connections == null) {
-                return;
-            }
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            bool changed = false;
-            foreach (Connection connection in connections.Elements<Connection>()) {
-                cancellationToken.ThrowIfCancellationRequested();
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots()) {
+                bool changed = false;
+                foreach (Connection connection in root.Connections.Elements<Connection>()) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (parameter.Cell?.Value is not string referenceText
-                        || !ExcelReference.TryParse(referenceText, out ExcelReference? reference)
-                        || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)
-                        || !TryRemapConnectionParameterRows(
-                            reference!, firstAffectedRow, rowDelta, lastDeletedRow, out ExcelReference? remappedReference)) {
-                        continue;
+                    foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (parameter.Cell?.Value is not string referenceText
+                            || !ExcelReference.TryParse(referenceText, out ExcelReference? reference)
+                            || !ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)
+                            || !TryRemapConnectionParameterRows(
+                                reference!, firstAffectedRow, rowDelta, lastDeletedRow, out ExcelReference? remappedReference)) {
+                            continue;
+                        }
+
+                        if (remappedReference == null) {
+                            parameter.Remove();
+                        } else {
+                            parameter.Cell = remappedReference.ToString();
+                        }
+                        changed = true;
                     }
 
-                    if (remappedReference == null) {
-                        parameter.Remove();
-                    } else {
-                        parameter.Cell = remappedReference.ToString();
+                    foreach (Parameters parameters in connection.Elements<Parameters>().ToList()) {
+                        uint count = (uint)parameters.Elements<Parameter>().Count();
+                        if (count == 0U) {
+                            parameters.Remove();
+                        } else {
+                            parameters.Count = count;
+                        }
                     }
-                    changed = true;
                 }
 
-                foreach (Parameters parameters in connection.Elements<Parameters>().ToList()) {
-                    uint count = (uint)parameters.Elements<Parameter>().Count();
-                    if (count == 0U) {
-                        parameters.Remove();
-                    } else {
-                        parameters.Count = count;
-                    }
-                }
-            }
-
-            if (changed) {
-                connections.Save();
+                if (changed) root.Save();
             }
         }
 

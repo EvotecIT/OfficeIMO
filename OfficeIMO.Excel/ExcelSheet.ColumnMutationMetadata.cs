@@ -122,30 +122,29 @@ namespace OfficeIMO.Excel {
             int count,
             bool deleting,
             MutationPlanScanBudget? budget = null) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) return;
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart, budget);
-            foreach (Connection connection in InspectMutationPlanElements(connections.Elements<Connection>(), budget)) {
-                foreach (Parameter parameter in InspectMutationPlanElements(connection.Descendants<Parameter>(), budget)) {
-                    if (parameter.Cell?.Value is not string reference
-                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
-                        || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)) continue;
-                    ExcelReference? mapped;
-                    try {
-                        mapped = ExcelDocument.TransformColumnReference(
-                            parsed!,
-                            firstColumn,
-                            firstColumn + count - 1,
-                            count,
-                            deleting);
-                    } catch (ArgumentOutOfRangeException) {
-                        throw new InvalidOperationException(
-                            $"Column insertion would move cell-backed connection parameter '{reference}' beyond the Excel column limit.");
-                    }
-                    if (deleting && mapped == null) {
-                        throw new InvalidOperationException(
-                            $"Cannot delete cell-backed connection parameter reference '{reference}'. Update or remove the parameter first.");
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots(budget)) {
+                foreach (Connection connection in InspectMutationPlanElements(root.Connections.Elements<Connection>(), budget)) {
+                    foreach (Parameter parameter in InspectMutationPlanElements(connection.Descendants<Parameter>(), budget)) {
+                        if (parameter.Cell?.Value is not string reference
+                            || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
+                            || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)) continue;
+                        ExcelReference? mapped;
+                        try {
+                            mapped = ExcelDocument.TransformColumnReference(
+                                parsed!,
+                                firstColumn,
+                                firstColumn + count - 1,
+                                count,
+                                deleting);
+                        } catch (ArgumentOutOfRangeException) {
+                            throw new InvalidOperationException(
+                                $"Column insertion would move cell-backed connection parameter '{reference}' beyond the Excel column limit.");
+                        }
+                        if (deleting && mapped == null) {
+                            throw new InvalidOperationException(
+                                $"Cannot delete cell-backed connection parameter reference '{reference}'. Update or remove the parameter first.");
+                        }
                     }
                 }
             }
@@ -156,34 +155,33 @@ namespace OfficeIMO.Excel {
             int count,
             bool deleting,
             CancellationToken cancellationToken) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) return;
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            bool changed = false;
-            foreach (Connection connection in connections.Elements<Connection>()) {
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (parameter.Cell?.Value is not string reference
-                        || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
-                        || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)) continue;
-                    ExcelReference? mapped = ExcelDocument.TransformColumnReference(
-                        parsed!,
-                        firstColumn,
-                        firstColumn + count - 1,
-                        count,
-                        deleting);
-                    if (mapped == null) parameter.Remove();
-                    else parameter.Cell = mapped.ToString();
-                    changed = true;
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots()) {
+                bool changed = false;
+                foreach (Connection connection in root.Connections.Elements<Connection>()) {
+                    foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (parameter.Cell?.Value is not string reference
+                            || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
+                            || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)) continue;
+                        ExcelReference? mapped = ExcelDocument.TransformColumnReference(
+                            parsed!,
+                            firstColumn,
+                            firstColumn + count - 1,
+                            count,
+                            deleting);
+                        if (mapped == null) parameter.Remove();
+                        else parameter.Cell = mapped.ToString();
+                        changed = true;
+                    }
+                    foreach (Parameters parameters in connection.Elements<Parameters>().ToList()) {
+                        uint parameterCount = (uint)parameters.Elements<Parameter>().Count();
+                        if (parameterCount == 0U) parameters.Remove();
+                        else parameters.Count = parameterCount;
+                    }
                 }
-                foreach (Parameters parameters in connection.Elements<Parameters>().ToList()) {
-                    uint parameterCount = (uint)parameters.Elements<Parameter>().Count();
-                    if (parameterCount == 0U) parameters.Remove();
-                    else parameters.Count = parameterCount;
-                }
+                if (changed) root.Save();
             }
-            if (changed) connections.Save();
         }
 
         private void RemapColumnCommentVml(

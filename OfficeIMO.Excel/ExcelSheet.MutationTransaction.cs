@@ -280,6 +280,19 @@ namespace OfficeIMO.Excel {
 
                 AddRoot(workbookPart.Workbook, value => workbookPart.Workbook = value);
                 AddRoot(workbookPart.ConnectionsPart?.Connections, value => workbookPart.ConnectionsPart!.Connections = value);
+                foreach (ExtendedPart connectionPart in workbookPart.Parts
+                    .Select(pair => pair.OpenXmlPart)
+                    .OfType<ExtendedPart>()
+                    .Where(part => string.Equals(
+                            part.RelationshipType,
+                            WorkbookConnectionRelationshipType,
+                            StringComparison.Ordinal)
+                        || string.Equals(
+                            part.ContentType,
+                            WorkbookConnectionContentType,
+                            StringComparison.OrdinalIgnoreCase))) {
+                    AddExtendedPartGraph(workbookPart, connectionPart);
+                }
                 AddRoot(workbookPart.WorkbookStylesPart?.Stylesheet, value => workbookPart.WorkbookStylesPart!.Stylesheet = value);
                 AddRoot(workbookPart.SharedStringTablePart?.SharedStringTable, value => workbookPart.SharedStringTablePart!.SharedStringTable = value);
                 CellMetadataPart? cellMetadataPart = workbookPart.CellMetadataPart;

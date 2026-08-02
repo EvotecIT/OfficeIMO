@@ -231,9 +231,6 @@ namespace OfficeIMO.Excel {
                 string.Equals(item.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
             if (interaction == null) return false;
             ExcelSheet sheet = this[interaction.WorksheetName];
-            bool pruneCache = removeUnusedCache && GetPivotInteractions().Count(item =>
-                item.Kind == interaction.Kind
-                && string.Equals(item.CacheName, interaction.CacheName, StringComparison.OrdinalIgnoreCase)) == 1;
             bool removed = false;
             sheet.ApplyTransactionalMutation(_ => {
                 if (interaction.Kind == ExcelPivotInteractionCacheKind.Slicer) {
@@ -262,13 +259,37 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (removed && pruneCache) {
+                if (removed
+                    && removeUnusedCache
+                    && !IsNativeInteractionCacheInUse(interaction.Kind, interaction.CacheName)) {
                     RemoveNativeInteractionCache(interaction.Kind, interaction.CacheName);
                 }
                 if (removed) MarkMetadataPartChanged();
                 return removed ? 1 : 0;
             }, new ExcelMutationPlanOptions(), CancellationToken.None);
             return removed;
+        }
+
+        private bool IsNativeInteractionCacheInUse(
+            ExcelPivotInteractionCacheKind kind,
+            string cacheName) {
+            if (kind == ExcelPivotInteractionCacheKind.Slicer) {
+                return WorkbookPartRoot.WorksheetParts
+                    .SelectMany(part => part.SlicersParts)
+                    .SelectMany(part => part.Slicers?.Elements<X14.Slicer>() ?? Enumerable.Empty<X14.Slicer>())
+                    .Any(view => string.Equals(
+                        view.Cache?.Value,
+                        cacheName,
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            return WorkbookPartRoot.WorksheetParts
+                .SelectMany(part => part.TimeLineParts)
+                .SelectMany(part => part.Timelines?.Elements<X15.Timeline>() ?? Enumerable.Empty<X15.Timeline>())
+                .Any(view => string.Equals(
+                    view.Cache?.Value,
+                    cacheName,
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         private ExcelSheet ResolvePivotInteractionWorksheet(string worksheetName) {
