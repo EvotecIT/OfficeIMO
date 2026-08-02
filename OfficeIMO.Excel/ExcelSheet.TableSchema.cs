@@ -281,6 +281,10 @@ namespace OfficeIMO.Excel {
                 }
                 return (name ?? string.Empty) + selector;
             }));
+            RewriteOwnerWorksheetTableFormulas(owner, text =>
+                ExcelFormulaSyntaxTree.Parse(text).RewriteStructuredReferences((name, selector) => name == null
+                    ? ReplaceStructuredColumns(selector, renames)
+                    : name + selector));
             foreach (OpenXmlLeafTextElement formula in owner.Descendants<OpenXmlLeafTextElement>().Where(IsFormulaLeaf)) {
                 formula.Text = ExcelFormulaSyntaxTree.Parse(formula.Text).RewriteStructuredReferences((name, selector) => name == null
                     ? ReplaceStructuredColumns(selector, renames)
@@ -294,9 +298,27 @@ namespace OfficeIMO.Excel {
                 name != null && string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase) && ContainsRemoved(selector)
                     ? null
                     : (name ?? string.Empty) + selector));
+            RewriteOwnerWorksheetTableFormulas(owner, text =>
+                ExcelFormulaSyntaxTree.Parse(text).RewriteStructuredReferences((name, selector) =>
+                    name == null && ContainsRemoved(selector) ? null : (name ?? string.Empty) + selector));
             foreach (OpenXmlLeafTextElement formula in owner.Descendants<OpenXmlLeafTextElement>().Where(IsFormulaLeaf)) {
                 formula.Text = ExcelFormulaSyntaxTree.Parse(formula.Text).RewriteStructuredReferences((name, selector) =>
                     name == null && ContainsRemoved(selector) ? null : (name ?? string.Empty) + selector);
+            }
+        }
+
+        private void RewriteOwnerWorksheetTableFormulas(Table owner, Func<string, string> rewrite) {
+            if (!ExcelReference.TryParse(owner.Reference?.Value, out ExcelReference? tableRange)) return;
+            WorksheetPart? worksheetPart = WorkbookPartRoot.WorksheetParts.FirstOrDefault(candidate =>
+                candidate.TableDefinitionParts.Any(part => ReferenceEquals(part.Table, owner)));
+            if (worksheetPart?.Worksheet == null) return;
+            foreach (Cell cell in worksheetPart.Worksheet.Descendants<Cell>()) {
+                if (cell.CellFormula?.Text is not string formula
+                    || !A1.TryParseCellReferenceFast(cell.CellReference?.Value, out int row, out int column)
+                    || !tableRange!.Contains(row, column)) {
+                    continue;
+                }
+                cell.CellFormula.Text = rewrite(formula);
             }
         }
 

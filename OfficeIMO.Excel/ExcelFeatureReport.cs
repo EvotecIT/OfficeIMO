@@ -445,6 +445,13 @@ namespace OfficeIMO.Excel {
                         pdfUnsupportedImageDetails.Add($"{sheet.Name}!{A1.CellReference(image.RowIndex, image.ColumnIndex)}: {reason}");
                     }
                 }
+                IReadOnlyList<string> inCellImageReferences = excelSheet.GetInCellImageCellReferences();
+                imagePartCount += inCellImageReferences.Count;
+                if (isVisibleForDefaultPdfExport) {
+                    pdfUnsupportedImageCount += inCellImageReferences.Count;
+                    pdfUnsupportedImageDetails.AddRange(inCellImageReferences.Select(reference =>
+                        $"{sheet.Name}!{reference}: native in-cell images are not rendered by the first-party PDF writer."));
+                }
 
                 var charts = excelSheet.Charts.ToList();
                 chartCount += charts.Count;
@@ -531,7 +538,7 @@ namespace OfficeIMO.Excel {
             Add(features, "Media", "Images", ExcelFeatureSupportLevel.PartiallyEditable, imagePartCount, null,
                 "Images can be inserted in common worksheet/header/footer scenarios; advanced drawing behaviors remain partial.");
             Add(features, "Media", "PDF-unsupported images", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedImageCount, null,
-                "Worksheet images are present but are skipped by the first-party Excel-to-PDF image writer because only valid PNG and JPEG images are rendered.",
+                "Worksheet images are present but are skipped by the first-party Excel-to-PDF image writer because their format is unsupported or they are native in-cell images.",
                 pdfUnsupportedImageDetails);
             Add(features, "Media", "PDF-unrendered drawing shapes", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnrenderedDrawingShapeCount, null,
                 "Worksheet drawing shapes and text boxes are present but are skipped by the first-party Excel-to-PDF path.",

@@ -138,6 +138,15 @@ namespace OfficeIMO.Excel {
                     OpenXmlPartContainer parent,
                     TPart part) where TPart : OpenXmlPart, IFixedContentTypePart {
                     string relationshipId = parent.GetIdOfPart(part);
+                    byte[] bytes = CapturePayload(part);
+                    snapshot._restore.Add(() => {
+                        TPart restoredPart = RestorePartRelationship<TPart>(parent, relationshipId);
+                        using var restore = new MemoryStream(bytes, writable: false);
+                        restoredPart.FeedData(restore);
+                    });
+                }
+
+                byte[] CapturePayload(OpenXmlPart part) {
                     using Stream source = part.GetStream(FileMode.Open, FileAccess.Read);
                     byte[] bytes = ReadMutationSnapshotPayload(
                         source,
@@ -147,10 +156,64 @@ namespace OfficeIMO.Excel {
                     if (characters > maximumCharacters) {
                         throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
                     }
+                    return bytes;
+                }
+
+                static string GetTargetExtension(OpenXmlPart part) {
+                    string extension = Path.GetExtension(part.Uri.OriginalString).TrimStart('.');
+                    return extension.Length == 0 ? "bin" : extension;
+                }
+
+                void AddExtendedPartGraph(OpenXmlPartContainer parent, ExtendedPart part) {
+                    string relationshipId = parent.GetIdOfPart(part);
+                    string relationshipType = part.RelationshipType;
+                    string contentType = part.ContentType;
+                    string targetExtension = GetTargetExtension(part);
+                    byte[] payload = CapturePayload(part);
+                    var children = part.Parts.Select(pair => {
+                        if (pair.OpenXmlPart is not ExtendedPart child) {
+                            throw new InvalidDataException(
+                                $"Rich-value relationship part '{part.Uri}' contains unsupported child part '{pair.OpenXmlPart.Uri}'.");
+                        }
+                        return (
+                            pair.RelationshipId,
+                            RelationshipType: child.RelationshipType,
+                            ContentType: child.ContentType,
+                            TargetExtension: GetTargetExtension(child),
+                            Payload: CapturePayload(child));
+                    }).ToArray();
                     snapshot._restore.Add(() => {
-                        TPart restoredPart = RestorePartRelationship<TPart>(parent, relationshipId);
-                        using var restore = new MemoryStream(bytes, writable: false);
-                        restoredPart.FeedData(restore);
+                        ExtendedPart? restoredPart = parent.Parts
+                            .Where(pair => string.Equals(pair.RelationshipId, relationshipId, StringComparison.Ordinal))
+                            .Select(pair => pair.OpenXmlPart)
+                            .OfType<ExtendedPart>()
+                            .FirstOrDefault();
+                        restoredPart ??= parent.AddExtendedPart(
+                            relationshipType,
+                            contentType,
+                            targetExtension,
+                            relationshipId);
+                        using (var restore = new MemoryStream(payload, writable: false)) restoredPart.FeedData(restore);
+
+                        var baselineIds = new HashSet<string>(children.Select(child => child.RelationshipId), StringComparer.Ordinal);
+                        foreach (IdPartPair current in restoredPart.Parts
+                            .Where(pair => !baselineIds.Contains(pair.RelationshipId)).ToList()) {
+                            restoredPart.DeletePart(current.RelationshipId);
+                        }
+                        foreach (var child in children) {
+                            ExtendedPart? restoredChild = restoredPart.Parts
+                                .Where(pair => string.Equals(pair.RelationshipId, child.RelationshipId, StringComparison.Ordinal))
+                                .Select(pair => pair.OpenXmlPart)
+                                .OfType<ExtendedPart>()
+                                .FirstOrDefault();
+                            restoredChild ??= restoredPart.AddExtendedPart(
+                                child.RelationshipType,
+                                child.ContentType,
+                                child.TargetExtension,
+                                child.RelationshipId);
+                            using var childRestore = new MemoryStream(child.Payload, writable: false);
+                            restoredChild.FeedData(childRestore);
+                        }
                     });
                 }
 
@@ -158,6 +221,37 @@ namespace OfficeIMO.Excel {
                 AddRoot(workbookPart.ConnectionsPart?.Connections, value => workbookPart.ConnectionsPart!.Connections = value);
                 AddRoot(workbookPart.WorkbookStylesPart?.Stylesheet, value => workbookPart.WorkbookStylesPart!.Stylesheet = value);
                 AddRoot(workbookPart.SharedStringTablePart?.SharedStringTable, value => workbookPart.SharedStringTablePart!.SharedStringTable = value);
+                CellMetadataPart? cellMetadataPart = workbookPart.CellMetadataPart;
+                if (cellMetadataPart != null) {
+                    AddPartRoot(
+                        workbookPart,
+                        cellMetadataPart,
+                        cellMetadataPart.Metadata,
+                        (restoredPart, value) => restoredPart.Metadata = value);
+                }
+                foreach (RdRichValuePart part in workbookPart.RdRichValueParts) {
+                    AddPartRoot(
+                        workbookPart,
+                        part,
+                        part.RichValueData,
+                        (restoredPart, value) => restoredPart.RichValueData = value);
+                }
+                foreach (RdRichValueStructurePart part in workbookPart.GetPartsOfType<RdRichValueStructurePart>()) {
+                    AddPartRoot(
+                        workbookPart,
+                        part,
+                        part.RichValueStructures,
+                        (restoredPart, value) => restoredPart.RichValueStructures = value);
+                }
+                foreach (ExtendedPart richValueRelationships in workbookPart.Parts
+                    .Select(pair => pair.OpenXmlPart)
+                    .OfType<ExtendedPart>()
+                    .Where(part => string.Equals(
+                        part.RelationshipType,
+                        RichValueRelRelationshipType,
+                        StringComparison.Ordinal))) {
+                    AddExtendedPartGraph(workbookPart, richValueRelationships);
+                }
                 foreach (SlicerCachePart part in workbookPart.SlicerCacheParts) {
                     AddPartRoot(
                         workbookPart,

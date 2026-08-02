@@ -137,6 +137,15 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal IReadOnlyList<string> GetInCellImageCellReferences() {
+            if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) return Array.Empty<string>();
+            return WorksheetRoot.Descendants<Cell>()
+                .Where(cell => lookup!.TryResolve(cell, out _, out _))
+                .Select(cell => cell.CellReference?.Value ?? string.Empty)
+                .Where(reference => reference.Length > 0)
+                .ToArray();
+        }
+
         /// <summary>Reads native in-cell images with a deterministic aggregate payload budget.</summary>
         public IReadOnlyList<ExcelInCellImage> GetInCellImages(long maximumTotalImageBytes = 64_000_000) {
             if (maximumTotalImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumTotalImageBytes));
