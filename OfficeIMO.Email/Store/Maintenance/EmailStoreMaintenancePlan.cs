@@ -37,7 +37,8 @@ public sealed class EmailStoreMaintenancePlan {
         EmailStoreValidationReport validation, EmailStoreRecoveryReport recovery,
         IReadOnlyList<EmailStoreMaintenanceRecommendation> recommendations) {
         SourceFingerprint = sourceFingerprint; Format = format; Validation = validation;
-        Recovery = recovery; Recommendations = recommendations;
+        Recovery = recovery; Recommendations = Array.AsReadOnly(
+            (recommendations ?? throw new ArgumentNullException(nameof(recommendations))).ToArray());
     }
     /// <summary>Complete-source SHA-256 identity captured while planning.</summary>
     public string SourceFingerprint { get; }

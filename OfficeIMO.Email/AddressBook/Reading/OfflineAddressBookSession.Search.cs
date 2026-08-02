@@ -96,6 +96,7 @@ public sealed partial class OfflineAddressBookSession {
         }
 
         ReportSearchProgress(progress, scanned, results.Count, skipped);
+        EnsureDurableSourceFingerprintUnchanged(durableSourceFingerprint, cancellationToken);
         return new OfflineAddressBookSearchReport(
             results, diagnostics, scanned, skipped,
             stoppedAtEntryLimit, stoppedAtResultLimit, nextCheckpoint);
@@ -269,6 +270,14 @@ public sealed partial class OfflineAddressBookSession {
     private static void ReportSearchProgress(IProgress<OfflineAddressBookSearchProgress>? progress,
         int scanned, int matches, int skipped) =>
         progress?.Report(new OfflineAddressBookSearchProgress(scanned, matches, skipped));
+
+    private void EnsureDurableSourceFingerprintUnchanged(string expected, CancellationToken cancellationToken) {
+        string actual = GetDurableSourceFingerprint(cancellationToken);
+        if (!StringComparer.Ordinal.Equals(expected, actual)) {
+            throw new InvalidOperationException(
+                "The offline-address-book source changed during search; discard its results and checkpoint.");
+        }
+    }
 
     private readonly struct SearchPosition {
         internal SearchPosition(int selectedSourceIndex, long entryIndex, long recordOffset) {

@@ -137,6 +137,30 @@ public sealed class TnefResourceLimitTests {
     }
 
     [Fact]
+    public void StreamingCountsOnlySelectedMapiPayloadWhenBothRepresentationsExist() {
+        byte[] mapiPayload = { 3, 4, 5 };
+        byte[] properties = TnefMapiCodec.WriteProperties(new[] {
+            new MapiProperty(0x3701, MapiPropertyType.Binary, mapiPayload),
+            new MapiProperty(0x3705, MapiPropertyType.Integer32, 1)
+        }, 1252, new List<EmailDiagnostic>(), "tnef/attachment/mapi");
+        byte[] bytes = CreateTnef(
+            (TnefAttributeLevel.Attachment, TnefConstants.AttachRendData, new byte[14]),
+            (TnefAttributeLevel.Attachment, TnefConstants.AttachData, new byte[] { 1, 2 }),
+            (TnefAttributeLevel.Attachment, TnefConstants.AttachmentProperties, properties));
+        var options = new EmailReaderOptions(
+            maxAttachmentBytes: mapiPayload.Length,
+            maxTotalAttachmentBytes: mapiPayload.Length);
+
+        using EmailReadResult result = new EmailDocumentReader(options).ReadStreaming(
+            new MemoryStream(bytes, writable: false), "dual-payload.dat");
+        EmailAttachment attachment = Assert.Single(result.Document.Attachments);
+
+        Assert.Equal(mapiPayload, attachment.Content);
+        Assert.Equal(mapiPayload.Length, attachment.Length);
+        Assert.Equal(mapiPayload.Length, result.ProcessingBudget.AttachmentBytes);
+    }
+
+    [Fact]
     public void RoundTripsLegacyCodePageAcrossTnefAttributesAndMapiBytes() {
         var source = new EmailDocument {
             Format = EmailFileFormat.Tnef,

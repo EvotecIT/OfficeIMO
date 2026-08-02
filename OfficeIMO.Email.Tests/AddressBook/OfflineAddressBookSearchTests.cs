@@ -104,10 +104,44 @@ public sealed class OfflineAddressBookSearchTests {
         }
     }
 
+    [Fact]
+    public void SearchRejectsSameLengthSourceMutationBeforePublishingCheckpoint() {
+        using var stream = new MutatingAfterFullReadStream(new OabV4Fixture().Build());
+        using OfflineAddressBookSession session = OfflineAddressBookSession.Open(stream, "synthetic.oab");
+        stream.Arm();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            session.Search(new OfflineAddressBookSearchQuery(
+                new[] { "example" }, maxEntriesScanned: 1, maxResults: 1)));
+
+        Assert.Contains("source changed", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class CapturingProgress : IProgress<OfflineAddressBookSearchProgress> {
         internal List<OfflineAddressBookSearchProgress> Reports { get; } =
             new List<OfflineAddressBookSearchProgress>();
 
         public void Report(OfflineAddressBookSearchProgress value) => Reports.Add(value);
+    }
+
+    private sealed class MutatingAfterFullReadStream : MemoryStream {
+        private bool _armed;
+        private bool _mutated;
+
+        internal MutatingAfterFullReadStream(byte[] bytes)
+            : base(bytes, 0, bytes.Length, writable: true, publiclyVisible: true) { }
+
+        internal void Arm() => _armed = true;
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            if (_armed && !_mutated && read > 0 && Position == Length) {
+                byte[] content = GetBuffer();
+                int index = checked((int)Length - 1);
+                content[index] ^= 1;
+                _mutated = true;
+            }
+            return read;
+        }
     }
 }

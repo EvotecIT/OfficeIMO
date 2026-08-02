@@ -19,6 +19,12 @@ public sealed class EmailStoreMaintenancePlanTests {
             Assert.Equal(64, plan.SourceFingerprint.Length);
             Assert.Equal(EmailStoreMaintenanceAction.None, Assert.Single(plan.Recommendations).Action);
             Assert.Equal(before, Hash(File.ReadAllBytes(message)));
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<EmailStoreDiagnostic>)plan.Validation.Diagnostics).Clear());
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<EmailStoreItemReference>)plan.Recovery.RecoveredItems).Clear());
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<EmailStoreMaintenanceRecommendation>)plan.Recommendations).Clear());
         } finally { Directory.Delete(root, recursive: true); }
     }
 

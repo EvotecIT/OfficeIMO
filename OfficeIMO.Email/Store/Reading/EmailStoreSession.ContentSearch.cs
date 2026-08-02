@@ -38,6 +38,7 @@ public sealed partial class EmailStoreSession {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!references.MoveNext()) {
                     ReportProgress(progress, scanned, results.Count, skipped);
+                    EnsureDurableSourceFingerprintUnchanged(sourceFingerprint, cancellationToken);
                     return new EmailStoreContentSearchReport(
                         results, diagnostics, scanned, skipped, false, false, null);
                 }
@@ -93,6 +94,7 @@ public sealed partial class EmailStoreSession {
         }
 
         ReportProgress(progress, scanned, results.Count, skipped);
+        EnsureDurableSourceFingerprintUnchanged(sourceFingerprint, cancellationToken);
         EmailStoreContentSearchCheckpoint? next = stoppedAtItemLimit || stoppedAtResultLimit
             ? EmailStoreContentSearchCheckpoint.Create(startOffset + scanned, sourceFingerprint, query.Signature)
             : null;
@@ -229,6 +231,14 @@ public sealed partial class EmailStoreSession {
     private static void ReportProgress(IProgress<EmailStoreContentSearchProgress>? progress,
         int scanned, int matches, int skipped) =>
         progress?.Report(new EmailStoreContentSearchProgress(scanned, matches, skipped));
+
+    private void EnsureDurableSourceFingerprintUnchanged(string expected, CancellationToken cancellationToken) {
+        string actual = GetDurableSourceFingerprint(cancellationToken);
+        if (!StringComparer.Ordinal.Equals(expected, actual)) {
+            throw new InvalidOperationException(
+                "The email-store source changed during content search; discard its results and checkpoint.");
+        }
+    }
 
     private readonly struct SearchFieldText {
         internal SearchFieldText(EmailStoreContentSearchFields field, string text) {

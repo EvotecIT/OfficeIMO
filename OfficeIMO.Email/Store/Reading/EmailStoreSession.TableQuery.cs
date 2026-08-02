@@ -44,12 +44,13 @@ public sealed partial class EmailStoreSession {
         bool hasMore = pageCandidates.Count > query.PageSize;
         if (hasMore) pageCandidates.RemoveAt(pageCandidates.Count - 1);
 
-        EmailStoreContinuationToken? nextToken = hasMore && pageCandidates.Count > 0
-            ? EmailStoreContinuationToken.Create(query, pageCandidates[pageCandidates.Count - 1], sourceFingerprint)
-            : null;
         EmailStoreTableRow[] rows = pageCandidates
             .Select(row => new EmailStoreTableRow(row, query.Projection))
             .ToArray();
+        EnsureDurableSourceFingerprintUnchanged(sourceFingerprint, cancellationToken);
+        EmailStoreContinuationToken? nextToken = hasMore && pageCandidates.Count > 0
+            ? EmailStoreContinuationToken.Create(query, pageCandidates[pageCandidates.Count - 1], sourceFingerprint)
+            : null;
         return new EmailStoreTablePage(
             Array.AsReadOnly(rows),
             nextToken,

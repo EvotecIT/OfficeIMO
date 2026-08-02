@@ -175,6 +175,28 @@ public sealed class EmailStoreContentSearchTests {
         } finally { Directory.Delete(root, recursive: true); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SearchesRejectSameLengthSourceMutationBeforePublishingResultsOrCheckpoints(bool tableSearch) {
+        byte[] message = System.Text.Encoding.ASCII.GetBytes(
+            "From sender@example.test Sat Jan 01 00:00:00 2022\n"
+            + "From: a@example.test\nTo: b@example.test\nSubject: searchable needle\n\nbody x\n");
+        using var source = new MutatingAfterFullReadStream(message);
+        using EmailStoreSession session = EmailStoreSession.Open(source, "mailbox.mbox");
+        source.Arm();
+
+        InvalidOperationException exception = tableSearch
+            ? Assert.Throws<InvalidOperationException>(() => session.SearchPage(
+                new EmailStoreTableQuery(pageSize: 1, maxItemsScanned: 10)))
+            : Assert.Throws<InvalidOperationException>(() => session.SearchContent(
+                new EmailStoreContentQuery(new[] { "needle" },
+                    fields: EmailStoreContentSearchFields.Subject,
+                    maxItemsScanned: 10, maxResults: 1)));
+
+        Assert.Contains("source changed", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string CreateCorpus() {
         string root = Path.Combine(Path.GetTempPath(),
             "officeimo-content-search-" + Guid.NewGuid().ToString("N"));
@@ -204,5 +226,26 @@ public sealed class EmailStoreContentSearchTests {
     private sealed class CaptureProgress : IProgress<EmailStoreContentSearchProgress> {
         internal EmailStoreContentSearchProgress? Last { get; private set; }
         public void Report(EmailStoreContentSearchProgress value) => Last = value;
+    }
+
+    private sealed class MutatingAfterFullReadStream : MemoryStream {
+        private bool _armed;
+        private bool _mutated;
+
+        internal MutatingAfterFullReadStream(byte[] bytes)
+            : base(bytes, 0, bytes.Length, writable: true, publiclyVisible: true) { }
+
+        internal void Arm() => _armed = true;
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            if (_armed && !_mutated && read > 0 && Position == Length) {
+                byte[] content = GetBuffer();
+                int index = checked((int)Length - 2);
+                content[index] = content[index] == (byte)'x' ? (byte)'y' : (byte)'x';
+                _mutated = true;
+            }
+            return read;
+        }
     }
 }
