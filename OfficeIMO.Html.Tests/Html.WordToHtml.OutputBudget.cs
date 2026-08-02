@@ -266,6 +266,28 @@ namespace OfficeIMO.Tests {
             Assert.True(exception.Actual > exception.Limit);
         }
 
+        [Theory]
+        [InlineData("png")]
+        [InlineData("svg")]
+        public void Test_WordToHtml_OutputBudgetReservesExternalImageSource(string extension) {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph().AddImage(
+                new Uri("https://example.test/" + new string('a', 8192) + "/image." + extension),
+                10,
+                10);
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    EmbedImagesAsBase64 = false,
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = 6_000
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("Image:src", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
         [Fact]
         public void Test_WordToHtml_OutputBudgetReservesRepeatedCommentReferenceMetadata() {
             using WordDocument document = WordDocument.Create();

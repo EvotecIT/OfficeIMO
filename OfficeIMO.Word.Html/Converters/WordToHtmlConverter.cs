@@ -249,14 +249,14 @@ namespace OfficeIMO.Word.Html {
                                     target.Add(svgElement);
                                 }
                             } else {
-                                var imgSvg = CreateOutputElement(htmlDoc, "img") as IHtmlImageElement;
+                                var imgSvg = (IHtmlImageElement)CreateOutputElement(htmlDoc, "img");
                                 string srcSvg;
                                 if (imgObj.IsExternal && imgObj.ExternalUri != null) {
                                     srcSvg = imgObj.ExternalUri.ToString();
                                 } else {
                                     srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                                 }
-                                imgSvg!.Source = srcSvg;
+                                SetOutputAttribute(htmlDoc, imgSvg, "src", srcSvg, "Image:src");
                                 if (imgObj.Width.HasValue) imgSvg.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
                                 if (imgObj.Height.HasValue) imgSvg.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
                                 if (!string.IsNullOrEmpty(imgObj.Description)) {
@@ -268,7 +268,7 @@ namespace OfficeIMO.Word.Html {
                                 target.Add(imgSvg);
                             }
                         } else {
-                            var img = CreateOutputElement(htmlDoc, "img") as IHtmlImageElement;
+                            var img = (IHtmlImageElement)CreateOutputElement(htmlDoc, "img");
                             string src;
                             if (imgObj.IsExternal && imgObj.ExternalUri != null) {
                                 src = imgObj.ExternalUri.ToString();
@@ -279,7 +279,11 @@ namespace OfficeIMO.Word.Html {
                                 var bytes = ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image", mime);
                                 src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
                             }
-                            img!.Source = src;
+                            if (imgObj.IsExternal || !options.EmbedImagesAsBase64) {
+                                SetOutputAttribute(htmlDoc, img, "src", src, "Image:src");
+                            } else {
+                                img.Source = src;
+                            }
                             if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
                             if (imgObj.Height.HasValue) img.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
                             if (!string.IsNullOrEmpty(imgObj.Description)) {
