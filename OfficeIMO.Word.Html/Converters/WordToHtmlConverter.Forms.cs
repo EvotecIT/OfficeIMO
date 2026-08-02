@@ -1,9 +1,11 @@
 using AngleSharp.Dom;
+using DocumentFormat.OpenXml;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        IElement CreateCheckBoxInput(IDocument htmlDoc, WordCheckBox checkBox) {
+        IElement CreateCheckBoxInput(IDocument htmlDoc, WordCheckBox checkBox, WordToHtmlOptions options) {
+            ReleaseReplacedContentControlContent(htmlDoc, checkBox._sdtRun, options);
             var input = CreateOutputElement(htmlDoc, "input");
             SetOutputAttribute(input, "type", "checkbox", "CheckBox:type");
             SetOutputAttribute(input, "disabled", string.Empty, "CheckBox:disabled");
@@ -17,7 +19,8 @@ namespace OfficeIMO.Word.Html {
             return input;
         }
 
-        IElement CreateDropDownListSelect(IDocument htmlDoc, WordDropDownList dropDownList) {
+        IElement CreateDropDownListSelect(IDocument htmlDoc, WordDropDownList dropDownList, WordToHtmlOptions options) {
+            ReleaseReplacedContentControlContent(htmlDoc, dropDownList._sdtRun, options);
             var select = CreateOutputElement(htmlDoc, "select");
             SetOutputAttribute(select, "disabled", string.Empty, "DropDown:disabled");
             ApplyContentControlMetadata(select, dropDownList.Alias, dropDownList.Tag);
@@ -38,7 +41,8 @@ namespace OfficeIMO.Word.Html {
             return select;
         }
 
-        IEnumerable<INode> CreateComboBoxNodes(IDocument htmlDoc, WordComboBox comboBox, int formListIndex) {
+        IEnumerable<INode> CreateComboBoxNodes(IDocument htmlDoc, WordComboBox comboBox, int formListIndex, WordToHtmlOptions options) {
+            ReleaseReplacedContentControlContent(htmlDoc, comboBox._sdtRun, options);
             string listId = "word-combo-" + formListIndex.ToString(CultureInfo.InvariantCulture);
             IReadOnlyList<(string Value, string DisplayText)> items = comboBox.ExportItems;
             string? selectedValue = comboBox.SelectedValue;
@@ -78,7 +82,8 @@ namespace OfficeIMO.Word.Html {
             yield return dataList;
         }
 
-        IElement CreateDatePickerInput(IDocument htmlDoc, WordDatePicker datePicker) {
+        IElement CreateDatePickerInput(IDocument htmlDoc, WordDatePicker datePicker, WordToHtmlOptions options) {
+            ReleaseReplacedContentControlContent(htmlDoc, datePicker._sdtRun, options);
             var input = CreateOutputElement(htmlDoc, "input");
             SetOutputAttribute(input, "type", "date", "DatePicker:type");
             SetOutputAttribute(input, "disabled", string.Empty, "DatePicker:disabled");
@@ -89,11 +94,12 @@ namespace OfficeIMO.Word.Html {
             return input;
         }
 
-        IElement CreateStructuredDocumentTagInput(IDocument htmlDoc, WordStructuredDocumentTag structuredDocumentTag) {
+        IElement CreateStructuredDocumentTagInput(IDocument htmlDoc, WordStructuredDocumentTag structuredDocumentTag, WordToHtmlOptions options) {
+            ReleaseReplacedContentControlContent(htmlDoc, structuredDocumentTag.SdtElement, options);
             if (HasLineBreaks(structuredDocumentTag.Text)) {
                 var textArea = CreateOutputElement(htmlDoc, "textarea");
                 SetOutputAttribute(textArea, "disabled", string.Empty, "ContentControl:disabled");
-                textArea.TextContent = structuredDocumentTag.Text ?? string.Empty;
+                SetOutputText(htmlDoc, textArea, structuredDocumentTag.Text ?? string.Empty, "ContentControl:text");
                 ApplyContentControlMetadata(textArea, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
                 return textArea;
             }
@@ -106,6 +112,14 @@ namespace OfficeIMO.Word.Html {
             }
             ApplyContentControlMetadata(input, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
             return input;
+        }
+
+        static void ReleaseReplacedContentControlContent(
+            IDocument htmlDoc,
+            OpenXmlElement? sourceControl,
+            WordToHtmlOptions options) {
+            if (sourceControl == null) return;
+            ReleaseOutputCharacters(htmlDoc, MeasureOutputContentCharacters(sourceControl, options));
         }
 
         static bool HasLineBreaks(string? text) =>

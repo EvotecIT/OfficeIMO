@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using AngleSharp.Html;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -22,20 +23,27 @@ namespace OfficeIMO.Word.Html {
             long remaining = GetRemainingOutputCharacters(htmlDocument);
             string mathMl;
             try {
-                mathMl = equation.ToMathMl(remaining);
-            } catch (WordMathMlOutputLimitExceededException exception) {
+                mathMl = equation.ToMathMl(GetMathMlParserInputLimit(remaining));
+            } catch (WordMathMlOutputLimitExceededException) {
                 ThrowExportLimitExceeded(
                     options,
                     "WordHtmlOutputLimitExceeded",
                     "Generated MathML exceeds the configured HTML output-character limit before DOM construction.",
                     "EquationMathMl",
-                    options.MaxOutputCharacters - remaining + exception.Actual,
+                    SaturatingAdd(options.MaxOutputCharacters, 1),
                     options.MaxOutputCharacters);
                 return null;
             }
+            IElement? mathNode = new HtmlParser()
+                .ParseFragment(mathMl, context)
+                .OfType<IElement>()
+                .FirstOrDefault();
+            if (mathNode == null) return null;
+            using var countingWriter = new CountingHtmlWriter();
+            mathNode.ToHtml(countingWriter, HtmlMarkupFormatter.Instance);
             ReserveOutputCharacters(
                 htmlDocument,
-                mathMl.Length,
+                countingWriter.CharacterCount,
                 "Generated MathML exceeds the configured HTML output-character limit before DOM construction.",
                 "EquationMathMl");
             ReserveOutputCharacters(
@@ -43,14 +51,15 @@ namespace OfficeIMO.Word.Html {
                 " aria-label=\"\"".Length + GetHtmlEncodedLength(label, attributeValue: true),
                 "Generated equation accessibility metadata exceeds the configured HTML output-character limit before DOM construction.",
                 "EquationAriaLabel");
-            IElement? mathNode = new HtmlParser()
-                .ParseFragment(mathMl, context)
-                .OfType<IElement>()
-                .FirstOrDefault();
-            // The complete serialized aria-label attribute was reserved before fragment parsing.
-            mathNode?.SetAttribute("aria-label", label);
+            // The complete serialized aria-label attribute is reserved before DOM assignment.
+            mathNode.SetAttribute("aria-label", label);
             return mathNode;
         }
+
+        private static long GetMathMlParserInputLimit(long remainingOutputCharacters) =>
+            remainingOutputCharacters > long.MaxValue / 6L
+                ? long.MaxValue
+                : remainingOutputCharacters * 6L;
 
         private INode CreateEquationAdjacentTextNode(
             IHtmlDocument htmlDocument,

@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html;
 using System.IO;
 using System.Text;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -105,6 +106,9 @@ namespace OfficeIMO.Word.Html {
             long characters = element is OpenXmlLeafTextElement textElement && ShouldCountOutputLeafText(element)
                 ? GetHtmlEncodedLength(textElement.Text, attributeValue: false)
                 : 0;
+            if (IsVisibleRunArtifact(element)) {
+                characters = SaturatingAdd(characters, 1);
+            }
             foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
                 if (!ShouldCountOutputAttribute(element, attribute, options)) continue;
                 characters = SaturatingAdd(
@@ -113,6 +117,9 @@ namespace OfficeIMO.Word.Html {
             }
             return characters;
         }
+
+        private static bool IsVisibleRunArtifact(OpenXmlElement element) =>
+            element is W.TabChar or W.CarriageReturn or W.Break or W.NoBreakHyphen or W.SoftHyphen;
 
         private static bool ShouldCountOutputLeafText(OpenXmlElement element) =>
             element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode &&
