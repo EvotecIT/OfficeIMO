@@ -889,6 +889,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesktopReferenceLaneTreatsSkippedVisibleChartAsExpectedContent() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(640, 360);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChartPoints(
+                OfficeChartKind.ColumnClustered,
+                new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }), 40, 40, 560, 280);
+            chart.SetLegendTextStyle(fontName: "Arial")
+                .SetCategoryAxisLabelTextStyle(fontName: "Georgia")
+                .SetValueAxisLabelTextStyle(fontName: "Arial");
+
+            OfficeImageExportResult rendered = slide.ExportImage(
+                OfficeImageExportFormat.Png);
+            Assert.Contains(rendered.Diagnostics, diagnostic =>
+                diagnostic.Code
+                    == PowerPointImageExportDiagnosticCodes.UnsupportedShape
+                && diagnostic.Message.Contains("chart",
+                    StringComparison.OrdinalIgnoreCase));
+            Assert.True(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
+
+            chart.LeftPoints = 700;
+            Assert.False(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
+        }
+
+        [Fact]
         public void DesktopReferenceLaneFailsClosedWhenMacroSecurityCannotBeSet() {
             Assert.False(PowerPointDesktopReferenceRenderer
                 .TryConfigureApplicationSecurity(new object(),

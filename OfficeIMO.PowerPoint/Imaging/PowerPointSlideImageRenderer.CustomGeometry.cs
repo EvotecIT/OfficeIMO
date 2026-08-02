@@ -9,6 +9,40 @@ namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
         private const double DrawingMlAngleUnitsPerDegree = 60000D;
 
+        internal static bool TryCreateCustomGeometryDrawing(
+            PowerPointShape shape, double width, double height,
+            out OfficeDrawing? drawing, out string? reason) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            drawing = null;
+            reason = null;
+            if (width <= 0D || height <= 0D) {
+                reason = "The custom-geometry frame has no renderable area.";
+                return false;
+            }
+            var candidate = new OfficeDrawing(width, height);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            A.ColorScheme? colorScheme = shape.OwnerSlide == null
+                ? null
+                : GetSlideColorScheme(shape.OwnerSlide);
+            if (!TryAddCustomGeometryShape(candidate, shape,
+                    left: 0D, top: 0D, width, height, diagnostics,
+                    PowerPointShapeBoundsMapping.Identity, colorScheme)) {
+                reason = "The PowerPoint shape has no custom geometry.";
+                return false;
+            }
+            OfficeImageExportDiagnostic? failure = diagnostics.FirstOrDefault(
+                diagnostic => diagnostic.Severity
+                        != OfficeImageExportDiagnosticSeverity.Info
+                    || diagnostic.LossKind != OfficeImageExportLossKind.None);
+            if (failure != null || candidate.Elements.Count == 0) {
+                reason = failure?.Message
+                    ?? "The custom geometry produced no visible Drawing paths.";
+                return false;
+            }
+            drawing = candidate;
+            return true;
+        }
+
         private static bool TryAddCustomGeometryShape(
             OfficeDrawing drawing,
             PowerPointShape shape,

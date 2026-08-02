@@ -11,6 +11,7 @@ namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         private const long CustomGeometryCoordinateSize = 100000L;
         private const int MaximumCustomGeometryCommands = 20000;
+        private const int MaximumEvenOddIntersectionSegments = 2048;
 
         /// <summary>
         /// Adds an editable PowerPoint custom-geometry shape from a shared drawing path or polygon.
@@ -91,6 +92,9 @@ namespace OfficeIMO.PowerPoint {
             }
             if (points.Count < 3 || points.Select(point => (point.X, point.Y))
                     .Distinct().Count() != points.Count) {
+                return false;
+            }
+            if (points.Count > MaximumEvenOddIntersectionSegments) {
                 return false;
             }
 

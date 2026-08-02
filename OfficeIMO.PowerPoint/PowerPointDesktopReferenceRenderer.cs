@@ -219,10 +219,34 @@ namespace OfficeIMO.PowerPoint {
             }
             OfficeImageExportResult rendered = slide.ExportImage(
                 OfficeImageExportFormat.Png);
+            if (rendered.Diagnostics.Any(diagnostic =>
+                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape
+                    && diagnostic.LossKind == OfficeImageExportLossKind.Omission
+                    && diagnostic.Message.IndexOf("PowerPoint chart",
+                        StringComparison.OrdinalIgnoreCase) >= 0)
+                && slide.Charts.Any(chart => IsPotentiallyVisibleOnSlide(
+                    slide, chart))) {
+                return true;
+            }
             return OfficePngReader.TryDecode(rendered.Bytes,
                        out OfficeRasterImage? image)
                    && image != null
                    && HasMeaningfulNonWhiteContent(image);
+        }
+
+        private static bool IsPotentiallyVisibleOnSlide(PowerPointSlide slide,
+            PowerPointShape shape) {
+            if (shape.Hidden || shape.Width <= 0L || shape.Height <= 0L) {
+                return false;
+            }
+            P.SlideSize? size = slide.SlidePart.GetParentParts()
+                .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>()
+                .FirstOrDefault()?.Presentation?.SlideSize;
+            long width = size?.Cx?.Value ?? 0L;
+            long height = size?.Cy?.Value ?? 0L;
+            if (width <= 0L || height <= 0L) return true;
+            return shape.Left < width && shape.Top < height
+                && shape.Right > 0L && shape.Bottom > 0L;
         }
 
         private static bool HasMeaningfulNonWhiteContent(OfficeRasterImage image) {

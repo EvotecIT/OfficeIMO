@@ -21,6 +21,133 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PowerPointSaveAsPdfTests {
     [Fact]
+    public void SaveAsPdf_RendersSmartArtThroughSharedDiagramPrimitives() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        presentation.SlideSize.SetSizePoints(640, 360);
+        presentation.AddSlide().AddSmartArt(
+            PowerPointSmartArtType.BasicProcess,
+            new[] { "Discover", "Design", "Build", "Validate" },
+            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] pdf = presentation.ToPdf(options);
+        string text = PdfCore.PdfReadDocument.Open(pdf).Pages[0].ExtractText();
+
+        Assert.Contains("Discover", text, StringComparison.Ordinal);
+        Assert.Contains("Design", text, StringComparison.Ordinal);
+        Assert.Contains("Build", text, StringComparison.Ordinal);
+        Assert.Contains("Validate", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(options.Warnings,
+            warning => warning.Code == "unsupported-smartart");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PreservesHorizontalAndVerticalSmartArtFlips() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        presentation.SlideSize.SetSizePoints(640, 360);
+        string[] nodes = { "MMMMMMMMMMMM", "I", "Validate" };
+        PowerPointSmartArt normalSmartArt = presentation.AddSlide().AddSmartArt(
+            PowerPointSmartArtType.BasicProcess, nodes,
+            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+        PowerPointSmartArt flipped = presentation.AddSlide().AddSmartArt(
+            PowerPointSmartArtType.BasicProcess, nodes,
+            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+        normalSmartArt.Rotation = 23D;
+        flipped.Rotation = 23D;
+        flipped.HorizontalFlip = true;
+        flipped.VerticalFlip = true;
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] pdf = presentation.ToPdf(options);
+        IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
+            PdfCore.PdfDocument.Open(pdf).Read.RenderPages(options:
+                new PdfCore.PdfPageRenderOptions {
+                    Dpi = 72D,
+                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    MaxPages = 2,
+                    ContinueOnError = false
+                });
+
+        Assert.Equal(2, rendered.Count);
+        Assert.True(OfficePngReader.TryDecode(rendered[0].Bytes!,
+            out OfficeRasterImage? normal));
+        Assert.True(OfficePngReader.TryDecode(rendered[1].Bytes!,
+            out OfficeRasterImage? transformed));
+        Assert.NotNull(normal);
+        Assert.NotNull(transformed);
+        int considered = 0;
+        int matched = 0;
+        for (int y = 40; y < 320; y++) {
+            for (int x = 40; x < 600; x++) {
+                OfficeColor expected = normal!.GetPixel(639 - x, 359 - y);
+                OfficeColor actual = transformed!.GetPixel(x, y);
+                if (expected.R > 248 && expected.G > 248 && expected.B > 248
+                    && actual.R > 248 && actual.G > 248 && actual.B > 248) {
+                    continue;
+                }
+                considered++;
+                if (Math.Abs(expected.R - actual.R) <= 32
+                    && Math.Abs(expected.G - actual.G) <= 32
+                    && Math.Abs(expected.B - actual.B) <= 32) {
+                    matched++;
+                }
+            }
+        }
+        Assert.True(considered > 1000, $"Compared pixels: {considered}");
+        Assert.True(matched >= considered * 0.9,
+            $"Matched {matched} of {considered} transformed pixels.");
+        Assert.DoesNotContain(options.Warnings,
+            warning => warning.Code == "unsupported-smartart");
+    }
+
+    [Fact]
+    public void SaveAsPdf_RendersCustomGeometryThroughSharedDrawingProjection() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        presentation.SlideSize.SetSizePoints(320, 180);
+        OfficeShape geometry = OfficeShape.Polygon(
+            new OfficePoint(50, 0), new OfficePoint(100, 38),
+            new OfficePoint(82, 100), new OfficePoint(18, 100),
+            new OfficePoint(0, 38));
+        geometry.FillColor = OfficeColor.FromRgb(168, 85, 247);
+        geometry.StrokeColor = OfficeColor.FromRgb(88, 28, 135);
+        presentation.AddSlide().AddCustomGeometryPoints(geometry,
+            60, 30, 200, 120, "PDF polygon");
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] pdf = presentation.ToPdf(options);
+        IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
+            PdfCore.PdfDocument.Open(pdf).Read.RenderPages(options:
+                new PdfCore.PdfPageRenderOptions {
+                    Dpi = 72D,
+                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    MaxPages = 1,
+                    ContinueOnError = false
+                });
+
+        PdfCore.PdfPageRenderResult page = Assert.Single(rendered);
+        Assert.True(page.Succeeded);
+        Assert.True(OfficePngReader.TryDecode(page.Bytes!,
+            out OfficeRasterImage? raster));
+        Assert.NotNull(raster);
+        int painted = 0;
+        for (int y = 30; y < 150; y++) {
+            for (int x = 60; x < 260; x++) {
+                OfficeColor pixel = raster!.GetPixel(x, y);
+                if (pixel.A > 0 && pixel.R < 245) painted++;
+            }
+        }
+        Assert.True(painted > 200, $"Painted pixels: {painted}");
+        Assert.DoesNotContain(options.Warnings,
+            warning => warning.Code == "unsupported-custom-geometry");
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointShapingOnlyProfileAllowsPresentationFontDiscoveryUntilCallerConfiguresFonts() {
         var options = new PowerPointPdfSaveOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));

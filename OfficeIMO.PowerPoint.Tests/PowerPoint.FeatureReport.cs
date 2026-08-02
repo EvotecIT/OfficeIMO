@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -68,6 +70,109 @@ namespace OfficeIMO.Tests {
                 report.EnsureNoAdvancedFeatures());
             Assert.False(presentation.AnalyzeLegacyPptWrite().CanWrite);
         }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesCustomShowWithDanglingSound() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Valid", new[] { slide });
+            Shape shape = Assert.IsType<Shape>(
+                slide.AddRectangle(0, 0, 914400, 914400).Element);
+            var hyperlink = new A.HyperlinkOnClick {
+                Action = "ppaction://customshow?id=" + show.Id
+            };
+            hyperlink.Append(new A.HyperlinkSound {
+                Embed = "rIdMissingAudio",
+                Name = "Missing audio"
+            });
+            shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(hyperlink);
+
+            PowerPointFeatureFinding customShows = Assert.Single(
+                presentation.InspectFeatures().FindFeatures("Custom shows"));
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                customShows.SupportLevel);
+            Assert.Contains(customShows.Details, detail =>
+                detail.Contains("audio relationship",
+                    StringComparison.OrdinalIgnoreCase));
+            Assert.False(presentation.AnalyzeLegacyPptWrite().CanWrite);
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_CustomShowSoundUsesCumulativeInteractionBudget() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Valid", new[] { slide });
+            byte[] firstWave = CreateFeatureReportWavePayload(0x81);
+            byte[] secondWave = CreateFeatureReportWavePayload(0x91);
+            MediaDataPart firstMedia = presentation.OpenXmlDocument
+                .CreateMediaDataPart("audio/wav", ".wav");
+            using (var input = new MemoryStream(firstWave, writable: false)) {
+                firstMedia.FeedData(input);
+            }
+            MediaDataPart secondMedia = presentation.OpenXmlDocument
+                .CreateMediaDataPart("audio/wav", ".wav");
+            using (var input = new MemoryStream(secondWave, writable: false)) {
+                secondMedia.FeedData(input);
+            }
+            AudioReferenceRelationship firstRelationship = slide.SlidePart
+                .AddAudioReferenceRelationship(firstMedia);
+            AudioReferenceRelationship secondRelationship = slide.SlidePart
+                .AddAudioReferenceRelationship(secondMedia);
+
+            Shape firstShape = Assert.IsType<Shape>(slide.AddRectangle(
+                0, 0, 914400, 914400).Element);
+            firstShape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(new A.HyperlinkOnClick(
+                    new A.HyperlinkSound {
+                        Embed = firstRelationship.Id,
+                        Name = "Earlier sound"
+                    }) { Action = "ppaction://hlinkshowjump?jump=nextslide" });
+            Shape customShowShape = Assert.IsType<Shape>(slide.AddRectangle(
+                914400, 0, 914400, 914400).Element);
+            customShowShape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(new A.HyperlinkOnClick(
+                    new A.HyperlinkSound {
+                        Embed = secondRelationship.Id,
+                        Name = "Custom-show sound"
+                    }) { Action = "ppaction://customshow?id=" + show.Id });
+
+            var catalog = new LegacyPptWriter.LegacyPptWriterSoundCatalog();
+            typeof(LegacyPptWriter.LegacyPptWriterSoundCatalog)
+                .GetField("_totalSoundBytes",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(catalog, LegacyPptWriter.MaximumTotalSoundBytes
+                    - firstWave.Length);
+
+            IReadOnlyList<string> details = presentation
+                .DescribeUnsafeCustomShowStructure(catalog);
+
+            Assert.Contains(details, detail => detail.Contains(
+                "aggregate bytes", StringComparison.OrdinalIgnoreCase));
+            Assert.Single(catalog.Sounds);
+            Assert.Equal("Earlier sound", catalog.Sounds[0].Name);
+        }
+
+        private static byte[] CreateFeatureReportWavePayload(byte marker) =>
+            new byte[] {
+                (byte)'R', (byte)'I', (byte)'F', (byte)'F',
+                40, 0, 0, 0,
+                (byte)'W', (byte)'A', (byte)'V', (byte)'E',
+                (byte)'f', (byte)'m', (byte)'t', (byte)' ',
+                16, 0, 0, 0,
+                1, 0, 1, 0,
+                0x40, 0x1F, 0, 0,
+                0x40, 0x1F, 0, 0,
+                1, 0, 8, 0,
+                (byte)'d', (byte)'a', (byte)'t', (byte)'a',
+                4, 0, 0, 0,
+                marker, 0x90, 0x70, 0x80
+            };
 
         [Fact]
         public void PowerPointFeatureReport_DetectsEditableAndPartiallyEditableFeatures() {

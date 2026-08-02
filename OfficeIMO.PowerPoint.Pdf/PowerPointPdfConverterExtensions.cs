@@ -377,6 +377,14 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
+        if (shape is PptCore.PowerPointSmartArt smartArt) {
+            if (options.IncludeSmartArt) {
+                RenderSmartArt(canvas, smartArt, x, y, width, height,
+                    slideNumber, options);
+            }
+            return;
+        }
+
         if (shape is PptCore.PowerPointAutoShape autoShape) {
             if (options.IncludeAutoShapes) {
                 RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
@@ -946,6 +954,28 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RenderAutoShape(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointAutoShape autoShape, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
+        if (!autoShape.ShapeType.HasValue) {
+            if (PptCore.PowerPointSlideImageRenderer
+                    .TryCreateCustomGeometryDrawing(autoShape, width, height,
+                        out OfficeDrawing? drawing, out string? reason)
+                && drawing != null) {
+                canvas.Drawing(drawing, x, y, width, height,
+                    style: new PdfCore.PdfDrawingStyle {
+                        AlternativeText = string.IsNullOrWhiteSpace(autoShape.Name)
+                            ? "PowerPoint custom geometry"
+                            : autoShape.Name
+                    });
+            } else {
+                AddLayoutWarning(options, slideNumber,
+                    "unsupported-custom-geometry",
+                    "Skipped a PowerPoint custom-geometry shape: " + reason,
+                    PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
+                    "PowerPointCustomGeometry",
+                    "The custom geometry could not be projected through the shared Drawing renderer.",
+                    x, y, width, height);
+            }
+            return;
+        }
         OfficeShape? shape = CreateOfficeShape(autoShape.ShapeType, autoShape, width, height);
         if (shape == null) {
             AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + GetShapePresetName(autoShape.ShapeType) + "'.");

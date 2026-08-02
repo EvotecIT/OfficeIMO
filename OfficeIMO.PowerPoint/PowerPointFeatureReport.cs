@@ -568,7 +568,15 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private IReadOnlyList<string> DescribeUnsafeCustomShowStructure() {
+        private IReadOnlyList<string> DescribeUnsafeCustomShowStructure() =>
+            DescribeUnsafeCustomShowStructure(new LegacyPptWriter
+                .LegacyPptWriterSoundCatalog());
+
+        internal IReadOnlyList<string> DescribeUnsafeCustomShowStructure(
+            LegacyPptWriter.LegacyPptWriterSoundCatalog soundCatalog) {
+            if (soundCatalog == null) {
+                throw new ArgumentNullException(nameof(soundCatalog));
+            }
             CustomShowList? list = PresentationRoot.CustomShowList;
             if (list == null) return Array.Empty<string>();
 
@@ -647,19 +655,26 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            foreach (A.HyperlinkType hyperlink in _slides
-                         .SelectMany(slide => slide.SlidePart.Slide?
+            foreach (PowerPointSlide slide in _slides) {
+                foreach (A.HyperlinkType hyperlink in slide.SlidePart.Slide?
                              .Descendants<A.HyperlinkType>()
-                             ?? Enumerable.Empty<A.HyperlinkType>())) {
-                string? action = hyperlink.Action?.Value;
-                if (!PowerPointCustomShowAction.IsCustomShowAction(action)) continue;
-                if (!PowerPointCustomShowAction.TryValidateSupportedHyperlink(
-                        hyperlink, out uint targetId, out _,
-                        out string? reason)) {
-                    details.Add("A slide contains an unsupported custom-show hyperlink: "
-                        + reason);
-                } else if (!ids.Contains(targetId)) {
-                    details.Add($"A slide custom-show action targets missing identifier {targetId}.");
+                         ?? Enumerable.Empty<A.HyperlinkType>()) {
+                    string? action = hyperlink.Action?.Value;
+                    if (!PowerPointCustomShowAction.IsCustomShowAction(action)) {
+                        LegacyPptWriter.TryRegisterHyperlinkSound(
+                            slide.SlidePart, hyperlink, soundCatalog,
+                            out _, out _);
+                        continue;
+                    }
+                    if (!LegacyPptWriter.TryValidateCustomShowHyperlink(
+                            slide.SlidePart, hyperlink, soundCatalog,
+                            out uint targetId, out _, out _,
+                            out string? reason)) {
+                        details.Add("A slide contains an unsupported custom-show hyperlink: "
+                            + reason);
+                    } else if (!ids.Contains(targetId)) {
+                        details.Add($"A slide custom-show action targets missing identifier {targetId}.");
+                    }
                 }
             }
 

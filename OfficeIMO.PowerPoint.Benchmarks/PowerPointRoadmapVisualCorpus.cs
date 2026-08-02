@@ -8,6 +8,25 @@ using System.Xml.Linq;
 namespace OfficeIMO.PowerPoint.Benchmarks;
 
 internal static class PowerPointRoadmapVisualCorpus {
+    private readonly struct VisualSubjectRegion {
+        internal VisualSubjectRegion(string name, double left, double top,
+            double width, double height, int minimumPaintedPixels) {
+            Name = name;
+            Left = left;
+            Top = top;
+            Width = width;
+            Height = height;
+            MinimumPaintedPixels = minimumPaintedPixels;
+        }
+
+        internal string Name { get; }
+        internal double Left { get; }
+        internal double Top { get; }
+        internal double Width { get; }
+        internal double Height { get; }
+        internal int MinimumPaintedPixels { get; }
+    }
+
     private static readonly (PowerPointSmartArtType Type, string Title)[] SmartArtScenarios = {
         (PowerPointSmartArtType.BasicProcess, "Process"),
         (PowerPointSmartArtType.BasicHierarchy, "Hierarchy"),
@@ -73,6 +92,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             throw new InvalidOperationException(
                 "Visual corpus review metadata or custom-show round trip failed.");
         }
+        ValidateScenarioSemantics(reopened);
 
         IReadOnlyList<OfficeImageExportResult> images = reopened.ExportImages(
             OfficeImageExportFormat.Png);
@@ -138,6 +158,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             throw new InvalidOperationException(
                 $"Visual corpus PNG slide {slideNumber} lost visible content.");
         }
+        ValidateSubjectRegions(raster, slideNumber, "PNG");
     }
 
     private static void ValidateSvg(byte[] svg, int slideNumber) {
@@ -180,6 +201,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             throw new InvalidOperationException(
                 $"Visual corpus SVG slide {slideNumber} lost visible painted content.");
         }
+        ValidateSubjectRegions(raster, slideNumber, "SVG");
     }
 
     private static void ValidatePdf(byte[] pdf, int expectedPageCount) {
@@ -239,7 +261,93 @@ internal static class PowerPointRoadmapVisualCorpus {
                 throw new InvalidOperationException(
                     $"Visual corpus PDF page {index + 1} lost visible content.");
             }
+            ValidateSubjectRegions(raster, index + 1, "PDF");
         }
+    }
+
+    private static void ValidateScenarioSemantics(
+        PowerPointPresentation presentation) {
+        int expectedSlideCount = SmartArtScenarios.Length + 2;
+        if (presentation.Slides.Count != expectedSlideCount) {
+            throw new InvalidOperationException(
+                $"Visual corpus contains {presentation.Slides.Count} slides; expected {expectedSlideCount}.");
+        }
+        string[] expectedNodes = { "Discover", "Design", "Build", "Validate" };
+        for (int index = 0; index < SmartArtScenarios.Length; index++) {
+            PowerPointSmartArt smartArt = presentation.Slides[index]
+                .SmartArts.Single();
+            if (!smartArt.GetNodeTexts().SequenceEqual(expectedNodes,
+                    StringComparer.Ordinal)) {
+                throw new InvalidOperationException(
+                    $"Visual corpus SmartArt slide {index + 1} lost its semantic nodes.");
+            }
+        }
+
+        PowerPointSlide geometrySlide = presentation
+            .Slides[SmartArtScenarios.Length];
+        string[] geometryNames = geometrySlide.Shapes
+            .Select(shape => shape.Name ?? string.Empty)
+            .Where(name => name is "Curved freeform" or "Polygon freeform")
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+        if (!geometryNames.SequenceEqual(
+                new[] { "Curved freeform", "Polygon freeform" },
+                StringComparer.Ordinal)) {
+            throw new InvalidOperationException(
+                "Visual corpus custom-geometry slide lost an authored subject.");
+        }
+
+        PowerPointSlide chartSlide = presentation.Slides[expectedSlideCount - 1];
+        PowerPointTable table = chartSlide.Tables.Single();
+        if (!string.Equals(table.GetCell(1, 0).Text, "Quality",
+                StringComparison.Ordinal)
+            || !string.Equals(table.GetCell(3, 2).Text, "20 ms",
+                StringComparison.Ordinal)
+            || !chartSlide.Charts.Single().TryGetOfficeSnapshot(
+                out OfficeChartSnapshot chart)
+            || chart.Data.Series.Count != 2
+            || chart.Data.Categories.Count != 4) {
+            throw new InvalidOperationException(
+                "Visual corpus chart-and-table slide lost its authored data.");
+        }
+    }
+
+    private static void ValidateSubjectRegions(OfficeRasterImage raster,
+        int slideNumber, string artifactKind) {
+        foreach (VisualSubjectRegion region in GetSubjectRegions(slideNumber)) {
+            OfficeColor background = OfficeColor.FromRgb(248, 250, 252);
+            int visible = PowerPointBenchmarkVisualValidator
+                .CountPixelsDifferentFrom(raster, background,
+                    region.Left, region.Top, region.Width, region.Height);
+            if (visible < region.MinimumPaintedPixels) {
+                throw new InvalidOperationException(
+                    $"Visual corpus {artifactKind} slide {slideNumber} lost the {region.Name} subject region ({visible} painted pixels; expected at least {region.MinimumPaintedPixels}).");
+            }
+        }
+    }
+
+    private static IReadOnlyList<VisualSubjectRegion> GetSubjectRegions(
+        int slideNumber) {
+        if (slideNumber >= 1 && slideNumber <= SmartArtScenarios.Length) {
+            return new[] {
+                new VisualSubjectRegion("SmartArt", 60, 100, 840, 360, 200)
+            };
+        }
+        if (slideNumber == SmartArtScenarios.Length + 1) {
+            return new[] {
+                new VisualSubjectRegion("curved custom geometry", 90, 145,
+                    300, 250, 200),
+                new VisualSubjectRegion("polygon custom geometry", 545, 145,
+                    300, 250, 200)
+            };
+        }
+        if (slideNumber == SmartArtScenarios.Length + 2) {
+            return new[] {
+                new VisualSubjectRegion("table", 45, 125, 330, 290, 200),
+                new VisualSubjectRegion("chart", 420, 110, 490, 340, 200)
+            };
+        }
+        throw new ArgumentOutOfRangeException(nameof(slideNumber));
     }
 
     private static PowerPointSlide AddSmartArtSlide(

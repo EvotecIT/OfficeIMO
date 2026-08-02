@@ -149,6 +149,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_BoundsEvenOddIntersectionValidationBeforeMutation() {
+            OfficePoint[] points = Enumerable.Range(0, 2049)
+                .Select(index => {
+                    double angle = index * Math.PI * 2D / 2049D;
+                    return new OfficePoint(Math.Cos(angle) * 100D,
+                        Math.Sin(angle) * 100D);
+                })
+                .ToArray();
+            OfficeShape geometry = OfficeShape.Polygon(points);
+            geometry.FillRule = OfficeFillRule.EvenOdd;
+            geometry.FillColor = OfficeColor.FromRgb(14, 165, 233);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+
+            NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
+                slide.AddCustomGeometryPoints(geometry, 10, 10, 100, 100));
+            Assert.Contains("even-odd", error.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(slide.Shapes);
+        }
+
+        [Fact]
         public void PowerPointSlide_ProjectsCustomGeometryWithNonZeroFillRule() {
             OfficeShape geometry = OfficeShape.Path(
                 OfficePathCommand.MoveTo(0, 0),
