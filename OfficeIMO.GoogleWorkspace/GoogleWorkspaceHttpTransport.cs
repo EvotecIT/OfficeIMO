@@ -14,6 +14,31 @@ namespace OfficeIMO.GoogleWorkspace {
     /// </summary>
     public sealed class GoogleWorkspaceHttpTransport : IDisposable {
         private const long MaximumErrorResponseBytes = 64L * 1024;
+        private static readonly HashSet<string> OperationDefiningQueryParameters = new HashSet<string>(
+            new[] {
+                "addParents",
+                "enforceSingleParent",
+                "keepRevisionForever",
+                "moveToNewOwnersRoot",
+                "removeParents",
+                "sendNotificationEmail",
+                "supportsAllDrives",
+                "transferOwnership",
+                "uploadType",
+                "useDomainAdminAccess",
+            }, StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> SensitiveQueryParameters = new HashSet<string>(
+            new[] {
+                "access_token",
+                "emailMessage",
+                "key",
+                "oauth_token",
+                "pageToken",
+                "quotaUser",
+                "startPageToken",
+                "token",
+                "upload_id",
+            }, StringComparer.OrdinalIgnoreCase);
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions {
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
             PropertyNamingPolicy = null,
@@ -849,10 +874,38 @@ namespace OfficeIMO.GoogleWorkspace {
         }
 
         private static string SanitizeDiagnosticTarget(string uri) {
-            int query = uri.IndexOf('?');
             int fragment = uri.IndexOf('#');
-            int separator = query < 0 ? fragment : fragment < 0 ? query : Math.Min(query, fragment);
-            return separator < 0 ? uri : uri.Substring(0, separator);
+            string withoutFragment = fragment < 0 ? uri : uri.Substring(0, fragment);
+            int query = withoutFragment.IndexOf('?');
+            if (query < 0) {
+                return withoutFragment;
+            }
+
+            string target = withoutFragment.Substring(0, query);
+            string queryText = withoutFragment.Substring(query + 1);
+            var visibleParameters = new List<string>();
+            foreach (string segment in queryText.Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries)) {
+                int equals = segment.IndexOf('=');
+                string rawName = equals < 0 ? segment : segment.Substring(0, equals);
+                string name;
+                try {
+                    name = Uri.UnescapeDataString(rawName.Replace("+", " "));
+                } catch (UriFormatException) {
+                    continue;
+                }
+
+                if (SensitiveQueryParameters.Contains(name)) {
+                    visibleParameters.Add(Uri.EscapeDataString(name) + "=%3Credacted%3E");
+                } else if (OperationDefiningQueryParameters.Contains(name)) {
+                    visibleParameters.Add(equals < 0
+                        ? Uri.EscapeDataString(name)
+                        : Uri.EscapeDataString(name) + "=" + segment.Substring(equals + 1));
+                }
+            }
+
+            return visibleParameters.Count == 0
+                ? target
+                : target + "?" + string.Join("&", visibleParameters);
         }
 
         private static string AppendQueryParameter(string uri, string name, string? value) {

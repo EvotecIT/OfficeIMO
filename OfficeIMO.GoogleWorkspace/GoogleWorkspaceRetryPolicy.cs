@@ -116,7 +116,7 @@ namespace OfficeIMO.GoogleWorkspace {
                 cancellationToken,
                 (response, _) => Task.FromResult(response),
                 disposeFinalResponse: false,
-                wrapNonIdempotentNoResponse: false,
+                wrapMutationNoResponse: false,
                 onRetry).ConfigureAwait(false);
         }
 
@@ -143,7 +143,7 @@ namespace OfficeIMO.GoogleWorkspace {
                 cancellationToken,
                 responseHandler,
                 disposeFinalResponse: true,
-                wrapNonIdempotentNoResponse: true,
+                wrapMutationNoResponse: true,
                 onRetry);
         }
 
@@ -158,7 +158,7 @@ namespace OfficeIMO.GoogleWorkspace {
             Func<HttpResponseMessage, CancellationToken, Task<TResult>>
                 responseHandler,
             bool disposeFinalResponse,
-            bool wrapNonIdempotentNoResponse,
+            bool wrapMutationNoResponse,
             Action<GoogleWorkspaceRetryEvent>? onRetry) {
             if (retryOptions == null) throw new ArgumentNullException(nameof(retryOptions));
             int retryBudget = retryOptions.MaxRetryCount;
@@ -185,11 +185,18 @@ namespace OfficeIMO.GoogleWorkspace {
                     } catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested && deadlineSource.IsCancellationRequested) {
                         var timeout = new TimeoutException(
                             "The configured Google Workspace retry elapsed-time budget was exhausted.", exception);
-                        if (wrapNonIdempotentNoResponse
-                            && requestSafety == GoogleWorkspaceRequestSafety.NonIdempotent) {
+                        if (wrapMutationNoResponse
+                            && requestSafety != GoogleWorkspaceRequestSafety.Safe) {
                             throw new GoogleWorkspaceNoResponseException(timeout);
                         }
                         throw timeout;
+                    } catch (Exception exception) when (wrapMutationNoResponse
+                        && requestSafety != GoogleWorkspaceRequestSafety.Safe
+                        && IsNoResponseFailure(exception)) {
+                        // A guarded mutation may already have committed. Even an idempotent retry cannot
+                        // prove the first attempt's audit outcome, and a desired-state response such as 404
+                        // can erase that uncertainty. Require reconciliation before any caller retry.
+                        throw new GoogleWorkspaceNoResponseException(exception);
                     } catch (HttpRequestException exception) when (!(exception is GoogleWorkspaceApiException)
                         && CanRetry(requestSafety) && attempt < retryBudget) {
                         var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
@@ -217,10 +224,6 @@ namespace OfficeIMO.GoogleWorkspace {
                             delayStrategy));
                         await DelayWithinDeadlineAsync(delay, deadlineSource.Token, cancellationToken).ConfigureAwait(false);
                         continue;
-                    } catch (Exception exception) when (wrapNonIdempotentNoResponse
-                        && requestSafety == GoogleWorkspaceRequestSafety.NonIdempotent
-                        && IsNoResponseFailure(exception)) {
-                        throw new GoogleWorkspaceNoResponseException(exception);
                     }
 
                     try {

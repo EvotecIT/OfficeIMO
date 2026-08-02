@@ -38,6 +38,7 @@ public sealed partial class EmailStoreSession {
         }
         bool inspectionIncomplete = validation.WasTruncated
             || validation.StructuralValidationWasTruncated
+            || (validation.StructuralIntegrityRequested && !validation.StructuralIntegritySupported)
             || recovery.StoppedAtLimit;
         if (inspectionIncomplete) {
             recommendations.Add(new EmailStoreMaintenanceRecommendation(

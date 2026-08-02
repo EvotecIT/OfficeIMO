@@ -17,7 +17,9 @@ public sealed class EmailStoreMaintenancePlanTests {
 
             Assert.True(plan.PreservesSource);
             Assert.Equal(64, plan.SourceFingerprint.Length);
-            Assert.Equal(EmailStoreMaintenanceAction.None, Assert.Single(plan.Recommendations).Action);
+            Assert.False(plan.Validation.StructuralIntegritySupported);
+            Assert.Equal(EmailStoreMaintenanceAction.CompleteInspection,
+                Assert.Single(plan.Recommendations).Action);
             Assert.Equal(before, Hash(File.ReadAllBytes(message)));
             Assert.Throws<NotSupportedException>(() =>
                 ((IList<EmailStoreDiagnostic>)plan.Validation.Diagnostics).Clear());
@@ -57,6 +59,26 @@ public sealed class EmailStoreMaintenancePlanTests {
             EmailStoreMaintenancePlan plan = session.PlanMaintenance(maxItems: 1);
 
             Assert.True(plan.Validation.WasTruncated || plan.Recovery.StoppedAtLimit);
+            Assert.Contains(plan.Recommendations,
+                item => item.Action == EmailStoreMaintenanceAction.CompleteInspection);
+            Assert.DoesNotContain(plan.Recommendations,
+                item => item.Action == EmailStoreMaintenanceAction.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public void MaintenancePlanningNeverReportsNoneWhenRequestedStructuralVerificationIsUnsupported() {
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-maintenance-unsupported-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            File.WriteAllText(Path.Combine(root, "message.eml"),
+                "From: a@example.test\r\nTo: b@example.test\r\nSubject: unsupported\r\n\r\nbody", Encoding.ASCII);
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+
+            EmailStoreMaintenancePlan plan = session.PlanMaintenance();
+
+            Assert.True(plan.Validation.StructuralIntegrityRequested);
+            Assert.False(plan.Validation.StructuralIntegritySupported);
             Assert.Contains(plan.Recommendations,
                 item => item.Action == EmailStoreMaintenanceAction.CompleteInspection);
             Assert.DoesNotContain(plan.Recommendations,

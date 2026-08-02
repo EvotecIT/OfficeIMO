@@ -39,8 +39,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 .AcquireAccessTokenAsync(requestedScopes, cancellationToken).ConfigureAwait(false);
             if (token == null) throw new InvalidOperationException("The Google credential source returned no access token.");
             if (token.IsExpired(DateTimeOffset.UtcNow)) throw new InvalidOperationException("The Google credential source returned an expired access token.");
-            if (!new HashSet<string>(token.Scopes, StringComparer.Ordinal).SetEquals(requestedScopes)) {
-                throw new InvalidOperationException("The Google credential source did not bind the access token to the exact requested scopes.");
+            if (!new HashSet<string>(token.Scopes, StringComparer.Ordinal).IsSupersetOf(requestedScopes)) {
+                throw new InvalidOperationException("The Google credential source did not bind the access token to every requested scope.");
             }
             if (!string.IsNullOrWhiteSpace(Options.ExpectedAccount)) {
                 if (token.CredentialBinding == null) {
@@ -49,8 +49,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 if (!StringComparer.OrdinalIgnoreCase.Equals(token.CredentialBinding.Account, Options.ExpectedAccount)) {
                     throw new InvalidOperationException("The acquired Google credential account does not match the configured expected account.");
                 }
-                if (!new HashSet<string>(token.CredentialBinding.Scopes, StringComparer.Ordinal).SetEquals(requestedScopes)) {
-                    throw new InvalidOperationException("The provider-verified Google credential grants do not match the exact requested scopes.");
+                if (!new HashSet<string>(token.CredentialBinding.Scopes, StringComparer.Ordinal).IsSupersetOf(requestedScopes)) {
+                    throw new InvalidOperationException("The provider-verified Google credential grants do not contain every requested scope.");
                 }
             }
             _verifiedTokens[CreateBindingKey(token.AccessToken, requestedScopes)] = token;
@@ -66,11 +66,11 @@ namespace OfficeIMO.GoogleWorkspace {
             if (token.CredentialBinding == null) {
                 throw new InvalidOperationException("Google mutations require provider-verified account and scope evidence.");
             }
-            if (!new HashSet<string>(token.Scopes, StringComparer.Ordinal).SetEquals(requiredScopes)) {
-                throw new InvalidOperationException("The Google mutation scopes do not match the exact scopes bound to the acquired access token.");
+            if (!new HashSet<string>(token.Scopes, StringComparer.Ordinal).IsSupersetOf(requiredScopes)) {
+                throw new InvalidOperationException("The Google mutation scopes are not contained in the scopes bound to the acquired access token.");
             }
-            if (!new HashSet<string>(token.CredentialBinding.Scopes, StringComparer.Ordinal).SetEquals(requiredScopes)) {
-                throw new InvalidOperationException("The Google mutation scopes do not match the provider-verified credential grants.");
+            if (!new HashSet<string>(token.CredentialBinding.Scopes, StringComparer.Ordinal).IsSupersetOf(requiredScopes)) {
+                throw new InvalidOperationException("The Google mutation scopes are not contained in the provider-verified credential grants.");
             }
             return token.CredentialBinding.Account;
         }

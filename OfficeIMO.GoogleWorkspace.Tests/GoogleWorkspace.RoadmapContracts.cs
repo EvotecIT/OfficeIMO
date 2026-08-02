@@ -380,6 +380,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData("network")]
+        [InlineData("timeout")]
+        [InlineData("canceled")]
+        public async Task IdempotentMutationWithoutFinalResponseRequiresReconciliation(string failureKind) {
+            int requests = 0;
+            Exception transportFailure = failureKind switch {
+                "timeout" => new TimeoutException("request timed out before response headers"),
+                "canceled" => new TaskCanceledException("request canceled before response headers"),
+                _ => new HttpRequestException("connection closed before response headers"),
+            };
+            using var http = new HttpClient(new Handler(_ => {
+                requests++;
+                return Task.FromException<HttpResponseMessage>(transportFailure);
+            }));
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            GoogleWorkspaceSessionOptions options = MutationOptions(http, receipts.Add);
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!, context.RequiredScopes, context.Target, "\"etag-1\"",
+                context.MaxRetryCount, context.MaxRetryElapsedTime, context.RateLimitPolicy,
+                GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            options.MaxRetryCount = 2;
+            options.RetryBaseDelay = TimeSpan.FromMilliseconds(1);
+            options.RetryMaxDelay = TimeSpan.FromMilliseconds(1);
+            using var transport = MutationTransport(options, GoogleWorkspaceScopeCatalog.DriveFile);
+
+            GoogleWorkspaceAmbiguousMutationException exception =
+                await Assert.ThrowsAsync<GoogleWorkspaceAmbiguousMutationException>(() =>
+                    transport.SendRawAsync("token", new HttpMethod("PATCH"),
+                        "https://www.googleapis.com/drive/v3/files/file-1", null,
+                        GoogleWorkspaceRequestSafety.Idempotent, "Google Drive API",
+                        new TranslationReport(),
+                        requiredScopes: new[] { GoogleWorkspaceScopeCatalog.DriveFile }));
+
+            Assert.Equal(1, requests);
+            Assert.Same(transportFailure, exception.InnerException);
+            GoogleWorkspaceOperationReceipt receipt = Assert.Single(receipts);
+            Assert.Same(receipt, exception.Receipt);
+            Assert.False(receipt.Succeeded);
+            Assert.True(receipt.IsOutcomeAmbiguous);
+            Assert.Equal("ambiguous-no-response", receipt.Outcome);
+            Assert.Equal(0, receipt.RetryCount);
+        }
+
+        [Theory]
         [InlineData("POST")]
         [InlineData("PATCH")]
         [InlineData("DELETE")]
@@ -761,11 +805,67 @@ namespace OfficeIMO.Tests {
                 requiredScopes: new[] { GoogleWorkspaceScopeCatalog.DriveFile });
 
             string target = Assert.IsType<GoogleWorkspaceOperationContext>(observed).Target;
-            Assert.Equal("https://www.googleapis.com/drive/v3/files/file-1/permissions", target);
+            Assert.Equal("https://www.googleapis.com/drive/v3/files/file-1/permissions?emailMessage=%3Credacted%3E", target);
             GoogleWorkspaceOperationReceipt receipt = Assert.Single(receipts);
             Assert.Equal(target, receipt.Target);
             Assert.DoesNotContain(secretMessage, receipt.Target, StringComparison.Ordinal);
             Assert.DoesNotContain(secretQuotaUser, receipt.Target, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task MutationTargetsPreserveOperationDefiningQueryValues() {
+            GoogleWorkspaceOperationContext? observed = null;
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            using var http = new HttpClient(new Handler(_ => Json("{}")));
+            GoogleWorkspaceSessionOptions options = MutationOptions(http, receipts.Add);
+            options.OperationPolicyProvider = context => {
+                observed = context;
+                return new GoogleWorkspaceOperationPolicy(
+                    options.ExpectedAccount!, context.RequiredScopes, context.Target, "\"etag-1\"",
+                    context.MaxRetryCount, context.MaxRetryElapsedTime, context.RateLimitPolicy,
+                    GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            };
+            using var transport = MutationTransport(options, GoogleWorkspaceScopeCatalog.DriveFile);
+
+            await transport.SendJsonAsync<object>("token", new HttpMethod("PATCH"),
+                "https://www.googleapis.com/drive/v3/files/file-1?supportsAllDrives=true&addParents=folder-2&fields=id,name&removeParents=folder-1",
+                new { }, GoogleWorkspaceRequestSafety.Idempotent, "Google Drive API",
+                new TranslationReport(), requiredScopes: new[] { GoogleWorkspaceScopeCatalog.DriveFile });
+
+            const string expected = "https://www.googleapis.com/drive/v3/files/file-1?supportsAllDrives=true&addParents=folder-2&removeParents=folder-1";
+            Assert.Equal(expected, Assert.IsType<GoogleWorkspaceOperationContext>(observed).Target);
+            Assert.Equal(expected, Assert.Single(receipts).Target);
+        }
+
+        [Fact]
+        public async Task SessionAcceptsProviderVerifiedScopeSupersetForRequestedMutationSubset() {
+            string[] grantedScopes = {
+                GoogleWorkspaceScopeCatalog.DriveFile,
+                GoogleWorkspaceScopeCatalog.Spreadsheets,
+            };
+            using var http = new HttpClient(new Handler(_ => Json("{}")));
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            GoogleWorkspaceSessionOptions options = MutationOptions(http, receipts.Add);
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!, context.RequiredScopes, context.Target, "\"etag-1\"",
+                context.MaxRetryCount, context.MaxRetryElapsedTime, context.RateLimitPolicy,
+                GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
+            var source = new DelegateGoogleWorkspaceCredentialSource((_, _) => Task.FromResult(
+                GoogleWorkspaceAccessToken.FromVerifiedCredential("token", DateTimeOffset.UtcNow.AddMinutes(5),
+                    new GoogleWorkspaceCredentialBinding(options.ExpectedAccount!, grantedScopes))));
+            var session = new GoogleWorkspaceSession(source, options);
+            _ = await session.AcquireAccessTokenAsync(grantedScopes);
+            GoogleWorkspaceAccessToken subset = await session.AcquireAccessTokenAsync(
+                new[] { GoogleWorkspaceScopeCatalog.DriveFile });
+            using var transport = new GoogleWorkspaceHttpTransport(session);
+
+            await transport.SendJsonAsync<object>(subset.AccessToken, new HttpMethod("PATCH"),
+                "https://www.googleapis.com/drive/v3/files/file-1", new { },
+                GoogleWorkspaceRequestSafety.Idempotent, "Google Drive API", new TranslationReport(),
+                requiredScopes: new[] { GoogleWorkspaceScopeCatalog.DriveFile });
+
+            GoogleWorkspaceOperationReceipt receipt = Assert.Single(receipts);
+            Assert.Equal(new[] { GoogleWorkspaceScopeCatalog.DriveFile }, receipt.Policy.Scopes);
         }
 
         [Fact]
