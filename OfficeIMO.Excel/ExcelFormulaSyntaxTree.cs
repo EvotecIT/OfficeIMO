@@ -99,6 +99,15 @@ namespace OfficeIMO.Excel {
 
                 System.Text.RegularExpressions.Match match =
                     ExcelFormulaReferenceRewriter.SharedFormulaReferenceAtCursorRegex.Match(formula, cursor);
+                if (TryReadRepeatedQualifiedRange(formula, match, out int repeatedRangeLength, out ExcelReference? repeatedRange)) {
+                    AddText(nodes, formula, textStart, cursor - textStart);
+                    nodes.Add(new ExcelFormulaReferenceSyntax(
+                        formula.Substring(cursor, repeatedRangeLength),
+                        repeatedRange!));
+                    cursor += repeatedRangeLength;
+                    textStart = cursor;
+                    continue;
+                }
                 if (match.Success
                     && !IsSpacedFunctionCall(formula, match)
                     && ExcelReference.TryParse(TrimSpill(match.Value), out ExcelReference? reference)) {
@@ -248,6 +257,42 @@ namespace OfficeIMO.Excel {
         }
 
         private static string TrimSpill(string value) => value.EndsWith("#", StringComparison.Ordinal) ? value.Substring(0, value.Length - 1) : value;
+
+        private static bool TryReadRepeatedQualifiedRange(
+            string formula,
+            System.Text.RegularExpressions.Match first,
+            out int length,
+            out ExcelReference? reference) {
+            length = 0;
+            reference = null;
+            if (!first.Success
+                || !first.Groups["qualifier"].Success
+                || first.Groups["cellEndColumn"].Success
+                || first.Groups["cellSpill"].Success) {
+                return false;
+            }
+
+            int separator = first.Index + first.Length;
+            if (separator >= formula.Length || formula[separator] != ':') return false;
+            System.Text.RegularExpressions.Match second =
+                ExcelFormulaReferenceRewriter.SharedFormulaReferenceAtCursorRegex.Match(formula, separator + 1);
+            if (!second.Success
+                || !second.Groups["qualifier"].Success
+                || second.Groups["cellEndColumn"].Success
+                || second.Groups["cellSpill"].Success
+                || !string.Equals(
+                    first.Groups["qualifier"].Value,
+                    second.Groups["qualifier"].Value,
+                    StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            string secondAddress = second.Value.Substring(second.Groups["qualifier"].Length);
+            string normalized = first.Value + ":" + secondAddress;
+            if (!ExcelReference.TryParse(normalized, out reference)) return false;
+            length = first.Length + 1 + second.Length;
+            return true;
+        }
 
         private static bool IsSpacedFunctionCall(string formula, System.Text.RegularExpressions.Match match) {
             if (match.Groups["qualifier"].Success

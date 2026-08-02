@@ -37,7 +37,47 @@ namespace OfficeIMO.Excel {
         private const string RichValueRelRelationshipType = "http://schemas.microsoft.com/office/2022/10/relationships/richValueRel";
         private const string RichValueRelContentType = "application/vnd.ms-excel.richvaluerel+xml";
         private const string ImageRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+        private const long MaximumRichValueMetadataBytes = 16L * 1024L * 1024L;
         private const long MaximumRichValueRelationshipBytes = 16L * 1024L * 1024L;
+
+        internal static void ValidateInCellImageMetadataStream(
+            Stream source,
+            long maximumBytes,
+            string description) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("Metadata description cannot be empty.", nameof(description));
+
+            if (source.CanSeek) {
+                long position = source.Position;
+                try {
+                    if (source.Length > maximumBytes) {
+                        throw new InvalidDataException(
+                            $"{description} exceeds the supported {maximumBytes}-byte limit.");
+                    }
+                } finally {
+                    source.Position = position;
+                }
+                return;
+            }
+
+            var buffer = new byte[81920];
+            long total = 0;
+            while (true) {
+                int read = source.Read(buffer, 0, buffer.Length);
+                if (read == 0) return;
+                total += read;
+                if (total > maximumBytes) {
+                    throw new InvalidDataException(
+                        $"{description} exceeds the supported {maximumBytes}-byte limit.");
+                }
+            }
+        }
+
+        private static void ValidateInCellImageMetadataPart(OpenXmlPart part, string description) {
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            ValidateInCellImageMetadataStream(stream, MaximumRichValueMetadataBytes, description);
+        }
 
         /// <summary>Adds or replaces a native in-cell image without creating a drawing anchor.</summary>
         public ExcelInCellImage SetInCellImage(

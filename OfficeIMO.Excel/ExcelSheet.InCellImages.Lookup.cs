@@ -143,21 +143,31 @@ namespace OfficeIMO.Excel {
         private bool TryCreateInCellImageLookup(out InCellImageLookup? lookup) {
             lookup = null;
             WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
-            Metadata? metadata = workbookPart.CellMetadataPart?.Metadata;
+            CellMetadataPart? metadataPart = workbookPart.CellMetadataPart;
+            RdRichValuePart? valuePart = workbookPart.RdRichValueParts.FirstOrDefault();
+            RdRichValueStructurePart? structurePart = workbookPart.GetPartsOfType<RdRichValueStructurePart>()
+                .FirstOrDefault();
+            ExtendedPart? relationshipPart = workbookPart.Parts.Select(pair => pair.OpenXmlPart).OfType<ExtendedPart>()
+                .FirstOrDefault(part => string.Equals(part.RelationshipType, RichValueRelRelationshipType, StringComparison.Ordinal));
+            if (metadataPart == null || valuePart == null || structurePart == null || relationshipPart == null) {
+                return false;
+            }
+
+            ValidateInCellImageMetadataPart(metadataPart, "Cell metadata");
+            ValidateInCellImageMetadataPart(valuePart, "Rich-value data");
+            ValidateInCellImageMetadataPart(structurePart, "Rich-value structures");
+
+            Metadata? metadata = metadataPart.Metadata;
             ValueMetadata? valueMetadata = metadata?.GetFirstChild<ValueMetadata>();
             FutureMetadata? future = metadata?.Elements<FutureMetadata>()
                 .FirstOrDefault(item => string.Equals(item.Name?.Value, RichValueMetadataName, StringComparison.OrdinalIgnoreCase));
-            Rich.RichValueData? richValueData = workbookPart.RdRichValueParts.FirstOrDefault()?.RichValueData;
-            Rich.RichValueStructures? structures = workbookPart.GetPartsOfType<RdRichValueStructurePart>()
-                .FirstOrDefault()?.RichValueStructures;
-            ExtendedPart? relationshipPart = workbookPart.Parts.Select(pair => pair.OpenXmlPart).OfType<ExtendedPart>()
-                .FirstOrDefault(part => string.Equals(part.RelationshipType, RichValueRelRelationshipType, StringComparison.Ordinal));
+            Rich.RichValueData? richValueData = valuePart.RichValueData;
+            Rich.RichValueStructures? structures = structurePart.RichValueStructures;
             if (metadata == null
                 || valueMetadata == null
                 || future == null
                 || richValueData == null
-                || structures == null
-                || relationshipPart == null) {
+                || structures == null) {
                 return false;
             }
             lookup = new InCellImageLookup(

@@ -46,6 +46,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Changes the type of every sparkline whose destination intersects a range.</summary>
         public int SetSparklineType(string locationRange, SparklineTypeValues type) {
+            if (type != SparklineTypeValues.Line
+                && type != SparklineTypeValues.Column
+                && type != SparklineTypeValues.Stacked) {
+                throw new ArgumentOutOfRangeException(nameof(type));
+            }
             ExcelReference target = ParseLocalSparklineReference(locationRange);
             int changed = 0;
             WriteLock(() => {

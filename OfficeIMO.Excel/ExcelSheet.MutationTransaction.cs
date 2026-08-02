@@ -288,21 +288,30 @@ namespace OfficeIMO.Excel {
                         workbookPart,
                         cellMetadataPart,
                         cellMetadataPart.Metadata,
-                        (restoredPart, value) => restoredPart.Metadata = value);
+                        (restoredPart, value) => {
+                            restoredPart.Metadata = value;
+                            value.Save();
+                        });
                 }
                 foreach (RdRichValuePart part in workbookPart.RdRichValueParts) {
                     AddPartRoot(
                         workbookPart,
                         part,
                         part.RichValueData,
-                        (restoredPart, value) => restoredPart.RichValueData = value);
+                        (restoredPart, value) => {
+                            restoredPart.RichValueData = value;
+                            value.Save();
+                        });
                 }
                 foreach (RdRichValueStructurePart part in workbookPart.GetPartsOfType<RdRichValueStructurePart>()) {
                     AddPartRoot(
                         workbookPart,
                         part,
                         part.RichValueStructures,
-                        (restoredPart, value) => restoredPart.RichValueStructures = value);
+                        (restoredPart, value) => {
+                            restoredPart.RichValueStructures = value;
+                            value.Save();
+                        });
                 }
                 foreach (ExtendedPart richValueRelationships in workbookPart.Parts
                     .Select(pair => pair.OpenXmlPart)

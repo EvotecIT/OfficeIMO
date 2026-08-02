@@ -114,12 +114,12 @@ namespace OfficeIMO.Excel {
                 ValidateAllowedEditRangeXmlText(securityDescriptor!, nameof(securityDescriptor));
             }
             IReadOnlyList<string> normalized = NormalizeRegionReferences(ranges);
-            if (!IsProtected) {
-                throw new InvalidOperationException("Allowed-edit ranges require worksheet protection. Call Protect first.");
-            }
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
+                if (!worksheet.Elements<SheetProtection>().Any()) {
+                    throw new InvalidOperationException("Allowed-edit ranges require worksheet protection. Call Protect first.");
+                }
                 ProtectedRanges container = worksheet.GetFirstChild<ProtectedRanges>() ?? worksheet.AppendChild(new ProtectedRanges());
                 ProtectedRange? existing = container.Elements<ProtectedRange>()
                     .FirstOrDefault(item => string.Equals(item.Name?.Value, normalizedName, StringComparison.OrdinalIgnoreCase));
