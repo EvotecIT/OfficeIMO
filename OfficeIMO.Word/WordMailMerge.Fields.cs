@@ -311,8 +311,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            var resultRuns = GetComplexFieldResultRuns(field).ToList();
-            if (!SetComplexFieldResultText(field, resultRuns, formattedValue)) {
+            if (!SetComplexFieldResultText(field, formattedValue)) {
                 if (!InsertComplexFieldResultBeforeEnd(field, formattedValue)) {
                     Run endRun = field.EndMarker?.Parent as Run ?? fieldRuns[fieldRuns.Count - 1];
                     Run? sourceRun = fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null);
@@ -501,12 +500,10 @@ namespace OfficeIMO.Word {
 
         private static bool SetComplexFieldResultText(
             ComplexFieldFrame field,
-            IReadOnlyList<Run> resultRuns,
             string value) {
             List<Text> markerAwareTextElements = GetComplexFieldResultTextElements(field).ToList();
-            return markerAwareTextElements.Count > 0
-                ? SetFieldResultTextElements(markerAwareTextElements, value)
-                : SetFieldResultText(resultRuns, value);
+            return markerAwareTextElements.Count > 0 &&
+                SetFieldResultTextElements(markerAwareTextElements, value);
         }
 
         private static bool InsertComplexFieldResultBeforeEnd(ComplexFieldFrame field, string value) {

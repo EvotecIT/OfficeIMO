@@ -62,5 +62,26 @@ namespace OfficeIMO.Tests {
             Assert.True(bounded.Succeeded);
             Assert.Equal(expected, bounded.RequireValue());
         }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetDoesNotPrechargeTransformedRunFont() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new Run(
+                new RunProperties(new RunFonts { Ascii = new string('F', 2048) }),
+                new Text("Visible content")));
+            string expected = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                IncludeFontStyles = true
+            }).RequireValue();
+
+            HtmlTextConversionResult bounded = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                IncludeFontStyles = true,
+                MaxOutputCharacters = expected.Length
+            });
+
+            Assert.True(bounded.Succeeded);
+            Assert.Equal(expected, bounded.RequireValue());
+        }
     }
 }

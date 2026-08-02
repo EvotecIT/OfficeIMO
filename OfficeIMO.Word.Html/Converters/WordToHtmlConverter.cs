@@ -210,28 +210,28 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if ((includeAll || artifactElement is SdtRun) && run.IsCheckBox && run.CheckBox != null) {
-                        target.Add(CreateCheckBoxInput(htmlDoc, run.CheckBox, options));
+                        target.Add(CreateCheckBoxInput(htmlDoc, run.CheckBox));
                         return true;
                     }
 
                     if ((includeAll || artifactElement is SdtRun) && run.IsDropDownList && run.DropDownList != null) {
-                        target.Add(CreateDropDownListSelect(htmlDoc, run.DropDownList, options));
+                        target.Add(CreateDropDownListSelect(htmlDoc, run.DropDownList));
                         return true;
                     }
 
                     if ((includeAll || artifactElement is SdtRun) && run.IsComboBox && run.ComboBox != null) {
                         formListIndex++;
-                        target.AddRange(CreateComboBoxNodes(htmlDoc, run.ComboBox, formListIndex, options));
+                        target.AddRange(CreateComboBoxNodes(htmlDoc, run.ComboBox, formListIndex));
                         return true;
                     }
 
                     if ((includeAll || artifactElement is SdtRun) && run.IsDatePicker && run.DatePicker != null) {
-                        target.Add(CreateDatePickerInput(htmlDoc, run.DatePicker, options));
+                        target.Add(CreateDatePickerInput(htmlDoc, run.DatePicker));
                         return true;
                     }
 
                     if ((includeAll || artifactElement is SdtRun) && run.IsStructuredDocumentTag && run.StructuredDocumentTag != null && !run.IsPictureControl && !run.IsRepeatingSection) {
-                        target.Add(CreateStructuredDocumentTagInput(htmlDoc, run.StructuredDocumentTag, options));
+                        target.Add(CreateStructuredDocumentTagInput(htmlDoc, run.StructuredDocumentTag));
                         return true;
                     }
 

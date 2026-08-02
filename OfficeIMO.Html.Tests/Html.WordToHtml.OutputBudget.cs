@@ -555,7 +555,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_WordToHtml_OutputBudgetCountsSharedHeaderSourceAttributesPerSection() {
+        public void Test_WordToHtml_OutputBudgetCountsGeneratedHeaderAttributesPerSection() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Body");
             WordSection firstSection = document.Sections[0];
@@ -586,7 +586,7 @@ namespace OfficeIMO.Tests {
                 }));
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
-            Assert.StartsWith("HeaderFooter:header:default:section-", exception.LimitSource, StringComparison.Ordinal);
+            Assert.Equal("RunFontStyle", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
 

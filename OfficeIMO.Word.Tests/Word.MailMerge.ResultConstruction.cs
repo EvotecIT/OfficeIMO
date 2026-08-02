@@ -129,6 +129,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_InsertsResultAroundVisibleNonTextChildWithoutChangingSurroundingText() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(new Run(
+                new Text("Before "),
+                new FieldChar { FieldCharType = FieldCharValues.Begin },
+                new FieldCode(" MERGEFIELD Name "),
+                new FieldChar { FieldCharType = FieldCharValues.Separate },
+                new Break(),
+                new FieldChar { FieldCharType = FieldCharValues.End },
+                new Text(" after")));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" },
+                removeFields: false);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal(new[] { "Before ", "Ada", " after" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+            Assert.Single(paragraph.Descendants<Break>());
+        }
+
+        [Fact]
         public void Test_MailMerge_CompletesEntireComplexFieldWithinOneRun() {
             using WordDocument document = WordDocument.Create();
             Paragraph paragraph = document.AddParagraph()._paragraph;

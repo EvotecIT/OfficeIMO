@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Html {
                             ThrowExportLimitExceeded(options, "WordElementLimitExceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
                         }
                         if (countOutputContent && !inspected.OmitOutputContent) {
-                            long elementCharacters = GetOutputContentCharacters(element, options);
+                            long elementCharacters = GetOutputContentCharacters(element);
                             outputConstructionCharacters = SaturatingAdd(outputConstructionCharacters, elementCharacters);
                             if (outputConstructionCharacters > options.MaxOutputCharacters) {
                                 ThrowExportLimitExceeded(
@@ -93,27 +93,21 @@ namespace OfficeIMO.Word.Html {
             return length;
         }
 
-        private static long MeasureOutputContentCharacters(OpenXmlElement root, WordToHtmlOptions options) {
+        private static long MeasureOutputContentCharacters(OpenXmlElement root) {
             long characters = 0;
             foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(root)) {
                 if (inspected.OmitOutputContent) continue;
-                characters = SaturatingAdd(characters, GetOutputContentCharacters(inspected.Element, options));
+                characters = SaturatingAdd(characters, GetOutputContentCharacters(inspected.Element));
             }
             return characters;
         }
 
-        private static long GetOutputContentCharacters(OpenXmlElement element, WordToHtmlOptions options) {
+        private static long GetOutputContentCharacters(OpenXmlElement element) {
             long characters = element is OpenXmlLeafTextElement textElement && ShouldCountOutputLeafText(element)
                 ? GetHtmlEncodedLength(textElement.Text, attributeValue: false)
                 : 0;
             if (IsVisibleRunArtifact(element)) {
                 characters = SaturatingAdd(characters, 1);
-            }
-            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
-                if (!ShouldCountOutputAttribute(element, attribute, options)) continue;
-                characters = SaturatingAdd(
-                    characters,
-                    GetHtmlEncodedLength(attribute.Value, attributeValue: true));
             }
             return characters;
         }
@@ -124,33 +118,6 @@ namespace OfficeIMO.Word.Html {
         private static bool ShouldCountOutputLeafText(OpenXmlElement element) =>
             element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode &&
             element is not DocumentFormat.OpenXml.Math.Text;
-
-        private static bool ShouldCountOutputAttribute(
-            OpenXmlElement element,
-            OpenXmlAttribute attribute,
-            WordToHtmlOptions options) {
-            if (element is DocumentFormat.OpenXml.Wordprocessing.RunFonts) return options.IncludeFontStyles;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.RunStyle) return options.IncludeRunClasses;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.Color) return options.IncludeRunColorStyles;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.Highlight) return options.IncludeRunHighlightStyles;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.Shading &&
-                element.Parent is DocumentFormat.OpenXml.Wordprocessing.RunProperties) {
-                return options.IncludeRunHighlightStyles;
-            }
-            if (element is DocumentFormat.OpenXml.Wordprocessing.ParagraphStyleId) return options.IncludeParagraphClasses;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.Indentation) return options.IncludeParagraphIndentationStyles;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines) return options.IncludeParagraphSpacingStyles;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.PageSize ||
-                element is DocumentFormat.OpenXml.Wordprocessing.PageMargin) {
-                return options.IncludeSectionMetadata;
-            }
-            if (element is DocumentFormat.OpenXml.Wordprocessing.GridColumn) return options.IncludeTableColumnGroups;
-
-            // Open XML carries many package-only attributes (xml:space, revision session IDs,
-            // relationship IDs, field instructions, and similar metadata). Generated output
-            // attributes are reserved at their SetOutputAttribute owner instead of here.
-            return false;
-        }
 
         // Header and footer parts are intentionally excluded here. A shared part can be emitted
         // once per section, so AppendHeaderFooterRegion measures and reserves its source content
