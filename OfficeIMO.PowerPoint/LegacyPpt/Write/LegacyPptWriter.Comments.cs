@@ -109,7 +109,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     reason = $"Classic comment author {id} exceeds the binary 52-character author or initials limit.";
                     return false;
                 }
-                if (author.ColorIndex!.Value != id) {
+                if (!HasCanonicalClassicAuthorColorIndex(author)) {
                     reason = $"Classic comment author {id} uses color index {author.ColorIndex.Value}; binary comments can retain only the canonical color index equal to the author id.";
                     return false;
                 }
@@ -127,6 +127,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             return true;
         }
+
+        internal static bool HasCanonicalClassicAuthorColorIndex(
+            P.CommentAuthor author) =>
+            author.Id?.HasValue == true
+            && author.ColorIndex?.HasValue == true
+            && author.ColorIndex.Value == author.Id.Value;
 
         private static bool TryReadClassicComments(PowerPointSlide slide,
             IReadOnlyDictionary<uint, LegacyPptWriterAuthor> authors, ISet<uint> usedAuthorIds,

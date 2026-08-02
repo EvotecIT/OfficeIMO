@@ -199,7 +199,10 @@ namespace OfficeIMO.PowerPoint {
                 .Select(font => font.Typeface?.Value)
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .ToArray();
-            if (typefaces.Length == 0) return null;
+            if (typefaces.Length == 0) {
+                return ResolveChartTypeface(typeface: null,
+                    useMajorWhenMissing: false);
+            }
             string?[] resolved = typefaces.Select(value =>
                     ResolveChartTypeface(value, useMajorWhenMissing: false))
                 .ToArray();
@@ -251,7 +254,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(typeface)) {
                 return useMajorWhenMissing
                     ? scheme.MajorFont?.LatinFont?.Typeface?.Value
-                    : null;
+                    : scheme.MinorFont?.LatinFont?.Typeface?.Value;
             }
             if (typeface!.StartsWith("+mj-", StringComparison.OrdinalIgnoreCase)) {
                 return scheme.MajorFont?.LatinFont?.Typeface?.Value;

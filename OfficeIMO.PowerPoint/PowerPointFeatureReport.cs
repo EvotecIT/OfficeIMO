@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
@@ -1136,7 +1137,8 @@ namespace OfficeIMO.PowerPoint {
                     || author.Name?.Value == null
                     || author.Initials?.Value == null
                     || author.LastIndex?.Value == null
-                    || author.ColorIndex?.Value == null)
+                    || !LegacyPptWriter.HasCanonicalClassicAuthorColorIndex(
+                        author))
                 || classicAuthors.Where(author => author.Id?.Value != null)
                     .GroupBy(author => author.Id!.Value).Any(group => group.Count() != 1)) {
                 return false;

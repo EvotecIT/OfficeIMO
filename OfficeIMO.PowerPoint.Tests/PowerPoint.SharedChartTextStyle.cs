@@ -213,6 +213,30 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
+    public void SharedSnapshot_ResolvesInheritedBodyFontFromMinorTheme() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        presentation.SetThemeLatinFonts("Theme Heading", "Theme Body");
+        PowerPointChart chart = presentation.AddSlide().AddChartPoints(
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            }), 40, 40, 500, 300);
+        chart.SetLegendTextStyle(fontName: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
+            .SetValueAxisLabelTextStyle(fontName: "Arial");
+        C.Chart openXmlChart = presentation.OpenXmlDocument.PresentationPart!
+            .SlideParts.Single().ChartParts.Single().ChartSpace!
+            .GetFirstChild<C.Chart>()!;
+        foreach (A.LatinFont latin in openXmlChart.Descendants<A.LatinFont>()) {
+            latin.Remove();
+        }
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal("Theme Body", snapshot.Style.FontFamily);
+    }
+
+    [Fact]
     public void SharedSnapshot_PreservesIndependentlyInheritedTitleFont() {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create();
