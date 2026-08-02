@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.Pdf;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.PowerPoint.Benchmarks;
 
@@ -110,10 +111,71 @@ internal static class PowerPointRoadmapVisualCorpus {
         }
 
         byte[] pdf = reopened.ToPdf();
+        ValidatePdf(pdf, reopened.Slides.Count);
         File.WriteAllBytes(Path.Combine(root,
             "powerpoint-roadmap-visual-corpus.pdf"), pdf);
         Console.WriteLine($"Created {reopened.Slides.Count} validated slides in {root}");
         return 0;
+    }
+
+    private static void ValidatePdf(byte[] pdf, int expectedPageCount) {
+        string[] expectedTitles = SmartArtScenarios
+            .Select(scenario => scenario.Title + " SmartArt")
+            .Concat(new[] { "Shared custom geometry", "Chart and table authoring" })
+            .ToArray();
+        PdfCore.PdfReadDocument parsed = PdfCore.PdfReadDocument.Open(pdf);
+        if (parsed.Pages.Count != expectedPageCount
+            || expectedTitles.Length != expectedPageCount) {
+            throw new InvalidOperationException(
+                $"Visual corpus PDF produced {parsed.Pages.Count} pages; expected {expectedPageCount}.");
+        }
+        for (int index = 0; index < parsed.Pages.Count; index++) {
+            string text = parsed.Pages[index].ExtractText();
+            if (text.IndexOf(expectedTitles[index],
+                    StringComparison.Ordinal) < 0) {
+                throw new InvalidOperationException(
+                    $"Visual corpus PDF page {index + 1} lost expected title '{expectedTitles[index]}'.");
+            }
+        }
+
+        IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
+            PdfCore.PdfDocument.Open(pdf).Read.RenderPages(options:
+                new PdfCore.PdfPageRenderOptions {
+                    Dpi = 72D,
+                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    MaxPages = expectedPageCount,
+                    ContinueOnError = false,
+                    MaxTotalOutputBytes = 256L * 1024L * 1024L
+                });
+        if (rendered.Count != expectedPageCount) {
+            throw new InvalidOperationException(
+                $"Visual corpus PDF rendered {rendered.Count} pages; expected {expectedPageCount}.");
+        }
+        for (int index = 0; index < rendered.Count; index++) {
+            PdfCore.PdfPageRenderResult page = rendered[index];
+            if (!page.Succeeded || page.Bytes == null
+                || !OfficePngReader.TryDecode(page.Bytes,
+                    out OfficeRasterImage? raster) || raster == null) {
+                throw new InvalidOperationException(
+                    $"Visual corpus PDF page {index + 1} could not be rerendered and decoded.");
+            }
+            OfficeColor background = OfficeColor.FromRgb(248, 250, 252);
+            int visible = 0;
+            for (int y = 0; y < raster.Height; y++) {
+                for (int x = 0; x < raster.Width; x++) {
+                    OfficeColor pixel = raster.GetPixel(x, y);
+                    if (pixel.A > 0 && Math.Abs(pixel.R - background.R)
+                        + Math.Abs(pixel.G - background.G)
+                        + Math.Abs(pixel.B - background.B) > 12) {
+                        visible++;
+                    }
+                }
+            }
+            if (visible < 1000) {
+                throw new InvalidOperationException(
+                    $"Visual corpus PDF page {index + 1} lost visible content.");
+            }
+        }
     }
 
     private static PowerPointSlide AddSmartArtSlide(
@@ -144,6 +206,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             OfficePathCommand.LineTo(76, 100),
             OfficePathCommand.LineTo(24, 100),
             OfficePathCommand.Close());
+        curved.FillRule = OfficeFillRule.NonZero;
         curved.FillColor = OfficeColor.FromRgb(14, 165, 233);
         curved.StrokeColor = OfficeColor.FromRgb(12, 74, 110);
         curved.StrokeWidth = 2.25D;

@@ -225,26 +225,12 @@ public static class OfficeDiagramDrawingRenderer {
         OfficeDiagramKind kind = snapshot.Kind;
         OfficeColor connectorColor = snapshot.Style?.ConnectorColor
             ?? OfficeColor.FromRgb(100, 116, 139);
-        if (kind == OfficeDiagramKind.Hierarchy) {
-            for (int index = 1; index < nodes.Count; index++) {
-                AddConnector(drawing, nodes[0], nodes[index], false,
-                    connectorColor);
-            }
-            return;
-        }
-        if (kind == OfficeDiagramKind.Relationship) {
-            return;
-        }
-        if (kind == OfficeDiagramKind.List
-            || kind == OfficeDiagramKind.Matrix
-            || kind == OfficeDiagramKind.Pyramid) return;
-        int connectorCount = kind == OfficeDiagramKind.Cycle
-            ? nodes.Count
-            : nodes.Count - 1;
+        if (kind != OfficeDiagramKind.Cycle) return;
+        int connectorCount = nodes.Count;
         for (int index = 0; index < connectorCount; index++) {
             AddConnector(drawing, nodes[index],
                 nodes[(index + 1) % nodes.Count],
-                kind == OfficeDiagramKind.Cycle, connectorColor);
+                true, connectorColor);
         }
     }
 

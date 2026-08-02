@@ -65,6 +65,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompoundStorageValidation_RejectsMissingProjectStream() {
+            byte[] vbaStorage = CreateVbaTestProject("MissingProject",
+                "Sub Main(): End Sub", omitProjectStream: true);
+
+            Assert.False(LegacyPptVbaProjectCodec.IsValidProject(vbaStorage,
+                new LegacyPptImportOptions(), out string? reason));
+            Assert.Contains("PROJECT stream", reason,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public async Task PresentationFacade_EnforcesPackageSecurityPolicies() {
             byte[] packageBytes;
             using (PowerPointPresentation source =

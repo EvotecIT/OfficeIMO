@@ -87,6 +87,19 @@ namespace OfficeIMO.PowerPoint {
                     }
                     return;
                 }
+                OpenXmlElement? themeFill = ResolveThemeFill();
+                if (opacity != null && themeFill != null
+                    && !themeFill.Descendants<A.SchemeColor>().Any(color =>
+                        color.Val?.Value == A.SchemeColorValues.PhColor)) {
+                    OpenXmlElement materialized = themeFill.CloneNode(true);
+                    RemoveFillChoiceChildren(props);
+                    InsertShapePropertyChild(props, materialized);
+                    foreach (OpenXmlCompositeElement fillColor in
+                             GetFillColorChoices(props)) {
+                        SetFillColorAlpha(fillColor, opacity);
+                    }
+                    return;
+                }
                 OpenXmlCompositeElement? styleColor =
                     GetShapeStyleFillColorChoice(createPlaceholder: opacity != null);
                 if (styleColor != null) {
@@ -109,6 +122,38 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SetFillColorAlpha(color, opacity);
+        }
+
+        private OpenXmlElement? ResolveThemeFill() {
+            A.FillReference? reference = Element switch {
+                Shape shape => shape.ShapeStyle?.FillReference,
+                ConnectionShape connector => connector.ShapeStyle?.FillReference,
+                _ => null
+            };
+            uint? index = reference?.Index?.Value;
+            if (OwnerSlide == null || !index.HasValue) return null;
+            A.FormatScheme? formatScheme = OwnerSlide.SlidePart
+                .ThemeOverridePart?.ThemeOverride?.FormatScheme
+                ?? OwnerSlide.SlidePart.SlideLayoutPart?.ThemeOverridePart?
+                    .ThemeOverride?.FormatScheme
+                ?? OwnerSlide.SlidePart.SlideLayoutPart?.SlideMasterPart?
+                    .ThemePart?.Theme?.ThemeElements?.FormatScheme;
+            if (formatScheme == null) return null;
+            OpenXmlElementList fills;
+            uint zeroBased;
+            if (index.Value >= 1001U) {
+                fills = formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?
+                    .ChildElements ?? default;
+                zeroBased = index.Value - 1001U;
+            } else {
+                if (index.Value < 1U) return null;
+                fills = formatScheme.GetFirstChild<A.FillStyleList>()?
+                    .ChildElements ?? default;
+                zeroBased = index.Value - 1U;
+            }
+            return zeroBased < unchecked((uint)fills.Count)
+                ? fills[unchecked((int)zeroBased)]
+                : null;
         }
 
         private OpenXmlCompositeElement? GetShapeStyleFillColorChoice(

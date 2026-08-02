@@ -14,6 +14,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static bool TryValidate(
             IReadOnlyDictionary<string, byte[]> streams, out string? reason) {
+            if (!streams.TryGetValue("PROJECT", out byte[]? projectMetadata)
+                || projectMetadata.Length == 0
+                || projectMetadata.Length > MaximumDirectoryLength
+                || !TryValidateProjectMetadata(projectMetadata)) {
+                reason = "The compound storage has no valid mandatory PROJECT stream.";
+                return false;
+            }
             if (!streams.TryGetValue("VBA/_VBA_PROJECT", out byte[]? project)
                 || project.Length < 7
                 || project[0] != 0xCC
@@ -31,6 +38,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 return false;
             }
             return TryParseDirectory(decompressed, streams, out reason);
+        }
+
+        private static bool TryValidateProjectMetadata(byte[] project) {
+            string text;
+            try {
+                text = Encoding.GetEncoding(1252,
+                    EncoderFallback.ExceptionFallback,
+                    DecoderFallback.ExceptionFallback).GetString(project);
+            } catch (DecoderFallbackException) {
+                return false;
+            }
+            string[] lines = text.Split(new[] { '\r', '\n' },
+                StringSplitOptions.RemoveEmptyEntries);
+            return lines.Any(line => line.StartsWith("ID=",
+                       StringComparison.OrdinalIgnoreCase))
+                && lines.Any(line => line.StartsWith("Name=",
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool TryDecompressDirectory(byte[] input,

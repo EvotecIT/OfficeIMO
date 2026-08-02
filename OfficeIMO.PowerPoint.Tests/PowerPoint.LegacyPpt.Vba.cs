@@ -443,7 +443,8 @@ namespace OfficeIMO.Tests {
             bool corruptProjectHeader = false,
             bool corruptDirectoryRecords = false,
             bool omitModuleStream = false, uint moduleOffset = 0,
-            string? ansiModuleName = null) {
+            string? ansiModuleName = null,
+            bool omitProjectStream = false) {
             using var output = new MemoryStream();
             using (RootStorage root = RootStorage.Create(output,
                        CfbVersion.V3, StorageModeFlags.LeaveOpen)) {
@@ -471,8 +472,13 @@ namespace OfficeIMO.Tests {
                         checked((int)moduleOffset), sourceBytes.Length);
                     module.Write(moduleBytes, 0, moduleBytes.Length);
                 }
-                using (CfbStream project = root.CreateStream("PROJECT")) {
-                    project.Write(Array.Empty<byte>(), 0, 0);
+                if (!omitProjectStream) {
+                    using CfbStream project = root.CreateStream("PROJECT");
+                    byte[] metadata = Encoding.ASCII.GetBytes(
+                        "ID=\"{00000000-0000-0000-0000-000000000000}\"\r\n"
+                        + "Name=\"VBAProject\"\r\n"
+                        + $"Module={ansiModuleName ?? moduleName}\r\n");
+                    project.Write(metadata, 0, metadata.Length);
                 }
             }
             return output.ToArray();

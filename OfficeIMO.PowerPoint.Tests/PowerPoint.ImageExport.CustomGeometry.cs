@@ -427,6 +427,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointShape_FillTransparencyMaterializesFixedThemeFill() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                20, 20, 120, 80);
+            Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
+            A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.ThemePart!.Theme!.ThemeElements!
+                .FormatScheme!.FillStyleList!;
+            fillStyles.ReplaceChild(new A.SolidFill(
+                    new A.RgbColorModelHex { Val = "654321" }),
+                fillStyles.ChildElements[0]);
+            var referenceColor = new A.SchemeColor {
+                Val = A.SchemeColorValues.Accent2
+            };
+            openXmlShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.FillReference(referenceColor) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+
+            shape.FillTransparency = 40;
+
+            A.SolidFill local = openXmlShape.ShapeProperties!
+                .GetFirstChild<A.SolidFill>()!;
+            A.RgbColorModelHex localColor = local
+                .GetFirstChild<A.RgbColorModelHex>()!;
+            Assert.Equal("654321", localColor.Val!.Value);
+            Assert.Equal(60000, localColor.GetFirstChild<A.Alpha>()!.Val!.Value);
+            Assert.Null(referenceColor.GetFirstChild<A.Alpha>());
+            Assert.Equal(40, shape.FillTransparency);
+        }
+
+        [Fact]
         public void PowerPointSlide_AuthorsSharedPolygonAndRejectsNonFreeformDescriptors() {
             OfficeShape polygon = OfficeShape.Polygon(
                 new OfficePoint(0, 0),

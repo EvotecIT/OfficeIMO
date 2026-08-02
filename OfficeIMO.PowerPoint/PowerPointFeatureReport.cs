@@ -343,7 +343,8 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Presentation", "Custom shows", customShowsAreEditable
                     ? PowerPointFeatureSupportLevel.Editable
                     : PowerPointFeatureSupportLevel.Preserved,
-                customShows.Length, null,
+                Math.Max(customShows.Length,
+                    unsafeCustomShowDetails.Count == 0 ? 0 : 1), null,
                 customShowsAreEditable
                     ? "Named slide sequences can be authored, inspected, renamed, reordered, and removed while linked actions remain synchronized."
                     : "Malformed or producer-extended custom-show structures are preserved but are not safe for the editable custom-show surface.",

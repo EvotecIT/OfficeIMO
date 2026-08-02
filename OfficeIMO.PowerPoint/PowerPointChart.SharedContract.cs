@@ -244,8 +244,23 @@ namespace OfficeIMO.PowerPoint {
             if (!string.IsNullOrWhiteSpace(runTypeface)) return runTypeface;
             A.Paragraph? paragraph = run.Ancestors<A.Paragraph>()
                 .FirstOrDefault();
-            return paragraph?.GetFirstChild<A.ParagraphProperties>()?
+            string? paragraphTypeface = paragraph?
+                .GetFirstChild<A.ParagraphProperties>()?
                 .GetFirstChild<A.DefaultRunProperties>()?
+                .GetFirstChild<A.LatinFont>()?.Typeface?.Value;
+            if (!string.IsNullOrWhiteSpace(paragraphTypeface)) {
+                return paragraphTypeface;
+            }
+
+            int level = paragraph?.GetFirstChild<A.ParagraphProperties>()?
+                .Level?.Value ?? 0;
+            A.ListStyle? listStyle = run.Ancestors<C.RichText>()
+                .FirstOrDefault()?.GetFirstChild<A.ListStyle>();
+            OpenXmlCompositeElement? levelProperties = listStyle?.ChildElements
+                .OfType<OpenXmlCompositeElement>()
+                .FirstOrDefault(element => string.Equals(element.LocalName,
+                    $"lvl{level + 1}pPr", StringComparison.Ordinal));
+            return levelProperties?.GetFirstChild<A.DefaultRunProperties>()?
                 .GetFirstChild<A.LatinFont>()?.Typeface?.Value;
         }
 

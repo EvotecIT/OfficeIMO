@@ -135,6 +135,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReportRetainsExtensionOnlyCustomShowList() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.AddSlide();
+            presentation.OpenXmlDocument.PresentationPart!.Presentation!
+                .CustomShowList = new CustomShowList(new OpenXmlUnknownElement(
+                    "p14", "extLst",
+                    "http://schemas.microsoft.com/office/powerpoint/2010/main"));
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding finding = Assert.Single(
+                report.FindFeatures("Custom shows"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                finding.SupportLevel);
+            Assert.Equal(1, finding.Count);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
         public void CustomShows_RemoveZeroIdentifierAlsoRemovesTargetingActions() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

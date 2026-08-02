@@ -23,6 +23,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return OfficeCompoundFileReader.TryReadSelective(source,
                 readOptions, externalize: (name, _) =>
                     !name.StartsWith("VBA/",
+                        StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(name, "PROJECT",
                         StringComparison.OrdinalIgnoreCase),
                 openExternalDestination: (_, _) => Stream.Null,
                 out compound, out reason);
