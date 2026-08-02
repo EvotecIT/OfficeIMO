@@ -190,7 +190,7 @@ namespace OfficeIMO.PowerPoint {
                     ? bodyFonts[0]
                     : null;
             string? titleFont = ReadTitleTypeface(
-                chart.GetFirstChild<C.Title>());
+                chart.GetFirstChild<C.Title>(), chartDefaultTypeface);
             return bodyFont == null && titleFont == null
                 ? null
                 : new OfficeChartStyle(fontFamily: bodyFont,
@@ -219,12 +219,14 @@ namespace OfficeIMO.PowerPoint {
             return explicitFonts.Length == 1 ? explicitFonts[0] : null;
         }
 
-        private string? ReadTitleTypeface(C.Title? title) {
+        private string? ReadTitleTypeface(C.Title? title,
+            string? chartDefaultTypeface) {
             if (title == null) return null;
             string? defaultTypeface = title.Elements<C.TextProperties>()
                 .SelectMany(properties => properties.Descendants<A.LatinFont>())
                 .Select(font => font.Typeface?.Value)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))
+                ?? chartDefaultTypeface;
             OpenXmlElement[] textRuns = title.Descendants<C.RichText>()
                 .SelectMany(richText => richText.Descendants()
                     .Where(element => element is A.Run or A.Field))

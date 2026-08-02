@@ -490,7 +490,7 @@ namespace OfficeIMO.PowerPoint {
                 vbaDetails.Count, null,
                 vbaSupportLevel == PowerPointFeatureSupportLevel.Editable
                     ? "VBA project compound storages can be inspected, added, replaced, removed, and preserved through macro-enabled saves; OfficeIMO does not edit or sign VBA modules."
-                    : "Unrecognized or malformed VBA project parts are preserved as package content but cannot be safely mutated through the VBA project API.",
+                    : "Unrecognized or malformed VBA project parts, including projects with related signature or cache parts, are preserved as package content but cannot be safely mutated through the VBA project API.",
                 vbaDetails);
             Add(features, "Compatibility", "Web extensions and task panes", PowerPointFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
                 "Office add-in and task-pane package metadata is detected as preserve-only advanced content.",
@@ -1265,7 +1265,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool IsValidEditableVbaProject(VbaProjectPart? part) {
-            if (part == null) {
+            if (part == null || part.Parts.Any()) {
                 return false;
             }
 

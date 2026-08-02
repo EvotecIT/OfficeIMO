@@ -97,6 +97,15 @@ namespace OfficeIMO.Tests {
                 Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
                     png, out string validIssue), validIssue);
 
+                string blankPng = Path.Combine(directory, "blank.png");
+                File.WriteAllBytes(blankPng,
+                    VisualBaselineTestSupport.CreateRgbPng(2, 2,
+                        Enumerable.Repeat((byte)255, 12).ToArray()));
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    blankPng, out string blankPngIssue));
+                Assert.Contains("visible non-background content", blankPngIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
                 string invalidPng = Path.Combine(directory, "invalid.png");
                 File.WriteAllText(invalidPng, "not a PNG");
                 Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(

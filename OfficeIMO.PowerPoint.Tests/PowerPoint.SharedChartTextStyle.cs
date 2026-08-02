@@ -267,6 +267,42 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
+    public void SharedSnapshot_UsesChartSpaceDefaultForInheritedTitleText() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChartPoints(
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            }), 40, 40, 500, 300);
+        chart.SetTitle("Trajectory");
+        C.ChartSpace chartSpace = presentation.OpenXmlDocument
+            .PresentationPart!.SlideParts.Single().ChartParts.Single()
+            .ChartSpace!;
+        C.Title title = chartSpace.GetFirstChild<C.Chart>()!
+            .GetFirstChild<C.Title>()!;
+        foreach (A.LatinFont latin in title.Descendants<A.LatinFont>()) {
+            latin.Remove();
+        }
+        chartSpace.GetFirstChild<C.TextProperties>()?.Remove();
+        chartSpace.Append(new C.TextProperties(
+            new A.BodyProperties(),
+            new A.ListStyle(),
+            new A.Paragraph(
+                new A.ParagraphProperties(
+                    new A.DefaultRunProperties(
+                        new A.LatinFont { Typeface = "Chart Default" })),
+                new A.EndParagraphRunProperties())));
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot inherited));
+        Assert.Equal("Chart Default", inherited.Style.TitleFontFamily);
+
+        chart.SetTitleTextStyle(fontName: "Arial");
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot local));
+        Assert.Equal("Arial", local.Style.TitleFontFamily);
+    }
+
+    [Fact]
     public void SharedSnapshot_PreservesIndependentlyInheritedTitleFont() {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create();

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -105,6 +106,32 @@ namespace OfficeIMO.Tests {
             Assert.Contains("dir", moduleError.Message,
                 StringComparison.Ordinal);
             Assert.False(presentation.HasVbaProject);
+        }
+
+        [Fact]
+        public void FeatureReport_PreservesVbaProjectsWithRelatedParts() {
+            byte[] project = CreateVbaTestProject("RelatedPartModule",
+                "Sub Main(): End Sub");
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.AddSlide().AddTitle("Related VBA parts");
+            presentation.SetVbaProject(project);
+            VbaDataPart dataPart = presentation.OpenXmlDocument
+                .PresentationPart!.VbaProjectPart!
+                .AddNewPart<VbaDataPart>();
+            using (var data = new MemoryStream(new byte[] { 1, 2, 3, 4 },
+                       writable: false)) {
+                dataPart.FeedData(data);
+            }
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding macros = Assert.Single(
+                report.FindFeatures("VBA macros"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                macros.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
         }
     }
 }

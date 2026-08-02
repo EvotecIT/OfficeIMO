@@ -305,6 +305,12 @@ namespace OfficeIMO.Tests {
                             issue = "PNG data is missing, corrupt, or dimensionless: " + path;
                             return false;
                         }
+                        if (VisualBaselineTestSupport.CountNonWhiteVisiblePixels(
+                                image) == 0) {
+                            issue = "PNG contains no visible non-background content: "
+                                + path;
+                            return false;
+                        }
                         break;
                     case ".svg":
                         using (FileStream stream = File.OpenRead(path)) {
