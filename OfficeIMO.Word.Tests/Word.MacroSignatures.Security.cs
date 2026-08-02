@@ -114,6 +114,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MacroSigningVerifiesTimestampBudgetOnceDuringFinalValidation() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSigningTimestampReadbackBudget.docm");
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            string toolsDirectory = CreateFakeOfficeSipsDirectory();
+            var runner = new SimulatedOfficeSipsRunner(certificate, includeTimestampToken: true);
+            var dependencies = new WordMacroProjectSigningDependencies(
+                runner, new TestMacroSigningPlatform(isWindows: true));
+            var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
+            options.Inspection.CmsVerification.MaxTimestampTokens = 3;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
+
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
+                filePath, certificate.Thumbprint!, options, dependencies);
+
+            Assert.DoesNotContain(result.Findings,
+                finding => finding.Code == "CmsTimestampCountLimitExceeded");
+            Assert.Equal(3, result.Findings.Count(finding =>
+                finding.Code.EndsWith("SignatureCreated", StringComparison.Ordinal)));
+        }
+
+        [Fact]
         public void MacroSignatureInspectorRejectsMultiSignerCmsContainers() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignatureMultipleSigners.docm");
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();

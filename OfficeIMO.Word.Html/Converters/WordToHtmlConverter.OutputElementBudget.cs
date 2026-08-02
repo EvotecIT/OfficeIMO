@@ -43,8 +43,8 @@ namespace OfficeIMO.Word.Html {
             string source) {
             ReserveOutputCharacters(
                 owner,
-                GetHtmlEncodedLength(value, attributeValue: true),
-                "Generated HTML attribute values exceed the configured output-character limit before DOM construction.",
+                SaturatingAdd(name.Length + 4L, GetHtmlEncodedLength(value, attributeValue: true)),
+                "Generated HTML attributes exceed the configured output-character limit before DOM construction.",
                 source);
             element.SetAttribute(name, value);
         }

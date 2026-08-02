@@ -100,6 +100,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesCompleteAttributeSyntaxBeforeDomAssignment() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Visible content");
+            var options = new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = 2500
+            };
+            for (int index = 0; index < 256; index++) {
+                options.AdditionalMetaTags.Add(("x", string.Empty));
+            }
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("AdditionalMeta:name", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetReservesGeneratedStyleCssBeforeDomAssignment() {
             using WordDocument document = WordDocument.Create();
             const string styleId = "BudgetedStyle";
@@ -179,7 +199,7 @@ namespace OfficeIMO.Tests {
                 () => document.ToHtmlResult(options));
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
-            Assert.Equal("GeneratedElement:option", exception.LimitSource);
+            Assert.Equal("DropDownOption:value", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
 
@@ -278,7 +298,7 @@ namespace OfficeIMO.Tests {
 
             HtmlTextConversionResult bounded = document.ToHtmlResult(new WordToHtmlOptions {
                 IncludeDefaultCss = false,
-                MaxOutputCharacters = expected.Length
+                MaxOutputCharacters = expected.Length + 16
             });
 
             Assert.True(bounded.Succeeded);

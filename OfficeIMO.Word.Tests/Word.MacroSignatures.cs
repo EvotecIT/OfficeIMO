@@ -319,7 +319,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.Succeeded);
             Assert.Contains(result.Findings, finding => finding.Code == "CmsMalformed");
-            Assert.Contains(result.Findings, finding => finding.Code == "MacroLegacyReadbackFailed");
+            Assert.Contains(result.Findings, finding => finding.Code == "MacroAgileReadbackFailed");
         }
 
         [Fact]
@@ -608,10 +608,12 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateMacroSignatureContainer(byte[] cms, uint? declaredLength = null) {
-            byte[] bytes = new byte[44 + cms.Length];
+            const int digSigBlobHeaderLength = 8;
+            const int digSigInfoSerializedHeaderLength = 36;
+            byte[] bytes = new byte[digSigInfoSerializedHeaderLength + cms.Length];
             WriteUInt32(bytes, 0, declaredLength ?? checked((uint)cms.Length));
-            WriteUInt32(bytes, 4, 44);
-            Buffer.BlockCopy(cms, 0, bytes, 44, cms.Length);
+            WriteUInt32(bytes, 4, digSigBlobHeaderLength + digSigInfoSerializedHeaderLength);
+            Buffer.BlockCopy(cms, 0, bytes, digSigInfoSerializedHeaderLength, cms.Length);
             return bytes;
         }
 
@@ -797,8 +799,12 @@ namespace OfficeIMO.Tests {
 
         private sealed class SimulatedOfficeSipsRunner : IWordMacroProjectToolRunner {
             private readonly X509Certificate2 _certificate;
+            private readonly bool _includeTimestampToken;
             private int _profile;
-            internal SimulatedOfficeSipsRunner(X509Certificate2 certificate) => _certificate = certificate;
+            internal SimulatedOfficeSipsRunner(X509Certificate2 certificate, bool includeTimestampToken = false) {
+                _certificate = certificate;
+                _includeTimestampToken = includeTimestampToken;
+            }
             internal List<WordMacroProjectToolInvocation> Invocations { get; } = new List<WordMacroProjectToolInvocation>();
 
             public WordMacroProjectToolResult Run(WordMacroProjectToolInvocation invocation, TimeSpan timeout,
@@ -806,8 +812,13 @@ namespace OfficeIMO.Tests {
                 Invocations.Add(invocation);
                 if (invocation.Arguments.Count > 0 && invocation.Arguments[0] == "sign") {
                     _profile++;
-                    AddMacroSignatureProfile(invocation.Arguments[invocation.Arguments.Count - 1],
-                        (WordMacroProjectSignatureProfile)_profile, _certificate);
+                    if (_includeTimestampToken) {
+                        AddTimestampedMacroSignatureProfile(invocation.Arguments[invocation.Arguments.Count - 1],
+                            (WordMacroProjectSignatureProfile)_profile, _certificate);
+                    } else {
+                        AddMacroSignatureProfile(invocation.Arguments[invocation.Arguments.Count - 1],
+                            (WordMacroProjectSignatureProfile)_profile, _certificate);
+                    }
                 }
                 return Success();
             }

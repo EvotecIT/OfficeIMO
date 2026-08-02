@@ -283,22 +283,29 @@ namespace OfficeIMO.Word {
         }
 
         private static bool TryExtractCms(byte[] encodedPart, long maxCmsBytes, out byte[] cms, out string detail) {
+            const int digSigBlobHeaderLength = 8;
+            const int digSigInfoSerializedHeaderLength = 36;
             cms = Array.Empty<byte>();
             detail = string.Empty;
-            if (encodedPart.Length < 44) {
+            if (encodedPart.Length < digSigInfoSerializedHeaderLength) {
                 detail = "The VBA signature part is shorter than DigSigInfoSerialized.";
                 return false;
             }
             uint signatureLength = ReadUInt32(encodedPart, 0);
-            uint signatureOffset = ReadUInt32(encodedPart, 4);
-            if (signatureOffset < 44 || signatureLength == 0 || signatureLength > maxCmsBytes ||
-                signatureOffset > encodedPart.Length ||
-                signatureLength > encodedPart.Length - signatureOffset) {
+            uint serializedSignatureOffset = ReadUInt32(encodedPart, 4);
+            if (serializedSignatureOffset < digSigBlobHeaderLength + digSigInfoSerializedHeaderLength) {
+                detail = "The VBA signature CMS offset or length is outside the bounded signature part.";
+                return false;
+            }
+            uint partSignatureOffset = serializedSignatureOffset - digSigBlobHeaderLength;
+            if (signatureLength == 0 || signatureLength > maxCmsBytes ||
+                partSignatureOffset > encodedPart.Length ||
+                signatureLength > encodedPart.Length - partSignatureOffset) {
                 detail = "The VBA signature CMS offset or length is outside the bounded signature part.";
                 return false;
             }
             cms = new byte[signatureLength];
-            Buffer.BlockCopy(encodedPart, checked((int)signatureOffset), cms, 0, checked((int)signatureLength));
+            Buffer.BlockCopy(encodedPart, checked((int)partSignatureOffset), cms, 0, checked((int)signatureLength));
             return true;
         }
 

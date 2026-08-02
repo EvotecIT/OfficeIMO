@@ -212,13 +212,15 @@ namespace OfficeIMO.Word {
                     }
                     WordMacroProjectSignatureInfo profileReadback =
                         WordMacroProjectSignatureInspector.Inspect(
-                            stagingPath, options.Inspection, inspectionBudget, profile);
+                            stagingPath, options.Inspection, inspectionBudget, profile, validateCmsOverride: false);
                     WordMacroProjectSignaturePartInfo? createdProfile = profileReadback.Signatures
                         .FirstOrDefault(signature => signature.Profile == profile);
-                    if (createdProfile == null || !createdProfile.CmsParsed ||
-                        createdProfile.CryptographicStatus != WordSignatureValidationState.Passed) {
-                        foreach (WordMacroProjectSignatureFinding finding in profileReadback.Findings
-                            .Concat(profileReadback.Signatures.SelectMany(signature => signature.Findings))) {
+                    if (createdProfile == null) {
+                        WordMacroProjectSignatureInfo diagnosticReadback =
+                            WordMacroProjectSignatureInspector.Inspect(
+                                stagingPath, options.Inspection, inspectionBudget);
+                        foreach (WordMacroProjectSignatureFinding finding in diagnosticReadback.Findings
+                            .Concat(diagnosticReadback.Signatures.SelectMany(signature => signature.Findings))) {
                             if (!findings.Any(existing =>
                                 existing.Code == finding.Code &&
                                 existing.Profile == finding.Profile &&
@@ -228,13 +230,13 @@ namespace OfficeIMO.Word {
                         }
                         findings.Add(Finding("Macro" + profile + "ReadbackFailed",
                             WordSignatureValidationState.Failed,
-                            "The " + profile + " VBA signature was not present with a valid CMS signature after creation.",
+                            "The " + profile + " VBA signature was not present after creation.",
                             profile));
                         return SigningResult(fullPath, true, false, false, null, findings);
                     }
                     findings.Add(Finding("Macro" + profile + "SignatureCreated",
                         WordSignatureValidationState.Passed,
-                        "The " + profile + " VBA signature was created and verified before the next profile.", profile));
+                        "The " + profile + " VBA signature was created and discovered before the next profile.", profile));
                 }
 
                 validationSnapshotPath = OfficeFileCommit.CreateStagingPath(fullPath);
