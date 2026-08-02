@@ -101,13 +101,18 @@ namespace OfficeIMO.Tests {
                 "Primary", new[] { slide });
             CustomShowList list = presentation.OpenXmlDocument.PresentationPart!
                 .Presentation!.CustomShowList!;
-            list.Append(new CustomShow {
+            var duplicate = new CustomShow {
                 Id = show.Id,
                 Name = "Duplicate",
                 SlideList = new SlideList(new SlideListEntry {
                     Id = "rUnresolved"
                 })
-            });
+            };
+            duplicate.Append(new SlideList(new SlideListEntry {
+                Id = presentation.OpenXmlDocument.PresentationPart!
+                    .GetIdOfPart(slide.SlidePart)
+            }));
+            list.Append(duplicate);
             list.Append(new OpenXmlUnknownElement("p14", "extLst",
                 "http://schemas.microsoft.com/office/powerpoint/2010/main"));
 
@@ -121,6 +126,8 @@ namespace OfficeIMO.Tests {
                 "duplicates identifier", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(finding.Details, detail => detail.Contains(
                 "unresolved slide relationship", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(finding.Details, detail => detail.Contains(
+                "exactly one", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(finding.Details, detail => detail.Contains(
                 "extension", StringComparison.OrdinalIgnoreCase));
             Assert.Throws<InvalidOperationException>(() =>

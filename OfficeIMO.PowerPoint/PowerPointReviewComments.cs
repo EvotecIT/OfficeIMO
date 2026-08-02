@@ -608,6 +608,40 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        internal void GetCommentAuthorIdsForSlideRemoval(
+            PowerPointSlide slide, out uint[] classicAuthorIds,
+            out string[] modernAuthorIds) {
+            classicAuthorIds = slide.SlidePart.SlideCommentsPart?.CommentList?
+                .Elements<P.Comment>()
+                .Where(comment => comment.AuthorId?.Value != null)
+                .Select(comment => comment.AuthorId!.Value)
+                .Distinct()
+                .ToArray() ?? Array.Empty<uint>();
+            modernAuthorIds = slide.SlidePart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointCommentPart>()
+                .SelectMany(part => part.CommentList?.Elements<P188.Comment>()
+                    ?? Enumerable.Empty<P188.Comment>())
+                .SelectMany(comment => new[] { comment.AuthorId?.Value }
+                    .Concat(comment.Descendants<P188.CommentReply>()
+                        .Select(reply => reply.AuthorId?.Value)))
+                .Where(authorId => !string.IsNullOrWhiteSpace(authorId))
+                .Select(authorId => authorId!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        internal void ReconcileCommentAuthorsAfterSlideRemoval(
+            IEnumerable<uint> classicAuthorIds,
+            IEnumerable<string> modernAuthorIds) {
+            foreach (uint authorId in classicAuthorIds) {
+                RemoveClassicCommentAuthorIfUnused(authorId);
+            }
+            foreach (string authorId in modernAuthorIds) {
+                RemoveModernCommentAuthorIfUnused(authorId);
+            }
+        }
+
         internal static P188.TextBodyType CreateModernCommentTextBody(string text) {
             var body = new P188.TextBodyType(new A.BodyProperties(),
                 new A.ListStyle());

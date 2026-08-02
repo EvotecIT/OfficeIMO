@@ -818,11 +818,8 @@ namespace OfficeIMO.Tests {
             return new A.CustomGeometry(
                 new A.PathList(
                     new A.Path(
-                        new A.MoveTo(new A.Point { X = "10000", Y = "10000" }),
-                        new A.LineTo(new A.Point { X = "90000", Y = "10000" }),
-                        new A.LineTo(new A.Point { X = "90000", Y = "40000" }),
-                        new A.LineTo(new A.Point { X = "10000", Y = "40000" }),
-                        new A.CloseShapePath()) {
+                        new A.MoveTo(new A.Point { X = "10000", Y = "20000" }),
+                        new A.LineTo(new A.Point { X = "90000", Y = "20000" })) {
                         Width = 100000L,
                         Height = 100000L,
                         Fill = A.PathFillModeValues.None,

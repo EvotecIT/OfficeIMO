@@ -281,7 +281,8 @@ public sealed class OfficeShape {
 
         double occupiedWidth = maxX - minX;
         double occupiedHeight = maxY - minY;
-        if (occupiedWidth <= 0 || occupiedHeight <= 0) {
+        if ((!canvasWidth.HasValue || !canvasHeight.HasValue)
+            && (occupiedWidth <= 0 || occupiedHeight <= 0)) {
             throw new ArgumentException("Path commands must describe a non-empty two-dimensional area.", nameof(commands));
         }
 

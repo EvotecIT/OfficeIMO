@@ -594,7 +594,11 @@ namespace OfficeIMO.PowerPoint {
                 if (show.ChildElements.Any(child => child is not SlideList)) {
                     details.Add(scope + " contains unsupported producer extension children.");
                 }
-                SlideList? slideList = show.GetFirstChild<SlideList>();
+                SlideList[] slideLists = show.Elements<SlideList>().ToArray();
+                if (slideLists.Length != 1) {
+                    details.Add(scope + $" contains {slideLists.Length} slide lists; exactly one is required.");
+                }
+                SlideList? slideList = slideLists.FirstOrDefault();
                 if (slideList == null) {
                     details.Add(scope + " has no slide list.");
                     continue;
@@ -1096,8 +1100,9 @@ namespace OfficeIMO.PowerPoint {
         private static bool HasUnsupportedCommentMarkup(OpenXmlPart part) {
             OpenXmlPartRootElement? root = part.RootElement;
             if (root == null) return true;
-            return root.Descendants().Any(element =>
-                element is OpenXmlUnknownElement
+            return EnumerateSelfAndDescendants(root).Any(element =>
+                element.ExtendedAttributes.Any()
+                || element is OpenXmlUnknownElement
                 || string.Equals(element.LocalName, "extLst",
                     StringComparison.Ordinal));
         }

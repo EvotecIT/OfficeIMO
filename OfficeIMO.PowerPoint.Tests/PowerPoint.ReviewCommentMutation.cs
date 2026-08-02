@@ -76,6 +76,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemovingCommentedSlideReconcilesClassicAndModernAuthors() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide removed = presentation.AddSlide();
+            PowerPointSlide retained = presentation.AddSlide();
+            var alice = new PowerPointCommentAuthor("Alice", "A");
+            var bob = new PowerPointCommentAuthor("Bob", "B");
+            presentation.AddClassicComment(removed, alice, "Removed first");
+            PowerPointClassicComment surviving = presentation.AddClassicComment(
+                retained, alice, "Surviving");
+            presentation.AddClassicComment(removed, alice, "Removed last");
+            PowerPointModernComment modern = presentation.AddModernComment(
+                removed, bob, "Modern removed");
+            modern.AddReply(alice, "Modern reply removed");
+
+            presentation.RemoveSlide(0);
+
+            Assert.Equal(surviving.Index,
+                GetClassicAuthor(presentation, "Alice").LastIndex!.Value);
+            Assert.Empty(presentation.OpenXmlDocument.PresentationPart!.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointAuthorsPart>());
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.NotEmpty(presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
         public void ClassicCommentMutation_ReusesFreeAuthorIdWhenMaximumIsOccupied() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();

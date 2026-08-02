@@ -112,6 +112,10 @@ namespace OfficeIMO.PowerPoint {
 
             SlideId slideId = slideIdList.Elements<SlideId>().ElementAt(index);
             string? relIdValue = PowerPointUtils.GetRelationshipIdValue(slideId);
+            PowerPointSlide removedSlide = _slides[index];
+            GetCommentAuthorIdsForSlideRemoval(removedSlide,
+                out uint[] removedClassicAuthorIds,
+                out string[] removedModernAuthorIds);
 
             _slides.RemoveAt(index);
             slideId.Remove();
@@ -154,6 +158,9 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointEmbeddedSound.RemoveUnreferencedMediaDataParts(
                     _document!, referencedMedia);
             }
+
+            ReconcileCommentAuthorsAfterSlideRemoval(
+                removedClassicAuthorIds, removedModernAuthorIds);
 
             SyncSectionsWithSlides();
             PresentationRoot.Save();
