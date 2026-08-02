@@ -231,11 +231,20 @@ namespace OfficeIMO.Word {
                     options.CmsVerification,
                     operationBudget.TimestampBudget,
                     CertificateValidationPurpose.DocumentSigning);
-            CmsSignerVerificationResult? signer = cms.Signers.FirstOrDefault();
+            bool hasSingleSigner = cms.Signers.Count == 1;
+            if (!hasSingleSigner) {
+                findings.Add(Finding(
+                    "MacroSignatureSignerCountInvalid",
+                    WordSignatureValidationState.Failed,
+                    "A VBA signature profile must contain exactly one CMS signer; the container declares " +
+                    cms.Signers.Count + ".",
+                    profile));
+            }
+            CmsSignerVerificationResult? signer = hasSingleSigner ? cms.Signers[0] : null;
             foreach (SecurityFinding finding in cms.Findings.Concat(cms.Signers.SelectMany(item => item.Findings))) {
                 findings.Add(Finding(finding.Code, Map(finding.Severity), finding.Message, profile));
             }
-            WordSignatureValidationState crypto = cms.IsCryptographicallyValid
+            WordSignatureValidationState crypto = hasSingleSigner && cms.IsCryptographicallyValid
                 ? WordSignatureValidationState.Passed
                 : WordSignatureValidationState.Failed;
             WordSignatureValidationState chain = signer == null

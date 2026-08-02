@@ -309,6 +309,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_DatePicturePreservesQuotedAndEscapedMeridiemLiterals() {
+            using WordDocument document = WordDocument.Create();
+            Body body = document._document.MainDocumentPart!.Document.Body!;
+            body.Append(
+                new Paragraph(new SimpleField(new Run(new Text("quoted"))) {
+                    Instruction = " MERGEFIELD Quoted \\@ \"h:mm 'A/P' A/P\" "
+                }),
+                new Paragraph(new SimpleField(new Run(new Text("escaped"))) {
+                    Instruction = " MERGEFIELD Escaped \\@ \"h:mm \\A\\/P A/P\" "
+                }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> {
+                    ["Quoted"] = "2026-07-31T22:00:00+02:00",
+                    ["Escaped"] = "2026-07-31T22:00:00+02:00"
+                });
+
+            Assert.All(report.Fields, result => {
+                Assert.Equal(WordMailMergeFieldStatus.Merged, result.Status);
+                Assert.Equal("10:00 A/P P", result.Value);
+            });
+        }
+
+        [Fact]
         public void Test_MailMerge_ExecutionReportIgnoresOrdinaryWordFields() {
             using WordDocument document = WordDocument.Create();
             Body body = document._document.MainDocumentPart!.Document.Body!;

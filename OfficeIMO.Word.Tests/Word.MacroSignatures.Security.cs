@@ -93,6 +93,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MacroSignatureInspectorRejectsMultiSignerCmsContainers() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureMultipleSigners.docm");
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            byte[] encoded = CreateAuthenticodeCms(WordMacroProjectSignatureProfile.V3, certificate);
+            var signedData = new Org.BouncyCastle.Cms.CmsSignedData(encoded);
+            Org.BouncyCastle.Cms.SignerInformation signer =
+                signedData.GetSignerInfos().GetSigners().Single();
+            Org.BouncyCastle.Cms.CmsSignedData multiSigner = Org.BouncyCastle.Cms.CmsSignedData.ReplaceSigners(
+                signedData,
+                new Org.BouncyCastle.Cms.SignerInformationStore(new[] { signer, signer }));
+            Assert.Equal(2, multiSigner.GetSignerInfos().GetSigners().Count);
+            AddRawMacroSignatureProfile(
+                filePath,
+                WordMacroProjectSignatureProfile.V3,
+                CreateMacroSignatureContainer(multiSigner.GetEncoded()));
+            WordMacroProjectSignatureInspectionOptions options = CreateMacroSignatureInspectionOptions();
+            options.CmsVerification.MaxSigners = 2;
+
+            WordMacroProjectSignaturePartInfo signature = Assert.Single(
+                WordDocument.InspectMacroProjectSignatures(filePath, options).Signatures);
+
+            Assert.True(signature.CmsParsed);
+            Assert.Equal(WordSignatureValidationState.Failed, signature.CryptographicStatus);
+            Assert.Null(signature.SignerThumbprint);
+            Assert.Contains(signature.Findings, finding =>
+                finding.Code == "MacroSignatureSignerCountInvalid" &&
+                finding.State == WordSignatureValidationState.Failed);
+        }
+
+        [Fact]
         public void MacroSigningRejectsReplacementOfTheValidatedStagingPath() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignatureReplacedStage.docm");
             byte[] originalBytes = File.ReadAllBytes(filePath);

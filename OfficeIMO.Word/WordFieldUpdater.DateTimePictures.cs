@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
+using System.Text;
 
 namespace OfficeIMO.Word {
     internal static partial class WordFieldUpdater {
@@ -88,16 +88,40 @@ namespace OfficeIMO.Word {
         }
 
         private static string NormalizeDateTimeFormat(string format) {
-            string normalized = Regex.Replace(
-                format,
-                "am/pm",
-                "tt",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-            return Regex.Replace(
-                normalized,
-                "a/p",
-                "t",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            var normalized = new StringBuilder(format.Length);
+            char quote = '\0';
+            for (int index = 0; index < format.Length;) {
+                char current = format[index];
+                if (current == '\\' && index + 1 < format.Length) {
+                    normalized.Append(current);
+                    normalized.Append(format[index + 1]);
+                    index += 2;
+                    continue;
+                }
+                if (current == '\'' || current == '"') {
+                    quote = quote == '\0' ? current : quote == current ? '\0' : quote;
+                    normalized.Append(current);
+                    index++;
+                    continue;
+                }
+                if (quote == '\0' && MatchesDateTimeToken(format, index, "am/pm")) {
+                    normalized.Append("tt");
+                    index += "am/pm".Length;
+                    continue;
+                }
+                if (quote == '\0' && MatchesDateTimeToken(format, index, "a/p")) {
+                    normalized.Append('t');
+                    index += "a/p".Length;
+                    continue;
+                }
+                normalized.Append(current);
+                index++;
+            }
+            return normalized.ToString();
         }
+
+        private static bool MatchesDateTimeToken(string format, int index, string token) =>
+            index + token.Length <= format.Length &&
+            string.Compare(format, index, token, 0, token.Length, StringComparison.OrdinalIgnoreCase) == 0;
     }
 }
