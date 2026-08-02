@@ -47,7 +47,7 @@ public sealed class EmailStoreContentQuery {
             throw new ArgumentException("A content-search term cannot exceed 1,024 characters.", nameof(terms));
         }
 
-        Terms = normalized;
+        Terms = Array.AsReadOnly(normalized);
         Fields = fields;
         MatchMode = matchMode;
         MetadataFilter = metadataFilter;
@@ -59,6 +59,7 @@ public sealed class EmailStoreContentQuery {
         ProgressInterval = progressInterval;
         ContinueOnItemError = continueOnItemError;
         ResumeFrom = resumeFrom;
+        Signature = CreateSignature();
     }
 
     /// <summary>Case-insensitive terms.</summary>
@@ -85,4 +86,38 @@ public sealed class EmailStoreContentQuery {
     public bool ContinueOnItemError { get; }
     /// <summary>Optional checkpoint from a previous batch.</summary>
     public EmailStoreContentSearchCheckpoint? ResumeFrom { get; }
+
+    internal string Signature { get; }
+
+    private string CreateSignature() {
+        EmailStoreQuery? filter = MetadataFilter;
+        var value = new StringBuilder("OfficeIMO.EmailStoreContentQuery.v2");
+        AppendSignatureField(value, Terms.Count.ToString(CultureInfo.InvariantCulture));
+        foreach (string term in Terms) AppendSignatureField(value, term);
+        AppendSignatureField(value, ((int)Fields).ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, ((int)MatchMode).ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, filter?.FolderId);
+        AppendSignatureField(value, filter?.IncludeDescendants.ToString());
+        AppendSignatureField(value, filter?.IncludeAssociatedItems.ToString());
+        AppendSignatureField(value, filter?.IncludeOrphanedItems.ToString());
+        AppendSignatureField(value, filter?.ItemKind?.ToString());
+        AppendSignatureField(value, filter?.SubjectContains);
+        AppendSignatureField(value, filter?.SenderContains);
+        AppendSignatureField(value, filter?.Since?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        AppendSignatureField(value, filter?.Before?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        AppendSignatureField(value, filter?.HasAttachments?.ToString());
+        AppendSignatureField(value, filter?.IsRead?.ToString());
+        AppendSignatureField(value, MaxDecodedPropertyBytesPerItem.ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, MaxSearchableCharactersPerItem.ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, SnippetCharacters.ToString(CultureInfo.InvariantCulture));
+        AppendSignatureField(value, ContinueOnItemError.ToString());
+        return EmailHashing.ComputeSha256HexLower(value.ToString());
+    }
+
+    private static void AppendSignatureField(StringBuilder builder, string? value) {
+        value ??= string.Empty;
+        builder.Append(value.Length.ToString(CultureInfo.InvariantCulture));
+        builder.Append(':');
+        builder.Append(value);
+    }
 }

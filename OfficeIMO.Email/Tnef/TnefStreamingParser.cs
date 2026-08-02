@@ -7,23 +7,27 @@ internal sealed class TnefStreamingParser {
     private readonly IList<EmailDiagnostic> _diagnostics;
     private readonly CancellationToken _cancellationToken;
     private readonly EmailReadWorkspace _workspace;
+    private readonly EmailProcessingBudget _budget;
     private readonly List<ExternalAttribute> _external = new List<ExternalAttribute>();
     private long _totalAttachmentBytes;
 
     private TnefStreamingParser(Stream input, EmailReaderOptions options,
-        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace) {
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace,
+        EmailProcessingBudget budget) {
         _input = input;
         _options = options;
         _diagnostics = diagnostics;
         _cancellationToken = cancellationToken;
         _workspace = workspace;
+        _budget = budget;
     }
 
     internal static EmailDocument Parse(Stream input, EmailReaderOptions options,
-        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace) {
-        var parser = new TnefStreamingParser(input, options, diagnostics, cancellationToken, workspace);
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace,
+        EmailProcessingBudget budget) {
+        var parser = new TnefStreamingParser(input, options, diagnostics, cancellationToken, workspace, budget);
         byte[] skeleton = parser.CreateSkeleton();
-        EmailDocument document = TnefReader.Read(skeleton, options, diagnostics, cancellationToken);
+        EmailDocument document = TnefReader.Read(skeleton, options, diagnostics, cancellationToken, budget);
         parser.ApplyExternalContent(document);
         return document;
     }
@@ -78,7 +82,10 @@ internal sealed class TnefStreamingParser {
 
     private void Externalize(Stream skeleton, int attachmentIndex, long dataStart, uint length,
         long checksumOffset) {
-        EnsureAttachmentLimits(length);
+        if (length > _options.MaxAttachmentBytes) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentBytes), length,
+                _options.MaxAttachmentBytes);
+        }
         string? path = _options.IncludeAttachmentContent ? _workspace.CreateContentPath() : null;
         ushort checksum = 0;
         try {
@@ -126,7 +133,9 @@ internal sealed class TnefStreamingParser {
     }
 
     private void ApplyExternalContent(EmailDocument document) {
-        foreach (ExternalAttribute external in _external) {
+        foreach (ExternalAttribute external in _external
+            .GroupBy(item => item.AttachmentIndex)
+            .Select(group => group.Last())) {
             if (external.AttachmentIndex < 0 || external.AttachmentIndex >= document.Attachments.Count) {
                 _diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_STREAMING_ATTACHMENT_MAP_FAILED",
                     "A streamed TNEF attachment could not be mapped back to the projected document.",
@@ -134,6 +143,11 @@ internal sealed class TnefStreamingParser {
                 continue;
             }
             EmailAttachment attachment = document.Attachments[external.AttachmentIndex];
+            MapiProperty? mapiContent = attachment.Mapi.Find(MapiKnownProperties.PidTag.AttachData);
+            if (mapiContent != null) {
+                continue;
+            }
+            EnsureAttachmentLimits(external.Length);
             attachment.Content = null;
             attachment.ContentSource = external.Source;
             attachment.Length = external.Length;
@@ -151,6 +165,7 @@ internal sealed class TnefStreamingParser {
                 _options.MaxTotalAttachmentBytes);
         }
         _totalAttachmentBytes = total;
+        _budget.CountAttachmentBytes(length);
     }
 
     private void CopyRange(long start, long end, Stream output) {

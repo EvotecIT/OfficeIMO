@@ -6,6 +6,7 @@ namespace OfficeIMO.Examples.Google {
             string? serviceAccountJsonPath = Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON_PATH");
             string? serviceAccountJson = Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON");
             string? accessToken = Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_ACCESS_TOKEN");
+            string? expectedAccount = Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_ACCOUNT");
 
             var sessionOptions = new GoogleWorkspaceSessionOptions {
                 ApplicationName = "OfficeIMO.Examples",
@@ -13,6 +14,7 @@ namespace OfficeIMO.Examples.Google {
                 DefaultFolderId = Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_FOLDER_ID"),
                 SubjectUser = Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_SUBJECT_USER"),
                 UseDomainWideDelegation = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GOOGLE_WORKSPACE_SUBJECT_USER")),
+                ExpectedAccount = expectedAccount,
                 MaxRetryCount = 5,
                 RetryBaseDelay = TimeSpan.FromMilliseconds(250),
                 RetryMaxDelay = TimeSpan.FromSeconds(10),
@@ -36,14 +38,14 @@ namespace OfficeIMO.Examples.Google {
             }
 
             return new GoogleWorkspaceSession(
-                new StaticAccessTokenCredentialSource(accessToken),
+                new StaticAccessTokenCredentialSource(accessToken, null, null, expectedAccount),
                 sessionOptions);
         }
 
         public static void PrintMissingTokenMessage() {
             Console.WriteLine("Skipping Google export because no Google credential source environment variable is set.");
             Console.WriteLine("Use GOOGLE_WORKSPACE_ACCESS_TOKEN, GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON, or GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON_PATH.");
-            Console.WriteLine("Optional environment variables: GOOGLE_WORKSPACE_FOLDER_ID, GOOGLE_WORKSPACE_DRIVE_ID, and GOOGLE_WORKSPACE_SUBJECT_USER.");
+            Console.WriteLine("Raw static tokens are unverified and read-only; use a credential source backed by provider identity and grant evidence for mutations.");
         }
 
         public static void PrintExportFailure(GoogleWorkspaceExportException exception) {

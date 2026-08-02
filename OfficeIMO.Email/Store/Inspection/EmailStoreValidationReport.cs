@@ -12,7 +12,7 @@ public sealed class EmailStoreValidationReport {
         ItemsFailed = itemsFailed;
         OrphanedItems = orphanedItems;
         WasTruncated = wasTruncated;
-        Diagnostics = diagnostics;
+        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
         StructuralIntegrityRequested = structuralIntegrityRequested;
         StructuralIntegritySupported = structural?.Supported == true;
         StructuralPagesExamined = structural?.PagesExamined ?? 0;

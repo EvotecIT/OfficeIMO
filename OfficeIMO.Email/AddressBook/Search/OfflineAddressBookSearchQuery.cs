@@ -47,7 +47,7 @@ public sealed class OfflineAddressBookSearchQuery {
             throw new ArgumentException("An address-book search term cannot exceed 1,024 characters.", nameof(terms));
         }
 
-        Terms = normalized;
+        Terms = Array.AsReadOnly(normalized);
         Fields = fields;
         MatchMode = matchMode;
         AddressListId = string.IsNullOrWhiteSpace(addressListId) ? null : addressListId;
@@ -59,6 +59,19 @@ public sealed class OfflineAddressBookSearchQuery {
         ProgressInterval = progressInterval;
         ContinueOnEntryError = continueOnEntryError;
         ResumeFrom = resumeFrom;
+        var signatureMaterial = new StringBuilder("OfficeIMO.OAB.SearchQuery.v2");
+        AppendSignatureValue(signatureMaterial, Terms.Count.ToString(CultureInfo.InvariantCulture));
+        foreach (string term in Terms) {
+            AppendSignatureValue(signatureMaterial, term);
+        }
+        AppendSignatureValue(signatureMaterial, ((int)Fields).ToString(CultureInfo.InvariantCulture));
+        AppendSignatureValue(signatureMaterial, ((int)MatchMode).ToString(CultureInfo.InvariantCulture));
+        AppendSignatureValue(signatureMaterial, AddressListId ?? string.Empty);
+        AppendSignatureValue(signatureMaterial, ObjectType?.ToString() ?? string.Empty);
+        AppendSignatureValue(signatureMaterial, MaxSearchableCharactersPerEntry.ToString(CultureInfo.InvariantCulture));
+        AppendSignatureValue(signatureMaterial, SnippetCharacters.ToString(CultureInfo.InvariantCulture));
+        AppendSignatureValue(signatureMaterial, ContinueOnEntryError.ToString());
+        Signature = EmailHashing.ComputeSha256HexLower(signatureMaterial.ToString());
     }
 
     /// <summary>Case-insensitive terms.</summary>
@@ -85,4 +98,12 @@ public sealed class OfflineAddressBookSearchQuery {
     public bool ContinueOnEntryError { get; }
     /// <summary>Optional exact-position checkpoint from an earlier batch on the same session snapshot.</summary>
     public OfflineAddressBookSearchCheckpoint? ResumeFrom { get; }
+    internal string Signature { get; }
+
+    private static void AppendSignatureValue(StringBuilder builder, string value) {
+        builder.Append('|')
+            .Append(value.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(':')
+            .Append(value);
+    }
 }

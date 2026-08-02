@@ -1,10 +1,12 @@
 namespace OfficeIMO.Email;
 
 internal sealed class MsgParserState {
-    internal MsgParserState(EmailReaderOptions options, IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken) {
+    internal MsgParserState(EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
+        CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
         Options = options;
         Diagnostics = diagnostics;
         CancellationToken = cancellationToken;
+        Budget = budget ?? new EmailProcessingBudget(options);
     }
 
     internal EmailReaderOptions Options { get; }
@@ -12,6 +14,8 @@ internal sealed class MsgParserState {
     internal IList<EmailDiagnostic> Diagnostics { get; }
 
     internal CancellationToken CancellationToken { get; }
+
+    internal EmailProcessingBudget Budget { get; }
 
     internal int PropertyCount { get; private set; }
 
@@ -27,59 +31,38 @@ internal sealed class MsgParserState {
 
     internal void CountProperty(int bytes) {
         ThrowIfCancellationRequested();
+        Budget.CountProperty(bytes);
         PropertyCount++;
-        if (PropertyCount > Options.MaxMapiPropertyCount) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMapiPropertyCount),
-                PropertyCount, Options.MaxMapiPropertyCount);
-        }
-        CountDecodedBytes(bytes);
+        DecodedPropertyBytes = checked(DecodedPropertyBytes + bytes);
     }
 
     internal void CountDecodedBytes(int bytes) {
         ThrowIfCancellationRequested();
-        EnsureDecodedPropertyBytesWithinLimits(bytes);
+        Budget.CountDecodedPropertyBytes(bytes);
         DecodedPropertyBytes = checked(DecodedPropertyBytes + bytes);
     }
 
     internal void EnsureDecodedPropertyBytesWithinLimits(long bytes) {
         ThrowIfCancellationRequested();
-        long total = checked(DecodedPropertyBytes + bytes);
-        if (total > Options.MaxDecodedPropertyBytes) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxDecodedPropertyBytes),
-                total, Options.MaxDecodedPropertyBytes);
-        }
+        Budget.EnsureDecodedPropertyBytes(bytes);
     }
 
     internal void CountAttachment(long bytes) {
         ThrowIfCancellationRequested();
+        Budget.CountAttachment(bytes);
         AttachmentCount++;
-        if (AttachmentCount > Options.MaxAttachmentCount) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentCount),
-                AttachmentCount, Options.MaxAttachmentCount);
-        }
-        EnsureAttachmentBytesWithinLimits(bytes);
         TotalAttachmentBytes = checked(TotalAttachmentBytes + bytes);
     }
 
     internal void EnsureAttachmentBytesWithinLimits(long bytes, long pendingTotalBytes = 0) {
         ThrowIfCancellationRequested();
-        if (bytes > Options.MaxAttachmentBytes) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentBytes), bytes, Options.MaxAttachmentBytes);
-        }
-        long total = checked(TotalAttachmentBytes + pendingTotalBytes + bytes);
-        if (total > Options.MaxTotalAttachmentBytes) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxTotalAttachmentBytes),
-                total, Options.MaxTotalAttachmentBytes);
-        }
+        Budget.EnsureAttachmentBytes(bytes, pendingTotalBytes);
     }
 
     internal void CountTnefAttribute() {
         ThrowIfCancellationRequested();
+        Budget.CountTnefAttribute();
         TnefAttributeCount++;
-        if (TnefAttributeCount > Options.MaxTnefAttributeCount) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxTnefAttributeCount),
-                TnefAttributeCount, Options.MaxTnefAttributeCount);
-        }
     }
 
     internal void ThrowIfCancellationRequested() {

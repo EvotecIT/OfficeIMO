@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    { "id": "msgreader", "producer": "Microsoft Outlook data represented by MSGReader samples", "repository": "Sicos1977/MSGReader", "license": "MPL-2.0", "environmentRoot": "OFFICEIMO_EMAIL_CORPUS_ROOT", "repositoryFolder": "MSGReader", "requiredFormats": ["eml", "msg"], "executionStatus": "live-opt-in", "artifactEvidence": ["relativePath", "sha256", "semanticOracleResult"], "oracle": "MSGReader plus OfficeIMO strict semantic round-trip" },
+    { "id": "mimekit", "producer": "MIME, TNEF and mbox samples from MimeKit", "repository": "jstedfast/MimeKit", "license": "MIT", "environmentRoot": "OFFICEIMO_EMAIL_CORPUS_ROOT", "repositoryFolder": "MimeKit", "requiredFormats": ["eml", "tnef", "mbox"], "executionStatus": "live-opt-in", "artifactEvidence": ["relativePath", "sha256", "semanticOracleResult"], "oracle": "MimeKit plus OfficeIMO strict semantic round-trip" },
+    { "id": "private-outlook", "producer": "Caller-owned real Outlook stores", "repository": null, "license": "caller-controlled", "environmentRoot": "OFFICEIMO_EMAIL_STORE_CORPUS", "repositoryFolder": null, "requiredFormats": ["pst", "ost"], "executionStatus": "live-opt-in", "artifactEvidence": ["relativePath", "sha256", "producer", "expectedSemanticResult"], "oracle": "OfficeIMO bounded validation, raw-MAPI strict comparison and source-preserving rewrite verification" }
+  ]
+}

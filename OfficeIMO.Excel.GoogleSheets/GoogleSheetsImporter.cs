@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 .ConfigureAwait(false);
             string uri = BuildNativeReadUri(spreadsheetId, options);
             GoogleSheetsNativeSpreadsheet spreadsheet;
-            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var transport = new GoogleWorkspaceHttpTransport(session)) {
                 spreadsheet = await transport.SendJsonAsync<GoogleSheetsNativeSpreadsheet>(
                     token.AccessToken,
                     HttpMethod.Get,

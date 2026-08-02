@@ -153,7 +153,11 @@ namespace OfficeIMO.GoogleWorkspace {
                 ? scopes
                 : grantedScope!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-            return new GoogleWorkspaceAccessToken(accessToken!, expiresAt, grantedScopes);
+            string account = UseDomainWideDelegation && !string.IsNullOrWhiteSpace(SubjectUser)
+                ? SubjectUser!
+                : ClientEmail;
+            return GoogleWorkspaceAccessToken.FromVerifiedCredential(accessToken!, expiresAt,
+                new GoogleWorkspaceCredentialBinding(account, grantedScopes));
         }
 
         private string CreateSignedJwtAssertion(IReadOnlyList<string> scopes, DateTimeOffset now) {

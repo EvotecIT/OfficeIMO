@@ -7,8 +7,8 @@ internal static class TnefReader {
     private static readonly Guid IidStorage = new Guid("0000000B-0000-0000-C000-000000000046");
 
     internal static EmailDocument Read(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
-        CancellationToken cancellationToken) {
-        var state = new MsgParserState(options, diagnostics, cancellationToken);
+        CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
+        var state = new MsgParserState(options, diagnostics, cancellationToken, budget);
         return ReadMessage(data, state, 0, "tnef");
     }
 

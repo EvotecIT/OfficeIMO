@@ -62,6 +62,7 @@ $allProjects = @(Get-ChildItem -LiteralPath $RepositoryRoot -Recurse -File -Filt
     Where-Object {
         $relativeProjectPath = [System.IO.Path]::GetRelativePath($RepositoryRoot, $_.FullName).Replace('\', '/')
         $relativeProjectPath -notmatch '(^|/)(?:bin|obj)(?:/|$)' -and
+            $relativeProjectPath -notmatch '(^|/)(?:\.ci-artifacts|\.playwright-cli|artifacts|_worktrees)(?:/|$)' -and
             $relativeProjectPath -notmatch '^Website/projects/'
     })
 

@@ -85,12 +85,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 ## Email, stores, and cloud adapters
 
-- [ ] Harden untrusted EML, MSG, TNEF, PST/OST, OLM, OAB, calendar, and contact processing with aggregate limits, cancellation, malformed-input corpora, and actionable diagnostics.
-- [ ] Expand real Outlook-data producer coverage, stable paging/checkpoints, semantic comparison, repair planning, and preservation of unknown MAPI values.
-- [ ] Keep mail transport and server operations outside the persisted-artifact engine while sharing security primitives through `OfficeIMO.Security`.
-- [ ] Extend Google Workspace translation, synchronization, conflict policy, resumable transfer, and guarded mutation while keeping Google client SDKs optional.
-- [ ] Define optional OneNote cloud transport only when account, scope, revision, retry, and data-loss policy can remain outside the local file engine.
-- [ ] Prove cloud adapters with explicit account, scope, revision, retry, rate-limit, and data-loss policies rather than hidden convenience behavior.
+- [ ] Decide whether and when to add optional OneNote cloud transport. Any design must preserve native `.one` as the local-file goal, keep account/scope/revision/retry/data-loss policy outside `OfficeIMO.OneNote`, avoid implying that HTML projection is native `.one` fidelity, and not depend on GraphEssentialsX unless its eventual license is compatible with this repository.
 
 ## Browser and agent surfaces
 

@@ -190,10 +190,10 @@ public sealed class ReaderOcrCoreTests {
     [Fact]
     public async Task ApplyOcrAsync_PreservesTimeoutsBeyondTheSignedWaitBoundary() {
         OfficeDocumentReadResult source = CreateDocument(1);
-        using var providerStarted = new ManualResetEventSlim(false);
+        var providerStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cancellation = new CancellationTokenSource();
         var engine = new DelegateOfficeOcrEngine("long-timeout-fixture", async (_, cancellationToken) => {
-            providerStarted.Set();
+            providerStarted.TrySetResult(null);
             await Task.Delay(Timeout.Infinite, cancellationToken);
             return new OfficeOcrEngineResult { Text = "late" };
         });
@@ -202,7 +202,8 @@ public sealed class ReaderOcrCoreTests {
             engine,
             new OfficeDocumentOcrExecutionOptions { CandidateTimeout = TimeSpan.FromDays(30) },
             cancellation.Token);
-        Assert.True(providerStarted.Wait(TimeSpan.FromSeconds(10)));
+        Task started = await Task.WhenAny(providerStarted.Task, Task.Delay(TimeSpan.FromSeconds(30)));
+        Assert.Same(providerStarted.Task, started);
 
         cancellation.Cancel();
 

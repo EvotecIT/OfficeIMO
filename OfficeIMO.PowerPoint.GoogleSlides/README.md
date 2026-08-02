@@ -23,9 +23,25 @@ PowerPointSlide slide = deck.AddSlide();
 slide.AddTextBoxPoints("Quarterly review", 30, 40, 500, 80);
 slide.Notes.Text = "Mention the year-over-year comparison.";
 
+var receipts = new List<GoogleWorkspaceOperationReceipt>();
+var sessionOptions = new GoogleWorkspaceSessionOptions {
+    ExpectedAccount = "service-account@project.iam.gserviceaccount.com",
+    DefaultFolderId = "reports-folder-id",
+    OperationReceiptSink = receipts.Add,
+};
+sessionOptions.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+    sessionOptions.ExpectedAccount!, context.RequiredScopes, context.Target,
+    context.RevisionPreconditionKind switch {
+        GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+        GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+        GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState => context.AdapterExpectedRevision!,
+        GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("API exposes no conditional revision"),
+        _ => "\"observed-google-etag\"",
+    }, context.MaxRetryCount, context.MaxRetryElapsedTime, context.RateLimitPolicy,
+    GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
 var session = new GoogleWorkspaceSession(
-    new StaticAccessTokenCredentialSource("<google-access-token>"),
-    new GoogleWorkspaceSessionOptions { DefaultFolderId = "reports-folder-id" });
+    GoogleServiceAccountCredentialSource.FromFile("service-account.json", sessionOptions),
+    sessionOptions);
 
 var options = new GoogleSlidesSaveOptions { Title = "Quarterly review" };
 GoogleSlidesTranslationPlan plan = deck.BuildGoogleSlidesPlan(options);

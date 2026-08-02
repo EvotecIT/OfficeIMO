@@ -134,10 +134,10 @@ namespace OfficeIMO.Tests {
                 requests.Add(request.Method.Method + " " + request.RequestUri!.AbsoluteUri);
                 if (request.Method == HttpMethod.Post && request.RequestUri.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
                     HttpResponseMessage response = Json("{}");
-                    response.Headers.Location = new Uri("https://upload.example.test/temporary-large");
+                    response.Headers.Location = new Uri("https://upload.googleapis.com/temporary-large");
                     return Task.FromResult(response);
                 }
-                if (request.Method == HttpMethod.Put && request.RequestUri.AbsoluteUri == "https://upload.example.test/temporary-large") {
+                if (request.Method == HttpMethod.Put && request.RequestUri.AbsoluteUri == "https://upload.googleapis.com/temporary-large") {
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Created) {
                         Content = new StringContent("{\"id\":\"temporary-large\",\"name\":\"large.png\",\"mimeType\":\"image/png\"}", Encoding.UTF8, "application/json")
                     });
@@ -170,11 +170,11 @@ namespace OfficeIMO.Tests {
             using var httpClient = new HttpClient(new FakeHandler(async request => {
                 if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
                     var response = Json("{}");
-                    response.Headers.Location = new Uri("https://upload.example.test/session-1");
+                    response.Headers.Location = new Uri("https://upload.googleapis.com/session-1");
                     return response;
                 }
 
-                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.example.test/session-1") {
+                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.googleapis.com/session-1") {
                     string range = request.Content!.Headers.GetValues("Content-Range").Single();
                     ranges.Add(range);
                     _ = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
@@ -223,11 +223,11 @@ namespace OfficeIMO.Tests {
             using var httpClient = new HttpClient(new FakeHandler(async request => {
                 if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
                     var response = Json("{}");
-                    response.Headers.Location = new Uri("https://upload.example.test/session-empty");
+                    response.Headers.Location = new Uri("https://upload.googleapis.com/session-empty");
                     return response;
                 }
 
-                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.example.test/session-empty") {
+                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.googleapis.com/session-empty") {
                     contentRange = request.Content!.Headers.GetValues("Content-Range").Single();
                     bodyLength = (await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false)).Length;
                     return new HttpResponseMessage(HttpStatusCode.Created) {
@@ -249,16 +249,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_DriveClient_ResumableUpload_RejectsUntrustedSessionUriBeforeSendingToken() {
+            int putRequests = 0;
+            using var httpClient = new HttpClient(new FakeHandler(request => {
+                if (request.Method == HttpMethod.Post) {
+                    var response = Json("{}");
+                    response.Headers.Location = new Uri("https://attacker.example/upload-session");
+                    return Task.FromResult(response);
+                }
+                putRequests++;
+                return Task.FromResult(NotFound());
+            }));
+            using var client = CreateClient(httpClient);
+
+            await Assert.ThrowsAsync<InvalidDataException>(() => client.UploadResumableAsync(
+                new byte[256 * 1024], new GoogleDriveUploadOptions { Name = "blocked.bin" }));
+
+            Assert.Equal(0, putRequests);
+        }
+
+        [Fact]
         public async Task Test_DriveClient_ResumableUpload_RepeatsChunkWhenRangeIsMissing() {
             var ranges = new List<string>();
             using var httpClient = new HttpClient(new FakeHandler(async request => {
                 if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
                     var response = Json("{}");
-                    response.Headers.Location = new Uri("https://upload.example.test/session-missing-range");
+                    response.Headers.Location = new Uri("https://upload.googleapis.com/session-missing-range");
                     return response;
                 }
 
-                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.example.test/session-missing-range") {
+                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.googleapis.com/session-missing-range") {
                     string range = request.Content!.Headers.GetValues("Content-Range").Single();
                     ranges.Add(range);
                     _ = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
@@ -306,11 +326,11 @@ namespace OfficeIMO.Tests {
             using var httpClient = new HttpClient(new FakeHandler(async request => {
                 if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
                     var response = Json("{}");
-                    response.Headers.Location = new Uri("https://upload.example.test/session-ambiguous");
+                    response.Headers.Location = new Uri("https://upload.googleapis.com/session-ambiguous");
                     return response;
                 }
 
-                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.example.test/session-ambiguous") {
+                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.googleapis.com/session-ambiguous") {
                     string range = request.Content!.Headers.GetValues("Content-Range").Single();
                     ranges.Add(range);
                     _ = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
@@ -477,6 +497,20 @@ namespace OfficeIMO.Tests {
                     HttpClient = httpClient,
                     MaxRetryCount = 1,
                     QuotaUser = quotaUser,
+                    ExpectedAccount = "test@example.com",
+                    OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                        "test@example.com", context.RequiredScopes, context.Target,
+                        context.RevisionPreconditionKind switch {
+                            GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                            GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+                            GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState => context.AdapterExpectedRevision!,
+                            GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test mutation"),
+                            _ => "\"test-etag\"",
+                        },
+                        context.MaxRetryCount, context.MaxRetryElapsedTime,
+                        context.RateLimitPolicy,
+                        GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss, "test mutation"),
+                    OperationReceiptSink = _ => { },
                 }));
         }
 
@@ -497,7 +531,9 @@ namespace OfficeIMO.Tests {
 
             public Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(IEnumerable<string> scopes, CancellationToken cancellationToken = default) {
                 LastScopes = scopes.ToArray();
-                return Task.FromResult(new GoogleWorkspaceAccessToken("token", DateTimeOffset.UtcNow.AddHours(1), LastScopes));
+                return Task.FromResult(GoogleWorkspaceAccessToken.FromVerifiedCredential("token",
+                    DateTimeOffset.UtcNow.AddHours(1),
+                    new GoogleWorkspaceCredentialBinding("test@example.com", LastScopes)));
             }
         }
 
