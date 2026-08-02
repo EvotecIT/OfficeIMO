@@ -1,5 +1,7 @@
 using System.IO.Compression;
+using System.IO.Packaging;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Experimental;
 using DocumentFormat.OpenXml.Packaging;
 
@@ -19,7 +21,11 @@ namespace OfficeIMO.Word {
                 sourcePackage,
                 options.MaxPackageParts,
                 "creating");
-            EnforceLegacyPendingRootSerializationBudgets(options);
+            Dictionary<Uri, byte[]> pendingRootPayloads = CaptureLegacyPendingRootPayloads(options);
+            Dictionary<string, byte[]> currentRelationships = BuildLegacySignatureSnapshotRelationships(
+                sourcePackage,
+                sourceParts,
+                options.MaxPartBytes);
             foreach (IPackagePart sourcePart in sourceParts) {
                 using Stream source = sourcePart.GetStream(FileMode.Open, FileAccess.Read);
                 if (source.CanSeek && source.Length > options.MaxPartBytes) {
@@ -41,39 +47,17 @@ namespace OfficeIMO.Word {
             }
             byte[] currentPackage = livePackageStream.ToArray();
             HashSet<Uri> unchangedSerializedRoots = FindUnchangedSignatureSnapshotRoots(
-                currentPackage,
+                pendingRootPayloads,
                 encodedPackage,
                 options.MaxPackageParts,
                 options.MaxPartBytes);
-            HashSet<string> unchangedRelationships = FindUnchangedSignatureSnapshotRelationships(
+            currentPackage = ApplyLegacySignatureSnapshotState(
                 currentPackage,
                 encodedPackage,
-                options.MaxPartBytes);
-            if (unchangedSerializedRoots.Count > 0 || unchangedRelationships.Count > 0) {
-                using var snapshot = new SignatureValidationSnapshotMemoryStream(options.MaxPackageBytes);
-                snapshot.Write(currentPackage, 0, currentPackage.Length);
-                snapshot.Position = 0;
-                using (var snapshotArchive = new ZipArchive(snapshot, ZipArchiveMode.Update, leaveOpen: true)) {
-                    using var restorationArchive = new ZipArchive(
-                        new MemoryStream(encodedPackage, writable: false),
-                        ZipArchiveMode.Read);
-                    foreach (Uri unchangedRootUri in unchangedSerializedRoots) {
-                        RestoreSignatureSnapshotEntry(
-                            snapshotArchive,
-                            restorationArchive,
-                            GetSignatureSnapshotEntryName(unchangedRootUri),
-                            options.MaxPartBytes);
-                    }
-                    foreach (string relationshipEntryName in unchangedRelationships) {
-                        RestoreSignatureSnapshotEntry(
-                            snapshotArchive,
-                            restorationArchive,
-                            relationshipEntryName,
-                            options.MaxPartBytes);
-                    }
-                }
-                currentPackage = snapshot.ToArray();
-            }
+                unchangedSerializedRoots,
+                currentRelationships,
+                options.MaxPartBytes,
+                options.MaxPackageBytes);
             EnforceLegacySignatureSnapshotPayloadBudgets(currentPackage, encodedPackage, options);
             return currentPackage;
         }
@@ -87,12 +71,15 @@ namespace OfficeIMO.Word {
             return livePackageStream;
         }
 
-        private void EnforceLegacyPendingRootSerializationBudgets(WordSignatureValidationOptions options) {
+        private Dictionary<Uri, byte[]> CaptureLegacyPendingRootPayloads(WordSignatureValidationOptions options) {
+            var payloads = new Dictionary<Uri, byte[]>();
             MainDocumentPart? mainPart = _wordprocessingDocument.MainDocumentPart;
             OpenXmlPartRootElement? mainRoot = mainPart?.IsRootElementLoaded == true
                 ? mainPart.RootElement
                 : null;
-            if (mainRoot != null) SerializeSignatureSnapshotRoot(mainRoot, options.MaxPartBytes);
+            if (mainPart != null && mainRoot != null) {
+                payloads[mainPart.Uri] = SerializeSignatureSnapshotRoot(mainRoot, options.MaxPartBytes);
+            }
             List<OpenXmlPart> reachableParts;
             try {
                 reachableParts = EnumerateSignatureSnapshotParts(
@@ -107,10 +94,58 @@ namespace OfficeIMO.Word {
                 if (part.IsRootElementLoaded &&
                     part.RootElement is OpenXmlPartRootElement root &&
                     !ReferenceEquals(root, mainRoot)) {
-                    SerializeSignatureSnapshotRoot(root, options.MaxPartBytes);
+                    payloads[part.Uri] = SerializeSignatureSnapshotRoot(root, options.MaxPartBytes);
                 }
             }
+            return payloads;
         }
+
+#pragma warning disable OOXML0001
+        private static Dictionary<string, byte[]> BuildLegacySignatureSnapshotRelationships(
+            IPackage package,
+            IReadOnlyList<IPackagePart> parts,
+            long maxPartBytes) {
+            var relationships = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            AddLegacySignatureSnapshotRelationships(
+                relationships,
+                "_rels/.rels",
+                package.Relationships,
+                maxPartBytes);
+            foreach (IPackagePart part in parts) {
+                if (part.Uri.OriginalString.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                AddLegacySignatureSnapshotRelationships(
+                    relationships,
+                    GetSignatureSnapshotRelationshipEntryName(part.Uri),
+                    part.Relationships,
+                    maxPartBytes);
+            }
+            return relationships;
+        }
+
+        private static void AddLegacySignatureSnapshotRelationships(
+            IDictionary<string, byte[]> destination,
+            string entryName,
+            IRelationshipCollection relationships,
+            long maxPartBytes) {
+            XNamespace packageRelationships = "http://schemas.openxmlformats.org/package/2006/relationships";
+            IPackageRelationship[] values = relationships
+                .OrderBy(relationship => relationship.Id, StringComparer.Ordinal)
+                .ToArray();
+            if (values.Length == 0) return;
+            var root = new XElement(packageRelationships + "Relationships",
+                values.Select(relationship =>
+                    new XElement(packageRelationships + "Relationship",
+                        new XAttribute("Id", relationship.Id),
+                        new XAttribute("Type", relationship.RelationshipType),
+                        new XAttribute("Target", relationship.TargetUri.ToString()),
+                        relationship.TargetMode == TargetMode.External
+                            ? new XAttribute("TargetMode", "External")
+                            : null)));
+            destination[entryName] = SerializeSignatureSnapshotXml(root, maxPartBytes);
+        }
+#pragma warning restore OOXML0001
 
         private static void RestoreSignatureSnapshotEntry(
             ZipArchive snapshotArchive,
@@ -126,62 +161,72 @@ namespace OfficeIMO.Word {
         }
 
         private static HashSet<Uri> FindUnchangedSignatureSnapshotRoots(
-            byte[] currentPackage,
+            IReadOnlyDictionary<Uri, byte[]> currentRootPayloads,
             byte[] encodedPackage,
             int maxPackageParts,
             long maxPartBytes) {
-            using var currentStream = new MemoryStream(currentPackage, writable: false);
             using var encodedStream = new MemoryStream(encodedPackage, writable: false);
-            using WordprocessingDocument currentDocument = WordprocessingDocument.Open(currentStream, false);
             using WordprocessingDocument encodedDocument = WordprocessingDocument.Open(encodedStream, false);
-            Dictionary<Uri, OpenXmlPart> currentParts = EnumerateSignatureSnapshotParts(
-                    currentDocument,
-                    maxPackageParts)
-                .ToDictionary(part => part.Uri);
             Dictionary<Uri, OpenXmlPart> encodedParts = EnumerateSignatureSnapshotParts(
                     encodedDocument,
                     maxPackageParts)
                 .ToDictionary(part => part.Uri);
             var unchanged = new HashSet<Uri>();
-            foreach (KeyValuePair<Uri, OpenXmlPart> currentPart in currentParts) {
-                if (!encodedParts.TryGetValue(currentPart.Key, out OpenXmlPart? encodedPart) ||
-                    currentPart.Value.RootElement is not OpenXmlPartRootElement currentRoot ||
+            foreach (KeyValuePair<Uri, byte[]> currentRoot in currentRootPayloads) {
+                if (!encodedParts.TryGetValue(currentRoot.Key, out OpenXmlPart? encodedPart) ||
                     encodedPart.RootElement is not OpenXmlPartRootElement encodedRoot) {
                     continue;
                 }
-                byte[] currentPayload = SerializeSignatureSnapshotRoot(currentRoot, maxPartBytes);
                 byte[] encodedPayload = SerializeSignatureSnapshotRoot(encodedRoot, maxPartBytes);
-                if (currentPayload.SequenceEqual(encodedPayload)) unchanged.Add(currentPart.Key);
+                if (currentRoot.Value.SequenceEqual(encodedPayload)) unchanged.Add(currentRoot.Key);
             }
             return unchanged;
         }
 
-        private static HashSet<string> FindUnchangedSignatureSnapshotRelationships(
+        private static byte[] ApplyLegacySignatureSnapshotState(
             byte[] currentPackage,
             byte[] encodedPackage,
-            long maxPartBytes) {
-            using var currentArchive = new ZipArchive(
-                new MemoryStream(currentPackage, writable: false),
-                ZipArchiveMode.Read);
-            using var encodedArchive = new ZipArchive(
-                new MemoryStream(encodedPackage, writable: false),
-                ZipArchiveMode.Read);
-            var unchanged = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (ZipArchiveEntry currentEntry in currentArchive.Entries.Where(entry =>
-                         entry.FullName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase))) {
-                ZipArchiveEntry? encodedEntry = encodedArchive.GetEntry(currentEntry.FullName);
-                if (encodedEntry == null) continue;
-                byte[] currentRelationships = ReadSignatureSnapshotEntry(currentEntry, maxPartBytes);
-                byte[] encodedRelationships = ReadSignatureSnapshotEntry(encodedEntry, maxPartBytes);
-                if (AreSignatureSnapshotRelationshipsEquivalent(
-                    encodedRelationships,
-                    currentRelationships,
-                    currentEntry.FullName,
-                    maxPartBytes)) {
-                    unchanged.Add(currentEntry.FullName);
+            IReadOnlyCollection<Uri> unchangedSerializedRoots,
+            IReadOnlyDictionary<string, byte[]> currentRelationships,
+            long maxPartBytes,
+            long maxPackageBytes) {
+            using var snapshot = new SignatureValidationSnapshotMemoryStream(maxPackageBytes);
+            snapshot.Write(currentPackage, 0, currentPackage.Length);
+            snapshot.Position = 0;
+            using (var snapshotArchive = new ZipArchive(snapshot, ZipArchiveMode.Update, leaveOpen: true)) {
+                using var encodedArchive = new ZipArchive(
+                    new MemoryStream(encodedPackage, writable: false),
+                    ZipArchiveMode.Read);
+                foreach (Uri unchangedRootUri in unchangedSerializedRoots) {
+                    RestoreSignatureSnapshotEntry(
+                        snapshotArchive,
+                        encodedArchive,
+                        GetSignatureSnapshotEntryName(unchangedRootUri),
+                        maxPartBytes);
+                }
+                foreach (ZipArchiveEntry staleRelationships in snapshotArchive.Entries
+                             .Where(entry => entry.FullName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) &&
+                                             !currentRelationships.ContainsKey(entry.FullName))
+                             .ToList()) {
+                    staleRelationships.Delete();
+                }
+                foreach (KeyValuePair<string, byte[]> relationship in currentRelationships) {
+                    byte[] payload = relationship.Value;
+                    ZipArchiveEntry? encodedEntry = encodedArchive.GetEntry(relationship.Key);
+                    if (encodedEntry != null) {
+                        byte[] encodedPayload = ReadSignatureSnapshotEntry(encodedEntry, maxPartBytes);
+                        if (AreSignatureSnapshotRelationshipsEquivalent(
+                            encodedPayload,
+                            payload,
+                            relationship.Key,
+                            maxPartBytes)) {
+                            payload = encodedPayload;
+                        }
+                    }
+                    ReplaceSignatureSnapshotEntry(snapshotArchive, relationship.Key, payload);
                 }
             }
-            return unchanged;
+            return snapshot.ToArray();
         }
 
 #pragma warning disable OOXML0001
