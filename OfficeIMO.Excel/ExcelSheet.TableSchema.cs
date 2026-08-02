@@ -64,10 +64,22 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelTableColumnInfo> SetTableSchema(
             string tableOrRange,
             IReadOnlyList<string> columnNames,
-            string? newRange = null) {
+            string? newRange = null) => SetTableSchemaCore(
+                tableOrRange,
+                columnNames,
+                newRange,
+                retainExistingNames: false);
+
+        private IReadOnlyList<ExcelTableColumnInfo> SetTableSchemaCore(
+            string tableOrRange,
+            IReadOnlyList<string>? columnNames,
+            string? newRange,
+            bool retainExistingNames) {
             if (string.IsNullOrWhiteSpace(tableOrRange)) throw new ArgumentNullException(nameof(tableOrRange));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            string[] names = ValidateTableColumnNames(columnNames);
+            if (!retainExistingNames && columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            string[] names = retainExistingNames
+                ? Array.Empty<string>()
+                : ValidateTableColumnNames(columnNames!);
             IReadOnlyList<ExcelTableColumnInfo>? result = null;
             WriteLock(() => {
                 Table table = FindTableByRangeNameOrDisplayName(tableOrRange)
@@ -81,6 +93,9 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("Table schema resize must preserve the table's top-left cell. Move the cell range explicitly before resizing the table.");
                 }
                 int targetWidth = targetBounds.c2 - targetBounds.c1 + 1;
+                if (retainExistingNames) {
+                    names = CreateResizedTableColumnNames(table, targetWidth);
+                }
                 if (targetWidth != names.Length) {
                     throw new ArgumentException("The table range width must match the number of column names.", nameof(columnNames));
                 }
@@ -127,6 +142,10 @@ namespace OfficeIMO.Excel {
                 columns.Count = (uint)names.Length;
 
                 string normalizedRange = A1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + A1.CellReference(targetBounds.r2, targetBounds.c2);
+                if (rangeChanged) RelocateTableTotalsRows(
+                    currentBounds,
+                    targetBounds,
+                    totalsRows);
                 table.Reference = normalizedRange;
                 if (rangeChanged) RemapTableResizeSortReferences(
                     table,
@@ -173,13 +192,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Resizes a table while retaining its current ordered column names.</summary>
-        public IReadOnlyList<ExcelTableColumnInfo> ResizeTable(string tableOrRange, string newRange) {
-            Table table = FindTableByRangeNameOrDisplayName(tableOrRange)
-                ?? throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
+        public IReadOnlyList<ExcelTableColumnInfo> ResizeTable(string tableOrRange, string newRange) =>
+            SetTableSchemaCore(
+                tableOrRange,
+                columnNames: null,
+                newRange: newRange,
+                retainExistingNames: true);
+
+        private static string[] CreateResizedTableColumnNames(Table table, int targetWidth) {
             string[] names = table.TableColumns?.Elements<TableColumn>()
                 .Select(column => column.Name?.Value ?? string.Empty).ToArray() ?? Array.Empty<string>();
-            var bounds = A1.ParseRange(newRange);
-            int targetWidth = bounds.c2 - bounds.c1 + 1;
             if (targetWidth > names.Length) {
                 var used = new HashSet<string>(names.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase);
                 Array.Resize(ref names, targetWidth);
@@ -189,7 +211,71 @@ namespace OfficeIMO.Excel {
             } else if (targetWidth < names.Length) {
                 Array.Resize(ref names, targetWidth);
             }
-            return SetTableSchema(tableOrRange, names, newRange);
+            return ValidateTableColumnNames(names);
+        }
+
+        private void RelocateTableTotalsRows(
+            (int r1, int c1, int r2, int c2) currentBounds,
+            (int r1, int c1, int r2, int c2) targetBounds,
+            int totalsRows) {
+            if (totalsRows < 1) return;
+            int sourceFirstRow = currentBounds.r2 - totalsRows + 1;
+            int targetFirstRow = targetBounds.r2 - totalsRows + 1;
+            if (sourceFirstRow == targetFirstRow) return;
+
+            int survivingLastColumn = Math.Min(currentBounds.c2, targetBounds.c2);
+            var allSourceCells = EnumerateCellsWithEffectiveCoordinates()
+                .Where(item => item.Row >= sourceFirstRow
+                    && item.Row <= currentBounds.r2
+                    && item.Column >= currentBounds.c1
+                    && item.Column <= currentBounds.c2)
+                .ToList();
+            var sourceCells = allSourceCells
+                .Where(item => item.Column <= survivingLastColumn)
+                .ToList();
+            var sourceElements = new HashSet<Cell>(sourceCells.Select(item => item.Cell));
+            var discardedElements = new HashSet<Cell>(allSourceCells
+                .Where(item => !sourceElements.Contains(item.Cell))
+                .Select(item => item.Cell));
+            foreach (Cell destination in EnumerateCellsWithEffectiveCoordinates()
+                .Where(item => item.Row >= targetFirstRow
+                    && item.Row <= targetBounds.r2
+                    && item.Column >= targetBounds.c1
+                    && item.Column <= targetBounds.c2
+                    && !sourceElements.Contains(item.Cell))
+                .Select(item => item.Cell)) {
+                discardedElements.Add(destination);
+            }
+            foreach (Cell discarded in discardedElements) {
+                ClearCellValueMetadata(discarded);
+                discarded.Remove();
+            }
+
+            var relocated = sourceCells.Select(item => (
+                SourceRow: item.Row,
+                SourceColumn: item.Column,
+                TargetRow: targetFirstRow + item.Row - sourceFirstRow,
+                TargetColumn: targetBounds.c1 + item.Column - currentBounds.c1,
+                Cell: (Cell)item.Cell.CloneNode(true))).ToList();
+            foreach (var source in sourceCells) source.Cell.Remove();
+            foreach (var item in relocated) {
+                item.Cell.CellReference = A1.CellReference(item.TargetRow, item.TargetColumn);
+                if (item.Cell.CellFormula != null && item.TargetRow != item.SourceRow) {
+                    item.Cell.CellFormula.Text = TranslateCopiedFormula(
+                        item.Cell.CellFormula.Text,
+                        item.SourceRow,
+                        item.SourceColumn,
+                        item.TargetRow,
+                        item.TargetColumn,
+                        transpose: false);
+                    item.Cell.CellFormula.CalculateCell = true;
+                    item.Cell.CellValue = null;
+                }
+                PutClonedCell(item.TargetRow, item.TargetColumn, item.Cell);
+            }
+            foreach (Row row in WorksheetRoot.Descendants<Row>().Where(row => !row.Elements<Cell>().Any()).ToList()) {
+                row.Remove();
+            }
         }
 
         private void SynchronizeQueryTableSchema(

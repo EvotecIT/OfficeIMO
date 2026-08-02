@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -85,6 +87,67 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Measures serialized rollback XML through a bounded sink without materializing the complete XML string.</summary>
+        internal static long MeasureMutationSnapshotRoot(
+            OpenXmlPartRootElement root,
+            long remainingCharacters,
+            long maximumCharacters) {
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            if (remainingCharacters < 1) {
+                throw new InvalidOperationException(
+                    $"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
+            }
+
+            using var counter = new SnapshotCharacterWriter(remainingCharacters, maximumCharacters);
+            using (XmlWriter writer = XmlWriter.Create(counter, new XmlWriterSettings {
+                CloseOutput = false,
+                ConformanceLevel = ConformanceLevel.Fragment,
+                OmitXmlDeclaration = true
+            })) {
+                root.WriteTo(writer);
+            }
+            return counter.CharactersWritten;
+        }
+
+        private sealed class SnapshotCharacterWriter : TextWriter {
+            private readonly long _maximumCharacters;
+            private readonly long _limit;
+            private long _charactersWritten;
+
+            internal SnapshotCharacterWriter(long limit, long maximumCharacters) {
+                _limit = limit;
+                _maximumCharacters = maximumCharacters;
+            }
+
+            public override Encoding Encoding => Encoding.UTF8;
+
+            internal long CharactersWritten => _charactersWritten;
+
+            public override void Write(char value) {
+                Reserve(1);
+            }
+
+            public override void Write(char[] buffer, int index, int count) {
+                if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+                if (index < 0 || count < 0 || index > buffer.Length - count) {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
+                Reserve(count);
+            }
+
+            public override void Write(string? value) {
+                if (value != null) Reserve(value.Length);
+            }
+
+            private void Reserve(long count) {
+                if (count > _limit - _charactersWritten) {
+                    throw new InvalidOperationException(
+                        $"Transactional snapshot exceeds MaximumSnapshotCharacters ({_maximumCharacters}).");
+                }
+                _charactersWritten += count;
+            }
+        }
+
         private sealed class PackageMutationSnapshot {
             private readonly List<Action> _restore = new List<Action>();
 
@@ -93,11 +156,10 @@ namespace OfficeIMO.Excel {
                 long characters = 0;
                 void AddRoot<T>(T? root, Action<T> restore) where T : OpenXmlPartRootElement {
                     if (root == null) return;
-                    string xml = root.OuterXml;
-                    characters = checked(characters + xml.Length);
-                    if (characters > maximumCharacters) {
-                        throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
-                    }
+                    characters = checked(characters + MeasureMutationSnapshotRoot(
+                        root,
+                        maximumCharacters - characters,
+                        maximumCharacters));
                     T clone = (T)root.CloneNode(true);
                     snapshot._restore.Add(() => restore(clone));
                 }
@@ -123,11 +185,10 @@ namespace OfficeIMO.Excel {
                     where TRoot : OpenXmlPartRootElement {
                     if (root == null) return;
                     string relationshipId = parent.GetIdOfPart(part);
-                    string xml = root.OuterXml;
-                    characters = checked(characters + xml.Length);
-                    if (characters > maximumCharacters) {
-                        throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
-                    }
+                    characters = checked(characters + MeasureMutationSnapshotRoot(
+                        root,
+                        maximumCharacters - characters,
+                        maximumCharacters));
                     TRoot clone = (TRoot)root.CloneNode(true);
                     snapshot._restore.Add(() => restoreRoot(
                         RestorePartRelationship<TPart>(parent, relationshipId),
@@ -268,11 +329,10 @@ namespace OfficeIMO.Excel {
                 }
                 CalculationChainPart? calculationChainPart = workbookPart.CalculationChainPart;
                 if (calculationChainPart?.CalculationChain != null) {
-                    string xml = calculationChainPart.CalculationChain.OuterXml;
-                    characters = checked(characters + xml.Length);
-                    if (characters > maximumCharacters) {
-                        throw new InvalidOperationException($"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
-                    }
+                    characters = checked(characters + MeasureMutationSnapshotRoot(
+                        calculationChainPart.CalculationChain,
+                        maximumCharacters - characters,
+                        maximumCharacters));
                     CalculationChain clone = (CalculationChain)calculationChainPart.CalculationChain.CloneNode(true);
                     snapshot._restore.Add(() => {
                         CalculationChainPart restoredPart = workbookPart.CalculationChainPart

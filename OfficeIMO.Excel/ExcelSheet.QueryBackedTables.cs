@@ -62,18 +62,6 @@ namespace OfficeIMO.Excel {
                     throw new InvalidDataException("Query-backed table row metadata is inconsistent with its range.");
                 }
                 int currentTotalsStartRow = current.r2 - totalsRowCount + 1;
-                List<(int RowOffset, int ColumnOffset, Cell Cell)> totalsCells = totalsRowCount == 0
-                    ? new List<(int RowOffset, int ColumnOffset, Cell Cell)>()
-                    : EnumerateCellsWithEffectiveCoordinates()
-                        .Where(item => item.Row >= currentTotalsStartRow
-                            && item.Row <= current.r2
-                            && item.Column >= current.c1
-                            && item.Column <= current.c2)
-                        .Select(item => (
-                            item.Row - currentTotalsStartRow,
-                            item.Column - current.c1,
-                            (Cell)item.Cell.CloneNode(true)))
-                        .ToList();
                 int targetLastColumn = checked(current.c1 + columnNames.Count - 1);
                 int targetRowCount = checked(headerRowCount + rows.Count + totalsRowCount);
                 if (targetRowCount == 0) {
@@ -117,7 +105,8 @@ namespace OfficeIMO.Excel {
                 for (int index = existing.Count - 1; index >= columnNames.Count; index--) existing[index].Remove();
                 columns.Count = (uint)columnNames.Count;
 
-                RemoveCellsInRange(current.r1, current.c1, current.r2, current.c2);
+                List<(int RowOffset, int ColumnOffset, Cell Cell)> totalsCells =
+                    ExtractQueryRefreshTotalsCells(current, totalsRowCount, targetLastColumn);
                 if (headerRowCount > 0) {
                     for (int column = 0; column < columnNames.Count; column++) {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -179,6 +168,39 @@ namespace OfficeIMO.Excel {
                     + totalsCells.Count);
             }, new ExcelMutationPlanOptions(), cancellationToken);
             return updatedRange!;
+        }
+
+        private List<(int RowOffset, int ColumnOffset, Cell Cell)> ExtractQueryRefreshTotalsCells(
+            (int r1, int c1, int r2, int c2) current,
+            int totalsRowCount,
+            int targetLastColumn) {
+            int totalsStartRow = current.r2 - totalsRowCount + 1;
+            int preservedLastColumn = Math.Min(current.c2, targetLastColumn);
+            var currentCells = EnumerateCellsWithEffectiveCoordinates()
+                .Where(item => item.Row >= current.r1
+                    && item.Row <= current.r2
+                    && item.Column >= current.c1
+                    && item.Column <= current.c2)
+                .ToList();
+            var preserved = totalsRowCount == 0
+                ? new List<(Cell Cell, int Row, int Column)>()
+                : currentCells.Where(item => item.Row >= totalsStartRow
+                    && item.Column <= preservedLastColumn).ToList();
+            var preservedElements = new HashSet<Cell>(preserved.Select(item => item.Cell));
+
+            foreach (var discarded in currentCells.Where(item => !preservedElements.Contains(item.Cell))) {
+                ClearCellValueMetadata(discarded.Cell);
+                discarded.Cell.Remove();
+            }
+            var snapshots = preserved.Select(item => (
+                item.Row - totalsStartRow,
+                item.Column - current.c1,
+                (Cell)item.Cell.CloneNode(true))).ToList();
+            foreach (var item in preserved) item.Cell.Remove();
+            foreach (Row row in WorksheetRoot.Descendants<Row>().Where(row => !row.Elements<Cell>().Any()).ToList()) {
+                row.Remove();
+            }
+            return snapshots;
         }
 
         private void EnsureQueryRefreshExpansionIsEmpty(ExcelReference current, ExcelReference target) {
