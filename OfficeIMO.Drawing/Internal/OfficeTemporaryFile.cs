@@ -1,7 +1,7 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 
@@ -116,13 +116,43 @@ namespace OfficeIMO.Drawing.Internal {
                 binder: null,
                 types: new[] { typeof(string), modeType },
                 modifiers: null);
-            if (getMode == null || setMode == null) {
-                throw new PlatformNotSupportedException(
-                    "This runtime cannot preserve Unix file permissions during atomic replacement.");
+            if (getMode != null && setMode != null) {
+                object mode = getMode.Invoke(null, new object[] { sourcePath })!;
+                setMode.Invoke(null, new[] { (object)destinationPath, mode });
+                return;
             }
 
-            object mode = getMode.Invoke(null, new object[] { sourcePath })!;
-            setMode.Invoke(null, new[] { (object)destinationPath, mode });
+            CopyUnixFileModeNative(sourcePath, destinationPath);
+        }
+
+        internal static void CopyUnixFileModeNative(string sourcePath, string destinationPath) {
+            int modeOffset;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                modeOffset = 4;
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                modeOffset = RuntimeInformation.OSArchitecture == Architecture.X64 ? 24 : 16;
+            } else {
+                throw new PlatformNotSupportedException(
+                    "This Unix platform does not expose a supported native file-mode layout.");
+            }
+
+            IntPtr statBuffer = Marshal.AllocHGlobal(512);
+            try {
+                if (StatFile(sourcePath, statBuffer) != 0) {
+                    throw new IOException(
+                        "Unable to inspect existing Unix file permissions (OS error "
+                        + Marshal.GetLastWin32Error() + ").");
+                }
+
+                uint mode = unchecked((uint)Marshal.ReadInt32(statBuffer, modeOffset)) & 0x0FFFU;
+                if (ChangeFileMode(destinationPath, mode) != 0) {
+                    throw new IOException(
+                        "Unable to preserve existing Unix file permissions (OS error "
+                        + Marshal.GetLastWin32Error() + ").");
+                }
+            } finally {
+                Marshal.FreeHGlobal(statBuffer);
+            }
         }
 
         private static void TryDelete(string path) {
@@ -137,5 +167,11 @@ namespace OfficeIMO.Drawing.Internal {
 
         [DllImport("libc", EntryPoint = "unlink", SetLastError = true)]
         private static extern int UnlinkFile(string path);
+
+        [DllImport("libc", EntryPoint = "stat", SetLastError = true)]
+        private static extern int StatFile(string path, IntPtr buffer);
+
+        [DllImport("libc", EntryPoint = "chmod", SetLastError = true)]
+        private static extern int ChangeFileMode(string path, uint mode);
     }
 }

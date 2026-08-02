@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -52,12 +53,24 @@ namespace OfficeIMO.Excel {
             if (imageBytes.LongLength == 0 || imageBytes.LongLength > maximumImageBytes) throw new ArgumentOutOfRangeException(nameof(imageBytes));
             if (!IsSupportedImageContentType(contentType)) throw new NotSupportedException($"Image content type '{contentType}' is not supported.");
             string text = altText ?? string.Empty;
+            ValidateInCellImageAltText(text);
             WriteLock(() => {
                 using var imageStream = new MemoryStream(imageBytes, writable: false);
                 SetInCellImageCore(row, column, imageStream, contentType, text);
                 WorksheetRoot.Save();
             });
             return new ExcelInCellImage(A1.CellReference(row, column), contentType, text, (byte[])imageBytes.Clone());
+        }
+
+        private static void ValidateInCellImageAltText(string altText) {
+            if (altText.Length > 32_767) {
+                throw new ArgumentException("In-cell image alternative text exceeds Excel's 32,767-character limit.", nameof(altText));
+            }
+            try {
+                XmlConvert.VerifyXmlChars(altText);
+            } catch (XmlException ex) {
+                throw new ArgumentException("In-cell image alternative text must contain valid Excel XML text.", nameof(altText), ex);
+            }
         }
 
         private void SetInCellImageCore(int row, int column, Stream imageStream, string contentType, string altText) {

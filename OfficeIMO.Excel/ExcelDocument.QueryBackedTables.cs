@@ -52,11 +52,7 @@ namespace OfficeIMO.Excel {
                     options.Description,
                     options.CommandText,
                     options.RefreshOnOpen);
-                ConnectionsPart connectionsPart = WorkbookPartRoot.ConnectionsPart
-                    ?? WorkbookPartRoot.AddNewPart<ConnectionsPart>();
-                connectionsPart.Connections ??= new Connections();
-                connectionsPart.Connections!.Append(connection);
-                connectionsPart.Connections.Save();
+                AppendNativeQueryConnection(connection);
 
                 TableDefinitionPart tablePart = sheet.WorksheetPart.TableDefinitionParts.Single(part =>
                     string.Equals(part.Table?.Name?.Value ?? part.Table?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase));
@@ -220,20 +216,74 @@ namespace OfficeIMO.Excel {
         }
 
         internal void RemoveUnusedAuthoredQueryConnections(IEnumerable<uint> connectionIds) {
-            ConnectionsPart? part = WorkbookPartRoot.ConnectionsPart;
             bool changed = false;
             foreach (uint connectionId in connectionIds.Distinct()) {
                 if (!_authoredQueryConnectionIds.Contains(connectionId)
                     || IsNativeConnectionReferenced(connectionId)) continue;
-                part?.Connections?.Elements<Connection>().FirstOrDefault(item =>
-                    item.Id?.Value == connectionId)?.Remove();
+                RemoveNativeQueryConnection(connectionId);
                 _authoredQueryConnectionIds.Remove(connectionId);
                 changed = true;
             }
-            if (!changed || part == null) return;
-            if (part.Connections?.Elements<Connection>().Any() == true) part.Connections.Save();
-            else WorkbookPartRoot.DeletePart(part);
+            if (!changed) return;
             MarkMetadataPartChanged();
+        }
+
+        private void AppendNativeQueryConnection(Connection connection) {
+            OpenXmlPart? part = GetWorkbookConnectionPart();
+            if (part == null) {
+                ConnectionsPart connectionsPart = WorkbookPartRoot.AddNewPart<ConnectionsPart>();
+                connectionsPart.Connections = new Connections(connection);
+                connectionsPart.Connections.Save();
+                return;
+            }
+
+            if (part is ConnectionsPart nativePart) {
+                nativePart.Connections ??= new Connections();
+                nativePart.Connections.Append(connection);
+                nativePart.Connections.Save();
+                return;
+            }
+
+            string merged = MergeWorkbookConnectionMetadata(ReadOpenXmlPartText(part), connection.OuterXml);
+            WriteOpenXmlPartText(part, merged);
+        }
+
+        private void RemoveNativeQueryConnection(uint connectionId) {
+            foreach (OpenXmlPart part in EnumerateWorkbookConnectionParts().ToArray()) {
+                if (part is ConnectionsPart nativePart) {
+                    Connection? connection = nativePart.Connections?.Elements<Connection>()
+                        .FirstOrDefault(item => item.Id?.Value == connectionId);
+                    if (connection == null) continue;
+                    connection.Remove();
+                    if (nativePart.Connections?.Elements<Connection>().Any() == true) nativePart.Connections.Save();
+                    else WorkbookPartRoot.DeletePart(nativePart);
+                    continue;
+                }
+
+                try {
+                    XDocument document = XDocument.Parse(ReadOpenXmlPartText(part), LoadOptions.PreserveWhitespace);
+                    XElement[] matches = document.Descendants()
+                        .Where(element => element.Name.LocalName == "connection"
+                            && uint.TryParse(element.Attribute("id")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint id)
+                            && id == connectionId)
+                        .ToArray();
+                    if (matches.Length == 0) continue;
+                    foreach (XElement match in matches) match.Remove();
+                    if (document.Root != null) {
+                        document.Root.SetAttributeValue(
+                            "count",
+                            document.Root.Elements().Count(element => element.Name.LocalName == "connection")
+                                .ToString(CultureInfo.InvariantCulture));
+                    }
+                    WriteOpenXmlPartText(part, document.ToString(SaveOptions.DisableFormatting));
+                } catch (InvalidDataException) {
+                    // Preserve oversized or malformed caller-owned metadata instead of mutating it.
+                } catch (IOException) {
+                    // Preserve unreadable caller-owned metadata instead of mutating it.
+                } catch (System.Xml.XmlException) {
+                    // Preserve malformed caller-owned metadata instead of mutating it.
+                }
+            }
         }
 
         private bool IsNativeConnectionReferenced(uint connectionId) {

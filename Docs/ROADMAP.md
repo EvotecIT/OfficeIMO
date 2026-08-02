@@ -13,6 +13,10 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Add shared conversion reports and strict no-loss policies wherever an adapter can simplify, omit, rasterize, or preserve unsupported content.
 - [ ] Keep public surfaces small: add reusable capability to the owning core package and keep CLI, PowerShell, website, MCP, Reader, and converter adapters thin.
 
+## Excel
+
+- [ ] Complete the remaining conditional-formatting rule and extension surface, including imported round-trip parity, while preserving unknown markup and keeping PDF approximation diagnostics explicit.
+
 ## Word
 
 - [ ] Complete XML-signature validation, including transform-aware OPC digests, certificate-chain trust, revocation, and timestamp-authority validation; add cross-platform package signing and keep macro-project signing as a separate explicit capability.
