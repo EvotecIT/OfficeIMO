@@ -22,6 +22,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_ValidationSnapshotIncludesPendingDataPartFeedData() {
+            string filePath = CreateSignedDocumentWithMediaDataPart("WordDigitalSignaturePendingDataPartFeedData.docx");
+            using WordDocument loaded = WordDocument.Load(filePath);
+            MediaDataPart mediaDataPart = Assert.Single(loaded._wordprocessingDocument.DataParts.Cast<MediaDataPart>());
+            using (var replacement = new MemoryStream(new byte[] { 9, 8, 7, 6, 5 })) {
+                mediaDataPart.FeedData(replacement);
+            }
+
+            AssertLivePackageSignatureInvalid(loaded);
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidationSnapshotIncludesPendingDataPartAddition() {
+            string filePath = CreateSignedDocument("WordDigitalSignaturePendingDataPartAddition.docx");
+            using WordDocument loaded = WordDocument.Load(filePath);
+            MediaDataPart mediaDataPart = loaded._wordprocessingDocument.CreateMediaDataPart(MediaDataPartType.MpegVideo);
+            using (var content = new MemoryStream(new byte[] { 1, 3, 5, 7, 9 })) {
+                mediaDataPart.FeedData(content);
+            }
+            VideoReferenceRelationship relationship = loaded._wordprocessingDocument.MainDocumentPart!
+                .AddVideoReferenceRelationship(mediaDataPart);
+
+            byte[] snapshot = CreateValidationSnapshot(loaded);
+            using var archive = new ZipArchive(new MemoryStream(snapshot), ZipArchiveMode.Read);
+            ZipArchiveEntry? mediaEntry = archive.GetEntry(mediaDataPart.Uri.ToString().TrimStart('/'));
+            Assert.NotNull(mediaEntry);
+            using (Stream media = mediaEntry!.Open()) {
+                using var copied = new MemoryStream();
+                media.CopyTo(copied);
+                Assert.Equal(new byte[] { 1, 3, 5, 7, 9 }, copied.ToArray());
+            }
+            using Stream relationships = archive.GetEntry("word/_rels/document.xml.rels")!.Open();
+            XDocument relationshipDocument = XDocument.Load(relationships);
+            Assert.Contains(relationshipDocument.Root!.Elements(), element =>
+                string.Equals(element.Attribute("Id")?.Value, relationship.Id, System.StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_ValidationSnapshotIncludesPendingDataPartRemoval() {
+            string filePath = CreateSignedDocumentWithMediaDataPart("WordDigitalSignaturePendingDataPartRemoval.docx");
+            using WordDocument loaded = WordDocument.Load(filePath);
+            MediaDataPart mediaDataPart = Assert.Single(loaded._wordprocessingDocument.DataParts.Cast<MediaDataPart>());
+            DataPartReferenceRelationship relationship = Assert.Single(
+                loaded._wordprocessingDocument.MainDocumentPart!.DataPartReferenceRelationships);
+            loaded._wordprocessingDocument.MainDocumentPart.DeleteReferenceRelationship(relationship);
+            loaded._wordprocessingDocument.DeletePart(mediaDataPart);
+
+            AssertLivePackageSignatureInvalid(loaded);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_ValidationSnapshotIncludesPendingPartAddition() {
             string filePath = CreateSignedDocument("WordDigitalSignaturePendingPartAddition.docx");
             using WordDocument loaded = WordDocument.Load(filePath);
@@ -31,9 +82,7 @@ namespace OfficeIMO.Tests {
                 imagePart.FeedData(content);
             }
 
-            byte[] snapshot = (byte[])typeof(WordDocument)
-                .GetMethod("CreateSignatureValidationSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .Invoke(loaded, new object[] { new WordSignatureValidationOptions() })!;
+            byte[] snapshot = CreateValidationSnapshot(loaded);
             using var archive = new ZipArchive(new MemoryStream(snapshot), ZipArchiveMode.Read);
             Assert.NotNull(archive.GetEntry(imagePart.Uri.ToString().TrimStart('/')));
             using Stream relationships = archive.GetEntry("word/_rels/document.xml.rels")!.Open();
@@ -41,6 +90,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains(relationshipDocument.Root!.Elements(), element =>
                 string.Equals(element.Attribute("Id")?.Value, relationshipId, System.StringComparison.Ordinal));
         }
+
+        private static byte[] CreateValidationSnapshot(WordDocument document) =>
+            (byte[])typeof(WordDocument)
+                .GetMethod("CreateSignatureValidationSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(document, new object[] { new WordSignatureValidationOptions() })!;
 
         [Fact]
         public void Test_DigitalSignature_ValidationSnapshotIncludesPendingPartRemoval() {
@@ -95,6 +149,24 @@ namespace OfficeIMO.Tests {
                 ImagePart imagePart = package.MainDocumentPart!.AddImagePart(ImagePartType.Png);
                 using var content = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
                 imagePart.FeedData(content);
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, certificate);
+            Assert.True(signing.Succeeded, string.Join(System.Environment.NewLine, signing.Details));
+            return filePath;
+        }
+
+        private string CreateSignedDocumentWithMediaDataPart(string fileName) {
+            string filePath = Path.Combine(_directoryWithFiles, fileName);
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed validation snapshot with media data part");
+                document.Save();
+            }
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                MediaDataPart mediaDataPart = package.CreateMediaDataPart(MediaDataPartType.MpegVideo);
+                using var content = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
+                mediaDataPart.FeedData(content);
+                package.MainDocumentPart!.AddVideoReferenceRelationship(mediaDataPart);
             }
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
             WordPackageSigningResult signing = WordDocument.SignPackage(filePath, certificate);

@@ -33,9 +33,9 @@ namespace OfficeIMO.Word {
                 } else if (occurrence.SimpleField != null) {
                     ReplaceSimpleMergeField(occurrence.SimpleField, values, removeFields, results);
                 } else if (occurrence.MalformedMessage != null) {
-                    ReportMalformedMergeField(results, ReadComplexFieldInstruction(occurrence.ComplexRuns!), occurrence.MalformedMessage);
+                    ReportMalformedMergeField(results, occurrence.ComplexField!.Instruction.ToString(), occurrence.MalformedMessage);
                 } else {
-                    ReplaceComplexFieldRuns(occurrence.ComplexRuns!, values, removeFields, results);
+                    ReplaceComplexFieldRuns(occurrence.ComplexField!, values, removeFields, results);
                 }
             }
         }
@@ -103,14 +103,18 @@ namespace OfficeIMO.Word {
                     FieldChar? firstFieldChar = run.GetFirstChild<FieldChar>();
                     if (activeFields.Count == 0 && firstFieldChar == null) continue;
                     if (activeFields.Count > 0) AddRunToActiveFields(activeFields, run);
-                    if (firstFieldChar == null) continue;
                     for (int childIndex = 0; childIndex < run.ChildElements.Count; childIndex++) {
-                        if (run.ChildElements[childIndex] is not FieldChar fieldChar) continue;
+                        OpenXmlElement child = run.ChildElements[childIndex];
+                        if (child is FieldCode code) {
+                            if (activeFields.Count > 0) activeFields[activeFields.Count - 1].Instruction.Append(code.Text);
+                            continue;
+                        }
+                        if (child is not FieldChar fieldChar) continue;
                         if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin) {
                             foreach (ComplexFieldFrame activeField in activeFields) {
                                 activeField.HasNestedField = true;
                             }
-                            activeFields.Add(new ComplexFieldFrame(run, beginRunOrders[run]));
+                            activeFields.Add(new ComplexFieldFrame(run, fieldChar, beginRunOrders[run]));
                             continue;
                         }
                         if (fieldChar.FieldCharType?.Value != FieldCharValues.End || activeFields.Count == 0) {
@@ -119,7 +123,8 @@ namespace OfficeIMO.Word {
 
                         ComplexFieldFrame completedField = activeFields[activeFields.Count - 1];
                         activeFields.RemoveAt(activeFields.Count - 1);
-                        string instruction = ReadComplexFieldInstruction(completedField.Runs);
+                        completedField.EndMarker = fieldChar;
+                        string instruction = completedField.Instruction.ToString();
                         if (!MergeFieldTypePattern.IsMatch(instruction)) {
                             continue;
                         }
@@ -128,19 +133,19 @@ namespace OfficeIMO.Word {
                             : GetMalformedMergeFieldInstructionMessage(instruction);
                         occurrences.Add(MergeFieldOccurrence.ForComplex(
                             completedField.Order,
-                            completedField.Runs,
+                            completedField,
                             malformedMessage));
                     }
                 }
 
                 foreach (ComplexFieldFrame activeField in activeFields) {
-                    string instruction = ReadComplexFieldInstruction(activeField.Runs);
+                    string instruction = activeField.Instruction.ToString();
                     if (!MergeFieldTypePattern.IsMatch(instruction)) {
                         continue;
                     }
                     occurrences.Add(MergeFieldOccurrence.ForComplex(
                         activeField.Order,
-                        activeField.Runs,
+                        activeField,
                         "A complex MERGEFIELD is missing its closing field marker or a valid field name."));
                 }
             }
@@ -269,8 +274,9 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void ReplaceComplexFieldRuns(IReadOnlyList<Run> fieldRuns, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
-            string instruction = ReadComplexFieldInstruction(fieldRuns);
+        private static void ReplaceComplexFieldRuns(ComplexFieldFrame field, IDictionary<string, string> values, bool removeFields, List<WordMailMergeFieldResult>? results) {
+            IReadOnlyList<Run> fieldRuns = field.Runs;
+            string instruction = field.Instruction.ToString();
             string? name = TryGetMergeFieldName(instruction);
             if (name == null) {
                 ReportMalformedMergeField(results, instruction, "A complex MERGEFIELD instruction could not be parsed as a named field.");
@@ -286,14 +292,14 @@ namespace OfficeIMO.Word {
             }
 
             if (removeFields) {
-                Run? sourceRun = GetComplexFieldResultTextElements(fieldRuns)
+                Run? sourceRun = GetComplexFieldResultTextElements(field)
                     .Select(text => text.Parent as Run)
                     .OfType<Run>()
                     .FirstOrDefault()
-                    ?? GetComplexFieldResultRuns(fieldRuns).FirstOrDefault()
+                    ?? GetComplexFieldResultRuns(field).FirstOrDefault()
                     ?? fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null)
                     ?? fieldRuns.FirstOrDefault();
-                if (!ReplaceComplexFieldRangeWithText(fieldRuns, formattedValue, sourceRun)) {
+                if (!ReplaceComplexFieldRangeWithText(field, formattedValue, sourceRun)) {
                     var replacement = CreateReplacementRun(formattedValue, sourceRun);
                     fieldRuns[0].InsertBeforeSelf(replacement);
                     foreach (var run in fieldRuns) {
@@ -305,12 +311,12 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            var resultRuns = GetComplexFieldResultRuns(fieldRuns).ToList();
-            if (!SetComplexFieldResultText(fieldRuns, resultRuns, formattedValue)) {
-                if (!InsertComplexFieldResultBeforeEnd(fieldRuns, formattedValue)) {
-                    Run endRun = fieldRuns[fieldRuns.Count - 1];
+            var resultRuns = GetComplexFieldResultRuns(field).ToList();
+            if (!SetComplexFieldResultText(field, resultRuns, formattedValue)) {
+                if (!InsertComplexFieldResultBeforeEnd(field, formattedValue)) {
+                    Run endRun = field.EndMarker?.Parent as Run ?? fieldRuns[fieldRuns.Count - 1];
                     Run? sourceRun = fieldRuns.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null);
-                    if (!fieldRuns.Any(run => ContainsFieldMarker(run, FieldCharValues.Separate))) {
+                    if (!HasComplexFieldMarker(field, FieldCharValues.Separate)) {
                         endRun.InsertBeforeSelf(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
                     }
                     endRun.InsertBeforeSelf(CreateReplacementRun(formattedValue, sourceRun));
@@ -404,78 +410,86 @@ namespace OfficeIMO.Word {
             results?.Add(new WordMailMergeFieldResult(name, NormalizeFieldInstructionForMessage(instruction), status, value, message));
         }
 
-        private static string ReadComplexFieldInstruction(IEnumerable<Run> fieldRuns) => string.Concat(fieldRuns
-            .SelectMany(run => run.Elements<FieldCode>())
-            .Select(code => code.Text));
-
         private static void ReportMalformedMergeField(List<WordMailMergeFieldResult>? results, string instruction, string message) {
             if (!MergeFieldTypePattern.IsMatch(instruction)) return;
             AddMergeResult(results, string.Empty, instruction, WordMailMergeFieldStatus.MalformedField, null, message);
         }
 
         private sealed class ComplexFieldFrame {
-            internal ComplexFieldFrame(Run beginRun, int order) {
+            internal ComplexFieldFrame(Run beginRun, FieldChar beginMarker, int order) {
                 Runs = new List<Run> { beginRun };
+                BeginMarker = beginMarker;
                 Order = order;
             }
 
             internal List<Run> Runs { get; }
+            internal FieldChar BeginMarker { get; }
+            internal FieldChar? EndMarker { get; set; }
+            internal StringBuilder Instruction { get; } = new StringBuilder();
             internal int Order { get; }
             internal bool HasNestedField { get; set; }
         }
 
         private sealed class MergeFieldOccurrence {
-            private MergeFieldOccurrence(int order, SimpleField? simpleField, IReadOnlyList<Run>? complexRuns, string? malformedMessage) {
+            private MergeFieldOccurrence(int order, SimpleField? simpleField, ComplexFieldFrame? complexField, string? malformedMessage) {
                 Order = order;
                 SimpleField = simpleField;
-                ComplexRuns = complexRuns;
+                ComplexField = complexField;
                 MalformedMessage = malformedMessage;
             }
 
             internal int Order { get; }
             internal SimpleField? SimpleField { get; }
-            internal IReadOnlyList<Run>? ComplexRuns { get; }
+            internal ComplexFieldFrame? ComplexField { get; }
             internal string? MalformedMessage { get; }
 
             internal static MergeFieldOccurrence ForSimple(int order, SimpleField simpleField, string? malformedMessage = null) =>
                 new MergeFieldOccurrence(order, simpleField, null, malformedMessage);
 
-            internal static MergeFieldOccurrence ForComplex(int order, IReadOnlyList<Run> runs, string? malformedMessage = null) =>
-                new MergeFieldOccurrence(order, null, runs, malformedMessage);
+            internal static MergeFieldOccurrence ForComplex(int order, ComplexFieldFrame field, string? malformedMessage = null) =>
+                new MergeFieldOccurrence(order, null, field, malformedMessage);
         }
 
-        private static IEnumerable<Run> GetComplexFieldResultRuns(IReadOnlyList<Run> fieldRuns) {
+        private static IEnumerable<Run> GetComplexFieldResultRuns(ComplexFieldFrame field) {
+            bool insideField = false;
             bool afterSeparator = false;
-
-            foreach (var run in fieldRuns) {
-                var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
-                if (fieldChar?.FieldCharType?.Value == FieldCharValues.Separate) {
-                    afterSeparator = true;
-                    continue;
+            foreach (Run run in field.Runs) {
+                bool containsResultContent = false;
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    if (!insideField) {
+                        if (ReferenceEquals(child, field.BeginMarker)) insideField = true;
+                        continue;
+                    }
+                    if (ReferenceEquals(child, field.EndMarker)) {
+                        if (containsResultContent) yield return run;
+                        yield break;
+                    }
+                    if (child is FieldChar fieldChar &&
+                        fieldChar.FieldCharType?.Value == FieldCharValues.Separate) {
+                        afterSeparator = true;
+                        continue;
+                    }
+                    if (afterSeparator) containsResultContent = true;
                 }
-
-                if (fieldChar?.FieldCharType?.Value == FieldCharValues.End) {
-                    yield break;
-                }
-
-                if (afterSeparator) {
-                    yield return run;
-                }
+                if (containsResultContent) yield return run;
             }
         }
 
         private static IEnumerable<Text> GetComplexFieldResultTextElements(
-            IReadOnlyList<Run> fieldRuns) {
+            ComplexFieldFrame field) {
+            bool insideField = false;
             bool afterSeparator = false;
-            foreach (Run run in fieldRuns) {
+            foreach (Run run in field.Runs) {
                 foreach (OpenXmlElement child in run.ChildElements) {
+                    if (!insideField) {
+                        if (ReferenceEquals(child, field.BeginMarker)) insideField = true;
+                        continue;
+                    }
+                    if (ReferenceEquals(child, field.EndMarker)) yield break;
                     if (child is FieldChar fieldChar) {
                         if (fieldChar.FieldCharType?.Value == FieldCharValues.Separate) {
                             afterSeparator = true;
                             continue;
-                        }
-                        if (fieldChar.FieldCharType?.Value == FieldCharValues.End) {
-                            yield break;
                         }
                     }
                     if (afterSeparator && child is Text text) {
@@ -486,48 +500,49 @@ namespace OfficeIMO.Word {
         }
 
         private static bool SetComplexFieldResultText(
-            IReadOnlyList<Run> fieldRuns,
+            ComplexFieldFrame field,
             IReadOnlyList<Run> resultRuns,
             string value) {
-            List<Text> markerAwareTextElements = GetComplexFieldResultTextElements(fieldRuns).ToList();
+            List<Text> markerAwareTextElements = GetComplexFieldResultTextElements(field).ToList();
             return markerAwareTextElements.Count > 0
                 ? SetFieldResultTextElements(markerAwareTextElements, value)
                 : SetFieldResultText(resultRuns, value);
         }
 
-        private static bool InsertComplexFieldResultBeforeEnd(IReadOnlyList<Run> fieldRuns, string value) {
-            foreach (Run run in fieldRuns) {
-                bool separatorInRun = false;
-                bool instructionInRun = false;
-                for (int i = 0; i < run.ChildElements.Count; i++) {
-                    OpenXmlElement child = run.ChildElements[i];
-                    if (child is FieldCode) {
-                        instructionInRun = true;
-                        continue;
-                    }
-                    if (!(child is FieldChar fieldChar)) continue;
+        private static bool InsertComplexFieldResultBeforeEnd(ComplexFieldFrame field, string value) {
+            FieldChar? endMarker = field.EndMarker;
+            Run? endRun = endMarker?.Parent as Run;
+            if (endMarker == null || endRun == null) return false;
+            bool inlineBoundary = false;
+            foreach (OpenXmlElement child in endRun.ChildElements) {
+                if (ReferenceEquals(child, endMarker)) break;
+                if (ReferenceEquals(child, field.BeginMarker) || child is FieldCode ||
+                    child is FieldChar marker && marker.FieldCharType?.Value == FieldCharValues.Separate) {
+                    inlineBoundary = true;
+                }
+            }
+            if (!inlineBoundary) return false;
+            if (!HasComplexFieldMarker(field, FieldCharValues.Separate)) {
+                endRun.InsertBefore(
+                    new FieldChar { FieldCharType = FieldCharValues.Separate },
+                    endMarker);
+            }
+            endRun.InsertBefore(
+                new Text(value) { Space = SpaceProcessingModeValues.Preserve },
+                endMarker);
+            return true;
+        }
 
-                    FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
-                    if (fieldCharType == FieldCharValues.Begin) {
-                        instructionInRun = true;
+        private static bool HasComplexFieldMarker(ComplexFieldFrame field, FieldCharValues marker) {
+            bool insideField = false;
+            foreach (Run run in field.Runs) {
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    if (!insideField) {
+                        if (ReferenceEquals(child, field.BeginMarker)) insideField = true;
                         continue;
                     }
-                    if (fieldCharType == FieldCharValues.Separate) {
-                        separatorInRun = true;
-                        continue;
-                    }
-                    if (fieldCharType != FieldCharValues.End) continue;
-
-                    if (!separatorInRun && !instructionInRun) return false;
-                    if (!separatorInRun) {
-                        run.InsertBefore(
-                            new FieldChar { FieldCharType = FieldCharValues.Separate },
-                            fieldChar);
-                    }
-                    run.InsertBefore(
-                        new Text(value) { Space = SpaceProcessingModeValues.Preserve },
-                        fieldChar);
-                    return true;
+                    if (ReferenceEquals(child, field.EndMarker)) return marker == FieldCharValues.End;
+                    if (child is FieldChar fieldChar && fieldChar.FieldCharType?.Value == marker) return true;
                 }
             }
             return false;
@@ -625,7 +640,7 @@ namespace OfficeIMO.Word {
             foreach (MergeFieldOccurrence occurrence in DiscoverMergeFieldOccurrences(root)) {
                 if (occurrence.MalformedMessage == null) continue;
                 string instruction = occurrence.SimpleField?.Instruction?.Value
-                    ?? ReadComplexFieldInstruction(occurrence.ComplexRuns!);
+                    ?? occurrence.ComplexField!.Instruction.ToString();
                 if (!MergeFieldTypePattern.IsMatch(instruction)) continue;
 
                 string name = TryGetMergeFieldName(instruction) ?? string.Empty;
@@ -640,7 +655,7 @@ namespace OfficeIMO.Word {
             foreach (MergeFieldOccurrence occurrence in DiscoverMergeFieldOccurrences(root)) {
                 if (occurrence.MalformedMessage != null) continue;
                 string instruction = occurrence.SimpleField?.Instruction?.Value
-                    ?? ReadComplexFieldInstruction(occurrence.ComplexRuns!);
+                    ?? occurrence.ComplexField!.Instruction.ToString();
                 if (!MergeFieldTypePattern.IsMatch(instruction)) continue;
 
                 string? name = TryGetMergeFieldName(instruction);

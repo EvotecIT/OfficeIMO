@@ -4,45 +4,21 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public static partial class WordMailMerge {
         private static bool ReplaceComplexFieldRangeWithText(
-            IReadOnlyList<Run> fieldRuns,
+            ComplexFieldFrame field,
             string value,
             Run? sourceRun) {
-            Run? beginRun = null;
-            FieldChar? beginMarker = null;
-            int beginRunIndex = -1;
-            int beginChildIndex = -1;
-            Run? endRun = null;
-            FieldChar? endMarker = null;
-            int endRunIndex = -1;
-            int endChildIndex = -1;
-            bool insideField = false;
-
-            for (int runIndex = 0; runIndex < fieldRuns.Count; runIndex++) {
-                Run run = fieldRuns[runIndex];
-                for (int childIndex = 0; childIndex < run.ChildElements.Count; childIndex++) {
-                    if (!(run.ChildElements[childIndex] is FieldChar fieldChar)) continue;
-                    FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
-                    if (!insideField && fieldCharType == FieldCharValues.Begin) {
-                        beginRun = run;
-                        beginMarker = fieldChar;
-                        beginRunIndex = runIndex;
-                        beginChildIndex = childIndex;
-                        insideField = true;
-                        continue;
-                    }
-                    if (!insideField || fieldCharType != FieldCharValues.End) continue;
-                    endRun = run;
-                    endMarker = fieldChar;
-                    endRunIndex = runIndex;
-                    endChildIndex = childIndex;
-                    break;
-                }
-                if (endMarker != null) break;
-            }
-
-            if (beginRun == null || beginMarker == null || endRun == null || endMarker == null) {
+            IReadOnlyList<Run> fieldRuns = field.Runs;
+            FieldChar beginMarker = field.BeginMarker;
+            FieldChar? endMarker = field.EndMarker;
+            Run? beginRun = beginMarker.Parent as Run;
+            Run? endRun = endMarker?.Parent as Run;
+            if (beginRun == null || endRun == null || endMarker == null) {
                 return false;
             }
+            int beginRunIndex = field.Runs.IndexOf(beginRun);
+            int endRunIndex = field.Runs.IndexOf(endRun);
+            int beginChildIndex = beginRun.ChildElements.ToList().IndexOf(beginMarker);
+            int endChildIndex = endRun.ChildElements.ToList().IndexOf(endMarker);
 
             var replacementText = new Text(value) { Space = SpaceProcessingModeValues.Preserve };
             if (ReferenceEquals(beginRun, endRun)) {

@@ -22,13 +22,21 @@ namespace OfficeIMO.Word {
                     options.MaxPackageParts)
                 .OrderByDescending(part => part.IsRootElementLoaded)
                 .ToList();
+            List<DataPart> sourceDataParts = _wordprocessingDocument.DataParts.ToList();
+            EnsureSignatureSnapshotPartCount(sourceParts.Count, sourceDataParts.Count, options.MaxPackageParts);
             foreach (OpenXmlPart sourcePart in sourceParts) {
                 EnsureSignatureSnapshotPartWithinLimit(sourcePart, options.MaxPartBytes);
+            }
+            foreach (DataPart sourceDataPart in sourceDataParts) {
+                EnsureSignatureSnapshotDataPartWithinLimit(sourceDataPart, options.MaxPartBytes);
             }
 
             using var snapshot = new SignatureValidationSnapshotMemoryStream(options.MaxPackageBytes);
             snapshot.Write(encodedPackage, 0, encodedPackage.Length);
             var currentPartPayloads = new Dictionary<Uri, byte[]>();
+            var currentDataPartPayloads = sourceDataParts.ToDictionary(
+                part => part.Uri,
+                part => ReadCurrentSignatureSnapshotDataPart(part, options.MaxPartBytes));
             HashSet<Uri> encodedPartUris;
             using (var encodedStream = new MemoryStream(encodedPackage, writable: false)) {
                 using WordprocessingDocument encodedPackageDocument = WordprocessingDocument.Open(encodedStream, false);
@@ -36,7 +44,9 @@ namespace OfficeIMO.Word {
                         encodedPackageDocument,
                         options.MaxPackageParts)
                     .ToDictionary(part => part.Uri);
-                encodedPartUris = new HashSet<Uri>(encodedParts.Keys);
+                List<DataPart> encodedDataParts = encodedPackageDocument.DataParts.ToList();
+                EnsureSignatureSnapshotPartCount(encodedParts.Count, encodedDataParts.Count, options.MaxPackageParts);
+                encodedPartUris = new HashSet<Uri>(encodedParts.Keys.Concat(encodedDataParts.Select(part => part.Uri)));
                 foreach (OpenXmlPart sourcePart in sourceParts) {
                     OpenXmlPartRootElement? sourceRoot = sourcePart.IsRootElementLoaded
                         ? sourcePart.RootElement
@@ -55,14 +65,24 @@ namespace OfficeIMO.Word {
             ApplyCurrentSignatureSnapshotState(
                 snapshot,
                 sourceParts,
+                sourceDataParts,
                 encodedPartUris,
                 currentPartPayloads,
+                currentDataPartPayloads,
                 options.MaxPackageParts,
                 options.MaxPartBytes);
             if (snapshot.Length > options.MaxPackageBytes) {
                 throw new InvalidDataException("The current OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
             }
             return snapshot.ToArray();
+        }
+
+        private static void EnsureSignatureSnapshotPartCount(int openXmlPartCount, int dataPartCount, int maxPackageParts) {
+            if (openXmlPartCount > maxPackageParts - dataPartCount) {
+                throw new SignatureValidationSnapshotResourceException(
+                    "The OPC package contains more than " + maxPackageParts +
+                    " parts while creating the current-state validation snapshot.");
+            }
         }
 
         private static void EnsureSignatureSnapshotPartWithinLimit(OpenXmlPart part, long maxPartBytes) {
@@ -93,23 +113,50 @@ namespace OfficeIMO.Word {
             return output.ToArray();
         }
 
+        private static void EnsureSignatureSnapshotDataPartWithinLimit(DataPart part, long maxPartBytes) {
+            using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
+            if (input.CanSeek && input.Length > maxPartBytes) {
+                throw new SignatureValidationSnapshotResourceException(
+                    "The current package data part " + part.Uri + " exceeds the " +
+                    maxPartBytes + " byte validation limit.");
+            }
+            if (!input.CanSeek) CopySignatureSnapshotPart(input, Stream.Null, maxPartBytes, part.Uri);
+        }
+
+        private static byte[] ReadCurrentSignatureSnapshotDataPart(DataPart part, long maxPartBytes) {
+            using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
+            using var output = new MemoryStream();
+            CopySignatureSnapshotPart(input, output, maxPartBytes, part.Uri);
+            return output.ToArray();
+        }
+
         private void ApplyCurrentSignatureSnapshotState(
             SignatureValidationSnapshotMemoryStream snapshot,
             IReadOnlyList<OpenXmlPart> currentParts,
+            IReadOnlyList<DataPart> currentDataParts,
             HashSet<Uri> encodedPartUris,
             IReadOnlyDictionary<Uri, byte[]> currentPartPayloads,
+            IReadOnlyDictionary<Uri, byte[]> currentDataPartPayloads,
             int maxPackageParts,
             long maxPartBytes) {
             snapshot.Position = 0;
             using var snapshotArchive = new ZipArchive(snapshot, ZipArchiveMode.Update, leaveOpen: true);
-            var currentPartUris = new HashSet<Uri>(currentParts.Select(part => part.Uri));
+            var currentPartUris = new HashSet<Uri>(currentParts.Select(part => part.Uri)
+                .Concat(currentDataParts.Select(part => part.Uri)));
             foreach (Uri removedPartUri in encodedPartUris.Where(uri => !currentPartUris.Contains(uri))) {
                 snapshotArchive.GetEntry(GetSignatureSnapshotEntryName(removedPartUri))?.Delete();
             }
             foreach (KeyValuePair<Uri, byte[]> payload in currentPartPayloads) {
                 ReplaceSignatureSnapshotEntry(snapshotArchive, GetSignatureSnapshotEntryName(payload.Key), payload.Value);
             }
-            UpdateSignatureSnapshotContentTypes(snapshotArchive, currentParts, encodedPartUris, maxPartBytes);
+            foreach (KeyValuePair<Uri, byte[]> payload in currentDataPartPayloads) {
+                ReplaceSignatureSnapshotEntry(snapshotArchive, GetSignatureSnapshotEntryName(payload.Key), payload.Value);
+            }
+            var currentContentTypes = currentParts
+                .Select(part => (part.Uri, part.ContentType))
+                .Concat(currentDataParts.Select(part => (part.Uri, part.ContentType)))
+                .ToDictionary(item => item.Uri, item => item.ContentType);
+            UpdateSignatureSnapshotContentTypes(snapshotArchive, currentContentTypes, encodedPartUris, maxPartBytes);
 
             Dictionary<string, byte[]> currentRelationships = BuildCurrentSignatureSnapshotRelationships(currentParts, maxPackageParts, maxPartBytes);
             foreach (KeyValuePair<string, byte[]> relationship in currentRelationships) {
@@ -215,7 +262,7 @@ namespace OfficeIMO.Word {
 
         private static void UpdateSignatureSnapshotContentTypes(
             ZipArchive archive,
-            IReadOnlyList<OpenXmlPart> currentParts,
+            IReadOnlyDictionary<Uri, string> currentContentTypes,
             HashSet<Uri> encodedPartUris,
             long maxPartBytes) {
             const string entryName = "[Content_Types].xml";
@@ -233,7 +280,7 @@ namespace OfficeIMO.Word {
             XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
             XElement root = document.Root ?? throw new InvalidDataException("The OPC content-type catalog is empty.");
             XNamespace contentTypes = root.Name.Namespace;
-            var currentPartUris = new HashSet<Uri>(currentParts.Select(part => part.Uri));
+            var currentPartUris = new HashSet<Uri>(currentContentTypes.Keys);
             foreach (XElement overrideElement in root.Elements(contentTypes + "Override").ToList()) {
                 string? partName = overrideElement.Attribute("PartName")?.Value;
                 if (partName != null && Uri.TryCreate(partName, UriKind.Relative, out Uri? uri) &&
@@ -241,18 +288,18 @@ namespace OfficeIMO.Word {
                     overrideElement.Remove();
                 }
             }
-            foreach (OpenXmlPart part in currentParts) {
+            foreach (KeyValuePair<Uri, string> part in currentContentTypes) {
                 XElement? overrideElement = root.Elements(contentTypes + "Override")
                     .FirstOrDefault(element => string.Equals(
                         element.Attribute("PartName")?.Value,
-                        part.Uri.ToString(),
+                        part.Key.ToString(),
                         StringComparison.OrdinalIgnoreCase));
                 if (overrideElement == null) {
                     root.Add(new XElement(contentTypes + "Override",
-                        new XAttribute("PartName", part.Uri.ToString()),
-                        new XAttribute("ContentType", part.ContentType)));
+                        new XAttribute("PartName", part.Key.ToString()),
+                        new XAttribute("ContentType", part.Value)));
                 } else {
-                    overrideElement.SetAttributeValue("ContentType", part.ContentType);
+                    overrideElement.SetAttributeValue("ContentType", part.Value);
                 }
             }
             ReplaceSignatureSnapshotEntry(archive, entryName, SerializeSignatureSnapshotXml(root, maxPartBytes));

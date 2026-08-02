@@ -199,5 +199,76 @@ namespace OfficeIMO.Tests {
             Assert.Empty(paragraph.Descendants<FieldChar>());
             Assert.Empty(paragraph.Descendants<FieldCode>());
         }
+
+        [Fact]
+        public void Test_MailMerge_ProcessesAdjacentComplexFieldsWithinOneRun() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(new Run(
+                new FieldChar { FieldCharType = FieldCharValues.Begin },
+                new FieldCode(" MERGEFIELD First "),
+                new FieldChar { FieldCharType = FieldCharValues.Separate },
+                new Text("old first"),
+                new FieldChar { FieldCharType = FieldCharValues.End },
+                new FieldChar { FieldCharType = FieldCharValues.Begin },
+                new FieldCode(" MERGEFIELD Last "),
+                new FieldChar { FieldCharType = FieldCharValues.Separate },
+                new Text("old last"),
+                new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> {
+                    ["First"] = "Ada",
+                    ["Last"] = "Lovelace"
+                },
+                removeFields: false);
+
+            Assert.True(report.IsComplete);
+            Assert.Collection(
+                report.Fields,
+                field => {
+                    Assert.Equal("First", field.Name);
+                    Assert.Equal(WordMailMergeFieldStatus.Merged, field.Status);
+                },
+                field => {
+                    Assert.Equal("Last", field.Name);
+                    Assert.Equal(WordMailMergeFieldStatus.Merged, field.Status);
+                });
+            Assert.Equal(new[] { "Ada", "Lovelace" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+        }
+
+        [Fact]
+        public void Test_MailMerge_RemovesAdjacentComplexFieldsWithinOneRun() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(new Run(
+                new Text("Before "),
+                new FieldChar { FieldCharType = FieldCharValues.Begin },
+                new FieldCode(" MERGEFIELD First "),
+                new FieldChar { FieldCharType = FieldCharValues.Separate },
+                new Text("old first"),
+                new FieldChar { FieldCharType = FieldCharValues.End },
+                new Text(" "),
+                new FieldChar { FieldCharType = FieldCharValues.Begin },
+                new FieldCode(" MERGEFIELD Last "),
+                new FieldChar { FieldCharType = FieldCharValues.Separate },
+                new Text("old last"),
+                new FieldChar { FieldCharType = FieldCharValues.End },
+                new Text(" after")));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> {
+                    ["First"] = "Ada",
+                    ["Last"] = "Lovelace"
+                },
+                removeFields: true);
+
+            Assert.True(report.IsComplete);
+            Assert.Equal("Before Ada Lovelace after", paragraph.InnerText);
+            Assert.Empty(paragraph.Descendants<FieldChar>());
+            Assert.Empty(paragraph.Descendants<FieldCode>());
+        }
     }
 }

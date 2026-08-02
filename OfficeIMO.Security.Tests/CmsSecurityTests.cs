@@ -170,6 +170,51 @@ public sealed class CmsSecurityTests {
     }
 
     [Fact]
+    public void CertificateOfflineIssuerPathSearchStopsAtTheCryptographicWorkLimit() {
+        using RSA key = RSA.Create(2048);
+        X509SignatureGenerator generator = X509SignatureGenerator.CreateForRSA(key, RSASignaturePadding.Pkcs1);
+        DateTimeOffset notBefore = DateTimeOffset.UtcNow.AddMinutes(-5);
+        DateTimeOffset notAfter = DateTimeOffset.UtcNow.AddDays(1);
+
+        using X509Certificate2 issuerOne = CreateOfflinePathCertificate(
+            "CN=OfficeIMO Alternate Issuer",
+            "CN=OfficeIMO Missing Root",
+            key,
+            generator,
+            notBefore,
+            notAfter,
+            1);
+        using X509Certificate2 issuerTwo = CreateOfflinePathCertificate(
+            "CN=OfficeIMO Alternate Issuer",
+            "CN=OfficeIMO Missing Root",
+            key,
+            generator,
+            notBefore,
+            notAfter,
+            2);
+        using X509Certificate2 leaf = CreateOfflinePathCertificate(
+            "CN=OfficeIMO Offline Search Leaf",
+            "CN=OfficeIMO Alternate Issuer",
+            key,
+            generator,
+            notBefore,
+            notAfter,
+            3);
+
+        OfflineCertificatePathSearchOutcome bounded = CertificateChainValidator.FindCompleteOfflinePath(
+            leaf,
+            new[] { issuerOne, issuerTwo },
+            maxIssuerSignatureChecks: 1);
+        OfflineCertificatePathSearchOutcome completed = CertificateChainValidator.FindCompleteOfflinePath(
+            leaf,
+            new[] { issuerOne, issuerTwo },
+            maxIssuerSignatureChecks: 2);
+
+        Assert.Equal(OfflineCertificatePathSearchOutcome.WorkLimitExceeded, bounded);
+        Assert.Equal(OfflineCertificatePathSearchOutcome.Incomplete, completed);
+    }
+
+    [Fact]
     public void EncapsulatedSignature_StopsAtTheConfiguredContentLimit() {
         byte[] content = Enumerable.Repeat((byte)0x5a, 4096).ToArray();
         using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Bounded Encapsulated");
@@ -524,6 +569,31 @@ public sealed class CmsSecurityTests {
             critical: true));
         request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+    }
+
+    private static X509Certificate2 CreateOfflinePathCertificate(
+        string subject,
+        string issuer,
+        RSA key,
+        X509SignatureGenerator generator,
+        DateTimeOffset notBefore,
+        DateTimeOffset notAfter,
+        byte serial) {
+        var request = new CertificateRequest(
+            subject,
+            key,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyCertSign,
+            true));
+        return request.Create(
+            new X500DistinguishedName(issuer),
+            generator,
+            notBefore,
+            notAfter,
+            new[] { serial });
     }
 
     private static (byte[] Encoded, DateTime GenerationTime) CreateTimestampToken(
