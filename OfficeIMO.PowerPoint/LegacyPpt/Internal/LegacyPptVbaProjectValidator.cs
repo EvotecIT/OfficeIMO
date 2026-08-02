@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -7,6 +8,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Validates the required headers and compressed directory in a VBA project storage.</summary>
     internal static class LegacyPptVbaProjectValidator {
         private const int MaximumDirectoryLength = 16 * 1024 * 1024;
+        private const int MaximumModuleCount = 1024;
+        private const long MaximumModuleValidationBytes = 64L * 1024L * 1024L;
 
         static LegacyPptVbaProjectValidator() {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -322,9 +325,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 || countLength != 2) return false;
             ushort moduleCount = (ushort)(bytes[countOffset]
                 | bytes[countOffset + 1] << 8);
+            if (moduleCount > MaximumModuleCount) return false;
             if (!TryReadSizedRecord(bytes, ref position, 0x0013, 2, false)) {
                 return false;
             }
+            var moduleStreams = new Dictionary<string, byte[]>(
+                StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, byte[]> pair in streams) {
+                if (pair.Key.StartsWith("VBA/", StringComparison.OrdinalIgnoreCase)
+                    && !moduleStreams.ContainsKey(pair.Key)) {
+                    moduleStreams.Add(pair.Key, pair.Value);
+                }
+            }
+            var validationCache = new Dictionary<string, int?>(
+                StringComparer.OrdinalIgnoreCase);
+            long cumulativeValidationBytes = 0L;
             for (int index = 0; index < moduleCount; index++) {
                 if (!TryReadSizedRecord(bytes, ref position, 0x0019, null, true)) {
                     return false;
@@ -372,15 +387,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     ? unicodeStreamName
                     : ansiStreamName;
                 uint moduleOffset = ReadUInt32(bytes, moduleOffsetPosition);
-                byte[]? moduleStream = streams
-                    .Where(pair => string.Equals(pair.Key,
-                        "VBA/" + streamName, StringComparison.OrdinalIgnoreCase))
-                    .Select(pair => pair.Value)
-                    .FirstOrDefault();
+                string storagePath = "VBA/" + streamName;
                 if (string.IsNullOrWhiteSpace(streamName)
-                    || moduleStream == null || moduleOffset >= moduleStream.Length
-                    || !TryValidateCompressedModuleStream(moduleStream,
-                        checked((int)moduleOffset))) {
+                    || !moduleStreams.TryGetValue(storagePath,
+                        out byte[]? moduleStream)
+                    || moduleOffset >= moduleStream.Length) {
+                    return false;
+                }
+                string cacheKey = storagePath + "\0"
+                    + moduleOffset.ToString(CultureInfo.InvariantCulture);
+                if (!validationCache.TryGetValue(cacheKey,
+                        out int? validationBytes)) {
+                    if (!TryValidateCompressedModuleStream(moduleStream,
+                            checked((int)moduleOffset),
+                            out int measuredBytes)) {
+                        validationCache[cacheKey] = null;
+                        return false;
+                    }
+                    validationBytes = measuredBytes;
+                    validationCache[cacheKey] = validationBytes;
+                    if (validationBytes.Value
+                        > MaximumModuleValidationBytes
+                            - cumulativeValidationBytes) {
+                        return false;
+                    }
+                    cumulativeValidationBytes += validationBytes.Value;
+                } else if (!validationBytes.HasValue) {
                     return false;
                 }
             }
@@ -388,12 +420,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static bool TryValidateCompressedModuleStream(byte[] stream,
-            int offset) {
+            int offset, out int validationBytes) {
+            validationBytes = 0;
             int length = stream.Length - offset;
             if (length <= 0) return false;
             var container = new byte[length];
             Buffer.BlockCopy(stream, offset, container, 0, length);
-            return TryDecompressDirectory(container, out _, out _);
+            if (!TryDecompressDirectory(container, out byte[] decompressed,
+                    out _)) {
+                return false;
+            }
+            validationBytes = checked(length + decompressed.Length);
+            return true;
         }
 
         private static bool TryReadLengthPrefixedBytes(byte[] bytes,

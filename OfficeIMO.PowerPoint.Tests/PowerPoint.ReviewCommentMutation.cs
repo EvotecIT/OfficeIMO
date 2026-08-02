@@ -338,6 +338,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ModernCommentCoordinateGettersDoNotMaterializeMissingPosition() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, new PowerPointCommentAuthor("Reviewer", "R"),
+                "Positionless");
+            PowerPointCommentPart part = Assert.Single(slide.SlidePart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointCommentPart>());
+            P188.Comment nativeComment = Assert.Single(part.CommentList!
+                .Elements<P188.Comment>());
+            nativeComment.GetFirstChild<P188.Point2DType>()!.Remove();
+
+            Assert.Equal(0L, comment.X);
+            Assert.Equal(0L, comment.Y);
+            Assert.Null(nativeComment.GetFirstChild<P188.Point2DType>());
+
+            comment.X = 12L;
+            Assert.Equal(12L, comment.X);
+            Assert.Equal(0L, comment.Y);
+            Assert.NotNull(nativeComment.GetFirstChild<P188.Point2DType>());
+        }
+
+        [Fact]
         public void ModernComments_CreateEditReplyReassignRemove_AndRoundTripPptx() {
             using var stream = new MemoryStream();
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {

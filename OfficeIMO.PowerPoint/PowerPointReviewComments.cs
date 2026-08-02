@@ -253,7 +253,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Comment X position within the DrawingML coordinate range.</summary>
         public long X {
-            get => RequirePosition().X?.Value ?? 0L;
+            get => RequireAttached().GetFirstChild<P188.Point2DType>()?
+                .X?.Value ?? 0L;
             set {
                 PowerPointPresentation.ValidateModernCommentPosition(
                     value, nameof(value));
@@ -263,7 +264,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Comment Y position within the DrawingML coordinate range.</summary>
         public long Y {
-            get => RequirePosition().Y?.Value ?? 0L;
+            get => RequireAttached().GetFirstChild<P188.Point2DType>()?
+                .Y?.Value ?? 0L;
             set {
                 PowerPointPresentation.ValidateModernCommentPosition(
                     value, nameof(value));

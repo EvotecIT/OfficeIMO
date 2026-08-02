@@ -179,6 +179,14 @@ namespace OfficeIMO.PowerPoint {
                     or A.SolidFill or A.GradientFill or A.PatternFill);
             bool hasFixedThemeFill = opacity != null && themeFill != null
                 && ContainsFixedThemeColor(themeFill);
+            if (outline == null && opacity == null) {
+                OpenXmlCompositeElement? styleColor =
+                    GetShapeStyleLineColorChoice(createPlaceholder: false);
+                if (styleColor != null) {
+                    SetColorAlphaOverride(styleColor, opacity: null);
+                }
+                return;
+            }
             if (outline == null && hasFixedThemeFill) {
                 ShapeProperties? properties = GetShapeProperties(create: true);
                 outline = (A.Outline)themeOutline!.CloneNode(true);

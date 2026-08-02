@@ -155,6 +155,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PublicMacroApi_BoundsRepeatedModuleValidationWork() {
+            byte[] bounded = CreateVbaTestProject("RepeatedModule",
+                "Sub Main(): End Sub", moduleCount: 32);
+            byte[] excessive = CreateVbaTestProject("RepeatedModule",
+                "Sub Main(): End Sub", moduleCount: 1025);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+
+            presentation.SetVbaProject(bounded);
+            Assert.Equal(bounded, presentation.GetVbaProjectBytes());
+            Assert.Throws<InvalidDataException>(() =>
+                presentation.SetVbaProject(excessive));
+            Assert.Equal(bounded, presentation.GetVbaProjectBytes());
+        }
+
+        [Fact]
         public void FeatureReport_PreservesVbaProjectsWithRelatedParts() {
             byte[] project = CreateVbaTestProject("RelatedPartModule",
                 "Sub Main(): End Sub");

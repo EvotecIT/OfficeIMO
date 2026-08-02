@@ -106,9 +106,22 @@ namespace OfficeIMO.PowerPoint {
                 OfficeDiagramKind.Relationship => PowerPointSmartArtType.BasicRelationship,
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };
+            double aspectRatio = WidthPoints / HeightPoints;
+            if (type == PowerPointSmartArtType.BasicList) {
+                Dgm.Parameter? storedAspectRatio = layoutPart.LayoutDefinition
+                    .Descendants<Dgm.Parameter>().FirstOrDefault(parameter =>
+                        parameter.Type?.Value
+                            == Dgm.ParameterIdValues.AspectRatio);
+                if (double.TryParse(storedAspectRatio?.Val?.Value,
+                        NumberStyles.Float, CultureInfo.InvariantCulture,
+                        out double storedRatio)
+                    && storedRatio > 0D && !double.IsInfinity(storedRatio)) {
+                    aspectRatio = storedRatio;
+                }
+            }
             Dgm.LayoutDefinition expected = PowerPointSlide
                 .CreateSmartArtLayoutDefinition(type, nodeCount,
-                    WidthPoints / HeightPoints);
+                    aspectRatio);
             return string.Equals(layoutPart.LayoutDefinition.OuterXml,
                 expected.OuterXml, StringComparison.Ordinal);
         }

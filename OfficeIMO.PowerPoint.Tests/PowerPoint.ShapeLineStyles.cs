@@ -198,6 +198,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ClearingOutlineTransparencyRemovesStyleReferenceAlpha() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointAutoShape shape = presentation.AddSlide()
+                .AddRectanglePoints(10, 10, 100, 60);
+            Shape nativeShape = (Shape)shape.Element;
+            nativeShape.ShapeProperties!.GetFirstChild<A.Outline>()?.Remove();
+            nativeShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.FillReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+            A.LineReference reference = nativeShape.ShapeStyle.LineReference!;
+            OpenXmlCompositeElement color = Assert.IsAssignableFrom<
+                OpenXmlCompositeElement>(reference.ChildElements.Single());
+            color.Append(new A.Alpha { Val = 65000 });
+
+            Assert.Equal(35, shape.OutlineTransparency);
+            shape.OutlineTransparency = null;
+
+            Assert.Null(color.GetFirstChild<A.Alpha>());
+            Assert.Null(nativeShape.ShapeProperties
+                .GetFirstChild<A.Outline>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void FillTransparencyPreservesActiveNonSolidFillChoice() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

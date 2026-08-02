@@ -453,6 +453,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BasicListSmartArtRemainsSemanticAfterFrameResize() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
+                PowerPointSmartArtType.BasicList,
+                new[] { "Discover", "Build", "Ship" },
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(320),
+                PowerPointUnits.FromPoints(180));
+
+            smartArt.Width = PowerPointUnits.FromPoints(240);
+            smartArt.Height = PowerPointUnits.FromPoints(240);
+
+            Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
+                out OfficeDiagramSnapshot snapshot));
+            Assert.Equal(OfficeDiagramKind.List, snapshot.Kind);
+            Assert.Equal(240D, snapshot.WidthPoints, 3);
+            Assert.Equal(240D, snapshot.HeightPoints, 3);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void SmartArtNodeMutationRejectsXmlInvalidTextWithoutChangingData() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

@@ -39,4 +39,16 @@ public partial class PowerPoint {
             OfficeOpenXmlThemeColorResolver.ResolveColor(
                 themeFill, null, reference)));
     }
+
+    [Fact]
+    public void ThemeColorResolver_ConvertsLinearScRgbToSrgbChannels() {
+        var color = new RgbColorModelPercentage {
+            RedPortion = 50000,
+            GreenPortion = 25000,
+            BluePortion = 0
+        };
+
+        Assert.Equal(OfficeColor.FromRgb(188, 137, 0),
+            OfficeOpenXmlThemeColorResolver.ResolveColor(color, null));
+    }
 }

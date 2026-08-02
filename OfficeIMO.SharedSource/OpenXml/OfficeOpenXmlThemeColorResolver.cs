@@ -226,9 +226,16 @@ internal static class OfficeOpenXmlThemeColorResolver {
             return null;
         }
         return OfficeColor.FromRgb(
-            ToChannel(255D * red / 100000D),
-            ToChannel(255D * green / 100000D),
-            ToChannel(255D * blue / 100000D));
+            ToChannel(255D * LinearScRgbToSrgb(red / 100000D)),
+            ToChannel(255D * LinearScRgbToSrgb(green / 100000D)),
+            ToChannel(255D * LinearScRgbToSrgb(blue / 100000D)));
+    }
+
+    private static double LinearScRgbToSrgb(double value) {
+        double linear = ClampUnit(value);
+        return linear <= 0.0031308D
+            ? 12.92D * linear
+            : 1.055D * Math.Pow(linear, 1D / 2.4D) - 0.055D;
     }
 
     private static OfficeColor? ParseHsl(A.HslColor color) {
