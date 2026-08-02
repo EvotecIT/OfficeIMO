@@ -160,6 +160,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_ValidationSnapshotRemovesRelationshipsOwnedByRemovedPart() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignaturePendingOwnedRelationshipRemoval.docx");
+            string relationshipEntryName;
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed relationship owner");
+                document.Save();
+            }
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                ImagePart imagePart = package.MainDocumentPart!.AddImagePart(ImagePartType.Png);
+                using var content = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
+                imagePart.FeedData(content);
+                imagePart.AddExternalRelationship(
+                    "urn:officeimo:signature-snapshot-proof",
+                    new Uri("https://example.test/owned-relationship"));
+                string partEntryName = imagePart.Uri.ToString().TrimStart('/');
+                int separator = partEntryName.LastIndexOf('/');
+                relationshipEntryName = partEntryName.Substring(0, separator + 1) +
+                    "_rels/" + partEntryName.Substring(separator + 1) + ".rels";
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            Assert.True(WordDocument.SignPackage(filePath, certificate).Succeeded);
+
+            using WordDocument loaded = WordDocument.Load(filePath);
+            MainDocumentPart mainPart = loaded._wordprocessingDocument.MainDocumentPart!;
+            mainPart.DeletePart(Assert.Single(mainPart.ImageParts));
+
+            byte[] snapshot = CreateValidationSnapshot(loaded);
+            using var archive = new ZipArchive(new MemoryStream(snapshot), ZipArchiveMode.Read);
+            Assert.Null(archive.GetEntry(relationshipEntryName));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_PartLimitIsIndeterminateRatherThanFailedDigest() {
             string filePath = CreateSignedDocument("WordDigitalSignaturePartLimitStatus.docx");
             const string partUri = "/word/document.xml";

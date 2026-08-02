@@ -344,8 +344,34 @@ namespace OfficeIMO.Tests {
                 IncludeDefaultCss = false
             }).RequireValue();
 
-            Assert.Contains("value=\"internal-id\"", html, StringComparison.Ordinal);
+            Assert.Contains("value=\"Visible label\"", html, StringComparison.Ordinal);
+            Assert.Contains("data-word-value=\"internal-id\"", html, StringComparison.Ordinal);
             Assert.Contains("label=\"Visible label\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesGeneratedListDefinitionCss() {
+            using WordDocument document = WordDocument.Create();
+            for (int index = 0; index < 64; index++) {
+                WordList list = document.AddList(WordListStyle.Numbered);
+                list.Numbering.Levels[0].IndentationLeft = 720 + index;
+                list.AddItem("Item " + index);
+            }
+            string expected = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                IncludeListDefinitions = true
+            }).RequireValue();
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    IncludeListDefinitions = true,
+                    MaxOutputCharacters = expected.Length - 1
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("GeneratedListDefinitionCss", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
         }
 
         [Fact]
@@ -363,10 +389,10 @@ namespace OfficeIMO.Tests {
                 document.ToHtmlResult(new WordToHtmlOptions {
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 4096
-                }));
+            }));
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
-            Assert.Equal("ComboBoxOption:label", exception.LimitSource);
+            Assert.Equal("ComboBoxOption:value", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
 

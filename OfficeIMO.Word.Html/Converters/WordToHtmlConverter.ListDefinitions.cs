@@ -63,12 +63,20 @@ namespace OfficeIMO.Word.Html {
             var sb = new StringBuilder();
             foreach (var definition in listDefinitions.OrderBy(definition => definition.ClassName, StringComparer.Ordinal)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                sb.Append('.').Append(definition.ClassName).Append(" { ");
-                sb.Append("list-style-type:").Append(definition.ListStyleType).Append(';');
+                var rule = new StringBuilder();
+                rule.Append('.').Append(definition.ClassName).Append(" { ");
+                rule.Append("list-style-type:").Append(definition.ListStyleType).Append(';');
                 if (definition.LeftIndentTwips.HasValue && definition.LeftIndentTwips.Value > 0) {
-                    sb.Append("padding-left:").Append(FormatListTwips(definition.LeftIndentTwips.Value)).Append(';');
+                    rule.Append("padding-left:").Append(FormatListTwips(definition.LeftIndentTwips.Value)).Append(';');
                 }
-                sb.Append(" }\n");
+                rule.Append(" }\n");
+                string ruleText = rule.ToString();
+                ReserveOutputCharacters(
+                    htmlDoc,
+                    GetHtmlEncodedLength(ruleText, attributeValue: false),
+                    "Generated list-definition CSS exceeds the configured output-character limit before DOM construction.",
+                    "GeneratedListDefinitionCss");
+                sb.Append(ruleText);
             }
             styleElement.TextContent = sb.ToString();
             head.AppendChild(styleElement);

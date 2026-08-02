@@ -20,6 +20,9 @@ namespace OfficeIMO.Word {
             }
 
             byte[] encodedPackage = _ownedPackageStream.ToArray();
+            HashSet<string> encodedRelationshipEntryNames = GetSignatureSnapshotRelationshipEntryNames(
+                encodedPackage,
+                options.MaxPackageParts);
             List<OpenXmlPart> sourceParts = EnumerateSignatureSnapshotParts(
                     _wordprocessingDocument,
                     options.MaxPackageParts)
@@ -86,6 +89,7 @@ namespace OfficeIMO.Word {
                 sourceParts,
                 sourceDataParts,
                 encodedPartUris,
+                encodedRelationshipEntryNames,
                 currentPartPayloads,
                 currentDataPartPayloads,
                 options.MaxPackageParts,
@@ -146,6 +150,7 @@ namespace OfficeIMO.Word {
             IReadOnlyList<OpenXmlPart> currentParts,
             IReadOnlyList<DataPart> currentDataParts,
             HashSet<Uri> encodedPartUris,
+            IReadOnlyCollection<string> encodedRelationshipEntryNames,
             IReadOnlyDictionary<Uri, byte[]> currentPartPayloads,
             IReadOnlyDictionary<Uri, byte[]> currentDataPartPayloads,
             int maxPackageParts,
@@ -170,6 +175,11 @@ namespace OfficeIMO.Word {
             UpdateSignatureSnapshotContentTypes(snapshotArchive, currentContentTypes, encodedPartUris, maxPartBytes);
 
             Dictionary<string, byte[]> currentRelationships = BuildCurrentSignatureSnapshotRelationships(currentParts, maxPackageParts, maxPartBytes);
+            foreach (string encodedRelationshipEntryName in encodedRelationshipEntryNames) {
+                if (!currentRelationships.ContainsKey(encodedRelationshipEntryName)) {
+                    snapshotArchive.GetEntry(encodedRelationshipEntryName)?.Delete();
+                }
+            }
             foreach (KeyValuePair<string, byte[]> relationship in currentRelationships) {
                 ZipArchiveEntry? existingEntry = snapshotArchive.GetEntry(relationship.Key);
                 if (existingEntry != null) {
@@ -184,15 +194,25 @@ namespace OfficeIMO.Word {
                 }
                 ReplaceSignatureSnapshotEntry(snapshotArchive, relationship.Key, relationship.Value);
             }
-            foreach (OpenXmlPart currentPart in currentParts) {
-                string relationshipEntryName = GetSignatureSnapshotRelationshipEntryName(currentPart.Uri);
-                if (!currentRelationships.ContainsKey(relationshipEntryName)) {
-                    snapshotArchive.GetEntry(relationshipEntryName)?.Delete();
-                }
+        }
+
+        private static HashSet<string> GetSignatureSnapshotRelationshipEntryNames(
+            byte[] packageBytes,
+            int maxPackageParts) {
+            using var archive = new ZipArchive(
+                new MemoryStream(packageBytes, writable: false),
+                ZipArchiveMode.Read);
+            if (archive.Entries.Count > maxPackageParts) {
+                throw new SignatureValidationSnapshotResourceException(
+                    "The OPC package contains more than " + maxPackageParts +
+                    " ZIP entries while discovering current-state relationship parts.");
             }
-            if (!currentRelationships.ContainsKey("_rels/.rels")) {
-                snapshotArchive.GetEntry("_rels/.rels")?.Delete();
-            }
+            return new HashSet<string>(
+                archive.Entries
+                    .Where(entry => !string.IsNullOrEmpty(entry.Name) &&
+                                    entry.FullName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase))
+                    .Select(entry => entry.FullName),
+                StringComparer.OrdinalIgnoreCase);
         }
 
         private Dictionary<string, byte[]> BuildCurrentSignatureSnapshotRelationships(

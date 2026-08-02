@@ -1057,8 +1057,17 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("<input type=\"text\" disabled=\"\" list=\"word-combo-1\" value=\"Visible label\"", html,
                 StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<option value=\"internal-id\" label=\"Visible label\"", html,
+            Assert.Contains("<option value=\"Visible label\" label=\"Visible label\" data-word-value=\"internal-id\"", html,
                 StringComparison.OrdinalIgnoreCase);
+
+            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            WordComboBox imported = Assert.Single(roundTrip.ComboBoxes);
+            ListItem importedItem = Assert.Single(imported._sdtRun.SdtProperties!
+                .GetFirstChild<SdtContentComboBox>()!
+                .Elements<ListItem>());
+            Assert.Equal("internal-id", importedItem.Value?.Value);
+            Assert.Equal("Visible label", importedItem.DisplayText?.Value);
+            Assert.Equal("internal-id", imported.SelectedValue);
         }
 
         [Fact]

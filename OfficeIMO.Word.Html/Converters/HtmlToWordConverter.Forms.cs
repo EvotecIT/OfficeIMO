@@ -41,14 +41,24 @@ namespace OfficeIMO.Word.Html {
             } else if (TryGetDataListOptions(element, out var dataListOptions)) {
                 var hasValueAttribute = element.HasAttribute("value");
                 var value = element.GetAttribute("value") ?? string.Empty;
-                if (!string.IsNullOrEmpty(value) && !dataListOptions.Contains(value, StringComparer.Ordinal)) {
-                    dataListOptions.Insert(0, value);
+                int selectedIndex = dataListOptions.FindIndex(option =>
+                    string.Equals(option.DisplayText, value, StringComparison.Ordinal) ||
+                    string.Equals(option.Value, value, StringComparison.Ordinal));
+                if (!string.IsNullOrEmpty(value) && selectedIndex < 0) {
+                    dataListOptions.Insert(0, (value, value));
+                    selectedIndex = 0;
                 }
-                var defaultValue = dataListOptions.Contains(value, StringComparer.Ordinal) ? value : null;
-                var comboBox = currentParagraph.AddComboBox(dataListOptions, alias, tag, defaultValue);
-                if (!hasValueAttribute && dataListOptions.Contains(string.Empty, StringComparer.Ordinal)) {
-                    comboBox.SelectedValue = string.Empty;
+                if (!hasValueAttribute) {
+                    selectedIndex = dataListOptions.FindIndex(option => option.DisplayText.Length == 0);
+                    if (selectedIndex < 0) selectedIndex = 0;
                 }
+                if (selectedIndex < 0) selectedIndex = 0;
+                var comboBox = currentParagraph.AddComboBox(
+                    dataListOptions.Select(option => option.DisplayText).ToList(),
+                    alias,
+                    tag,
+                    dataListOptions[selectedIndex].DisplayText);
+                comboBox.SetImportedItems(dataListOptions, selectedIndex);
             } else {
                 currentParagraph.AddStructuredDocumentTag(element.GetAttribute("value") ?? string.Empty, alias, tag);
             }
@@ -356,8 +366,10 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static bool TryGetDataListOptions(IElement element, out List<string> options) {
-            options = new List<string>();
+        private static bool TryGetDataListOptions(
+            IElement element,
+            out List<(string Value, string DisplayText)> options) {
+            options = new List<(string Value, string DisplayText)>();
             var listId = element.GetAttribute("list");
             if (string.IsNullOrWhiteSpace(listId)) {
                 return false;
@@ -374,7 +386,11 @@ namespace OfficeIMO.Word.Html {
             }
 
             options = dataList.QuerySelectorAll("option")
-                .Select(GetOptionText)
+                .Select(option => {
+                    string displayText = GetOptionText(option);
+                    string value = option.GetAttribute("data-word-value") ?? displayText;
+                    return (value, displayText);
+                })
                 .ToList();
 
             return options.Count > 0;

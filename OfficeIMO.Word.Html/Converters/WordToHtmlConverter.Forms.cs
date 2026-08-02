@@ -67,8 +67,11 @@ namespace OfficeIMO.Word.Html {
             SetOutputAttribute(dataList, "id", listId, "ComboBoxList:id");
             foreach (var item in items) {
                 var option = CreateOutputElement(htmlDoc, "option");
-                SetOutputAttribute(htmlDoc, option, "value", item.Value, "ComboBoxOption:value");
+                SetOutputAttribute(htmlDoc, option, "value", item.DisplayText, "ComboBoxOption:value");
                 SetOutputAttribute(htmlDoc, option, "label", item.DisplayText, "ComboBoxOption:label");
+                if (!string.Equals(item.Value, item.DisplayText, StringComparison.Ordinal)) {
+                    SetOutputAttribute(htmlDoc, option, "data-word-value", item.Value, "ComboBoxOption:internal-value");
+                }
                 dataList.AppendChild(option);
             }
 
