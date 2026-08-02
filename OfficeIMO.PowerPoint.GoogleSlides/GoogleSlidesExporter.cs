@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             GoogleWorkspacePreflight.Validate(batch.Plan.Report, effective.FidelityPolicy);
             GoogleDriveFileLocation location = session.ResolveLocationDefaults(effective.Location);
             GoogleWorkspaceAccessToken token = await session.AcquireAccessTokenAsync(GoogleWorkspaceScopeCatalog.SlidesAuthoring, cancellationToken).ConfigureAwait(false);
-            using var transport = new GoogleWorkspaceHttpTransport(session.Options);
+            using var transport = new GoogleWorkspaceHttpTransport(session);
             using var drive = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring());
             var leases = new List<GoogleDriveTemporaryContentLease>();
             string? presentationId = null;
@@ -57,7 +57,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         "Google Slides API",
                         batch.Plan.Report,
                         GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken,
+                        mutationKind: GoogleWorkspaceMutationKind.Create,
+                        requiredScopes: GoogleWorkspaceScopeCatalog.SlidesAuthoring).ConfigureAwait(false);
                     presentationId = created.PresentationId ?? throw new InvalidOperationException("Google Slides create response did not return a presentationId.");
                 }
 
@@ -68,13 +70,17 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 string? revision = ResolveRevision(effective, current, ownsNewCopy, batch.Plan.Report);
                 IReadOnlyDictionary<string, string> imageUrls = await CreateImageLeasesAsync(drive, batch, leases, cancellationToken).ConfigureAwait(false);
                 List<JsonObject> requests = BuildRequests(batch, current, imageUrls);
-                revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, requests, revision, classifyRevisionConflicts, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
+                revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, requests,
+                    revision, classifyRevisionConflicts, deletesCallerOwnedContent: !ownsNewCopy,
+                    report: batch.Plan.Report, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (batch.Slides.Any(slide => !string.IsNullOrWhiteSpace(slide.SpeakerNotes))) {
                     GoogleSlidesApiPresentationResponse withNotes = await GetPresentationAsync(transport, token.AccessToken, presentationId, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
                     revision = withNotes.RevisionId ?? revision;
                     List<JsonObject> noteRequests = BuildSpeakerNotesRequests(batch, withNotes);
-                    revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, noteRequests, revision, classifyRevisionConflicts, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
+                    revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, noteRequests,
+                        revision, classifyRevisionConflicts, deletesCallerOwnedContent: !ownsNewCopy,
+                        report: batch.Plan.Report, cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
 
                 if (overwritingExisting || string.IsNullOrWhiteSpace(revision)) {
@@ -473,6 +479,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             IReadOnlyList<JsonObject> requests,
             string? revision,
             bool classifyRevisionConflicts,
+            bool deletesCallerOwnedContent,
             TranslationReport report,
             CancellationToken cancellationToken) {
             for (int offset = 0; offset < requests.Count; offset += RequestsPerBatch) {
@@ -480,6 +487,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 var payload = Obj(("requests", new JsonArray(chunk.Select(request => (JsonNode?)request).ToArray())));
                 if (!string.IsNullOrWhiteSpace(revision)) payload["writeControl"] = Obj(("requiredRevisionId", revision));
                 string? attemptedRevision = revision;
+                GoogleWorkspaceRevisionPrecondition revisionPrecondition = string.IsNullOrWhiteSpace(attemptedRevision)
+                    ? GoogleWorkspaceRevisionPrecondition.Unavailable
+                    : GoogleWorkspaceRevisionPrecondition.PayloadRevision(attemptedRevision!);
                 try {
                     GoogleSlidesApiBatchResponse response = await transport.SendJsonAsync(
                         token,
@@ -490,7 +500,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         "Google Slides API",
                         report,
                         GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiBatchResponse,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken,
+                        mutationKind: GoogleWorkspaceMutationKind.Update,
+                        revisionPrecondition: revisionPrecondition,
+                        requiredScopes: GoogleWorkspaceScopeCatalog.SlidesAuthoring,
+                        potentialDataLoss: deletesCallerOwnedContent && chunk.Any(request =>
+                            request.ContainsKey("deleteObject")
+                            || request.ContainsKey("deleteText"))).ConfigureAwait(false);
                     revision = response.WriteControl?.RequiredRevisionId ?? revision;
                 } catch (GoogleWorkspaceApiException ex) when (
                     classifyRevisionConflicts

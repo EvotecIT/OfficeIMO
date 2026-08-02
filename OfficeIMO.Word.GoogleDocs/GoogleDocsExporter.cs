@@ -78,7 +78,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     ex);
             }
 
-            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var transport = new GoogleWorkspaceHttpTransport(session)) {
             using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
                 await ValidateDrivePlacementAsync(
@@ -177,7 +177,9 @@ namespace OfficeIMO.Word.GoogleDocs {
                     batch.Report,
                     GoogleDocsJsonSerializerContext.Default.GoogleDocsApiCreateDocumentPayload,
                     GoogleDocsJsonSerializerContext.Default.GoogleDocsApiCreateDocumentResponse,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    mutationKind: GoogleWorkspaceMutationKind.Create,
+                    requiredScopes: GoogleWorkspaceScopeCatalog.DocsAuthoring).ConfigureAwait(false);
 
                 if (string.IsNullOrWhiteSpace(createResponse.DocumentId)) {
                     throw new InvalidOperationException("Google Docs create response did not return a documentId.");
@@ -231,6 +233,12 @@ namespace OfficeIMO.Word.GoogleDocs {
                 throw;
             } catch (GoogleWorkspaceExportCanceledException) {
                 throw;
+            } catch (GoogleWorkspaceAmbiguousMutationException ex) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateAmbiguousMutationFailure(
+                    "Google Docs export",
+                    session.Options,
+                    batch.Report,
+                    ex);
             } catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
                 throw GoogleWorkspaceFailureDiagnostics.CreateRequestTimeoutFailure(
                     "Google Docs export",

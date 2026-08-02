@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                     });
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                     });
                 }));
 
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                         Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
                     };
                 }));
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 

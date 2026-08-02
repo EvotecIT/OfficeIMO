@@ -96,11 +96,7 @@ namespace OfficeIMO.Tests {
 
                 var session = new GoogleWorkspaceSession(
                     new FakeGoogleWorkspaceCredentialSource(),
-                    new GoogleWorkspaceSessionOptions {
-                        HttpClient = httpClient,
-                        MaxRetryCount = 1,
-                        DiagnosticSink = entries.Add,
-                    });
+                    MutationOptions(httpClient, entries.Add, maxRetryCount: 1));
 
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
@@ -172,6 +168,11 @@ namespace OfficeIMO.Tests {
                 entry.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry
                 && entry.Feature == "ApiRetries"
                 && entry.Severity == TranslationSeverity.Info);
+            Assert.DoesNotContain(entries, entry =>
+                entry.Message.Contains("tenant-user", StringComparison.Ordinal)
+                || (entry.TargetId?.Contains("tenant-user", StringComparison.Ordinal) ?? false)
+                || entry.Message.Contains("fields=id", StringComparison.Ordinal)
+                || (entry.TargetId?.Contains("fields=id", StringComparison.Ordinal) ?? false));
         }
 
         [Fact]
@@ -209,6 +210,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal("safe-timeout-retry", result.Id);
             Assert.Equal(2, attempts);
             Assert.Contains(entries, entry => entry.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
+        }
+
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_EnforcesTotalElapsedDeadline() {
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(async (_, cancellationToken) => {
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+                return CreateJsonResponse("{\"id\":\"too-late\"}");
+            }));
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = httpClient,
+                RequestTimeout = TimeSpan.FromSeconds(10),
+                MaxRetryElapsedTime = TimeSpan.FromMilliseconds(50),
+                MaxRetryCount = 3,
+            };
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            await Assert.ThrowsAsync<TimeoutException>(() => transport.SendJsonAsync<TransportReadResponse>(
+                "token", HttpMethod.Get,
+                "https://www.googleapis.com/drive/v3/files/file-1?fields=id", null,
+                GoogleWorkspaceRequestSafety.Safe, "Google Drive API", new TranslationReport()));
         }
 
         [Fact]
@@ -313,10 +334,7 @@ namespace OfficeIMO.Tests {
 
                 var session = new GoogleWorkspaceSession(
                     new FakeGoogleWorkspaceCredentialSource(),
-                    new GoogleWorkspaceSessionOptions {
-                        HttpClient = httpClient,
-                        DiagnosticSink = entries.Add,
-                    });
+                    MutationOptions(httpClient, entries.Add));
 
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
@@ -362,9 +380,7 @@ namespace OfficeIMO.Tests {
 
                 var session = new GoogleWorkspaceSession(
                     new FakeGoogleWorkspaceCredentialSource(),
-                    new GoogleWorkspaceSessionOptions {
-                        HttpClient = httpClient,
-                    });
+                    MutationOptions(httpClient));
 
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
@@ -386,7 +402,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_ClassifiesRequestTimeoutFailures() {
+        public async Task Test_GoogleSheetsExporter_ClassifiesPreResponseTimeoutAsAmbiguousMutation() {
             string filePath = Path.Combine(Path.GetTempPath(), "GoogleSheetsExporterTimeout-" + Guid.NewGuid().ToString("N") + ".xlsx");
 
             try {
@@ -407,19 +423,21 @@ namespace OfficeIMO.Tests {
 
                 var session = new GoogleWorkspaceSession(
                     new FakeGoogleWorkspaceCredentialSource(),
-                    new GoogleWorkspaceSessionOptions {
-                        HttpClient = httpClient,
-                    });
+                    MutationOptions(httpClient));
 
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
                         Title = "Timeout Export",
                     }));
 
-                Assert.Equal(GoogleWorkspaceFailureKind.RequestTimeout, exception.FailureKind);
-                Assert.IsType<TaskCanceledException>(exception.InnerException);
+                Assert.Equal(GoogleWorkspaceFailureKind.AmbiguousMutation, exception.FailureKind);
+                GoogleWorkspaceAmbiguousMutationException ambiguous =
+                    Assert.IsType<GoogleWorkspaceAmbiguousMutationException>(exception.InnerException);
+                Assert.True(ambiguous.Receipt.IsOutcomeAmbiguous);
+                Assert.IsType<TaskCanceledException>(ambiguous.InnerException);
                 Assert.Contains(exception.Report.Notices, notice =>
-                    notice.Feature == "RequestTimeout"
+                    notice.Feature == "AmbiguousMutation"
+                    && notice.Code == GoogleWorkspaceDiagnosticCodes.AmbiguousMutation
                     && notice.Severity == TranslationSeverity.Error);
             } finally {
                 if (File.Exists(filePath)) {
@@ -587,10 +605,9 @@ namespace OfficeIMO.Tests {
 
         private sealed class FakeGoogleWorkspaceCredentialSource : IGoogleWorkspaceCredentialSource {
             public Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(IEnumerable<string> scopes, CancellationToken cancellationToken = default) {
-                return Task.FromResult(new GoogleWorkspaceAccessToken(
-                    "fake-access-token",
-                    DateTimeOffset.UtcNow.AddHours(1),
-                    scopes.ToArray()));
+                return Task.FromResult(GoogleWorkspaceAccessToken.FromVerifiedCredential(
+                    "fake-access-token", DateTimeOffset.UtcNow.AddHours(1),
+                    new GoogleWorkspaceCredentialBinding("test@example.com", scopes.ToArray())));
             }
         }
 
@@ -675,6 +692,30 @@ namespace OfficeIMO.Tests {
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
             public override void SetLength(long value) => throw new NotSupportedException();
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        }
+
+        private static GoogleWorkspaceSessionOptions MutationOptions(HttpClient httpClient,
+            Action<GoogleWorkspaceDiagnosticEntry>? diagnosticSink = null, int maxRetryCount = 3) {
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = httpClient,
+                MaxRetryCount = maxRetryCount,
+                ExpectedAccount = "test@example.com",
+                DiagnosticSink = diagnosticSink,
+                OperationReceiptSink = _ => { },
+            };
+            options.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+                options.ExpectedAccount!, context.RequiredScopes, context.Target,
+                context.RevisionPreconditionKind switch {
+                    GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+                    GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+                    GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState => context.AdapterExpectedRevision!,
+                    GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("test mutation"),
+                    _ => "\"test-etag\"",
+                },
+                context.MaxRetryCount, context.MaxRetryElapsedTime,
+                context.RateLimitPolicy, GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss,
+                "test mutation");
+            return options;
         }
 
         private sealed class FakeHttpMessageHandler : HttpMessageHandler {

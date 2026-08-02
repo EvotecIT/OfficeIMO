@@ -6,6 +6,10 @@ using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Image;
 using System.Text;
 
+if (!Enum.IsDefined(typeof(EmailStoreMaintenanceAction), EmailStoreMaintenanceAction.CompleteInspection)) {
+    throw new InvalidOperationException("The packed maintenance contract cannot represent incomplete inspection evidence.");
+}
+
 byte[] eml = Encoding.ASCII.GetBytes(
     "Subject: Package smoke\r\n" +
     "Content-Type: text/plain; charset=windows-1252\r\n" +

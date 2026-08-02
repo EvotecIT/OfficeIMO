@@ -20,6 +20,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? SheetName { get; set; }
 
+        /// <summary>
+        /// Gets or sets the zero-based worksheet index exposed by an Excel data reader.
+        /// Cannot be combined with <see cref="SheetName"/>.
+        /// </summary>
+        public int? SheetIndex { get; set; }
+
+        /// <summary>
+        /// Gets or sets an optional A1 range exposed from each selected worksheet.
+        /// When omitted, the worksheet used range is exposed.
+        /// </summary>
+        public string? A1Range { get; set; }
+
         /// <summary>Gets or sets whether the first row supplies column names.</summary>
         public bool HasHeaderRow { get; set; } = true;
 
@@ -206,6 +218,12 @@ namespace OfficeIMO.Excel {
             Execution.OperationThresholds["ReadObjectsAs"] = 100_000;
             Execution.OperationThresholds["ReadRangeStream"] = 100_000;
             Execution.OperationThresholds["ReadRows"] = 20_000;
+        }
+
+        internal ExcelReadOptions WithCancellationToken(CancellationToken cancellationToken) {
+            var clone = (ExcelReadOptions)MemberwiseClone();
+            clone.CancellationToken = cancellationToken;
+            return clone;
         }
     }
 }

@@ -230,8 +230,12 @@ public sealed class EmailMailboxReader {
         mimeBody[0] = (byte)'\r';
         mimeBody[1] = (byte)'\n';
         Buffer.BlockCopy(messageBytes, 0, mimeBody, 2, messageBytes.Length);
-        EmailDocument document = MimeParser.Parse(mimeBody, options, diagnostics, cancellationToken);
-        return new EmailReadResult(document, diagnostics.AsReadOnly(), messageBytes.LongLength);
+        result.Dispose();
+        var budget = new EmailProcessingBudget(options);
+        budget.CountInput(messageBytes.LongLength);
+        EmailDocument document = MimeParser.Parse(mimeBody, options, diagnostics, cancellationToken, budget);
+        return new EmailReadResult(document, diagnostics.AsReadOnly(), messageBytes.LongLength,
+            processingBudget: budget.Snapshot());
     }
 
     private static bool HasUtf8Bom(byte[] data) => data.Length >= 3 &&

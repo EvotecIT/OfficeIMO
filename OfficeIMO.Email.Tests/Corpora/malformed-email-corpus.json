@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "provenance": "OfficeIMO deterministic malformed corpus; payloads are intentionally minimal and contain no user data.",
+  "cases": [
+    { "id": "eml-truncated-multipart", "format": "eml", "base64": "U3ViamVjdDogYnJva2VuDQpDb250ZW50LVR5cGU6IG11bHRpcGFydC9taXhlZDsgYm91bmRhcnk9eA0KDQotLXg=", "sha256": "bfda7195a3d95ba8bc6c70c40488b870a59c2202e4f4b788c65b42f2fac32433", "expected": "bounded-result" },
+    { "id": "msg-header-only", "format": "msg", "base64": "0M8R4KGxGuE=", "sha256": "6dda1524c96123bdeaba431bb8bcf4eaae977606559d411919ffdda50edf3efe", "expected": "diagnostic-or-rejection" },
+    { "id": "tnef-signature-only", "format": "tnef", "base64": "eJ8+Ig==", "sha256": "eeb2481c22c0e217eb2d49dd5ccc85905ad4abd152fb9b11bae508908e2eee76", "expected": "diagnostic-or-rejection" },
+    { "id": "pst-header-only", "format": "pst", "base64": "IUJETgAAAABTTQAAAAAAAAAAAAAAAAAA", "sha256": "a10327351d16982274cd60a4ba2febd2e5397475f1d39ee7911431708cfdcf85", "expected": "diagnostic-or-rejection" },
+    { "id": "ost-header-only", "format": "ost", "base64": "IUJETgAAAABTTwAAAAAAAAAAAAAAAAAA", "sha256": "644d53ad403fae19ba66805bb70fce54543e2d0152c28f2ee7f06421e7ef596c", "expected": "diagnostic-or-rejection" },
+    { "id": "olm-zip-header-only", "format": "olm", "base64": "UEsDBA==", "sha256": "8dcc7e601606217f3b754766511182a916b17e9a26a94c9d887104eba92e9bb2", "expected": "diagnostic-or-rejection" },
+    { "id": "oab-header-only", "format": "oab", "base64": "AAAAAA==", "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119", "expected": "diagnostic-or-rejection" },
+    { "id": "ics-unclosed-event", "format": "ics", "base64": "QkVHSU46VkNBTEVOREFSDQpWRVJTSU9OOjIuMA0KQkVHSU46VkVWRU5UDQo=", "sha256": "962580edba81bce1855b9c5dc2ebe2b031e69f79220ebbab21dc17ff47b37b2b", "expected": "diagnostic-or-rejection" },
+    { "id": "vcf-unclosed-card", "format": "vcf", "base64": "QkVHSU46VkNBUkQNClZFUlNJT046NC4wDQpGTjpCcm9rZW4NCg==", "sha256": "f4ba1da9c64972db73fe8d3cb94ea0d3ff6cba8327a0f055d190f84233269191", "expected": "diagnostic-or-rejection" }
+  ]
+}

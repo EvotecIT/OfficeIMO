@@ -22,13 +22,25 @@ using var document = WordDocument.Create("proposal.docx");
 document.AddParagraph("Quarterly business review").SetStyle(WordParagraphStyles.Heading1);
 document.AddParagraph("Highlights and next steps.");
 
+var receipts = new List<GoogleWorkspaceOperationReceipt>();
+var sessionOptions = new GoogleWorkspaceSessionOptions {
+    ExpectedAccount = "service-account@project.iam.gserviceaccount.com",
+    DefaultFolderId = "documents-folder-id",
+    OperationReceiptSink = receipts.Add,
+};
+sessionOptions.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
+    sessionOptions.ExpectedAccount!, context.RequiredScopes, context.Target,
+    context.RevisionPreconditionKind switch {
+        GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate => GoogleWorkspaceOperationPolicy.ResourceAbsentForCreateRevision,
+        GoogleWorkspaceRevisionPreconditionKind.PayloadRevision => context.AdapterExpectedRevision!,
+        GoogleWorkspaceRevisionPreconditionKind.ResumableSessionState => context.AdapterExpectedRevision!,
+        GoogleWorkspaceRevisionPreconditionKind.Unavailable => GoogleWorkspaceOperationPolicy.ExplicitlyUnversionedRevision("API exposes no conditional revision"),
+        _ => "\"observed-google-etag\"",
+    }, context.MaxRetryCount, context.MaxRetryElapsedTime, context.RateLimitPolicy,
+    GoogleWorkspaceDataLossDecision.RejectPotentialLoss);
 var session = new GoogleWorkspaceSession(
-    new StaticAccessTokenCredentialSource("<google-access-token>"),
-    new GoogleWorkspaceSessionOptions {
-        DefaultFolderId = "documents-folder-id",
-        MaxRetryCount = 5,
-        DiagnosticSink = entry => Console.WriteLine($"{entry.Severity}: {entry.Feature} - {entry.Message}")
-    });
+    GoogleServiceAccountCredentialSource.FromFile("service-account.json", sessionOptions),
+    sessionOptions);
 
 var options = new GoogleDocsSaveOptions {
     Title = "Quarterly business review"

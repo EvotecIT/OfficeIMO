@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.CSV"
-description: "Typed CSV workflows with schema validation, streaming, zero third-party dependencies, and an executed NativeAOT parse scenario."
+description: "Typed CSV workflows with schema validation, forward-only readers, zero third-party dependencies, and an executed NativeAOT parse scenario."
 layout: product
 product_color: "#0891b2"
 install: "dotnet add package OfficeIMO.CSV"
@@ -17,14 +17,14 @@ meta.software.price_currency: "USD"
 
 ## Why OfficeIMO.CSV?
 
-OfficeIMO.CSV treats CSV files as first-class documents rather than raw text. Define a schema, map rows to typed objects without reflection, validate on read, and stream through files of any size. Its checked-in NativeAOT smoke publishes a real parser, executes it, and verifies the resulting header schema.
+OfficeIMO.CSV treats CSV files as first-class documents rather than raw text. Define a schema, map rows to typed objects automatically or with AOT-friendly delegates, validate on read, and stream through files of any size. Its checked-in NativeAOT smoke publishes a real parser, executes it, and verifies the resulting header schema.
 
 ## Features
 
 - **Document-centric CSV model** — headers, rows, and metadata wrapped in a structured document object
 - **Schema definition & validation** — declare column names, types, and constraints; reject invalid rows at parse time
-- **Typed mapping without reflection** — map rows to POCOs using compile-time delegates instead of runtime reflection
-- **Streaming mode for large files** — process millions of rows with constant memory using forward-only enumeration
+- **Typed mapping** — map headers automatically for ordinary DTOs or use explicit delegates for trimming and NativeAOT
+- **Forward-only reads for large files** — process rows through the standard `DbDataReader` contract
 - **Sort, filter & transform** — chain LINQ-style operations directly on the CSV document
 - **NativeAOT scenario in CI** — publishes and executes CSV parsing with schema readback instead of inferring compatibility from dependencies
 - **Zero external dependencies** — ships as a single assembly with no third-party references
@@ -45,7 +45,7 @@ var document = CsvDocument.Load("employees.csv")
     .ValidateOrThrow();
 
 var employees = document
-    .Map<Employee>(map => map
+    .RowsAs<Employee>(map => map
         .FromColumn<string>("Name", (employee, value) => employee with { Name = value })
         .FromColumn<string>("Department", (employee, value) => employee with { Department = value })
         .FromColumn<decimal>("Salary", (employee, value) => employee with { Salary = value })
@@ -63,14 +63,14 @@ foreach (var emp in highEarners)
     Console.WriteLine($"{emp.Name} — {emp.Department} — {emp.Salary:C}");
 }
 
-foreach (var row in CsvDocument.Load("large-dataset.csv", new CsvLoadOptions
+using var reader = CsvDocument.OpenDataReader("large-dataset.csv", new CsvLoadOptions
 {
-    Mode = CsvLoadMode.Stream,
     HasHeaderRow = true,
     Culture = CultureInfo.InvariantCulture
-}).AsEnumerable())
+});
+while (reader.Read())
 {
-    Console.WriteLine(row.Get<string>("Name"));
+    Console.WriteLine(reader.GetString(reader.GetOrdinal("Name")));
 }
 
 public sealed record Employee

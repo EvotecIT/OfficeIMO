@@ -39,6 +39,12 @@ OpenDocument forward PDF results expose the typed OpenDocument projection report
 
 ### Google Workspace preview options
 
+Google Workspace mutations now require `ExpectedAccount`, an `OperationPolicyProvider`, and an `OperationReceiptSink` on `GoogleWorkspaceSessionOptions`. Credential sources must attach provider-verified identity and grant evidence with `GoogleWorkspaceAccessToken.FromVerifiedCredential`; caller-entered account labels and requested scopes remain unverified and cannot authorize mutations. The built-in service-account source creates this evidence from its signed assertion and token exchange. Google APIs and installed-application callers supply a `GoogleWorkspaceCredentialBindingResolver` backed by provider token evidence. A provider-verified grant set may contain more scopes than one adapter operation requests; the session accepts that subset while the operation policy and receipt remain bound to the adapter's exact required scopes. Raw `StaticAccessTokenCredentialSource` values remain suitable for reads; mutation-capable raw-token applications must use a delegate source after independently verifying the token. Construct low-level mutation transport with `new GoogleWorkspaceHttpTransport(session)` so it can prove that the supplied token and required scope set were acquired by that session; the options-only constructor remains suitable for reads but rejects mutations. Build each policy from the operation context's `RequiredScopes`, `MaxRetryCount`, `MaxRetryElapsedTime`, and `RateLimitPolicy`; the transport snapshots and verifies those values before sending, so a policy cannot claim different scopes or mutable retry behavior. Policy targets preserve allowlisted operation-defining query values, including Drive parent changes, while sensitive and non-semantic query values are redacted or excluded. Adapter calls declare `GoogleWorkspaceMutationKind` independently of their HTTP verb and expose `RevisionPreconditionKind`: return `AdapterExpectedRevision` for payload-enforced Docs or Slides write control and for `ResumableSessionState`, a strong HTTP entity tag for enforced `If-Match`, `ResourceAbsentForCreateRevision` for an adapter-declared create, or `ExplicitlyUnversionedRevision(reason)` together with an accepted, named loss decision when the API has no usable conditional precondition. Resumable Drive session initiation and chunk receipts are actions; the create receipt is emitted only after Google confirms the completed file. Mutation receipts record the semantic mutation kind, selected mechanism, and revision or session state actually enforced. Any guarded mutation that fails before final response headers now records an ambiguous receipt and throws `GoogleWorkspaceAmbiguousMutationException`; reconcile the receipt target and request identifier before retrying. Sync plan items require a target resource and expected revision, and `GoogleWorkspaceSyncPlan.Create` requires the plan policy. Read sync executor decisions from `GoogleWorkspaceSyncItemResult.DecisionReceipt`; actual network mutation receipts continue to arrive through the session receipt sink.
+
+Email store content-search checkpoints are now source- and query-bound serialized envelopes. Replace direct `new EmailStoreContentSearchCheckpoint(offset)` construction with the checkpoint returned by `EmailStoreContentSearchReport.NextCheckpoint`; persisted legacy offset-only values cannot safely resume against a reopened or changed store.
+
+Email store table-page continuation tokens also use a version-2, source-bound envelope. Persisted version-1 `EmailStoreContinuationToken` values are intentionally rejected because they cannot prove that the reopened source is unchanged. Discard those tokens after upgrading and restart the affected table query from its first page.
+
 The completed Google Workspace adapters replace preview booleans that described behavior without proving that the fallback executed. Configure the operation through `UnsupportedFeatures`, `GoogleWorkspaceFidelityPolicy`, the format support catalog, and an executed fallback mode:
 
 | Removed preview option | Current action |
@@ -73,9 +79,104 @@ Replace the removed public reader roots as follows:
 | `CsvDocument.ReadFieldSpans*`, `CsvDocument.ReadRowFieldSpans*`, `CsvFieldSpanAction`, `ICsvFieldSpanVisitor`, `ICsvProjectedFieldSpanVisitor`, and `ICsvRowFieldSpanVisitor` | `CsvDocument.OpenDataReader(...)` for streaming, or `Load(...)` / `Parse(...)` for a materialized document |
 | `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenDataReader(...)` |
 | `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenDataReader(...)` for streaming, or `ExcelDocument.Load(...)` for editing |
-| Concrete Excel reader return types | `DbDataReader` |
+| Concrete `ExcelDocumentReader` / `ExcelSheetReader` use | `ExcelWorkbookDataReader` returned by `ExcelDocument.OpenDataReader(...)` or `workbook.CreateDataReader(...)` |
 
-When configuring a streaming CSV read with `CsvLoadOptions`, set `Mode = CsvLoadMode.Stream`; the options object otherwise retains its in-memory default. Excel exposes worksheets as ordered `DbDataReader` results through `NextResult()`.
+`CsvLoadOptions.Mode`, `CsvLoadMode`, and `CsvDocument.Mode` are no longer
+public. Use `CsvDocument.OpenDataReader` for a forward-only read and
+`CsvDocument.Load` for a materialized model.
+`ExcelDocument.Sheets` now exposes `IReadOnlyList<ExcelSheet>` instead of
+`List<ExcelSheet>`. Enumerate or index the property as before, use the workbook's
+worksheet operations to edit the collection, or call `document.Sheets.ToList()`
+when a detached mutable snapshot is required.
+Excel exposes worksheets as ordered `ExcelWorkbookDataReader` results through
+`NextResult()`. Use `SheetName` or zero-based `SheetIndex` to select one sheet,
+`A1Range` to select a range, `CurrentSheetName` / `CurrentSheetIndex` to identify the
+workbook sheet, and `CurrentResultIndex` to identify its position in the selected results.
+
+The Excel/CSV adapter in `OfficeIMO.Reader.Excel` now uses the native CSV reader
+and writer pipelines. Replace `ImportDelimitedFile` with `ImportCsvFile`, and
+replace decoded-text `ImportDelimitedText` and worksheet `FromCsv` calls with
+`ImportCsvText`. Use `ImportCsv` when the source is a `CsvDocument` or `Stream`.
+Replace `ExcelDelimitedImportOptions` and `ExcelDelimitedImportResult` with
+`ExcelCsvImportOptions` and `ExcelCsvImportResult`. Use `SaveAsCsv` and
+`SaveAsExcel` for destination-shaped conversion entry points.
+
+Move the removed import-option properties into the CSV parsing and reader
+options owned by `ExcelCsvImportOptions`:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `Delimiter = value` | `LoadOptions.Delimiter = value` and `LoadOptions.DetectDelimiter = false` |
+| `Delimiter = null` | `LoadOptions.DetectDelimiter = true` |
+| `HeadersInFirstRow` | `LoadOptions.HasHeaderRow` |
+| `SkipInitialRecords` | `LoadOptions.SkipInitialRecords` |
+| `Culture` | `LoadOptions.Culture` |
+| `ConvertNumbersAndDates` | `ReaderOptions.InferSchema` |
+
+For example, an explicit semicolon import now uses nested options:
+
+```csharp
+using System.Globalization;
+using OfficeIMO.CSV;
+using OfficeIMO.Reader.Excel;
+
+var options = new ExcelCsvImportOptions {
+    SheetName = "Import",
+    LoadOptions = new CsvLoadOptions {
+        Delimiter = ';',
+        DetectDelimiter = false,
+        HasHeaderRow = true,
+        SkipInitialRecords = 1,
+        Culture = CultureInfo.GetCultureInfo("pl-PL")
+    },
+    ReaderOptions = new CsvDataReaderOptions { InferSchema = true }
+};
+```
+
+`CreateTable`, `SheetName`, `TableName`, and `TableStyle` keep the same names on
+`ExcelCsvImportOptions`. Leave `TableName` unset to use the effective worksheet
+name, matching the former import behavior. `IncludeHeaders` controls whether the
+reader's resolved field names are written into the worksheet and defaults to
+`true`.
+
+For a worksheet `FromCsv` call, move `startRow`, `startColumn`,
+`firstRowIsHeader`, and `includeHeaders` into `ExcelCsvImportOptions`, and pass
+`ct` as the `cancellationToken` argument. Set `CreateTable = false`, the comma
+delimiter, and disabled schema inference when the migration must preserve the
+former `FromCsv` no-table and string-valued parsing behavior:
+
+```csharp
+using OfficeIMO.CSV;
+using OfficeIMO.Reader.Excel;
+
+ExcelCsvImportResult imported = sheet.ImportCsvText(
+    csvText,
+    new ExcelCsvImportOptions {
+        StartRow = startRow,
+        StartColumn = startColumn,
+        IncludeHeaders = includeHeaders,
+        CreateTable = false,
+        LoadOptions = new CsvLoadOptions {
+            Delimiter = ',',
+            DetectDelimiter = false,
+            HasHeaderRow = firstRowIsHeader
+        },
+        ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+    },
+    cancellationToken: ct);
+
+string range = imported.Range;
+```
+
+The former `ExecutionMode` argument has no replacement; the shared import
+pipeline owns its execution strategy. The same cleanup removes `TableToCsv`;
+use the worksheet `ToCsv` / `SaveAsCsv` methods instead. Calls that passed
+`ToCsv` arguments positionally should use the current `headersInFirstRow`,
+`csvOptions`, `readOptions`, and `cancellationToken` parameter names. Replace
+old import-result properties
+`TableName`, `RowCount`, `ColumnCount`, `Delimiter`, and `Warnings` with the
+current `ExcelCsvImportResult.SheetName` and `Range`; inspect the configured CSV
+reader options or the resulting worksheet/table when those details are needed.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 

@@ -3,18 +3,23 @@ namespace OfficeIMO.Email.Store;
 /// <summary>Opaque, portable keyset continuation for one exact Store query plan.</summary>
 public sealed class EmailStoreContinuationToken : IEquatable<EmailStoreContinuationToken> {
     private const int Magic = 0x314D494F;
-    private const byte Version = 1;
+    private const byte Version = 2;
     private const int MaxEncodedLength = 128 * 1024;
     private readonly IReadOnlyList<byte[]> _sortValues;
 
-    private EmailStoreContinuationToken(string value, string querySignature, IReadOnlyList<byte[]> sortValues) {
+    private EmailStoreContinuationToken(string value, string sourceFingerprint, string querySignature,
+        IReadOnlyList<byte[]> sortValues) {
         Value = value;
+        SourceFingerprint = sourceFingerprint;
         QuerySignature = querySignature;
         _sortValues = sortValues;
     }
 
     /// <summary>URL/file-safe Base64 value suitable for persistence or API transport.</summary>
     public string Value { get; }
+
+    /// <summary>SHA-256 fingerprint of the exact persisted source used to produce this token.</summary>
+    public string SourceFingerprint { get; }
 
     internal string QuerySignature { get; }
     internal IReadOnlyList<byte[]> SortValues => _sortValues;
@@ -39,6 +44,8 @@ public sealed class EmailStoreContinuationToken : IEquatable<EmailStoreContinuat
             if (reader.ReadInt32() != Magic || reader.ReadByte() != Version) {
                 throw new InvalidDataException("The continuation token format or version is unsupported.");
             }
+            string sourceFingerprint = EmailStoreScalarCodec.ReadString(reader, 256);
+            if (sourceFingerprint.Length != 64) throw new InvalidDataException("The continuation token source fingerprint is invalid.");
             string signature = EmailStoreScalarCodec.ReadString(reader, 65_536);
             int count = reader.ReadInt32();
             if (count <= 0 || count > 64) throw new InvalidDataException("The continuation token sort-key count is invalid.");
@@ -53,7 +60,7 @@ public sealed class EmailStoreContinuationToken : IEquatable<EmailStoreContinuat
                 values.Add(scalar);
             }
             if (stream.Position != stream.Length) throw new InvalidDataException("The continuation token contains trailing data.");
-            return new EmailStoreContinuationToken(value, signature, values.AsReadOnly());
+            return new EmailStoreContinuationToken(value, sourceFingerprint, signature, values.AsReadOnly());
         }
     }
 
@@ -74,7 +81,8 @@ public sealed class EmailStoreContinuationToken : IEquatable<EmailStoreContinuat
         }
     }
 
-    internal static EmailStoreContinuationToken Create(EmailStoreTableQuery query, EmailStoreQueryRow row) {
+    internal static EmailStoreContinuationToken Create(EmailStoreTableQuery query, EmailStoreQueryRow row,
+        string sourceFingerprint) {
         var values = query.EffectiveSorts
             .Select(sort => EmailStoreScalarCodec.Serialize(sort.Field.Read(row)))
             .ToArray();
@@ -82,6 +90,7 @@ public sealed class EmailStoreContinuationToken : IEquatable<EmailStoreContinuat
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
             writer.Write(Magic);
             writer.Write(Version);
+            EmailStoreScalarCodec.WriteString(writer, sourceFingerprint);
             EmailStoreScalarCodec.WriteString(writer, query.Signature);
             writer.Write(values.Length);
             foreach (byte[] value in values) {
@@ -90,11 +99,14 @@ public sealed class EmailStoreContinuationToken : IEquatable<EmailStoreContinuat
             }
             writer.Flush();
             string encoded = Convert.ToBase64String(stream.ToArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            return new EmailStoreContinuationToken(encoded, query.Signature, Array.AsReadOnly(values));
+            return new EmailStoreContinuationToken(encoded, sourceFingerprint, query.Signature, Array.AsReadOnly(values));
         }
     }
 
-    internal IReadOnlyList<object?> DecodeValues(EmailStoreTableQuery query) {
+    internal IReadOnlyList<object?> DecodeValues(EmailStoreTableQuery query, string sourceFingerprint) {
+        if (!StringComparer.Ordinal.Equals(SourceFingerprint, sourceFingerprint)) {
+            throw new ArgumentException("The continuation token belongs to a changed or different Store source.", nameof(sourceFingerprint));
+        }
         if (!StringComparer.Ordinal.Equals(QuerySignature, query.Signature)) {
             throw new ArgumentException("The continuation token belongs to a different Store query scope, filter, or ordering.", nameof(query));
         }

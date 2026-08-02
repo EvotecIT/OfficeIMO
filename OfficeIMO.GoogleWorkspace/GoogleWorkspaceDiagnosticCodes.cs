@@ -6,6 +6,7 @@ namespace OfficeIMO.GoogleWorkspace {
     /// </summary>
     public static class GoogleWorkspaceDiagnosticCodes {
         public const string ApiRetry = "WORKSPACE.API.RETRY";
+        public const string AmbiguousMutation = "WORKSPACE.MUTATION.OUTCOME_AMBIGUOUS";
         public const string AuthenticationFailed = "WORKSPACE.AUTH.FAILED";
         public const string RequestCanceled = "WORKSPACE.REQUEST.CANCELED";
         public const string RequestFailed = "WORKSPACE.REQUEST.FAILED";

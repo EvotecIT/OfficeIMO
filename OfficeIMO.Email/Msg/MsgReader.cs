@@ -4,7 +4,7 @@ namespace OfficeIMO.Email;
 
 internal static class MsgReader {
     internal static bool TryRead(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
-        CancellationToken cancellationToken, out EmailDocument document) {
+        CancellationToken cancellationToken, out EmailDocument document, EmailProcessingBudget? budget = null) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeCompoundReadOptions compoundOptions = EmailCompoundReadPolicy.Create(options);
         OfficeCompoundFile? compound;
@@ -24,19 +24,19 @@ internal static class MsgReader {
             return false;
         }
 
-        return TryRead(compound, options, diagnostics, cancellationToken, null, out document);
+        return TryRead(compound, options, diagnostics, cancellationToken, null, out document, budget);
     }
 
     internal static bool TryRead(OfficeCompoundFile compound, EmailReaderOptions options,
         IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken,
         IReadOnlyDictionary<string, IEmailContentSource>? externalContent,
-        out EmailDocument document) {
+        out EmailDocument document, EmailProcessingBudget? budget = null) {
         if (!compound.Streams.ContainsKey("__properties_version1.0")) {
             document = new EmailDocument { Format = EmailFileFormat.Unknown, OutlookItemKind = OutlookItemKind.Unknown };
             return false;
         }
 
-        MsgParserState state = new MsgParserState(options, diagnostics, cancellationToken);
+        MsgParserState state = new MsgParserState(options, diagnostics, cancellationToken, budget);
         MsgNamedPropertyMap names = MsgNamedPropertyMap.Read(compound, diagnostics, state);
         document = ReadMessage(compound, string.Empty, MsgPropertyStreamKind.TopLevel, names, state, 0, null,
             externalContent);

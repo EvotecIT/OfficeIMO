@@ -7,8 +7,8 @@ public sealed class EmailStoreRecoveryReport {
         IReadOnlyList<EmailStoreDiagnostic> diagnostics) {
         ItemsScanned = itemsScanned;
         StoppedAtLimit = stoppedAtLimit;
-        RecoveredItems = recoveredItems;
-        Diagnostics = diagnostics;
+        RecoveredItems = Array.AsReadOnly((recoveredItems ?? throw new ArgumentNullException(nameof(recoveredItems))).ToArray());
+        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
     }
 
     /// <summary>Number of normal and recovered references examined.</summary>

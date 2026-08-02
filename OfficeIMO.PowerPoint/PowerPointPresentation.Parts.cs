@@ -434,8 +434,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void CopyPartData(OpenXmlPart sourcePart, OpenXmlPart targetPart) {
-            using Stream sourceStream = sourcePart.GetStream(FileMode.Open, FileAccess.Read);
             using Stream targetStream = targetPart.GetStream(FileMode.Create, FileAccess.Write);
+            if (sourcePart.IsRootElementLoaded) {
+                OpenXmlPartRootElement? sourceRoot = sourcePart.RootElement;
+                if (sourceRoot != null) {
+                    sourceRoot.Save(targetStream);
+                    return;
+                }
+            }
+
+            using Stream sourceStream = sourcePart.GetStream(FileMode.Open, FileAccess.Read);
             sourceStream.CopyTo(targetStream);
         }
 

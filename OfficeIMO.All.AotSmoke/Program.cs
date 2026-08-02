@@ -50,7 +50,7 @@ if (!string.Equals(value, "token-marker", StringComparison.Ordinal)) {
 using var tabularStream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n"));
 using var csvReader = CsvDocument.OpenDataReader(
     tabularStream,
-    new CsvLoadOptions { Mode = CsvLoadMode.Stream },
+    new CsvLoadOptions(),
     new CsvDataReaderOptions { InferSchema = true });
 if (!csvReader.Read() || csvReader.GetInt32(0) != 1 || csvReader.GetString(1) != "Ada") {
     throw new InvalidOperationException("The canonical tabular reader did not read its NativeAOT CSV fixture.");

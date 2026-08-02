@@ -18,6 +18,11 @@ namespace OfficeIMO.GoogleWorkspace {
         public int MaxRetryCount { get; set; } = 3;
         public TimeSpan RetryBaseDelay { get; set; } = TimeSpan.FromMilliseconds(200);
         public TimeSpan RetryMaxDelay { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan MaxRetryElapsedTime { get; set; } = TimeSpan.FromMinutes(2);
+        public GoogleWorkspaceRateLimitPolicy RateLimitPolicy { get; set; } = GoogleWorkspaceRateLimitPolicy.HonorRetryAfter;
+        public string? ExpectedAccount { get; set; }
+        public Func<GoogleWorkspaceOperationContext, GoogleWorkspaceOperationPolicy>? OperationPolicyProvider { get; set; }
+        public Action<GoogleWorkspaceOperationReceipt>? OperationReceiptSink { get; set; }
         public Action<GoogleWorkspaceDiagnosticEntry>? DiagnosticSink { get; set; }
     }
 }
