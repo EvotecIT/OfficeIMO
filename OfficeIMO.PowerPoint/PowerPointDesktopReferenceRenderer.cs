@@ -212,8 +212,7 @@ namespace OfficeIMO.PowerPoint {
         internal static bool HasExpectedVisibleContent(PowerPointSlide slide) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             if (slide.SmartArts.Any(smartArt => !smartArt.Hidden
-                    && smartArt.Width > 0L
-                    && smartArt.Height > 0L
+                    && IsPotentiallyVisibleOnSlide(slide, smartArt)
                     && !smartArt.TryGetOfficeDiagramSnapshot(out _))) {
                 return true;
             }

@@ -263,6 +263,7 @@ namespace OfficeIMO.Tests {
         public void ImportedSmartArtRejectsUnknownCategoryBeforeSemanticProjection() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(640, 360);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointSmartArt smartArt = slide.AddSmartArt(
                 PowerPointSmartArtType.BasicProcess,
@@ -286,6 +287,10 @@ namespace OfficeIMO.Tests {
 
             Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
             Assert.True(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
+
+            smartArt.LeftPoints = 700;
+            Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
         }
 

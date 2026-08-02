@@ -105,6 +105,41 @@ public class PowerPointSaveAsPdfTests {
             warning => warning.Code == "unsupported-smartart");
     }
 
+    [Theory]
+    [InlineData(PowerPointPdfPageLayout.NotesPages)]
+    [InlineData(PowerPointPdfPageLayout.Handouts)]
+    public void SaveAsPdf_ThumbnailLayoutsHonorSmartArtIndependently(
+        PowerPointPdfPageLayout layout) {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        presentation.SlideSize.SetSizePoints(640, 360);
+        presentation.AddSlide().AddSmartArt(
+            PowerPointSmartArtType.BasicProcess,
+            new[] { "SMARTART-FILTER", "Deliver" },
+            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+
+        byte[] included = presentation.ToPdf(new PowerPointPdfSaveOptions {
+            PageLayout = layout,
+            IncludeAutoShapes = false,
+            IncludeSmartArt = true,
+            IncludeSpeakerNotes = false
+        });
+        byte[] excluded = presentation.ToPdf(new PowerPointPdfSaveOptions {
+            PageLayout = layout,
+            IncludeAutoShapes = true,
+            IncludeSmartArt = false,
+            IncludeSpeakerNotes = false
+        });
+
+        Assert.Contains("SMARTART-FILTER",
+            PdfCore.PdfReadDocument.Open(included).Pages[0].ExtractText(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("SMARTART-FILTER",
+            PdfCore.PdfReadDocument.Open(excluded).Pages[0].ExtractText(),
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void SaveAsPdf_RendersCustomGeometryThroughSharedDrawingProjection() {
         using PowerPointPresentation presentation =

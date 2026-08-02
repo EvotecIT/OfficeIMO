@@ -10,11 +10,12 @@ namespace OfficeIMO.PowerPoint {
                     return options.IncludeTables;
                 case PowerPointShapeContentType.Chart:
                     return options.IncludeCharts;
+                case PowerPointShapeContentType.SmartArt:
+                    return options.IncludeSmartArt;
                 case PowerPointShapeContentType.TextBox:
                     return options.IncludeTextBoxes;
                 case PowerPointShapeContentType.AutoShape:
                 case PowerPointShapeContentType.Connector:
-                case PowerPointShapeContentType.SmartArt:
                 case PowerPointShapeContentType.OleObject:
                 case PowerPointShapeContentType.Unknown:
                     return options.IncludeAutoShapes;

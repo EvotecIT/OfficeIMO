@@ -294,6 +294,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 IncludeSlideBackground = options.IncludeSlideBackgrounds,
                 IncludePictures = options.IncludePictures,
                 IncludeAutoShapes = options.IncludeAutoShapes,
+                IncludeSmartArt = options.IncludeSmartArt,
                 IncludeTextBoxes = options.IncludeTextBoxes,
                 IncludeTables = options.IncludeTables,
                 IncludeCharts = options.IncludeCharts,
