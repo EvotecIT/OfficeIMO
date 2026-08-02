@@ -183,13 +183,8 @@ namespace OfficeIMO.PowerPoint {
                 && bodyFonts.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
                     ? bodyFonts[0]
                     : null;
-            string? titleTypeface = chart.GetFirstChild<C.Title>()?
-                .Descendants<A.LatinFont>()
-                .Select(font => font.Typeface?.Value)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
-            string? titleFont = IsThemeFontToken(titleTypeface)
-                ? null
-                : titleTypeface;
+            string? titleFont = ReadExplicitTitleTypeface(
+                chart.GetFirstChild<C.Title>());
             return bodyFont == null && titleFont == null
                 ? null
                 : new OfficeChartStyle(fontFamily: bodyFont,
@@ -208,6 +203,37 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
             string[] explicitFonts = typefaces.Select(value => value!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            return explicitFonts.Length == 1 ? explicitFonts[0] : null;
+        }
+
+        private static string? ReadExplicitTitleTypeface(C.Title? title) {
+            if (title == null) return null;
+            string? defaultTypeface = title.Elements<C.TextProperties>()
+                .SelectMany(properties => properties.Descendants<A.LatinFont>())
+                .Select(font => font.Typeface?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            A.Run[] textRuns = title.Descendants<C.RichText>()
+                .SelectMany(richText => richText.Descendants<A.Run>())
+                .Where(run => run.GetFirstChild<A.Text>() != null)
+                .ToArray();
+            if (textRuns.Length == 0) {
+                return IsThemeFontToken(defaultTypeface)
+                    ? null
+                    : defaultTypeface;
+            }
+
+            string?[] resolvedFonts = textRuns.Select(run =>
+                    run.GetFirstChild<A.RunProperties>()?
+                        .GetFirstChild<A.LatinFont>()?.Typeface?.Value
+                    ?? defaultTypeface)
+                .ToArray();
+            if (resolvedFonts.Any(value => string.IsNullOrWhiteSpace(value)
+                    || IsThemeFontToken(value))) {
+                return null;
+            }
+            string[] explicitFonts = resolvedFonts.Select(value => value!)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             return explicitFonts.Length == 1 ? explicitFonts[0] : null;

@@ -42,7 +42,7 @@ public static class OfficeDiagramDrawingRenderer {
             OfficeDiagramKind.Relationship => LayoutRelationship(snapshot),
             _ => LayoutProcess(snapshot)
         };
-        AddConnectors(drawing, snapshot.Kind, nodes);
+        AddConnectors(drawing, snapshot, nodes);
         AddNodes(drawing, snapshot, nodes);
         return drawing;
     }
@@ -220,17 +220,22 @@ public static class OfficeDiagramDrawingRenderer {
     }
 
     private static void AddConnectors(OfficeDrawing drawing,
-        OfficeDiagramKind kind, IReadOnlyList<NodeBox> nodes) {
+        OfficeDiagramSnapshot snapshot, IReadOnlyList<NodeBox> nodes) {
         if (nodes.Count < 2) return;
+        OfficeDiagramKind kind = snapshot.Kind;
+        OfficeColor connectorColor = snapshot.Style?.ConnectorColor
+            ?? OfficeColor.FromRgb(100, 116, 139);
         if (kind == OfficeDiagramKind.Hierarchy) {
             for (int index = 1; index < nodes.Count; index++) {
-                AddConnector(drawing, nodes[0], nodes[index], false);
+                AddConnector(drawing, nodes[0], nodes[index], false,
+                    connectorColor);
             }
             return;
         }
         if (kind == OfficeDiagramKind.Relationship) {
             for (int index = 1; index < nodes.Count; index++) {
-                AddConnector(drawing, nodes[0], nodes[index], true);
+                AddConnector(drawing, nodes[0], nodes[index], true,
+                    connectorColor);
             }
             return;
         }
@@ -243,12 +248,12 @@ public static class OfficeDiagramDrawingRenderer {
         for (int index = 0; index < connectorCount; index++) {
             AddConnector(drawing, nodes[index],
                 nodes[(index + 1) % nodes.Count],
-                kind == OfficeDiagramKind.Cycle);
+                kind == OfficeDiagramKind.Cycle, connectorColor);
         }
     }
 
     private static void AddConnector(OfficeDrawing drawing, NodeBox source,
-        NodeBox target, bool ellipticalNodes) {
+        NodeBox target, bool ellipticalNodes, OfficeColor connectorColor) {
         double deltaX = target.CenterX - source.CenterX;
         double deltaY = target.CenterY - source.CenterY;
         if (Math.Abs(deltaX) < 0.000001D
@@ -262,7 +267,7 @@ public static class OfficeDiagramDrawingRenderer {
         double x2 = end.X;
         double y2 = end.Y;
         OfficeShape line = OfficeShape.Line(x1, y1, x2, y2);
-        line.StrokeColor = OfficeColor.FromRgb(100, 116, 139);
+        line.StrokeColor = connectorColor;
         line.StrokeWidth = 1.5D;
         line.StrokeEndMarker = new OfficeLineMarker(
             OfficeLineMarkerKind.Triangle, 5D, 5D);
@@ -306,8 +311,11 @@ public static class OfficeDiagramDrawingRenderer {
                 shape = OfficeShape.RoundedRectangle(node.Width, node.Height,
                     Math.Min(8D, Math.Min(node.Width, node.Height) * 0.18D));
             }
-            shape.FillColor = NodeColors[index % NodeColors.Length];
-            shape.StrokeColor = OfficeColor.White;
+            IReadOnlyList<OfficeColor> nodeColors = snapshot.Style?.NodeColors
+                ?? NodeColors;
+            shape.FillColor = nodeColors[index % nodeColors.Count];
+            shape.StrokeColor = snapshot.Style?.NodeOutlineColor
+                ?? OfficeColor.White;
             shape.StrokeWidth = 1.25D;
             drawing.AddShape(shape, node.X, node.Y);
             double fontSize = Math.Max(6D, Math.Min(12D,
@@ -315,8 +323,9 @@ public static class OfficeDiagramDrawingRenderer {
             drawing.AddText(snapshot.Nodes[index], node.X + 3D,
                 node.Y + 2D, Math.Max(1D, node.Width - 6D),
                 Math.Max(1D, node.Height - 4D),
-                new OfficeFontInfo("Calibri", fontSize,
-                    OfficeFontStyle.Bold), OfficeColor.White,
+                new OfficeFontInfo(snapshot.Style?.FontFamily ?? "Calibri",
+                    fontSize, OfficeFontStyle.Bold),
+                snapshot.Style?.NodeTextColor ?? OfficeColor.White,
                 OfficeTextAlignment.Center, verticalAlignment:
                 OfficeTextVerticalAlignment.Center, wrapText: true,
                 shrinkToFit: true);

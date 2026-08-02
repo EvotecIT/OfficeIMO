@@ -14,8 +14,8 @@ The comparison uses the same deterministic `Small`, `Normal`, and `Large`
 slide counts, slide dimensions, background/style pattern, editable text,
 vector panels, tables, two-series clustered bar charts, and every-tenth-slide
 edit cadence. It validates every produced package by reopening it, checking
-slide and shape counts, and running the Open XML validator outside the timed
-interval. Image and PDF export are not compared because the libraries do not
+slide and shape counts, and running the Open XML validator after timing and
+peak-working-set capture. Probes are intentionally cold. Image and PDF export are not compared because the libraries do not
 expose equivalent rendering contracts.
 
 Run it independently from the repository root:

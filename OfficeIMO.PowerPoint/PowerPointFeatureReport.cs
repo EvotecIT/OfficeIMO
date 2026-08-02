@@ -405,10 +405,11 @@ namespace OfficeIMO.PowerPoint {
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             bool hasUnsupportedCommentParts = commentParts.Any(part =>
-                part is not SlideCommentsPart
-                && part is not CommentAuthorsPart
-                && part is not PowerPointCommentPart
-                && part is not PowerPointAuthorsPart);
+                (part is not SlideCommentsPart
+                 && part is not CommentAuthorsPart
+                 && part is not PowerPointCommentPart
+                 && part is not PowerPointAuthorsPart)
+                || HasUnsupportedCommentMarkup(part));
             PowerPointFeatureSupportLevel commentSupportLevel =
                 hasUnsupportedCommentParts
                     ? PowerPointFeatureSupportLevel.Preserved
@@ -1015,6 +1016,15 @@ namespace OfficeIMO.PowerPoint {
             return parts
                 .Where(part => string.Equals(part.ContentType, "application/vnd.ms-office.vbaProject", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
+        }
+
+        private static bool HasUnsupportedCommentMarkup(OpenXmlPart part) {
+            OpenXmlPartRootElement? root = part.RootElement;
+            if (root == null) return true;
+            return root.Descendants().Any(element =>
+                element is OpenXmlUnknownElement
+                || string.Equals(element.LocalName, "extLst",
+                    StringComparison.Ordinal));
         }
 
         private static bool IsValidEditableVbaProject(VbaProjectPart? part) {

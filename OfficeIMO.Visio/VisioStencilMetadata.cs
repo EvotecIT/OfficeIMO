@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {
@@ -69,8 +70,11 @@ namespace OfficeIMO.Visio {
             string? registeredPath = NormalizePath(
                 master.StencilSourcePackagePath);
             string? requestedPath = NormalizePath(sourcePackagePath);
-            if (string.Equals(registeredPath, requestedPath,
-                    StringComparison.OrdinalIgnoreCase)) {
+            StringComparison comparison = RuntimeInformation.IsOSPlatform(
+                OSPlatform.Windows)
+                    ? StringComparison.OrdinalIgnoreCase
+                    : StringComparison.Ordinal;
+            if (string.Equals(registeredPath, requestedPath, comparison)) {
                 return;
             }
 

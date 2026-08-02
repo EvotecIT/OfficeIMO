@@ -265,6 +265,59 @@ namespace OfficeIMO.Tests {
             Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
         }
 
+        [Fact]
+        public void ImportedSmartArtRejectsUnrepresentableQuickAndColorStyles() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSmartArt smartArt = slide.AddSmartArt(
+                PowerPointSmartArtType.BasicProcess,
+                new[] { "Discover", "Deliver" });
+            DiagramDataPart dataPart = Assert.Single(slide.SlidePart
+                .DiagramDataParts);
+            XDocument data;
+            using (Stream stream = dataPart.GetStream(FileMode.Open,
+                       FileAccess.Read)) {
+                data = XDocument.Load(stream);
+            }
+            XNamespace dgm =
+                "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+            XElement properties = data.Descendants(dgm + "prSet")
+                .Single(element => element.Attribute("loCatId") != null);
+            properties.SetAttributeValue("qsTypeId",
+                "urn:vendor:quickstyle:custom");
+            properties.SetAttributeValue("csTypeId",
+                "urn:vendor:colors:custom");
+            using (Stream stream = dataPart.GetStream(FileMode.Create,
+                       FileAccess.Write)) {
+                data.Save(stream);
+            }
+
+            Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
+        }
+
+        [Fact]
+        public void SemanticSmartArtCarriesThemeColorsAndMinorFont() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SetThemeColor(PowerPointThemeColor.Accent1,
+                "C00000");
+            presentation.SetThemeColor(PowerPointThemeColor.Light1,
+                "F5F5F5");
+            presentation.SetThemeLatinFonts("Georgia", "Aptos");
+            PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
+                PowerPointSmartArtType.BasicProcess,
+                new[] { "Discover", "Deliver" });
+
+            Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
+                out OfficeDiagramSnapshot snapshot));
+            Assert.NotNull(snapshot.Style);
+            Assert.Equal("Aptos", snapshot.Style!.FontFamily);
+            Assert.Equal("C00000", snapshot.Style.NodeColors.Single()
+                .ToRgbHex());
+            Assert.Equal("F5F5F5", snapshot.Style.NodeTextColor.ToRgbHex());
+        }
+
         [Theory]
         [InlineData(PowerPointSmartArtType.BasicHierarchy, OfficeDiagramKind.Hierarchy)]
         [InlineData(PowerPointSmartArtType.BasicList, OfficeDiagramKind.List)]

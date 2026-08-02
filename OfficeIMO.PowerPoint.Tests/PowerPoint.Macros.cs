@@ -79,16 +79,30 @@ namespace OfficeIMO.Tests {
                 corruptProjectHeader: true);
             byte[] badDirectory = CreateVbaTestProject("BadDirectory", "Sub Main(): End Sub",
                 corruptDirectory: true);
+            byte[] badDirectoryRecords = CreateVbaTestProject(
+                "BadDirectoryRecords", "Sub Main(): End Sub",
+                corruptDirectoryRecords: true);
+            byte[] missingModule = CreateVbaTestProject(
+                "MissingModule", "Sub Main(): End Sub",
+                omitModuleStream: true);
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
 
             InvalidDataException headerError = Assert.Throws<InvalidDataException>(() =>
                 presentation.SetVbaProject(badHeader));
             InvalidDataException directoryError = Assert.Throws<InvalidDataException>(() =>
                 presentation.SetVbaProject(badDirectory));
+            InvalidDataException recordError = Assert.Throws<InvalidDataException>(() =>
+                presentation.SetVbaProject(badDirectoryRecords));
+            InvalidDataException moduleError = Assert.Throws<InvalidDataException>(() =>
+                presentation.SetVbaProject(missingModule));
 
             Assert.Contains("_VBA_PROJECT", headerError.Message,
                 StringComparison.Ordinal);
             Assert.Contains("dir", directoryError.Message,
+                StringComparison.Ordinal);
+            Assert.Contains("dir", recordError.Message,
+                StringComparison.Ordinal);
+            Assert.Contains("dir", moduleError.Message,
                 StringComparison.Ordinal);
             Assert.False(presentation.HasVbaProject);
         }

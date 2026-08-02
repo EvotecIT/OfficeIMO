@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Validates the required headers and compressed directory in a VBA project storage.</summary>
@@ -24,7 +26,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     out reason)) {
                 return false;
             }
-            return TryParseDirectory(decompressed, out reason);
+            return TryParseDirectory(decompressed, streams, out reason);
         }
 
         private static bool TryDecompressDirectory(byte[] input,
@@ -118,7 +120,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static bool TryParseDirectory(byte[] directory,
-            out string? reason) {
+            IReadOnlyDictionary<string, byte[]> streams, out string? reason) {
             int position = 0;
             if (!TryReadSizedRecord(directory, ref position, 0x0001, 4, false)
                 || !TryReadSizedRecord(directory, ref position, 0x0002, 4, false)) {
@@ -130,21 +132,261 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 reason = "The expanded VBA/dir stream has an invalid invocation-locale record.";
                 return false;
             }
-            if (!TryReadSizedRecord(directory, ref position, 0x0003, 2, false)
+            if (!TryReadRecord(directory, ref position, 0x0003,
+                    out int codePageOffset, out int codePageLength)
+                || codePageLength != 2
                 || !TryReadSizedRecord(directory, ref position, 0x0004, null, true)) {
                 reason = "The expanded VBA/dir stream has invalid code-page or project-name records.";
                 return false;
             }
-            int terminator = directory.Length - 6;
-            if (terminator < position || PeekUInt16(directory, terminator) != 0x0010
-                || directory[terminator + 2] != 0
-                || directory[terminator + 3] != 0
-                || directory[terminator + 4] != 0
-                || directory[terminator + 5] != 0) {
+            ushort codePage = (ushort)(directory[codePageOffset]
+                | directory[codePageOffset + 1] << 8);
+            if (!TryReadProjectMetadata(directory, ref position)
+                || !TryReadReferences(directory, ref position)
+                || !TryReadModules(directory, ref position, codePage,
+                    streams)) {
+                reason = "The expanded VBA/dir stream contains invalid project, reference, or module records.";
+                return false;
+            }
+            if (!TryReadSizedRecord(directory, ref position, 0x0010, 0,
+                    false) || position != directory.Length) {
                 reason = "The expanded VBA/dir stream has no valid project terminator.";
                 return false;
             }
             reason = null;
+            return true;
+        }
+
+        private static bool TryReadProjectMetadata(byte[] bytes,
+            ref int position) {
+            while (true) {
+                switch (PeekUInt16(bytes, position)) {
+                    case 0x0005:
+                        if (!TryReadSizedRecord(bytes, ref position, 0x0005,
+                                null, false)
+                            || !TryReadSizedRecord(bytes, ref position, 0x0040,
+                                null, false)) return false;
+                        break;
+                    case 0x0006:
+                        if (!TryReadSizedRecord(bytes, ref position, 0x0006,
+                                null, false)
+                            || !TryReadSizedRecord(bytes, ref position, 0x003D,
+                                null, false)) return false;
+                        break;
+                    case 0x0007:
+                    case 0x0008:
+                        ushort id = PeekUInt16(bytes, position);
+                        if (!TryReadSizedRecord(bytes, ref position, id, 4,
+                                false)) return false;
+                        break;
+                    case 0x0009:
+                        if (!TryReadUInt16(bytes, ref position, out ushort versionId)
+                            || versionId != 0x0009
+                            || !TryReadUInt32(bytes, ref position, out uint reserved)
+                            || reserved != 4U
+                            || !TryReadUInt32(bytes, ref position, out _)
+                            || !TryReadUInt16(bytes, ref position, out _)) {
+                            return false;
+                        }
+                        break;
+                    case 0x000C:
+                        if (!TryReadSizedRecord(bytes, ref position, 0x000C,
+                                null, false)
+                            || !TryReadSizedRecord(bytes, ref position, 0x003C,
+                                null, false)) return false;
+                        break;
+                    default:
+                        return true;
+                }
+            }
+        }
+
+        private static bool TryReadReferences(byte[] bytes, ref int position) {
+            while (PeekUInt16(bytes, position) != 0x000F) {
+                if (PeekUInt16(bytes, position) == 0x0016
+                    && !TryReadReferenceName(bytes, ref position)) return false;
+                switch (PeekUInt16(bytes, position)) {
+                    case 0x0033:
+                        if (!TryReadSizedRecord(bytes, ref position, 0x0033,
+                                null, true)) return false;
+                        break;
+                    case 0x000D:
+                        if (!TryReadReferenceRegistered(bytes, ref position)) {
+                            return false;
+                        }
+                        break;
+                    case 0x000E:
+                        if (!TryReadReferenceProject(bytes, ref position)) {
+                            return false;
+                        }
+                        break;
+                    case 0x002F:
+                        if (!TryReadReferenceControl(bytes, ref position)) {
+                            return false;
+                        }
+                        break;
+                    default:
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool TryReadReferenceName(byte[] bytes,
+            ref int position) =>
+            TryReadSizedRecord(bytes, ref position, 0x0016, null, true)
+            && TryReadSizedRecord(bytes, ref position, 0x003E, null, true);
+
+        private static bool TryReadReferenceRegistered(byte[] bytes,
+            ref int position) {
+            return TryReadSizedRecord(bytes, ref position, 0x000D, null, true)
+                && TryReadUInt32(bytes, ref position, out uint reserved1)
+                && reserved1 == 0U
+                && TryReadUInt16(bytes, ref position, out ushort reserved2)
+                && reserved2 == 0U;
+        }
+
+        private static bool TryReadReferenceProject(byte[] bytes,
+            ref int position) {
+            if (!TryReadUInt16(bytes, ref position, out ushort id)
+                || id != 0x000E
+                || !TryReadLengthPrefixedBytes(bytes, ref position, true)
+                || !TryReadLengthPrefixedBytes(bytes, ref position, true)
+                || !TryReadUInt32(bytes, ref position, out _)
+                || !TryReadUInt16(bytes, ref position, out _)) return false;
+            return true;
+        }
+
+        private static bool TryReadReferenceControl(byte[] bytes,
+            ref int position) {
+            if (!TryReadUInt16(bytes, ref position, out ushort id)
+                || id != 0x002F
+                || !TryReadLengthPrefixedBytes(bytes, ref position, true)
+                || !TryReadUInt32(bytes, ref position, out uint reserved1)
+                || reserved1 != 0U
+                || !TryReadUInt16(bytes, ref position, out ushort reserved2)
+                || reserved2 != 0U) return false;
+            if (PeekUInt16(bytes, position) == 0x0016
+                && !TryReadReferenceName(bytes, ref position)) return false;
+            if (!TryReadUInt16(bytes, ref position, out ushort reserved3)
+                || reserved3 != 0x0030
+                || !TryReadLengthPrefixedBytes(bytes, ref position, true)
+                || !TryReadUInt32(bytes, ref position, out uint reserved4)
+                || reserved4 != 0U
+                || !TryReadUInt16(bytes, ref position, out ushort reserved5)
+                || reserved5 != 0U
+                || position + 20 > bytes.Length) return false;
+            position += 20;
+            return true;
+        }
+
+        private static bool TryReadModules(byte[] bytes, ref int position,
+            ushort codePage, IReadOnlyDictionary<string, byte[]> streams) {
+            if (!TryReadRecord(bytes, ref position, 0x000F,
+                    out int countOffset, out int countLength)
+                || countLength != 2) return false;
+            ushort moduleCount = (ushort)(bytes[countOffset]
+                | bytes[countOffset + 1] << 8);
+            if (!TryReadSizedRecord(bytes, ref position, 0x0013, 2, false)) {
+                return false;
+            }
+            for (int index = 0; index < moduleCount; index++) {
+                if (!TryReadSizedRecord(bytes, ref position, 0x0019, null, true)) {
+                    return false;
+                }
+                if (PeekUInt16(bytes, position) == 0x0047
+                    && !TryReadSizedRecord(bytes, ref position, 0x0047, null,
+                        true)) return false;
+                if (!TryReadRecord(bytes, ref position, 0x001A,
+                        out int streamNameOffset, out int streamNameLength)
+                    || streamNameLength == 0
+                    || !TryReadSizedRecord(bytes, ref position, 0x0032, null,
+                        true)
+                    || !TryReadSizedRecord(bytes, ref position, 0x001C, null,
+                        false)
+                    || !TryReadSizedRecord(bytes, ref position, 0x0048, null,
+                        false)
+                    || !TryReadRecord(bytes, ref position, 0x0031,
+                        out int moduleOffsetPosition, out int moduleOffsetLength)
+                    || moduleOffsetLength != 4
+                    || !TryReadSizedRecord(bytes, ref position, 0x001E, 4,
+                        false)
+                    || !TryReadSizedRecord(bytes, ref position, 0x002C, 2,
+                        false)) return false;
+                ushort moduleType = PeekUInt16(bytes, position);
+                if ((moduleType != 0x0021 && moduleType != 0x0022)
+                    || !TryReadSizedRecord(bytes, ref position, moduleType, 0,
+                        false)) return false;
+                if (PeekUInt16(bytes, position) == 0x0025
+                    && !TryReadSizedRecord(bytes, ref position, 0x0025, 0,
+                        false)) return false;
+                if (PeekUInt16(bytes, position) == 0x0028
+                    && !TryReadSizedRecord(bytes, ref position, 0x0028, 0,
+                        false)) return false;
+                if (!TryReadSizedRecord(bytes, ref position, 0x002B, 0,
+                        false)) return false;
+
+                string? streamName = TryDecode(bytes, streamNameOffset,
+                    streamNameLength, codePage);
+                uint moduleOffset = ReadUInt32(bytes, moduleOffsetPosition);
+                byte[]? moduleStream = streams
+                    .Where(pair => string.Equals(pair.Key,
+                        "VBA/" + streamName, StringComparison.OrdinalIgnoreCase))
+                    .Select(pair => pair.Value)
+                    .FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(streamName)
+                    || moduleStream == null || moduleOffset > moduleStream.Length) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool TryReadLengthPrefixedBytes(byte[] bytes,
+            ref int position, bool requireData) {
+            if (!TryReadUInt32(bytes, ref position, out uint length)
+                || length > int.MaxValue || requireData && length == 0
+                || position + (long)length > bytes.Length) return false;
+            position += (int)length;
+            return true;
+        }
+
+        private static string? TryDecode(byte[] bytes, int offset, int length,
+            ushort codePage) {
+            bool ascii = true;
+            for (int index = 0; index < length; index++) {
+                if (bytes[offset + index] <= 0x7F) continue;
+                ascii = false;
+                break;
+            }
+            if (ascii) return Encoding.ASCII.GetString(bytes, offset, length);
+            try {
+                return Encoding.GetEncoding(codePage)
+                    .GetString(bytes, offset, length);
+            } catch (ArgumentException) {
+                return null;
+            }
+        }
+
+        private static uint ReadUInt32(byte[] bytes, int position) =>
+            (uint)(bytes[position]
+                | bytes[position + 1] << 8
+                | bytes[position + 2] << 16
+                | bytes[position + 3] << 24);
+
+        private static bool TryReadRecord(byte[] bytes, ref int position,
+            ushort expectedId, out int dataOffset, out int dataLength) {
+            dataOffset = 0;
+            dataLength = 0;
+            if (!TryReadUInt16(bytes, ref position, out ushort id)
+                || id != expectedId
+                || !TryReadUInt32(bytes, ref position, out uint size)
+                || size > int.MaxValue || position + (long)size > bytes.Length) {
+                return false;
+            }
+            dataOffset = position;
+            dataLength = (int)size;
+            position += dataLength;
             return true;
         }
 

@@ -97,6 +97,32 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
+        [Fact]
+        public void ClassicCommentMutation_ReusesFreeIndexAfterUInt32Maximum() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Reviewer", "R");
+            presentation.AddClassicComment(slide, author, "Maximum");
+            P.Comment stored = presentation.OpenXmlDocument.PresentationPart!
+                .SlideParts.Single().SlideCommentsPart!.CommentList!
+                .Elements<P.Comment>().Single();
+            stored.Index = uint.MaxValue;
+            GetClassicAuthor(presentation, "Reviewer").LastIndex =
+                uint.MaxValue;
+
+            presentation.AddClassicComment(slide, author, "Gap");
+
+            Assert.Equal(new[] { 0U, uint.MaxValue }, presentation
+                .OpenXmlDocument.PresentationPart!.SlideParts.Single()
+                .SlideCommentsPart!.CommentList!.Elements<P.Comment>()
+                .Select(comment => comment.Index!.Value)
+                .OrderBy(index => index));
+            Assert.Equal(uint.MaxValue,
+                GetClassicAuthor(presentation, "Reviewer").LastIndex!.Value);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
         [Theory]
         [InlineData("nul\0text")]
         public void ClassicCommentMutation_RejectsBinaryIncompatibleText(
@@ -232,6 +258,30 @@ namespace OfficeIMO.Tests {
 
             current.Remove();
             Assert.Empty(reopened.GetModernComments(reopened.Slides[0]));
+        }
+
+        [Fact]
+        public void ModernCommentMutation_RejectsXmlInvalidText() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Reviewer", "R",
+                "reviewer@example.test", "OfficeIMO");
+
+            Assert.Throws<ArgumentException>(() =>
+                presentation.AddModernComment(slide, author, "Bad\0text"));
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, author, "Valid");
+            PowerPointModernCommentReply reply = comment.AddReply(author,
+                "Valid reply");
+            Assert.Throws<ArgumentException>(() => comment.Text = "Bad\u0001text");
+            Assert.Throws<ArgumentException>(() => reply.Text = "Bad\u000Btext");
+            Assert.Throws<ArgumentException>(() =>
+                comment.AddReply(author, "Bad\u000Ctext"));
+            Assert.Equal("Valid", comment.Text);
+            Assert.Equal("Valid reply", reply.Text);
+            Assert.Single(comment.Replies);
+            Assert.Empty(presentation.ValidateDocument());
         }
 
         [Fact]

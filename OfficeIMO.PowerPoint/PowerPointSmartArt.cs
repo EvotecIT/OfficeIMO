@@ -7,6 +7,8 @@ using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using A = DocumentFormat.OpenXml.Drawing;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
@@ -14,6 +16,10 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a SmartArt diagram on a PowerPoint slide.
     /// </summary>
     public class PowerPointSmartArt : PowerPointShape {
+        private const string SimpleQuickStyleId =
+            "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1";
+        private const string AccentOneColorStyleId =
+            "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2";
         private readonly SlidePart _slidePart;
 
         internal PowerPointSmartArt(GraphicFrame graphicFrame, SlidePart slidePart) : base(graphicFrame) {
@@ -58,13 +64,57 @@ namespace OfficeIMO.PowerPoint {
                     snapshot = null!;
                     return false;
                 }
+                if (!TryReadRepresentableStyle(properties,
+                        out OfficeDiagramStyle style)) {
+                    snapshot = null!;
+                    return false;
+                }
                 snapshot = new OfficeDiagramSnapshot(Name, kind, nodes,
-                    WidthPoints, HeightPoints);
+                    WidthPoints, HeightPoints, style);
                 return true;
             } catch {
                 snapshot = null!;
                 return false;
             }
+        }
+
+        private bool TryReadRepresentableStyle(XElement? properties,
+            out OfficeDiagramStyle style) {
+            style = null!;
+            if (!string.Equals((string?)properties?.Attribute("qsTypeId"),
+                    SimpleQuickStyleId, StringComparison.Ordinal)
+                || !string.Equals((string?)properties?.Attribute("csTypeId"),
+                    AccentOneColorStyleId, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            A.ColorScheme? colorScheme = _slidePart.ThemeOverridePart?
+                    .ThemeOverride?.ColorScheme
+                ?? _slidePart.SlideLayoutPart?.ThemeOverridePart?
+                    .ThemeOverride?.ColorScheme
+                ?? _slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
+                    .Theme?.ThemeElements?.ColorScheme;
+            A.FontScheme? fontScheme = _slidePart.ThemeOverridePart?
+                    .ThemeOverride?.FontScheme
+                ?? _slidePart.SlideLayoutPart?.ThemeOverridePart?
+                    .ThemeOverride?.FontScheme
+                ?? _slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
+                    .Theme?.ThemeElements?.FontScheme;
+            OfficeColor? accent = OfficeOpenXmlThemeColorResolver
+                .ResolveSchemeColor(colorScheme, "accent1");
+            OfficeColor? light = OfficeOpenXmlThemeColorResolver
+                .ResolveSchemeColor(colorScheme, "light1");
+            string? fontFamily = fontScheme?.MinorFont?.LatinFont?
+                .Typeface?.Value;
+            if (!accent.HasValue || !light.HasValue
+                || string.IsNullOrWhiteSpace(fontFamily)) {
+                return false;
+            }
+
+            style = new OfficeDiagramStyle(fontFamily!,
+                new[] { accent.Value }, light.Value, light.Value,
+                accent.Value);
+            return true;
         }
 
         private static bool TryResolveDiagramKind(string category,

@@ -81,16 +81,16 @@ internal static class PowerPointBaselineRunner {
             ? null
             : PowerPointBenchmarkCorpus.CreatePackage(fixture);
 
-        ValidateResult(Execute(operation, fixture, source), fixture, operation);
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var stopwatch = Stopwatch.StartNew();
         PowerPointOperationResult result = Execute(operation, fixture, source);
         stopwatch.Stop();
         long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
-        ValidateResult(result, fixture, operation);
         using Process process = Process.GetCurrentProcess();
         process.Refresh();
+        long peakWorkingSet = process.PeakWorkingSet64;
+        ValidateResult(result, fixture, operation);
         return new PowerPointBaselineMeasurement(
             operation,
             fixture.Scale,
@@ -100,7 +100,7 @@ internal static class PowerPointBaselineRunner {
             result.OutputBytes,
             stopwatch.Elapsed.TotalMilliseconds,
             allocated,
-            process.PeakWorkingSet64);
+            peakWorkingSet);
     }
 
     private static PowerPointOperationResult Execute(string operation,

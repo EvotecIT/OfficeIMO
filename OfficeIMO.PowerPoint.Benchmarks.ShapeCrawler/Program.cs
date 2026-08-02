@@ -80,16 +80,16 @@ internal static class ShapeCrawlerBaselineRunner {
         byte[]? source = string.Equals(operation, "CreateSave", StringComparison.OrdinalIgnoreCase)
             ? null
             : CreatePackage(fixture);
-        Validate(Execute(operation, fixture, source), fixture, operation);
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var stopwatch = Stopwatch.StartNew();
         byte[] result = Execute(operation, fixture, source);
         stopwatch.Stop();
         long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
-        int shapeCount = Validate(result, fixture, operation);
         using Process process = Process.GetCurrentProcess();
         process.Refresh();
+        long peakWorkingSet = process.PeakWorkingSet64;
+        int shapeCount = Validate(result, fixture, operation);
         return new BaselineMeasurement(
             operation,
             fixture.Scale,
@@ -99,7 +99,7 @@ internal static class ShapeCrawlerBaselineRunner {
             result.LongLength,
             stopwatch.Elapsed.TotalMilliseconds,
             allocated,
-            process.PeakWorkingSet64);
+            peakWorkingSet);
     }
 
     private static byte[] Execute(string operation, BenchmarkFixture fixture, byte[]? source) {

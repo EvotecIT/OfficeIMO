@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -1245,6 +1246,26 @@ namespace OfficeIMO.Tests {
             } finally {
                 if (File.Exists(firstPackage)) File.Delete(firstPackage);
                 if (File.Exists(secondPackage)) File.Delete(secondPackage);
+            }
+        }
+
+        [Fact]
+        public void PackageStencilProvenanceUsesPlatformPathCaseSemantics() {
+            string path = Path.GetFullPath(Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-CasePath.vssx"));
+            string differentlyCased = path.Replace("CasePath", "casepath");
+            var master = new VisioMaster("1", "CaseMaster",
+                new VisioShape("1", 0, 0, 1, 1, string.Empty)) {
+                StencilSourcePackagePath = path
+            };
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                VisioStencilMetadata.EnsureSourcePackageMatches(master,
+                    differentlyCased);
+            } else {
+                Assert.Throws<InvalidOperationException>(() =>
+                    VisioStencilMetadata.EnsureSourcePackageMatches(master,
+                        differentlyCased));
             }
         }
 

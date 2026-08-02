@@ -28,12 +28,51 @@ public enum OfficeDiagramKind {
     Relationship
 }
 
+/// <summary>Representable visual styling for a semantic Office diagram.</summary>
+public sealed class OfficeDiagramStyle {
+    /// <summary>Creates a diagram style used by shared image and PDF renderers.</summary>
+    public OfficeDiagramStyle(string fontFamily,
+        IEnumerable<OfficeColor> nodeColors, OfficeColor nodeTextColor,
+        OfficeColor nodeOutlineColor, OfficeColor connectorColor) {
+        if (string.IsNullOrWhiteSpace(fontFamily)) {
+            throw new ArgumentException("A diagram font family is required.",
+                nameof(fontFamily));
+        }
+        if (nodeColors == null) throw new ArgumentNullException(nameof(nodeColors));
+        var colors = new List<OfficeColor>(nodeColors);
+        if (colors.Count == 0) {
+            throw new ArgumentException("At least one diagram node color is required.",
+                nameof(nodeColors));
+        }
+        FontFamily = fontFamily.Trim();
+        NodeColors = new ReadOnlyCollection<OfficeColor>(colors);
+        NodeTextColor = nodeTextColor;
+        NodeOutlineColor = nodeOutlineColor;
+        ConnectorColor = connectorColor;
+    }
+
+    /// <summary>Gets the node-label font family.</summary>
+    public string FontFamily { get; }
+
+    /// <summary>Gets node fill colors, repeated when there are more nodes.</summary>
+    public IReadOnlyList<OfficeColor> NodeColors { get; }
+
+    /// <summary>Gets the node-label color.</summary>
+    public OfficeColor NodeTextColor { get; }
+
+    /// <summary>Gets the node-outline color.</summary>
+    public OfficeColor NodeOutlineColor { get; }
+
+    /// <summary>Gets the connector color.</summary>
+    public OfficeColor ConnectorColor { get; }
+}
+
 /// <summary>Dependency-free semantic diagram data for static rendering and export.</summary>
 public sealed class OfficeDiagramSnapshot {
     /// <summary>Creates a semantic diagram snapshot.</summary>
     public OfficeDiagramSnapshot(string? name, OfficeDiagramKind kind,
         IEnumerable<string> nodes, double widthPoints,
-        double heightPoints) {
+        double heightPoints, OfficeDiagramStyle? style = null) {
         if (nodes == null) throw new ArgumentNullException(nameof(nodes));
         if (double.IsNaN(widthPoints) || double.IsInfinity(widthPoints)
             || widthPoints <= 0D) {
@@ -63,6 +102,7 @@ public sealed class OfficeDiagramSnapshot {
         Nodes = new ReadOnlyCollection<string>(values);
         WidthPoints = widthPoints;
         HeightPoints = heightPoints;
+        Style = style;
     }
 
     /// <summary>Gets the optional source diagram name.</summary>
@@ -79,4 +119,7 @@ public sealed class OfficeDiagramSnapshot {
 
     /// <summary>Gets the target height in points.</summary>
     public double HeightPoints { get; }
+
+    /// <summary>Gets optional visual styling projected from the source diagram.</summary>
+    public OfficeDiagramStyle? Style { get; }
 }

@@ -1786,6 +1786,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_PreservesExtensionsInsideRecognizedCommentParts() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            SlideCommentsPart commentsPart = presentation.OpenXmlDocument
+                .PresentationPart!.SlideParts.Single().SlideCommentsPart!;
+            commentsPart.CommentList!.Append(new OpenXmlUnknownElement(
+                "vendor", "producerData", "urn:officeimo:test:comments"));
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsUnsupportedTransitionMarkup() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

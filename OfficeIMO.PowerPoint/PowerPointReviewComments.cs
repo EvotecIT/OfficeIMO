@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Xml;
 using DocumentFormat.OpenXml.Packaging;
 using P = DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -467,8 +468,21 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal uint AllocateClassicCommentIndex(P.CommentAuthor author) {
-            uint next = checked((author.LastIndex?.Value ?? 0U) + 1U);
-            author.LastIndex = next;
+            uint? authorId = author.Id?.Value;
+            var usedIndexes = new HashSet<uint>(_slides.SelectMany(slide =>
+                    slide.SlidePart.SlideCommentsPart?.CommentList?
+                        .Elements<P.Comment>() ?? Enumerable.Empty<P.Comment>())
+                .Where(comment => comment.AuthorId?.Value == authorId)
+                .Where(comment => comment.Index?.Value != null)
+                .Select(comment => comment.Index!.Value));
+            uint firstCandidate = author.LastIndex?.Value == uint.MaxValue
+                ? 0U
+                : (author.LastIndex?.Value ?? 0U) + 1U;
+            uint next = FindAvailableUInt32Id(usedIndexes, firstCandidate,
+                "classic-comment");
+            author.LastIndex = usedIndexes.Count == 0
+                ? next
+                : Math.Max(usedIndexes.Max(), next);
             return next;
         }
 
@@ -636,6 +650,13 @@ namespace OfficeIMO.PowerPoint {
         internal static void ValidateCommentText(string text) {
             if (string.IsNullOrWhiteSpace(text)) {
                 throw new ArgumentException("Comment text cannot be empty.", nameof(text));
+            }
+            try {
+                XmlConvert.VerifyXmlChars(text);
+            } catch (XmlException exception) {
+                throw new ArgumentException(
+                    "Comment text contains characters that are not valid in Open XML.",
+                    nameof(text), exception);
             }
         }
 
