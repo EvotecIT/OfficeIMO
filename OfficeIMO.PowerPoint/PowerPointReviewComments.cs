@@ -13,14 +13,38 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Creates a review author identity.</summary>
         public PowerPointCommentAuthor(string name, string? initials = null,
             string? userId = null, string? providerId = null) {
-            Name = string.IsNullOrWhiteSpace(name)
-                ? throw new ArgumentException("Author name cannot be empty.", nameof(name))
-                : name.Trim();
-            Initials = string.IsNullOrWhiteSpace(initials)
-                ? CreateInitials(Name)
+            if (name != null) {
+                PowerPointXmlValueValidator.ValidateCharacters(name,
+                    nameof(name), "Author name");
+            }
+            if (initials != null) {
+                PowerPointXmlValueValidator.ValidateCharacters(initials,
+                    nameof(initials), "Author initials");
+            }
+            if (userId != null) {
+                PowerPointXmlValueValidator.ValidateCharacters(userId,
+                    nameof(userId), "Author user identifier");
+            }
+            if (providerId != null) {
+                PowerPointXmlValueValidator.ValidateCharacters(providerId,
+                    nameof(providerId), "Author provider identifier");
+            }
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Author name cannot be empty.",
+                    nameof(name));
+            }
+            string normalizedName = name!.Trim();
+            string normalizedInitials = string.IsNullOrWhiteSpace(initials)
+                ? CreateInitials(normalizedName)
                 : initials!.Trim();
-            UserId = string.IsNullOrWhiteSpace(userId) ? null : userId!.Trim();
-            ProviderId = string.IsNullOrWhiteSpace(providerId) ? null : providerId!.Trim();
+            string? normalizedUserId = string.IsNullOrWhiteSpace(userId)
+                ? null : userId!.Trim();
+            string? normalizedProviderId = string.IsNullOrWhiteSpace(providerId)
+                ? null : providerId!.Trim();
+            Name = normalizedName;
+            Initials = normalizedInitials;
+            UserId = normalizedUserId;
+            ProviderId = normalizedProviderId;
         }
 
         /// <summary>Display name.</summary>
@@ -474,11 +498,13 @@ namespace OfficeIMO.PowerPoint {
                 .Where(comment => comment.AuthorId?.Value == authorId)
                 .Where(comment => comment.Index?.Value != null)
                 .Select(comment => comment.Index!.Value));
-            uint firstCandidate = author.LastIndex?.Value == uint.MaxValue
+            const uint MaximumClassicCommentIndex = int.MaxValue;
+            uint firstCandidate = author.LastIndex?.Value >=
+                MaximumClassicCommentIndex
                 ? 0U
                 : (author.LastIndex?.Value ?? 0U) + 1U;
             uint next = FindAvailableUInt32Id(usedIndexes, firstCandidate,
-                "classic-comment");
+                "classic-comment", MaximumClassicCommentIndex);
             author.LastIndex = usedIndexes.Count == 0
                 ? next
                 : Math.Max(usedIndexes.Max(), next);
@@ -518,6 +544,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal P188.Author GetOrCreateModernCommentAuthor(PowerPointCommentAuthor author) {
+            ValidateCommentAuthorIdentity(author);
             PowerPointAuthorsPart? firstPart = null;
             foreach (PowerPointAuthorsPart part in _presentationPart.Parts
                          .Select(pair => pair.OpenXmlPart).OfType<PowerPointAuthorsPart>()) {
@@ -684,6 +711,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ValidateClassicCommentAuthor(
             PowerPointCommentAuthor author) {
+            ValidateCommentAuthorIdentity(author);
             if (author.Name.Length > 52 || author.Initials.Length > 52) {
                 throw new ArgumentException(
                     "Classic comment author names and initials cannot exceed 52 characters.",
@@ -694,6 +722,23 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException(
                     "Classic comment author names and initials cannot contain a NUL character.",
                     nameof(author));
+            }
+        }
+
+        private static void ValidateCommentAuthorIdentity(
+            PowerPointCommentAuthor author) {
+            if (author == null) throw new ArgumentNullException(nameof(author));
+            PowerPointXmlValueValidator.ValidateCharacters(author.Name,
+                nameof(author), "Author name");
+            PowerPointXmlValueValidator.ValidateCharacters(author.Initials,
+                nameof(author), "Author initials");
+            if (author.UserId != null) {
+                PowerPointXmlValueValidator.ValidateCharacters(author.UserId,
+                    nameof(author), "Author user identifier");
+            }
+            if (author.ProviderId != null) {
+                PowerPointXmlValueValidator.ValidateCharacters(author.ProviderId,
+                    nameof(author), "Author provider identifier");
             }
         }
 

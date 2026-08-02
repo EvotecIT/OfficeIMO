@@ -233,10 +233,6 @@ public static class OfficeDiagramDrawingRenderer {
             return;
         }
         if (kind == OfficeDiagramKind.Relationship) {
-            for (int index = 1; index < nodes.Count; index++) {
-                AddConnector(drawing, nodes[0], nodes[index], true,
-                    connectorColor);
-            }
             return;
         }
         if (kind == OfficeDiagramKind.List

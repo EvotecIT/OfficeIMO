@@ -235,12 +235,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static uint FindAvailableUInt32Id(
-            ISet<uint> usedIds, uint firstCandidate, string identifierKind) {
-            uint candidate = firstCandidate;
+            ISet<uint> usedIds, uint firstCandidate, string identifierKind,
+            uint maximumInclusive = uint.MaxValue) {
+            uint candidate = firstCandidate <= maximumInclusive
+                ? firstCandidate
+                : 0U;
+            uint initialCandidate = candidate;
             do {
                 if (!usedIds.Contains(candidate)) return candidate;
-                candidate = candidate == uint.MaxValue ? 0U : candidate + 1U;
-            } while (candidate != firstCandidate);
+                candidate = candidate == maximumInclusive ? 0U : candidate + 1U;
+            } while (candidate != initialCandidate);
             throw new InvalidOperationException(
                 $"The presentation has no available {identifierKind} identifiers.");
         }

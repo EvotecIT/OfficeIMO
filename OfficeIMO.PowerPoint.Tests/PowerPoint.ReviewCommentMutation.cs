@@ -123,6 +123,29 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
+        [Fact]
+        public void ClassicCommentMutation_AllocatesWithinBinaryIndexRange() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Reviewer", "R");
+            presentation.AddClassicComment(slide, author, "Maximum");
+            P.Comment maximum = presentation.OpenXmlDocument.PresentationPart!
+                .SlideParts.Single().SlideCommentsPart!.CommentList!
+                .Elements<P.Comment>().Single();
+            maximum.Index = int.MaxValue;
+            GetClassicAuthor(presentation, "Reviewer").LastIndex = int.MaxValue;
+
+            presentation.AddClassicComment(slide, author, "Gap");
+
+            Assert.Equal(new[] { 0U, (uint)int.MaxValue }, presentation
+                .OpenXmlDocument.PresentationPart!.SlideParts.Single()
+                .SlideCommentsPart!.CommentList!.Elements<P.Comment>()
+                .Select(comment => comment.Index!.Value)
+                .OrderBy(index => index));
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+        }
+
         [Theory]
         [InlineData("nul\0text")]
         [InlineData("control\u0001text")]
@@ -167,14 +190,13 @@ namespace OfficeIMO.Tests {
             PowerPointCommentAuthor longName = new(new string('n', 53), "N");
             PowerPointCommentAuthor longInitials = new("Name",
                 new string('i', 53));
-            PowerPointCommentAuthor nulName = new("Name\0Suffix", "N");
+            Assert.Throws<ArgumentException>(() =>
+                new PowerPointCommentAuthor("Name\0Suffix", "N"));
 
             Assert.Throws<ArgumentException>(() =>
                 presentation.AddClassicComment(slide, longName, "Review"));
             Assert.Throws<ArgumentException>(() =>
                 presentation.AddClassicComment(slide, longInitials, "Review"));
-            Assert.Throws<ArgumentException>(() =>
-                presentation.AddClassicComment(slide, nulName, "Review"));
             Assert.Empty(presentation.GetClassicComments(slide));
 
             PowerPointClassicComment comment = presentation.AddClassicComment(
@@ -283,6 +305,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Valid reply", reply.Text);
             Assert.Single(comment.Replies);
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void CommentAuthor_RejectsXmlInvalidIdentityFields() {
+            Assert.Throws<ArgumentException>(() =>
+                new PowerPointCommentAuthor("Bad\u0001name"));
+            Assert.Throws<ArgumentException>(() =>
+                new PowerPointCommentAuthor("Name", "B\u0001"));
+            Assert.Throws<ArgumentException>(() =>
+                new PowerPointCommentAuthor("Name", "N", "bad\u0001user"));
+            Assert.Throws<ArgumentException>(() =>
+                new PowerPointCommentAuthor("Name", "N", "user",
+                    "bad\u0001provider"));
         }
 
         [Fact]

@@ -441,6 +441,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(algorithm.Elements<Dgm.Parameter>(), parameter =>
                     parameter.Type?.Value == Dgm.ParameterIdValues.CenterShapeMapping
                     && parameter.Val?.Value == "fNode");
+                Assert.DoesNotContain(layout.Descendants<Dgm.Shape>(), shape =>
+                    shape.Type?.Value == "conn");
             }
         }
 

@@ -95,6 +95,21 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDiagramDrawingRenderer_RelationshipDoesNotInventEdges() {
+        var snapshot = new OfficeDiagramSnapshot("Relationships",
+            OfficeDiagramKind.Relationship,
+            new[] { "Center", "A", "B", "C" }, 320D, 180D);
+
+        OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot,
+            includeBackground: false);
+        OfficeDrawingShape[] connectors = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
+            .ToArray();
+
+        Assert.Empty(connectors);
+    }
+
+    [Fact]
     public void OfficeDiagramDrawingRenderer_PyramidUsesAuthoredNormalizedGeometry() {
         var snapshot = new OfficeDiagramSnapshot("Priorities",
             OfficeDiagramKind.Pyramid,
