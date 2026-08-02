@@ -135,6 +135,46 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData("\ufffe")]
+    [InlineData("\uffff")]
+    public void OpenDataReader_RejectsXmlForbiddenScalarsOnIndexedRows(string forbiddenScalar) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string malformedXml = worksheetXml.Replace(
+                "<row r=\"2\"",
+                $"<row note=\"{forbiddenScalar}\" r=\"2\"");
+            Assert.NotEqual(worksheetXml, malformedXml);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("http://www.w3.org/XML/1998/namespace")]
+    [InlineData("http://www.w3.org/2000/xmlns/")]
+    public void OpenDataReader_RejectsReservedNamespaceBindings(string namespaceUri) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string malformedXml = worksheetXml.Replace(
+                "<worksheet ",
+                $"<worksheet xmlns:p=\"{namespaceUri}\" ");
+            Assert.NotEqual(worksheetXml, malformedXml);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static string CreateCompactFastPathWorkbook() {
         string path = Path.Combine(
             Path.GetTempPath(),

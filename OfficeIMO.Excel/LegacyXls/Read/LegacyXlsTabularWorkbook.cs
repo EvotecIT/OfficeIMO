@@ -156,10 +156,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private static bool IsWorkbookStreamName(string name) {
-            int separator = Math.Max(name.LastIndexOf('/'), name.LastIndexOf('\\'));
-            string leaf = separator >= 0 ? name.Substring(separator + 1) : name;
-            return string.Equals(leaf, "Workbook", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(leaf, "Book", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(name, "Workbook", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "Book", StringComparison.OrdinalIgnoreCase);
         }
 
         private static void ParseGlobals(

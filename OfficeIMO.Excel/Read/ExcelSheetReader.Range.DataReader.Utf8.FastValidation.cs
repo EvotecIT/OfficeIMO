@@ -11,12 +11,14 @@ namespace OfficeIMO.Excel {
         private sealed partial class ExcelUtf8RangeRowSource {
             private const int MaximumFastXmlDepth = 64;
             private const int MaximumFastXmlAttributes = 32;
+            private const string XmlNamespace = "http://www.w3.org/XML/1998/namespace";
+            private const string XmlnsNamespace = "http://www.w3.org/2000/xmlns/";
             private static readonly UTF8Encoding StrictUtf8 = new(
                 encoderShouldEmitUTF8Identifier: false,
                 throwOnInvalidBytes: true);
 #if NET8_0_OR_GREATER
-            private static readonly SearchValues<byte> InvalidXmlControlBytes = SearchValues.Create(
-                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 });
+            private static readonly SearchValues<byte> CanonicalXmlSpecialBytes = SearchValues.Create(
+                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, (byte)'&', 0xef });
 #endif
 
             /// <summary>
@@ -30,8 +32,7 @@ namespace OfficeIMO.Excel {
 #if NET8_0_OR_GREATER
                 ReadOnlySpan<byte> document = _buffer!.AsSpan(0, _length);
                 if (!Utf8.IsValid(document)
-                    || document.IndexOf((byte)'&') >= 0
-                    || document.IndexOfAny(InvalidXmlControlBytes) >= 0) {
+                    || ContainsInvalidCanonicalXmlBytes(document)) {
                     return false;
                 }
 #else
@@ -44,7 +45,11 @@ namespace OfficeIMO.Excel {
                 for (int index = 0; index < _length; index++) {
                     byte value = _buffer![index];
                     if (value == (byte)'&'
-                        || value < 0x20 && value is not (byte)'\t' and not (byte)'\r' and not (byte)'\n') {
+                        || value < 0x20 && value is not (byte)'\t' and not (byte)'\r' and not (byte)'\n'
+                        || value == 0xef
+                            && index + 2 < _length
+                            && _buffer[index + 1] == 0xbf
+                            && _buffer[index + 2] is 0xbe or 0xbf) {
                         return false;
                     }
                 }
@@ -174,6 +179,28 @@ namespace OfficeIMO.Excel {
 
                 return rootSeen && rootClosed && depth == 0;
             }
+
+#if NET8_0_OR_GREATER
+            private static bool ContainsInvalidCanonicalXmlBytes(ReadOnlySpan<byte> document) {
+                while (!document.IsEmpty) {
+                    int index = document.IndexOfAny(CanonicalXmlSpecialBytes);
+                    if (index < 0) {
+                        return false;
+                    }
+
+                    if (document[index] != 0xef) {
+                        return true;
+                    }
+                    if (index + 2 < document.Length
+                        && document[index + 1] == 0xbf
+                        && document[index + 2] is 0xbe or 0xbf) {
+                        return true;
+                    }
+                    document = document.Slice(index + 1);
+                }
+                return false;
+            }
+#endif
 
             private bool TrySkipCanonicalXmlDeclaration(int start, out int nextPosition) {
                 nextPosition = start;
@@ -500,6 +527,8 @@ namespace OfficeIMO.Excel {
                             || valueLength == 0
                             || AsciiEquals(localStart, localLength, "xml")
                             || AsciiEquals(localStart, localLength, "xmlns")
+                            || AsciiEquals(valueStart, valueLength, XmlNamespace)
+                            || AsciiEquals(valueStart, valueLength, XmlnsNamespace)
                             || namespacePrefixCount == namespacePrefixStarts.Length) {
                             return false;
                         }

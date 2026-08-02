@@ -80,6 +80,17 @@ namespace OfficeIMO.Tests {
                 return CreateRootStreamCompoundFile(streams);
             }
 
+            internal static byte[] CreateWorkbookCompoundFileWithNestedWorkbookStream(
+                byte[] workbookStream,
+                string nestedStreamName) {
+                return OfficeCompoundFileWriter.Write(new[] {
+                    new OfficeCompoundStream("Workbook", workbookStream),
+                    new OfficeCompoundStream(
+                        "ObjectPool/" + nestedStreamName,
+                        Encoding.ASCII.GetBytes("nested non-workbook payload"))
+                });
+            }
+
             internal static byte[] CreateCompoundHeaderWithInvalidSectorChain() {
                 byte[] bytes = new byte[SectorSize];
                 byte[] signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };

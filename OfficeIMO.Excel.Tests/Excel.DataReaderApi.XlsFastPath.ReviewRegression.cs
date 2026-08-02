@@ -80,6 +80,23 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        [Theory]
+        [InlineData("Workbook")]
+        [InlineData("Book")]
+        public void OpenDataReader_XlsFastPathIgnoresNestedWorkbookNamedStreams(string nestedStreamName) {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithNestedWorkbookStream(
+                LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream(),
+                nestedStreamName);
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                compound,
+                new ExcelReadOptions { HasHeaderRow = false });
+
+            Assert.Equal(3, reader.FieldCount);
+            Assert.True(reader.Read());
+            Assert.Equal("Inline", reader.GetString(0));
+        }
+
         private static partial class LegacyXlsTestWorkbookBuilder {
             internal static byte[] CreateMulRkDateHeaderWorkbookStream() =>
                 CreateFastPathRegressionWorkbookStream(
