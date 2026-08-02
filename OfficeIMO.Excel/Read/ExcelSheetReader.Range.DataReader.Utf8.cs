@@ -317,10 +317,24 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                Span<int> namespacePrefixStarts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespacePrefixLengths = stackalloc int[MaximumFastXmlAttributes];
+                int namespacePrefixCount = 0;
+                bool hasCanonicalRootNamespaces = false;
                 int position = 0;
                 Utf8Tag sheetData = default;
                 bool foundSheetData = false;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
+                    if (!tag.IsEnd
+                        && IsUnprefixedTag(tag)
+                        && LocalNameEquals(tag, "worksheet")) {
+                        hasCanonicalRootNamespaces = ValidateCanonicalNamespaceUsage(
+                            tag,
+                            isRootStartTag: true,
+                            namespacePrefixStarts,
+                            namespacePrefixLengths,
+                            ref namespacePrefixCount);
+                    }
                     if (!tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "sheetData")) {
                         sheetData = tag;
                         foundSheetData = true;
@@ -355,7 +369,14 @@ namespace OfficeIMO.Excel {
                             out _,
                             out bool rowHasPrefixedAttributes)
                         || rowDeclaresDefaultNamespace
-                        || rowHasPrefixedAttributes) {
+                        || rowHasPrefixedAttributes
+                            && (!hasCanonicalRootNamespaces
+                                || !ValidateCanonicalNamespaceUsage(
+                                    tag,
+                                    isRootStartTag: false,
+                                    namespacePrefixStarts,
+                                    namespacePrefixLengths,
+                                    ref namespacePrefixCount))) {
                         _sheetDataSupportsFastValidation = false;
                     }
 
