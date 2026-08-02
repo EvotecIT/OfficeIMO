@@ -287,6 +287,9 @@ namespace OfficeIMO.PowerPoint {
         ///     Replaces the text of an editable SmartArt node.
         /// </summary>
         public void SetNodeText(int index, string text) {
+            string normalizedText = text ?? string.Empty;
+            PowerPointXmlValueValidator.ValidateCharacters(normalizedText,
+                nameof(text), "SmartArt node text");
             var (xdoc, ns, textBodies, dataPart) =
                 LoadNodeTextBodiesWithPart();
             if (index < 0 || index >= textBodies.Count) {
@@ -298,7 +301,7 @@ namespace OfficeIMO.PowerPoint {
             XElement paragraph = paragraphs[0];
             paragraph.RemoveNodes();
             paragraph.Add(new XElement(ns.a + "r",
-                new XElement(ns.a + "t", text ?? string.Empty)));
+                new XElement(ns.a + "t", normalizedText)));
             paragraph.Add(new XElement(ns.a + "endParaRPr", new XAttribute("lang", "en-US")));
             for (int paragraphIndex = 1;
                  paragraphIndex < paragraphs.Count; paragraphIndex++) {

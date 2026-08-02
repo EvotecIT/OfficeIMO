@@ -365,6 +365,40 @@ namespace OfficeIMO.Tests {
             Assert.Empty(reopened.ValidateDocument());
         }
 
+        [Theory]
+        [InlineData(PowerPointSmartArtType.BasicList)]
+        [InlineData(PowerPointSmartArtType.BasicMatrix)]
+        [InlineData(PowerPointSmartArtType.BasicPyramid)]
+        [InlineData(PowerPointSmartArtType.BasicRelationship)]
+        public void BroaderSemanticSmartArtRejectsXmlInvalidNodeTextBeforeMutation(
+            PowerPointSmartArtType type) {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+
+            Assert.Throws<ArgumentException>(() => slide.AddSmartArt(type,
+                new[] { "Valid", "Bad\u0001node" }));
+
+            Assert.Empty(slide.SmartArts);
+            Assert.Empty(slide.SlidePart.DiagramDataParts);
+            Assert.Empty(slide.SlidePart.DiagramLayoutDefinitionParts);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SmartArtNodeMutationRejectsXmlInvalidTextWithoutChangingData() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
+                PowerPointSmartArtType.BasicProcess, new[] { "Original" });
+
+            Assert.Throws<ArgumentException>(() =>
+                smartArt.SetNodeText(0, "Bad\u0001node"));
+
+            Assert.Equal("Original", smartArt.GetNodeText(0));
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
         [Fact]
         public void EmbeddedSmartArtRenderingKeepsSlideBackgroundVisible() {
             using var stream = new MemoryStream();

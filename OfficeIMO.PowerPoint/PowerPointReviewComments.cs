@@ -250,12 +250,14 @@ namespace OfficeIMO.PowerPoint {
             if (author == null) throw new ArgumentNullException(nameof(author));
             PowerPointPresentation.ValidateCommentText(text);
             P188.Comment comment = RequireAttached();
+            P188.CommentStatus modernStatus =
+                PowerPointPresentation.ToModernStatus(status);
             P188.Author modernAuthor = _presentation.GetOrCreateModernCommentAuthor(author);
             var reply = new P188.CommentReply(
                 PowerPointPresentation.CreateModernCommentTextBody(text)) {
                 Id = PowerPointPresentation.CreateModernCommentId(),
                 AuthorId = modernAuthor.Id?.Value,
-                Status = PowerPointPresentation.ToModernStatus(status),
+                Status = modernStatus,
                 Created = created ?? DateTime.UtcNow
             };
             P188.CommentReplyList? replies = comment.GetFirstChild<P188.CommentReplyList>();
@@ -442,6 +444,7 @@ namespace OfficeIMO.PowerPoint {
             EnsureCommentSlide(slide);
             if (author == null) throw new ArgumentNullException(nameof(author));
             ValidateCommentText(text);
+            P188.CommentStatus modernStatus = ToModernStatus(status);
             P188.Author modernAuthor = GetOrCreateModernCommentAuthor(author);
             var comment = new P188.Comment(
                 new P188.CommentUnknownAnchor(),
@@ -449,7 +452,7 @@ namespace OfficeIMO.PowerPoint {
                 CreateModernCommentTextBody(text)) {
                 Id = CreateModernCommentId(),
                 AuthorId = modernAuthor.Id?.Value,
-                Status = ToModernStatus(status),
+                Status = modernStatus,
                 Created = created ?? DateTime.UtcNow
             };
             PowerPointCommentPart? commentsPart = slide.SlidePart.Parts

@@ -212,6 +212,7 @@ namespace OfficeIMO.Visio {
 
                 if (options.CheckConnectorLabels &&
                     !string.IsNullOrWhiteSpace(connector.Label) &&
+                    HasDeterministicLabelPlacement(connector) &&
                     TryGetConnectorLabelBounds(connector, path, out VisioShapeBounds labelBounds)) {
                     ConnectorLabelBounds connectorLabel = new(connector, labelBounds);
                     connectorLabelBounds.Add(connectorLabel);
@@ -399,6 +400,14 @@ namespace OfficeIMO.Visio {
             return connector.Waypoints.Count > 0 ||
                    connector.Kind == ConnectorKind.RightAngle ||
                    connector.Kind == ConnectorKind.Straight;
+        }
+
+        private static bool HasDeterministicLabelPlacement(
+            VisioConnector connector) {
+            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+            return HasDeterministicRoute(connector)
+                || (placement?.AbsolutePinX.HasValue == true
+                    && placement.AbsolutePinY.HasValue);
         }
 
         private static List<Point> BuildConnectorPath(VisioConnector connector) {

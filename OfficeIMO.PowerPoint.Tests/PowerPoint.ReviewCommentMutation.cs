@@ -334,6 +334,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ModernCommentMutation_RejectsInvalidStatusBeforeAuthorCreation() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var alice = new PowerPointCommentAuthor("Alice", "A",
+                "alice@example.test", "OfficeIMO");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                presentation.AddModernComment(slide, alice, "Review",
+                    (PowerPointModernCommentStatus)999));
+
+            Assert.Empty(GetModernAuthorNames(presentation));
+            Assert.Empty(presentation.GetModernComments(slide));
+            Assert.DoesNotContain(presentation.AnalyzeLegacyPptWrite().Findings,
+                finding => finding.Code == "PPT-WRITE-MODERN-COMMENTS");
+
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, alice, "Valid review");
+            var bob = new PowerPointCommentAuthor("Bob", "B",
+                "bob@example.test", "OfficeIMO");
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                comment.AddReply(bob, "Reply",
+                    (PowerPointModernCommentStatus)999));
+            Assert.Equal(new[] { "Alice" }, GetModernAuthorNames(presentation));
+            Assert.Empty(comment.Replies);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void CommentAuthor_RejectsXmlInvalidIdentityFields() {
             Assert.Throws<ArgumentException>(() =>
                 new PowerPointCommentAuthor("Bad\u0001name"));

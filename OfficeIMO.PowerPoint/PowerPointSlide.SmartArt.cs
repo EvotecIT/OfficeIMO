@@ -175,6 +175,10 @@ namespace OfficeIMO.PowerPoint {
                 .Where(text => text.Length > 0).ToList();
             if (nodes.Count == 0) throw new ArgumentException("At least one SmartArt node is required.", nameof(nodeTexts));
             if (nodes.Count > 32) throw new ArgumentException("SmartArt workflows support at most 32 nodes.", nameof(nodeTexts));
+            foreach (string node in nodes) {
+                PowerPointXmlValueValidator.ValidateCharacters(node,
+                    nameof(nodeTexts), "SmartArt node text");
+            }
             return nodes;
         }
 

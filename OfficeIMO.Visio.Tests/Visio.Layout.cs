@@ -579,6 +579,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectorLabelPathAnalysisRequiresStableLabeledConnectorPlacement() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(
+                Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("DynamicLabel", 7, 5);
+            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
+            VisioShape top = page.AddRectangle(3, 4.5, 0.8, 0.5, "Top");
+            VisioShape bottom = page.AddRectangle(3, 0.5, 0.8, 0.5, "Bottom");
+            VisioConnector dynamicLabel = page.AddConnector(left, right,
+                    ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5, width: 1.2, height: 0.4);
+            dynamicLabel.Label = "approval";
+            VisioConnector crossing = page.AddConnector(top, bottom,
+                ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
+            var options = new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false,
+                CheckConnectorLabelOverlaps = false
+            };
+
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(options), issue =>
+                issue.Kind == "ConnectorLabelCrossesConnector"
+                && issue.ConnectorId == dynamicLabel.Id
+                && issue.OtherConnectorId == crossing.Id);
+
+            dynamicLabel.PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
+            Assert.Contains(page.AnalyzeVisualQuality(options), issue =>
+                issue.Kind == "ConnectorLabelCrossesConnector"
+                && issue.ConnectorId == dynamicLabel.Id
+                && issue.OtherConnectorId == crossing.Id);
+        }
+
+        [Fact]
         public void PolishDiagramMovesConnectorLabelsAwayFromConnectorPaths() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("PolishLabelConnectors", 7, 5);
