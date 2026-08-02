@@ -32,10 +32,25 @@ namespace OfficeIMO.Tests {
                     : "clear";
                 TraceOfficeSipInterop("tool:" + tool + ":" + operation + ":start");
                 WordMacroProjectToolResult result = _inner.Run(invocation, timeout, maxOutputCharacters);
+                if (result.Succeeded && operation == "sign") {
+                    CaptureSignedStage(invocation.Arguments[invocation.Arguments.Count - 1]);
+                }
                 TraceOfficeSipInterop(
                     "tool:" + tool + ":" + operation + ":complete:exit=" +
                     (result.ExitCode?.ToString() ?? "none") + ":timeout=" + result.TimedOut);
                 return result;
+            }
+
+            private static void CaptureSignedStage(string stagingPath) {
+                string? capturePath = Environment.GetEnvironmentVariable("OFFICEIMO_VBA_SIGNED_STAGE_CAPTURE_PATH");
+                if (string.IsNullOrWhiteSpace(capturePath)) return;
+                try {
+                    File.Copy(stagingPath, capturePath!, overwrite: true);
+                } catch (IOException) {
+                    // Failure diagnostics must not change the signing contract.
+                } catch (UnauthorizedAccessException) {
+                    // Failure diagnostics must not change the signing contract.
+                }
             }
         }
 

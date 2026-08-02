@@ -298,6 +298,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MacroSigningReadbackFailurePreservesDetailedInspectionEvidence() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureReadbackDiagnostics.docm");
+            string toolsDirectory = CreateFakeOfficeSipsDirectory();
+            var runner = new RecordingMacroToolRunner(invocation => {
+                if (invocation.Arguments.Count > 0 && invocation.Arguments[0] == "sign") {
+                    AddRawMacroSignatureProfile(
+                        invocation.Arguments[invocation.Arguments.Count - 1],
+                        WordMacroProjectSignatureProfile.Legacy,
+                        CreateMacroSignatureContainer(new byte[] { 0x30, 0x00 }));
+                }
+                return Success();
+            });
+            var dependencies = new WordMacroProjectSigningDependencies(
+                runner, new TestMacroSigningPlatform(isWindows: true));
+            var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
+
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
+                filePath, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Findings, finding => finding.Code == "CmsMalformed");
+            Assert.Contains(result.Findings, finding => finding.Code == "MacroLegacyReadbackFailed");
+        }
+
+        [Fact]
         public void MacroSigningBoundsTheSourceSnapshotCopy() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignatureBoundedSource.docm");
             long originalLength = new FileInfo(filePath).Length;

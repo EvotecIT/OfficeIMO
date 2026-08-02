@@ -217,6 +217,15 @@ namespace OfficeIMO.Word {
                         .FirstOrDefault(signature => signature.Profile == profile);
                     if (createdProfile == null || !createdProfile.CmsParsed ||
                         createdProfile.CryptographicStatus != WordSignatureValidationState.Passed) {
+                        foreach (WordMacroProjectSignatureFinding finding in profileReadback.Findings
+                            .Concat(profileReadback.Signatures.SelectMany(signature => signature.Findings))) {
+                            if (!findings.Any(existing =>
+                                existing.Code == finding.Code &&
+                                existing.Profile == finding.Profile &&
+                                existing.Message == finding.Message)) {
+                                findings.Add(finding);
+                            }
+                        }
                         findings.Add(Finding("Macro" + profile + "ReadbackFailed",
                             WordSignatureValidationState.Failed,
                             "The " + profile + " VBA signature was not present with a valid CMS signature after creation.",

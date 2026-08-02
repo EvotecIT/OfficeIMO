@@ -641,6 +641,7 @@ jobs:
           New-Item -Path $vbaRegistryPath -Force | Out-Null
           Set-ItemProperty -LiteralPath $vbaRegistryPath -Name Vbe71DllPath -Value $vbePath
           $env:OFFICEIMO_VBA_SIP_TRACE_PATH = Join-Path $env:RUNNER_TEMP 'officeimo-vba-sip-trace.txt'
+          $env:OFFICEIMO_VBA_SIGNED_STAGE_CAPTURE_PATH = Join-Path $env:RUNNER_TEMP 'officeimo-vba-signed-stage.docm'
           $sipRegistered = $false
           try {
             & regsvr32.exe /s $sipPath
@@ -670,6 +671,14 @@ jobs:
               Get-Content -LiteralPath $env:OFFICEIMO_VBA_SIP_TRACE_PATH
             }
           }
+
+      - name: Upload failed OfficeSips signing stage
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: office-sips-failed-signing-stage
+          path: ${{ runner.temp }}/officeimo-vba-signed-stage.docm
+          if-no-files-found: ignore
 
   test-ubuntu-matrix:
     name: 'Ubuntu ${{ matrix.framework }} / ${{ matrix.partition }}'
