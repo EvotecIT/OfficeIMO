@@ -185,7 +185,7 @@ namespace OfficeIMO.PowerPoint {
                 InsertShapePropertyChild(properties!, outline);
                 foreach (OpenXmlCompositeElement fillColor in
                          GetFillColorChoices(outline)) {
-                    SetColorAlpha(fillColor, opacity);
+                    SetColorAlphaOverride(fillColor, opacity);
                 }
                 return;
             }
@@ -199,7 +199,7 @@ namespace OfficeIMO.PowerPoint {
                 if (HasExplicitFillChoice(outline)) {
                     foreach (OpenXmlCompositeElement fillColor in
                              GetFillColorChoices(outline)) {
-                        SetColorAlpha(fillColor, opacity);
+                        SetColorAlphaOverride(fillColor, opacity);
                     }
                     return;
                 }
@@ -208,14 +208,14 @@ namespace OfficeIMO.PowerPoint {
                     InsertOutlineChild(outline, themeFill!.CloneNode(true));
                     foreach (OpenXmlCompositeElement fillColor in
                              GetFillColorChoices(outline)) {
-                        SetColorAlpha(fillColor, opacity);
+                        SetColorAlphaOverride(fillColor, opacity);
                     }
                     return;
                 }
                 OpenXmlCompositeElement? styleColor =
                     GetShapeStyleLineColorChoice(createPlaceholder: opacity != null);
                 if (styleColor != null) {
-                    SetColorAlpha(styleColor, opacity);
+                    SetColorAlphaOverride(styleColor, opacity);
                     return;
                 }
                 if (opacity == null) return;
@@ -234,7 +234,7 @@ namespace OfficeIMO.PowerPoint {
                 solid.Append(color);
             }
 
-            SetColorAlpha(color, opacity);
+            SetColorAlphaOverride(color, opacity);
         }
 
         private A.Outline? ResolveThemeOutline() {
@@ -278,19 +278,6 @@ namespace OfficeIMO.PowerPoint {
                 reference.Append(color);
             }
             return color;
-        }
-
-        private static void SetColorAlpha(OpenXmlCompositeElement color,
-            double? opacity) {
-            if (!opacity.HasValue) {
-                color.GetFirstChild<A.Alpha>()?.Remove();
-                return;
-            }
-
-            A.Alpha? alpha = color.GetFirstChild<A.Alpha>() ?? new A.Alpha();
-            alpha.Val = checked((int)Math.Round(opacity.Value * 100000D,
-                MidpointRounding.AwayFromZero));
-            if (alpha.Parent == null) color.Append(alpha);
         }
 
         private static void InsertOutlineChild(A.Outline outline, OpenXmlElement child) {

@@ -51,11 +51,13 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSmartArt AddSmartArt(PowerPointSmartArtType type, IEnumerable<string> nodeTexts,
             long left = 0L, long top = 0L, long width = 5486400L, long height = 3200400L) {
-            if (width <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(width));
+            if (width <= 0 || width > MaximumDrawingCoordinate) {
+                throw new ArgumentOutOfRangeException(nameof(width),
+                    "Width must be representable by DrawingML.");
             }
-            if (height <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(height));
+            if (height <= 0 || height > MaximumDrawingCoordinate) {
+                throw new ArgumentOutOfRangeException(nameof(height),
+                    "Height must be representable by DrawingML.");
             }
 
             List<string> nodes = NormalizeSmartArtNodes(nodeTexts);

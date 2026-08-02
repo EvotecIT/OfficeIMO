@@ -1148,6 +1148,7 @@ namespace OfficeIMO.PowerPoint {
                 .Select(author => author.Id!.Value));
             var referencedClassicAuthorIds = new HashSet<uint>();
             var classicCommentKeys = new HashSet<(uint AuthorId, uint Index)>();
+            var classicMaximumIndexes = new Dictionary<uint, uint>();
             foreach (SlideCommentsPart part in Slides.Select(slide =>
                          slide.SlidePart.SlideCommentsPart).Where(part => part != null)!) {
                 if (part.CommentList == null) return false;
@@ -1164,7 +1165,20 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
                     referencedClassicAuthorIds.Add(comment.AuthorId.Value);
+                    if (!classicMaximumIndexes.TryGetValue(
+                            comment.AuthorId.Value, out uint maximumIndex)
+                        || comment.Index.Value > maximumIndex) {
+                        classicMaximumIndexes[comment.AuthorId.Value] =
+                            comment.Index.Value;
+                    }
                 }
+            }
+
+            if (classicAuthors.Any(author =>
+                    !LegacyPptWriter.HasCanonicalClassicAuthorLastIndex(
+                        author.Id!.Value, author.LastIndex!.Value,
+                        classicMaximumIndexes))) {
+                return false;
             }
 
             P188.Author[] modernAuthors = _presentationPart.Parts

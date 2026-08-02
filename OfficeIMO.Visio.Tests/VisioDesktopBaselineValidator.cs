@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -312,6 +315,11 @@ namespace OfficeIMO.Tests {
                                 issue = "SVG root element was not found: " + path;
                                 return false;
                             }
+                            if (!HasVisibleSvgContent(svg.Root)) {
+                                issue = "SVG contains no visible graphical content with usable bounds: "
+                                    + path;
+                                return false;
+                            }
                         }
                         break;
                     case ".pdf":
@@ -339,6 +347,110 @@ namespace OfficeIMO.Tests {
                 issue = GetRootMessage(exception);
                 return false;
             }
+        }
+
+        private static bool HasVisibleSvgContent(XElement root) {
+            foreach (XElement element in root.Descendants()) {
+                if (!IsVisibleSvgElement(element)) continue;
+                switch (element.Name.LocalName.ToLowerInvariant()) {
+                    case "path":
+                        string? data = (string?)element.Attribute("d");
+                        if (!string.IsNullOrWhiteSpace(data)
+                            && Regex.IsMatch(data, "[LlHhVvCcSsQqTtAaZz]")) {
+                            return true;
+                        }
+                        break;
+                    case "rect":
+                    case "image":
+                    case "foreignobject":
+                        if (HasPositiveSvgLength(element, "width")
+                            && HasPositiveSvgLength(element, "height")) {
+                            return true;
+                        }
+                        break;
+                    case "circle":
+                        if (HasPositiveSvgLength(element, "r")) return true;
+                        break;
+                    case "ellipse":
+                        if (HasPositiveSvgLength(element, "rx")
+                            && HasPositiveSvgLength(element, "ry")) {
+                            return true;
+                        }
+                        break;
+                    case "line":
+                        if (TryReadSvgNumber(element, "x1", out double x1)
+                            && TryReadSvgNumber(element, "x2", out double x2)
+                            && TryReadSvgNumber(element, "y1", out double y1)
+                            && TryReadSvgNumber(element, "y2", out double y2)
+                            && (x1 != x2 || y1 != y2)) {
+                            return true;
+                        }
+                        break;
+                    case "polygon":
+                    case "polyline":
+                        string? points = (string?)element.Attribute("points");
+                        if (!string.IsNullOrWhiteSpace(points)
+                            && Regex.Matches(points,
+                                @"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
+                                .Count >= 4) {
+                            return true;
+                        }
+                        break;
+                    case "text":
+                        if (!string.IsNullOrWhiteSpace(element.Value)) return true;
+                        break;
+                }
+            }
+            return false;
+        }
+
+        private static bool IsVisibleSvgElement(XElement element) {
+            foreach (XElement current in element.AncestorsAndSelf()) {
+                string? display = (string?)current.Attribute("display");
+                string? visibility = (string?)current.Attribute("visibility");
+                string style = ((string?)current.Attribute("style")
+                    ?? string.Empty).Replace(" ", string.Empty);
+                if (string.Equals(display, "none",
+                        StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(visibility, "hidden",
+                        StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(visibility, "collapse",
+                        StringComparison.OrdinalIgnoreCase)
+                    || style.IndexOf("display:none",
+                        StringComparison.OrdinalIgnoreCase) >= 0
+                    || style.IndexOf("visibility:hidden",
+                        StringComparison.OrdinalIgnoreCase) >= 0
+                    || style.IndexOf("visibility:collapse",
+                        StringComparison.OrdinalIgnoreCase) >= 0) {
+                    return false;
+                }
+                if (TryReadSvgNumber((string?)current.Attribute("opacity"),
+                        out double opacity) && opacity <= 0D) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool HasPositiveSvgLength(XElement element,
+            string attributeName) =>
+            TryReadSvgNumber(element, attributeName, out double value)
+            && value > 0D;
+
+        private static bool TryReadSvgNumber(XElement element,
+            string attributeName, out double value) =>
+            TryReadSvgNumber((string?)element.Attribute(attributeName),
+                out value);
+
+        private static bool TryReadSvgNumber(string? text,
+            out double value) {
+            value = 0D;
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            Match match = Regex.Match(text,
+                @"^\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)");
+            return match.Success && double.TryParse(match.Groups[1].Value,
+                NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
         private static bool TryGetApplicationType(out Type? applicationType) {

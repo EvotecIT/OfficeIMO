@@ -46,7 +46,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 uint maximumIndex = maximumIndexes[author.Id];
-                if (author.LastIndex != maximumIndex) {
+                if (!HasCanonicalClassicAuthorLastIndex(author.Id,
+                        author.LastIndex, maximumIndexes)) {
                     reason = $"Classic comment author {author.Id} has lastIdx={author.LastIndex}, but its greatest comment index is {maximumIndex}.";
                     return false;
                 }
@@ -133,6 +134,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             author.Id?.HasValue == true
             && author.ColorIndex?.HasValue == true
             && author.ColorIndex.Value == author.Id.Value;
+
+        internal static bool HasCanonicalClassicAuthorLastIndex(
+            uint authorId, uint lastIndex,
+            IReadOnlyDictionary<uint, uint> maximumIndexes) =>
+            maximumIndexes.TryGetValue(authorId, out uint maximumIndex)
+            && lastIndex == maximumIndex;
 
         private static bool TryReadClassicComments(PowerPointSlide slide,
             IReadOnlyDictionary<uint, LegacyPptWriterAuthor> authors, ISet<uint> usedAuthorIds,

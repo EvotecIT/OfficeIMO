@@ -172,11 +172,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
+            string? chartDefaultTypeface = chart.Parent?
+                .GetFirstChild<C.TextProperties>()?
+                .Descendants<A.LatinFont>()
+                .Select(font => font.Typeface?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
             OpenXmlElement[] bodyTextAreas = chart.Descendants()
                 .Where(IsRelevantBodyTextArea)
                 .ToArray();
             string?[] bodyFonts = bodyTextAreas
-                .Select(ReadBodyTypeface)
+                .Select(textArea => ReadBodyTypeface(textArea,
+                    chartDefaultTypeface))
                 .ToArray();
             string? bodyFont = bodyFonts.Length > 0
                 && bodyFonts.All(value => value != null)
@@ -192,7 +198,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private string? ReadBodyTypeface(
-            OpenXmlElement textArea) {
+            OpenXmlElement textArea, string? chartDefaultTypeface) {
             string?[] typefaces = textArea.Descendants<C.TextProperties>()
                 .Where(properties => !properties.Ancestors<C.Title>().Any())
                 .SelectMany(properties => properties.Descendants<A.LatinFont>())
@@ -200,7 +206,7 @@ namespace OfficeIMO.PowerPoint {
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .ToArray();
             if (typefaces.Length == 0) {
-                return ResolveChartTypeface(typeface: null,
+                return ResolveChartTypeface(chartDefaultTypeface,
                     useMajorWhenMissing: false);
             }
             string?[] resolved = typefaces.Select(value =>

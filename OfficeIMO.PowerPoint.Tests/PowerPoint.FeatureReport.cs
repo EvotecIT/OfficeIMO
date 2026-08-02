@@ -1872,6 +1872,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_PreservesClassicCommentsWithStaleLastIndex() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            CommentAuthor author = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!.CommentAuthorList!
+                .Elements<CommentAuthor>().Single();
+            author.LastIndex = author.LastIndex!.Value + 5U;
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_PreservesCommentGraphsWithUnusedAuthors() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

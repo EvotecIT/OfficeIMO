@@ -109,6 +109,20 @@ namespace OfficeIMO.Tests {
                     invalidSvg, out string svgIssue));
                 Assert.Contains("SVG root", svgIssue, StringComparison.Ordinal);
 
+                string emptySvg = Path.Combine(directory, "empty.svg");
+                File.WriteAllText(emptySvg,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\" />");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    emptySvg, out string emptySvgIssue));
+                Assert.Contains("visible graphical content", emptySvgIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string validSvg = Path.Combine(directory, "valid.svg");
+                File.WriteAllText(validSvg,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" /></svg>");
+                Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    validSvg, out string validSvgIssue), validSvgIssue);
+
                 string validPdf = Path.Combine(directory, "valid.pdf");
                 byte[] pdf = PdfCore.PdfDocument.Create()
                     .Paragraph(paragraph => paragraph.Text("Desktop proof"))

@@ -283,6 +283,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TransparencySettersReplaceCompetingColorAlphaTransforms() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointAutoShape shape = presentation.AddSlide()
+                .AddRectanglePoints(10, 10, 100, 60);
+            shape.FillColor = "112233";
+            shape.OutlineColor = "445566";
+            ShapeProperties properties = ((Shape)shape.Element)
+                .ShapeProperties!;
+            A.RgbColorModelHex fillColor = properties
+                .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!;
+            A.RgbColorModelHex outlineColor = properties
+                .GetFirstChild<A.Outline>()!
+                .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!;
+            fillColor.Append(new A.Alpha { Val = 90000 },
+                new A.AlphaModulation { Val = 50000 });
+            outlineColor.Append(new A.Alpha { Val = 90000 },
+                new A.AlphaModulation { Val = 50000 });
+
+            shape.FillTransparency = 20;
+            shape.OutlineTransparency = 30;
+
+            Assert.Equal(80000, Assert.Single(
+                fillColor.Elements<A.Alpha>()).Val!.Value);
+            Assert.Equal(70000, Assert.Single(
+                outlineColor.Elements<A.Alpha>()).Val!.Value);
+            Assert.DoesNotContain(fillColor.ChildElements,
+                child => child.LocalName != "alpha"
+                    && child.LocalName.StartsWith("alpha",
+                        StringComparison.Ordinal));
+            Assert.DoesNotContain(outlineColor.ChildElements,
+                child => child.LocalName != "alpha"
+                    && child.LocalName.StartsWith("alpha",
+                        StringComparison.Ordinal));
+            Assert.Equal(20, shape.FillTransparency);
+            Assert.Equal(30, shape.OutlineTransparency);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void FillTransparencyRejectsInheritedGroupFill() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

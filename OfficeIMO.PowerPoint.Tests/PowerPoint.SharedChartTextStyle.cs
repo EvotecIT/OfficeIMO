@@ -237,6 +237,36 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
+    public void SharedSnapshot_UsesChartSpaceDefaultForInheritedBodyText() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChartPoints(
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            }), 40, 40, 500, 300);
+        C.ChartSpace chartSpace = presentation.OpenXmlDocument
+            .PresentationPart!.SlideParts.Single().ChartParts.Single()
+            .ChartSpace!;
+        foreach (A.LatinFont latin in chartSpace.GetFirstChild<C.Chart>()!
+                     .Descendants<A.LatinFont>()) {
+            latin.Remove();
+        }
+        chartSpace.GetFirstChild<C.TextProperties>()?.Remove();
+        chartSpace.Append(new C.TextProperties(
+            new A.BodyProperties(),
+            new A.ListStyle(),
+            new A.Paragraph(
+                new A.ParagraphProperties(
+                    new A.DefaultRunProperties(
+                        new A.LatinFont { Typeface = "Chart Default" })),
+                new A.EndParagraphRunProperties())));
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal("Chart Default", snapshot.Style.FontFamily);
+    }
+
+    [Fact]
     public void SharedSnapshot_PreservesIndependentlyInheritedTitleFont() {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create();

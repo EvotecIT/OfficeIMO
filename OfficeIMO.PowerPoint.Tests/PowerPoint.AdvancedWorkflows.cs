@@ -238,6 +238,27 @@ namespace OfficeIMO.Tests {
             Assert.Empty(slide.SmartArts);
         }
 
+        [Theory]
+        [InlineData(27273042316901L, 3200400L, "width")]
+        [InlineData(5486400L, 27273042316901L, "height")]
+        public void AddSmartArtRejectsUnrepresentableExtentsBeforeMutation(
+            long width, long height, string parameterName) {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+
+            ArgumentOutOfRangeException exception =
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
+                        new[] { "Discover", "Deliver" }, width: width,
+                        height: height));
+
+            Assert.Equal(parameterName, exception.ParamName);
+            Assert.Empty(slide.SmartArts);
+            Assert.Empty(slide.SlidePart.DiagramDataParts);
+            Assert.Empty(slide.SlidePart.DiagramLayoutDefinitionParts);
+        }
+
         [Fact]
         public void ImportedSmartArtRejectsUnknownCategoryBeforeSemanticProjection() {
             using PowerPointPresentation presentation =

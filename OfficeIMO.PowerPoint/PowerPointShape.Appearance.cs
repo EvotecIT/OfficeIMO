@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
                     }
                     foreach (OpenXmlCompositeElement fillColor in
                              GetFillColorChoices(props)) {
-                        SetFillColorAlpha(fillColor, opacity);
+                        SetColorAlphaOverride(fillColor, opacity);
                     }
                     return;
                 }
@@ -116,14 +116,14 @@ namespace OfficeIMO.PowerPoint {
                     InsertShapePropertyChild(props, materialized);
                     foreach (OpenXmlCompositeElement fillColor in
                              GetFillColorChoices(props)) {
-                        SetFillColorAlpha(fillColor, opacity);
+                        SetColorAlphaOverride(fillColor, opacity);
                     }
                     return;
                 }
                 OpenXmlCompositeElement? styleColor =
                     GetShapeStyleFillColorChoice(createPlaceholder: opacity != null);
                 if (styleColor != null) {
-                    SetFillColorAlpha(styleColor, opacity);
+                    SetColorAlphaOverride(styleColor, opacity);
                     return;
                 }
                 if (opacity == null) return;
@@ -141,7 +141,7 @@ namespace OfficeIMO.PowerPoint {
                 solid.Append(color);
             }
 
-            SetFillColorAlpha(color, opacity);
+            SetColorAlphaOverride(color, opacity);
         }
 
         private static void SetBlipAlpha(A.Blip blip, double? opacity) {
@@ -206,17 +206,22 @@ namespace OfficeIMO.PowerPoint {
             return color;
         }
 
-        private static void SetFillColorAlpha(OpenXmlCompositeElement color,
+        private static void SetColorAlphaOverride(OpenXmlCompositeElement color,
             double? opacity) {
             if (!opacity.HasValue) {
                 color.GetFirstChild<A.Alpha>()?.Remove();
                 return;
             }
 
-            A.Alpha? alpha = color.GetFirstChild<A.Alpha>() ?? new A.Alpha();
+            foreach (OpenXmlElement transform in color.ChildElements
+                         .Where(child => child.LocalName.StartsWith("alpha",
+                             StringComparison.Ordinal)).ToArray()) {
+                transform.Remove();
+            }
+            var alpha = new A.Alpha();
             alpha.Val = checked((int)Math.Round(opacity.Value * 100000D,
                 MidpointRounding.AwayFromZero));
-            if (alpha.Parent == null) color.Append(alpha);
+            color.Append(alpha);
         }
 
         private static OpenXmlCompositeElement? GetColorChoice(
