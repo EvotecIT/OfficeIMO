@@ -33,6 +33,7 @@ namespace OfficeIMO.Excel {
                 bool hasStyle = false;
                 bool isEmpty = false;
                 while (cursor < _length) {
+                    int whitespaceStart = cursor;
                     while (cursor < _length && IsAsciiWhitespace(_buffer[cursor])) {
                         cursor++;
                     }
@@ -44,14 +45,14 @@ namespace OfficeIMO.Excel {
                     }
                     if (_buffer[cursor] == (byte)'/') {
                         cursor++;
-                        while (cursor < _length && IsAsciiWhitespace(_buffer[cursor])) {
-                            cursor++;
-                        }
                         if (cursor >= _length || _buffer[cursor] != (byte)'>') {
                             return false;
                         }
                         isEmpty = true;
                         break;
+                    }
+                    if (cursor == whitespaceStart) {
+                        return false;
                     }
 
                     int attributeStart = cursor;

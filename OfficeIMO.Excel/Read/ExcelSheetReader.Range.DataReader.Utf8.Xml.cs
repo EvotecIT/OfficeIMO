@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
                 int position = start + 1;
                 bool isEnd = position < limit && _buffer![position] == (byte)'/';
                 if (isEnd) position++;
-                while (position < limit && IsAsciiWhitespace(_buffer![position])) position++;
+                if (position >= limit || IsAsciiWhitespace(_buffer![position])) return false;
                 int nameStart = position;
                 while (position < limit && !IsTagNameTerminator(_buffer![position])) position++;
                 if (position == nameStart) return false;
@@ -109,6 +109,13 @@ namespace OfficeIMO.Excel {
                         int beforeEnd = position - 1;
                         while (beforeEnd >= nameEnd && IsAsciiWhitespace(_buffer[beforeEnd])) beforeEnd--;
                         bool isEmpty = !isEnd && beforeEnd >= nameEnd && _buffer[beforeEnd] == (byte)'/';
+                        if (isEnd) {
+                            for (int index = nameEnd; index < position; index++) {
+                                if (!IsAsciiWhitespace(_buffer[index])) return false;
+                            }
+                        } else if (isEmpty && beforeEnd != position - 1) {
+                            return false;
+                        }
                         int localNameStart = nameStart;
                         for (int i = nameStart; i < nameEnd; i++) {
                             if (_buffer[i] == (byte)':') localNameStart = i + 1;
@@ -130,8 +137,10 @@ namespace OfficeIMO.Excel {
                 valueLength = 0;
                 int position = tag.NameEnd;
                 while (position < tag.End) {
+                    int whitespaceStart = position;
                     while (position < tag.End && IsAsciiWhitespace(_buffer![position])) position++;
                     if (position >= tag.End || _buffer![position] == (byte)'/') return true;
+                    if (position == whitespaceStart) return false;
                     int attributeStart = position;
                     while (position < tag.End && !IsAttributeNameTerminator(_buffer![position])) position++;
                     int attributeEnd = position;
@@ -174,8 +183,10 @@ namespace OfficeIMO.Excel {
                 bool hasType = false;
                 int position = tag.NameEnd;
                 while (position < tag.End) {
+                    int whitespaceStart = position;
                     while (position < tag.End && IsAsciiWhitespace(_buffer![position])) position++;
                     if (position >= tag.End || _buffer![position] == (byte)'/') break;
+                    if (position == whitespaceStart) return false;
                     int attributeStart = position;
                     while (position < tag.End && !IsAttributeNameTerminator(_buffer![position])) position++;
                     int attributeEnd = position;

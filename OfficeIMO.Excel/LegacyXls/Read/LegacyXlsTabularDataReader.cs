@@ -109,18 +109,23 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
             while (true) {
                 int recordOffset = _position;
-                if (!TryReadRecord(_bytes, ref _position, out RecordSlice record)) break;
+                if (!TryReadRecord(_bytes, ref _position, out RecordSlice record)) {
+                    if (pendingFormulaOrdinal >= 0) {
+                        throw MissingFormulaString();
+                    }
+                    break;
+                }
                 CheckCancellation();
-                if (record.Type == (ushort)BiffRecordType.Eof) break;
 
                 if (pendingFormulaOrdinal >= 0) {
                     if (record.Type != (ushort)BiffRecordType.String) {
-                        throw new InvalidDataException("An XLS string formula is not followed by its required String record.");
+                        throw MissingFormulaString();
                     }
                     StoreFormulaString(record, pendingFormulaOrdinal, pendingFormulaStyle, ref _position);
                     pendingFormulaOrdinal = -1;
                     continue;
                 }
+                if (record.Type == (ushort)BiffRecordType.Eof) break;
 
                 if (!TryGetCellBounds(record, out int row, out int firstColumn, out _)) continue;
                 if (row < currentRow) continue;
@@ -180,17 +185,17 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     sawBof = true;
                     continue;
                 }
-                if (record.Type == (ushort)BiffRecordType.Eof) {
-                    sawEof = true;
-                    break;
-                }
                 if (pendingHeaderColumn >= 0) {
                     if (record.Type != (ushort)BiffRecordType.String) {
-                        throw new InvalidDataException("An XLS string formula is not followed by its required String record.");
+                        throw MissingFormulaString();
                     }
                     headerValues![pendingHeaderColumn] = ReadFormulaStringValue(record, ref offset);
                     pendingHeaderColumn = -1;
                     continue;
+                }
+                if (record.Type == (ushort)BiffRecordType.Eof) {
+                    sawEof = true;
+                    break;
                 }
                 if (!TryGetCellBounds(record, out int row, out int recordFirstColumn, out int recordLastColumn)) {
                     continue;
@@ -501,6 +506,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private static InvalidDataException TruncatedCell(RecordSlice record) =>
             new($"BIFF cell record 0x{record.Type:X4} at offset {record.Offset} is truncated.");
+
+        private static InvalidDataException MissingFormulaString() =>
+            new("An XLS string formula is not followed by its required String record.");
 
         private void ThrowIfClosed() {
             if (_closed) throw new InvalidOperationException("The XLS table reader is closed.");

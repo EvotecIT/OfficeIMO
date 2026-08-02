@@ -438,7 +438,18 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             internal void SkipStringVariableBytes(int byteCount) {
-                _ = ReadStringVariableBytes(byteCount);
+                if (byteCount < 0) {
+                    throw new InvalidDataException("The BIFF string variable data length is invalid.");
+                }
+
+                int remaining = byteCount;
+                while (remaining > 0) {
+                    EnsureRawDataAvailable();
+                    byte[] segment = _segments[_segmentIndex];
+                    int take = Math.Min(remaining, segment.Length - _offset);
+                    _offset += take;
+                    remaining -= take;
+                }
             }
 
             internal byte[] ReadStringVariableBytes(int byteCount) {

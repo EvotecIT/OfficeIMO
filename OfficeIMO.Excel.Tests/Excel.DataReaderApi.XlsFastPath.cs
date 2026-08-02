@@ -96,5 +96,53 @@ namespace OfficeIMO.Tests {
                 compound,
                 new ExcelReadOptions { MaxSharedStringCharacters = 8 }));
         }
+
+        [Fact]
+        public void OpenDataReader_XlsFastPathEnforcesContainerInputLimitForPath() {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
+                LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.XlsInputLimit.{Guid.NewGuid():N}.xls");
+            try {
+                File.WriteAllBytes(path, compound);
+
+                InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                    ExcelDocument.OpenDataReader(
+                        path,
+                        new ExcelReadOptions { MaxInputBytes = compound.LongLength - 1L }));
+
+                Assert.Contains("exceeding the configured limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void OpenDataReader_XlsFastPathRejectsMissingHeaderFormulaString() {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
+                LegacyXlsTestWorkbookBuilder.CreateStringFormulaWithoutStringRecordWorkbookStream(
+                    formulaInFirstRow: true));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.OpenDataReader(
+                    compound,
+                    new ExcelReadOptions { HasHeaderRow = false }));
+
+            Assert.Contains("required String record", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void OpenDataReader_XlsFastPathRejectsMissingDataFormulaString() {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
+                LegacyXlsTestWorkbookBuilder.CreateStringFormulaWithoutStringRecordWorkbookStream(
+                    formulaInFirstRow: false));
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                compound,
+                new ExcelReadOptions { HasHeaderRow = false });
+            Assert.True(reader.Read());
+            Assert.Throws<InvalidDataException>(() => reader.Read());
+        }
     }
 }

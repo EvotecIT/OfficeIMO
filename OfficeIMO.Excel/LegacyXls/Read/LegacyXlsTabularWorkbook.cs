@@ -68,6 +68,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             CancellationToken cancellationToken) {
             try {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (source.Length > options.MaxInputBytes) {
+                    throw new InvalidDataException(
+                        $"Workbook input contains {source.Length} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
+                }
                 Stream workbookStream = OpenWorkbookStream(source, options, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 var biffSource = new LegacyBiffSource(workbookStream, cancellationToken);

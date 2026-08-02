@@ -102,14 +102,9 @@ namespace OfficeIMO.Excel {
 
                     byte marker = _buffer![tagStart + 1];
                     if (marker == (byte)'?') {
-                        if (rootSeen) {
+                        if (rootSeen || !TrySkipCanonicalXmlDeclaration(tagStart, out position)) {
                             return false;
                         }
-                        int instructionEnd = IndexOfSequence(tagStart + 2, _length, (byte)'?', (byte)'>');
-                        if (instructionEnd < 0) {
-                            return false;
-                        }
-                        position = instructionEnd + 2;
                         continue;
                     }
                     if (marker == (byte)'!'
@@ -179,6 +174,125 @@ namespace OfficeIMO.Excel {
                 return rootSeen && rootClosed && depth == 0;
             }
 
+            private bool TrySkipCanonicalXmlDeclaration(int start, out int nextPosition) {
+                nextPosition = start;
+                int preambleLength = _length >= 3
+                    && _buffer![0] == 0xEF
+                    && _buffer[1] == 0xBB
+                    && _buffer[2] == 0xBF
+                        ? 3
+                        : 0;
+                if (start != preambleLength
+                    || start + 5 >= _length
+                    || !AsciiEquals(start + 2, 3, "xml")
+                    || !IsAsciiWhitespace(_buffer![start + 5])) {
+                    return false;
+                }
+
+                int instructionEnd = IndexOfSequence(start + 5, _length, (byte)'?', (byte)'>');
+                if (instructionEnd < 0) {
+                    return false;
+                }
+
+                int position = start + 5;
+                bool sawVersion = false;
+                bool sawEncoding = false;
+                bool sawStandalone = false;
+                while (position < instructionEnd) {
+                    int whitespaceStart = position;
+                    while (position < instructionEnd && IsAsciiWhitespace(_buffer[position])) {
+                        position++;
+                    }
+                    if (position == instructionEnd) {
+                        break;
+                    }
+                    if (position == whitespaceStart) {
+                        return false;
+                    }
+
+                    int nameStart = position;
+                    while (position < instructionEnd && IsAsciiXmlNameCharacter(_buffer[position])) {
+                        position++;
+                    }
+                    int nameLength = position - nameStart;
+                    while (position < instructionEnd && IsAsciiWhitespace(_buffer[position])) {
+                        position++;
+                    }
+                    if (nameLength == 0 || position >= instructionEnd || _buffer[position++] != (byte)'=') {
+                        return false;
+                    }
+                    while (position < instructionEnd && IsAsciiWhitespace(_buffer[position])) {
+                        position++;
+                    }
+                    if (position >= instructionEnd || _buffer[position] is not ((byte)'\"') and not ((byte)'\'')) {
+                        return false;
+                    }
+
+                    byte quote = _buffer[position++];
+                    int valueStart = position;
+                    while (position < instructionEnd && _buffer[position] != quote) {
+                        position++;
+                    }
+                    if (position >= instructionEnd) {
+                        return false;
+                    }
+                    int valueLength = position - valueStart;
+                    position++;
+
+                    if (!sawVersion && AsciiEquals(nameStart, nameLength, "version")) {
+                        if (!AsciiEquals(valueStart, valueLength, "1.0")) {
+                            return false;
+                        }
+                        sawVersion = true;
+                    } else if (sawVersion
+                               && !sawEncoding
+                               && !sawStandalone
+                               && AsciiEquals(nameStart, nameLength, "encoding")) {
+                        if (!IsValidXmlEncodingName(valueStart, valueLength)) {
+                            return false;
+                        }
+                        sawEncoding = true;
+                    } else if (sawVersion
+                               && !sawStandalone
+                               && AsciiEquals(nameStart, nameLength, "standalone")) {
+                        if (!AsciiEquals(valueStart, valueLength, "yes")
+                            && !AsciiEquals(valueStart, valueLength, "no")) {
+                            return false;
+                        }
+                        sawStandalone = true;
+                    } else {
+                        return false;
+                    }
+                }
+
+                if (!sawVersion) {
+                    return false;
+                }
+                nextPosition = instructionEnd + 2;
+                return true;
+            }
+
+            private bool IsValidXmlEncodingName(int start, int length) {
+                if (length == 0 || !IsAsciiLetter(_buffer![start])) {
+                    return false;
+                }
+                for (int index = start + 1; index < start + length; index++) {
+                    byte value = _buffer![index];
+                    if (!IsAsciiLetter(value)
+                        && value is not (>= (byte)'0' and <= (byte)'9')
+                        and not (byte)'.'
+                        and not (byte)'_'
+                        and not (byte)'-') {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            private static bool IsAsciiLetter(byte value) =>
+                value is >= (byte)'A' and <= (byte)'Z'
+                or >= (byte)'a' and <= (byte)'z';
+
             private bool HasOnlyRootDefaultNamespace() {
                 int searchStart = 0;
                 int defaultNamespaceCount = 0;
@@ -241,6 +355,7 @@ namespace OfficeIMO.Excel {
                 int count = 0;
                 int position = tag.NameEnd;
                 while (position < tag.End) {
+                    int whitespaceStart = position;
                     while (position < tag.End && IsAsciiWhitespace(_buffer![position])) {
                         position++;
                     }
@@ -249,12 +364,11 @@ namespace OfficeIMO.Excel {
                     }
                     if (_buffer![position] == (byte)'/') {
                         position++;
-                        while (position < tag.End && IsAsciiWhitespace(_buffer[position])) {
-                            position++;
-                        }
                         return !tag.IsEnd && position == tag.End;
                     }
-                    if (tag.IsEnd || count == MaximumFastXmlAttributes) {
+                    if (position == whitespaceStart
+                        || tag.IsEnd
+                        || count == MaximumFastXmlAttributes) {
                         return false;
                     }
 
