@@ -23,24 +23,23 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(options.StartCell));
             }
             string connectionName = options.ConnectionName.Trim();
-            if (GetQueryBackedTables().Any(item =>
-                string.Equals(item.ConnectionName, connectionName, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(item.TableName, options.TableName.Trim(), StringComparison.OrdinalIgnoreCase))) {
-                throw new InvalidOperationException("Query connection and table names must be unique.");
-            }
+            string requestedTableName = options.TableName.Trim();
 
             ExcelSheet sheet = this[options.WorksheetName];
             string range = A1.CellReference(row, column) + ":" + A1.CellReference(row, column + columns.Length - 1);
             string? tableName = null;
             uint connectionId = 0U;
             sheet.ApplyTransactionalMutation(_ => {
+                if (HasQueryBackedTableNameConflict(connectionName, requestedTableName)) {
+                    throw new InvalidOperationException("Query connection and table names must be unique.");
+                }
                 for (int index = 0; index < columns.Length; index++) {
                     sheet.CellValue(row, column + index, columns[index]);
                 }
                 tableName = sheet.AddTableAndGetName(
                     range,
                     hasHeader: true,
-                    options.TableName.Trim(),
+                    requestedTableName,
                     TableStyle.TableStyleMedium2,
                     includeAutoFilter: true,
                     validationMode: TableNameValidationMode.Strict,
@@ -66,8 +65,10 @@ namespace OfficeIMO.Excel {
                 queryPart.QueryTable.Save();
                 return columns.Length;
             }, new ExcelMutationPlanOptions(), CancellationToken.None);
-            _authoredQueryConnectionIds.Add(connectionId);
-            MarkMetadataPartChanged();
+            Locking.ExecuteWrite(EnsureLock(), () => {
+                _authoredQueryConnectionIds.Add(connectionId);
+                MarkMetadataPartChanged();
+            });
 
             return new ExcelQueryBackedTableInfo(
                 connectionId,
@@ -77,6 +78,28 @@ namespace OfficeIMO.Excel {
                 tableName!,
                 range,
                 imported: false);
+        }
+
+        private bool HasQueryBackedTableNameConflict(string connectionName, string tableName) {
+            IReadOnlyDictionary<uint, (string Name, string Command)> connections = ReadNativeQueryConnections();
+            foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
+                foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
+                    Table? table = tablePart.Table;
+                    QueryTablePart? queryPart = tablePart.QueryTableParts.FirstOrDefault();
+                    if (table == null
+                        || queryPart?.QueryTable?.ConnectionId?.Value is not uint connectionId
+                        || !connections.TryGetValue(connectionId, out var connection)) {
+                        continue;
+                    }
+
+                    string existingTableName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
+                    if (string.Equals(connection.Name, connectionName, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(existingTableName, tableName, StringComparison.OrdinalIgnoreCase)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /// <summary>Lists query-backed worksheet tables that have a resolvable native query-table relationship.</summary>

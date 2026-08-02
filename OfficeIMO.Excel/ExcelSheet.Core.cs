@@ -89,14 +89,20 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(action));
             }
 
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
+                action(this);
+                return;
+            }
+
+            var lck = _excelDocument.EnsureLock();
+            if (_isBatchOperation && lck.IsWriteLockHeld) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 action(this);
                 return;
             }
 
             MaterializeDeferredDataSetImportIfNeeded();
-            var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             bool wasBatchOperation = _isBatchOperation;
             bool hadBatchCellMutations = _batchHasCellMutations;

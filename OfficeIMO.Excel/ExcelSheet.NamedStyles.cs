@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -64,8 +65,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>Creates or replaces a workbook named style from a cell's current formatting.</summary>
         public ExcelNamedStyleInfo DefineNamedStyle(string name, int sourceRow, int sourceColumn, bool hidden = false) {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
-            if (name.Trim().Length > 255) throw new ArgumentOutOfRangeException(nameof(name));
+            string normalizedName = ValidateNamedStyleName(name);
             if (sourceRow < 1 || sourceRow > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(sourceRow));
             if (sourceColumn < 1 || sourceColumn > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(sourceColumn));
             ExcelNamedStyleInfo? result = null;
@@ -74,7 +74,6 @@ namespace OfficeIMO.Excel {
                     ?? _excelDocument.WorkbookPartRoot.AddNewPart<DocumentFormat.OpenXml.Packaging.WorkbookStylesPart>();
                 Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
                 EnsureNamedStyleContainers(stylesheet);
-                string normalizedName = name.Trim();
                 CellStyle? style = stylesheet.CellStyles!.Elements<CellStyle>()
                     .FirstOrDefault(item => string.Equals(item.Name?.Value, normalizedName, StringComparison.OrdinalIgnoreCase));
                 if (style?.BuiltinId != null) {
@@ -95,6 +94,21 @@ namespace OfficeIMO.Excel {
                 result = new ExcelNamedStyleInfo(normalizedName, formatId, null, hidden);
             });
             return result!;
+        }
+
+        private static string ValidateNamedStyleName(string name) {
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
+            string normalizedName = name.Trim();
+            if (normalizedName.Length > 255) throw new ArgumentOutOfRangeException(nameof(name));
+            try {
+                XmlConvert.VerifyXmlChars(normalizedName);
+            } catch (XmlException exception) {
+                throw new ArgumentException(
+                    "Named-style names cannot contain characters that are invalid in XML.",
+                    nameof(name),
+                    exception);
+            }
+            return normalizedName;
         }
 
         /// <summary>Applies a workbook named style to a range with cancellation and a hard cell budget.</summary>
