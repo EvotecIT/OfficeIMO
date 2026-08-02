@@ -22,12 +22,13 @@ namespace OfficeIMO.Word.Html {
             select.SetAttribute("disabled", string.Empty);
             ApplyContentControlMetadata(select, dropDownList.Alias, dropDownList.Tag);
 
-            foreach (var item in dropDownList.Items) {
+            foreach (var item in dropDownList.ExportItems) {
                 var option = CreateOutputElement(htmlDoc, "option");
-                option.SetAttribute("value", item);
-                option.TextContent = item;
+                SetOutputAttribute(htmlDoc, option, "value", item.Value, "DropDownOption:value");
+                SetOutputText(htmlDoc, option, item.DisplayText, "DropDownOption:display-text");
 
-                if (string.Equals(item, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(item.Value, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(item.DisplayText, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
                     option.SetAttribute("selected", string.Empty);
                 }
 
@@ -52,9 +53,9 @@ namespace OfficeIMO.Word.Html {
 
             var dataList = CreateOutputElement(htmlDoc, "datalist");
             dataList.SetAttribute("id", listId);
-            foreach (var item in comboBox.Items) {
+            foreach (var item in comboBox.ExportItems) {
                 var option = CreateOutputElement(htmlDoc, "option");
-                option.SetAttribute("value", item);
+                SetOutputAttribute(htmlDoc, option, "value", item.Value, "ComboBoxOption:value");
                 dataList.AppendChild(option);
             }
 

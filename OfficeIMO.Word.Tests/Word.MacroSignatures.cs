@@ -468,6 +468,13 @@ namespace OfficeIMO.Tests {
             TraceOfficeSipInterop("certificate-personal-store-add:start");
             personalStore.Add(certificate);
             TraceOfficeSipInterop("certificate-personal-store-add:complete");
+            using var trustedPeopleStore = new X509Store(StoreName.TrustedPeople, StoreLocation.CurrentUser);
+            TraceOfficeSipInterop("certificate-trusted-people-store-open:start");
+            trustedPeopleStore.Open(OpenFlags.ReadWrite);
+            TraceOfficeSipInterop("certificate-trusted-people-store-open:complete");
+            TraceOfficeSipInterop("certificate-trusted-people-store-add:start");
+            trustedPeopleStore.Add(certificate);
+            TraceOfficeSipInterop("certificate-trusted-people-store-add:complete");
             try {
                 var options = new WordMacroProjectSigningOptions {
                     SignToolPath = Environment.GetEnvironmentVariable("OFFICEIMO_SIGNTOOL_PATH"),
@@ -507,6 +514,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordSignatureValidationState.Failed, tampered.ContentBindingStatus);
             } finally {
                 TraceOfficeSipInterop("certificate-store-remove:start");
+                RemoveCertificatesByThumbprint(trustedPeopleStore, certificate.Thumbprint);
                 RemoveCertificatesByThumbprint(personalStore, certificate.Thumbprint);
                 TraceOfficeSipInterop("certificate-store-remove:complete");
             }

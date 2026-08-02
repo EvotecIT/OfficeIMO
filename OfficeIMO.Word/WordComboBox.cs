@@ -33,6 +33,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal IReadOnlyList<(string Value, string DisplayText)> ExportItems {
+            get {
+                var combo = _sdtRun.SdtProperties?.Elements<SdtContentComboBox>().FirstOrDefault();
+                if (combo == null) return Array.Empty<(string Value, string DisplayText)>();
+                return WordContentControlListItems.GetExportItems(combo.Elements<ListItem>());
+            }
+        }
+
         /// <summary>
         /// Gets or sets the currently selected value displayed by the combo box.
         /// </summary>

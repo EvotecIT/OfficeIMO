@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
             if (originPart != null && originPart.XmlSignatureParts.Skip(options.MaxSignatureParts).Any()) {
                 var boundedInfo = new WordSignatureInfo(
                     hasDigitalSignatureOriginPart: true,
-                    originPart.Uri.ToString(),
+                    originPart!.Uri.ToString(),
                     originRelationshipId: null,
                     hasApplicationSignatureMetadata,
                     Array.Empty<WordSignaturePartInfo>(),
@@ -70,7 +70,20 @@ namespace OfficeIMO.Word {
             }
             byte[] packageBytes;
             try {
-                packageBytes = CreateSignatureValidationSnapshot(options.MaxPackageBytes);
+                packageBytes = CreateSignatureValidationSnapshot(options);
+            } catch (SignatureValidationSnapshotResourceException exception) {
+                var boundedInfo = new WordSignatureInfo(
+                    hasDigitalSignatureOriginPart: true,
+                    originPart!.Uri.ToString(),
+                    originRelationshipId: null,
+                    hasApplicationSignatureMetadata,
+                    Array.Empty<WordSignaturePartInfo>(),
+                    Array.Empty<string>(),
+                    new[] { exception.Message });
+                return WordSignatureValidationReport.WithValidationFailure(
+                    WordSignatureValidationReport.From(boundedInfo),
+                    "SignatureResourceLimitExceeded",
+                    exception.Message);
             } catch (InvalidDataException exception) {
                 WordSignatureInfo boundedInfo = WordSignatureInspector.Inspect(
                     _wordprocessingDocument,
@@ -214,17 +227,119 @@ namespace OfficeIMO.Word {
         private static long MultiplyLimit(long value, int multiplier) =>
             value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
 
-        private byte[] CreateSignatureValidationSnapshot(long maxPackageBytes) {
+        private byte[] CreateSignatureValidationSnapshot(WordSignatureValidationOptions options) {
             if (_ownedPackageStream == null) {
                 throw new InvalidDataException("The current OPC package has no encoded package stream available for validation.");
             }
-            if (_wordprocessingDocument.FileOpenAccess != FileAccess.Read) {
-                _wordprocessingDocument.Save();
+            if (_wordprocessingDocument.FileOpenAccess == FileAccess.Read) {
+                if (_ownedPackageStream.Length > options.MaxPackageBytes) {
+                    throw new InvalidDataException("The current OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
+                }
+                return _ownedPackageStream.ToArray();
             }
-            if (_ownedPackageStream.Length > maxPackageBytes) {
-                throw new InvalidDataException("The current OPC package exceeds the " + maxPackageBytes + " byte validation limit.");
+
+            byte[] encodedPackage = _ownedPackageStream.ToArray();
+            using var snapshot = new MemoryStream(encodedPackage.Length);
+            snapshot.Write(encodedPackage, 0, encodedPackage.Length);
+            snapshot.Position = 0;
+            using (WordprocessingDocument snapshotPackage = WordprocessingDocument.Open(
+                snapshot,
+                true,
+                new OpenSettings { AutoSave = false })) {
+                Dictionary<Uri, OpenXmlPart> snapshotParts = EnumerateSignatureSnapshotParts(
+                        snapshotPackage,
+                        options.MaxPackageParts)
+                    .ToDictionary(part => part.Uri);
+                foreach (OpenXmlPart sourcePart in EnumerateSignatureSnapshotParts(
+                    _wordprocessingDocument,
+                    options.MaxPackageParts)) {
+                    OpenXmlPartRootElement? sourceRoot = sourcePart.IsRootElementLoaded
+                        ? sourcePart.RootElement
+                        : null;
+                    if (sourceRoot == null ||
+                        !snapshotParts.TryGetValue(sourcePart.Uri, out OpenXmlPart? snapshotPart)) {
+                        continue;
+                    }
+                    using (Stream input = snapshotPart.GetStream(FileMode.Open, FileAccess.Read)) {
+                        if (input.Length > options.MaxPartBytes) {
+                            throw new SignatureValidationSnapshotResourceException(
+                                "The loaded package part " + sourcePart.Uri + " exceeds the " +
+                                options.MaxPartBytes + " byte validation limit.");
+                        }
+                    }
+                    OpenXmlPartRootElement? snapshotRoot = snapshotPart.RootElement;
+                    if (snapshotRoot != null && AreSignatureSnapshotRootsEquivalent(sourceRoot, snapshotRoot)) {
+                        continue;
+                    }
+                    using Stream output = snapshotPart.GetStream(FileMode.Create, FileAccess.Write);
+                    ((OpenXmlPartRootElement)sourceRoot.CloneNode(true)).Save(output);
+                }
             }
-            return _ownedPackageStream.ToArray();
+            if (snapshot.Length > options.MaxPackageBytes) {
+                throw new InvalidDataException("The current OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
+            }
+            return snapshot.ToArray();
+        }
+
+        private static IEnumerable<OpenXmlPart> EnumerateSignatureSnapshotParts(
+            OpenXmlPartContainer container,
+            int maxPackageParts) {
+            var pending = new Stack<OpenXmlPart>(container.Parts.Select(pair => pair.OpenXmlPart));
+            var visited = new HashSet<Uri>();
+            while (pending.Count > 0) {
+                OpenXmlPart part = pending.Pop();
+                if (!visited.Add(part.Uri)) continue;
+                if (visited.Count > maxPackageParts) {
+                    throw new SignatureValidationSnapshotResourceException(
+                        "The OPC package contains more than " + maxPackageParts + " parts during validation snapshot creation.");
+                }
+                yield return part;
+                foreach (IdPartPair child in part.Parts) pending.Push(child.OpenXmlPart);
+            }
+        }
+
+        private static bool AreSignatureSnapshotRootsEquivalent(OpenXmlElement source, OpenXmlElement snapshot) {
+            var pending = new Stack<(OpenXmlElement Source, OpenXmlElement Snapshot)>();
+            pending.Push((source, snapshot));
+            while (pending.Count > 0) {
+                (OpenXmlElement sourceElement, OpenXmlElement snapshotElement) = pending.Pop();
+                if (!string.Equals(sourceElement.LocalName, snapshotElement.LocalName, StringComparison.Ordinal) ||
+                    !string.Equals(sourceElement.NamespaceUri, snapshotElement.NamespaceUri, StringComparison.Ordinal)) {
+                    return false;
+                }
+                IList<OpenXmlAttribute> sourceAttributes = sourceElement.GetAttributes();
+                IList<OpenXmlAttribute> snapshotAttributes = snapshotElement.GetAttributes();
+                if (sourceAttributes.Count != snapshotAttributes.Count || sourceAttributes.Any(sourceAttribute =>
+                    !snapshotAttributes.Any(snapshotAttribute =>
+                        string.Equals(sourceAttribute.LocalName, snapshotAttribute.LocalName, StringComparison.Ordinal) &&
+                        string.Equals(sourceAttribute.NamespaceUri, snapshotAttribute.NamespaceUri, StringComparison.Ordinal) &&
+                        string.Equals(sourceAttribute.Value, snapshotAttribute.Value, StringComparison.Ordinal)))) {
+                    return false;
+                }
+                List<KeyValuePair<string, string>> sourceNamespaces = sourceElement.NamespaceDeclarations.ToList();
+                List<KeyValuePair<string, string>> snapshotNamespaces = snapshotElement.NamespaceDeclarations.ToList();
+                if (sourceNamespaces.Count != snapshotNamespaces.Count || sourceNamespaces.Any(sourceNamespace =>
+                    !snapshotNamespaces.Any(snapshotNamespace =>
+                        string.Equals(sourceNamespace.Key, snapshotNamespace.Key, StringComparison.Ordinal) &&
+                        string.Equals(sourceNamespace.Value, snapshotNamespace.Value, StringComparison.Ordinal)))) {
+                    return false;
+                }
+                if (sourceElement.ChildElements.Count != snapshotElement.ChildElements.Count) return false;
+                if (sourceElement.ChildElements.Count == 0 && !string.Equals(
+                    sourceElement.InnerText,
+                    snapshotElement.InnerText,
+                    StringComparison.Ordinal)) {
+                    return false;
+                }
+                for (int index = sourceElement.ChildElements.Count - 1; index >= 0; index--) {
+                    pending.Push((sourceElement.ChildElements[index], snapshotElement.ChildElements[index]));
+                }
+            }
+            return true;
+        }
+
+        private sealed class SignatureValidationSnapshotResourceException : Exception {
+            internal SignatureValidationSnapshotResourceException(string message) : base(message) { }
         }
 
         /// <summary>

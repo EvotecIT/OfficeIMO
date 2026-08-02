@@ -30,6 +30,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal IReadOnlyList<(string Value, string DisplayText)> ExportItems {
+            get {
+                var ddl = _sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault();
+                if (ddl == null) return Array.Empty<(string Value, string DisplayText)>();
+                return WordContentControlListItems.GetExportItems(ddl.Elements<ListItem>());
+            }
+        }
+
         /// <summary>
         /// Gets or sets the currently selected value displayed by the dropdown list.
         /// </summary>
@@ -118,5 +126,14 @@ namespace OfficeIMO.Word {
 
             return properties;
         }
+    }
+
+    internal static class WordContentControlListItems {
+        internal static IReadOnlyList<(string Value, string DisplayText)> GetExportItems(
+            IEnumerable<ListItem> items) => items
+                .Select(item => (
+                    item.Value?.Value ?? item.DisplayText?.Value ?? string.Empty,
+                    item.DisplayText?.Value ?? item.Value?.Value ?? string.Empty))
+                .ToList();
     }
 }

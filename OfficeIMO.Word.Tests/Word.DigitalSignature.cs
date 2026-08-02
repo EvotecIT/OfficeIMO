@@ -776,7 +776,7 @@ namespace OfficeIMO.Tests {
             AddDigitalSignatureMetadata(filePath, CreateSignatureXml(
                 digestValue: ComputePackagePartSha256Digest(filePath, "/word/document.xml")));
 
-            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            using WordDocument loaded = WordDocument.Load(filePath);
             WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
                 MaxPackageParts = 1
             });
@@ -1303,11 +1303,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordSignatureValidationState.Passed, loaded.ValidateSignatures(options).SignedPartDigestStatus);
 
             loaded.AddParagraph("Unsaved mutation");
+            var encodedPackageStream = (MemoryStream)typeof(WordDocument)
+                .GetField("_ownedPackageStream", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(loaded)!;
+            byte[] encodedPackageBeforeValidation = encodedPackageStream.ToArray();
             WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
 
             Assert.Equal(WordSignatureValidationState.Failed, validation.SignedPartDigestStatus);
             Assert.False(Assert.Single(validation.Signatures).IsValidUnderPolicy);
             Assert.False(validation.IsValidUnderPolicy);
+            Assert.Equal(encodedPackageBeforeValidation, encodedPackageStream.ToArray());
         }
 
         [Fact]

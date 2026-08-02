@@ -118,6 +118,7 @@ namespace OfficeIMO.Word.Html {
             if (element is DocumentFormat.OpenXml.Wordprocessing.FieldCode) return false;
             if (element is DocumentFormat.OpenXml.Wordprocessing.SimpleField &&
                 attribute.LocalName.Equals("instr", StringComparison.Ordinal)) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.ListItem) return false;
             if (element is DocumentFormat.OpenXml.Wordprocessing.RunFonts && !options.IncludeFontStyles) return false;
             if (element is DocumentFormat.OpenXml.Wordprocessing.RunStyle && !options.IncludeRunClasses) return false;
             if (element is DocumentFormat.OpenXml.Wordprocessing.Color && !options.IncludeRunColorStyles) return false;

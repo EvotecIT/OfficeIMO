@@ -184,6 +184,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesDistinctDropDownValueAndDisplayText() {
+            using WordDocument document = WordDocument.Create();
+            WordDropDownList dropDown = document.AddParagraph().AddDropDownList(new[] { "placeholder" });
+            ListItem item = dropDown._sdtRun.SdtProperties!
+                .GetFirstChild<SdtContentDropDownList>()!
+                .Elements<ListItem>()
+                .Single();
+            item.Value = "short";
+            item.DisplayText = new string('&', 1024);
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = 4096
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("DropDownOption:display-text", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetUsesSerializedVoidElementSize() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();

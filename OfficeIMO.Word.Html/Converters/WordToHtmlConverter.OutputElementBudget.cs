@@ -49,6 +49,19 @@ namespace OfficeIMO.Word.Html {
             element.SetAttribute(name, value);
         }
 
+        private static void SetOutputText(
+            IDocument owner,
+            IElement element,
+            string value,
+            string source) {
+            ReserveOutputCharacters(
+                owner,
+                GetHtmlEncodedLength(value, attributeValue: false),
+                "Generated HTML text exceeds the configured output-character limit before DOM construction.",
+                source);
+            element.TextContent = value;
+        }
+
         private static long GetRemainingOutputCharacters(IDocument owner) {
             if (!OutputConstructionBudgets.TryGetValue(owner, out OutputConstructionBudget? budget)) {
                 throw new InvalidOperationException("The HTML output construction budget was not initialized.");
