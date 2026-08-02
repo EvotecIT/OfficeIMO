@@ -749,7 +749,7 @@ namespace OfficeIMO.Excel {
                     if (placement == VmlAnchorPlacement.OneCell) {
                         int oneBasedFromRow = values[2] + 1;
                         if (oneBasedFromRow >= firstRow
-                            && (long)values[6] + count > A1.MaxRows) {
+                            && (long)values[6] + count >= A1.MaxRows) {
                             throw new InvalidOperationException(
                                 "Inserting rows would move a comment note anchor beyond Excel's row limit.");
                         }
@@ -765,7 +765,7 @@ namespace OfficeIMO.Excel {
                             count,
                             lastDeletedRow: null,
                             out var remappedRows)
-                        && remappedRows == null) {
+                        && (remappedRows == null || remappedRows.Value.r2 >= A1.MaxRows)) {
                         throw new InvalidOperationException(
                             "Inserting rows would move a comment note anchor beyond Excel's row limit.");
                     }

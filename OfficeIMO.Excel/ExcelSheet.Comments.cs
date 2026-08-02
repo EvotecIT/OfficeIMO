@@ -808,8 +808,8 @@ namespace OfficeIMO.Excel {
                 || values[2] < 0
                 || values[4] < 0
                 || values[6] < 0
-                || values[2] > A1.MaxRows
-                || values[6] > A1.MaxRows) {
+                || values[2] >= A1.MaxRows
+                || values[6] >= A1.MaxRows) {
                 return false;
             }
 
@@ -874,7 +874,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (values[0] < 0 || values[4] < 0
-                || values[0] > A1.MaxColumns || values[4] > A1.MaxColumns) return false;
+                || values[0] >= A1.MaxColumns || values[4] >= A1.MaxColumns) return false;
             if (values[0] == originalFromColumn && values[4] == originalToColumn) return false;
             anchor!.Value = string.Join(", ", values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
             return true;

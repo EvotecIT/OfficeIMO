@@ -120,6 +120,9 @@ namespace OfficeIMO.Excel {
             if (data.Series.Any(series => series.Values.Count != data.Categories.Count)) {
                 throw new ArgumentException("Modern chart series must match the category count.", nameof(data));
             }
+            if (data.Series.Any(series => series.Values.Any(value => double.IsNaN(value) || double.IsInfinity(value)))) {
+                throw new ArgumentException("Modern chart series values must be finite numbers.", nameof(data));
+            }
         }
 
         internal static string GetModernChartLayout(ExcelModernChartType chartType) {

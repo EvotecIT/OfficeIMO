@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
                     if (placement == VmlAnchorPlacement.OneCell) {
                         int oneBasedFromColumn = values[0] + 1;
                         if (oneBasedFromColumn >= firstColumn
-                            && (long)values[4] + count > A1.MaxColumns) {
+                            && (long)values[4] + count >= A1.MaxColumns) {
                             throw new InvalidOperationException(
                                 "Column insertion would move a comment note anchor beyond Excel's column limit.");
                         }
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
                     int lastSpannedColumn = values[4];
                     if (lastSpannedColumn < firstSpannedColumn) continue;
                     try {
-                        _ = ExcelDocument.TransformColumnReference(
+                        ExcelReference? mapped = ExcelDocument.TransformColumnReference(
                             ExcelReference.Parse(
                                 A1.CellReference(1, firstSpannedColumn) + ":" +
                                 A1.CellReference(1, lastSpannedColumn)),
@@ -106,6 +106,9 @@ namespace OfficeIMO.Excel {
                             lastDeletedColumn: 0,
                             count,
                             deleting: false);
+                        if (mapped?.End.Column >= A1.MaxColumns) {
+                            throw new ArgumentOutOfRangeException(nameof(count));
+                        }
                     } catch (ArgumentOutOfRangeException) {
                         throw new InvalidOperationException(
                             "Column insertion would move a comment note anchor beyond Excel's column limit.");

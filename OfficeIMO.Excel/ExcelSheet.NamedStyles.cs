@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
             if (cellCount > maximumCells) {
                 throw new InvalidOperationException($"Named-style application requires {cellCount} cells, exceeding maximumCells ({maximumCells}).");
             }
-            WriteLock(() => {
+            ApplyTransactionalMutation(_ => {
                 cancellationToken.ThrowIfCancellationRequested();
                 Stylesheet? stylesheet = _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
                 CellStyle? style = stylesheet?.CellStyles?.Elements<CellStyle>()
@@ -128,8 +128,8 @@ namespace OfficeIMO.Excel {
                     for (int column = c1; column <= c2; column++) GetCell(row, column).StyleIndex = cellFormatId;
                 }
                 stylesheet.Save();
-                WorksheetRoot.Save();
-            });
+                return checked((int)cellCount);
+            }, new ExcelMutationPlanOptions(), cancellationToken);
         }
 
         private static void EnsureNamedStyleContainers(Stylesheet stylesheet) {

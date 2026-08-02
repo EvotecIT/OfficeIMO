@@ -142,6 +142,7 @@ namespace OfficeIMO.Excel {
                         CellValueCoreNoMaterialize(targetBounds.r1, targetBounds.c1 + index, names[index]);
                     }
                 }
+                SynchronizeQueryTableSchema(table, columns, names);
 
                 string tableName = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
                 var renameMap = renames
@@ -184,6 +185,21 @@ namespace OfficeIMO.Excel {
                 Array.Resize(ref names, targetWidth);
             }
             return SetTableSchema(tableOrRange, names, newRange);
+        }
+
+        private void SynchronizeQueryTableSchema(
+            Table table,
+            TableColumns columns,
+            IReadOnlyList<string> names) {
+            TableDefinitionPart? tablePart = _worksheetPart.TableDefinitionParts
+                .FirstOrDefault(part => ReferenceEquals(part.Table, table));
+            if (tablePart == null) return;
+            foreach (QueryTablePart queryPart in tablePart.QueryTableParts) {
+                QueryTable? queryTable = queryPart.QueryTable;
+                if (queryTable == null) continue;
+                ExcelDocument.SynchronizeNativeQueryFields(queryTable, columns, names);
+                queryTable.Save();
+            }
         }
 
         private static string[] ValidateTableColumnNames(IReadOnlyList<string> columnNames) {
