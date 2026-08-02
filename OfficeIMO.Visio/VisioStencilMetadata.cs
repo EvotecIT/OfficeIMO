@@ -70,11 +70,7 @@ namespace OfficeIMO.Visio {
             string? registeredPath = NormalizePath(
                 master.StencilSourcePackagePath);
             string? requestedPath = NormalizePath(sourcePackagePath);
-            StringComparison comparison = RuntimeInformation.IsOSPlatform(
-                OSPlatform.Windows)
-                    ? StringComparison.OrdinalIgnoreCase
-                    : StringComparison.Ordinal;
-            if (string.Equals(registeredPath, requestedPath, comparison)) {
+            if (SourcePackagePathsMatch(registeredPath, requestedPath)) {
                 return;
             }
 
@@ -82,6 +78,56 @@ namespace OfficeIMO.Visio {
                 $"Visio master '{master.NameU}' is already bound to source package " +
                 $"'{registeredPath ?? "<unknown>"}' and cannot be reused for " +
                 $"'{requestedPath ?? "<unknown>"}'. Import package masters with unique NameU values.");
+        }
+
+        internal static bool SourcePackagePathsMatch(string? firstPath,
+            string? secondPath) {
+            if (firstPath == null || secondPath == null) {
+                return firstPath == secondPath;
+            }
+            if (string.Equals(firstPath, secondPath, StringComparison.Ordinal)) {
+                return true;
+            }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return string.Equals(firstPath, secondPath,
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            if (!File.Exists(firstPath) || !File.Exists(secondPath)) {
+                return false;
+            }
+            string firstCanonical = ResolveExistingPathCasing(firstPath);
+            string secondCanonical = ResolveExistingPathCasing(secondPath);
+            return string.Equals(firstCanonical, secondCanonical,
+                StringComparison.Ordinal);
+        }
+
+        private static string ResolveExistingPathCasing(string path) {
+            string fullPath = Path.GetFullPath(path);
+            string? root = Path.GetPathRoot(fullPath);
+            if (string.IsNullOrEmpty(root)) return fullPath;
+            string current = root!;
+            string[] segments = fullPath.Substring(root!.Length)
+                .Split(new[] { Path.DirectorySeparatorChar,
+                    Path.AltDirectorySeparatorChar },
+                    StringSplitOptions.RemoveEmptyEntries);
+            try {
+                foreach (string segment in segments) {
+                    string? match = Directory.EnumerateFileSystemEntries(current)
+                        .FirstOrDefault(entry => string.Equals(
+                            Path.GetFileName(entry), segment,
+                            StringComparison.Ordinal));
+                    match ??= Directory.EnumerateFileSystemEntries(current)
+                        .FirstOrDefault(entry => string.Equals(
+                            Path.GetFileName(entry), segment,
+                            StringComparison.OrdinalIgnoreCase));
+                    current = match ?? Path.Combine(current, segment);
+                }
+                return Path.GetFullPath(current);
+            } catch (IOException) {
+                return fullPath;
+            } catch (UnauthorizedAccessException) {
+                return fullPath;
+            }
         }
 
         internal static void Apply(VisioMaster master, IEnumerable<VisioUserCell> userCells) {

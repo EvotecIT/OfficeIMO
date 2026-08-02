@@ -79,6 +79,9 @@ namespace OfficeIMO.PowerPoint {
                 return width != null ? width.Value / (double)EmusPerPoint : null;
             }
             set {
+                int? drawingWidth = value == null
+                    ? null
+                    : ToDrawingLineWidth(value.Value, nameof(value));
                 A.Outline? outline = GetOutline(create: value != null);
                 if (outline == null) {
                     return;
@@ -92,8 +95,20 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                outline.Width = (int)Math.Round(value.Value * EmusPerPoint);
+                outline.Width = drawingWidth!.Value;
             }
+        }
+
+        internal static int ToDrawingLineWidth(double widthPoints,
+            string parameterName) {
+            const int maximumDrawingLineWidth = 20116800;
+            double emus = Math.Round(widthPoints * EmusPerPoint);
+            if (double.IsNaN(emus) || double.IsInfinity(emus)
+                || emus < 0D || emus > maximumDrawingLineWidth) {
+                throw new ArgumentOutOfRangeException(parameterName,
+                    "Outline width must be representable by DrawingML (0 through 1584 points).");
+            }
+            return checked((int)emus);
         }
 
         /// <summary>

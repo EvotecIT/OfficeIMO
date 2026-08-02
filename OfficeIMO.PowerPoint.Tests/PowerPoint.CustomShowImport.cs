@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                         Id = sourcePart.GetIdOfPart(secondShowSlide.SlidePart)
                     })) {
                     Id = 17U,
-                    Name = "Tour"
+                    Name = "tour"
                 };
             var extension = new Extension {
                 Uri = "{40A09A7A-19E1-4D9D-A417-7F2234A3D10B}"
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, shows.Length);
             CustomShow importedShow = Assert.Single(shows,
                 show => show.Id?.Value != 17U);
-            Assert.Equal("Tour (2)", importedShow.Name?.Value);
+            Assert.Equal("tour (2)", importedShow.Name?.Value);
             Assert.Equal(extension.OuterXml,
                 importedShow.ExtensionList!.Elements<Extension>()
                     .Single().OuterXml);

@@ -290,6 +290,10 @@ namespace OfficeIMO.PowerPoint {
             string normalizedText = text ?? string.Empty;
             PowerPointXmlValueValidator.ValidateCharacters(normalizedText,
                 nameof(text), "SmartArt node text");
+            if (string.IsNullOrWhiteSpace(normalizedText)) {
+                throw new ArgumentException(
+                    "SmartArt node text cannot be empty.", nameof(text));
+            }
             var (xdoc, ns, textBodies, dataPart) =
                 LoadNodeTextBodiesWithPart();
             if (index < 0 || index >= textBodies.Count) {

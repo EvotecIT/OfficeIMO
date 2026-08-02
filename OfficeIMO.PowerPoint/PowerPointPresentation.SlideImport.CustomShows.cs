@@ -276,7 +276,7 @@ namespace OfficeIMO.PowerPoint {
                 .Select(show => show.Name?.Value)
                 .Where(name => !string.IsNullOrEmpty(name))
                 .Cast<string>()
-                ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+                ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 
             foreach (CustomShow sourceShow in sourceShows) {
                 uint sourceId = sourceShow.Id!.Value;

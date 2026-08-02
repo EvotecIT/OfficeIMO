@@ -1830,6 +1830,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_PreservesAmbiguousClassicCommentGraphs() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            CommentAuthorsPart authorsPart = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!;
+            authorsPart.CommentAuthorList!.Append(
+                authorsPart.CommentAuthorList.Elements<CommentAuthor>()
+                    .Single().CloneNode(true));
+
+            PowerPointFeatureFinding comments = Assert.Single(
+                presentation.InspectFeatures().FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsUnsupportedTransitionMarkup() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

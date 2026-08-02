@@ -10,6 +10,8 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
+using P = DocumentFormat.OpenXml.Presentation;
+using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
@@ -419,7 +421,8 @@ namespace OfficeIMO.PowerPoint {
                  && part is not CommentAuthorsPart
                  && part is not PowerPointCommentPart
                  && part is not PowerPointAuthorsPart)
-                || HasUnsupportedCommentMarkup(part));
+                || HasUnsupportedCommentMarkup(part))
+                || !HasEditableCommentGraph();
             PowerPointFeatureSupportLevel commentSupportLevel =
                 hasUnsupportedCommentParts
                     ? PowerPointFeatureSupportLevel.Preserved
@@ -1106,6 +1109,121 @@ namespace OfficeIMO.PowerPoint {
                 || element is OpenXmlUnknownElement
                 || string.Equals(element.LocalName, "extLst",
                     StringComparison.Ordinal));
+        }
+
+        private bool HasEditableCommentGraph() {
+            P.CommentAuthor[] classicAuthors = _presentationPart
+                .CommentAuthorsPart?.CommentAuthorList?
+                .Elements<P.CommentAuthor>().ToArray()
+                ?? Array.Empty<P.CommentAuthor>();
+            if (_presentationPart.CommentAuthorsPart != null
+                && _presentationPart.CommentAuthorsPart.CommentAuthorList == null) {
+                return false;
+            }
+            if (classicAuthors.Any(author => author.Id?.Value == null
+                    || author.Name?.Value == null
+                    || author.Initials?.Value == null
+                    || author.LastIndex?.Value == null
+                    || author.ColorIndex?.Value == null)
+                || classicAuthors.Where(author => author.Id?.Value != null)
+                    .GroupBy(author => author.Id!.Value).Any(group => group.Count() != 1)) {
+                return false;
+            }
+
+            var classicAuthorIds = new HashSet<uint>(classicAuthors
+                .Select(author => author.Id!.Value));
+            var classicCommentKeys = new HashSet<(uint AuthorId, uint Index)>();
+            foreach (SlideCommentsPart part in Slides.Select(slide =>
+                         slide.SlidePart.SlideCommentsPart).Where(part => part != null)!) {
+                if (part.CommentList == null) return false;
+                foreach (P.Comment comment in part.CommentList.Elements<P.Comment>()) {
+                    if (comment.AuthorId?.Value == null
+                        || comment.Index?.Value == null
+                        || comment.DateTime?.Value == null
+                        || comment.Position?.X?.Value == null
+                        || comment.Position.Y?.Value == null
+                        || comment.Text == null
+                        || !classicAuthorIds.Contains(comment.AuthorId.Value)
+                        || !classicCommentKeys.Add((comment.AuthorId.Value,
+                            comment.Index.Value))) {
+                        return false;
+                    }
+                }
+            }
+
+            P188.Author[] modernAuthors = _presentationPart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointAuthorsPart>()
+                .SelectMany(part => part.AuthorList?.Elements<P188.Author>()
+                    ?? Enumerable.Empty<P188.Author>()).ToArray();
+            if (_presentationPart.Parts.Select(pair => pair.OpenXmlPart)
+                    .OfType<PowerPointAuthorsPart>()
+                    .Any(part => part.AuthorList == null)
+                || modernAuthors.Any(author => string.IsNullOrWhiteSpace(
+                        author.Id?.Value)
+                    || string.IsNullOrWhiteSpace(author.Name?.Value))
+                || modernAuthors.GroupBy(author => author.Id!.Value!,
+                        StringComparer.OrdinalIgnoreCase)
+                    .Any(group => group.Count() != 1)) {
+                return false;
+            }
+
+            var modernAuthorIds = new HashSet<string>(modernAuthors
+                .Select(author => author.Id!.Value!),
+                StringComparer.OrdinalIgnoreCase);
+            var modernCommentIds = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+            foreach (PowerPointCommentPart part in Slides
+                         .SelectMany(slide => slide.SlidePart.Parts
+                             .Select(pair => pair.OpenXmlPart))
+                         .OfType<PowerPointCommentPart>()) {
+                if (part.CommentList == null) return false;
+                foreach (P188.Comment comment in part.CommentList
+                             .Elements<P188.Comment>()) {
+                    if (!HasEditableModernCommentFields(comment,
+                            modernAuthorIds, modernCommentIds)) {
+                        return false;
+                    }
+                    foreach (P188.CommentReply reply in comment
+                                 .Descendants<P188.CommentReply>()) {
+                        if (!HasEditableModernCommentFields(reply,
+                                modernAuthorIds, modernCommentIds)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        private static bool HasEditableModernCommentFields(
+            OpenXmlCompositeElement comment,
+            ISet<string> authorIds,
+            ISet<string> commentIds) {
+            string? id;
+            string? authorId;
+            bool hasStatus;
+            bool hasCreated;
+            if (comment is P188.Comment root) {
+                id = root.Id?.Value;
+                authorId = root.AuthorId?.Value;
+                hasStatus = root.Status?.Value != null;
+                hasCreated = root.Created?.Value != null;
+            } else if (comment is P188.CommentReply reply) {
+                id = reply.Id?.Value;
+                authorId = reply.AuthorId?.Value;
+                hasStatus = reply.Status?.Value != null;
+                hasCreated = reply.Created?.Value != null;
+            } else {
+                return false;
+            }
+            return !string.IsNullOrWhiteSpace(id)
+                && !string.IsNullOrWhiteSpace(authorId)
+                && hasStatus
+                && hasCreated
+                && comment.GetFirstChild<P188.TextBodyType>() != null
+                && authorIds.Contains(authorId!)
+                && commentIds.Add(id!);
         }
 
         private static bool IsValidEditableVbaProject(VbaProjectPart? part) {

@@ -36,6 +36,10 @@ namespace OfficeIMO.PowerPoint {
                 throw new NotSupportedException(
                     "DrawingML custom geometry cannot faithfully encode the even-odd fill rule. Use a non-zero fill rule, remove the fill, or split the geometry into separate shapes.");
             }
+            if (geometry.StrokeColor.HasValue) {
+                PowerPointShape.ToDrawingLineWidth(geometry.StrokeWidth,
+                    nameof(geometry));
+            }
             A.CustomGeometry customGeometry = CreateCustomGeometry(
                 geometry, commands);
 

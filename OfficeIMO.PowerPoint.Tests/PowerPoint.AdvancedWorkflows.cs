@@ -394,6 +394,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<ArgumentException>(() =>
                 smartArt.SetNodeText(0, "Bad\u0001node"));
+            Assert.Throws<ArgumentException>(() =>
+                smartArt.SetNodeText(0, "   "));
 
             Assert.Equal("Original", smartArt.GetNodeText(0));
             Assert.Empty(presentation.ValidateDocument());

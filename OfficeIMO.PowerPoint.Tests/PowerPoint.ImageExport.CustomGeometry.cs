@@ -55,6 +55,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_RejectsUnrepresentableStrokeWidthsBeforeMutation() {
+            double[] invalidWidths = {
+                -1D, double.NaN, double.PositiveInfinity, 1585D
+            };
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            foreach (double width in invalidWidths) {
+                OfficeShape path = OfficeShape.Path(
+                    OfficePathCommand.MoveTo(0, 0),
+                    OfficePathCommand.LineTo(100, 100));
+                path.StrokeColor = OfficeColor.FromRgb(37, 99, 235);
+                path.StrokeWidth = width;
+
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    slide.AddCustomGeometryPoints(path,
+                        10, 10, 100, 100));
+                Assert.Empty(slide.Shapes);
+            }
+
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                10, 10, 100, 100);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                shape.OutlineWidthPoints = double.NaN);
+            Assert.Null(shape.OutlineWidthPoints);
+        }
+
+        [Fact]
         public void PowerPointSlide_RejectsEveryFilledEvenOddGeometry() {
             OfficeShape geometry = OfficeShape.Path(
                 OfficePathCommand.MoveTo(0, 0),

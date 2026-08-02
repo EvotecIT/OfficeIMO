@@ -1268,18 +1268,23 @@ namespace OfficeIMO.Tests {
             string path = Path.GetFullPath(Path.Combine(Path.GetTempPath(),
                 "OfficeIMO-CasePath.vssx"));
             string differentlyCased = path.Replace("CasePath", "casepath");
-            var master = new VisioMaster("1", "CaseMaster",
-                new VisioShape("1", 0, 0, 1, 1, string.Empty)) {
-                StencilSourcePackagePath = path
-            };
+            try {
+                File.WriteAllText(path, "stencil provenance");
+                var master = new VisioMaster("1", "CaseMaster",
+                    new VisioShape("1", 0, 0, 1, 1, string.Empty)) {
+                    StencilSourcePackagePath = path
+                };
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                VisioStencilMetadata.EnsureSourcePackageMatches(master,
-                    differentlyCased);
-            } else {
-                Assert.Throws<InvalidOperationException>(() =>
+                if (File.Exists(differentlyCased)) {
                     VisioStencilMetadata.EnsureSourcePackageMatches(master,
-                        differentlyCased));
+                        differentlyCased);
+                } else {
+                    Assert.Throws<InvalidOperationException>(() =>
+                        VisioStencilMetadata.EnsureSourcePackageMatches(master,
+                            differentlyCased));
+                }
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
             }
         }
 
