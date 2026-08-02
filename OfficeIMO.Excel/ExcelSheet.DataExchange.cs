@@ -14,7 +14,15 @@ namespace OfficeIMO.Excel {
         /// Reads the worksheet used range as a <see cref="DataTable"/>.
         /// </summary>
         public DataTable ToDataTable(bool headersInFirstRow = true, ExcelReadOptions? options = null, ExecutionMode? mode = null, CancellationToken ct = default) {
-            return ToDataTable(GetUsedRangeA1(), headersInFirstRow, options, mode, ct);
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var reader = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            var sheetReader = reader.GetSheet(Name);
+            string a1Range = sheetReader.GetUsedRangeA1(token);
+            return sheetReader.ReadRangeAsDataTable(a1Range, headersInFirstRow, mode, token);
         }
 
         /// <summary>
@@ -22,8 +30,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public DataTable ToDataTable(string a1Range, bool headersInFirstRow = true, ExcelReadOptions? options = null, ExecutionMode? mode = null, CancellationToken ct = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            using var reader = _excelDocument.CreateReader(options);
-            return reader.GetSheet(Name).ReadRangeAsDataTable(a1Range, headersInFirstRow, mode, ct);
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var reader = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            return reader.GetSheet(Name).ReadRangeAsDataTable(a1Range, headersInFirstRow, mode, token);
         }
 
         /// <summary>
@@ -31,8 +44,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public DataTable TableToDataTable(string tableName, bool? headersInFirstRow = null, ExcelReadOptions? options = null, ExecutionMode? mode = null, CancellationToken ct = default) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
-            using var reader = _excelDocument.CreateReader(options);
-            return reader.ReadTableAsDataTable(tableName, headersInFirstRow, mode, ct);
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var reader = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            return reader.ReadTableAsDataTable(tableName, headersInFirstRow, mode, token);
         }
 
         /// <summary>
@@ -46,7 +64,7 @@ namespace OfficeIMO.Excel {
         /// Reads the worksheet used range and returns JSON as an array of objects.
         /// </summary>
         public string ToJson(bool headersInFirstRow = true, ExcelReadOptions? options = null, ExecutionMode? mode = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default) {
-            return ToJson(GetUsedRangeA1(), headersInFirstRow, options, mode, jsonOptions, ct);
+            return DataTableToJson(ToDataTable(headersInFirstRow, options, mode, ct), jsonOptions);
         }
 
         /// <summary>

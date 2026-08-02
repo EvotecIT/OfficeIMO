@@ -112,13 +112,23 @@ document.EnsureInferredSchema()
 
 ## Typed mapping
 
-Mapping is explicit and delegate-based, so it stays predictable for trimming and NativeAOT-sensitive applications.
+For ordinary DTOs, `RowsAs<T>()` matches headers to writable properties without
+requiring a range or mapping builder. Matching is case-insensitive and ignores
+spaces and punctuation:
+
+```csharp
+List<Person> people = CsvDocument.Load("people.csv")
+    .RowsAs<Person>()
+    .ToList();
+```
+
+Use the explicit overload for immutable models and trimming or NativeAOT-sensitive applications:
 
 ```csharp
 using OfficeIMO.CSV;
 
 List<Person> people = CsvDocument.Load("people.csv")
-    .Map<Person>(map => map
+    .RowsAs<Person>(map => map
         .FromColumn<int>("Id", (person, value) => {
             person.Id = value;
             return person;
@@ -151,7 +161,7 @@ For immutable models, return a new instance from each assignment:
 using OfficeIMO.CSV;
 
 var people = CsvDocument.Load("people.csv")
-    .Map<PersonRecord>(map => map
+    .RowsAs<PersonRecord>(map => map
         .FromColumn<int>("Id", (person, value) => person with { Id = value })
         .FromColumn<string>("Name", (person, value) => person with { Name = value }))
     .ToList();
@@ -191,17 +201,19 @@ var transformed = CsvDocument.Load("large.csv")
 transformed.Save("ready.csv");
 ```
 
-`CsvDataReader` is an ADO.NET `DbDataReader`, so it also plugs directly into
+The object returned by `CsvDocument.OpenDataReader` is an ADO.NET
+`DbDataReader`, so it also plugs directly into
 `DataTable.Load` and provider bulk-copy APIs. Enable inference when delimited
 text should expose typed columns:
 
 ```csharp
 using System.Data;
+using System.Globalization;
 using OfficeIMO.CSV;
 
 using var reader = CsvDocument.OpenDataReader(
     "large.csv",
-    new CsvLoadOptions { Mode = CsvLoadMode.Stream },
+    new CsvLoadOptions { Culture = CultureInfo.InvariantCulture },
     new CsvDataReaderOptions {
         InferSchema = true,
         SchemaSampleSize = 1000
@@ -210,6 +222,9 @@ using var reader = CsvDocument.OpenDataReader(
 var table = new DataTable();
 table.Load(reader);
 ```
+
+`OpenDataReader` is the forward-only entry point. Use `CsvDocument.Load` when a
+materialized document is required; 3.1 no longer exposes a load-mode switch.
 
 ## Real-world headers
 
@@ -280,13 +295,19 @@ Long-running import paths can opt into cancellation and progress reporting witho
 ```csharp
 using var cancellation = new CancellationTokenSource();
 
-var document = CsvDocument.Load("large.csv", new CsvLoadOptions {
-    Mode = CsvLoadMode.Stream,
+using var reader = CsvDocument.OpenDataReader("large.csv", new CsvLoadOptions {
     CancellationToken = cancellation.Token,
     ProgressReportInterval = 10_000,
     ProgressCallback = progress =>
         Console.WriteLine($"{progress.RecordsRead} records read")
 });
+
+long rowsRead = 0;
+while (reader.Read()) {
+    rowsRead++;
+}
+
+Console.WriteLine($"Imported {rowsRead} rows");
 ```
 
 ## Export options
@@ -336,6 +357,18 @@ CsvDocument.SaveObjects("summary.csv.gz", rows, new CsvSaveOptions {
     NullValue = "<null>",
     DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ",
     UseUtc = true,
+    CompressionType = CsvCompressionType.Auto
+});
+```
+
+When the source is already an `IDataReader`, write it directly to a path or
+stream without introducing a second serialization path:
+
+```csharp
+using OfficeIMO.CSV;
+
+using var reader = command.ExecuteReader();
+CsvDocument.WriteDataReader("summary.csv.gz", reader, new CsvSaveOptions {
     CompressionType = CsvCompressionType.Auto
 });
 ```

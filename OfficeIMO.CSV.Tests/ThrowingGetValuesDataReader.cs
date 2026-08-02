@@ -10,14 +10,19 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
     private readonly string[] _headers;
     private readonly object?[][] _rows;
     private readonly Type[] _fieldTypes;
+    private readonly Action<int>? _afterRead;
     private int _rowIndex = -1;
     private bool _closed;
 
-    public ThrowingGetValuesDataReader(string[] headers, object?[][] rows)
+    public ThrowingGetValuesDataReader(
+        string[] headers,
+        object?[][] rows,
+        Action<int>? afterRead = null)
     {
         _headers = headers ?? throw new ArgumentNullException(nameof(headers));
         _rows = rows ?? throw new ArgumentNullException(nameof(rows));
         _fieldTypes = CreateFieldTypes(headers, rows);
+        _afterRead = afterRead;
     }
 
     public override object this[int ordinal] => GetValue(ordinal);
@@ -115,6 +120,7 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         }
 
         _rowIndex = next;
+        _afterRead?.Invoke(_rowIndex);
         return true;
     }
 

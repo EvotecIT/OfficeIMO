@@ -274,7 +274,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets a list of worksheets contained in the document.
         /// </summary>
-        public List<ExcelSheet> Sheets {
+        public IReadOnlyList<ExcelSheet> Sheets {
             get {
                 MaterializeDeferredDataSetImport();
                 var lck = EnsureLock();

@@ -93,4 +93,14 @@ public sealed class CsvSaveOptions
     /// Gets or sets field names that should always be quoted when <see cref="QuoteMode"/> is <see cref="CsvQuoteMode.AsNeeded"/>.
     /// </summary>
     public string[]? QuoteFields { get; set; }
+
+    /// <summary>
+    /// Creates an independent copy of these save options.
+    /// </summary>
+    public CsvSaveOptions Clone()
+    {
+        var clone = (CsvSaveOptions)MemberwiseClone();
+        clone.QuoteFields = QuoteFields is null ? null : (string[])QuoteFields.Clone();
+        return clone;
+    }
 }
