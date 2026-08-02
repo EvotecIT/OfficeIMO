@@ -233,6 +233,12 @@ namespace OfficeIMO.Word.GoogleDocs {
                 throw;
             } catch (GoogleWorkspaceExportCanceledException) {
                 throw;
+            } catch (GoogleWorkspaceAmbiguousMutationException ex) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateAmbiguousMutationFailure(
+                    "Google Docs export",
+                    session.Options,
+                    batch.Report,
+                    ex);
             } catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
                 throw GoogleWorkspaceFailureDiagnostics.CreateRequestTimeoutFailure(
                     "Google Docs export",

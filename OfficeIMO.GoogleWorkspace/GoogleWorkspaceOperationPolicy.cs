@@ -175,11 +175,13 @@ namespace OfficeIMO.GoogleWorkspace {
         internal GoogleWorkspaceOperationReceipt(GoogleWorkspaceOperationPolicy policy, string service,
             string method, string target, string? requestId, int retryCount, bool succeeded, string outcome,
             GoogleWorkspaceMutationKind mutationKind,
-            GoogleWorkspaceRevisionPreconditionKind revisionPreconditionKind, string? enforcedRevision) {
+            GoogleWorkspaceRevisionPreconditionKind revisionPreconditionKind, string? enforcedRevision,
+            bool isOutcomeAmbiguous = false) {
             Policy = policy; Service = service; Method = method; Target = target; RequestId = requestId;
             RetryCount = retryCount; Succeeded = succeeded; Outcome = outcome;
             MutationKind = mutationKind;
             RevisionPreconditionKind = revisionPreconditionKind; EnforcedRevision = enforcedRevision;
+            IsOutcomeAmbiguous = isOutcomeAmbiguous;
             CompletedAt = DateTimeOffset.UtcNow;
         }
         public GoogleWorkspaceOperationPolicy Policy { get; }
@@ -190,6 +192,11 @@ namespace OfficeIMO.GoogleWorkspace {
         public int RetryCount { get; }
         public bool Succeeded { get; }
         public string Outcome { get; }
+        /// <summary>
+        /// True when the request may have committed remotely but no response headers were received.
+        /// Reconcile the target before retrying a non-idempotent operation.
+        /// </summary>
+        public bool IsOutcomeAmbiguous { get; }
         /// <summary>The adapter-declared semantic mutation represented by this receipt.</summary>
         public GoogleWorkspaceMutationKind MutationKind { get; }
         /// <summary>How the expected revision was enforced for this attempted mutation.</summary>
@@ -197,6 +204,23 @@ namespace OfficeIMO.GoogleWorkspace {
         /// <summary>The revision actually enforced by HTTP or payload precondition, when one was available.</summary>
         public string? EnforcedRevision { get; }
         public DateTimeOffset CompletedAt { get; }
+    }
+
+    /// <summary>
+    /// Indicates that a non-idempotent mutation may have committed remotely even though no response headers arrived.
+    /// Reconcile the receipt target and request identifier before deciding whether to retry.
+    /// </summary>
+    [Serializable]
+    public sealed class GoogleWorkspaceAmbiguousMutationException : HttpRequestException {
+        internal GoogleWorkspaceAmbiguousMutationException(
+            GoogleWorkspaceOperationReceipt receipt,
+            Exception innerException)
+            : base("The Google Workspace mutation may have committed remotely, but no response was received. Reconcile the operation receipt before retrying.", innerException) {
+            Receipt = receipt;
+        }
+
+        /// <summary>Receipt describing the operation whose remote outcome must be reconciled.</summary>
+        public GoogleWorkspaceOperationReceipt Receipt { get; }
     }
 
     /// <summary>
@@ -211,9 +235,11 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceOperationReceipt receipt,
             bool remoteOperationSucceeded,
             Exception innerException)
-            : base(remoteOperationSucceeded
-                ? "The Google Workspace mutation succeeded remotely, but its operation receipt could not be persisted. Do not retry the mutation without reconciling the remote resource."
-                : "The Google Workspace mutation failed and its operation receipt could not be persisted.", innerException) {
+            : base(receipt.IsOutcomeAmbiguous
+                ? "The Google Workspace mutation outcome is ambiguous and its operation receipt could not be persisted. Reconcile the remote resource before retrying."
+                : remoteOperationSucceeded
+                    ? "The Google Workspace mutation succeeded remotely, but its operation receipt could not be persisted. Do not retry the mutation without reconciling the remote resource."
+                    : "The Google Workspace mutation failed and its operation receipt could not be persisted.", innerException) {
             Receipt = receipt;
             RemoteOperationSucceeded = remoteOperationSucceeded;
         }
@@ -223,5 +249,8 @@ namespace OfficeIMO.GoogleWorkspace {
 
         /// <summary>True when the remote mutation completed successfully before receipt persistence failed.</summary>
         public bool RemoteOperationSucceeded { get; }
+
+        /// <summary>True when the receipt described a remote outcome that requires reconciliation.</summary>
+        public bool RemoteOutcomeAmbiguous => Receipt.IsOutcomeAmbiguous;
     }
 }

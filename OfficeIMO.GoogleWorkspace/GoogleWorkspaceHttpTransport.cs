@@ -311,6 +311,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 CompleteMutationFailure(mutation, exception.InnerException!);
                 ExceptionDispatchInfo.Capture(exception.InnerException!).Throw();
                 throw;
+            } catch (GoogleWorkspaceNoResponseException exception) when (mutation != null) {
+                throw CompleteMutationAmbiguous(mutation, exception.InnerException!);
             } catch (Exception exception) {
                 CompleteMutationFailure(mutation, exception);
                 throw;
@@ -390,6 +392,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 CompleteMutationFailure(mutation, exception.InnerException!);
                 ExceptionDispatchInfo.Capture(exception.InnerException!).Throw();
                 throw;
+            } catch (GoogleWorkspaceNoResponseException exception) when (mutation != null) {
+                throw CompleteMutationAmbiguous(mutation, exception.InnerException!);
             } catch (Exception exception) {
                 CompleteMutationFailure(mutation, exception);
                 throw;
@@ -557,6 +561,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 CompleteMutationFailure(mutation, exception.InnerException!);
                 ExceptionDispatchInfo.Capture(exception.InnerException!).Throw();
                 throw;
+            } catch (GoogleWorkspaceNoResponseException exception) when (mutation != null) {
+                throw CompleteMutationAmbiguous(mutation, exception.InnerException!);
             } catch (Exception exception) {
                 CompleteMutationFailure(mutation, exception);
                 throw;
@@ -774,6 +780,20 @@ namespace OfficeIMO.GoogleWorkspace {
             }
         }
 
+        private static GoogleWorkspaceAmbiguousMutationException CompleteMutationAmbiguous(
+            MutationAttempt mutation, Exception transportFailure) {
+            GoogleWorkspaceReceiptPersistenceException? persistenceFailure =
+                mutation.Complete(false, "ambiguous-no-response", out GoogleWorkspaceOperationReceipt? receipt,
+                    isOutcomeAmbiguous: true);
+            GoogleWorkspaceOperationReceipt operationReceipt = receipt
+                ?? throw new InvalidOperationException("The ambiguous mutation receipt was already completed.");
+            var exception = new GoogleWorkspaceAmbiguousMutationException(operationReceipt, transportFailure);
+            if (persistenceFailure != null) {
+                exception.Data[GoogleWorkspaceReceiptPersistenceException.ExceptionDataKey] = persistenceFailure;
+            }
+            return exception;
+        }
+
         internal sealed class MutationAttempt {
             private readonly GoogleWorkspaceOperationPolicy _policy;
             private readonly GoogleWorkspaceOperationContext _context;
@@ -791,19 +811,26 @@ namespace OfficeIMO.GoogleWorkspace {
                 request.Headers.IfMatch.Add(EntityTagHeaderValue.Parse(_policy.ExpectedRevision));
             }
             internal GoogleWorkspaceReceiptPersistenceException? Complete(bool succeeded, string outcome) {
+                return Complete(succeeded, outcome, out _);
+            }
+            internal GoogleWorkspaceReceiptPersistenceException? Complete(bool succeeded, string outcome,
+                out GoogleWorkspaceOperationReceipt? receipt, bool isOutcomeAmbiguous = false) {
+                receipt = null;
                 if (_completed) return null;
                 _completed = true;
                 string? enforcedRevision = _context.RevisionPreconditionKind == GoogleWorkspaceRevisionPreconditionKind.HttpEntityTag
                     ? _policy.ExpectedRevision
                     : _context.AdapterExpectedRevision;
-                var receipt = new GoogleWorkspaceOperationReceipt(_policy, _context.Service, _context.Method,
+                var operationReceipt = new GoogleWorkspaceOperationReceipt(_policy, _context.Service, _context.Method,
                     _context.Target, _context.RequestId, _retryCount, succeeded, outcome,
-                    _context.MutationKind, _context.RevisionPreconditionKind, enforcedRevision);
+                    _context.MutationKind, _context.RevisionPreconditionKind, enforcedRevision,
+                    isOutcomeAmbiguous);
+                receipt = operationReceipt;
                 try {
-                    _sink(receipt);
+                    _sink(operationReceipt);
                     return null;
                 } catch (Exception exception) {
-                    return new GoogleWorkspaceReceiptPersistenceException(receipt, succeeded, exception);
+                    return new GoogleWorkspaceReceiptPersistenceException(operationReceipt, succeeded, exception);
                 }
             }
         }

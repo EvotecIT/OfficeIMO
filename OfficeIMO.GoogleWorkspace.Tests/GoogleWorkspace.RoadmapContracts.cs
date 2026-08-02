@@ -319,6 +319,67 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData("json", "network")]
+        [InlineData("json", "timeout")]
+        [InlineData("json", "canceled")]
+        [InlineData("bytes", "network")]
+        [InlineData("bytes", "timeout")]
+        [InlineData("bytes", "canceled")]
+        [InlineData("raw", "network")]
+        [InlineData("raw", "timeout")]
+        [InlineData("raw", "canceled")]
+        public async Task NonIdempotentMutationWithoutResponseRequiresReconciliation(
+            string responsePath, string failureKind) {
+            int requests = 0;
+            Exception transportFailure = failureKind switch {
+                "timeout" => new TimeoutException("request timed out before response headers"),
+                "canceled" => new TaskCanceledException("request canceled before response headers"),
+                _ => new HttpRequestException("connection closed before response headers"),
+            };
+            using var http = new HttpClient(new Handler(_ => {
+                requests++;
+                return Task.FromException<HttpResponseMessage>(transportFailure);
+            }));
+            var receipts = new List<GoogleWorkspaceOperationReceipt>();
+            GoogleWorkspaceSessionOptions options = MutationOptions(http, receipts.Add);
+            options.MaxRetryCount = 2;
+            using var transport = MutationTransport(options, GoogleWorkspaceScopeCatalog.DriveFile);
+
+            Task ExecuteAsync() {
+                const string uri = "https://www.googleapis.com/drive/v3/files";
+                var report = new TranslationReport();
+                string[] scopes = { GoogleWorkspaceScopeCatalog.DriveFile };
+                switch (responsePath) {
+                    case "json":
+                        return transport.SendJsonAsync<object>("token", HttpMethod.Post, uri,
+                            new { name = "possibly-created" }, GoogleWorkspaceRequestSafety.NonIdempotent,
+                            "Google Drive API", report, mutationKind: GoogleWorkspaceMutationKind.Create,
+                            requiredScopes: scopes);
+                    case "bytes":
+                        return transport.SendBytesAsync("token", HttpMethod.Post, uri,
+                            GoogleWorkspaceRequestSafety.NonIdempotent, "Google Drive API", report,
+                            mutationKind: GoogleWorkspaceMutationKind.Create, requiredScopes: scopes);
+                    default:
+                        return transport.SendRawAsync("token", HttpMethod.Post, uri, null,
+                            GoogleWorkspaceRequestSafety.NonIdempotent, "Google Drive API", report,
+                            mutationKind: GoogleWorkspaceMutationKind.Create, requiredScopes: scopes);
+                }
+            }
+
+            GoogleWorkspaceAmbiguousMutationException exception =
+                await Assert.ThrowsAsync<GoogleWorkspaceAmbiguousMutationException>(ExecuteAsync);
+
+            Assert.Equal(1, requests);
+            Assert.Same(transportFailure, exception.InnerException);
+            GoogleWorkspaceOperationReceipt receipt = Assert.Single(receipts);
+            Assert.Same(receipt, exception.Receipt);
+            Assert.False(receipt.Succeeded);
+            Assert.True(receipt.IsOutcomeAmbiguous);
+            Assert.Equal("ambiguous-no-response", receipt.Outcome);
+            Assert.Equal(0, receipt.RetryCount);
+        }
+
+        [Theory]
         [InlineData("POST")]
         [InlineData("PATCH")]
         [InlineData("DELETE")]

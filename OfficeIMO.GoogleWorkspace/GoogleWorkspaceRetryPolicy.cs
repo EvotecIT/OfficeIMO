@@ -19,6 +19,11 @@ namespace OfficeIMO.GoogleWorkspace {
         NonIdempotent = 2,
     }
 
+    internal sealed class GoogleWorkspaceNoResponseException : Exception {
+        internal GoogleWorkspaceNoResponseException(Exception innerException)
+            : base("The request ended before response headers were received.", innerException) { }
+    }
+
     public sealed class GoogleWorkspaceRetryOptions {
         public GoogleWorkspaceRetryOptions(int maxRetryCount, TimeSpan baseDelay, TimeSpan maxDelay,
             GoogleWorkspaceSessionOptions? sessionOptions = null) {
@@ -111,6 +116,7 @@ namespace OfficeIMO.GoogleWorkspace {
                 cancellationToken,
                 (response, _) => Task.FromResult(response),
                 disposeFinalResponse: false,
+                wrapNonIdempotentNoResponse: false,
                 onRetry).ConfigureAwait(false);
         }
 
@@ -137,6 +143,7 @@ namespace OfficeIMO.GoogleWorkspace {
                 cancellationToken,
                 responseHandler,
                 disposeFinalResponse: true,
+                wrapNonIdempotentNoResponse: true,
                 onRetry);
         }
 
@@ -151,6 +158,7 @@ namespace OfficeIMO.GoogleWorkspace {
             Func<HttpResponseMessage, CancellationToken, Task<TResult>>
                 responseHandler,
             bool disposeFinalResponse,
+            bool wrapNonIdempotentNoResponse,
             Action<GoogleWorkspaceRetryEvent>? onRetry) {
             if (retryOptions == null) throw new ArgumentNullException(nameof(retryOptions));
             int retryBudget = retryOptions.MaxRetryCount;
@@ -174,8 +182,14 @@ namespace OfficeIMO.GoogleWorkspace {
                         response = await client.SendAsync(request,
                             completionOption,
                             timeoutSource.Token).ConfigureAwait(false);
-                    } catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested && deadlineSource.IsCancellationRequested) {
-                        throw new TimeoutException("The configured Google Workspace retry elapsed-time budget was exhausted.");
+                    } catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested && deadlineSource.IsCancellationRequested) {
+                        var timeout = new TimeoutException(
+                            "The configured Google Workspace retry elapsed-time budget was exhausted.", exception);
+                        if (wrapNonIdempotentNoResponse
+                            && requestSafety == GoogleWorkspaceRequestSafety.NonIdempotent) {
+                            throw new GoogleWorkspaceNoResponseException(timeout);
+                        }
+                        throw timeout;
                     } catch (HttpRequestException exception) when (!(exception is GoogleWorkspaceApiException)
                         && CanRetry(requestSafety) && attempt < retryBudget) {
                         var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
@@ -203,6 +217,10 @@ namespace OfficeIMO.GoogleWorkspace {
                             delayStrategy));
                         await DelayWithinDeadlineAsync(delay, deadlineSource.Token, cancellationToken).ConfigureAwait(false);
                         continue;
+                    } catch (Exception exception) when (wrapNonIdempotentNoResponse
+                        && requestSafety == GoogleWorkspaceRequestSafety.NonIdempotent
+                        && IsNoResponseFailure(exception)) {
+                        throw new GoogleWorkspaceNoResponseException(exception);
                     }
 
                     try {
@@ -331,6 +349,11 @@ namespace OfficeIMO.GoogleWorkspace {
                 return ContainsRetryableRateLimitReason(errorText);
             }
         }
+
+        private static bool IsNoResponseFailure(Exception exception) =>
+            (exception is HttpRequestException && !(exception is GoogleWorkspaceApiException))
+            || exception is TimeoutException
+            || exception is OperationCanceledException;
 
         private static bool ContainsRetryableRateLimitReason(JsonElement element) {
             if (element.ValueKind == JsonValueKind.Object) {

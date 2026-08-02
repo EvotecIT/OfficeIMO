@@ -11,7 +11,9 @@ public enum EmailStoreMaintenanceAction {
     /// <summary>Split a PST into bounded, separately verified destinations.</summary>
     Split = 3,
     /// <summary>The source requires an external or manual repair tool.</summary>
-    ManualIntervention = 4
+    ManualIntervention = 4,
+    /// <summary>Repeat inspection with bounds large enough to cover the complete selected source.</summary>
+    CompleteInspection = 5
 }
 
 /// <summary>One explainable recommendation in a read-only maintenance plan.</summary>

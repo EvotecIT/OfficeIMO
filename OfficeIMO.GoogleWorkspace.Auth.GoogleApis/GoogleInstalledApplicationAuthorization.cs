@@ -10,7 +10,11 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         public IReadOnlyList<string> Scopes { get; set; } = Array.Empty<string>();
         public string? UserId { get; set; }
         public string? Account { get; set; }
-        /// <summary>Required for guarded mutations; resolves the authorized token's provider-issued identity and grants.</summary>
+        /// <summary>
+        /// Required by <see cref="GoogleInstalledApplicationAuthorization.AuthorizeAsync"/>; resolves the
+        /// authorized token's provider-issued identity and grants. Read-only callers can use
+        /// <see cref="GoogleInstalledApplicationAuthorization.AuthorizeCredentialAsync"/> without a resolver.
+        /// </summary>
         public GoogleWorkspaceCredentialBindingResolver? CredentialBindingResolver { get; set; }
         public IGoogleWorkspaceTokenStore? TokenStore { get; set; }
         public ICodeReceiver? CodeReceiver { get; set; }
@@ -62,6 +66,11 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
                 .ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Authorizes and returns a credential source with provider-verified identity evidence.
+        /// This convenience method always requires <see cref="GoogleInstalledApplicationAuthorizationOptions.CredentialBindingResolver"/>;
+        /// use <see cref="AuthorizeCredentialAsync"/> for a resolver-free read-only credential.
+        /// </summary>
         public static async Task<GoogleApisCredentialSource> AuthorizeAsync(
             GoogleInstalledApplicationAuthorizationOptions options,
             CancellationToken cancellationToken = default) {

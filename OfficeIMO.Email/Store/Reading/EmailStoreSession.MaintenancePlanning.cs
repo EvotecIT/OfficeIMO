@@ -36,9 +36,18 @@ public sealed partial class EmailStoreSession {
                 "Validation found defects for a format without a native verified rewrite path.",
                 executableByOfficeImo: false, EmailDataLossRisk.Unknown));
         }
+        bool inspectionIncomplete = validation.WasTruncated
+            || validation.StructuralValidationWasTruncated
+            || recovery.StoppedAtLimit;
+        if (inspectionIncomplete) {
+            recommendations.Add(new EmailStoreMaintenanceRecommendation(
+                EmailStoreMaintenanceAction.CompleteInspection,
+                "One or more item, recovery, structural page, block, or byte bounds stopped inspection before the selected source was fully examined.",
+                executableByOfficeImo: true, EmailDataLossRisk.None));
+        }
         if (recommendations.Count == 0) {
             recommendations.Add(new EmailStoreMaintenanceRecommendation(
-                EmailStoreMaintenanceAction.None, "No defect or orphan signal was found inside the configured bounds.",
+                EmailStoreMaintenanceAction.None, "The complete selected source contained no defect or orphan signal.",
                 executableByOfficeImo: false, EmailDataLossRisk.None));
         }
         string verifiedFingerprint = GetDurableSourceFingerprint(cancellationToken);

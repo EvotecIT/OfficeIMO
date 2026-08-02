@@ -43,6 +43,27 @@ public sealed class EmailStoreMaintenancePlanTests {
         Assert.Contains("source changed", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void MaintenancePlanningNeverReportsNoneWhenInspectionIsTruncated() {
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-maintenance-bounds-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            File.WriteAllText(Path.Combine(root, "one.eml"),
+                "From: a@example.test\r\nTo: b@example.test\r\nSubject: one\r\n\r\nbody", Encoding.ASCII);
+            File.WriteAllText(Path.Combine(root, "two.eml"),
+                "From: a@example.test\r\nTo: b@example.test\r\nSubject: two\r\n\r\nbody", Encoding.ASCII);
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+
+            EmailStoreMaintenancePlan plan = session.PlanMaintenance(maxItems: 1);
+
+            Assert.True(plan.Validation.WasTruncated || plan.Recovery.StoppedAtLimit);
+            Assert.Contains(plan.Recommendations,
+                item => item.Action == EmailStoreMaintenanceAction.CompleteInspection);
+            Assert.DoesNotContain(plan.Recommendations,
+                item => item.Action == EmailStoreMaintenanceAction.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
     private static byte[] Hash(byte[] value) { using SHA256 hash = SHA256.Create(); return hash.ComputeHash(value); }
 
     private sealed class MutatingAfterFullReadStream : MemoryStream {

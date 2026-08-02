@@ -8,6 +8,7 @@ namespace OfficeIMO.GoogleWorkspace {
         ApiRequest = 2,
         RequestTimeout = 3,
         Canceled = 4,
+        AmbiguousMutation = 5,
     }
 
     /// <summary>
@@ -150,6 +151,39 @@ namespace OfficeIMO.GoogleWorkspace {
             return new GoogleWorkspaceExportException(
                 message,
                 GoogleWorkspaceFailureKind.RequestTimeout,
+                report,
+                exception);
+        }
+
+        /// <summary>
+        /// Creates an actionable export failure for a mutation that must be reconciled before retry.
+        /// </summary>
+        public static GoogleWorkspaceExportException CreateAmbiguousMutationFailure(
+            string operationName,
+            GoogleWorkspaceSessionOptions? sessionOptions,
+            TranslationReport report,
+            GoogleWorkspaceAmbiguousMutationException exception) {
+            if (report == null) throw new ArgumentNullException(nameof(report));
+            if (exception == null) throw new ArgumentNullException(nameof(exception));
+
+            string requestId = string.IsNullOrWhiteSpace(exception.Receipt.RequestId)
+                ? "not supplied"
+                : exception.Receipt.RequestId!;
+            string message = $"{operationName} may have committed remotely without returning a response. Reconcile target '{exception.Receipt.Target}' and request id '{requestId}' before retrying.";
+
+            GoogleWorkspaceDiagnosticsDispatcher.AddUnique(
+                report,
+                sessionOptions,
+                TranslationSeverity.Error,
+                "AmbiguousMutation",
+                message,
+                failureKind: GoogleWorkspaceFailureKind.AmbiguousMutation,
+                code: GoogleWorkspaceDiagnosticCodes.AmbiguousMutation,
+                action: TranslationAction.Fail);
+
+            return new GoogleWorkspaceExportException(
+                message,
+                GoogleWorkspaceFailureKind.AmbiguousMutation,
                 report,
                 exception);
         }

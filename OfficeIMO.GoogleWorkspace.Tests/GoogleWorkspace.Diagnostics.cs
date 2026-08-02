@@ -402,7 +402,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_ClassifiesRequestTimeoutFailures() {
+        public async Task Test_GoogleSheetsExporter_ClassifiesPreResponseTimeoutAsAmbiguousMutation() {
             string filePath = Path.Combine(Path.GetTempPath(), "GoogleSheetsExporterTimeout-" + Guid.NewGuid().ToString("N") + ".xlsx");
 
             try {
@@ -430,10 +430,14 @@ namespace OfficeIMO.Tests {
                         Title = "Timeout Export",
                     }));
 
-                Assert.Equal(GoogleWorkspaceFailureKind.RequestTimeout, exception.FailureKind);
-                Assert.IsType<TaskCanceledException>(exception.InnerException);
+                Assert.Equal(GoogleWorkspaceFailureKind.AmbiguousMutation, exception.FailureKind);
+                GoogleWorkspaceAmbiguousMutationException ambiguous =
+                    Assert.IsType<GoogleWorkspaceAmbiguousMutationException>(exception.InnerException);
+                Assert.True(ambiguous.Receipt.IsOutcomeAmbiguous);
+                Assert.IsType<TaskCanceledException>(ambiguous.InnerException);
                 Assert.Contains(exception.Report.Notices, notice =>
-                    notice.Feature == "RequestTimeout"
+                    notice.Feature == "AmbiguousMutation"
+                    && notice.Code == GoogleWorkspaceDiagnosticCodes.AmbiguousMutation
                     && notice.Severity == TranslationSeverity.Error);
             } finally {
                 if (File.Exists(filePath)) {

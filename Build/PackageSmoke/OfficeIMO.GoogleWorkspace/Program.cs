@@ -60,7 +60,10 @@ var policy = new GoogleWorkspaceOperationPolicy(options.ExpectedAccount!,
 GoogleWorkspaceSyncPlan plan = GoogleWorkspaceSyncPlan.Create(new[] { item }, policy);
 
 if (!plan.CanApply || receipts.Count != 1
+    || !Enum.IsDefined(typeof(GoogleWorkspaceFailureKind), GoogleWorkspaceFailureKind.AmbiguousMutation)
     || receipts[0].RevisionPreconditionKind != GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate
+    || typeof(GoogleWorkspaceOperationReceipt).GetProperty(nameof(GoogleWorkspaceOperationReceipt.IsOutcomeAmbiguous)) == null
+    || typeof(GoogleWorkspaceAmbiguousMutationException).Assembly != typeof(GoogleWorkspaceSession).Assembly
     || typeof(GoogleDriveDownloadCheckpoint).GetProperty(nameof(GoogleDriveDownloadCheckpoint.ChunkSize)) == null ||
     typeof(GoogleDriveClient).GetMethod(nameof(GoogleDriveClient.DownloadToFileAsync)) == null ||
     typeof(GoogleDriveClient).GetMethod(nameof(GoogleDriveClient.UploadResumableStreamAsync)) == null ||
