@@ -1331,7 +1331,14 @@ namespace OfficeIMO.Tests {
             using WordDocument loaded = WordDocument.Load(filePath);
             var options = new WordSignatureValidationOptions();
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
-            Assert.Equal(WordSignatureValidationState.Passed, loaded.ValidateSignatures(options).SignedPartDigestStatus);
+            WordSignatureValidationReport initialValidation = loaded.ValidateSignatures(options);
+            Assert.True(
+                initialValidation.SignedPartDigestStatus == WordSignatureValidationState.Passed,
+                string.Join(
+                    System.Environment.NewLine,
+                    initialValidation.SignatureInfo.SignatureParts
+                        .SelectMany(part => part.SignedReferences)
+                        .Select(reference => reference.Uri + ": " + reference.DigestVerificationStatus + " " + reference.DigestVerificationDetail)));
 
             loaded.AddParagraph("Unsaved mutation");
             var encodedPackageStream = (MemoryStream)typeof(WordDocument)

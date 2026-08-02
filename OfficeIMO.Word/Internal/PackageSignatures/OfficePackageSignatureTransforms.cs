@@ -96,6 +96,11 @@ namespace OfficeIMO.Word {
             if (!ContainsPart(targetPartUri)) {
                 return OfficePackageDigestResult.Failed("Digest verification failed because package part " + targetPartUri + " does not exist.");
             }
+            if (TryGetPartLength(targetPartUri, out long targetPartLength) && targetPartLength > maxPartBytes) {
+                return OfficePackageDigestResult.Unsupported(
+                    "Digest verification for " + targetPartUri +
+                    " was not checked because the package part exceeds the " + maxPartBytes + " byte limit.");
+            }
             string? declaredContentType;
             try {
                 declaredContentType = GetDeclaredContentType(uri);
