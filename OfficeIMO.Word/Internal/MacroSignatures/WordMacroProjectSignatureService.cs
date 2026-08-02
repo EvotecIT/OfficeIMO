@@ -295,6 +295,17 @@ namespace OfficeIMO.Word {
                         "Signing did not produce the required legacy, agile, and V3 VBA signature parts."));
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
                 }
+                WordMacroProjectSignatureFinding? rejectedProfileFinding = stagedValidation.Findings
+                    .FirstOrDefault(finding =>
+                        finding.State == WordSignatureValidationState.Failed &&
+                        finding.Profile.HasValue);
+                if (rejectedProfileFinding != null) {
+                    findings.Add(Finding("MacroSignatureProfilePolicyFailed", WordSignatureValidationState.Failed,
+                        "The completed " + rejectedProfileFinding.Profile!.Value +
+                        " VBA signature profile had failed inspection or policy evidence.",
+                        rejectedProfileFinding.Profile));
+                    return SigningResult(fullPath, true, false, true, stagedValidation, findings);
+                }
                 WordMacroProjectSignaturePartInfo? rejectedProfile = stagedInfo.Signatures
                     .OrderBy(signature => signature.Profile)
                     .FirstOrDefault(signature => !ProfileAccepted(signature, options));

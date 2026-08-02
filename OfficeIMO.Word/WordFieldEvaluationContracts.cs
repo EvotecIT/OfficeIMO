@@ -1,7 +1,9 @@
 namespace OfficeIMO.Word {
     internal enum WordFieldEvaluationReason {
         Default,
-        ContainingResultReplaced
+        ContainingResultReplaced,
+        CallerProvidedDateTime,
+        RuntimeClock
     }
 
     /// <summary>Describes the evidence OfficeIMO used to produce or defer a field result.</summary>
@@ -13,7 +15,11 @@ namespace OfficeIMO.Word {
         /// <summary>The result was estimated from explicit page and section breaks, without a pagination engine.</summary>
         ExplicitBreakEstimate,
         /// <summary>The result requires Word or another layout-aware application.</summary>
-        ExternalLayoutRequired
+        ExternalLayoutRequired,
+        /// <summary>The result used the explicit update date/time supplied by the caller.</summary>
+        CallerProvidedDateTime,
+        /// <summary>The result used the host runtime clock because no update date/time was supplied by the caller.</summary>
+        RuntimeClock
     }
 
     /// <summary>Describes how generated TOC, index, and caption-list page references were calculated.</summary>
@@ -30,6 +36,14 @@ namespace OfficeIMO.Word {
             WordFieldEvaluationReason reason) {
             if (reason == WordFieldEvaluationReason.ContainingResultReplaced) {
                 return WordFieldEvaluationBasis.NotEvaluated;
+            }
+
+            if (status == WordFieldUpdateStatus.Updated && reason == WordFieldEvaluationReason.RuntimeClock) {
+                return WordFieldEvaluationBasis.RuntimeClock;
+            }
+
+            if (status == WordFieldUpdateStatus.Updated && reason == WordFieldEvaluationReason.CallerProvidedDateTime) {
+                return WordFieldEvaluationBasis.CallerProvidedDateTime;
             }
 
             if (!isLocked && status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) {
@@ -60,6 +74,8 @@ namespace OfficeIMO.Word {
             if (isLocked) return "FieldLocked";
             if (status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) return "FieldRefreshDelegated";
             if (status == WordFieldUpdateStatus.Skipped) return "FieldSourceUnavailable";
+            if (reason == WordFieldEvaluationReason.RuntimeClock) return "FieldUpdatedFromRuntimeClock";
+            if (reason == WordFieldEvaluationReason.CallerProvidedDateTime) return "FieldUpdatedFromCallerDateTime";
             return GetBasis(fieldType, status, isLocked, reason) == WordFieldEvaluationBasis.ExplicitBreakEstimate
                 ? "FieldUpdatedFromExplicitBreaks"
                 : "FieldUpdatedInvariant";

@@ -41,9 +41,13 @@ namespace OfficeIMO.Word.Html {
             } else if (TryGetDataListOptions(element, out var dataListOptions)) {
                 var hasValueAttribute = element.HasAttribute("value");
                 var value = element.GetAttribute("value") ?? string.Empty;
-                int selectedIndex = dataListOptions.FindIndex(option =>
-                    string.Equals(option.DisplayText, value, StringComparison.Ordinal) ||
-                    string.Equals(option.Value, value, StringComparison.Ordinal));
+                string? selectedInternalValue = element.GetAttribute("data-word-value");
+                int selectedIndex = selectedInternalValue == null
+                    ? dataListOptions.FindIndex(option =>
+                        string.Equals(option.DisplayText, value, StringComparison.Ordinal) ||
+                        string.Equals(option.Value, value, StringComparison.Ordinal))
+                    : dataListOptions.FindIndex(option =>
+                        string.Equals(option.Value, selectedInternalValue, StringComparison.Ordinal));
                 if (!string.IsNullOrEmpty(value) && selectedIndex < 0) {
                     dataListOptions.Insert(0, (value, value));
                     selectedIndex = 0;

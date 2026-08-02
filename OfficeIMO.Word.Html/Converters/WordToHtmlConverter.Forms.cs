@@ -63,6 +63,15 @@ namespace OfficeIMO.Word.Html {
                     "value",
                     string.IsNullOrEmpty(selectedDisplayText) ? selectedValue! : selectedDisplayText!,
                     "ComboBox:selected-display");
+                if (!string.IsNullOrEmpty(selectedDisplayText) &&
+                    !string.Equals(selectedValue, selectedDisplayText, StringComparison.Ordinal)) {
+                    SetOutputAttribute(
+                        htmlDoc,
+                        input,
+                        "data-word-value",
+                        selectedValue!,
+                        "ComboBox:selected-internal-value");
+                }
             }
             ApplyContentControlMetadata(input, comboBox.Alias, comboBox.Tag);
             yield return input;

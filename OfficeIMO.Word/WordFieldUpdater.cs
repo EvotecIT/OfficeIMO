@@ -12,6 +12,9 @@ namespace OfficeIMO.Word {
 
             int totalPages = EstimateTotalPages(document);
             DateTime updateDateTime = options.CurrentDateTime ?? DateTime.Now;
+            WordFieldEvaluationReason dateTimeEvaluationReason = options.CurrentDateTime.HasValue
+                ? WordFieldEvaluationReason.CallerProvidedDateTime
+                : WordFieldEvaluationReason.RuntimeClock;
             var state = new FieldEvaluationState();
             var results = new List<WordFieldUpdateResult>();
             var replacedContainingFields = new List<MutableFieldCandidate>();
@@ -32,7 +35,8 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                WordFieldUpdateResult result = UpdateField(document, candidate, totalPages, state, updateDateTime);
+                WordFieldUpdateResult result = UpdateField(
+                    document, candidate, totalPages, state, updateDateTime, dateTimeEvaluationReason);
                 results.Add(result);
                 if (result.Status == WordFieldUpdateStatus.Updated &&
                     candidate.Representation == WordFieldRepresentation.Complex &&
@@ -69,7 +73,13 @@ namespace OfficeIMO.Word {
             document.TableOfContent?.Update();
         }
 
-        private static WordFieldUpdateResult UpdateField(WordDocument document, MutableFieldCandidate candidate, int totalPages, FieldEvaluationState state, DateTime updateDateTime) {
+        private static WordFieldUpdateResult UpdateField(
+            WordDocument document,
+            MutableFieldCandidate candidate,
+            int totalPages,
+            FieldEvaluationState state,
+            DateTime updateDateTime,
+            WordFieldEvaluationReason dateTimeEvaluationReason) {
             WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
 
             if (parsed.Diagnostics.Count > 0 || parsed.FieldType == null) {
@@ -89,7 +99,10 @@ namespace OfficeIMO.Word {
             }
 
             SetResultText(candidate, value!);
-            return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Updated, value, message);
+            WordFieldEvaluationReason reason = parsed.FieldType is WordFieldType.Date or WordFieldType.Time
+                ? dateTimeEvaluationReason
+                : WordFieldEvaluationReason.Default;
+            return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Updated, value, message, reason);
         }
 
         private static bool TryEvaluate(
