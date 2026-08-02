@@ -171,6 +171,30 @@ public sealed class ReaderVisioModularTests {
     }
 
     [Fact]
+    public void DocumentReaderVisio_LoadedDocumentNormalizesReaderOptions() {
+        using MemoryStream stream = BuildManyShapeDataRowsVisio();
+        VisioDocument document = VisioDocument.Load(stream);
+
+        OfficeDocumentReadResult result = document.ToOfficeDocumentReadResult(
+            readerOptions: new ReaderOptions {
+                MaxChars = 0,
+                MaxTableRows = -1
+            });
+
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Single(table.Rows);
+        Assert.True(table.Truncated);
+        Assert.NotNull(result.Chunks);
+        Assert.Contains(result.Chunks!, chunk =>
+            (chunk.Text?.Length ?? 0) > 1
+            || (chunk.Markdown?.Length ?? 0) > 1);
+        Assert.All(result.Chunks!, chunk => {
+            Assert.True((chunk.Text ?? string.Empty).Length <= 256);
+            Assert.True((chunk.Markdown ?? string.Empty).Length <= 256);
+        });
+    }
+
+    [Fact]
     public void DocumentReaderVisio_ReadVisioDocumentJson_EmitsStableTransportShape() {
         using MemoryStream stream = BuildSampleVisio();
 

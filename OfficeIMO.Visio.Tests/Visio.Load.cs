@@ -32,14 +32,25 @@ namespace OfficeIMO.Tests {
                     filePath,
                     cancellationToken: default,
                     options: options);
+                VisioDocument legacyNamedPathLoaded = await VisioDocument.LoadAsync(
+                    filePath,
+                    default,
+                    options: options);
                 using var stream = pathLoaded.ToStream();
                 VisioDocument streamLoaded = await VisioDocument.LoadAsync(
                     stream,
                     cancellationToken: default,
                     options: options);
+                stream.Position = 0;
+                VisioDocument legacyNamedStreamLoaded = await VisioDocument.LoadAsync(
+                    stream,
+                    default,
+                    options: options);
 
                 Assert.Single(pathLoaded.Pages);
+                Assert.Single(legacyNamedPathLoaded.Pages);
                 Assert.Single(streamLoaded.Pages);
+                Assert.Single(legacyNamedStreamLoaded.Pages);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

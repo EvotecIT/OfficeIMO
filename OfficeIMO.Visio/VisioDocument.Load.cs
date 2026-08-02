@@ -64,8 +64,8 @@ namespace OfficeIMO.Visio {
         public static Task<VisioDocument> LoadAsync(
             string filePath,
             CancellationToken legacyCancellationToken,
-            VisioLoadOptions? legacyOptions) =>
-            LoadAsync(filePath, legacyOptions, legacyCancellationToken);
+            VisioLoadOptions? options) =>
+            LoadAsync(filePath, options, legacyCancellationToken);
 
         /// <summary>Asynchronously loads an existing .vsdx file with optional input limits.</summary>
         public static async Task<VisioDocument> LoadAsync(
@@ -92,8 +92,8 @@ namespace OfficeIMO.Visio {
         public static Task<VisioDocument> LoadAsync(
             Stream stream,
             CancellationToken legacyCancellationToken,
-            VisioLoadOptions? legacyOptions) =>
-            LoadAsync(stream, legacyOptions, legacyCancellationToken);
+            VisioLoadOptions? options) =>
+            LoadAsync(stream, options, legacyCancellationToken);
 
         /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
         public static async Task<VisioDocument> LoadAsync(

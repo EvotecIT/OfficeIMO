@@ -15,10 +15,12 @@ public static class VisioDocumentReaderExtensions {
         ReaderOptions? readerOptions = null,
         ReaderVisioOptions? visioOptions = null,
         CancellationToken cancellationToken = default) {
+        ReaderOptions effectiveReaderOptions =
+            DocumentReaderEngine.NormalizeOptions(readerOptions);
         return VisioReaderAdapter.ReadDocument(
             document,
             sourceName,
-            readerOptions,
+            effectiveReaderOptions,
             visioOptions,
             cancellationToken);
     }
