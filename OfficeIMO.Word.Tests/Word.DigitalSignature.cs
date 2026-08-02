@@ -1519,6 +1519,37 @@ namespace OfficeIMO.Tests {
             Assert.True(validation.IsValidUnderPolicy, string.Join(System.Environment.NewLine, validation.Findings));
         }
 
+        [Fact]
+        public void Test_DigitalSignature_AcceptsWhitespaceWrappedTimestampAtDecodedByteLimit() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureWhitespaceTimestamp.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Whitespace-wrapped RFC 3161 timestamp token");
+                document.Save();
+            }
+
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordDocument.SignPackage(filePath, signer);
+            int timestampBytes = AddRfc3161Timestamp(
+                filePath,
+                timestampCorrectSignatureValue: true,
+                wrapTimestampBase64: true);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+            var options = new WordSignatureValidationOptions { MaxTimestampBytes = timestampBytes };
+            options.CertificateValidation.DisableCertificateDownloads = false;
+            options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+            options.TimestampCertificateValidation.DisableCertificateDownloads = false;
+            options.TimestampCertificateValidation.ChainEvaluator = static (_, _) => true;
+
+            WordSignaturePartValidationResult signature = Assert.Single(loaded.ValidateSignatures(options).Signatures);
+
+            Assert.Equal(WordSignatureValidationState.Passed, signature.TimestampStatus);
+            Assert.Equal(OfficeIMO.Security.SecurityValidationStatus.Valid, Assert.Single(signature.TimestampTokens).Status);
+            Assert.True(signature.IsValidUnderPolicy, string.Join(System.Environment.NewLine, signature.Findings));
+        }
+
         [Theory]
         [InlineData(SignedXml.XmlDsigExcC14NTransformUrl, "WithoutComments")]
         [InlineData(SignedXml.XmlDsigExcC14NWithCommentsTransformUrl, "WithComments")]
@@ -2065,13 +2096,14 @@ namespace OfficeIMO.Tests {
             return new X509Certificate2(certificate.Export(X509ContentType.Pfx), (string?)null, X509KeyStorageFlags.Exportable);
         }
 
-        private static void AddRfc3161Timestamp(
+        private static int AddRfc3161Timestamp(
             string filePath,
             bool timestampCorrectSignatureValue,
             string? timestampTokenText = null,
             string? canonicalizationAlgorithm = null,
             string? inclusiveNamespacesPrefixList = null,
-            string? inheritedXmlLanguage = null) {
+            string? inheritedXmlLanguage = null,
+            bool wrapTimestampBase64 = false) {
             using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
             ZipArchiveEntry signatureEntry = archive.Entries.Single(entry =>
                 entry.FullName.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase) &&
@@ -2119,7 +2151,9 @@ namespace OfficeIMO.Tests {
                 signatureTimeStamp.AppendChild(canonicalizationMethod);
             }
             XmlElement encapsulated = signatureXml.CreateElement("xades", "EncapsulatedTimeStamp", qualifyingProperties.NamespaceURI);
-            encapsulated.InnerText = timestampTokenText ?? System.Convert.ToBase64String(timestampToken);
+            encapsulated.InnerText = timestampTokenText ?? System.Convert.ToBase64String(
+                timestampToken,
+                wrapTimestampBase64 ? Base64FormattingOptions.InsertLineBreaks : Base64FormattingOptions.None);
             signatureTimeStamp.AppendChild(encapsulated);
             unsignedSignatureProperties.AppendChild(signatureTimeStamp);
             unsignedProperties.AppendChild(unsignedSignatureProperties);
@@ -2130,6 +2164,7 @@ namespace OfficeIMO.Tests {
             using Stream destination = signatureEntry.Open();
             destination.SetLength(0);
             signatureXml.Save(destination);
+            return timestampToken.Length;
         }
 
         private static void AddUnrelatedTimestampLikeObject(string filePath) {

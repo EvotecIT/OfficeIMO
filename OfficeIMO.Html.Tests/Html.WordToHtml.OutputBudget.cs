@@ -83,6 +83,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetExcludesOpenXmlOnlyTextAttributes() {
+            using WordDocument document = WordDocument.Create();
+            for (int index = 0; index < 256; index++) {
+                document.AddParagraph()._paragraph.Append(
+                    new Run(new Text(" value ") { Space = SpaceProcessingModeValues.Preserve }));
+            }
+            var unboundedOptions = new WordToHtmlOptions { IncludeDefaultCss = false };
+            string expected = document.ToHtmlResult(unboundedOptions).RequireValue();
+
+            HtmlTextConversionResult bounded = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = expected.Length
+            });
+
+            Assert.True(bounded.Succeeded);
+            Assert.Equal(expected, bounded.RequireValue());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_WordToHtml_OutputBudgetReservesCollapsedCodeSeparatorsBeforeMaterialization(bool insideTable) {
+            using WordDocument document = WordDocument.Create();
+            if (insideTable) {
+                WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+                for (int index = 0; index < 8192; index++) {
+                    cell.AddParagraph().SetStyleId("HTMLPreformatted");
+                }
+            } else {
+                for (int index = 0; index < 8192; index++) {
+                    document.AddParagraph().SetStyleId("HTMLPreformatted");
+                }
+            }
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    IncludeParagraphClasses = false,
+                    MaxOutputCharacters = 4096
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("CodeBlockSeparators", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetReservesEncodedDocumentMetadataBeforeDomConstruction() {
             using WordDocument document = WordDocument.Create();
             document.BuiltinDocumentProperties.Title = new string('&', 1024);
@@ -107,9 +154,7 @@ namespace OfficeIMO.Tests {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 2500
             };
-            for (int index = 0; index < 256; index++) {
-                options.AdditionalMetaTags.Add(("x", string.Empty));
-            }
+            options.AdditionalMetaTags.Add((new string('x', 4096), string.Empty));
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
                 document.ToHtmlResult(options));
@@ -236,7 +281,7 @@ namespace OfficeIMO.Tests {
                 () => document.ToHtmlResult(options));
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
-            Assert.Equal("DropDownOption:value", exception.LimitSource);
+            Assert.StartsWith("DropDownOption:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
 

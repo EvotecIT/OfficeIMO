@@ -955,7 +955,7 @@ namespace OfficeIMO.Word.Html {
                                 }
                                 var pre = CreateOutputElement(htmlDoc, "pre");
                                 var code = CreateOutputElement(htmlDoc, "code");
-                                code.TextContent = string.Join("\n", lines);
+                                SetCollapsedCodeText(htmlDoc, code, lines);
                                 pre.AppendChild(code);
                                 cellElement.AppendChild(pre);
                             } else if (IsDefinitionListParagraph(p)) {
@@ -1259,7 +1259,7 @@ namespace OfficeIMO.Word.Html {
                                 var pre = CreateOutputElement(htmlDoc, "pre");
                                 ApplyBookmarkId(pre, paragraph);
                                 var code = CreateOutputElement(htmlDoc, "code");
-                                code.TextContent = string.Join("\n", lines);
+                                SetCollapsedCodeText(htmlDoc, code, lines);
                                 pre.AppendChild(code);
                                 sectionParent.AppendChild(pre);
                             } else {

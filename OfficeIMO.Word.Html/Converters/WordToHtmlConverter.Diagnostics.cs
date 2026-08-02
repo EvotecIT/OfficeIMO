@@ -122,29 +122,27 @@ namespace OfficeIMO.Word.Html {
             OpenXmlElement element,
             OpenXmlAttribute attribute,
             WordToHtmlOptions options) {
-            if (element is DocumentFormat.OpenXml.Wordprocessing.FieldCode) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.SimpleField &&
-                attribute.LocalName.Equals("instr", StringComparison.Ordinal)) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.ListItem) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.CommentReference) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.RunFonts && !options.IncludeFontStyles) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.RunStyle && !options.IncludeRunClasses) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.Color && !options.IncludeRunColorStyles) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.Highlight && !options.IncludeRunHighlightStyles) return false;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.RunFonts) return options.IncludeFontStyles;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.RunStyle) return options.IncludeRunClasses;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.Color) return options.IncludeRunColorStyles;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.Highlight) return options.IncludeRunHighlightStyles;
             if (element is DocumentFormat.OpenXml.Wordprocessing.Shading &&
-                element.Parent is DocumentFormat.OpenXml.Wordprocessing.RunProperties &&
-                !options.IncludeRunHighlightStyles) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.ParagraphStyleId && !options.IncludeParagraphClasses) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.Indentation &&
-                !options.IncludeParagraphIndentationStyles) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines &&
-                !options.IncludeParagraphSpacingStyles) return false;
-            if ((element is DocumentFormat.OpenXml.Wordprocessing.PageSize ||
-                 element is DocumentFormat.OpenXml.Wordprocessing.PageMargin) &&
-                !options.IncludeSectionMetadata) return false;
-            if (element is DocumentFormat.OpenXml.Wordprocessing.GridColumn &&
-                !options.IncludeTableColumnGroups) return false;
-            return true;
+                element.Parent is DocumentFormat.OpenXml.Wordprocessing.RunProperties) {
+                return options.IncludeRunHighlightStyles;
+            }
+            if (element is DocumentFormat.OpenXml.Wordprocessing.ParagraphStyleId) return options.IncludeParagraphClasses;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.Indentation) return options.IncludeParagraphIndentationStyles;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines) return options.IncludeParagraphSpacingStyles;
+            if (element is DocumentFormat.OpenXml.Wordprocessing.PageSize ||
+                element is DocumentFormat.OpenXml.Wordprocessing.PageMargin) {
+                return options.IncludeSectionMetadata;
+            }
+            if (element is DocumentFormat.OpenXml.Wordprocessing.GridColumn) return options.IncludeTableColumnGroups;
+
+            // Open XML carries many package-only attributes (xml:space, revision session IDs,
+            // relationship IDs, field instructions, and similar metadata). Generated output
+            // attributes are reserved at their SetOutputAttribute owner instead of here.
+            return false;
         }
 
         // Header and footer parts are intentionally excluded here. A shared part can be emitted

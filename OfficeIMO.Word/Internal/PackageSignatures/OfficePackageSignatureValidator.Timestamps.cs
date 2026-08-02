@@ -20,7 +20,9 @@ namespace OfficeIMO.Word {
                 timestampBudget.ReserveToken();
                 byte[] encoded;
                 try {
-                    if (tokenElement.InnerText.Length > GetMaxBase64EncodedCharacters(options.MaxTimestampBytes)) {
+                    if (ExceedsBase64CharacterLimit(
+                        tokenElement.InnerText,
+                        GetMaxBase64EncodedCharacters(options.MaxTimestampBytes))) {
                         throw new InvalidDataException("An embedded RFC 3161 timestamp token exceeds the " + options.MaxTimestampBytes + " byte limit.");
                     }
                     encoded = Convert.FromBase64String(tokenElement.InnerText);
@@ -54,6 +56,18 @@ namespace OfficeIMO.Word {
                     findings.Add(Finding(finding.Code, MapStatus(result.Status), finding.Message, signaturePartUri));
                 }
             }
+        }
+
+        private static bool ExceedsBase64CharacterLimit(string value, long maxCharacters) {
+            long characters = 0;
+            foreach (char character in value) {
+                if (character == ' ' || character == '\t' || character == '\r' || character == '\n') {
+                    continue;
+                }
+                characters++;
+                if (characters > maxCharacters) return true;
+            }
+            return false;
         }
 
         private sealed class OfficePackageTimestampValidationBudget {

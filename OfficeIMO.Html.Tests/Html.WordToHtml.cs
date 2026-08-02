@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
-            Assert.Contains("document.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+            Assert.StartsWith("GeneratedElement:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
 

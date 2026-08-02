@@ -69,6 +69,18 @@ namespace OfficeIMO.Word.Html {
             element.TextContent = value;
         }
 
+        private static void SetCollapsedCodeText(
+            IDocument owner,
+            IElement element,
+            IReadOnlyCollection<string> lines) {
+            ReserveOutputCharacters(
+                owner,
+                Math.Max(0, lines.Count - 1),
+                "Generated code-block separators exceed the configured output-character limit before materialization.",
+                "CodeBlockSeparators");
+            element.TextContent = string.Join("\n", lines);
+        }
+
         private static long GetRemainingOutputCharacters(IDocument owner) {
             if (!OutputConstructionBudgets.TryGetValue(owner, out OutputConstructionBudget? budget)) {
                 throw new InvalidOperationException("The HTML output construction budget was not initialized.");
