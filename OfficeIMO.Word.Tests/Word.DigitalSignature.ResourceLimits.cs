@@ -46,6 +46,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_ReadWriteValidationRejectsEncodedPackageBeforeSnapshotCopy() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureReadWritePackageBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph(new string('x', 4096));
+                document.Save();
+            }
+            using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, signer);
+            Assert.True(signing.Succeeded);
+            long packageLength = new FileInfo(filePath).Length;
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadWrite,
+                MaxInputBytes = packageLength
+            });
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(
+                new WordSignatureValidationOptions { MaxPackageBytes = packageLength - 1 });
+
+            WordSignatureValidationFinding finding = Assert.Single(validation.Diagnostics,
+                diagnostic => diagnostic.Code == "PackageByteLimitExceeded");
+            Assert.Contains("exceeds", finding.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_DeduplicatesAdditionalCertificatesBeforeWriting() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureDuplicateCertificates.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

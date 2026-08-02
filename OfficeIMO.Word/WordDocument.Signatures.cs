@@ -235,10 +235,10 @@ namespace OfficeIMO.Word {
             if (_ownedPackageStream == null) {
                 throw new InvalidDataException("The current OPC package has no encoded package stream available for validation.");
             }
+            if (_ownedPackageStream.Length > options.MaxPackageBytes) {
+                throw new InvalidDataException("The current OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
+            }
             if (_wordprocessingDocument.FileOpenAccess == FileAccess.Read) {
-                if (_ownedPackageStream.Length > options.MaxPackageBytes) {
-                    throw new InvalidDataException("The current OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
-                }
                 return _ownedPackageStream.ToArray();
             }
 
