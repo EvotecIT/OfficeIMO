@@ -174,6 +174,27 @@ namespace OfficeIMO.Word {
                     fullPath,
                     stagingPath,
                     options.Inspection.PackageSecurity.MaxPackageBytes);
+                WordMacroProjectSignatureInfo stagingPreflight = WordMacroProjectSignatureInspector.Inspect(
+                    stagingPath,
+                    options.Inspection,
+                    new WordMacroProjectSignatureInspector.InspectionBudget(options.Inspection),
+                    validateCmsOverride: false);
+                foreach (WordMacroProjectSignatureFinding finding in stagingPreflight.Findings) {
+                    if (!findings.Any(existing =>
+                        existing.Code == finding.Code &&
+                        existing.Profile == finding.Profile &&
+                        existing.Message == finding.Message)) {
+                        findings.Add(finding);
+                    }
+                }
+                if (stagingPreflight.Findings.Any(finding => finding.State == WordSignatureValidationState.Failed) ||
+                    !stagingPreflight.HasMacroProject ||
+                    !string.Equals(sourceInfo.MacroProjectSha256, stagingPreflight.MacroProjectSha256,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    findings.Add(Finding("MacroSigningStagingPreflightFailed", WordSignatureValidationState.Failed,
+                        "The exact bounded staging snapshot changed or failed package-security inspection before native signing tools were invoked."));
+                    return SigningResult(fullPath, true, false, false, null, findings);
+                }
                 string sourcePackageHash = WordPackageSnapshot.ComputeSha256(
                     stagingPath,
                     options.Inspection.PackageSecurity.MaxPackageBytes);

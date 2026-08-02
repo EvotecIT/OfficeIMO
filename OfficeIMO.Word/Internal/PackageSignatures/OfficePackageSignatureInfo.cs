@@ -244,7 +244,7 @@ namespace OfficeIMO.Word {
             string? digestInspectionUnavailableDetail = null;
             if (packageBytes != null) {
                 try {
-                    signatureArchive = new OfficePackageSignatureArchive(packageBytes, maxPackageParts);
+                    signatureArchive = new OfficePackageSignatureArchive(packageBytes, maxPackageParts, maxPartBytes);
                 } catch (OfficePackageSignatureResourceLimitException ex) {
                     digestInspectionUnavailableDetail = "Digest inspection was not performed because the bounded OPC archive could not be opened: " + ex.Message;
                     unsupportedDetails.Add(digestInspectionUnavailableDetail);

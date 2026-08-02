@@ -8,34 +8,16 @@ namespace OfficeIMO.Word {
             ParagraphNumberingStyleCatalog styleCatalog) {
             NumberingProperties? directNumbering = paragraph.ParagraphProperties?.NumberingProperties;
             if (directNumbering != null) return directNumbering;
-
-            var pendingStyleIds = new Stack<string>();
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(styleId)) {
-                pendingStyleIds.Push(styleId!);
-            } else {
-                foreach (string defaultStyleId in styleCatalog.DefaultParagraphStyleIds) {
-                    pendingStyleIds.Push(defaultStyleId);
-                }
-            }
-
-            var visited = new HashSet<string>(StringComparer.Ordinal);
-            while (pendingStyleIds.Count > 0) {
-                string currentStyleId = pendingStyleIds.Pop();
-                if (!visited.Add(currentStyleId)) continue;
-                foreach (Style style in styleCatalog.StylesById[currentStyleId]) {
-                    NumberingProperties? numbering = style.StyleParagraphProperties?.NumberingProperties;
-                    if (numbering != null) return numbering;
-                    string? baseStyleId = style.BasedOn?.Val?.Value;
-                    if (!string.IsNullOrWhiteSpace(baseStyleId)) pendingStyleIds.Push(baseStyleId!);
-                }
-            }
-
-            return null;
+            return styleCatalog.ResolveNumbering(styleId);
         }
 
         /// <summary>Caches the combined style definitions used while resolving paragraph numbering for one analysis.</summary>
         private sealed class ParagraphNumberingStyleCatalog {
+            private const string DefaultParagraphStylesCacheKey = "\0default-paragraph-styles";
+            private readonly Dictionary<string, NumberingProperties?> _resolvedNumbering =
+                new(StringComparer.Ordinal);
+
             private ParagraphNumberingStyleCatalog(
                 ILookup<string, Style> stylesById,
                 IReadOnlyList<string> defaultParagraphStyleIds) {
@@ -45,6 +27,36 @@ namespace OfficeIMO.Word {
 
             internal ILookup<string, Style> StylesById { get; }
             internal IReadOnlyList<string> DefaultParagraphStyleIds { get; }
+
+            internal NumberingProperties? ResolveNumbering(string? styleId) {
+                string cacheKey = string.IsNullOrWhiteSpace(styleId)
+                    ? DefaultParagraphStylesCacheKey
+                    : styleId!;
+                if (_resolvedNumbering.TryGetValue(cacheKey, out NumberingProperties? cached)) return cached;
+
+                var pendingStyleIds = new Stack<string>();
+                if (cacheKey == DefaultParagraphStylesCacheKey) {
+                    foreach (string defaultStyleId in DefaultParagraphStyleIds) pendingStyleIds.Push(defaultStyleId);
+                } else {
+                    pendingStyleIds.Push(cacheKey);
+                }
+                var visited = new HashSet<string>(StringComparer.Ordinal);
+                while (pendingStyleIds.Count > 0) {
+                    string currentStyleId = pendingStyleIds.Pop();
+                    if (!visited.Add(currentStyleId)) continue;
+                    foreach (Style style in StylesById[currentStyleId]) {
+                        NumberingProperties? numbering = style.StyleParagraphProperties?.NumberingProperties;
+                        if (numbering != null) {
+                            _resolvedNumbering[cacheKey] = numbering;
+                            return numbering;
+                        }
+                        string? baseStyleId = style.BasedOn?.Val?.Value;
+                        if (!string.IsNullOrWhiteSpace(baseStyleId)) pendingStyleIds.Push(baseStyleId!);
+                    }
+                }
+                _resolvedNumbering[cacheKey] = null;
+                return null;
+            }
 
             internal static ParagraphNumberingStyleCatalog Create(MainDocumentPart mainPart) {
                 Style[] styles = (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())

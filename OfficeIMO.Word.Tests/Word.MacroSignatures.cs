@@ -1,4 +1,5 @@
 using System.IO.Packaging;
+using System.IO.Compression;
 using System.Security.Cryptography.X509Certificates;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Security;
@@ -345,6 +346,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MacroSigningReinspectsTheExactStagedSnapshotBeforeNativeTools() {
+            string filePath = CreateMacroEnabledTestDocument("MacroSignatureStagedSecurity.docm");
+            int originalEntryCount;
+            using (ZipArchive archive = ZipFile.OpenRead(filePath)) {
+                originalEntryCount = archive.Entries.Count;
+            }
+            string toolsDirectory = CreateFakeOfficeSipsDirectory();
+            var runner = new RecordingMacroToolRunner(_ => Success());
+            var platform = new SourceMutationMacroSigningPlatform(() => {
+                using ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+                archive.CreateEntry("word/staging-extra-1.bin");
+                archive.CreateEntry("word/staging-extra-2.bin");
+            });
+            var dependencies = new WordMacroProjectSigningDependencies(runner, platform);
+            var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
+            options.Inspection.PackageSecurity.MaxPartCount = originalEntryCount + 1;
+
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
+                filePath, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
+
+            Assert.False(result.Succeeded);
+            Assert.Empty(runner.Invocations);
+            Assert.Contains(result.Findings, finding =>
+                finding.Code == "MacroSigningStagingPreflightFailed");
+            Assert.Contains(result.Findings, finding =>
+                finding.Code == "PackageSecurityPartCount" &&
+                finding.State == WordSignatureValidationState.Failed);
+        }
+
+        [Fact]
         public void MacroSigningFailurePreservesOriginalAndDeletesStage() {
             string filePath = CreateMacroEnabledTestDocument("MacroSignatureRollback.docm");
             byte[] originalBytes = File.ReadAllBytes(filePath);
@@ -595,8 +626,11 @@ namespace OfficeIMO.Tests {
                 new Org.BouncyCastle.Asn1.DerSequence(
                     new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.6.1.4.1.311.2.1.15")),
                 new Org.BouncyCastle.Asn1.X509.DigestInfo(digestAlgorithm, subjectDigest));
+            byte[] indirectDataValues = indirectData[0].ToAsn1Object().GetEncoded()
+                .Concat(indirectData[1].ToAsn1Object().GetEncoded())
+                .ToArray();
             byte[] encoded = OfficeIMO.Security.CmsSignedDataSigner.SignEncapsulated(
-                indirectData.GetEncoded(),
+                indirectDataValues,
                 certificate,
                 new OfficeIMO.Security.CmsSigningOptions {
                     ContentTypeOid = "1.3.6.1.4.1.311.2.1.4",

@@ -308,10 +308,21 @@ public static class CmsSignedDataVerifier {
             return null;
         }
         try {
-            Asn1Sequence sequence = Asn1Sequence.GetInstance(Asn1Object.FromByteArray(content));
-            if (sequence.Count != 2) throw new InvalidDataException("SPC indirect data must contain two values.");
+            Asn1Encodable digestValue;
+            using (var input = new Asn1InputStream(content)) {
+                Asn1Object? first = input.ReadObject();
+                Asn1Object? second = input.ReadObject();
+                Asn1Object? trailing = input.ReadObject();
+                if (first is Asn1Sequence wrapped && second == null && wrapped.Count == 2) {
+                    digestValue = wrapped[1];
+                } else if (first is Asn1Sequence && second != null && trailing == null) {
+                    digestValue = second;
+                } else {
+                    throw new InvalidDataException("SPC indirect data must contain exactly two values.");
+                }
+            }
             Org.BouncyCastle.Asn1.X509.DigestInfo digestInfo =
-                Org.BouncyCastle.Asn1.X509.DigestInfo.GetInstance(sequence[1]);
+                Org.BouncyCastle.Asn1.X509.DigestInfo.GetInstance(digestValue);
             byte[] digest = digestInfo.Digest.GetOctets();
             if (digest.Length == 0 || digest.Length > 1024) {
                 throw new InvalidDataException("The signed subject digest length is invalid.");

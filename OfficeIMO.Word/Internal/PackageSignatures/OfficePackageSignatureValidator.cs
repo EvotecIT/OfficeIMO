@@ -47,7 +47,10 @@ namespace OfficeIMO.Word {
             if (packageBytes.LongLength > options.MaxPackageBytes) {
                 throw new InvalidDataException("The OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
             }
-            using var archive = new OfficePackageSignatureArchive(packageBytes, options.MaxPackageParts);
+            using var archive = new OfficePackageSignatureArchive(
+                packageBytes,
+                options.MaxPackageParts,
+                options.MaxPartBytes);
             var certificateByteBudget = new OfficePackageCertificateByteBudget(options.MaxTotalCertificateBytes);
             var timestampBudget = new OfficePackageTimestampValidationBudget(
                 options.MaxTimestampTokens,
@@ -439,39 +442,44 @@ namespace OfficeIMO.Word {
             OfficePackageCertificateByteBudget certificateByteBudget,
             List<WordSignatureValidationFinding> findings) {
             var result = new List<X509Certificate2>();
-            IReadOnlyList<XmlElement> embedded = GetEmbeddedSignerCertificateElements(signatureXml);
-            if (embedded.Count > maxCertificates) {
-                throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
-            }
-            foreach (XmlElement element in embedded) {
-                TryAddCertificate(element.InnerText, "embedded X509Certificate", maxCertificateBytes, certificateByteBudget, result, findings, signaturePart.Uri.ToString());
-            }
-
-            int declaredCertificateCount = embedded.Count;
-            foreach (IdPartPair relationship in signaturePart.Parts) {
-                OpenXmlPart relatedPart = relationship.OpenXmlPart;
-                if (!IsCertificatePart(relatedPart)) continue;
-                declaredCertificateCount++;
-                if (declaredCertificateCount > maxCertificates) throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
-                try {
-                    using Stream stream = relatedPart.GetStream(FileMode.Open, FileAccess.Read);
-                    if (stream.CanSeek && stream.Length > maxCertificateBytes) {
-                        throw new InvalidDataException("The related signature certificate exceeds the " + maxCertificateBytes + " byte limit.");
-                    }
-                    using var buffer = new MemoryStream();
-                    CopyBounded(stream, buffer, maxCertificateBytes);
-                    byte[] certificateBytes = buffer.ToArray();
-                    certificateByteBudget.Reserve(certificateBytes.LongLength);
-                    result.Add(LoadCertificate(certificateBytes));
-                } catch (InvalidDataException) {
-                    throw;
-                } catch (Exception exception) when (exception is IOException or CryptographicException or InvalidOperationException) {
-                    findings.Add(Finding("CertificateMalformed", WordSignatureValidationState.Failed,
-                        "The related signature certificate could not be read: " + exception.Message,
-                        signaturePart.Uri.ToString()));
+            try {
+                IReadOnlyList<XmlElement> embedded = GetEmbeddedSignerCertificateElements(signatureXml);
+                if (embedded.Count > maxCertificates) {
+                    throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
                 }
+                foreach (XmlElement element in embedded) {
+                    TryAddCertificate(element.InnerText, "embedded X509Certificate", maxCertificateBytes, certificateByteBudget, result, findings, signaturePart.Uri.ToString());
+                }
+
+                int declaredCertificateCount = embedded.Count;
+                foreach (IdPartPair relationship in signaturePart.Parts) {
+                    OpenXmlPart relatedPart = relationship.OpenXmlPart;
+                    if (!IsCertificatePart(relatedPart)) continue;
+                    declaredCertificateCount++;
+                    if (declaredCertificateCount > maxCertificates) throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
+                    try {
+                        using Stream stream = relatedPart.GetStream(FileMode.Open, FileAccess.Read);
+                        if (stream.CanSeek && stream.Length > maxCertificateBytes) {
+                            throw new InvalidDataException("The related signature certificate exceeds the " + maxCertificateBytes + " byte limit.");
+                        }
+                        using var buffer = new MemoryStream();
+                        CopyBounded(stream, buffer, maxCertificateBytes);
+                        byte[] certificateBytes = buffer.ToArray();
+                        certificateByteBudget.Reserve(certificateBytes.LongLength);
+                        result.Add(LoadCertificate(certificateBytes));
+                    } catch (InvalidDataException) {
+                        throw;
+                    } catch (Exception exception) when (exception is IOException or CryptographicException or InvalidOperationException) {
+                        findings.Add(Finding("CertificateMalformed", WordSignatureValidationState.Failed,
+                            "The related signature certificate could not be read: " + exception.Message,
+                            signaturePart.Uri.ToString()));
+                    }
+                }
+                return result;
+            } catch {
+                foreach (X509Certificate2 certificate in result) certificate.Dispose();
+                throw;
             }
-            return result;
         }
 
         private static void AddCallerCertificateCandidates(

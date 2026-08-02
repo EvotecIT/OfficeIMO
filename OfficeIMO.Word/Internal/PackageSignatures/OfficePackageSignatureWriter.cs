@@ -173,7 +173,8 @@ namespace OfficeIMO.Word {
             OfficePackageSigningOptions options) {
             using var archive = new OfficePackageSignatureArchive(
                 File.ReadAllBytes(packagePath),
-                options.MaxPackageParts);
+                options.MaxPackageParts,
+                options.MaxPartBytes);
         }
 
         private static IReadOnlyList<X509Certificate2> ValidateSigningCertificates(X509Certificate2 signer, OfficePackageSigningOptions options) {
@@ -229,7 +230,10 @@ namespace OfficeIMO.Word {
             IReadOnlyList<X509Certificate2> signingCertificates,
             RSA signingKey,
             OfficePackageSigningOptions options) {
-            using var package = new OfficePackageSignatureArchive(packageBytes, options.MaxPackageParts);
+            using var package = new OfficePackageSignatureArchive(
+                packageBytes,
+                options.MaxPackageParts,
+                options.MaxPartBytes);
             List<string> partUris = ResolvePartUris(package, options, out IReadOnlyList<string> missingPartUris);
             if (missingPartUris.Count > 0) {
                 throw new InvalidOperationException("Requested signing part(s) were not found: " + string.Join(", ", missingPartUris) + ".");

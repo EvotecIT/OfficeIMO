@@ -275,14 +275,59 @@ namespace OfficeIMO.Word {
                     if (snapshotRoot != null && AreSignatureSnapshotRootsEquivalent(sourceRoot, snapshotRoot)) {
                         continue;
                     }
-                    using Stream output = snapshotPart.GetStream(FileMode.Create, FileAccess.Write);
-                    ((OpenXmlPartRootElement)sourceRoot.CloneNode(true)).Save(output);
+                    using Stream partOutput = snapshotPart.GetStream(FileMode.Create, FileAccess.Write);
+                    using var boundedOutput = new SignatureValidationPartWriteStream(
+                        partOutput,
+                        Math.Min(options.MaxPartBytes, options.MaxPackageBytes));
+                    sourceRoot.Save(boundedOutput);
                 }
             }
             if (snapshot.Length > options.MaxPackageBytes) {
                 throw new InvalidDataException("The current OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
             }
             return snapshot.ToArray();
+        }
+
+        private sealed class SignatureValidationPartWriteStream : Stream {
+            private readonly Stream _inner;
+            private readonly long _maxBytes;
+            private long _written;
+
+            internal SignatureValidationPartWriteStream(Stream inner, long maxBytes) {
+                _inner = inner;
+                _maxBytes = maxBytes;
+            }
+
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => _written;
+            public override long Position { get => _written; set => throw new NotSupportedException(); }
+            public override void Flush() => _inner.Flush();
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+
+            public override void Write(byte[] buffer, int offset, int count) {
+                long next = checked(_written + count);
+                if (next > _maxBytes) {
+                    throw new SignatureValidationSnapshotResourceException(
+                        "A pending package part exceeds the " + _maxBytes +
+                        " byte validation-snapshot serialization limit.");
+                }
+                _inner.Write(buffer, offset, count);
+                _written = next;
+            }
+
+            public override void WriteByte(byte value) {
+                if (_written >= _maxBytes) {
+                    throw new SignatureValidationSnapshotResourceException(
+                        "A pending package part exceeds the " + _maxBytes +
+                        " byte validation-snapshot serialization limit.");
+                }
+                _inner.WriteByte(value);
+                _written++;
+            }
         }
 
         private static IEnumerable<OpenXmlPart> EnumerateSignatureSnapshotParts(

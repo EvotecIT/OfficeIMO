@@ -23,9 +23,13 @@ namespace OfficeIMO.Word {
         private readonly Dictionary<string, ZipArchiveEntry> _entries;
         private readonly Dictionary<string, string> _contentTypes;
 
-        internal OfficePackageSignatureArchive(byte[] packageBytes, int maxParts = 10000) {
+        internal OfficePackageSignatureArchive(
+            byte[] packageBytes,
+            int maxParts = 10000,
+            long maxPartBytes = 64L * 1024 * 1024) {
             if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
             if (maxParts <= 0) throw new ArgumentOutOfRangeException(nameof(maxParts));
+            if (maxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxPartBytes));
 
             _stream = new MemoryStream(packageBytes, writable: false);
             _archive = new ZipArchive(_stream, ZipArchiveMode.Read, leaveOpen: false);
@@ -44,7 +48,7 @@ namespace OfficeIMO.Word {
                 _entries.Add(uri, entry);
             }
 
-            _contentTypes = ReadContentTypes();
+            _contentTypes = ReadContentTypes(maxPartBytes);
         }
 
         internal IReadOnlyList<string> PartUris => _entries.Keys
@@ -314,14 +318,13 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private Dictionary<string, string> ReadContentTypes() {
+        private Dictionary<string, string> ReadContentTypes(long maxPartBytes) {
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (!_entries.TryGetValue("/[Content_Types].xml", out ZipArchiveEntry? entry)) return result;
+            if (!_entries.ContainsKey("/[Content_Types].xml")) return result;
 
-            XDocument document;
-            using (Stream stream = entry.Open()) {
-                document = LoadXDocument(stream);
-            }
+            byte[] contentTypeBytes = ReadPart("/[Content_Types].xml", maxPartBytes);
+            using var contentTypeStream = new MemoryStream(contentTypeBytes, writable: false);
+            XDocument document = LoadXDocument(contentTypeStream, maxPartBytes);
             XNamespace contentTypes = "http://schemas.openxmlformats.org/package/2006/content-types";
             var defaults = document.Root?
                 .Elements(contentTypes + "Default")
@@ -359,8 +362,8 @@ namespace OfficeIMO.Word {
             return document;
         }
 
-        private static XDocument LoadXDocument(Stream stream) {
-            using XmlReader reader = XmlReader.Create(stream, SafeXmlReaderSettings());
+        private static XDocument LoadXDocument(Stream stream, long maxCharacters) {
+            using XmlReader reader = XmlReader.Create(stream, SafeXmlReaderSettings(maxCharacters));
             return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
         }
 

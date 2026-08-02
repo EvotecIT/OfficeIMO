@@ -418,5 +418,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal("EquationMathMl", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetReservesRepeatedFootnoteReferenceMetadata() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Notes");
+            WordParagraph reference = paragraph.AddFootNote("shared note");
+            for (int index = 0; index < 256; index++) {
+                paragraph._paragraph.Append(reference._run!.CloneNode(true));
+            }
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    ExportFootnotes = true,
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = 10_000
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.StartsWith("FootnoteReference:", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(exception.Actual > exception.Limit);
+        }
     }
 }

@@ -8,6 +8,23 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void Test_DigitalSignature_BoundsContentTypesBeforeParsing() {
+            using var packageStream = new MemoryStream();
+            using (var archive = new ZipArchive(packageStream, ZipArchiveMode.Create, leaveOpen: true)) {
+                ZipArchiveEntry contentTypes = archive.CreateEntry("[Content_Types].xml", CompressionLevel.Optimal);
+                using var writer = new StreamWriter(contentTypes.Open(), Encoding.UTF8);
+                writer.Write("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
+                writer.Write(new string(' ', 4096));
+                writer.Write("</Types>");
+            }
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                new OfficePackageSignatureArchive(packageStream.ToArray(), maxParts: 10, maxPartBytes: 1024));
+
+            Assert.Contains("exceeds", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_DigitalSignature_SigningRejectsPackagePartLimitBeforeOpenXmlParsing() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignaturePreOpenPartLimit.docx");
             using (var archive = ZipFile.Open(filePath, ZipArchiveMode.Create)) {
@@ -320,6 +337,29 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_BoundsPendingDomSerializationBeforeSnapshotAllocation() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignaturePendingDomLimit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed content");
+                document.Save();
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            Assert.True(WordDocument.SignPackage(filePath, certificate).Succeeded);
+
+            using WordDocument loaded = WordDocument.Load(filePath);
+            loaded.AddParagraph(new string('x', 16_384));
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(
+                new WordSignatureValidationOptions {
+                    MaxPartBytes = 4096,
+                    MaxPackageBytes = 16L * 1024 * 1024
+                });
+
+            Assert.Contains(validation.Diagnostics, finding =>
+                finding.Code == "SignatureResourceLimitExceeded" &&
+                finding.Message.Contains("pending package part", StringComparison.OrdinalIgnoreCase));
         }
 
         private static void AddRelatedSignatureCertificates(string filePath, params byte[][] certificates) {
