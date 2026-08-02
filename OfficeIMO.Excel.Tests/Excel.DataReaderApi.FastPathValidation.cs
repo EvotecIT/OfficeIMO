@@ -175,6 +175,88 @@ public partial class Excel {
         }
     }
 
+    [Fact]
+    public void OpenDataReader_RejectsRawCDataTerminatorInsideFastValidatedSheetData() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string malformedXml = worksheetXml.Replace(
+                "<row r=\"2\"",
+                "]]><row r=\"2\"");
+            Assert.NotEqual(worksheetXml, malformedXml);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("p:")]
+    [InlineData("p:1value")]
+    [InlineData("p:value:extra")]
+    public void OpenDataReader_RejectsMalformedPrefixedAttributeNames(string attributeName) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string malformedXml = worksheetXml
+                .Replace(
+                    "<worksheet ",
+                    "<worksheet xmlns:p=\"urn:officeimo:test\" ")
+                .Replace(
+                    "<row r=\"2\"",
+                    $"<row {attributeName}=\"value\" r=\"2\"");
+            Assert.NotEqual(worksheetXml, malformedXml);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_RejectsDuplicateExpandedNamespaceAttributes() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string malformedXml = worksheetXml
+                .Replace(
+                    "<worksheet ",
+                    "<worksheet xmlns:p=\"urn:officeimo:test\" xmlns:q=\"urn:officeimo:test\" ")
+                .Replace(
+                    "<row r=\"2\"",
+                    "<row p:value=\"one\" q:value=\"two\" r=\"2\"");
+            Assert.NotEqual(worksheetXml, malformedXml);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_RejectsCharacterDataBeforeWorksheetRoot() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            int rootStart = worksheetXml.IndexOf("<worksheet", StringComparison.Ordinal);
+            Assert.True(rootStart > 0);
+            string malformedXml = worksheetXml.Insert(rootStart, "junk");
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static string CreateCompactFastPathWorkbook() {
         string path = Path.Combine(
             Path.GetTempPath(),

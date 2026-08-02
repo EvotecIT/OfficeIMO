@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
                 throwOnInvalidBytes: true);
 #if NET8_0_OR_GREATER
             private static readonly SearchValues<byte> CanonicalXmlSpecialBytes = SearchValues.Create(
-                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, (byte)'&', 0xef });
+                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, (byte)'&', (byte)']', 0xef });
 #endif
 
             /// <summary>
@@ -49,7 +49,11 @@ namespace OfficeIMO.Excel {
                         || value == 0xef
                             && index + 2 < _length
                             && _buffer[index + 1] == 0xbf
-                            && _buffer[index + 2] is 0xbe or 0xbf) {
+                            && _buffer[index + 2] is 0xbe or 0xbf
+                        || value == (byte)']'
+                            && index + 2 < _length
+                            && _buffer[index + 1] == (byte)']'
+                            && _buffer[index + 2] == (byte)'>') {
                         return false;
                     }
                 }
@@ -78,6 +82,8 @@ namespace OfficeIMO.Excel {
                 Span<int> nameLengths = stackalloc int[MaximumFastXmlDepth];
                 Span<int> namespacePrefixStarts = stackalloc int[MaximumFastXmlAttributes];
                 Span<int> namespacePrefixLengths = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespaceUriStarts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespaceUriLengths = stackalloc int[MaximumFastXmlAttributes];
                 int depth = 0;
                 int namespacePrefixCount = 0;
                 int position = SkipUtf8PreambleAndWhitespace(0);
@@ -98,7 +104,8 @@ namespace OfficeIMO.Excel {
                         return rootClosed && ContainsOnlyAsciiWhitespace(position, _length);
                     }
                     int tagStart = position + relative;
-                    if (rootClosed && !ContainsOnlyAsciiWhitespace(position, tagStart)) {
+                    if ((rootClosed || !rootSeen)
+                        && !ContainsOnlyAsciiWhitespace(position, tagStart)) {
                         return false;
                     }
                     if (tagStart + 1 >= _length) {
@@ -131,6 +138,8 @@ namespace OfficeIMO.Excel {
                             isRootStartTag,
                             namespacePrefixStarts,
                             namespacePrefixLengths,
+                            namespaceUriStarts,
+                            namespaceUriLengths,
                             ref namespacePrefixCount)) {
                         return false;
                     }
@@ -189,7 +198,16 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (document[index] != 0xef) {
-                        return true;
+                        if (document[index] != (byte)']') {
+                            return true;
+                        }
+                        if (index + 2 < document.Length
+                            && document[index + 1] == (byte)']'
+                            && document[index + 2] == (byte)'>') {
+                            return true;
+                        }
+                        document = document.Slice(index + 1);
+                        continue;
                     }
                     if (index + 2 < document.Length
                         && document[index + 1] == 0xbf
@@ -466,9 +484,14 @@ namespace OfficeIMO.Excel {
                 bool isRootStartTag,
                 Span<int> namespacePrefixStarts,
                 Span<int> namespacePrefixLengths,
+                Span<int> namespaceUriStarts,
+                Span<int> namespaceUriLengths,
                 ref int namespacePrefixCount) {
                 Span<int> usedPrefixStarts = stackalloc int[MaximumFastXmlAttributes];
                 Span<int> usedPrefixLengths = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> usedLocalStarts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> usedLocalLengths = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> usedNamespaceIndexes = stackalloc int[MaximumFastXmlAttributes];
                 int usedPrefixCount = 0;
                 int position = tag.NameEnd;
                 while (position < tag.End) {
@@ -534,6 +557,8 @@ namespace OfficeIMO.Excel {
                         }
                         namespacePrefixStarts[namespacePrefixCount] = localStart;
                         namespacePrefixLengths[namespacePrefixCount] = localLength;
+                        namespaceUriStarts[namespacePrefixCount] = valueStart;
+                        namespaceUriLengths[namespacePrefixCount] = valueLength;
                         namespacePrefixCount++;
                         continue;
                     }
@@ -546,24 +571,42 @@ namespace OfficeIMO.Excel {
                     }
                     usedPrefixStarts[usedPrefixCount] = nameStart;
                     usedPrefixLengths[usedPrefixCount] = prefixLength;
+                    usedLocalStarts[usedPrefixCount] = localStart;
+                    usedLocalLengths[usedPrefixCount] = localLength;
                     usedPrefixCount++;
                 }
 
                 for (int usedIndex = 0; usedIndex < usedPrefixCount; usedIndex++) {
-                    bool bound = false;
+                    int boundNamespaceIndex = -1;
                     for (int namespaceIndex = 0; namespaceIndex < namespacePrefixCount; namespaceIndex++) {
                         if (ByteRangesEqual(
                                 usedPrefixStarts[usedIndex],
                                 usedPrefixLengths[usedIndex],
                                 namespacePrefixStarts[namespaceIndex],
                                 namespacePrefixLengths[namespaceIndex])) {
-                            bound = true;
+                            boundNamespaceIndex = namespaceIndex;
                             break;
                         }
                     }
-                    if (!bound) {
+                    if (boundNamespaceIndex < 0) {
                         return false;
                     }
+                    for (int priorIndex = 0; priorIndex < usedIndex; priorIndex++) {
+                        int priorNamespaceIndex = usedNamespaceIndexes[priorIndex];
+                        if (ByteRangesEqual(
+                                usedLocalStarts[usedIndex],
+                                usedLocalLengths[usedIndex],
+                                usedLocalStarts[priorIndex],
+                                usedLocalLengths[priorIndex])
+                            && ByteRangesEqual(
+                                namespaceUriStarts[boundNamespaceIndex],
+                                namespaceUriLengths[boundNamespaceIndex],
+                                namespaceUriStarts[priorNamespaceIndex],
+                                namespaceUriLengths[priorNamespaceIndex])) {
+                            return false;
+                        }
+                    }
+                    usedNamespaceIndexes[usedIndex] = boundNamespaceIndex;
                 }
                 return true;
             }
@@ -585,9 +628,17 @@ namespace OfficeIMO.Excel {
                 if (start >= end || !IsAsciiXmlNameStart(_buffer![start])) {
                     return false;
                 }
+                bool sawColon = false;
                 for (int index = start + 1; index < end; index++) {
                     byte value = _buffer![index];
-                    if (value != (byte)':' && !IsAsciiXmlNameCharacter(value)) {
+                    if (value == (byte)':') {
+                        if (sawColon
+                            || index + 1 >= end
+                            || !IsAsciiXmlNameStart(_buffer[index + 1])) {
+                            return false;
+                        }
+                        sawColon = true;
+                    } else if (!IsAsciiXmlNameCharacter(value)) {
                         return false;
                     }
                 }

@@ -319,6 +319,8 @@ namespace OfficeIMO.Excel {
 
                 Span<int> namespacePrefixStarts = stackalloc int[MaximumFastXmlAttributes];
                 Span<int> namespacePrefixLengths = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespaceUriStarts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespaceUriLengths = stackalloc int[MaximumFastXmlAttributes];
                 int namespacePrefixCount = 0;
                 bool hasCanonicalRootNamespaces = false;
                 int position = 0;
@@ -333,6 +335,8 @@ namespace OfficeIMO.Excel {
                             isRootStartTag: true,
                             namespacePrefixStarts,
                             namespacePrefixLengths,
+                            namespaceUriStarts,
+                            namespaceUriLengths,
                             ref namespacePrefixCount);
                     }
                     if (!tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "sheetData")) {
@@ -376,6 +380,8 @@ namespace OfficeIMO.Excel {
                                     isRootStartTag: false,
                                     namespacePrefixStarts,
                                     namespacePrefixLengths,
+                                    namespaceUriStarts,
+                                    namespaceUriLengths,
                                     ref namespacePrefixCount))) {
                         _sheetDataSupportsFastValidation = false;
                     }
