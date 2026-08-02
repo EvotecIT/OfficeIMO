@@ -258,6 +258,13 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     firstColumn = ReadUInt16(_bytes, record.PayloadOffset + 2);
                     lastColumn = ReadUInt16(_bytes, record.PayloadOffset + record.Length - 2);
                     if (lastColumn < firstColumn) throw new InvalidDataException("A BIFF multiple-cell record has an invalid column range.");
+                    int cellCount = checked(lastColumn - firstColumn + 1);
+                    int bytesPerCell = record.Type == (ushort)BiffRecordType.MulBlank ? 2 : 6;
+                    int expectedLength = checked(4 + cellCount * bytesPerCell + 2);
+                    if (record.Length != expectedLength) {
+                        string recordName = record.Type == (ushort)BiffRecordType.MulBlank ? "MULBLANK" : "MULRK";
+                        throw new InvalidDataException($"A {recordName} record has an invalid payload length.");
+                    }
                     return true;
                 default:
                     return false;
@@ -273,7 +280,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 for (int column = firstColumn; column <= lastColumn; column++) {
                     int cellOffset = record.PayloadOffset + 4 + (column - firstColumn) * 6;
                     double value = BiffRkNumberReader.ReadRkNumber(ReadUInt32(_bytes, cellOffset + 2));
-                    values[column] = value.ToString("R", _options.Culture);
+                    values[column] = NumberToHeader(value, ReadUInt16(_bytes, cellOffset));
                 }
                 return;
             }
@@ -459,11 +466,11 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private void StoreNumber(int ordinal, double number, ushort style) {
-            _kinds[ordinal] = _options.TreatDatesUsingNumberFormat
+            bool isDate = _options.TreatDatesUsingNumberFormat
                 && style < _dateStyles.Length
                 && _dateStyles[style]
-                    ? ValueKind.Date
-                    : ValueKind.Number;
+                && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out _);
+            _kinds[ordinal] = isDate ? ValueKind.Date : ValueKind.Number;
             _numbers[ordinal] = number;
         }
 

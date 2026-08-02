@@ -352,8 +352,10 @@ namespace OfficeIMO.Excel {
                     if (!ValidateCanonicalTagAttributes(
                             tag,
                             out bool rowDeclaresDefaultNamespace,
-                            out _)
-                        || rowDeclaresDefaultNamespace) {
+                            out _,
+                            out bool rowHasPrefixedAttributes)
+                        || rowDeclaresDefaultNamespace
+                        || rowHasPrefixedAttributes) {
                         _sheetDataSupportsFastValidation = false;
                     }
 

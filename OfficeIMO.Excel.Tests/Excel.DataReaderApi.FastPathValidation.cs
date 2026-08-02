@@ -13,8 +13,7 @@ public partial class Excel {
             string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
             string malformedXml = worksheetXml.Replace(
                 "r=\"A2\"",
-                "r=\"A2\" r=\"A2\"",
-                StringComparison.Ordinal);
+                "r=\"A2\" r=\"A2\"");
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
@@ -32,8 +31,7 @@ public partial class Excel {
             string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
             string malformedXml = worksheetXml.Replace(
                 "</sheetData>",
-                "<!--invalid--comment--></sheetData>",
-                StringComparison.Ordinal);
+                "<!--invalid--comment--></sheetData>");
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
@@ -51,8 +49,7 @@ public partial class Excel {
             string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
             string malformedXml = worksheetXml.Replace(
                 "<sheetData>",
-                "<sheetData bad:attribute=\"value\">",
-                StringComparison.Ordinal);
+                "<sheetData bad:attribute=\"value\">");
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
@@ -88,8 +85,7 @@ public partial class Excel {
             string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
             string malformedXml = worksheetXml.Replace(
                 "r=\"A2\" t=\"n\"",
-                "r=\"A2\"t=\"n\"",
-                StringComparison.Ordinal);
+                "r=\"A2\"t=\"n\"");
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
@@ -111,8 +107,25 @@ public partial class Excel {
             string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
             string malformedXml = worksheetXml.Replace(
                 validToken,
-                malformedToken,
-                StringComparison.Ordinal);
+                malformedToken);
+            Assert.NotEqual(worksheetXml, malformedXml);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_RejectsUnboundNamespacePrefixOnIndexedRow() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string malformedXml = worksheetXml.Replace(
+                "<row r=\"2\"",
+                "<row bad:x=\"1\" r=\"2\"");
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 

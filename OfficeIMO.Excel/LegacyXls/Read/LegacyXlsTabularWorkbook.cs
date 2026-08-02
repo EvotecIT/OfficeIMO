@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             out bool[] dateStyles,
             out bool uses1904DateSystem) {
             var parsedSheets = new List<SheetInfo>();
-            var xfNumberFormats = new List<ushort>();
+            var cellFormats = new List<XfInfo>();
             var customNumberFormats = new Dictionary<ushort, string>();
             var diagnostics = new List<LegacyXlsImportDiagnostic>();
             List<string>? parsedSharedStrings = null;
@@ -207,7 +207,15 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                         break;
                     case BiffRecordType.Xf:
                         if (record.Length < 6) throw Truncated(record, "XF");
-                        xfNumberFormats.Add(bytes.ReadUInt16(record.PayloadOffset + 2));
+                        ushort protection = bytes.ReadUInt16(record.PayloadOffset + 4);
+                        ushort attributes = record.Length >= 10
+                            ? bytes.ReadUInt16(record.PayloadOffset + 8)
+                            : (ushort)0;
+                        cellFormats.Add(new XfInfo(
+                            bytes.ReadUInt16(record.PayloadOffset + 2),
+                            isStyle: (protection & 0x0004) != 0,
+                            parentStyleIndex: (ushort)((protection >> 4) & 0x0fff),
+                            applyNumberFormat: (attributes & 0x0400) != 0));
                         break;
                     case BiffRecordType.Sst:
                         if (parsedSharedStrings != null) {
@@ -244,9 +252,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 throw new InvalidDataException("The workbook contains no readable worksheets.");
             }
 
-            var styles = new bool[xfNumberFormats.Count];
+            var styles = new bool[cellFormats.Count];
             for (int index = 0; index < styles.Length; index++) {
-                ushort formatId = xfNumberFormats[index];
+                ushort formatId = ResolveEffectiveNumberFormat(cellFormats, index);
                 styles[index] = BiffBuiltInNumberFormat.IsDateLike(formatId)
                     || customNumberFormats.TryGetValue(formatId, out string? code)
                     && ExcelNumberFormatClassifier.LooksLikeDateFormat(code);
@@ -257,6 +265,18 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 ? parsedSharedStrings
                 : Array.Empty<string>();
             dateStyles = styles;
+        }
+
+        private static ushort ResolveEffectiveNumberFormat(IReadOnlyList<XfInfo> cellFormats, int index) {
+            XfInfo format = cellFormats[index];
+            if (format.IsStyle
+                || format.ApplyNumberFormat
+                || format.ParentStyleIndex >= cellFormats.Count) {
+                return format.NumberFormatId;
+            }
+
+            XfInfo parent = cellFormats[format.ParentStyleIndex];
+            return parent.IsStyle ? parent.NumberFormatId : format.NumberFormatId;
         }
 
         private static List<string> ReadSharedStrings(
@@ -373,6 +393,27 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             internal int Offset { get; }
             internal int PayloadOffset { get; }
             internal int Length { get; }
+        }
+
+        private readonly struct XfInfo {
+            internal XfInfo(
+                ushort numberFormatId,
+                bool isStyle,
+                ushort parentStyleIndex,
+                bool applyNumberFormat) {
+                NumberFormatId = numberFormatId;
+                IsStyle = isStyle;
+                ParentStyleIndex = parentStyleIndex;
+                ApplyNumberFormat = applyNumberFormat;
+            }
+
+            internal ushort NumberFormatId { get; }
+
+            internal bool IsStyle { get; }
+
+            internal ushort ParentStyleIndex { get; }
+
+            internal bool ApplyNumberFormat { get; }
         }
 
         private readonly struct SheetInfo {

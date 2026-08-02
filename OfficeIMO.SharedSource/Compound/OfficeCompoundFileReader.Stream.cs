@@ -97,6 +97,12 @@ namespace OfficeIMO.Drawing.Internal {
                     cancellationToken);
                 DirectoryEntry? root = entries.FirstOrDefault(static entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
+                long maximumPhysicalStreamBytes = checked((long)physicalSectorCount * sectorSize);
+                if (root.Size < 0
+                    || root.Size > options.MaxTotalStreamBytes
+                    || root.Size > maximumPhysicalStreamBytes) {
+                    throw new InvalidDataException("Compound file mini stream exceeds configured or physical bounds.");
+                }
 
                 IReadOnlyDictionary<int, string> paths = BuildCompoundEntryPaths(entries, cancellationToken);
                 DirectoryEntry? selected = null;

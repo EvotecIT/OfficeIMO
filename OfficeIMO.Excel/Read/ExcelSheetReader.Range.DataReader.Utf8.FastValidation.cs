@@ -116,7 +116,8 @@ namespace OfficeIMO.Excel {
                     if (!ValidateCanonicalTagAttributes(
                             tag,
                             out bool declaresDefaultNamespace,
-                            out bool declaresSpreadsheetNamespace)) {
+                            out bool declaresSpreadsheetNamespace,
+                            out _)) {
                         return false;
                     }
                     bool isRootStartTag = !rootSeen && !tag.IsEnd;
@@ -347,9 +348,11 @@ namespace OfficeIMO.Excel {
             private bool ValidateCanonicalTagAttributes(
                 Utf8Tag tag,
                 out bool declaresDefaultNamespace,
-                out bool declaresSpreadsheetNamespace) {
+                out bool declaresSpreadsheetNamespace,
+                out bool hasPrefixedAttributes) {
                 declaresDefaultNamespace = false;
                 declaresSpreadsheetNamespace = false;
+                hasPrefixedAttributes = false;
                 Span<int> starts = stackalloc int[MaximumFastXmlAttributes];
                 Span<int> lengths = stackalloc int[MaximumFastXmlAttributes];
                 int count = 0;
@@ -379,6 +382,12 @@ namespace OfficeIMO.Excel {
                     int nameLength = position - nameStart;
                     if (!IsValidXmlAttributeName(nameStart, position)) {
                         return false;
+                    }
+                    for (int index = nameStart; index < position; index++) {
+                        if (_buffer![index] == (byte)':') {
+                            hasPrefixedAttributes = true;
+                            break;
+                        }
                     }
                     for (int index = 0; index < count; index++) {
                         if (ByteRangesEqual(starts[index], lengths[index], nameStart, nameLength)) {
