@@ -526,6 +526,14 @@ namespace OfficeIMO.Tests {
                 candidate => candidate.Type?.Value == expectedAlgorithm);
             Assert.NotEmpty(layout.Descendants<Dgm.Constraints>());
             Assert.NotEmpty(layout.Descendants<Dgm.RuleList>());
+            Assert.All(layout.Descendants<Dgm.Constraint>().Where(constraint =>
+                    constraint.Type?.Value == Dgm.ConstraintValues.CenterWidth),
+                constraint => Assert.Equal(Dgm.ConstraintValues.Width,
+                    constraint.ReferenceType?.Value));
+            Assert.All(layout.Descendants<Dgm.Constraint>().Where(constraint =>
+                    constraint.Type?.Value == Dgm.ConstraintValues.CenterHeight),
+                constraint => Assert.Equal(Dgm.ConstraintValues.Height,
+                    constraint.ReferenceType?.Value));
 
             if (type == PowerPointSmartArtType.BasicHierarchy) {
                 Assert.Equal(5, layout.Descendants<Dgm.LayoutNode>().Count(node =>
@@ -551,6 +559,18 @@ namespace OfficeIMO.Tests {
                         Dgm.ConstraintValues.CenterWidth
                         && constraint.ForName?.Value?.StartsWith("listNode",
                             StringComparison.Ordinal) == true));
+                Dgm.Constraint firstHorizontalCenter = Assert.Single(
+                    layout.Descendants<Dgm.Constraint>(), constraint =>
+                        constraint.Type?.Value == Dgm.ConstraintValues.CenterWidth
+                        && constraint.ForName?.Value == "listNode1");
+                Dgm.Constraint firstVerticalCenter = Assert.Single(
+                    layout.Descendants<Dgm.Constraint>(), constraint =>
+                        constraint.Type?.Value == Dgm.ConstraintValues.CenterHeight
+                        && constraint.ForName?.Value == "listNode1");
+                Assert.Equal(0.5D,
+                    firstHorizontalCenter.Fact?.Value ?? double.NaN, 8);
+                Assert.Equal(0.125D,
+                    firstVerticalCenter.Fact?.Value ?? double.NaN, 8);
             } else if (type == PowerPointSmartArtType.BasicMatrix) {
                 Assert.Equal(4, layout.Descendants<Dgm.LayoutNode>().Count(node =>
                     node.Name?.Value?.StartsWith("matrixNode",

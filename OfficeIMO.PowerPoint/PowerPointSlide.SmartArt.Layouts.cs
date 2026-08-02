@@ -372,9 +372,9 @@ namespace OfficeIMO.PowerPoint {
                 name, Dgm.ConstraintValues.Width, width));
             constraints.Append(CreateNamedConstraint(Dgm.ConstraintValues.Height,
                 name, Dgm.ConstraintValues.Height, height));
-            constraints.Append(CreateNamedConstraint(Dgm.ConstraintValues.CenterHeight,
-                name, Dgm.ConstraintValues.Width, centerX));
             constraints.Append(CreateNamedConstraint(Dgm.ConstraintValues.CenterWidth,
+                name, Dgm.ConstraintValues.Width, centerX));
+            constraints.Append(CreateNamedConstraint(Dgm.ConstraintValues.CenterHeight,
                 name, Dgm.ConstraintValues.Height, centerY));
         }
 

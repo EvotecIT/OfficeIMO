@@ -363,6 +363,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ModernReplyMutationRejectsDetachedReplyList() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Reviewer", "R");
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, author, "Review");
+            PowerPointModernCommentReply reply = comment.AddReply(author,
+                "Reply");
+            PowerPointCommentPart part = Assert.Single(slide.SlidePart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointCommentPart>());
+            P188.Comment nativeComment = Assert.Single(part.CommentList!
+                .Elements<P188.Comment>());
+            P188.CommentReplyList replyList = Assert.IsType<P188.CommentReplyList>(
+                nativeComment.GetFirstChild<P188.CommentReplyList>());
+
+            replyList.Remove();
+
+            Assert.NotNull(replyList.GetFirstChild<P188.CommentReply>()?.Parent);
+            Assert.Throws<InvalidOperationException>(() => reply.Text = "Detached");
+            Assert.Throws<InvalidOperationException>(() => reply.Status =
+                PowerPointModernCommentStatus.Resolved);
+            Assert.Throws<InvalidOperationException>(() =>
+                reply.SetAuthor(new PowerPointCommentAuthor("Other", "O")));
+        }
+
+        [Fact]
         public void ModernComments_CreateEditReplyReassignRemove_AndRoundTripPptx() {
             using var stream = new MemoryStream();
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {

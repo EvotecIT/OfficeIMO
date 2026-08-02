@@ -1264,6 +1264,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilMasterRejectsSourceLessProvenanceMutation() {
+            string packagePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            try {
+                CreatePackageWithRawGroupMaster(packagePath, "SharedMaster",
+                    "Package Master");
+                VisioStencilCatalog packageCatalog =
+                    VisioStencilPackageCatalog.Load(packagePath,
+                        new VisioStencilPackageLoadOptions {
+                            IncludeUnsupportedMasters = true,
+                            Category = "External",
+                            SourceLicense = "Package-License",
+                            SourceAttribution = "Package Vendor"
+                        });
+                VisioStencilShape packageStencil = packageCatalog.Shapes.Single();
+                var sourceLessStencil = new VisioStencilShape(
+                    "built-in.shared", "Built-in Shared", "SharedMaster",
+                    "Built-in", 1D, 1D, keywords: null, aliases: null,
+                    tags: null, iconNameU: null, defaultUnit: null,
+                    sourcePackagePath: null, previewImage: null,
+                    sourceConnectionPoints: null, isSupported: true,
+                    sourceLicense: null, sourceAttribution: null);
+                VisioDocument document = VisioDocument.Create();
+                VisioPage page = document.AddPage("Collision");
+                page.AddStencilShape(packageStencil, "package", 2D, 4D);
+                Assert.True(document.TryGetMaster("SharedMaster",
+                    out VisioMaster? registered));
+
+                InvalidOperationException exception =
+                    Assert.Throws<InvalidOperationException>(() =>
+                        page.AddStencilShape(sourceLessStencil, "built-in",
+                            5D, 4D));
+
+                Assert.Contains("source-less stencil metadata",
+                    exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Single(page.Shapes);
+                Assert.Equal(Path.GetFullPath(packagePath),
+                    registered!.StencilSourcePackagePath);
+                Assert.False(registered.StencilIsSupported);
+                Assert.Equal("Package-License", registered.StencilSourceLicense);
+                Assert.Equal("Package Vendor",
+                    registered.StencilSourceAttribution);
+            } finally {
+                if (File.Exists(packagePath)) File.Delete(packagePath);
+            }
+        }
+
+        [Fact]
         public void PackageStencilImportPreflightsEveryCollisionBeforeMutation() {
             string firstPackage = Path.Combine(Path.GetTempPath(),
                 Guid.NewGuid() + ".vssx");

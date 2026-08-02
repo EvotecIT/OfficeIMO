@@ -49,8 +49,13 @@ namespace OfficeIMO.Visio {
         }
 
         internal static void Apply(VisioMaster master, VisioStencilShape stencil, string? catalogName) {
-            if (master.IsPackageBacked
-                && !string.IsNullOrWhiteSpace(stencil.SourcePackagePath)) {
+            if (master.IsPackageBacked) {
+                if (string.IsNullOrWhiteSpace(stencil.SourcePackagePath)) {
+                    throw new InvalidOperationException(
+                        $"Visio master '{master.NameU}' is package-backed and cannot be reused " +
+                        "with source-less stencil metadata. Preserve the trusted source package " +
+                        "path when loading or applying the stencil.");
+                }
                 EnsureSourcePackageMatches(master, stencil.SourcePackagePath!);
             }
             master.StencilId = stencil.Id;

@@ -444,11 +444,15 @@ namespace OfficeIMO.PowerPoint {
         private P188.CommentReply RequireAttached() {
             _presentation.ThrowIfDisposedForCommentApi();
             _presentation.EnsureAttachedCommentSlide(_slide);
+            P188.CommentReplyList? replyList =
+                _parent.GetFirstChild<P188.CommentReplyList>();
             if (_reply.Parent == null || _parent.Parent == null
                 || !_slide.SlidePart.Parts.Any(pair =>
                     ReferenceEquals(pair.OpenXmlPart, _part))
                 || _part.CommentList?.Elements<P188.Comment>()
-                    .Contains(_parent) != true) {
+                    .Contains(_parent) != true
+                || replyList?.Elements<P188.CommentReply>()
+                    .Contains(_reply) != true) {
                 throw new InvalidOperationException("The modern comment reply is no longer attached to the presentation.");
             }
             return _reply;
