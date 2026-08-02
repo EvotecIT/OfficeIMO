@@ -58,6 +58,7 @@ namespace OfficeIMO.Word {
                     "The bounded comparison-disclosure scan could not determine this shape for every input; increase or simplify the document before relying on shape-presence evidence.",
                     false,
                     false));
+                return;
             }
             bool sourceContainsShape = sourceScan == ShapeScanResult.Present;
             bool targetContainsShape = targetScan == ShapeScanResult.Present;

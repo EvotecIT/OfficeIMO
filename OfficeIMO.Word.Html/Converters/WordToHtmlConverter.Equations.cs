@@ -102,7 +102,12 @@ namespace OfficeIMO.Word.Html {
                 string? font = run.FontFamily ?? options.FontFamily;
                 if (!string.IsNullOrEmpty(font)) {
                     var span = CreateOutputElement(htmlDocument, "span");
-                    span.SetAttribute("style", $"font-family:{QuoteCssString(font!)}");
+                    SetOutputAttribute(
+                        htmlDocument,
+                        span,
+                        "style",
+                        $"font-family:{QuoteCssString(font!)}",
+                        "EquationRunFontStyle");
                     span.AppendChild(node);
                     node = span;
                 }

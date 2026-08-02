@@ -66,6 +66,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ComparisonDisclosureResourceLimitDoesNotEmitPartialShapeEvidence() {
+            var result = (WordComparisonResult)(Activator.CreateInstance(
+                typeof(WordComparisonResult),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { "source", "target" },
+                culture: null) ?? throw new InvalidOperationException("Comparison result could not be created."));
+            Type scanResultType = typeof(WordDocumentComparer).GetNestedType(
+                "ShapeScanResult", BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Shape scan result type was not found.");
+            MethodInfo addShapeLimitation = typeof(WordDocumentComparer).GetMethod(
+                "AddShapeLimitation", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Shape limitation helper was not found.");
+
+            addShapeLimitation.Invoke(null, new[] {
+                result,
+                "EffectiveFormatting.ThemeResolution",
+                "Theme limitation",
+                Enum.Parse(scanResultType, "Present"),
+                Enum.Parse(scanResultType, "ResourceLimitExceeded")
+            });
+
+            WordComparisonLimitation limitation = Assert.Single(result.Limitations);
+            Assert.Equal("EffectiveFormatting.ThemeResolution.ResourceLimit", limitation.Code);
+            Assert.False(limitation.SourceContainsShape);
+            Assert.False(limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void MailMergeOccurrenceDiscoveryDoesNotIndexEveryIrrelevantElement() {
             var body = new Body();
             for (int index = 0; index < 20_000; index++) {

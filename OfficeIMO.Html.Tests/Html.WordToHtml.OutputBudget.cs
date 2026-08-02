@@ -328,6 +328,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_OutputBudgetCombinesRepeatedCallerFontStyles() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            for (int index = 0; index < 12; index++) {
+                paragraph._paragraph.Append(new Run(
+                    new RunProperties(new Bold()),
+                    new Text("x")));
+            }
+            var options = new WordToHtmlOptions {
+                FontFamily = new string('F', 512),
+                IncludeDefaultCss = false,
+                IncludeFontStyles = true,
+                MaxOutputCharacters = 4096
+            };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
+                () => document.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("RunFontStyle", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void Test_WordToHtml_OutputBudgetCountsSharedHeaderForEveryExportedSection() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Body");

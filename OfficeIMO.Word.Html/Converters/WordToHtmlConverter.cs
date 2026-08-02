@@ -137,7 +137,12 @@ namespace OfficeIMO.Word.Html {
             AppendHeadMetadata(document, htmlDoc, head, options, CancellationToken.None);
 
             if (!string.IsNullOrEmpty(options.FontFamily)) {
-                body.SetAttribute("style", $"font-family:{options.FontFamily}");
+                SetOutputAttribute(
+                    htmlDoc,
+                    body,
+                    "style",
+                    $"font-family:{options.FontFamily}",
+                    "DocumentFontStyle");
             }
 
             Stack<IElement> listStack = new Stack<IElement>();
@@ -522,7 +527,12 @@ namespace OfficeIMO.Word.Html {
                         var font = run.FontFamily ?? options.FontFamily;
                         if (!string.IsNullOrEmpty(font)) {
                             var span = CreateOutputElement(htmlDoc, "span");
-                            span.SetAttribute("style", $"font-family:{QuoteCssString(font!)}");
+                            SetOutputAttribute(
+                                htmlDoc,
+                                span,
+                                "style",
+                                $"font-family:{QuoteCssString(font!)}",
+                                "RunFontStyle");
                             span.AppendChild(node);
                             node = span;
                         }
