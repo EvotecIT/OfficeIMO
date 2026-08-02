@@ -43,7 +43,9 @@ namespace OfficeIMO.Tests {
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
 
             WordSignatureValidationReport unchanged = loaded.ValidateSignatures(options);
-            Assert.Equal(WordSignatureValidationState.Passed, unchanged.SignedPartDigestStatus);
+            Assert.True(
+                unchanged.SignedPartDigestStatus == WordSignatureValidationState.Passed,
+                string.Join(System.Environment.NewLine, unchanged.Findings));
 
             paragraphRoot.RemoveAttribute("first", proofNamespace);
             paragraphRoot.SetAttribute(new OpenXmlAttribute("proof", "first", proofNamespace, "1"));

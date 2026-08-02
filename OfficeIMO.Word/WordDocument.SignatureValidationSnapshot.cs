@@ -15,6 +15,9 @@ namespace OfficeIMO.Word {
             if (_wordprocessingDocument.FileOpenAccess == FileAccess.Read) {
                 return _ownedPackageStream.ToArray();
             }
+            if (RequiresLegacyRuntimeSignatureSnapshot()) {
+                return CreateLegacyRuntimeSignatureValidationSnapshot(options);
+            }
 
             byte[] encodedPackage = _ownedPackageStream.ToArray();
             List<OpenXmlPart> sourceParts = EnumerateSignatureSnapshotParts(
@@ -426,7 +429,7 @@ namespace OfficeIMO.Word {
             return folder + fileName.Substring(0, fileName.Length - ".rels".Length);
         }
 
-        private static void CopySignatureSnapshotPart(
+        private static long CopySignatureSnapshotPart(
             Stream input,
             Stream output,
             long maxPartBytes,
@@ -444,6 +447,7 @@ namespace OfficeIMO.Word {
                 }
                 output.Write(buffer, 0, read);
             }
+            return copied;
         }
 
         private sealed class SignatureValidationSnapshotMemoryStream : MemoryStream {

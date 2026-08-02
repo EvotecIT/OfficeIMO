@@ -381,6 +381,7 @@ namespace OfficeIMO.Tests {
                 MaxCertificateBytes = certificateBytes.LongLength,
                 MaxTotalCertificateBytes = certificateBytes.LongLength
             };
+            options.CertificateValidation.DisableCertificateDownloads = false;
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
             WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
 

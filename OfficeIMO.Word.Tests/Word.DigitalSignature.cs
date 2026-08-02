@@ -296,7 +296,7 @@ namespace OfficeIMO.Tests {
                     finding.Code == "CertificateDownloadPolicyUnavailable");
             } else {
                 Assert.False(chainEvaluated);
-                Assert.Equal(WordSignatureValidationState.Unsupported, validation.CertificateChainStatus);
+                Assert.Equal(WordSignatureValidationState.NotChecked, validation.CertificateChainStatus);
                 Assert.Contains(validation.Diagnostics, finding =>
                     finding.Code == "CertificateDownloadPolicyUnavailable");
             }

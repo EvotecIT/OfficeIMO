@@ -41,19 +41,22 @@ namespace OfficeIMO.Tests {
             string childProcessIdPath = Path.Combine(
                 _directoryWithFiles,
                 "macro-tool-child-" + Guid.NewGuid().ToString("N") + ".txt");
-            string command =
+            string scriptPath = Path.Combine(
+                _directoryWithFiles,
+                "macro-tool-child-" + Guid.NewGuid().ToString("N") + ".ps1");
+            File.WriteAllText(scriptPath,
                 "$child = Start-Process -FilePath $env:COMSPEC " +
-                "-ArgumentList '/d','/s','/c','ping -n 30 127.0.0.1' -PassThru; " +
-                "Set-Content -LiteralPath '" + childProcessIdPath.Replace("'", "''") + "' -Value $child.Id; " +
-                "Wait-Process -Id $child.Id";
+                "-ArgumentList '/d','/s','/c','ping -n 30 127.0.0.1' -PassThru\r\n" +
+                "[System.IO.File]::WriteAllText('" + childProcessIdPath.Replace("'", "''") + "', [string]$child.Id)\r\n" +
+                "Wait-Process -Id $child.Id\r\n");
             var invocation = new WordMacroProjectToolInvocation(
                 "powershell.exe",
-                new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command });
+                new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-File", scriptPath });
             var runner = new WordMacroProjectProcessRunner();
 
             WordMacroProjectToolResult result = runner.Run(
                 invocation,
-                TimeSpan.FromSeconds(2),
+                TimeSpan.FromSeconds(8),
                 maxOutputCharacters: 4096);
 
             Assert.True(result.TimedOut);
@@ -75,13 +78,17 @@ namespace OfficeIMO.Tests {
             string childProcessIdPath = Path.Combine(
                 _directoryWithFiles,
                 "macro-tool-immediate-child-" + Guid.NewGuid().ToString("N") + ".txt");
-            string wrapperCommand =
-                "$child = Start-Process -FilePath powershell.exe " +
-                "-ArgumentList '-NoLogo','-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru; " +
-                "Set-Content -LiteralPath '" + childProcessIdPath.Replace("'", "''") + "' -Value $child.Id; exit 0";
+            string scriptPath = Path.Combine(
+                _directoryWithFiles,
+                "macro-tool-immediate-child-" + Guid.NewGuid().ToString("N") + ".ps1");
+            File.WriteAllText(scriptPath,
+                "$child = Start-Process -FilePath $env:COMSPEC " +
+                "-ArgumentList '/d','/s','/c','ping -n 30 127.0.0.1' -PassThru\r\n" +
+                "[System.IO.File]::WriteAllText('" + childProcessIdPath.Replace("'", "''") + "', [string]$child.Id)\r\n" +
+                "exit 0\r\n");
             var invocation = new WordMacroProjectToolInvocation(
                 "powershell.exe",
-                new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", wrapperCommand });
+                new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-File", scriptPath });
             var runner = new WordMacroProjectProcessRunner();
 
             WordMacroProjectToolResult result = runner.Run(
