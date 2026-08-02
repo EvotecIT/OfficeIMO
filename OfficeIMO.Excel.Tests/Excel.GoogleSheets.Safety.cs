@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
-                var session = new GoogleWorkspaceSession(
+                var session = GoogleTestSession(
                     new FakeGoogleWorkspaceCredentialSource(),
                     new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 

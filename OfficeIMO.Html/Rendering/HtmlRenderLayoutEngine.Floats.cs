@@ -213,6 +213,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
         var breakOffsets = new SortedSet<double>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+        IReadOnlyList<IReadOnlyList<InlineSegment>> mergedLines = lines
+            .Select(static line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
+            .ToArray();
+        IReadOnlyList<IReadOnlyList<InlineSegment>>? resolvedBidiLines = ResolveInlineParagraphSegments(
+            mergedLines,
+            paragraphStyle.Direction);
 
         if (floatPlacements != null) {
             foreach (InlineFloatPlacement placement in floatPlacements) {
@@ -247,7 +253,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double flowY = 0D;
-        foreach (InlineLine current in lines) {
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            InlineLine current = lines[lineIndex];
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             double baseline = current.ResolveBaseline(paragraphStyle.LineHeight);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
@@ -256,10 +263,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double offsetX = ResolveLineOffset(paragraphStyle.Alignment, availableWidth, current.Width);
             double lineStart = lineX + offsetX;
             double lineRight = lineX + availableWidth;
-            bool rightToLeftLine = string.Equals(paragraphStyle.Direction, "rtl", StringComparison.Ordinal)
+            IReadOnlyList<InlineSegment> paintLineSegments = resolvedBidiLines?[lineIndex] ?? mergedLines[lineIndex];
+            bool lineBidiResolved = resolvedBidiLines != null;
+            bool rightToLeftLine = !lineBidiResolved
+                && string.Equals(paragraphStyle.Direction, "rtl", StringComparison.Ordinal)
                 && current.Segments.Any(segment => OfficeTextElements.ContainsRightToLeft(segment.Text));
             double cursor = rightToLeftLine ? lineStart + current.Width : lineStart;
-            foreach (InlineSegment segment in MergeAdjacentInlineSegments(current.Segments)) {
+            int lineVisualStart = visuals.Count;
+            foreach (InlineSegment segment in paintLineSegments) {
                 double x = rightToLeftLine ? cursor - segment.Width : cursor;
                 if (segment.Run.RunningStringElement != null) {
                     runningStringAssignments.AddRange(ResolveRunningStringAssignments(
@@ -326,11 +337,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Run.SemanticRole,
                             layoutY: null,
                             semanticNodeId: segment.Run.SemanticNodeId,
-                            textAdvanceWidth: paintSegment.Width));
+                            textAdvanceWidth: paintSegment.Width,
+                            bidiVisualOrderResolved: segment.BidiResolved));
                     }
-                    HtmlRenderVisual textVisual = OfficeTextElements.ContainsRightToLeft(segment.Text)
+                    HtmlRenderVisual textVisual = segment.BidiResolved ||
+                        OfficeTextElements.ContainsRightToLeft(segment.Text) || OfficeTextElements.ContainsBidiControl(segment.Text)
                         ? new HtmlRenderLogicalTextGroup(
-                            segment.LogicalText,
+                            OfficeTextElements.ContainsBidiControl(segment.LogicalText)
+                                ? string.Concat(OfficeBidiTextResolver.ResolveRuns(segment.LogicalText).Select(static run => run.Text))
+                                : segment.LogicalText,
                             x,
                             textY,
                             Math.Max(0.01D, segment.Width),
@@ -347,6 +362,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         formattingContainer);
                 }
                 cursor += rightToLeftLine ? -segment.Width : segment.Width;
+            }
+
+            if (lineBidiResolved && visuals.Count > lineVisualStart) {
+                List<HtmlRenderVisual> lineVisuals = visuals.GetRange(lineVisualStart, visuals.Count - lineVisualStart);
+                visuals.RemoveRange(lineVisualStart, visuals.Count - lineVisualStart);
+                visuals.Add(new HtmlRenderLogicalTextGroup(
+                    ResolveRootInlineLineLogicalText(mergedLines[lineIndex], formattingContainer),
+                    lineStart,
+                    lineY,
+                    Math.Max(0.01D, current.Width),
+                    Math.Max(0.01D, lineHeight),
+                    lineVisuals,
+                    lineVisualStart,
+                    paintLineSegments.FirstOrDefault()?.Run.Source));
             }
 
             flowY = Math.Max(flowY, lineY + lineHeight);

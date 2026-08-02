@@ -184,18 +184,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         var layerVisuals = new List<HtmlRenderVisual>();
-        OfficeDrawing? svgDrawing = null;
-        if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)
-            && !TryReadSvgDrawing(bytes, diagnosticSourceDescription + ":background-image", out svgDrawing)) {
-            return;
-        }
-
         double intrinsicWidth = imageInfo != null && imageInfo.Width > 0
             ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
             : areaWidth;
         double intrinsicHeight = imageInfo != null && imageInfo.Height > 0
             ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
             : areaHeight;
+        OfficeDrawing? svgDrawing = null;
+        if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)
+            && !TryReadSvgDrawing(
+                bytes,
+                intrinsicWidth,
+                intrinsicHeight,
+                diagnosticSourceDescription + ":background-image",
+                out svgDrawing)) {
+            return;
+        }
+
         BackgroundImageSize imageSize = ResolveBackgroundImageSize(layer.Size, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback);
         if (usedSizeFallback) {
             AddUnsupported(

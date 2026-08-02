@@ -27,7 +27,6 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         if (request.IsOpenTypeCff ||
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) ||
-            OfficeTextElements.ContainsBidiControl(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             (OfficeTextElements.ContainsJoiningScript(request.Text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text))) {
@@ -72,11 +71,12 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             logicalIndex += length;
         }
 
-        return OfficeManagedTextShaper.ToVisualOrder(
+        return OfficeBidiTextResolver.ToVisualOrder(
+            contextual,
             logicalElements,
-            static element => element.VisualText,
             direction,
-            cancellationToken);
+            cancellationToken,
+            static element => element.WithVisualText(OfficeBidiTextResolver.MirrorText(element.VisualText)));
     }
 
     private static bool TryAddElementGlyphs(
@@ -126,5 +126,8 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         internal string VisualText { get; }
         internal string LogicalText { get; }
         internal int LogicalIndex { get; }
+
+        internal VisualTextElement WithVisualText(string visualText) =>
+            new VisualTextElement(visualText, LogicalText, LogicalIndex);
     }
 }

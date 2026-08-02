@@ -15,9 +15,19 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Standard fidelity report shared across exporter packages.
     /// </summary>
     public sealed class TranslationReport {
-        private readonly List<TranslationNotice> _notices = new List<TranslationNotice>();
+        private readonly List<TranslationNotice> _notices;
+        private readonly IReadOnlyList<TranslationNotice> _readOnlyNotices;
+        private readonly bool _isReadOnly;
 
-        public IReadOnlyList<TranslationNotice> Notices => _notices;
+        public TranslationReport() : this(Array.Empty<TranslationNotice>(), false) { }
+
+        private TranslationReport(IEnumerable<TranslationNotice> notices, bool isReadOnly) {
+            _notices = notices.ToList();
+            _readOnlyNotices = _notices.AsReadOnly();
+            _isReadOnly = isReadOnly;
+        }
+
+        public IReadOnlyList<TranslationNotice> Notices => _readOnlyNotices;
         public bool HasWarnings => _notices.Any(n => n.Severity >= TranslationSeverity.Warning);
         public bool HasErrors => _notices.Any(n => n.Severity >= TranslationSeverity.Error);
 
@@ -30,6 +40,7 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationAction action = TranslationAction.None,
             int count = 1,
             string? targetId = null) {
+            EnsureMutable();
             _notices.Add(new TranslationNotice(
                 path,
                 feature,
@@ -50,6 +61,7 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationAction action = TranslationAction.None,
             int count = 1,
             string? targetId = null) {
+            EnsureMutable();
             string resolvedCode = GoogleWorkspaceDiagnosticCodes.Resolve(code, feature);
             if (_notices.Any(n =>
                 n.Severity == severity
@@ -61,6 +73,13 @@ namespace OfficeIMO.GoogleWorkspace {
             }
 
             _notices.Add(new TranslationNotice(path, feature, severity, message, resolvedCode, action, count, targetId));
+        }
+
+        /// <summary>Creates an independent read-only snapshot of the current notices.</summary>
+        public TranslationReport CreateReadOnlySnapshot() => new TranslationReport(_notices, true);
+
+        private void EnsureMutable() {
+            if (_isReadOnly) throw new InvalidOperationException("This translation report is a read-only planning snapshot.");
         }
     }
 

@@ -2,8 +2,8 @@ namespace OfficeIMO.Email;
 
 internal static class MimeParser {
     internal static EmailDocument Parse(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
-        CancellationToken cancellationToken) {
-        MimeParserState state = new MimeParserState(options, diagnostics, cancellationToken);
+        CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
+        MimeParserState state = new MimeParserState(options, diagnostics, cancellationToken, budget);
         return ParseMessage(data, 0, data.Length, state, 0, "message");
     }
 

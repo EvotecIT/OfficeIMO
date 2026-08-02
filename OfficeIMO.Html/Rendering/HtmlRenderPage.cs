@@ -98,9 +98,12 @@ public sealed class HtmlRenderPage {
         if (visual is HtmlRenderShape shape) {
             AddShape(drawing, shape, surfaceWidth, surfaceHeight, fonts);
         } else if (visual is HtmlRenderText text && text.Text.Length > 0) {
+            string drawingText = text.BidiVisualOrderResolved
+                ? "\u202D" + text.Text + "\u202C"
+                : text.Text;
             if (text.TextAdvanceWidth.HasValue) {
                 drawing.AddPositionedText(
-                    text.Text,
+                    drawingText,
                     text.X,
                     text.Y,
                     text.Width,
@@ -111,7 +114,7 @@ public sealed class HtmlRenderPage {
                     text.LineHeight,
                     textAdvanceWidth: text.TextAdvanceWidth.Value);
             } else {
-                drawing.AddText(text.Text, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
+                drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             }
         } else if (visual is HtmlRenderImage image) {
             var placement = new OfficeImagePlacement(image.X, image.Y, image.Width, image.Height);

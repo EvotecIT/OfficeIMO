@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word.Pdf;
 using System.Collections.Generic;
@@ -145,6 +146,12 @@ public partial class Word {
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
         Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfFormWidgetPlaceholder");
         Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfOutlineHierarchyNotReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);
@@ -182,6 +189,157 @@ public partial class Word {
         Assert.Equal(new[] { "A-100", "Alpha", "2" }, ReadPdfSemanticRowText(rows[1]));
         Assert.Equal(new[] { "B-200", "Beta", "14" }, ReadPdfSemanticRowText(rows[2]));
         Assert.Equal(JustificationValues.Right, ReadPdfSemanticCellAlignment(rows[1], 2));
+    }
+
+    [Fact]
+    public void PdfSemanticImport_OmittedVectorArtworkIsReportedAsLoss() {
+        var shape = OfficeShape.Rectangle(60D, 20D);
+        shape.FillColor = OfficeColor.Blue;
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 240,
+                PageHeight = 160
+            })
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .Canvas(canvas => canvas.Shape(shape, 165D, 140D))
+            .ToBytes();
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.True(conversion.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void PdfSemanticImport_PureDetectedTableBordersAreRepresentedSemantics() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" },
+                new[] { "B", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .ToBytes();
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            count == "0");
+    }
+
+    [Fact]
+    public void PdfSemanticImport_RotatedPureTableBordersAreRepresentedSemantics() {
+        byte[] source = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" },
+                new[] { "B", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .ToBytes();
+        byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(rotated).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            count == "0");
+    }
+
+    [Fact]
+    public void PdfSemanticImport_VectorArtworkInsideDetectedTableIsReportedAsLoss() {
+        var shape = OfficeShape.Rectangle(18D, 10D);
+        shape.FillColor = OfficeColor.Blue;
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" },
+                new[] { "B", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .Canvas(canvas => canvas.Shape(shape, 80D, 115D))
+            .ToBytes();
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.True(conversion.HasLoss);
+    }
+
+    [Fact]
+    public void PdfSemanticImport_HorizontalArtworkInsideTableCellIsNotTreatedAsABorder() {
+        OfficeShape line = OfficeShape.Line(0D, 0D, 55D, 0D);
+        line.StrokeColor = OfficeColor.Blue;
+        line.StrokeWidth = 1D;
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Table(new[] {
+                new[] { "Code", "Value" },
+                new[] { "A", "1" },
+                new[] { "B", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
+                ColumnWidthPoints = new List<double?> { 60D, 60D }
+            })
+            .Canvas(canvas => canvas.Shape(line, 50D, 115D))
+            .ToBytes();
+
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfWordImportOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
+            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
+            int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.True(conversion.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireNoLoss());
     }
 
     [Fact]

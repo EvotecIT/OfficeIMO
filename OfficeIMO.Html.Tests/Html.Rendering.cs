@@ -1358,6 +1358,38 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("StableMarker", PdfCore.PdfReadDocument.Open(firstPdf).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(HtmlRenderMode.Continuous, 320D, 96D, "Arial")]
+    [InlineData(HtmlRenderMode.Continuous, 640D, 144D, "Times New Roman")]
+    [InlineData(HtmlRenderMode.Paged, 384D, 192D, "Courier New")]
+    public void HtmlRenderingProfiles_StayDeterministicAcrossApprovedSizeDpiAndFontMatrix(
+        HtmlRenderMode mode,
+        double width,
+        double targetDpi,
+        string fontFamily) {
+        const string html = "<style>body{margin:0}main{display:grid;grid-template-columns:1fr 2fr;gap:8px}h1{font-size:20px}p{margin:0}</style>"
+            + "<main><h1>Profile</h1><p>Baseline text 0123456789</p><p dir='rtl'>RTL \u202Babc 123\u202C</p></main>";
+        var options = new HtmlRenderOptions {
+            Mode = mode,
+            ViewportWidth = width,
+            PageSize = new OfficePageSize(4D, 3D),
+            Margins = HtmlRenderMargins.All(12D),
+            DefaultFontFamily = fontFamily,
+            TargetDpi = targetDpi,
+            MaximumRasterPixels = 20_000_000L
+        };
+
+        OfficeImageExportResult first = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult second = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+
+        Assert.Equal(first.Bytes, second.Bytes);
+        Assert.Equal(first.Width, second.Width);
+        Assert.Equal(first.Height, second.Height);
+        Assert.InRange(first.DpiX, targetDpi - 0.1D, targetDpi + 0.1D);
+        Assert.InRange(first.DpiY, targetDpi - 0.1D, targetDpi + 0.1D);
+        Assert.DoesNotContain(first.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void HtmlComputedStyle_DirAttributeParticipatesAsAnOverridablePresentationalHint() {
         const string html = "<!doctype html><html id='root' dir='rtl' style='direction:ltr'><body id='body'><p id='rtl' dir='rtl'><span id='child'>Text</span></p></body></html>";
@@ -1588,21 +1620,24 @@ public sealed partial class HtmlRenderingTests {
         string svg = HtmlConversionDocument.Parse(html).ToSvg();
         Assert.All("\uFEB3\uFEE0\uFE8E\uFEE1", character => Assert.Contains(character.ToString(), svg, StringComparison.Ordinal));
 
-        Assert.Collection(
-            rendered.Diagnostics
-                .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported)
-                .OrderBy(diagnostic => diagnostic.Source),
-            diagnostic => {
-                Assert.Equal(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, diagnostic.Code);
-                Assert.Equal("p#control", diagnostic.Source);
-            },
-            diagnostic => {
-                Assert.Equal(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, diagnostic.Code);
-                Assert.Equal("p#syriac", diagnostic.Source);
-            });
-        Assert.Contains(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
+        HtmlRenderLogicalTextGroup controlGroup = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            group => group.Text == "abcdef");
+        Assert.Equal("abcdef", controlGroup.Text);
+        IReadOnlyList<HtmlRenderText> overridden = controlGroup.Visuals.OfType<HtmlRenderText>().Where(run => "def".Contains(run.Text, StringComparison.Ordinal)).ToList();
+        Assert.Equal(3, overridden.Count);
+        Assert.True(overridden[1].X < overridden[0].X);
+        Assert.True(overridden[2].X < overridden[1].X);
+        HtmlDiagnostic bidiDiagnostic = Assert.Single(
+            rendered.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported ||
+                diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+        Assert.Equal(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, bidiDiagnostic.Code);
+        Assert.Equal("p#syriac", bidiDiagnostic.Source);
+        Assert.DoesNotContain(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, HtmlRenderDiagnosticCodes.All);
-        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, out _));
+        Assert.False(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, out _));
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, out _));
     }
 
@@ -1613,8 +1648,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         IReadOnlyList<HtmlRenderText> runs = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().OrderBy(run => run.PaintOrder).ToList();
         IReadOnlyList<HtmlRenderText> hebrew = runs.Where(run => run.Text.Length == 1 && "שלום".Contains(run.Text, StringComparison.Ordinal)).ToList();
-        HtmlRenderText left = Assert.Single(runs, run => run.Text == "Left ");
-        HtmlRenderText number = Assert.Single(runs, run => run.Text == "42");
+        HtmlRenderText left = Assert.Single(runs, run => run.Text.Contains("Left", StringComparison.Ordinal));
+        HtmlRenderText number = Assert.Single(runs, run => run.Text.Contains("42", StringComparison.Ordinal));
 
         Assert.Equal("Left שלום 42", string.Concat(runs.Select(run => run.Text)));
         Assert.Equal(4, hebrew.Count);
@@ -1624,6 +1659,117 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.True(HtmlConversionDocument.Parse(html).ToPng().Length > 8);
         Assert.Contains("ש", HtmlConversionDocument.Parse(html).ToSvg(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRenderer_MirrorsPairedPunctuationInSimpleRtlRuns() {
+        const string html = "<p dir='rtl' style='margin:0;width:240px'>(אבג)</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "(אבג)");
+        string visual = string.Concat(group.Visuals
+            .OfType<HtmlRenderText>()
+            .OrderBy(static item => item.X)
+            .Select(static item => item.Text));
+
+        Assert.Equal("(גבא)", visual);
+        Assert.Equal("(אבג)", group.Text);
+    }
+
+    [Fact]
+    public void HtmlRenderer_PositionsNestedLtrIsolateRunBeforeItsHebrewRun() {
+        const string html = "<p style='margin:0;width:240px'>A\u2067שלום abc\u2069B</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "Aשלום abcB");
+        HtmlRenderText latin = Assert.Single(group.Visuals.OfType<HtmlRenderText>(), run => run.Text.Contains("abc", StringComparison.Ordinal));
+        IReadOnlyList<HtmlRenderText> hebrew = group.Visuals
+            .OfType<HtmlRenderText>()
+            .Where(run => run.Text.Length == 1 && "שלום".Contains(run.Text, StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal("Aשלום abcB", group.Text);
+        Assert.Equal(4, hebrew.Count);
+        Assert.True(latin.X < hebrew.Min(static run => run.X));
+    }
+
+    [Fact]
+    public void HtmlRenderer_CarriesBidiOverridesAcrossInlineFormattingBoundaries() {
+        const string html = "<p style='margin:0'><span>\u202E</span><b>abc</b><span>\u202C</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "abc" && item.Visuals.OfType<HtmlRenderText>().Any());
+        HtmlRenderText text = Assert.Single(group.Visuals.OfType<HtmlRenderText>());
+
+        Assert.Equal("cba", text.Text);
+        Assert.Equal("abc", group.Text);
+    }
+
+    [Fact]
+    public void HtmlRenderer_DoesNotReorderResolvedBidiTextAgainInDrawingExport() {
+        const string html = "<p style='margin:0'><span>\u202B</span><b>אבג</b><span>\u202C</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "אבג" && item.Visuals.OfType<HtmlRenderText>().Any());
+        HtmlRenderText text = Assert.Single(group.Visuals.OfType<HtmlRenderText>());
+        string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
+
+        Assert.Equal("גבא", text.Text);
+        Assert.Contains("\u202Dגבא\u202C", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u202Dאבג\u202C", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRenderer_ReportsStackedInlineTextOnceInLogicalOutput() {
+        const string html = "<p style='margin:0'><span>\u202B</span>Start <span style='position:relative;z-index:1'>אבג</span> End<span>\u202C</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        Assert.Equal(1, rendered.Text.Split(new[] { "אבג" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public void HtmlRenderer_RetainsLogicalTextOrderAcrossVisuallyReorderedStyledRuns() {
+        const string html = "<p style='margin:0'><span>\u202E</span><b>abc</b><i>def</i><span>\u202C</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        IReadOnlyList<HtmlRenderLogicalTextGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderLogicalTextGroup>()
+            .Where(group => group.Text is "abc" or "def")
+            .ToList();
+
+        Assert.Equal(2, groups.Count);
+        Assert.Contains("abcdef", rendered.Text, StringComparison.Ordinal);
+        HtmlRenderText abc = Assert.Single(Assert.Single(groups, static group => group.Text == "abc").Visuals.OfType<HtmlRenderText>());
+        HtmlRenderText def = Assert.Single(Assert.Single(groups, static group => group.Text == "def").Visuals.OfType<HtmlRenderText>());
+        Assert.True(def.X < abc.X);
+        Assert.Equal("cba", abc.Text);
+        Assert.Equal("fed", def.Text);
+    }
+
+    [Fact]
+    public void HtmlRenderer_CarriesBidiOverridesAcrossWrappedLines() {
+        const string html = "<p style='margin:0;width:32px;font-size:12px'>\u202Eone two four\u202C</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        IReadOnlyList<HtmlRenderLogicalTextGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderLogicalTextGroup>()
+            .ToList();
+
+        Assert.Contains(groups, group =>
+            group.Text == "one" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "eno");
+        Assert.Contains(groups, group =>
+            group.Text == "two" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "owt");
+        Assert.Contains(groups, group =>
+            group.Text == "four" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "ruof");
     }
 
     [Fact]

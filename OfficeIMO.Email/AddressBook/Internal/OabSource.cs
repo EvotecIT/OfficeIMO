@@ -54,6 +54,29 @@ internal sealed class OabSource {
         return new OabStreamLease(_stream, ownsStream: false, restorePosition: current);
     }
 
+    internal string ComputeFingerprint(CancellationToken cancellationToken) {
+        using OabStreamLease lease = OpenRead();
+        Stream stream = lease.Stream;
+        long position = stream.Position;
+        try {
+            stream.Position = BaseOffset;
+            using var hash = System.Security.Cryptography.IncrementalHash.CreateHash(
+                System.Security.Cryptography.HashAlgorithmName.SHA256);
+            var buffer = new byte[64 * 1024];
+            long remaining = Length;
+            while (remaining > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+                if (read == 0) throw new EndOfStreamException("The OAB source changed while it was fingerprinted.");
+                hash.AppendData(buffer, 0, read);
+                remaining -= read;
+            }
+            return EmailHashing.ToHexLower(hash.GetHashAndReset());
+        } finally {
+            stream.Position = position;
+        }
+    }
+
     internal void RestoreCallerPosition() {
         if (_stream != null && _stream.CanSeek) _stream.Position = _restorePosition;
     }

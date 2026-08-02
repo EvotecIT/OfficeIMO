@@ -44,7 +44,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFaceUnavailable = "HtmlRenderFontFaceUnavailable";
     /// <summary>A font source was not a supported TrueType glyf-outline font.</summary>
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
-    /// <summary>Right-to-left inline content requires bidi positioning not yet active in the shared renderer.</summary>
+    /// <summary>Legacy diagnostic retained for source compatibility; bounded bidi positioning is active.</summary>
     public const string BidiLayoutUnsupported = "HtmlRenderBidiLayoutUnsupported";
     /// <summary>A joining script is outside the bounded core-Arabic contextual shaper.</summary>
     public const string ComplexTextShapingUnsupported = "HtmlRenderComplexTextShapingUnsupported";
@@ -116,6 +116,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PageSizeUnsupported = "HtmlRenderPageSizeUnsupported";
     /// <summary>SVG content could not be represented by the bounded shared vector scene.</summary>
     public const string SvgContentUnsupported = "HtmlRenderSvgContentUnsupported";
+    /// <summary>A caller codec rasterized SVG features outside the bounded vector scene.</summary>
+    public const string SvgRasterFallback = "HtmlRenderSvgRasterFallback";
     /// <summary>A resource exceeded the configured per-resource byte limit.</summary>
     public const string ResourceByteLimitExceeded = "HtmlRenderResourceByteLimitExceeded";
     /// <summary>Resolved resources exceeded the operation-wide count limit.</summary>
@@ -172,7 +174,6 @@ public static class HtmlRenderDiagnosticCodes {
         FontFaceInvalid,
         FontFaceUnavailable,
         FontFormatUnsupported,
-        BidiLayoutUnsupported,
         ComplexTextShapingUnsupported,
         FlexLayoutPending,
         FlexValueUnsupported,
@@ -208,6 +209,7 @@ public static class HtmlRenderDiagnosticCodes {
         PageSelectorPending,
         PageSizeUnsupported,
         SvgContentUnsupported,
+        SvgRasterFallback,
         ResourceByteLimitExceeded,
         ResourceCountLimitExceeded,
         ResourceRequestLimitExceeded,

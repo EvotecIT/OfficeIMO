@@ -79,6 +79,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_UsesSharedOperationDeadlineAcrossResourceAndLayoutStages() {
+        var timeout = TimeSpan.FromMilliseconds(25D);
+        var options = new HtmlRenderOptions {
+            RenderTimeout = timeout,
+            ResourceTimeout = TimeSpan.FromMinutes(1D),
+            ResourceResolver = async (request, cancellationToken) => {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return null;
+            }
+        };
+
+        OfficeImageExportTimeoutException exception = await Assert.ThrowsAsync<OfficeImageExportTimeoutException>(
+            () => HtmlRenderTestDriver.RenderAsync(
+                "<img src='https://assets.example.test/operation-timeout.png'>",
+                options));
+
+        Assert.Equal(timeout, exception.Timeout);
+    }
+
+    [Fact]
     public async Task HtmlRender_BoundsResolverMissesWithTheRequestBudget() {
         int calls = 0;
         var options = new HtmlRenderOptions {

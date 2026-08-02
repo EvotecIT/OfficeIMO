@@ -93,7 +93,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDrivePermission,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create,
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
         public async Task DeletePermissionAsync(
@@ -114,7 +116,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.Object,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable,
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
         public async Task<GoogleDriveCommentList> ListCommentsAsync(
@@ -169,7 +173,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveComment,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create,
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
         /// <summary>Deletes a Drive comment thread from a file.</summary>
@@ -191,7 +197,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.Object,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable,
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
         public async Task<GoogleDriveReply> CreateReplyAsync(
@@ -221,7 +229,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveReply,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create,
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
         /// <summary>Deletes a reply from a Drive comment thread.</summary>
@@ -245,7 +255,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.Object,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable,
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
         public async Task<GoogleDriveRevisionList> ListRevisionsAsync(

@@ -47,7 +47,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool addedObject = false;
         if (bytes != null && bytes.Length > 0 && placement.IsVisible) {
             if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                if (TryReadSvgDrawing(bytes, sourceDescription, out OfficeDrawing? svgDrawing) && svgDrawing != null) {
+                if (TryReadSvgDrawing(
+                    bytes,
+                    hasIntrinsicSize ? intrinsicWidth : 0D,
+                    hasIntrinsicSize ? intrinsicHeight : 0D,
+                    sourceDescription,
+                    out OfficeDrawing? svgDrawing) && svgDrawing != null) {
                     AddSvgImageVisual(objectVisuals, svgDrawing, imageX, imageY, placement, alternativeText, link, sourceDescription);
                     addedObject = true;
                 }
@@ -107,9 +112,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(1D, style.MarginLeft + ResolveReplacedImageBoxWidth(element, style) + style.MarginRight);
     }
 
-    private bool TryReadSvgDrawing(byte[] bytes, string sourceDescription, out OfficeDrawing? drawing) {
+    private bool TryReadSvgDrawing(
+        byte[] bytes,
+        double fallbackWidth,
+        double fallbackHeight,
+        string sourceDescription,
+        out OfficeDrawing? drawing) {
         if (OfficeSvgDrawingReader.TryRead(bytes, out drawing, out int unsupportedFeatures) && drawing != null) {
             if (unsupportedFeatures > 0) {
+                if (TryRasterizeSvgFallback(bytes, drawing.Width, drawing.Height, sourceDescription, unsupportedFeatures, out OfficeDrawing? rasterFallback)) {
+                    drawing = rasterFallback;
+                    return true;
+                }
                 _diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.SvgContentUnsupported,
@@ -122,6 +136,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
 
+        if (TryRasterizeSvgFallback(bytes, fallbackWidth, fallbackHeight, sourceDescription, null, out drawing)) {
+            return true;
+        }
+
         _diagnostics.Add(
             ComponentName,
             HtmlRenderDiagnosticCodes.SvgContentUnsupported,
@@ -131,6 +149,49 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "image/svg+xml",
             HtmlConversionLossKind.Omission);
         return false;
+    }
+
+    private bool TryRasterizeSvgFallback(
+        byte[] bytes,
+        double width,
+        double height,
+        string sourceDescription,
+        int? unsupportedFeatures,
+        out OfficeDrawing? drawing) {
+        drawing = null;
+        if (_options.ImageCodec == null) return false;
+        try {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (!_options.ImageCodec.TryDecode(bytes, "image/svg+xml", out OfficeRasterImage? raster) || raster == null) return false;
+            _cancellationToken.ThrowIfCancellationRequested();
+            long pixels = checked((long)raster.Width * raster.Height);
+            if (pixels > _options.MaximumRasterPixels
+                || raster.Width > _options.MaxSurfaceWidth
+                || raster.Height > _options.MaxSurfaceHeight) return false;
+            byte[] png = OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, _options.RasterEncoding);
+            _cancellationToken.ThrowIfCancellationRequested();
+            double resolvedWidth = width > 0D ? width : raster.Width;
+            double resolvedHeight = height > 0D ? height : raster.Height;
+            var fallback = new OfficeDrawing(resolvedWidth, resolvedHeight);
+            fallback.AddImage(
+                png,
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, resolvedWidth, resolvedHeight)));
+            drawing = fallback;
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.SvgRasterFallback,
+                "A caller-supplied codec rasterized unsupported SVG features.",
+                HtmlDiagnosticSeverity.Info,
+                sourceDescription,
+                "features=" + (unsupportedFeatures.HasValue
+                    ? unsupportedFeatures.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : "managed-parse-failed") + ";pixels=" + pixels,
+                HtmlConversionLossKind.Approximation);
+            return true;
+        } catch (Exception exception) when (exception is not OperationCanceledException && exception is not OutOfMemoryException && exception is not StackOverflowException) {
+            return false;
+        }
     }
 
     private static void AddSvgImageVisual(

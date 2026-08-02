@@ -6,9 +6,11 @@ public static partial class HtmlImageExportExtensions {
     /// <summary>Renders one selected surface to the requested image format with dimensions and diagnostics.</summary>
     public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
         HtmlRenderOptions resolved = Normalize(options, pageIndex);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved);
-        if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
-        return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, CancellationToken.None);
+        return HtmlRenderEngine.ExecuteWithDeadline(resolved, CancellationToken.None, operationCancellationToken => {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved, operationCancellationToken);
+            if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
+            return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, operationCancellationToken);
+        });
     }
 
     /// <summary>Renders all surfaces to the requested image format.</summary>
@@ -28,26 +30,31 @@ public static partial class HtmlImageExportExtensions {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = Normalize(options, 0);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(
-            document,
-            resolved,
-            cancellationToken);
-        OfficeImageExportBatchProcessor.ForEachOrdered(
-            rendered.Pages,
-            resolved.MaximumDegreeOfParallelism,
-            (page, _, token) => RenderPage(page, format, resolved, rendered.DiagnosticReport, token),
-            consumer,
-            cancellationToken,
-            resolved);
+        HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Render(
+                document,
+                resolved,
+                operationCancellationToken);
+            OfficeImageExportBatchProcessor.ForEachOrdered(
+                rendered.Pages,
+                resolved.MaximumDegreeOfParallelism,
+                (page, _, token) => RenderPage(page, format, resolved, rendered.DiagnosticReport, token),
+                consumer,
+                operationCancellationToken,
+                resolved);
+            return true;
+        });
     }
 
     /// <summary>Asynchronously renders one selected surface to the requested image format.</summary>
     public static async Task<OfficeImageExportResult> ExportImageAsync(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
         HtmlRenderOptions resolved = Normalize(options, pageIndex);
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
-        return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, cancellationToken);
+        return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
+            HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
+            operationCancellationToken.ThrowIfCancellationRequested();
+            if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
+            return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, operationCancellationToken);
+        }).ConfigureAwait(false);
     }
 
     /// <summary>Asynchronously renders all surfaces to the requested image format.</summary>
@@ -73,17 +80,20 @@ public static partial class HtmlImageExportExtensions {
         CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         HtmlRenderOptions resolved = Normalize(options, 0);
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, cancellationToken).ConfigureAwait(false);
-        OfficeImageExportAsyncConsumer accept =
-            OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
-                resolved,
-                consumer,
-                cancellationToken);
-        foreach (HtmlRenderPage page in rendered.Pages) {
-            cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = RenderPage(page, format, resolved, rendered.DiagnosticReport, cancellationToken);
-            await accept(result, cancellationToken).ConfigureAwait(false);
-        }
+        await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
+            HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
+            OfficeImageExportAsyncConsumer accept =
+                OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
+                    resolved,
+                    consumer,
+                    operationCancellationToken);
+            foreach (HtmlRenderPage page in rendered.Pages) {
+                operationCancellationToken.ThrowIfCancellationRequested();
+                OfficeImageExportResult result = RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken);
+                await accept(result, operationCancellationToken).ConfigureAwait(false);
+            }
+            return true;
+        }).ConfigureAwait(false);
     }
 
 }

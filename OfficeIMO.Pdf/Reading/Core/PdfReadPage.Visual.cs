@@ -3,45 +3,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    internal int GetVisibleVisualPrimitiveCount() {
-        (double Width, double Height) size = GetVisualPageSize();
-        int count = 0;
-        var textOutputBudget = CreateTextOutputBudget();
-        var visibilityBudget = new VisualGeometryBudget();
-        var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
-        var tilingPatternResourceCache =
-            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
-        PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        var activeForms = new HashSet<PdfStream>();
-        var pageContentBudget = new PageContentBudget(this);
-        string content = GetContentStreamContent(pageContentBudget);
-        if (content.Length > 0) {
-            CollectVisualPrimitivesAndForms(
-                content,
-                pageResources,
-                GetVisualPageTransform(),
-                size.Width,
-                size.Height,
-                primitive => {
-                    if (IsVisibleVisualPrimitive(
-                            primitive,
-                            size.Width,
-                            size.Height,
-                            visibilityBudget,
-                            patternPaintCache)) {
-                        count++;
-                    }
-                },
-                activeForms,
-                retainPrimitiveData: false,
-                tilingPatternResourceCache: tilingPatternResourceCache,
-                textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
-        }
-
-        return count;
-    }
-
     /// <summary>
     /// Projects supported page drawing operators, text spans, and image placements into a dependency-free drawing scene.
     /// </summary>

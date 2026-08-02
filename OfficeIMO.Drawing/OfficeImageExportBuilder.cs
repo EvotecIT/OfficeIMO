@@ -123,6 +123,16 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         return This;
     }
 
+    /// <summary>Sets the maximum duration allowed for one render operation.</summary>
+    public TBuilder WithRenderTimeout(TimeSpan timeout) {
+        if (timeout != System.Threading.Timeout.InfiniteTimeSpan &&
+            (timeout <= TimeSpan.Zero || timeout.TotalMilliseconds > int.MaxValue)) {
+            throw new ArgumentOutOfRangeException(nameof(timeout));
+        }
+        Options.RenderTimeout = timeout;
+        return This;
+    }
+
     /// <summary>Sets the policy applied when requested raster dimensions exceed a safety limit.</summary>
     public TBuilder OnRasterOverflow(OfficeRasterOverflowBehavior behavior) {
         if (!Enum.IsDefined(typeof(OfficeRasterOverflowBehavior), behavior)) {
@@ -280,24 +290,38 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
     private OfficeImageExportResult Render(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
-        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
-        OfficeImageExportResult result = _exportWithCancellation != null
-            ? _exportWithCancellation(_format, effective, cancellationToken)
-            : _export(_format, effective);
-        cancellationToken.ThrowIfCancellationRequested();
-        result.Require(effective.Policy);
-        return result;
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            effective.RenderTimeout,
+            cancellationToken);
+        try {
+            effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
+            OfficeImageExportResult result = _exportWithCancellation != null
+                ? _exportWithCancellation(_format, effective, execution.Token)
+                : _export(_format, effective);
+            execution.ThrowIfCancellationRequested();
+            result.Require(effective.Policy);
+            return result;
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
     }
 
     private async Task<OfficeImageExportResult> RenderAsync(CancellationToken cancellationToken) {
         if (_exportAsync == null) return Render(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
-        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
-        OfficeImageExportResult result = await _exportAsync(_format, effective, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        result.Require(effective.Policy);
-        return result;
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            effective.RenderTimeout,
+            cancellationToken);
+        try {
+            effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
+            OfficeImageExportResult result = await _exportAsync(_format, effective, execution.Token).ConfigureAwait(false);
+            execution.ThrowIfCancellationRequested();
+            result.Require(effective.Policy);
+            return result;
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
     }
 
     private TBuilder This => (TBuilder)this;

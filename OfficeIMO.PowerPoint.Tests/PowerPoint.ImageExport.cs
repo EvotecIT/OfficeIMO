@@ -16,6 +16,17 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
+        public void PowerPointSlide_DirectImageExportEnforcesRenderTimeout() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var options = new PowerPointImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
+
+            Assert.Throws<OfficeImageExportTimeoutException>(() =>
+                slide.ExportImage(OfficeImageExportFormat.Svg, options));
+        }
+
+        [Fact]
         public void PowerPointSlide_ExportsSolidBackgroundToPngAndSvgThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

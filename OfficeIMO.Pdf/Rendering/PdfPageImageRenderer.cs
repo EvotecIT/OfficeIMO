@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -90,13 +91,27 @@ internal static partial class PdfPageImageRenderer {
         }
     }
 
-    private static byte[] RenderDrawingAsPng(OfficeDrawing drawing, double scale, OfficeColor? background, IOfficeRasterImageCodec? imageCodec = null) {
-        EnsureRasterImagesCanRender(drawing, imageCodec);
-        return OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions { Scale = scale, Background = background ?? OfficeColor.White, ImageCodec = imageCodec });
+    private static byte[] RenderDrawingAsPng(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeColor? background,
+        IOfficeRasterImageCodec? imageCodec = null,
+        CancellationToken cancellationToken = default) {
+        EnsureRasterImagesCanRender(drawing, imageCodec, cancellationToken);
+        return OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
+            Scale = scale,
+            Background = background ?? OfficeColor.White,
+            ImageCodec = imageCodec,
+            CancellationToken = cancellationToken
+        });
     }
 
-    private static void EnsureRasterImagesCanRender(OfficeDrawing drawing, IOfficeRasterImageCodec? imageCodec) {
+    private static void EnsureRasterImagesCanRender(
+        OfficeDrawing drawing,
+        IOfficeRasterImageCodec? imageCodec,
+        CancellationToken cancellationToken = default) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (element is OfficeDrawingImage image &&
                 !OfficeRasterImageDecoder.TryDecode(image.Bytes, out _) &&
                 (imageCodec is null || !imageCodec.TryDecode(image.Bytes, image.ContentType, out OfficeRasterImage? decoded) || decoded is null)) {
@@ -111,9 +126,9 @@ internal static partial class PdfPageImageRenderer {
             }
 
             if (element is OfficeDrawingGroup group) {
-                EnsureRasterImagesCanRender(group.Drawing, imageCodec);
+                EnsureRasterImagesCanRender(group.Drawing, imageCodec, cancellationToken);
             } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                EnsureRasterImagesCanRender(effectGroup.Drawing, imageCodec);
+                EnsureRasterImagesCanRender(effectGroup.Drawing, imageCodec, cancellationToken);
             }
         }
     }

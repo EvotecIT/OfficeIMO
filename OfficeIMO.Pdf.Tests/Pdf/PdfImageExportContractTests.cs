@@ -99,6 +99,32 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
+    public void LoadedPdfPageChecksTheDeadlineAfterDirectSvgExport() {
+        PdfReadPage page = LoadTwoPageDocument().Pages[0];
+        var timeout = TimeSpan.FromTicks(1);
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            page.ExportImage(
+                OfficeImageExportFormat.Svg,
+                new PdfImageExportOptions { RenderTimeout = timeout }));
+
+        Assert.Equal(timeout, exception.Timeout);
+    }
+
+    [Fact]
+    public void LoadedPdfBatchChecksTheDeadlineAfterOrderedExport() {
+        PdfReadDocument document = LoadTwoPageDocument();
+        var timeout = TimeSpan.FromTicks(1);
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            document.ExportImages(
+                OfficeImageExportFormat.Svg,
+                new PdfImageExportOptions { RenderTimeout = timeout }));
+
+        Assert.Equal(timeout, exception.Timeout);
+    }
+
+    [Fact]
     public void FluentDocumentReaderUsesTheSharedImageExportContract() {
         PdfDocument document = PdfDocument.Open(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Fluent image export"))
@@ -142,8 +168,24 @@ public sealed class PdfImageExportContractTests {
         Assert.False(materialized);
         Assert.ThrowsAny<OperationCanceledException>(() =>
             document.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            document.Read.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => builder.ExportAsync(cancellation.Token));
         Assert.False(materialized);
+    }
+
+    [Fact]
+    public void AuthoredDocumentDirectExportIncludesSnapshotMaterializationInDeadline() {
+        PdfDocument document = PdfDocument.Create()
+            .Deferred(_ => item => item.Paragraph(paragraph => paragraph.Text("Deferred page")));
+        var timeout = TimeSpan.FromTicks(1);
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            document.ExportImages(
+                OfficeImageExportFormat.Svg,
+                new PdfImageExportOptions { RenderTimeout = timeout }));
+
+        Assert.Equal(timeout, exception.Timeout);
     }
 
     [Fact]

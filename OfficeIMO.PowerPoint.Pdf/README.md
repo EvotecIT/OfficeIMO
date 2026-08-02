@@ -137,6 +137,21 @@ foreach (var page in report.VisualPages) {
 }
 ```
 
+Use hybrid mode when the original page must remain visible while detected tables stay editable. Row and column caps split a large overlay across duplicate visual-page slides, and each overlay keeps the same centered, aspect-preserving page geometry as its background:
+
+```csharp
+var hybrid = PdfPowerPointImportOptions.CreateHybrid();
+hybrid.MaxRowsPerSlide = 18;
+hybrid.MaxColumnsPerSlide = 6;
+
+PdfPowerPointConversionReport hybridReport = pdf.SaveAsPowerPoint(
+    "handout-hybrid.pptx",
+    hybrid);
+
+Console.WriteLine($"Editable table segments: {hybridReport.TableEntries.Count}");
+Console.WriteLine($"Visual-only page content: {hybridReport.HasNonEditablePageContent}");
+```
+
 Use editable-table mode when detected data is more important than page appearance:
 
 ```csharp
@@ -161,7 +176,8 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 - Presentation content comes from `OfficeIMO.PowerPoint`; layout and PDF writing use `OfficeIMO.Pdf`.
 - Opened-PDF import defaults to `PdfPowerPointImportMode.VisualPages`. Managed-renderer capability diagnostics report page failures or simplifications.
 - `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
-- The current route does not claim arbitrary vectors, groups, forms, annotations, or animations as editable slide objects. Open hybrid visual/editable and bounded text/image reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
+- `PdfPowerPointImportMode.HybridVisualAndEditableTables` retains each selected page as a visual layer and overlays bounded editable table segments at source-relative geometry.
+- Arbitrary text, images, navigation, vectors, groups, forms/controls, annotations, and interactive media/animations are not claimed as editable slide objects; stable report warnings identify their visual-only or unsupported disposition.
 
 ## Related packages
 

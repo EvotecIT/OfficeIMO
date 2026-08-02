@@ -90,7 +90,7 @@ public sealed partial class PdfDocument {
             snapshot.Bytes,
             snapshot.Options,
             () => snapshot.Document);
-        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference);
+        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options);
     }
 
     /// <summary>
@@ -128,7 +128,8 @@ public sealed partial class PdfDocument {
                 snapshot.Bytes,
                 requested[index],
                 requestedFieldNames,
-                executionPreference);
+                executionPreference,
+                snapshot.Options);
         }
         return new PdfMutationPortfolioReport(preflight, Array.AsReadOnly(plans));
     }
@@ -548,7 +549,9 @@ public sealed partial class PdfDocument {
         PdfReadOptions? readOptions) => ApplyMutation(input => PdfMetadataEditor.SynchronizeMetadata(
             input, title, author, subject, keywords, createXmpMetadata, readOptions), readOptions);
 
-    /// <summary>Attempts a full-rewrite Info/XMP synchronization and returns planner diagnostics when blocked.</summary>
+    /// <summary>
+    /// Attempts an Info/XMP synchronization through the planner-selected full-rewrite or append-only path.
+    /// </summary>
     public PdfOperationResult<PdfDocument> TrySynchronizeMetadata(
         string? title = null,
         string? author = null,
@@ -560,9 +563,19 @@ public sealed partial class PdfDocument {
             "Synchronize Info and XMP metadata",
             PdfPreflightCapability.ManipulatePages,
             PdfMutationOperation.SynchronizeMetadata,
-            _ => SynchronizeMetadata(title, author, subject, keywords, createXmpMetadata, options ?? ReadOptions),
-            options: options,
-            executionPreference: PdfMutationExecutionPreference.RequireFullRewrite);
+            mode => mode == PdfMutationExecutionMode.AppendOnly
+                ? ApplyMutation(
+                    input => PdfIncrementalUpdater.SynchronizeMetadata(
+                        input,
+                        title,
+                        author,
+                        subject,
+                        keywords,
+                        options ?? ReadOptions,
+                        createXmpMetadata),
+                    options ?? ReadOptions)
+                : SynchronizeMetadata(title, author, subject, keywords, createXmpMetadata, options ?? ReadOptions),
+            options: options);
     }
 
     /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>

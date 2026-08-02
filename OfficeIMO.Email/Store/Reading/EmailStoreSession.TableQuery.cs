@@ -9,6 +9,7 @@ public sealed partial class EmailStoreSession {
         if (query == null) throw new ArgumentNullException(nameof(query));
         ThrowIfDisposed();
         if (query.FolderId.HasValue) FolderCatalog.Get(query.FolderId.Value);
+        string sourceFingerprint = GetDurableSourceFingerprint(cancellationToken);
 
         int enumerationLimit = query.MaxItemsScanned == int.MaxValue
             ? int.MaxValue
@@ -34,7 +35,7 @@ public sealed partial class EmailStoreSession {
         }
 
         matches.Sort(new QueryRowComparer(query.EffectiveSorts));
-        IReadOnlyList<object?>? continuationValues = query.ContinuationToken?.DecodeValues(query);
+        IReadOnlyList<object?>? continuationValues = query.ContinuationToken?.DecodeValues(query, sourceFingerprint);
         IEnumerable<EmailStoreQueryRow> remaining = continuationValues == null
             ? matches
             : matches.Where(row => CompareToContinuation(row, continuationValues, query.EffectiveSorts) > 0);
@@ -43,12 +44,13 @@ public sealed partial class EmailStoreSession {
         bool hasMore = pageCandidates.Count > query.PageSize;
         if (hasMore) pageCandidates.RemoveAt(pageCandidates.Count - 1);
 
-        EmailStoreContinuationToken? nextToken = hasMore && pageCandidates.Count > 0
-            ? EmailStoreContinuationToken.Create(query, pageCandidates[pageCandidates.Count - 1])
-            : null;
         EmailStoreTableRow[] rows = pageCandidates
             .Select(row => new EmailStoreTableRow(row, query.Projection))
             .ToArray();
+        EnsureDurableSourceFingerprintUnchanged(sourceFingerprint, cancellationToken);
+        EmailStoreContinuationToken? nextToken = hasMore && pageCandidates.Count > 0
+            ? EmailStoreContinuationToken.Create(query, pageCandidates[pageCandidates.Count - 1], sourceFingerprint)
+            : null;
         return new EmailStoreTablePage(
             Array.AsReadOnly(rows),
             nextToken,

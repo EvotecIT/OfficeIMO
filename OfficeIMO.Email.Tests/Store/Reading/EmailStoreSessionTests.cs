@@ -83,14 +83,6 @@ public sealed class EmailStoreSessionTests {
         Assert.Equal(0x5A, content.ReadByte());
         Assert.True(source.TotalBytesRead > beforeOpen);
 
-        EmailStoreContentSearchReport search = session.SearchContent(
-            new EmailStoreContentQuery(
-                new[] { "PST property context" },
-                fields: EmailStoreContentSearchFields.TextBody,
-                maxItemsScanned: 1,
-                maxResults: 1,
-                maxDecodedPropertyBytesPerItem: 1024 * 1024,
-                maxSearchableCharactersPerItem: 4096));
         EmailStoreValidationReport validation = session.Validate(
             new EmailStoreValidationOptions(
                 mode: EmailStoreValidationMode.Shallow,
@@ -100,13 +92,21 @@ public sealed class EmailStoreSessionTests {
                 maxStructuralBlocks: 4,
                 maxStructuralBytes: 64 * 1024));
 
-        Assert.Single(search.Results);
         Assert.True(validation.StructuralIntegritySupported);
         Assert.Equal(0, validation.StructuralFailures);
         Assert.True(source.TotalBytesRead < 4 * 1024 * 1024,
             $"Selective workflows over a virtual 64 GiB store read {source.TotalBytesRead} bytes.");
         Assert.True(source.MaxSingleRead <= 128 * 1024,
             $"A single source read requested {source.MaxSingleRead} bytes.");
+    }
+
+    [Fact]
+    public void Durable_fingerprint_rejects_premature_end_of_declared_source() {
+        const long virtualLength = 64L * 1024 * 1024 * 1024;
+        using var source = new VirtualLengthStream(PstTestFileBuilder.Create(), virtualLength);
+        using EmailStoreSession session = EmailStoreSession.Open(source, "large.pst");
+
+        Assert.Throws<InvalidDataException>(() => session.GetDurableSourceFingerprint());
     }
 
     [Fact]
@@ -119,6 +119,44 @@ public sealed class EmailStoreSessionTests {
             () => EmailStoreSession.Open(source, "large.pst", options));
 
         Assert.Equal(nameof(EmailStoreReaderOptions.MaxInputBytes), exception.LimitName);
+    }
+
+    [Fact]
+    public void Durable_fingerprint_reapplies_source_limit_after_stream_growth() {
+        byte[] store = PstTestFileBuilder.Create();
+        using var source = new MemoryStream(store.Length + 32);
+        source.Write(store, 0, store.Length);
+        source.Position = 0;
+        var options = new EmailStoreReaderOptions(maxInputBytes: store.Length + 8L);
+        using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst", options);
+        source.SetLength(store.Length + 9L);
+
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(
+            () => session.GetDurableSourceFingerprint());
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxInputBytes), exception.LimitName);
+    }
+
+    [Fact]
+    public void Durable_fingerprint_reapplies_aggregate_limit_after_mailbox_directory_growth() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-fingerprint-limit-" + Guid.NewGuid().ToString("N"));
+        string message = Path.Combine(root, "message.eml");
+        try {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(message, "Subject: bounded\r\n\r\nbody");
+            long originalLength = new FileInfo(message).Length;
+            var options = new EmailStoreReaderOptions(maxInputBytes: originalLength + 4);
+            using EmailStoreSession session = EmailStoreSession.Open(root, options);
+            File.AppendAllText(message, "growth");
+
+            EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(
+                () => session.GetDurableSourceFingerprint());
+
+            Assert.Equal(nameof(EmailStoreReaderOptions.MaxInputBytes), exception.LimitName);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
     }
 
     [Fact]

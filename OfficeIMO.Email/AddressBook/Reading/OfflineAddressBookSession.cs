@@ -23,6 +23,9 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
         _sources = sources;
         _diagnostics = diagnostics;
         AddressLists = sources.Select(source => source.Info).ToArray();
+        SourceFingerprint = EmailHashing.ComputeSha256HexLower(string.Join("|",
+            sources.Select(source => string.Concat(source.Info.Id, ":",
+                source.Source.Length.ToString(CultureInfo.InvariantCulture)))));
         long total = 0;
         foreach (OabAddressListSource source in sources) total = checked(total + source.Info.DeclaredEntryCount);
         DeclaredEntryCount = total;
@@ -36,6 +39,8 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
     public IReadOnlyList<OfflineAddressBookListInfo> AddressLists { get; }
     /// <summary>Total declared records across all address lists.</summary>
     public long DeclaredEntryCount { get; }
+    /// <summary>SHA-256 catalog identity over discovered address-list ids and lengths. Durable search checkpoints bind complete content separately.</summary>
+    public string SourceFingerprint { get; }
     /// <summary>Open, discovery, and recoverable entry diagnostics.</summary>
     public IReadOnlyList<EmailDiagnostic> Diagnostics => _diagnostics;
 
@@ -98,7 +103,9 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
         var diagnostics = new List<EmailDiagnostic>();
         OfflineAddressBookListInfo info = OabV4MetadataReader.Read(source, 0, effective, diagnostics);
         return new OfflineAddressBookSession(sourceName, effective, new[] { file },
-            new List<OabAddressListSource> { new OabAddressListSource(source, info) }, diagnostics);
+            new List<OabAddressListSource> {
+                new OabAddressListSource(source, info)
+            }, diagnostics);
     }
 
     /// <summary>Lazily enumerates record references without decoding property values.</summary>
@@ -144,6 +151,10 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
         _disposed = true;
         foreach (OabAddressListSource source in _sources) source.Source.RestoreCallerPosition();
     }
+
+    private string GetDurableSourceFingerprint(CancellationToken cancellationToken) =>
+        EmailHashing.ComputeSha256HexLower(string.Join("|", _sources.Select(source =>
+            string.Concat(source.Info.Id, ":", source.Source.ComputeFingerprint(cancellationToken)))));
 
     private IEnumerable<OfflineAddressBookEntryReference> EnumerateEntryReferencesCore(
         OfflineAddressBookEnumerationOptions options,

@@ -75,6 +75,23 @@ public sealed class EmailSemanticComparerTests {
     }
 
     [Fact]
+    public void StrictProfileDetectsUnknownMapiLossAtMessageRecipientAndAttachmentScopes() {
+        EmailDocument source = CreateDocument(Array.Empty<byte>());
+        EmailDocument destination = CreateDocument(Array.Empty<byte>());
+        source.MapiProperties.Add(new MapiProperty(0x7A01, MapiPropertyType.Binary, new byte[] { 1 }));
+        source.Recipients[0].MapiProperties.Add(new MapiProperty(0x7A02, MapiPropertyType.Integer32, 42));
+        source.Attachments[0].MapiProperties.Add(new MapiProperty(0x7A03, MapiPropertyType.Unicode, "unknown"));
+
+        EmailSemanticComparisonReport report = EmailSemanticComparer.Compare(source, destination,
+            new EmailSemanticComparisonOptions(EmailSemanticComparisonProfile.Strict));
+
+        Assert.False(report.IsMatch);
+        Assert.Contains(report.Differences, difference => difference.Path.Contains("p-7A01", StringComparison.Ordinal));
+        Assert.Contains(report.Differences, difference => difference.Path.Contains("recipients/", StringComparison.Ordinal) && difference.Path.Contains("p-7A02", StringComparison.Ordinal));
+        Assert.Contains(report.Differences, difference => difference.Path.Contains("attachments/", StringComparison.Ordinal) && difference.Path.Contains("p-7A03", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void KeyedFingerprintsAreStableAndDistinctFromUnkeyedDigests() {
         EmailDocument document = CreateDocument(Encoding.UTF8.GetBytes("secret"));
         byte[] key = Enumerable.Range(1, 32).Select(value => checked((byte)value)).ToArray();

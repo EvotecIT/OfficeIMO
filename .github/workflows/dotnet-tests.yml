@@ -182,6 +182,23 @@ jobs:
           dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net8.0 --no-restore @smokeProperties
           dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore @smokeProperties
 
+  google-workspace-package-consumers:
+    name: 'OfficeIMO Google Workspace packed consumers'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Pack and test clean package consumers
+        shell: pwsh
+        run: ./Build/Test-GoogleWorkspacePackages.ps1
+
   onenote-package-consumers:
     name: 'OfficeIMO.OneNote packed consumers'
     runs-on: windows-latest
@@ -1388,6 +1405,7 @@ jobs:
         run: |
           dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName=OfficeIMO.Tests.Word.Test_WordDocument_SaveAsPdf" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.HtmlCoreTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName=OfficeIMO.Tests.HtmlRenderingTests.HtmlRenderingProfiles_StayDeterministicAcrossApprovedSizeDpiAndFontMatrix" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReadStreamTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Markdown.Test_SaveAsMarkdown_FileAndRead" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.CSV.Tests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx

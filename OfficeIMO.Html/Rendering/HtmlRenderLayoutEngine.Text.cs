@@ -220,18 +220,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedBidiElements.Contains(element)) return;
         bool joiningScript = OfficeTextElements.ContainsJoiningScript(textNode.Data)
             && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(textNode.Data);
-        bool bidiControl = OfficeTextElements.ContainsBidiControl(textNode.Data);
-        if (!joiningScript && !bidiControl) return;
+        if (!joiningScript) return;
         _reportedBidiElements.Add(element);
         _diagnostics.Add(
             ComponentName,
-            joiningScript ? HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported : HtmlRenderDiagnosticCodes.BidiLayoutUnsupported,
-            joiningScript
-                ? "A joining script outside the bounded core-Arabic shaper used scalar glyphs."
-                : "Explicit Unicode bidi controls require an embedding or isolate stage that is not active yet.",
+            HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported,
+            "A joining script outside the bounded core-Arabic shaper used scalar glyphs.",
             HtmlDiagnosticSeverity.Warning,
             HtmlRenderStyleResolver.DescribeSource(element),
-            joiningScript ? "joining-script" : "bidi-control");
+            "joining-script");
     }
 
     private HtmlInlineLayout LayoutInlineRuns(IReadOnlyList<HtmlInlineRun> runs, double width, HtmlRenderBoxStyle paragraphStyle, IElement? formattingContainer = null) {
@@ -539,17 +536,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class InlineSegment {
-        internal InlineSegment(string text, double width, HtmlInlineRun run, string? logicalText = null) {
+        internal InlineSegment(
+            string text,
+            double width,
+            HtmlInlineRun run,
+            string? logicalText = null,
+            bool bidiResolved = false) {
             Text = text;
             LogicalText = logicalText ?? text;
             Width = width;
             Run = run;
+            BidiResolved = bidiResolved;
         }
 
         internal string Text { get; }
         internal string LogicalText { get; }
         internal double Width { get; }
         internal HtmlInlineRun Run { get; }
+        internal bool BidiResolved { get; }
     }
 
     private static double ResolveTextAscent(HtmlRenderBoxStyle style) {

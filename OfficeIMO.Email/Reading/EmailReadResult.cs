@@ -6,11 +6,12 @@ public sealed class EmailReadResult : IDisposable {
     private bool _disposed;
 
     internal EmailReadResult(EmailDocument document, IReadOnlyList<EmailDiagnostic> diagnostics, long bytesRead,
-        IDisposable? resources = null) {
+        IDisposable? resources = null, EmailProcessingBudgetSnapshot? processingBudget = null) {
         Document = document;
         Diagnostics = diagnostics;
         BytesRead = bytesRead;
         _resources = resources;
+        ProcessingBudget = processingBudget ?? new EmailProcessingBudgetSnapshot(bytesRead, 0, 0, 0, 0, 0, 0);
     }
 
     /// <summary>Parsed artifact document.</summary>
@@ -31,6 +32,9 @@ public sealed class EmailReadResult : IDisposable {
 
     /// <summary>Number of source bytes consumed.</summary>
     public long BytesRead { get; }
+
+    /// <summary>Aggregate resource usage observed across the root artifact and nested parsers.</summary>
+    public EmailProcessingBudgetSnapshot ProcessingBudget { get; }
 
     /// <summary>True when retained attachment payloads are reopenable file-backed sources.</summary>
     public bool UsesFileBackedContent => _resources is EmailReadWorkspace workspace && workspace.HasContent;

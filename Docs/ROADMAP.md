@@ -46,15 +46,11 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 ## PDF, HTML, and image rendering
 
-- [ ] Complete mutation preflight, append-only update generalization, signature validation, redaction verification, standard editing workflows, parser repair diagnostics, and bounded arbitrary-PDF rendering in `OfficeIMO.Pdf`.
-- [ ] Deepen PDF annotations, forms, tagged structure, searchable text, outlines, metadata, encryption profiles, and source-format conversion evidence.
-- [ ] Improve PDF-to-Excel table continuation, repeated-header recognition, typed values, and bounded positioned-cell recovery without presenting arbitrary page art as an editable workbook.
-- [ ] Deepen PDF-to-Word logical reconstruction and PDF-to-PowerPoint hybrid visual/editable projection while retaining explicit diagnostics for unsupported images, controls, navigation, vectors, groups, forms, annotations, and animations.
-- [ ] Complete HTML cascade, generated content, font selection/shaping, bidi behavior, inline layout, baselines, intrinsic sizing, and difficult table/flex/grid/multicolumn layout cases.
-- [ ] Complete pagination, page masters, running content, complex fragmentation, advanced SVG, masks, filters, blend modes, and diagnosed raster fallbacks.
-- [ ] Add hostile-input, fuzz, aggregate resource-budget, timeout, cancellation, and deterministic-output coverage across HTML, PDF, SVG, and raster paths.
-- [ ] Expand approved visual baselines for paged and continuous output at representative sizes, DPI values, fonts, and platforms.
-- [ ] Keep `OfficeIMO.Drawing` as the single reusable owner for codecs, placement, text layout, shapes, paths, colors, gradients, clipping, and batch export policy.
+- [ ] Expand arbitrary-producer PDF rendering for Type 3/CFF fonts, ICC and currently unsupported color spaces, advanced patterns, and incomplete optional-content cases while keeping every fallback diagnosed and bounded.
+- [ ] Deepen PDF annotation, form, tagged-structure, searchable-text, outline, metadata, encryption-profile, signature-validation, redaction-verification, and source-conversion evidence against cross-producer fixtures.
+- [ ] Complete the remaining HTML cascade, shaping, bidi, inline-layout, intrinsic-sizing, table, flex, grid, multicolumn, pagination, page-master, fragmentation, and advanced SVG cases recorded as partial in the support matrix.
+- [ ] Expand hostile-input, fuzz, aggregate-budget, timeout, cancellation, deterministic-output, and approved visual-baseline coverage across PDF, HTML, SVG, and raster paths at representative sizes, DPI values, fonts, and platforms.
+- [ ] Keep `OfficeIMO.Drawing` as the reusable owner for codecs, placement, text layout, shapes, paths, colors, gradients, clipping, effects, and batch-export policy while format adapters remain thin.
 
 ### Image-export evidence
 
@@ -87,12 +83,7 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 ## Email, stores, and cloud adapters
 
-- [ ] Harden untrusted EML, MSG, TNEF, PST/OST, OLM, OAB, calendar, and contact processing with aggregate limits, cancellation, malformed-input corpora, and actionable diagnostics.
-- [ ] Expand real Outlook-data producer coverage, stable paging/checkpoints, semantic comparison, repair planning, and preservation of unknown MAPI values.
-- [ ] Keep mail transport and server operations outside the persisted-artifact engine while sharing security primitives through `OfficeIMO.Security`.
-- [ ] Extend Google Workspace translation, synchronization, conflict policy, resumable transfer, and guarded mutation while keeping Google client SDKs optional.
-- [ ] Define optional OneNote cloud transport only when account, scope, revision, retry, and data-loss policy can remain outside the local file engine.
-- [ ] Prove cloud adapters with explicit account, scope, revision, retry, rate-limit, and data-loss policies rather than hidden convenience behavior.
+- [ ] Decide whether and when to add optional OneNote cloud transport. Any design must preserve native `.one` as the local-file goal, keep account/scope/revision/retry/data-loss policy outside `OfficeIMO.OneNote`, avoid implying that HTML projection is native `.one` fidelity, and not depend on GraphEssentialsX unless its eventual license is compatible with this repository.
 
 ## Browser and agent surfaces
 

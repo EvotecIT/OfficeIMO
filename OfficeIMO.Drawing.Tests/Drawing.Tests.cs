@@ -4257,6 +4257,37 @@ public partial class DrawingTests {
         }
     }
 
+    private sealed class TimeoutImageExportBuilder : OfficeImageExportBuilder<TimeoutImageExportBuilder, TestImageExportOptions> {
+        internal TimeoutImageExportBuilder(TestImageExportOptions options)
+            : base(options, (format, current, cancellationToken) => {
+                cancellationToken.WaitHandle.WaitOne();
+                cancellationToken.ThrowIfCancellationRequested();
+                return CreateTestImageExportResult(format, current);
+            }) {
+        }
+    }
+
+    private sealed class TimeoutAsyncImageExportBuilder : OfficeImageExportBuilder<TimeoutAsyncImageExportBuilder, TestImageExportOptions> {
+        internal TimeoutAsyncImageExportBuilder(TestImageExportOptions options)
+            : base(
+                options,
+                CreateTestImageExportResult,
+                async (format, current, cancellationToken) => {
+                    await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, cancellationToken);
+                    return CreateTestImageExportResult(format, current);
+                }) {
+        }
+    }
+
+    private sealed class UncooperativeTimeoutImageExportBuilder : OfficeImageExportBuilder<UncooperativeTimeoutImageExportBuilder, TestImageExportOptions> {
+        internal UncooperativeTimeoutImageExportBuilder(TestImageExportOptions options)
+            : base(
+                options,
+                static (format, current) => CreateTestImageExportResult(format, current),
+                static (format, current, _) => Task.FromResult(CreateTestImageExportResult(format, current))) {
+        }
+    }
+
     private sealed class TestImageExportBatchBuilder : OfficeImageExportBatchBuilder<TestImageExportBatchBuilder, TestImageExportOptions> {
         internal TestImageExportBatchBuilder(TestImageExportOptions options, params string[] names)
             : this(options, null, names) {
@@ -4276,6 +4307,28 @@ public partial class DrawingTests {
                         consumer(result);
                     }
                 }) {
+        }
+    }
+
+    private sealed class TimeoutImageExportBatchBuilder : OfficeImageExportBatchBuilder<TimeoutImageExportBatchBuilder, TestImageExportOptions> {
+        internal TimeoutImageExportBatchBuilder(TestImageExportOptions options)
+            : base(
+                options,
+                (format, current) => Array.Empty<OfficeImageExportResult>(),
+                (format, current, consumer, cancellationToken) => {
+                    cancellationToken.WaitHandle.WaitOne();
+                    cancellationToken.ThrowIfCancellationRequested();
+                }) {
+        }
+    }
+
+    private sealed class UncooperativeTimeoutImageExportBatchBuilder : OfficeImageExportBatchBuilder<UncooperativeTimeoutImageExportBatchBuilder, TestImageExportOptions> {
+        internal UncooperativeTimeoutImageExportBatchBuilder(TestImageExportOptions options)
+            : base(
+                options,
+                static (_, _) => Array.Empty<OfficeImageExportResult>(),
+                static (_, _, _, _) => { },
+                static (_, _, _, _) => Task.CompletedTask) {
         }
     }
 
