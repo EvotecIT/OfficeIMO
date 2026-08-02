@@ -224,9 +224,20 @@ namespace OfficeIMO.Visio {
             if (string.IsNullOrWhiteSpace(packagePath)) throw new ArgumentException("Package path cannot be null or whitespace.", nameof(packagePath));
             if (!File.Exists(packagePath)) throw new FileNotFoundException("Visio package was not found.", packagePath);
 
-            ImportStencilPackageVisualContext(packagePath);
             IEnumerable<string>? resolvedNames = ResolvePackageMasterNameFilters(packagePath, names);
             IReadOnlyList<VisioAssets.MasterContent> contents = VisioAssets.LoadMasterContents(packagePath, resolvedNames);
+            string normalizedPackagePath = VisioStencilMetadata.NormalizePath(
+                packagePath) ?? Path.GetFullPath(packagePath);
+            foreach (VisioAssets.MasterContent content in contents) {
+                if (_builtinMasters.TryGetValue(content.NameU,
+                        out VisioMaster? registeredMaster)
+                    && registeredMaster.IsPackageBacked) {
+                    VisioStencilMetadata.EnsureSourcePackageMatches(
+                        registeredMaster, normalizedPackagePath);
+                }
+            }
+
+            ImportStencilPackageVisualContext(packagePath);
             List<VisioMaster> imported = new();
             foreach (VisioAssets.MasterContent content in contents) {
                 VisioShape shape = CreateImportedMasterShape(content);
@@ -235,7 +246,7 @@ namespace OfficeIMO.Visio {
                 VisioMaster master = new(content.Id, content.NameU, shape) {
                     RawMasterContentXml = rawMasterXml,
                     IsPackageBacked = true,
-                    StencilSourcePackagePath = VisioStencilMetadata.NormalizePath(packagePath)
+                    StencilSourcePackagePath = normalizedPackagePath
                 };
                 foreach (VisioAssets.MasterRelationshipContent relationship in content.Relationships) {
                     master.RawMasterRelationships.Add(relationship);

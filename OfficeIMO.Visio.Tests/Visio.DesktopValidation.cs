@@ -126,9 +126,25 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("visible graphical content", emptySvgIssue,
                     StringComparison.OrdinalIgnoreCase);
 
+                string unpaintedSvg = Path.Combine(directory, "unpainted.svg");
+                File.WriteAllText(unpaintedSvg,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" fill=\"none\" /></svg>");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    unpaintedSvg, out string unpaintedSvgIssue));
+                Assert.Contains("visible graphical content", unpaintedSvgIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string whiteSvg = Path.Combine(directory, "white.svg");
+                File.WriteAllText(whiteSvg,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" fill=\"white\" /></svg>");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    whiteSvg, out string whiteSvgIssue));
+                Assert.Contains("visible graphical content", whiteSvgIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
                 string validSvg = Path.Combine(directory, "valid.svg");
                 File.WriteAllText(validSvg,
-                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" /></svg>");
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" fill=\"#123456\" /></svg>");
                 Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
                     validSvg, out string validSvgIssue), validSvgIssue);
 

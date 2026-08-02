@@ -1114,6 +1114,39 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(visible.Shape.Shadow);
         }
 
+        [Fact]
+        public void PowerPointSlide_RejectsMultiPathCustomGeometryWithShapeEffects() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape freeform = slide.AddShapePoints(
+                A.ShapeTypeValues.Rectangle, 20, 20, 120, 80);
+            freeform.FillColor = "22C55E";
+            freeform.OutlineColor = "1E3A8A";
+            freeform.SetShadow("000000", distancePoints: 8,
+                angleDegrees: 45, transparencyPercent: 0);
+
+            Shape shape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<Shape>().Last();
+            ShapeProperties properties = shape.ShapeProperties!;
+            A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()!;
+            properties.RemoveAllChildren<A.PresetGeometry>();
+            properties.InsertAfter(CreatePerPathStyledCustomGeometry(),
+                transform);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+
+            Assert.DoesNotContain(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), element =>
+                    element.X == 20D && element.Y == 20D);
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == "unsupported-powerpoint-shape"
+                && diagnostic.Message.Contains("multi-path",
+                    StringComparison.OrdinalIgnoreCase)
+                && diagnostic.Message.Contains("shadow or glow",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
         private static A.CustomGeometry CreateDiamondCustomGeometry() {
             return new A.CustomGeometry(
                 new A.PathList(

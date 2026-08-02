@@ -244,77 +244,15 @@ namespace OfficeIMO.PowerPoint {
             OfficeDiagramKind kind,
             out IReadOnlyList<string> nodes) {
             nodes = Array.Empty<string>();
-            List<XElement> nodePoints = xdoc.Descendants(ns.dgm + "pt")
-                .Where(point => point.Attribute("type") == null)
-                .Where(point => {
-                    XElement? body = point.Element(ns.dgm + "t")
-                        ?? point.Element(ns.dgm + "txBody");
-                    return body != null && textBodies.Contains(body);
-                })
-                .ToList();
-            if (nodePoints.Count == 0 || nodePoints.Count != textBodies.Count) {
+            if (!TryCreateSemanticNodeMap(xdoc, ns, textBodies,
+                    out Dictionary<string, (int Index, XElement TextBody)> nodeById,
+                    out HashSet<string> documentIds,
+                    out Dictionary<string, string> parentByNode,
+                    out Dictionary<string, uint> sourceOrderByNode)) {
                 return false;
             }
-
-            var nodeById = new Dictionary<string, (int Index, string Text)>(
-                StringComparer.Ordinal);
-            for (int index = 0; index < nodePoints.Count; index++) {
-                string? modelId = (string?)nodePoints[index].Attribute("modelId");
-                XElement? textBody = nodePoints[index].Element(ns.dgm + "t")
-                    ?? nodePoints[index].Element(ns.dgm + "txBody");
-                string text = textBody == null
-                    ? string.Empty
-                    : ReadNodeText(textBody, ns.a);
-                if (string.IsNullOrWhiteSpace(modelId)
-                    || string.IsNullOrWhiteSpace(text)
-                    || nodeById.ContainsKey(modelId!)) {
-                    return false;
-                }
-                nodeById.Add(modelId!, (index, text));
-            }
-
-            var documentIds = new HashSet<string>(xdoc
-                .Descendants(ns.dgm + "pt")
-                .Where(point => string.Equals((string?)point.Attribute("type"),
-                    "doc", StringComparison.OrdinalIgnoreCase))
-                .Select(point => (string?)point.Attribute("modelId"))
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Cast<string>(), StringComparer.Ordinal);
-            if (documentIds.Count == 0) return false;
-
-            var parentByNode = new Dictionary<string, string>(
-                StringComparer.Ordinal);
-            var sourceOrderByNode = new Dictionary<string, uint>(
-                StringComparer.Ordinal);
-            foreach (XElement connection in xdoc.Descendants(ns.dgm + "cxn")) {
-                string? type = (string?)connection.Attribute("type");
-                if (!string.IsNullOrWhiteSpace(type)
-                    && !string.Equals(type, "parOf",
-                        StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-                string? destination = (string?)connection.Attribute("destId");
-                if (string.IsNullOrWhiteSpace(destination)
-                    || !nodeById.ContainsKey(destination!)) {
-                    continue;
-                }
-                string? source = (string?)connection.Attribute("srcId");
-                if (string.IsNullOrWhiteSpace(source)
-                    || (!documentIds.Contains(source!)
-                        && !nodeById.ContainsKey(source!))
-                    || parentByNode.ContainsKey(destination!)) {
-                    return false;
-                }
-                parentByNode.Add(destination!, source!);
-                string? sourceOrder = (string?)connection.Attribute("srcOrd");
-                if (!string.IsNullOrWhiteSpace(sourceOrder)) {
-                    if (!uint.TryParse(sourceOrder, NumberStyles.None,
-                            CultureInfo.InvariantCulture, out uint parsedOrder)) {
-                        return false;
-                    }
-                    sourceOrderByNode.Add(destination!, parsedOrder);
-                }
-            }
+            if (nodeById.Values.Any(node => string.IsNullOrWhiteSpace(
+                    ReadNodeText(node.TextBody, ns.a)))) return false;
             if (parentByNode.Count != nodeById.Count) return false;
 
             bool rooted = kind == OfficeDiagramKind.Hierarchy
@@ -324,8 +262,10 @@ namespace OfficeIMO.PowerPoint {
                         !documentIds.Contains(parent))) {
                     return false;
                 }
-                nodes = OrderSemanticNodes(nodeById, sourceOrderByNode)
-                    .Select(node => node.Value.Text).ToArray();
+                nodes = OrderSemanticNodes(nodeById, parentByNode,
+                        sourceOrderByNode, documentIds)
+                    .Select(node => ReadNodeText(node.Value.TextBody, ns.a))
+                    .ToArray();
                 return true;
             }
 
@@ -340,18 +280,128 @@ namespace OfficeIMO.PowerPoint {
                         StringComparison.Ordinal))) {
                 return false;
             }
-            nodes = new[] { nodeById[rootId] }
-                .Concat(OrderSemanticNodes(nodeById.Where(pair =>
-                        pair.Key != rootId), sourceOrderByNode)
-                    .Select(pair => pair.Value))
-                .Select(node => node.Text)
+            nodes = OrderSemanticNodes(nodeById, parentByNode,
+                    sourceOrderByNode, documentIds)
+                .Select(node => ReadNodeText(node.Value.TextBody, ns.a))
                 .ToArray();
             return true;
         }
 
+        private static bool TryCreateSemanticNodeMap(
+            XDocument xdoc,
+            (XNamespace dgm, XNamespace a) ns,
+            IReadOnlyList<XElement> textBodies,
+            out Dictionary<string, (int Index, XElement TextBody)> nodeById,
+            out HashSet<string> documentIds,
+            out Dictionary<string, string> parentByNode,
+            out Dictionary<string, uint> sourceOrderByNode) {
+            nodeById = new Dictionary<string, (int, XElement)>(
+                StringComparer.Ordinal);
+            documentIds = new HashSet<string>(StringComparer.Ordinal);
+            parentByNode = new Dictionary<string, string>(StringComparer.Ordinal);
+            sourceOrderByNode = new Dictionary<string, uint>(StringComparer.Ordinal);
+
+            List<XElement> nodePoints = xdoc.Descendants(ns.dgm + "pt")
+                .Where(point => point.Attribute("type") == null)
+                .Where(point => {
+                    XElement? body = point.Element(ns.dgm + "t")
+                        ?? point.Element(ns.dgm + "txBody");
+                    return body != null && textBodies.Contains(body);
+                })
+                .ToList();
+            if (nodePoints.Count == 0 || nodePoints.Count != textBodies.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < nodePoints.Count; index++) {
+                string? modelId = (string?)nodePoints[index].Attribute("modelId");
+                XElement? textBody = nodePoints[index].Element(ns.dgm + "t")
+                    ?? nodePoints[index].Element(ns.dgm + "txBody");
+                if (string.IsNullOrWhiteSpace(modelId) || textBody == null
+                    || nodeById.ContainsKey(modelId!)) {
+                    return false;
+                }
+                nodeById.Add(modelId!, (index, textBody));
+            }
+
+            documentIds.UnionWith(xdoc.Descendants(ns.dgm + "pt")
+                .Where(point => string.Equals((string?)point.Attribute("type"),
+                    "doc", StringComparison.OrdinalIgnoreCase))
+                .Select(point => (string?)point.Attribute("modelId"))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Cast<string>());
+            if (documentIds.Count == 0) return false;
+
+            foreach (XElement connection in xdoc.Descendants(ns.dgm + "cxn")) {
+                string? type = (string?)connection.Attribute("type");
+                if (!string.IsNullOrWhiteSpace(type)
+                    && !string.Equals(type, "parOf",
+                        StringComparison.OrdinalIgnoreCase)) continue;
+
+                string? destination = (string?)connection.Attribute("destId");
+                if (string.IsNullOrWhiteSpace(destination)
+                    || !nodeById.ContainsKey(destination!)) continue;
+
+                string? source = (string?)connection.Attribute("srcId");
+                if (string.IsNullOrWhiteSpace(source)
+                    || (!documentIds.Contains(source!)
+                        && !nodeById.ContainsKey(source!))
+                    || parentByNode.ContainsKey(destination!)) return false;
+
+                parentByNode.Add(destination!, source!);
+                string? sourceOrder = (string?)connection.Attribute("srcOrd");
+                if (string.IsNullOrWhiteSpace(sourceOrder)) continue;
+                if (!uint.TryParse(sourceOrder, NumberStyles.None,
+                        CultureInfo.InvariantCulture, out uint parsedOrder)) {
+                    return false;
+                }
+                sourceOrderByNode.Add(destination!, parsedOrder);
+            }
+            return true;
+        }
+
+        private static IReadOnlyList<KeyValuePair<string,
+            (int Index, XElement TextBody)>> OrderSemanticNodes(
+            IReadOnlyDictionary<string, (int Index, XElement TextBody)> nodes,
+            IReadOnlyDictionary<string, string> parentByNode,
+            IReadOnlyDictionary<string, uint> sourceOrderByNode,
+            IReadOnlyCollection<string> documentIds) {
+            var ordered = new List<KeyValuePair<string,
+                (int Index, XElement TextBody)>>();
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+
+            void AppendNode(KeyValuePair<string,
+                (int Index, XElement TextBody)> node) {
+                if (!visited.Add(node.Key)) return;
+                ordered.Add(node);
+                foreach (KeyValuePair<string, (int Index, XElement TextBody)> child
+                         in OrderSiblingNodes(nodes.Where(candidate =>
+                             parentByNode.TryGetValue(candidate.Key,
+                                 out string? parent)
+                             && string.Equals(parent, node.Key,
+                                 StringComparison.Ordinal)), sourceOrderByNode)) {
+                    AppendNode(child);
+                }
+            }
+
+            foreach (KeyValuePair<string, (int Index, XElement TextBody)> root
+                     in OrderSiblingNodes(nodes.Where(node =>
+                         parentByNode.TryGetValue(node.Key, out string? parent)
+                         && documentIds.Contains(parent)), sourceOrderByNode)) {
+                AppendNode(root);
+            }
+            foreach (KeyValuePair<string, (int Index, XElement TextBody)> node
+                     in OrderSiblingNodes(nodes.Where(node =>
+                         !visited.Contains(node.Key)), sourceOrderByNode)) {
+                AppendNode(node);
+            }
+            return ordered;
+        }
+
         private static IOrderedEnumerable<KeyValuePair<string,
-            (int Index, string Text)>> OrderSemanticNodes(
-            IEnumerable<KeyValuePair<string, (int Index, string Text)>> nodes,
+            (int Index, XElement TextBody)>> OrderSiblingNodes(
+            IEnumerable<KeyValuePair<string,
+                (int Index, XElement TextBody)>> nodes,
             IReadOnlyDictionary<string, uint> sourceOrderByNode) =>
             nodes.OrderBy(node => sourceOrderByNode.ContainsKey(node.Key)
                     ? 0
@@ -419,6 +469,17 @@ namespace OfficeIMO.PowerPoint {
                 .Where(body => body?.Elements(a + "p").Any() == true)
                 .Cast<XElement>()
                 .ToList();
+
+            if (TryCreateSemanticNodeMap(xdoc, (dgm, a), textBodies,
+                    out Dictionary<string, (int Index, XElement TextBody)> nodeById,
+                    out HashSet<string> documentIds,
+                    out Dictionary<string, string> parentByNode,
+                    out Dictionary<string, uint> sourceOrderByNode)) {
+                textBodies = OrderSemanticNodes(nodeById, parentByNode,
+                        sourceOrderByNode, documentIds)
+                    .Select(node => node.Value.TextBody)
+                    .ToList();
+            }
 
             return (xdoc, (dgm, a), textBodies, dataPart);
         }

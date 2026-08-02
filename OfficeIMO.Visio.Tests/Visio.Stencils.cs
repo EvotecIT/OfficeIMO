@@ -1264,6 +1264,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilImportPreflightsEveryCollisionBeforeMutation() {
+            string firstPackage = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            string secondPackage = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            try {
+                CreatePackageWithMasterDimensions(firstPackage,
+                    ("SharedMaster", "First Shared Master", 1D, 1D, null));
+                CreatePackageWithMasterDimensions(secondPackage,
+                    ("NewMaster", "New Master", 1D, 1D, null),
+                    ("SharedMaster", "Second Shared Master", 1D, 1D, null));
+                using (ZipArchive zip = ZipFile.Open(secondPackage,
+                           ZipArchiveMode.Update)) {
+                    XNamespace ns =
+                        "http://schemas.microsoft.com/office/visio/2012/main";
+                    WriteZipXml(zip, "visio/document.xml", new XDocument(
+                        new XElement(ns + "VisioDocument",
+                            new XElement(ns + "DocumentSettings"),
+                            new XElement(ns + "Colors",
+                                new XElement(ns + "ColorEntry",
+                                    new XAttribute("IX", "24"),
+                                    new XAttribute("RGB", "#50E6FF"))))));
+                    WriteZipXml(zip, "visio/theme/theme1.xml", new XDocument(
+                        new XElement(XName.Get("theme",
+                                "http://schemas.openxmlformats.org/drawingml/2006/main"),
+                            new XAttribute("name", "Rejected Theme"))));
+                }
+
+                VisioDocument document = VisioDocument.Create();
+                document.ImportStencilMastersAndGet(firstPackage);
+                int colorCount = document.PreservedColorsElements.Count;
+
+                Assert.Throws<InvalidOperationException>(() =>
+                    document.ImportStencilMastersAndGet(secondPackage));
+
+                Assert.Equal(colorCount,
+                    document.PreservedColorsElements.Count);
+                Assert.Null(document.PackageTheme);
+                Assert.False(document.TryGetMaster("NewMaster", out _));
+                Assert.True(document.TryGetMaster("SharedMaster",
+                    out VisioMaster? shared));
+                Assert.Equal(Path.GetFullPath(firstPackage),
+                    shared!.StencilSourcePackagePath);
+            } finally {
+                if (File.Exists(firstPackage)) File.Delete(firstPackage);
+                if (File.Exists(secondPackage)) File.Delete(secondPackage);
+            }
+        }
+
+        [Fact]
         public void PackageStencilProvenanceUsesPlatformPathCaseSemantics() {
             string path = Path.GetFullPath(Path.Combine(Path.GetTempPath(),
                 "OfficeIMO-CasePath.vssx"));

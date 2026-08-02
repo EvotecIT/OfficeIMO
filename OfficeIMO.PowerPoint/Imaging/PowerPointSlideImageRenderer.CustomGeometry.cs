@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -30,6 +31,15 @@ namespace OfficeIMO.PowerPoint {
                 return true;
             }
 
+            int visiblePathCount = projections.Count(projection =>
+                projection.HasFill || projection.HasStroke);
+            if (visiblePathCount > 1
+                && HasProjectableShapeEffects(shape, colorScheme, mapping)) {
+                AddUnsupportedShapeDiagnostic(diagnostics, shape,
+                    "Skipped a multi-path PowerPoint custom geometry shape because its shape-level shadow or glow cannot be composited faithfully across separate Drawing paths.");
+                return true;
+            }
+
             foreach (CustomGeometryPathProjection projection in projections) {
                 OfficeShape drawingShape = projection.Shape;
                 ApplyShapeStyle(drawingShape, shape, colorScheme, mapping,
@@ -55,6 +65,24 @@ namespace OfficeIMO.PowerPoint {
                 drawing.AddShape(drawingShape, left, top);
             }
             return true;
+        }
+
+        private static bool HasProjectableShapeEffects(PowerPointShape shape,
+            A.ColorScheme? colorScheme,
+            PowerPointShapeBoundsMapping mapping) {
+            A.EffectList? effects = GetOpenXmlShapeProperties(shape)?
+                .GetFirstChild<A.EffectList>();
+            if (effects == null) return false;
+
+            A.Glow? glow = effects.GetFirstChild<A.Glow>();
+            if (glow != null && TryCreateGlow(glow, colorScheme, mapping,
+                    out _)) {
+                return true;
+            }
+
+            A.OuterShadow? shadow = effects.GetFirstChild<A.OuterShadow>();
+            return shadow != null && TryCreateShadow(shadow, colorScheme,
+                mapping, out _);
         }
 
         private static bool TryCreateCustomGeometryShapes(

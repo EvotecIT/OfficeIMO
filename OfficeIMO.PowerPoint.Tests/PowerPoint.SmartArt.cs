@@ -220,9 +220,14 @@ namespace OfficeIMO.Tests {
                     PowerPointPresentation.Load(filePath);
                 PowerPointSmartArt smartArt = Assert.Single(
                     imported.Slides[0].SmartArts);
+                Assert.Equal(new[] { "First", "Second", "Third" },
+                    smartArt.GetNodeTexts());
+                Assert.Equal("First", smartArt.GetNodeText(0));
+                smartArt.SetNodeText(0, "Updated first");
+                Assert.Equal("Updated first", smartArt.GetNodeText(0));
                 Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                     out OfficeDiagramSnapshot snapshot));
-                Assert.Equal(new[] { "First", "Second", "Third" },
+                Assert.Equal(new[] { "Updated first", "Second", "Third" },
                     snapshot.Nodes);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
