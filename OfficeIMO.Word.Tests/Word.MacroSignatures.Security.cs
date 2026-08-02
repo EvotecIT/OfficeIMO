@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             var platform = new StagingReplacementMacroSigningPlatform(runner);
             var dependencies = new WordMacroProjectSigningDependencies(runner, platform);
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
                 filePath, certificate.Thumbprint!, options, dependencies);
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
             var dependencies = new WordMacroProjectSigningDependencies(
                 runner, new ValidationSnapshotMutationMacroSigningPlatform());
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
                 filePath, certificate.Thumbprint!, options, dependencies);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
             using X509Certificate2 certificate = CreateEmailProtectionSigningCertificate();
             AddMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.V3, certificate);
             var options = new WordMacroProjectSignatureValidationOptions();
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
             var dependencies = new WordMacroProjectSigningDependencies(
                 new RecordingMacroToolRunner(_ => Success()),
                 new TestMacroSigningPlatform(isWindows: true));

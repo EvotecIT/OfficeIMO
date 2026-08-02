@@ -41,6 +41,15 @@ public static class CmsSignedDataSigner {
 #endif
         options ??= new CmsSigningOptions();
         SecurityLimits.EnsureBufferWithinLimit(content, options.MaxContentBytes, nameof(content));
+        string contentTypeOid = options.ContentTypeOid ?? CmsObjectIdentifiers.Data.Id;
+        try {
+            _ = new DerObjectIdentifier(contentTypeOid);
+        } catch (Exception exception) when (exception is ArgumentException or FormatException) {
+            throw new ArgumentException(
+                "The CMS content type must be a valid ASN.1 object identifier.",
+                nameof(options),
+                exception);
+        }
 
         using RSA? rsa = signingCertificate.GetRSAPrivateKey();
         if (rsa == null) {
@@ -69,7 +78,7 @@ public static class CmsSignedDataSigner {
         }
 
         var processable = new CmsProcessableByteArray(content);
-        return generator.Generate(processable, encapsulate).GetEncoded();
+        return generator.Generate(contentTypeOid, processable, encapsulate).GetEncoded();
     }
 
     private sealed class SignedAttributeGenerator : CmsAttributeTableGenerator {

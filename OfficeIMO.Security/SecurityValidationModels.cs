@@ -113,6 +113,10 @@ public sealed class CmsVerificationOptions {
 public sealed class CmsSigningOptions {
     /// <summary>Digest algorithm. SHA-256 is the default.</summary>
     public HashAlgorithmName DigestAlgorithm { get; set; } = HashAlgorithmName.SHA256;
+    /// <summary>
+    /// Optional ASN.1 object identifier for the signed content type. CMS data is used when omitted.
+    /// </summary>
+    public string? ContentTypeOid { get; set; }
     /// <summary>Whether to include the CMS signing-time attribute. Defaults to true.</summary>
     public bool IncludeSigningTime { get; set; } = true;
     /// <summary>Optional signing time. Current UTC time is used when omitted.</summary>

@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
             var dependencies = new WordMacroProjectSigningDependencies(
                 runner, new TestMacroSigningPlatform(isWindows: true));
             var options = new WordMacroProjectSignatureValidationOptions();
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
                 filePath, options, dependencies);
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
             var dependencies = new WordMacroProjectSigningDependencies(
                 new RecordingMacroToolRunner(_ => Success()), platform);
             var options = new WordMacroProjectSignatureValidationOptions();
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
                 filePath, options, dependencies);
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
             AddRawMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.Legacy, new byte[48]);
             AddMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.V3, certificate);
             var options = new WordMacroProjectSignatureValidationOptions();
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
             var dependencies = new WordMacroProjectSigningDependencies(
                 new RecordingMacroToolRunner(_ => Success()),
                 new TestMacroSigningPlatform(isWindows: true));
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
             var dependencies = new WordMacroProjectSigningDependencies(
                 runner, new TestMacroSigningPlatform(isWindows: true));
             var options = new WordMacroProjectSignatureValidationOptions();
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSignatureValidationResult missingV3 = WordMacroProjectSignatureService.Validate(
                 filePath, options, dependencies);
@@ -244,7 +244,7 @@ namespace OfficeIMO.Tests {
                 TimestampAuthorityUrl = new Uri("https://timestamp.example.test/rfc3161"),
                 StoreName = StoreName.CertificateAuthority
             };
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
                 filePath, certificate.Thumbprint!, options, dependencies);
@@ -283,7 +283,7 @@ namespace OfficeIMO.Tests {
             var platform = new StagingMutationMacroSigningPlatform(runner);
             var dependencies = new WordMacroProjectSigningDependencies(runner, platform);
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
                 filePath, certificate.Thumbprint!, options, dependencies);
@@ -352,7 +352,7 @@ namespace OfficeIMO.Tests {
             var dependencies = new WordMacroProjectSigningDependencies(
                 blockedRunner, new TestMacroSigningPlatform(isWindows: true));
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSigningResult blocked = WordMacroProjectSignatureService.TrySign(
                 filePath, certificate.Thumbprint!, options, dependencies);
@@ -381,7 +381,7 @@ namespace OfficeIMO.Tests {
                 AddDigitalSignatureMetadata(filePath, CreateSignatureXml()));
             var dependencies = new WordMacroProjectSigningDependencies(runner, platform);
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
                 filePath, certificate.Thumbprint!, options, dependencies);
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests {
             var dependencies = new WordMacroProjectSigningDependencies(
                 runner, new TestMacroSigningPlatform(isWindows: true));
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
-            options.Inspection.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
             WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
                 filePath, certificate.Thumbprint!, options, dependencies);
@@ -512,8 +512,14 @@ namespace OfficeIMO.Tests {
 
         private static WordMacroProjectSignatureInspectionOptions CreateMacroSignatureInspectionOptions() {
             var options = new WordMacroProjectSignatureInspectionOptions();
-            options.CmsVerification.CertificateValidation.ChainEvaluator = (_, _) => true;
+            TrustMacroTestCertificate(options.CmsVerification.CertificateValidation);
             return options;
+        }
+
+        private static void TrustMacroTestCertificate(
+            OfficeIMO.Security.CertificateValidationOptions options) {
+            options.ChainEvaluator = (_, _) => true;
+            options.DisableCertificateDownloads = false;
         }
 
         private static void AddMacroSignatureProfile(
@@ -539,17 +545,13 @@ namespace OfficeIMO.Tests {
                 new Org.BouncyCastle.Asn1.DerSequence(
                     new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.6.1.4.1.311.2.1.15")),
                 new Org.BouncyCastle.Asn1.X509.DigestInfo(digestAlgorithm, subjectDigest));
-            var content = new System.Security.Cryptography.Pkcs.ContentInfo(
-                new System.Security.Cryptography.Oid("1.3.6.1.4.1.311.2.1.4"),
-                indirectData.GetEncoded());
-            var signedCms = new System.Security.Cryptography.Pkcs.SignedCms(content, detached: false);
-            var signer = new System.Security.Cryptography.Pkcs.CmsSigner(
-                System.Security.Cryptography.Pkcs.SubjectIdentifierType.IssuerAndSerialNumber,
-                certificate) {
-                IncludeOption = X509IncludeOption.EndCertOnly
-            };
-            signedCms.ComputeSignature(signer);
-            byte[] encoded = signedCms.Encode();
+            byte[] encoded = OfficeIMO.Security.CmsSignedDataSigner.SignEncapsulated(
+                indirectData.GetEncoded(),
+                certificate,
+                new OfficeIMO.Security.CmsSigningOptions {
+                    ContentTypeOid = "1.3.6.1.4.1.311.2.1.4",
+                    IncludeCertificateChain = false
+                });
             var decoded = new Org.BouncyCastle.Cms.CmsSignedData(encoded);
             Assert.Equal("1.3.6.1.4.1.311.2.1.4", decoded.SignedContentType.Id);
             return encoded;

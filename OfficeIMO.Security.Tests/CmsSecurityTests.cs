@@ -44,6 +44,36 @@ public sealed class CmsSecurityTests {
     }
 
     [Fact]
+    public void EncapsulatedSignature_PreservesACallerSelectedContentType() {
+        const string contentTypeOid = "1.3.6.1.4.1.311.2.1.4";
+        byte[] content = { 48, 0 };
+        using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Custom Content Type");
+        byte[] encoded = CmsSignedDataSigner.SignEncapsulated(
+            content,
+            certificate,
+            new CmsSigningOptions { ContentTypeOid = contentTypeOid });
+
+        CmsVerificationResult result = CmsSignedDataVerifier.Verify(encoded, TrustSelfSigned());
+
+        Assert.True(result.IsCryptographicallyValid);
+        Assert.Equal(contentTypeOid, result.ContentTypeOid);
+        Assert.Equal(content, result.EncapsulatedContent);
+    }
+
+    [Fact]
+    public void EncapsulatedSignature_RejectsAnInvalidContentTypeOid() {
+        using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Invalid Content Type");
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            CmsSignedDataSigner.SignEncapsulated(
+                new byte[] { 1 },
+                certificate,
+                new CmsSigningOptions { ContentTypeOid = "not-an-oid" }));
+
+        Assert.Equal("options", exception.ParamName);
+    }
+
+    [Fact]
     public void Verification_RejectsTlsOnlySignerCertificates() {
         byte[] content = Encoding.UTF8.GetBytes("TLS certificates are not document signers");
         using X509Certificate2 certificate = CreateRsaCertificate(
