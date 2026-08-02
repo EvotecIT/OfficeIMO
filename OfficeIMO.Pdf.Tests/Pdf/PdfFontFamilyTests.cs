@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Pdf;
@@ -713,6 +714,28 @@ public class PdfFontFamilyTests {
 
             Assert.False(found);
             Assert.Null(family);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_SystemMetadataProbeBoundsUniqueNameTablesAndCachesSharedRanges() {
+        int faceCount = PdfEmbeddedFontFamily.MaxSystemFontNameMetadataBytes
+            / PdfEmbeddedFontFamily.MaxSystemFontNameTableBytes + 1;
+        string tempDir = Path.Combine(Path.GetTempPath(),
+            "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string uniquePath = Path.Combine(tempDir, "unique.ttc");
+            File.WriteAllBytes(uniquePath, CreateNameTableBudgetCollection(
+                faceCount, shareNameTable: false));
+            string sharedPath = Path.Combine(tempDir, "shared.ttc");
+            File.WriteAllBytes(sharedPath, CreateNameTableBudgetCollection(
+                faceCount, shareNameTable: true));
+
+            Assert.False(InvokeSystemFontNameMetadataProbe(uniquePath));
+            Assert.True(InvokeSystemFontNameMetadataProbe(sharedPath));
         } finally {
             Directory.Delete(tempDir, recursive: true);
         }
@@ -3384,6 +3407,67 @@ public class PdfFontFamilyTests {
         }
 
         Assert.True(sourceDirectoryLength <= fontData.Length);
+        return collection;
+    }
+
+    private static bool InvokeSystemFontNameMetadataProbe(string path) {
+        MethodInfo method = typeof(PdfEmbeddedFontFamily).GetMethod(
+            "TryReadSystemFontNameMetadata",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { path, null };
+        return (bool)method.Invoke(null, arguments)!;
+    }
+
+    private static byte[] CreateNameTableBudgetCollection(int faceCount,
+        bool shareNameTable) {
+        const int faceDirectoryLength = 28;
+        int collectionHeaderLength = checked(12 + faceCount * 4);
+        int tablesOffset = checked(collectionHeaderLength
+            + faceCount * faceDirectoryLength);
+        int tableCount = shareNameTable ? 1 : faceCount;
+        int collectionLength = checked(tablesOffset + tableCount
+            * PdfEmbeddedFontFamily.MaxSystemFontNameTableBytes);
+        byte[] collection = new byte[collectionLength];
+        collection[0] = (byte)'t';
+        collection[1] = (byte)'t';
+        collection[2] = (byte)'c';
+        collection[3] = (byte)'f';
+        WriteUInt32(collection, 4, 0x00010000);
+        WriteUInt32(collection, 8, (uint)faceCount);
+
+        byte[] familyName = Encoding.BigEndianUnicode.GetBytes(
+            "OfficeIMO Budget");
+        for (int index = 0; index < faceCount; index++) {
+            int faceOffset = collectionHeaderLength
+                + index * faceDirectoryLength;
+            WriteUInt32(collection, 12 + index * 4, (uint)faceOffset);
+            WriteUInt32(collection, faceOffset, 0x00010000);
+            WriteUInt16(collection, faceOffset + 4, 1);
+            WriteUInt16(collection, faceOffset + 6, 16);
+            collection[faceOffset + 12] = (byte)'n';
+            collection[faceOffset + 13] = (byte)'a';
+            collection[faceOffset + 14] = (byte)'m';
+            collection[faceOffset + 15] = (byte)'e';
+            int tableOffset = tablesOffset + (shareNameTable ? 0 : index)
+                * PdfEmbeddedFontFamily.MaxSystemFontNameTableBytes;
+            WriteUInt32(collection, faceOffset + 20, (uint)tableOffset);
+            WriteUInt32(collection, faceOffset + 24,
+                (uint)PdfEmbeddedFontFamily.MaxSystemFontNameTableBytes);
+
+            if (shareNameTable && index > 0) continue;
+            WriteUInt16(collection, tableOffset, 0);
+            WriteUInt16(collection, tableOffset + 2, 1);
+            WriteUInt16(collection, tableOffset + 4, 18);
+            WriteUInt16(collection, tableOffset + 6, 3);
+            WriteUInt16(collection, tableOffset + 8, 1);
+            WriteUInt16(collection, tableOffset + 10, 0x0409);
+            WriteUInt16(collection, tableOffset + 12, 1);
+            WriteUInt16(collection, tableOffset + 14,
+                (ushort)familyName.Length);
+            WriteUInt16(collection, tableOffset + 16, 0);
+            Array.Copy(familyName, 0, collection, tableOffset + 18,
+                familyName.Length);
+        }
         return collection;
     }
 

@@ -5,12 +5,11 @@ using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
+using static OfficeIMO.PowerPoint.PowerPointDrawingValueValidator;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         private const long CustomGeometryCoordinateSize = 100000L;
-        private const long MinimumDrawingCoordinate = -27273042329600L;
-        private const long MaximumDrawingCoordinate = 27273042316900L;
         private const int MaximumCustomGeometryCommands = 20000;
 
         /// <summary>
@@ -410,11 +409,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ValidateCustomGeometryTransformCoordinate(long value,
             string parameterName) {
-            if (value < MinimumDrawingCoordinate
-                || value > MaximumDrawingCoordinate) {
-                throw new ArgumentOutOfRangeException(parameterName,
-                    $"Custom geometry coordinates must be between {MinimumDrawingCoordinate} and {MaximumDrawingCoordinate} EMUs.");
-            }
+            PowerPointDrawingValueValidator.ValidateCoordinate(value,
+                parameterName, "Custom geometry coordinates");
         }
 
         private static void ValidateCustomGeometryExtent(long value,

@@ -462,7 +462,7 @@ namespace OfficeIMO.PowerPoint {
 
             Add(features, "Review", "Comments", commentSupportLevel, commentDetails.Count, null,
                 hasUnsupportedCommentParts
-                    ? "Recognized classic and modern comments are editable, but this package also contains comment-related metadata that OfficeIMO preserves without exposing for mutation."
+                    ? "Plain classic and modern comment graphs are editable; rich or unrecognized comment structures and additional comment metadata are preserved without destructive mutation."
                     : "Classic comments and modern threaded comments/replies can be created, edited, reassigned, and removed; classic comments also round-trip through binary PPT.",
                 commentDetails);
             Add(features, "Compatibility", "Custom XML parts", PowerPointFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
@@ -1264,7 +1264,18 @@ namespace OfficeIMO.PowerPoint {
                 && !string.IsNullOrWhiteSpace(authorId)
                 && hasStatus
                 && hasCreated
-                && comment.GetFirstChild<P188.TextBodyType>() != null
+                && comment.GetFirstChild<P188.TextBodyType>()
+                    is P188.TextBodyType body
+                && PowerPointPresentation.HasPlainModernCommentTextBody(body)
+                && (comment is not P188.Comment rootComment
+                    || rootComment.GetFirstChild<P188.Point2DType>()
+                        is not P188.Point2DType position
+                    || position.X?.Value is long x
+                        && position.Y?.Value is long y
+                        && PowerPointDrawingValueValidator
+                            .IsCoordinateInRange(x)
+                        && PowerPointDrawingValueValidator
+                            .IsCoordinateInRange(y))
                 && authorIds.Contains(authorId!)
                 && commentIds.Add(id!);
             if (valid) referencedAuthorIds.Add(authorId!);

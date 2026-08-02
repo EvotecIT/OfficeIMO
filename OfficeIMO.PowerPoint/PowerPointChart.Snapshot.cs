@@ -86,6 +86,12 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
 
+                if (!forDataUpdate
+                    && !TryReadSharedTextStyle(chart, out _)) {
+                    snapshot = null!;
+                    return false;
+                }
+
                 if (HasUnsupportedChartGroupElements(plotArea)) {
                     snapshot = null!;
                     return false;

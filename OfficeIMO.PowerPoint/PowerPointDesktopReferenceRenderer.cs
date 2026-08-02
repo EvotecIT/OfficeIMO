@@ -211,6 +211,12 @@ namespace OfficeIMO.PowerPoint {
 
         internal static bool HasExpectedVisibleContent(PowerPointSlide slide) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
+            if (slide.SmartArts.Any(smartArt => !smartArt.Hidden
+                    && smartArt.Width > 0L
+                    && smartArt.Height > 0L
+                    && !smartArt.TryGetOfficeDiagramSnapshot(out _))) {
+                return true;
+            }
             OfficeImageExportResult rendered = slide.ExportImage(
                 OfficeImageExportFormat.Png);
             return OfficePngReader.TryDecode(rendered.Bytes,

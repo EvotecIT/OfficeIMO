@@ -49,7 +49,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
-    public void SharedSnapshot_DoesNotFlattenMixedTitleRunFonts() {
+    public void SharedSnapshot_RejectsMixedTitleRunFonts() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartKind.ColumnClustered,
@@ -67,13 +67,11 @@ public sealed class PowerPointSharedChartTextStyleTests {
             new A.RunProperties(new A.LatinFont { Typeface = "Georgia" }),
             new A.Text("Second")));
 
-        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartStyle.Default.TitleFontFamily,
-            snapshot.Style.TitleFontFamily);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
     [Fact]
-    public void SharedSnapshot_DoesNotFlattenMixedTitleFieldFonts() {
+    public void SharedSnapshot_RejectsMixedTitleFieldFonts() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartKind.ColumnClustered,
@@ -94,9 +92,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
             Type = "datetime"
         });
 
-        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartStyle.Default.TitleFontFamily,
-            snapshot.Style.TitleFontFamily);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
     [Fact]
@@ -157,7 +153,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
-    public void SharedSnapshot_DoesNotPromoteConflictingBodyFonts() {
+    public void SharedSnapshot_RejectsConflictingBodyFonts() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(
@@ -169,14 +165,11 @@ public sealed class PowerPointSharedChartTextStyleTests {
             .SetCategoryAxisLabelTextStyle(fontName: "Georgia")
             .SetValueAxisLabelTextStyle(fontName: "Arial");
 
-        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.NotNull(snapshot.Style);
-        Assert.Equal(OfficeChartStyle.Default.FontFamily,
-            snapshot.Style.FontFamily);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
     [Fact]
-    public void SharedSnapshot_DoesNotPromoteOnePartialBodyFont() {
+    public void SharedSnapshot_RejectsPartialBodyFontOverrides() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(
@@ -186,9 +179,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
             OfficeChartKind.ColumnClustered, data, 40, 40, 500, 300);
         chart.SetLegendTextStyle(fontName: "Arial");
 
-        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartStyle.Default.FontFamily,
-            snapshot.Style.FontFamily);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
     [Fact]

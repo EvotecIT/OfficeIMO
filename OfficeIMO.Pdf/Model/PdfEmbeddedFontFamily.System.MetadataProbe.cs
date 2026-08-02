@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfEmbeddedFontFamily {
     internal const int MaxSystemFontTableCountToInspect = 4096;
     internal const int MaxSystemFontNameTableBytes = 4 * 1024 * 1024;
+    internal const int MaxSystemFontNameMetadataBytes = 16 * 1024 * 1024;
 
     private static bool TryReadSystemFontNameMetadata(string path,
         out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces) {
@@ -34,8 +35,12 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
 
             var found = new System.Collections.Generic.List<TrueTypeNameMetadata>(offsets.Count);
+            var nameTables = new System.Collections.Generic.Dictionary<long,
+                SystemFontNameTableCacheEntry>();
+            long nameTableBytes = 0L;
             for (int index = 0; index < offsets.Count; index++) {
                 if (TryReadSystemFontFaceNameMetadata(stream, offsets[index],
+                        nameTables, ref nameTableBytes,
                         out TrueTypeNameMetadata? metadata) && metadata != null) {
                     found.Add(metadata);
                 }
@@ -57,7 +62,11 @@ public sealed partial class PdfEmbeddedFontFamily {
     }
 
     private static bool TryReadSystemFontFaceNameMetadata(System.IO.FileStream stream,
-        long faceOffset, out TrueTypeNameMetadata? metadata) {
+        long faceOffset,
+        System.Collections.Generic.IDictionary<long,
+            SystemFontNameTableCacheEntry> nameTables,
+        ref long nameTableBytes,
+        out TrueTypeNameMetadata? metadata) {
         metadata = null;
         byte[] header = ReadFontFileRange(stream, faceOffset, 12);
         int tableCount = ReadUInt16(header, 4);
@@ -83,8 +92,24 @@ public sealed partial class PdfEmbeddedFontFamily {
                 return false;
             }
 
-            byte[] table = ReadFontFileRange(stream, tableOffset,
-                checked((int)tableLength));
+            int length = checked((int)tableLength);
+            byte[] table;
+            if (nameTables.TryGetValue(tableOffset,
+                    out SystemFontNameTableCacheEntry? cached)) {
+                if (cached == null || cached.Length != length) {
+                    return false;
+                }
+                table = cached.Data;
+            } else {
+                if (nameTableBytes > MaxSystemFontNameMetadataBytes - length) {
+                    throw new System.NotSupportedException(
+                        "TrueType collection name-table metadata exceeds supported limits.");
+                }
+                table = ReadFontFileRange(stream, tableOffset, length);
+                nameTables.Add(tableOffset,
+                    new SystemFontNameTableCacheEntry(length, table));
+                nameTableBytes += length;
+            }
             return TryReadTrueTypeNameTable(table, 0, table.Length,
                 out metadata);
         }
@@ -113,5 +138,15 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
 
         return buffer;
+    }
+
+    private sealed class SystemFontNameTableCacheEntry {
+        internal SystemFontNameTableCacheEntry(int length, byte[] data) {
+            Length = length;
+            Data = data;
+        }
+
+        internal int Length { get; }
+        internal byte[] Data { get; }
     }
 }

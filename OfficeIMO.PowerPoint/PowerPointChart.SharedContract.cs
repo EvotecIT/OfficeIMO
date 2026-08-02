@@ -172,6 +172,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
+            return TryReadSharedTextStyle(chart,
+                out OfficeChartStyle? style)
+                ? style
+                : null;
+        }
+
+        private bool TryReadSharedTextStyle(C.Chart chart,
+            out OfficeChartStyle? style) {
             string? chartDefaultTypeface = chart.Parent?
                 .GetFirstChild<C.TextProperties>()?
                 .Descendants<A.LatinFont>()
@@ -184,17 +192,31 @@ namespace OfficeIMO.PowerPoint {
                 .Select(textArea => ReadBodyTypeface(textArea,
                     chartDefaultTypeface))
                 .ToArray();
-            string? bodyFont = bodyFonts.Length > 0
-                && bodyFonts.All(value => value != null)
-                && bodyFonts.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
-                    ? bodyFonts[0]
-                    : null;
-            string? titleFont = ReadTitleTypeface(
-                chart.GetFirstChild<C.Title>(), chartDefaultTypeface);
-            return bodyFont == null && titleFont == null
+            if (bodyFonts.Length > 0
+                && (bodyFonts.Any(string.IsNullOrWhiteSpace)
+                    || bodyFonts.Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Count() != 1)) {
+                style = null;
+                return false;
+            }
+            string? bodyFont = bodyFonts.Length == 0
+                ? null
+                : bodyFonts[0];
+            C.Title? title = chart.GetFirstChild<C.Title>();
+            string? titleFont = ReadTitleTypeface(title,
+                chartDefaultTypeface);
+            if (title != null
+                && title.Descendants<A.Text>()
+                    .Any(text => !string.IsNullOrEmpty(text.Text))
+                && string.IsNullOrWhiteSpace(titleFont)) {
+                style = null;
+                return false;
+            }
+            style = bodyFont == null && titleFont == null
                 ? null
                 : new OfficeChartStyle(fontFamily: bodyFont,
                     titleFontFamily: titleFont);
+            return true;
         }
 
         private string? ReadBodyTypeface(
@@ -274,12 +296,32 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private A.FontScheme? GetChartThemeFontScheme() {
-            if (_ownerPart is not SlidePart slidePart) return null;
-            return slidePart.ThemeOverridePart?.ThemeOverride?.FontScheme
-                ?? slidePart.SlideLayoutPart?.ThemeOverridePart?
-                    .ThemeOverride?.FontScheme
-                ?? slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
-                    .Theme?.ThemeElements?.FontScheme;
+            if (_ownerPart is SlidePart slidePart) {
+                return slidePart.ThemeOverridePart?.ThemeOverride?.FontScheme
+                    ?? slidePart.SlideLayoutPart?.ThemeOverridePart?
+                        .ThemeOverride?.FontScheme
+                    ?? slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
+                        .Theme?.ThemeElements?.FontScheme;
+            }
+            if (_ownerPart is SlideLayoutPart layoutPart) {
+                return layoutPart.ThemeOverridePart?.ThemeOverride?.FontScheme
+                    ?? layoutPart.SlideMasterPart?.ThemePart?.Theme?
+                        .ThemeElements?.FontScheme;
+            }
+            if (_ownerPart is SlideMasterPart masterPart) {
+                return masterPart.ThemePart?.Theme?.ThemeElements?.FontScheme;
+            }
+            if (_ownerPart is NotesSlidePart notesPart) {
+                return notesPart.ThemeOverridePart?.ThemeOverride?.FontScheme
+                    ?? notesPart.NotesMasterPart?.ThemePart?.Theme?
+                        .ThemeElements?.FontScheme;
+            }
+            if (_ownerPart is NotesMasterPart notesMasterPart) {
+                return notesMasterPart.ThemePart?.Theme?.ThemeElements?
+                    .FontScheme;
+            }
+            return (_ownerPart as HandoutMasterPart)?.ThemePart?.Theme?
+                .ThemeElements?.FontScheme;
         }
 
         private static string? ReadTitleRunTypeface(OpenXmlElement run) {

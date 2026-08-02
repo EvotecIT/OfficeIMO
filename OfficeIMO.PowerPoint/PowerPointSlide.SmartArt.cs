@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
+using static OfficeIMO.PowerPoint.PowerPointDrawingValueValidator;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {

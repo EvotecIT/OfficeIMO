@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ClassicCommentMutation_ReusesFreeIndexAfterUInt32Maximum() {
             using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
             presentation.AddClassicComment(slide, author, "Maximum");
@@ -269,6 +269,33 @@ namespace OfficeIMO.Tests {
                 comment.Y = long.MinValue);
             Assert.Equal(10L, comment.X);
             Assert.Equal(20L, comment.Y);
+        }
+
+        [Fact]
+        public void ModernCommentMutation_RejectsPositionsOutsideDrawingRange() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Reviewer", "R");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                presentation.AddModernComment(slide, author, "Review",
+                    x: long.MaxValue));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                presentation.AddModernComment(slide, author, "Review",
+                    y: long.MinValue));
+            Assert.Empty(GetModernAuthorNames(presentation));
+            Assert.Empty(presentation.GetModernComments(slide));
+
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, author, "Valid", x: 10L, y: 20L);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                comment.X = long.MaxValue);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                comment.Y = long.MinValue);
+            Assert.Equal(10L, comment.X);
+            Assert.Equal(20L, comment.Y);
+            Assert.Empty(presentation.ValidateDocument());
         }
 
         [Fact]
@@ -462,7 +489,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ModernCommentText_PreservesParagraphsBreaksAndBlankLines() {
+        public void ModernCommentText_RejectsRichBodyReplacementWithoutMutation() {
             var comment = new P188.Comment();
             var body = new P188.TextBodyType(new A.BodyProperties(),
                 new A.ListStyle());
@@ -474,13 +501,47 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("First\nSecond\nThird",
                 PowerPointPresentation.GetModernCommentText(comment));
+            string original = body.OuterXml;
 
-            PowerPointPresentation.SetModernCommentText(comment,
-                "Alpha\r\n\r\nBeta");
+            Assert.Throws<NotSupportedException>(() =>
+                PowerPointPresentation.SetModernCommentText(comment,
+                    "Alpha\r\n\r\nBeta"));
 
-            Assert.Equal(3, body.Elements<A.Paragraph>().Count());
-            Assert.Equal("Alpha\n\nBeta",
+            Assert.Equal(original, body.OuterXml);
+            Assert.Equal("First\nSecond\nThird",
                 PowerPointPresentation.GetModernCommentText(comment));
+        }
+
+        [Fact]
+        public void RichModernCommentBodyIsPreservedAndReportedAsNonEditable() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, new PowerPointCommentAuthor("Reviewer", "R"),
+                "Plain");
+            PowerPointCommentPart part = Assert.Single(slide.SlidePart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointCommentPart>());
+            P188.Comment nativeComment = Assert.Single(part.CommentList!
+                .Elements<P188.Comment>());
+            P188.TextBodyType body = nativeComment
+                .GetFirstChild<P188.TextBodyType>()!;
+            body.RemoveAllChildren<A.Paragraph>();
+            body.Append(new A.Paragraph(
+                new A.Run(new A.RunProperties { Bold = true },
+                    new A.Text("Rich")),
+                new A.Run(new A.RunProperties { Italic = true },
+                    new A.Text(" body"))));
+            string original = body.OuterXml;
+
+            PowerPointFeatureFinding finding = Assert.Single(presentation
+                .InspectFeatures().FindFeatures("Comments"));
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                finding.SupportLevel);
+            Assert.Throws<NotSupportedException>(() =>
+                comment.Text = "Replacement");
+            Assert.Equal(original, body.OuterXml);
         }
 
         private static string[] GetModernAuthorNames(

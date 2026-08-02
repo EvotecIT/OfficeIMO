@@ -204,6 +204,7 @@ namespace OfficeIMO.PowerPoint {
             _presentation.ResolveModernCommentAuthor(RequireAttached().AuthorId?.Value);
 
         /// <summary>Visible review text.</summary>
+        /// <exception cref="NotSupportedException">The imported comment uses rich text markup that cannot be replaced without losing formatting.</exception>
         public string Text {
             get => PowerPointPresentation.GetModernCommentText(RequireAttached());
             set {
@@ -230,16 +231,24 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        /// <summary>Comment X position.</summary>
+        /// <summary>Comment X position within the DrawingML coordinate range.</summary>
         public long X {
             get => RequirePosition().X?.Value ?? 0L;
-            set => RequirePosition().X = value;
+            set {
+                PowerPointPresentation.ValidateModernCommentPosition(
+                    value, nameof(value));
+                RequirePosition().X = value;
+            }
         }
 
-        /// <summary>Comment Y position.</summary>
+        /// <summary>Comment Y position within the DrawingML coordinate range.</summary>
         public long Y {
             get => RequirePosition().Y?.Value ?? 0L;
-            set => RequirePosition().Y = value;
+            set {
+                PowerPointPresentation.ValidateModernCommentPosition(
+                    value, nameof(value));
+                RequirePosition().Y = value;
+            }
         }
 
         /// <summary>Replies in package order.</summary>
@@ -351,6 +360,7 @@ namespace OfficeIMO.PowerPoint {
             _presentation.ResolveModernCommentAuthor(RequireAttached().AuthorId?.Value);
 
         /// <summary>Visible reply text.</summary>
+        /// <exception cref="NotSupportedException">The imported reply uses rich text markup that cannot be replaced without losing formatting.</exception>
         public string Text {
             get => PowerPointPresentation.GetModernCommentText(RequireAttached());
             set {
@@ -462,6 +472,8 @@ namespace OfficeIMO.PowerPoint {
             EnsureCommentSlide(slide);
             if (author == null) throw new ArgumentNullException(nameof(author));
             ValidateCommentText(text);
+            ValidateModernCommentPosition(x, nameof(x));
+            ValidateModernCommentPosition(y, nameof(y));
             P188.CommentStatus modernStatus = ToModernStatus(status);
             P188.Author modernAuthor = GetOrCreateModernCommentAuthor(author);
             var comment = new P188.Comment(
@@ -580,8 +592,8 @@ namespace OfficeIMO.PowerPoint {
                 Id = CreateModernCommentId(),
                 Name = author.Name,
                 Initials = author.Initials,
-                UserId = author.UserId,
-                ProviderId = author.ProviderId
+                UserId = ResolveModernCommentUserId(author),
+                ProviderId = ResolveModernCommentProviderId(author)
             };
             target.AuthorList.Append(created);
             return created;
@@ -694,8 +706,35 @@ namespace OfficeIMO.PowerPoint {
                 else element.Append(body);
                 return;
             }
+            if (!HasPlainModernCommentTextBody(body)) {
+                throw new NotSupportedException(
+                    "Rich modern comment text cannot be replaced without discarding its formatting.");
+            }
             body.RemoveAllChildren<A.Paragraph>();
             body.Append(CreateModernCommentParagraphs(text));
+        }
+
+        internal static bool HasPlainModernCommentTextBody(
+            P188.TextBodyType body) {
+            if (body == null) return false;
+            if (body.Elements<A.BodyProperties>().Count() != 1
+                || body.Elements<A.ListStyle>().Count() != 1
+                || body.ChildElements.Any(child => child is not A.BodyProperties
+                    && child is not A.ListStyle
+                    && child is not A.Paragraph)) {
+                return false;
+            }
+
+            foreach (A.Paragraph paragraph in body.Elements<A.Paragraph>()) {
+                if (paragraph.ChildElements.Count == 0) continue;
+                if (paragraph.ChildElements.Count != 1
+                    || paragraph.FirstChild is not A.Run run
+                    || run.ChildElements.Count != 1
+                    || run.FirstChild is not A.Text) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static A.Paragraph[] CreateModernCommentParagraphs(string text) =>
@@ -764,6 +803,11 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        internal static void ValidateModernCommentPosition(long value,
+            string parameterName) => PowerPointDrawingValueValidator
+            .ValidateCoordinate(value, parameterName,
+                "Modern comment positions");
+
         private static void ValidateClassicCommentAuthor(
             PowerPointCommentAuthor author) {
             ValidateCommentAuthorIdentity(author);
@@ -817,7 +861,15 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCommentAuthor author) =>
             string.Equals(candidate.Name?.Value, author.Name, StringComparison.Ordinal)
             && string.Equals(candidate.Initials?.Value, author.Initials, StringComparison.Ordinal)
-            && string.Equals(candidate.UserId?.Value, author.UserId, StringComparison.Ordinal)
-            && string.Equals(candidate.ProviderId?.Value, author.ProviderId, StringComparison.Ordinal);
+            && string.Equals(candidate.UserId?.Value,
+                ResolveModernCommentUserId(author), StringComparison.Ordinal)
+            && string.Equals(candidate.ProviderId?.Value,
+                ResolveModernCommentProviderId(author), StringComparison.Ordinal);
+
+        private static string ResolveModernCommentUserId(
+            PowerPointCommentAuthor author) => author.UserId ?? author.Name;
+
+        private static string ResolveModernCommentProviderId(
+            PowerPointCommentAuthor author) => author.ProviderId ?? "OfficeIMO";
     }
 }

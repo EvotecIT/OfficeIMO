@@ -285,6 +285,8 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
+            Assert.True(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
         }
 
         [Fact]
