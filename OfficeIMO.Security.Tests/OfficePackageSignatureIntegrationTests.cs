@@ -85,10 +85,86 @@ public sealed class OfficePackageSignatureIntegrationTests {
         }
     }
 
+    [Fact]
+    public void OpcValidationFailsClosedWhenSignatureDiscoveryIsTruncated() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-{Guid.NewGuid():N}.docx");
+        try {
+            CreatePackage(path, "docx");
+            using X509Certificate2 certificate = CreateCertificate();
+            Assert.True(Sign(path, "docx", certificate).Succeeded);
+            CloneSignaturePart(path);
+            var options = new OfficePackageSignatureValidationOptions { ValidateCertificateTrust = false };
+            options.Inspection.MaxSignatureParts = 1;
+
+            OfficePackageSignatureValidationReport validation =
+                WordDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options);
+
+            Assert.False(validation.SignatureInfo.SignatureDiscoveryComplete);
+            Assert.False(validation.IsCryptographicallyValid);
+            Assert.False(validation.IsValidUnderPolicy);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpcRevocationRequirementRejectsAnInconclusiveResult() {
+        var reference = new OfficePackageSignatureReferenceInfo("/word/document.xml", "sha256", "digest",
+            "/word/document.xml", true, Array.Empty<string>(), OfficePackageSignatureValidationState.Passed, null);
+        var part = new OfficePackageSignaturePartInfo("/_xmlsignatures/sig1.xml", 1, true, "rsa-sha256",
+            new[] { reference }, Array.Empty<OfficePackageSignatureTimestampInfo>(), Array.Empty<string>(),
+            Array.Empty<byte[]>(), null);
+        var validated = new OfficePackageSignaturePartValidationResult(part,
+            OfficePackageSignatureValidationState.Passed, OfficePackageSignatureValidationState.Passed,
+            OfficePackageSignatureValidationState.NotChecked, true, true, Array.Empty<SecurityFinding>());
+
+        Assert.False(validated.IsValidUnderPolicy);
+    }
+
+    [Fact]
+    public void OpcApplicationSignatureMetadataRequiresExactRootNamespaceAndElement() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-{Guid.NewGuid():N}.docx");
+        try {
+            CreatePackage(path, "docx");
+            WriteApplicationProperties(path,
+                "<ep:Properties xmlns:ep=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><x:DigSig xmlns:x=\"urn:not-office\" /></ep:Properties>");
+            Assert.False(WordDocument.InspectPackageSignatures(path).HasApplicationSignatureMetadata);
+
+            WriteApplicationProperties(path,
+                "<ep:Properties xmlns:ep=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><ep:DigSig /></ep:Properties>");
+            Assert.True(WordDocument.InspectPackageSignatures(path).HasApplicationSignatureMetadata);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void WordProjectionPreservesPackageTimestampValueAndFormat() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-{Guid.NewGuid():N}.docx");
+        try {
+            CreatePackage(path, "docx");
+            using X509Certificate2 certificate = CreateCertificate();
+            Assert.True(Sign(path, "docx", certificate).Succeeded);
+            AddPackageSignatureTime(path, "2026-08-03T12:34:56Z", "YYYY-MM-DDThh:mm:ssTZD");
+
+            using WordDocument document = WordDocument.Load(path,
+                new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            WordSignatureTimestampInfo timestamp = Assert.Single(
+                Assert.Single(document.InspectSignatures().SignatureParts).Timestamps,
+                item => item.Value == "2026-08-03T12:34:56Z");
+            Assert.Equal("SignatureTime", timestamp.Kind);
+            Assert.Equal("2026-08-03T12:34:56Z", timestamp.Value);
+            Assert.Equal("YYYY-MM-DDThh:mm:ssTZD", timestamp.Format);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     [Theory]
     [InlineData("wrong-root")]
     [InlineData("wrong-namespace")]
     [InlineData("nested")]
+    [InlineData("malformed-target")]
     public void OpcValidationRejectsNonOpcOriginRelationshipShapes(string shape) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-{Guid.NewGuid():N}.docx");
         try {
@@ -224,11 +300,74 @@ public sealed class OfficePackageSignatureIntegrationTests {
                 origin.Remove();
                 root.Add(new XElement(relationshipsNamespace + "Wrapper", origin));
                 break;
+            case "malformed-target":
+                origin.SetAttributeValue("Target", "http://[");
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(shape));
         }
         entry.Delete();
         ZipArchiveEntry replacement = archive.CreateEntry("_rels/.rels", CompressionLevel.Optimal);
+        using Stream output = replacement.Open();
+        document.Save(output, SaveOptions.DisableFormatting);
+    }
+
+    private static void CloneSignaturePart(string path) {
+        using ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update);
+        ZipArchiveEntry source = archive.GetEntry("_xmlsignatures/sig1.xml")
+            ?? throw new InvalidOperationException("Test signature entry missing.");
+        byte[] bytes;
+        using (Stream input = source.Open()) {
+            using var memory = new MemoryStream();
+            input.CopyTo(memory);
+            bytes = memory.ToArray();
+        }
+        ZipArchiveEntry clone = archive.CreateEntry("_xmlsignatures/sig2.xml", CompressionLevel.Optimal);
+        using (Stream output = clone.Open()) output.Write(bytes, 0, bytes.Length);
+
+        MutateXmlEntry(archive, "_xmlsignatures/_rels/origin.sigs.rels", document => {
+            XNamespace relationships = "http://schemas.openxmlformats.org/package/2006/relationships";
+            document.Root!.Add(new XElement(relationships + "Relationship",
+                new XAttribute("Id", "rIdOfficeImoClone"),
+                new XAttribute("Type", "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature"),
+                new XAttribute("Target", "sig2.xml")));
+        });
+        MutateXmlEntry(archive, "[Content_Types].xml", document => {
+            XNamespace types = "http://schemas.openxmlformats.org/package/2006/content-types";
+            document.Root!.Add(new XElement(types + "Override",
+                new XAttribute("PartName", "/_xmlsignatures/sig2.xml"),
+                new XAttribute("ContentType", "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml")));
+        });
+    }
+
+    private static void WriteApplicationProperties(string path, string xml) {
+        using ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update);
+        archive.GetEntry("docProps/app.xml")?.Delete();
+        ZipArchiveEntry entry = archive.CreateEntry("docProps/app.xml", CompressionLevel.Optimal);
+        using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false));
+        writer.Write(xml);
+    }
+
+    private static void AddPackageSignatureTime(string path, string value, string format) {
+        using ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update);
+        MutateXmlEntry(archive, "_xmlsignatures/sig1.xml", document => {
+            XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
+            XNamespace package = "http://schemas.openxmlformats.org/package/2006/digital-signature";
+            document.Root!.Add(new XElement(ds + "Object",
+                new XElement(package + "SignatureTime",
+                    new XElement(package + "Format", format),
+                    new XElement(package + "Value", value))));
+        });
+    }
+
+    private static void MutateXmlEntry(ZipArchive archive, string path, Action<XDocument> mutation) {
+        ZipArchiveEntry entry = archive.GetEntry(path)
+            ?? throw new InvalidOperationException("Test XML entry missing: " + path);
+        XDocument document;
+        using (Stream input = entry.Open()) document = XDocument.Load(input, LoadOptions.PreserveWhitespace);
+        mutation(document);
+        entry.Delete();
+        ZipArchiveEntry replacement = archive.CreateEntry(path, CompressionLevel.Optimal);
         using Stream output = replacement.Open();
         document.Save(output, SaveOptions.DisableFormatting);
     }

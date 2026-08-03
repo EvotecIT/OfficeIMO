@@ -9,9 +9,6 @@ namespace OfficeIMO.Tests {
             } else if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
                            System.Runtime.InteropServices.OSPlatform.Windows)) {
                 Skip = "Microsoft OfficeSips interoperability requires Windows.";
-            } else if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_VBA_SIP_DIRECTORY")) ||
-                string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_SIGNTOOL_PATH"))) {
-                Skip = "OFFICEIMO_VBA_SIP_DIRECTORY and OFFICEIMO_SIGNTOOL_PATH are required.";
             } else if (!File.Exists(Environment.GetEnvironmentVariable("OFFICEIMO_VBA_INTEROP_DOCUMENT_PATH"))) {
                 Skip = "OFFICEIMO_VBA_INTEROP_DOCUMENT_PATH must identify a real macro-enabled Office document.";
             }

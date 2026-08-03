@@ -48,7 +48,8 @@ namespace OfficeIMO.Word {
                         reference.TransformAlgorithms,
                         MapSharedSignatureState(reference.DigestVerificationStatus),
                         reference.DigestVerificationDetail)).ToArray(),
-                    part.TimestampKinds.Select(kind => new WordSignatureTimestampInfo(kind, null, null)).ToArray(),
+                    part.Timestamps.Select(timestamp => new WordSignatureTimestampInfo(
+                        timestamp.Kind, timestamp.Value, timestamp.Format)).ToArray(),
                     part.X509SubjectNames,
                     part.ParseError,
                     part.IsReachableFromOrigin
@@ -61,7 +62,7 @@ namespace OfficeIMO.Word {
             }
             details.AddRange(shared.SignatureParts.Select(part => "XML signature part: " + part.Uri));
             if (shared.HasApplicationSignatureMetadata || hasLiveApplicationMetadata) {
-                details.Add("Extended application properties advertise digital-signature metadata.");
+                details.Add("Extended application properties advertise digital signature metadata.");
             }
             return new WordSignatureInfo(
                 shared.HasDigitalSignatureOriginPart || hasLiveOrigin,

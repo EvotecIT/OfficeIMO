@@ -21,8 +21,10 @@ internal static class OfficeVbaWindowsSip {
 
     internal static OfficeVbaContentBindingResult ValidateContentBinding(
         string filePath,
+        OfficeVbaSignatureProfile profile,
         string digestAlgorithmOid,
-        byte[] expectedDigest) {
+        byte[] expectedDigest,
+        byte[]? legacyDigest) {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             return new OfficeVbaContentBindingResult(false, false,
                 "Microsoft Office SIP content validation is available on Windows only.");
@@ -35,10 +37,16 @@ internal static class OfficeVbaWindowsSip {
         if (!TryGetSubjectInterfacePackage(filePath, out Guid subjectGuid, out string detail)) {
             return new OfficeVbaContentBindingResult(false, false, detail);
         }
+        if (profile == OfficeVbaSignatureProfile.Agile) {
+            return new OfficeVbaContentBindingResult(false, false,
+                "The registered Microsoft Office SIP does not expose an unambiguous agile-only digest " +
+                "through CryptSIPCreateIndirectData; bounded managed MS-OVBA validation remains authoritative.");
+        }
 
         IntPtr subjectGuidPointer = IntPtr.Zero;
         IntPtr fileNamePointer = IntPtr.Zero;
         IntPtr algorithmPointer = IntPtr.Zero;
+        IntPtr signedDataPointer = IntPtr.Zero;
         IntPtr indirectDataPointer = IntPtr.Zero;
         try {
             subjectGuidPointer = Marshal.AllocHGlobal(Marshal.SizeOf<Guid>());
@@ -59,9 +67,14 @@ internal static class OfficeVbaWindowsSip {
             uint signedDataBytes = 0;
             bool selected = CryptSIPGetSignedDataMsg(ref subject, out _, 0, ref signedDataBytes, IntPtr.Zero);
             int selectionError = Marshal.GetLastWin32Error();
-            if ((!selected && selectionError != 122) || signedDataBytes == 0) {
+            if ((!selected && selectionError != 122) || signedDataBytes == 0 ||
+                signedDataBytes > 16 * 1024 * 1024) {
                 return new OfficeVbaContentBindingResult(true, false,
                     "The Office SIP could not select the highest-precedence VBA signature. Windows error " + selectionError + ".");
+            }
+            signedDataPointer = Marshal.AllocHGlobal(checked((int)signedDataBytes));
+            if (!CryptSIPGetSignedDataMsg(ref subject, out _, 0, ref signedDataBytes, signedDataPointer)) {
+                return NativeFailure("The Office SIP could not read the highest-precedence VBA signature.");
             }
             uint indirectDataBytes = 0;
             if (!CryptSIPCreateIndirectData(ref subject, ref indirectDataBytes, IntPtr.Zero) ||
@@ -80,8 +93,22 @@ internal static class OfficeVbaWindowsSip {
             string? actualAlgorithm = Marshal.PtrToStringAnsi(indirect.DigestAlgorithm.pszObjId);
             byte[] actualDigest = new byte[indirect.Digest.cbData];
             Marshal.Copy(indirect.Digest.pbData, actualDigest, 0, actualDigest.Length);
+            bool v2Decoded = OfficeVbaSignatureEncoding.TryExtractV2SourceHash(actualDigest,
+                actualAlgorithm ?? string.Empty, out _, out byte[] sourceDigest, out string v2Detail);
+            if (v2Decoded) {
+                actualDigest = sourceDigest;
+            } else if (profile != OfficeVbaSignatureProfile.Legacy) {
+                int serializedLength = actualDigest.Length;
+                return new OfficeVbaContentBindingResult(true, false,
+                    "Microsoft's Office SIP returned malformed VBA V2 signature data (" +
+                    serializedLength + " bytes). " + v2Detail);
+            }
+            byte[] comparisonDigest = !v2Decoded && profile == OfficeVbaSignatureProfile.Legacy &&
+                                      legacyDigest != null
+                ? legacyDigest
+                : expectedDigest;
             bool valid = string.Equals(actualAlgorithm, digestAlgorithmOid, StringComparison.Ordinal) &&
-                FixedTimeEquals(actualDigest, expectedDigest);
+                FixedTimeEquals(actualDigest, comparisonDigest);
             return new OfficeVbaContentBindingResult(true, valid,
                 valid
                     ? "Microsoft's Office SIP reproduced the signed VBA subject digest."
@@ -92,6 +119,7 @@ internal static class OfficeVbaWindowsSip {
                 "Microsoft Office SIP content validation failed. " + exception.Message);
         } finally {
             if (indirectDataPointer != IntPtr.Zero) Marshal.FreeHGlobal(indirectDataPointer);
+            if (signedDataPointer != IntPtr.Zero) Marshal.FreeHGlobal(signedDataPointer);
             if (algorithmPointer != IntPtr.Zero) Marshal.FreeHGlobal(algorithmPointer);
             if (fileNamePointer != IntPtr.Zero) Marshal.FreeHGlobal(fileNamePointer);
             if (subjectGuidPointer != IntPtr.Zero) Marshal.FreeHGlobal(subjectGuidPointer);

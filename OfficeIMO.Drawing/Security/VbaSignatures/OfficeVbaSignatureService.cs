@@ -8,7 +8,7 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Security;
 
-/// <summary>Shared bounded VBA signature inspection, validation, and Windows Office SIP signing.</summary>
+/// <summary>Shared bounded VBA signature inspection, managed validation, and portable signing.</summary>
 public static partial class OfficeVbaSignatureService {
     private const string VbaProjectContentType = "application/vnd.ms-office.vbaProject";
     private const string LegacyRelationship = "http://schemas.microsoft.com/office/2006/relationships/vbaProjectSignature";
@@ -31,12 +31,13 @@ public static partial class OfficeVbaSignatureService {
         return InspectCore(filePath, securityProvider, options ?? new OfficeVbaSignatureInspectionOptions());
     }
 
-    /// <summary>Validates the highest-precedence VBA signature against CMS policy and the registered Office SIP.</summary>
+    /// <summary>Validates the highest-precedence VBA signature against CMS policy and managed MS-OVBA content binding.</summary>
     public static OfficeVbaSignatureValidationResult Validate(
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficeVbaSignatureInspectionOptions? options = null) {
         if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        options ??= new OfficeVbaSignatureInspectionOptions();
         OfficeVbaSignatureInfo info = Inspect(filePath, securityProvider, options);
         var findings = new List<OfficeVbaSignatureFinding>(info.Findings);
         findings.AddRange(info.Signatures.SelectMany(signature => signature.Findings));
@@ -46,28 +47,63 @@ public static partial class OfficeVbaSignatureService {
         if (selected == null) {
             findings.Add(Finding("VbaSignatureNotPresent", OfficePackageSignatureValidationState.NotPresent,
                 "The VBA project does not contain a signature profile."));
-            return new OfficeVbaSignatureValidationResult(info, false,
-                OfficePackageSignatureValidationState.NotPresent, findings);
+            return new OfficeVbaSignatureValidationResult(info, true,
+                OfficePackageSignatureValidationState.NotPresent, IsRevocationRequired(options), findings);
         }
         if (string.IsNullOrWhiteSpace(selected.SubjectDigestAlgorithmOid) || selected.SubjectDigest == null) {
             findings.Add(Finding("VbaSubjectDigestMissing", OfficePackageSignatureValidationState.Failed,
                 "The highest VBA signature profile does not contain a bounded Authenticode Office SIP digest.", selected.Profile));
-            return new OfficeVbaSignatureValidationResult(info, false,
-                OfficePackageSignatureValidationState.Failed, findings);
+            return new OfficeVbaSignatureValidationResult(info, true,
+                OfficePackageSignatureValidationState.Failed, IsRevocationRequired(options), findings);
         }
+        if (!TryReadVbaProject(info.FilePath, info.MacroProjectUri!, options,
+                out byte[] projectBytes, out string readDetail)) {
+            findings.Add(Finding("VbaManagedCanonicalizationFailed", OfficePackageSignatureValidationState.Failed,
+                readDetail, selected.Profile));
+            return new OfficeVbaSignatureValidationResult(info, true,
+                OfficePackageSignatureValidationState.Failed, IsRevocationRequired(options), findings);
+        }
+        if (!OfficeVbaProjectCanonicalizer.TryCreate(projectBytes, options.MaxMacroProjectBytes,
+                out OfficeVbaProjectCanonicalizer.Result? canonical, out string canonicalDetail)
+            || canonical == null) {
+            findings.Add(Finding("VbaManagedCanonicalizationFailed", OfficePackageSignatureValidationState.Failed,
+                canonicalDetail, selected.Profile));
+            return new OfficeVbaSignatureValidationResult(info, true,
+                OfficePackageSignatureValidationState.Failed, IsRevocationRequired(options), findings);
+        }
+        byte[] expected = selected.Profile switch {
+            OfficeVbaSignatureProfile.Legacy => canonical.ComputeLegacyHash(),
+            OfficeVbaSignatureProfile.Agile => canonical.ComputeAgileHash(),
+            OfficeVbaSignatureProfile.V3 => canonical.ComputeV3Hash(),
+            _ => Array.Empty<byte>()
+        };
+        bool managedValid = CryptographicEquals(expected, selected.SubjectDigest);
+        findings.Add(Finding(managedValid ? "VbaManagedContentBindingValid" : "VbaManagedContentBindingInvalid",
+            managedValid ? OfficePackageSignatureValidationState.Passed : OfficePackageSignatureValidationState.Failed,
+            managedValid
+                ? "The signed digest matches the bounded managed MS-OVBA canonicalization transcript."
+                : "The signed digest does not match the bounded managed MS-OVBA canonicalization transcript.",
+            selected.Profile));
 
-        OfficeVbaContentBindingResult binding = OfficeVbaWindowsSip.ValidateContentBinding(
-            info.FilePath, selected.SubjectDigestAlgorithmOid!, selected.SubjectDigest);
-        findings.Add(Finding(binding.IsValid ? "VbaContentBindingValid" : "VbaContentBindingInvalid",
-            binding.IsSupported
-                ? binding.IsValid ? OfficePackageSignatureValidationState.Passed : OfficePackageSignatureValidationState.Failed
-                : OfficePackageSignatureValidationState.Unsupported,
-            binding.Detail, selected.Profile));
-        return new OfficeVbaSignatureValidationResult(info, binding.IsSupported,
-            binding.IsSupported
-                ? binding.IsValid ? OfficePackageSignatureValidationState.Passed : OfficePackageSignatureValidationState.Failed
-                : OfficePackageSignatureValidationState.Unsupported,
-            findings);
+        if (options is OfficeVbaSigningOptions signingOptions && signingOptions.ValidateWithWindowsSipWhenAvailable) {
+            byte[] sipExpected = selected.Profile == OfficeVbaSignatureProfile.Legacy
+                ? canonical.ComputeLegacySipHash()
+                : expected;
+            OfficeVbaContentBindingResult sip = OfficeVbaWindowsSip.ValidateContentBinding(
+                info.FilePath, selected.Profile, selected.SubjectDigestAlgorithmOid!, sipExpected,
+                selected.Profile == OfficeVbaSignatureProfile.Legacy ? selected.SubjectDigest : null);
+            findings.Add(Finding(sip.IsSupported
+                    ? sip.IsValid ? "VbaWindowsSipDifferentialValid" : "VbaWindowsSipDifferentialInvalid"
+                    : "VbaWindowsSipDifferentialUnavailable",
+                sip.IsSupported
+                    ? sip.IsValid ? OfficePackageSignatureValidationState.Passed : OfficePackageSignatureValidationState.Failed
+                    : OfficePackageSignatureValidationState.Unsupported,
+                sip.Detail, selected.Profile));
+            if (sip.IsSupported && !sip.IsValid) managedValid = false;
+        }
+        return new OfficeVbaSignatureValidationResult(info, true,
+            managedValid ? OfficePackageSignatureValidationState.Passed : OfficePackageSignatureValidationState.Failed,
+            IsRevocationRequired(options), findings);
     }
 
     private static OfficeVbaSignatureInfo InspectCore(
@@ -261,13 +297,24 @@ public static partial class OfficeVbaSignatureService {
             detail = "The VBA signature part is shorter than DigSigInfoSerialized.";
             return false;
         }
-        uint signatureLength = ReadUInt32(encoded, 0);
-        uint serializedOffset = ReadUInt32(encoded, 4);
-        if (serializedOffset < 44) {
-            detail = "The VBA signature CMS offset is outside the bounded signature part.";
-            return false;
+        int infoOffset = 0;
+        uint signatureLength;
+        uint offset;
+        uint outerLength = ReadUInt32(encoded, 0);
+        uint serializedPointer = ReadUInt32(encoded, 4);
+        if (serializedPointer == 8 && outerLength == encoded.Length - 8 &&
+            serializedPointer <= encoded.Length - headerLength) {
+            infoOffset = checked((int)serializedPointer);
+            signatureLength = ReadUInt32(encoded, infoOffset);
+            offset = ReadUInt32(encoded, infoOffset + 4);
+        } else {
+            signatureLength = outerLength;
+            if (serializedPointer != 44) {
+                detail = "The VBA signature CMS offset is outside the bounded signature part.";
+                return false;
+            }
+            offset = serializedPointer - 8;
         }
-        uint offset = serializedOffset - 8;
         if (signatureLength == 0 || signatureLength > maxCmsBytes || offset > encoded.Length ||
             signatureLength > encoded.Length - offset) {
             detail = "The VBA signature CMS offset or length is outside the bounded signature part.";
@@ -280,6 +327,33 @@ public static partial class OfficeVbaSignatureService {
 
     private static uint ReadUInt32(byte[] bytes, int offset) =>
         (uint)(bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24);
+
+    private static bool IsRevocationRequired(OfficeVbaSignatureInspectionOptions? options) =>
+        options != null && options.CmsVerification.CertificateValidation.RevocationMode !=
+            System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck;
+
+    private static bool CryptographicEquals(byte[] expected, byte[] actual) {
+        if (expected.Length != actual.Length) return false;
+        int difference = 0;
+        for (int index = 0; index < expected.Length; index++) difference |= expected[index] ^ actual[index];
+        return difference == 0;
+    }
+
+    private static bool TryReadVbaProject(string filePath, string vbaPartUri,
+        OfficeVbaSignatureInspectionOptions options, out byte[] bytes, out string detail) {
+        bytes = Array.Empty<byte>();
+        detail = string.Empty;
+        try {
+            byte[] packageBytes = File.ReadAllBytes(filePath);
+            using var archive = new OfficePackageSignatureArchive(
+                packageBytes, options.Package.MaxPackageParts, options.Package.MaxPartBytes);
+            bytes = archive.ReadPart(vbaPartUri, options.MaxMacroProjectBytes);
+            return true;
+        } catch (Exception exception) when (exception is IOException or InvalidDataException or OverflowException) {
+            detail = "The VBA project could not be read for managed canonicalization. " + exception.Message;
+            return false;
+        }
+    }
 
     private static string GetRelationshipPartUri(string partUri) {
         string normalized = OfficePackageSignatureArchive.NormalizePartUri(partUri);

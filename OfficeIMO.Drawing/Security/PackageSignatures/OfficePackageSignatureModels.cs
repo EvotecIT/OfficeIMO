@@ -93,20 +93,36 @@ public sealed class OfficePackageSignatureReferenceInfo {
     public bool IsPackagePartReference => TargetPartUri != null;
 }
 
+/// <summary>Timestamp declaration carried by an OPC XML signature.</summary>
+public sealed class OfficePackageSignatureTimestampInfo {
+    internal OfficePackageSignatureTimestampInfo(string kind, string? value, string? format) {
+        Kind = kind;
+        Value = value;
+        Format = format;
+    }
+
+    /// <summary>Timestamp element kind, such as SignatureTime, SigningTime, or EncapsulatedTimeStamp.</summary>
+    public string Kind { get; }
+    /// <summary>Declared timestamp value when it is a bounded textual time value.</summary>
+    public string? Value { get; }
+    /// <summary>Declared timestamp format when supplied by the package.</summary>
+    public string? Format { get; }
+}
+
 /// <summary>One XML signature part discovered in an OPC package.</summary>
 public sealed class OfficePackageSignaturePartInfo {
     private readonly IReadOnlyList<byte[]> _certificateBytes;
 
     internal OfficePackageSignaturePartInfo(string uri, long length, bool isReachableFromOrigin, string? signatureMethod,
         IReadOnlyList<OfficePackageSignatureReferenceInfo> references,
-        IReadOnlyList<string> timestampKinds, IReadOnlyList<string> subjects,
+        IReadOnlyList<OfficePackageSignatureTimestampInfo> timestamps, IReadOnlyList<string> subjects,
         IReadOnlyList<byte[]> certificateBytes, string? parseError) {
         Uri = uri;
         Length = length;
         IsReachableFromOrigin = isReachableFromOrigin;
         SignatureMethodAlgorithm = signatureMethod;
         SignedReferences = references;
-        TimestampKinds = timestampKinds;
+        Timestamps = timestamps;
         X509SubjectNames = subjects;
         _certificateBytes = certificateBytes;
         ParseError = parseError;
@@ -122,8 +138,10 @@ public sealed class OfficePackageSignaturePartInfo {
     public string? SignatureMethodAlgorithm { get; }
     /// <summary>Signed package-part references from the OPC Manifest.</summary>
     public IReadOnlyList<OfficePackageSignatureReferenceInfo> SignedReferences { get; }
+    /// <summary>Recognized timestamp declarations.</summary>
+    public IReadOnlyList<OfficePackageSignatureTimestampInfo> Timestamps { get; }
     /// <summary>Recognized timestamp declaration kinds.</summary>
-    public IReadOnlyList<string> TimestampKinds { get; }
+    public IReadOnlyList<string> TimestampKinds => Timestamps.Select(timestamp => timestamp.Kind).ToArray();
     /// <summary>Declared X.509 subject names.</summary>
     public IReadOnlyList<string> X509SubjectNames { get; }
     /// <summary>XML parse or resource-policy error.</summary>
@@ -136,12 +154,13 @@ public sealed class OfficePackageSignaturePartInfo {
 /// <summary>Dependency-light structural inspection of one OPC package signature carrier.</summary>
 public sealed class OfficePackageSignatureInfo {
     internal OfficePackageSignatureInfo(int originRelationshipCount, int originPartCount, string? originUri, bool hasApplicationMetadata,
-        IReadOnlyList<OfficePackageSignaturePartInfo> parts, IReadOnlyList<string> findings) {
+        bool signatureDiscoveryComplete, IReadOnlyList<OfficePackageSignaturePartInfo> parts, IReadOnlyList<string> findings) {
         OriginRelationshipCount = originRelationshipCount;
         OriginPartCount = originPartCount;
         HasDigitalSignatureOriginPart = originPartCount > 0;
         OriginPartUri = originUri;
         HasApplicationSignatureMetadata = hasApplicationMetadata;
+        SignatureDiscoveryComplete = signatureDiscoveryComplete;
         SignatureParts = parts;
         Findings = findings;
     }
@@ -156,6 +175,8 @@ public sealed class OfficePackageSignatureInfo {
     public string? OriginPartUri { get; }
     /// <summary>Whether extended application properties advertise signatures.</summary>
     public bool HasApplicationSignatureMetadata { get; }
+    /// <summary>Whether all signature parts were discovered within the configured limit.</summary>
+    public bool SignatureDiscoveryComplete { get; }
     /// <summary>XML signature parts discovered by content type or signature relationships.</summary>
     public IReadOnlyList<OfficePackageSignaturePartInfo> SignatureParts { get; }
     /// <summary>Stable structural findings.</summary>
@@ -181,12 +202,14 @@ public sealed class OfficePackageSignaturePartValidationResult {
         OfficePackageSignatureValidationState certificateChainStatus,
         OfficePackageSignatureValidationState revocationStatus,
         bool certificateTrustRequired,
+        bool revocationRequired,
         IReadOnlyList<SecurityFinding> findings) {
         SignaturePart = part;
         CryptographicStatus = cryptographicStatus;
         CertificateChainStatus = certificateChainStatus;
         RevocationStatus = revocationStatus;
         CertificateTrustRequired = certificateTrustRequired;
+        RevocationRequired = revocationRequired;
         Findings = findings;
     }
 
@@ -200,6 +223,8 @@ public sealed class OfficePackageSignaturePartValidationResult {
     public OfficePackageSignatureValidationState RevocationStatus { get; }
     /// <summary>Whether caller policy required certificate-chain validation.</summary>
     public bool CertificateTrustRequired { get; }
+    /// <summary>Whether caller policy required a conclusive revocation result.</summary>
+    public bool RevocationRequired { get; }
     /// <summary>Provider and policy findings.</summary>
     public IReadOnlyList<SecurityFinding> Findings { get; }
     /// <summary>Whether this signature satisfies package digests, signature math, and trust policy.</summary>
@@ -211,7 +236,8 @@ public sealed class OfficePackageSignaturePartValidationResult {
         CryptographicStatus == OfficePackageSignatureValidationState.Passed &&
         (CertificateChainStatus == OfficePackageSignatureValidationState.Passed ||
             (!CertificateTrustRequired && CertificateChainStatus == OfficePackageSignatureValidationState.NotChecked)) &&
-        RevocationStatus != OfficePackageSignatureValidationState.Failed;
+        (RevocationStatus == OfficePackageSignatureValidationState.Passed ||
+            (!RevocationRequired && RevocationStatus != OfficePackageSignatureValidationState.Failed));
 }
 
 /// <summary>Combined structural and provider-backed OPC signature validation report.</summary>
@@ -231,11 +257,11 @@ public sealed class OfficePackageSignatureValidationReport {
     /// <summary>Combined deterministic findings.</summary>
     public IReadOnlyList<string> Findings { get; }
     /// <summary>Whether signatures exist and every discovered signature satisfies policy.</summary>
-    public bool IsValidUnderPolicy => SignatureInfo.HasSignatures && Signatures.Count > 0 &&
+    public bool IsValidUnderPolicy => SignatureInfo.SignatureDiscoveryComplete && SignatureInfo.HasSignatures && Signatures.Count > 0 &&
         Signatures.All(signature => signature.IsValidUnderPolicy);
 
     /// <summary>Whether package digests and XML signature math pass, independently of certificate trust.</summary>
-    public bool IsCryptographicallyValid => SignatureInfo.HasSignatures && Signatures.Count > 0 &&
+    public bool IsCryptographicallyValid => SignatureInfo.SignatureDiscoveryComplete && SignatureInfo.HasSignatures && Signatures.Count > 0 &&
         Signatures.All(signature => signature.SignaturePart.IsReachableFromOrigin && !signature.SignaturePart.HasParseError &&
             signature.SignaturePart.SignedReferences.Count > 0 &&
             signature.SignaturePart.SignedReferences.All(reference =>

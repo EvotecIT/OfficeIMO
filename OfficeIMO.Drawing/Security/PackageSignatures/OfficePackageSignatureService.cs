@@ -153,7 +153,8 @@ public static class OfficePackageSignatureService {
             .OrderBy(uri => uri, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        if (signatureUris.Length > options.MaxSignatureParts) {
+        bool signatureDiscoveryComplete = signatureUris.Length <= options.MaxSignatureParts;
+        if (!signatureDiscoveryComplete) {
             findings.Add("The package contains more XML signature parts than the configured limit.");
             signatureUris = signatureUris.Take(options.MaxSignatureParts).ToArray();
         }
@@ -174,7 +175,7 @@ public static class OfficePackageSignatureService {
             parts.Add(InspectPart(archive, signatureUri, reachable, options, ref totalDigestBytes));
         }
         return new OfficePackageSignatureInfo(origins.RelationshipCount, origins.ExistingPartCount,
-            originUri, hasApplicationMetadata, parts, findings);
+            originUri, hasApplicationMetadata, signatureDiscoveryComplete, parts, findings);
     }
 
     private static OfficePackageSignaturePartInfo InspectPart(
@@ -234,11 +235,7 @@ public static class OfficePackageSignatureService {
                     uri, digestMethod, digestValue, target, exists, transforms, digest.Status, digest.Detail));
             }
 
-            string[] timestampKinds = signature.Descendants()
-                .Where(element => element.Name.LocalName is "SignatureTime" or "SigningTime" or "EncapsulatedTimeStamp")
-                .Select(element => element.Name.LocalName)
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
+            OfficePackageSignatureTimestampInfo[] timestamps = ReadTimestamps(signature);
             var subjects = signature.Descendants(DigitalSignatureNamespace + "X509SubjectName")
                 .Select(element => element.Value.Trim())
                 .Where(value => value.Length > 0)
@@ -260,12 +257,12 @@ public static class OfficePackageSignatureService {
                 }
             }
             return new OfficePackageSignaturePartInfo(
-                signatureUri, length, isReachableFromOrigin, signatureMethod, references, timestampKinds,
+                signatureUri, length, isReachableFromOrigin, signatureMethod, references, timestamps,
                 subjects.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), certificates.ToArray(), null);
         } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or FormatException or OverflowException) {
             return new OfficePackageSignaturePartInfo(
                 signatureUri, length, isReachableFromOrigin, null, Array.Empty<OfficePackageSignatureReferenceInfo>(),
-                Array.Empty<string>(), Array.Empty<string>(), Array.Empty<byte[]>(), exception.Message);
+                Array.Empty<OfficePackageSignatureTimestampInfo>(), Array.Empty<string>(), Array.Empty<byte[]>(), exception.Message);
         }
     }
 
@@ -280,7 +277,8 @@ public static class OfficePackageSignatureService {
                 "OpcSignatureMalformed", part.ParseError ?? "The XML signature part is malformed."));
             return Result(part, OfficePackageSignatureValidationState.Failed,
                 OfficePackageSignatureValidationState.NotChecked,
-                OfficePackageSignatureValidationState.NotChecked, options.ValidateCertificateTrust, findings);
+                OfficePackageSignatureValidationState.NotChecked, options.ValidateCertificateTrust,
+                IsRevocationRequired(options), findings);
         }
 
         var certificates = new List<X509Certificate2>();
@@ -291,7 +289,8 @@ public static class OfficePackageSignatureService {
                     "OpcSignerCertificateMissing", "The signature does not embed a signer certificate."));
                 return Result(part, OfficePackageSignatureValidationState.Failed,
                     OfficePackageSignatureValidationState.NotPresent,
-                    OfficePackageSignatureValidationState.NotPresent, options.ValidateCertificateTrust, findings);
+                    OfficePackageSignatureValidationState.NotPresent, options.ValidateCertificateTrust,
+                    IsRevocationRequired(options), findings);
             }
 
             byte[] signatureXml = archive.ReadPart(part.Uri, options.Inspection.MaxSignatureBytes);
@@ -306,14 +305,15 @@ public static class OfficePackageSignatureService {
             if (xml.MatchingCertificates.Count == 0) {
                 return Result(part, crypto,
                     OfficePackageSignatureValidationState.NotPresent,
-                    OfficePackageSignatureValidationState.NotPresent, options.ValidateCertificateTrust, findings);
+                    OfficePackageSignatureValidationState.NotPresent, options.ValidateCertificateTrust,
+                    IsRevocationRequired(options), findings);
             }
 
             X509Certificate2 signer = xml.MatchingCertificates[0];
             if (!options.ValidateCertificateTrust) {
                 return Result(part, crypto,
                     OfficePackageSignatureValidationState.NotChecked,
-                    OfficePackageSignatureValidationState.NotChecked, false, findings);
+                    OfficePackageSignatureValidationState.NotChecked, false, false, findings);
             }
             CertificateTrustValidationResult trust = provider.ValidateCertificate(
                 signer, ExcludeSigner(certificates, signer), options.CertificateValidation,
@@ -321,13 +321,14 @@ public static class OfficePackageSignatureService {
             findings.AddRange(trust.Findings);
             return Result(part, crypto,
                 Map(trust.Validation.ChainStatus),
-                Map(trust.Validation.RevocationStatus), true, findings);
+                Map(trust.Validation.RevocationStatus), true, IsRevocationRequired(options), findings);
         } catch (Exception exception) when (exception is InvalidDataException or IOException or System.Security.Cryptography.CryptographicException or NotSupportedException) {
             findings.Add(new SecurityFinding(SecurityFindingSeverity.Error,
                 "OpcSignatureValidationFailed", exception.Message));
             return Result(part, OfficePackageSignatureValidationState.Failed,
                 OfficePackageSignatureValidationState.NotChecked,
-                OfficePackageSignatureValidationState.NotChecked, options.ValidateCertificateTrust, findings);
+                OfficePackageSignatureValidationState.NotChecked, options.ValidateCertificateTrust,
+                IsRevocationRequired(options), findings);
         } finally {
             foreach (X509Certificate2 certificate in certificates) certificate.Dispose();
         }
@@ -339,9 +340,37 @@ public static class OfficePackageSignatureService {
         OfficePackageSignatureValidationState certificateStatus,
         OfficePackageSignatureValidationState revocationStatus,
         bool certificateTrustRequired,
+        bool revocationRequired,
         IReadOnlyList<SecurityFinding> findings) =>
         new(part, cryptographicStatus, certificateStatus, revocationStatus,
-            certificateTrustRequired, findings.ToArray());
+            certificateTrustRequired, revocationRequired, findings.ToArray());
+
+    private static bool IsRevocationRequired(OfficePackageSignatureValidationOptions options) =>
+        options.ValidateCertificateTrust && options.CertificateValidation.RevocationMode != X509RevocationMode.NoCheck;
+
+    private static OfficePackageSignatureTimestampInfo[] ReadTimestamps(XElement signature) {
+        XNamespace packageSignature = "http://schemas.openxmlformats.org/package/2006/digital-signature";
+        var timestamps = new List<OfficePackageSignatureTimestampInfo>();
+        foreach (XElement element in signature.Descendants()) {
+            if (element.Name == packageSignature + "SignatureTime") {
+                timestamps.Add(new OfficePackageSignatureTimestampInfo(
+                    "SignatureTime",
+                    element.Element(packageSignature + "Value")?.Value.Trim(),
+                    element.Element(packageSignature + "Format")?.Value.Trim()));
+                continue;
+            }
+            if (element.Name.LocalName == "SigningTime" &&
+                element.Name.NamespaceName.StartsWith("http://uri.etsi.org/01903/", StringComparison.Ordinal)) {
+                timestamps.Add(new OfficePackageSignatureTimestampInfo("SigningTime", element.Value.Trim(), null));
+                continue;
+            }
+            if (element.Name.LocalName == "EncapsulatedTimeStamp" &&
+                element.Name.NamespaceName.StartsWith("http://uri.etsi.org/01903/", StringComparison.Ordinal)) {
+                timestamps.Add(new OfficePackageSignatureTimestampInfo("EncapsulatedTimeStamp", null, null));
+            }
+        }
+        return timestamps.ToArray();
+    }
 
     private static byte[][] ReadCertificates(
         XElement signature,
@@ -533,7 +562,7 @@ public static class OfficePackageSignatureService {
             string[] existing = partUris.Where(archive.ContainsPart)
                 .OrderBy(uri => uri, StringComparer.OrdinalIgnoreCase).ToArray();
             return new OriginDiscovery(declarations.Length, existing, first);
-        } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException) {
+        } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or UriFormatException) {
             findings.Add("The root relationship part could not be parsed: " + exception.Message);
             return new OriginDiscovery(0, Array.Empty<string>(), null);
         }
@@ -559,7 +588,9 @@ public static class OfficePackageSignatureService {
         if (!archive.ContainsPart(applicationProperties)) return false;
         try {
             XDocument properties = LoadXml(archive.ReadPart(applicationProperties, options.MaxSignatureBytes));
-            return properties.Descendants().Any(element => element.Name.LocalName == "DigitalSignature");
+            XNamespace extendedProperties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
+            return properties.Root?.Name == extendedProperties + "Properties" &&
+                properties.Root.Elements(extendedProperties + "DigSig").Any();
         } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException) {
             findings.Add("Extended application properties could not be parsed: " + exception.Message);
             return false;

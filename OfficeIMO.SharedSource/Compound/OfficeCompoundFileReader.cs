@@ -474,7 +474,7 @@ namespace OfficeIMO.Drawing.Internal {
                 result, visited, depth + 1, cancellationToken);
             if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
                 string path = string.IsNullOrEmpty(parentPath) ? entry.Name : parentPath + "/" + entry.Name;
-                result.Add(CreateCompoundEntry(entry, path));
+                result.Add(CreateCompoundEntry(entry, path, directoryOrder: result.Count));
                 if (entry.ObjectType == 1 || entry.ObjectType == 5) {
                     TraverseDirectoryTree(entries, entry.ChildId, path,
                         result, visited, depth + 1, cancellationToken);
@@ -562,8 +562,10 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static OfficeCompoundFileEntry CreateCompoundEntry(DirectoryEntry entry, string path,
-            bool isFallback = false) => new OfficeCompoundFileEntry(entry.Name, path, entry.ObjectType, entry.Size,
-                isFallback, entry.ClassId, entry.StateBits, entry.CreationTime, entry.ModifiedTime);
+            bool isFallback = false, int directoryOrder = int.MaxValue) =>
+            new OfficeCompoundFileEntry(entry.Name, path, entry.ObjectType, entry.Size,
+                isFallback, entry.ClassId, entry.StateBits, entry.CreationTime, entry.ModifiedTime,
+                directoryOrder);
 
         private sealed class DirectoryEntry {
             internal DirectoryEntry(int index, string name, byte objectType, uint leftSiblingId,

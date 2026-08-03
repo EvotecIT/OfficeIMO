@@ -152,51 +152,49 @@ public class OfficeVbaSignatureInspectionOptions {
 public sealed class OfficeVbaSignatureValidationResult {
     internal OfficeVbaSignatureValidationResult(OfficeVbaSignatureInfo info, bool contentBindingSupported,
         OfficePackageSignatureValidationState contentBindingStatus,
+        bool revocationRequired,
         IReadOnlyList<OfficeVbaSignatureFinding> findings) {
         SignatureInfo = info;
         ContentBindingSupported = contentBindingSupported;
         ContentBindingStatus = contentBindingStatus;
+        RevocationRequired = revocationRequired;
         Findings = findings;
     }
     /// <summary>Structural and CMS profile evidence.</summary>
     public OfficeVbaSignatureInfo SignatureInfo { get; }
-    /// <summary>Whether the platform can invoke the registered Microsoft Office SIP.</summary>
+    /// <summary>Whether managed MS-OVBA content binding was available for the selected project.</summary>
     public bool ContentBindingSupported { get; }
     /// <summary>Office SIP content-binding result.</summary>
     public OfficePackageSignatureValidationState ContentBindingStatus { get; }
+    /// <summary>Whether the supplied CMS policy requires a conclusive revocation result.</summary>
+    public bool RevocationRequired { get; }
     /// <summary>Combined findings.</summary>
     public IReadOnlyList<OfficeVbaSignatureFinding> Findings { get; }
     /// <summary>Whether the highest profile binds to the package and satisfies CMS/trust policy.</summary>
     public bool IsValidUnderPolicy {
         get {
             OfficeVbaSignaturePartInfo? selected = SignatureInfo.Signatures.OrderByDescending(signature => signature.Profile).FirstOrDefault();
-            return selected != null && ContentBindingStatus == OfficePackageSignatureValidationState.Passed &&
+            return selected != null && !SignatureInfo.Findings.Any(finding => finding.State == OfficePackageSignatureValidationState.Failed) &&
+                !selected.Findings.Any(finding => finding.State == OfficePackageSignatureValidationState.Failed) &&
+                !Findings.Any(finding => finding.State == OfficePackageSignatureValidationState.Failed) &&
+                ContentBindingStatus == OfficePackageSignatureValidationState.Passed &&
                 selected.CryptographicStatus == OfficePackageSignatureValidationState.Passed &&
                 selected.CertificateChainStatus == OfficePackageSignatureValidationState.Passed &&
-                selected.RevocationStatus != OfficePackageSignatureValidationState.Failed &&
+                (selected.RevocationStatus == OfficePackageSignatureValidationState.Passed ||
+                    (!RevocationRequired && selected.RevocationStatus != OfficePackageSignatureValidationState.Failed)) &&
                 selected.TimestampStatus != OfficePackageSignatureValidationState.Failed;
         }
     }
 }
 
-/// <summary>Windows Office SIP signing policy for VBA projects.</summary>
+/// <summary>Portable managed VBA signing policy.</summary>
 public sealed class OfficeVbaSigningOptions : OfficeVbaSignatureInspectionOptions {
     /// <summary>Whether signing may invalidate existing OPC package signatures. Defaults to false.</summary>
     public bool AllowPackageSignatureInvalidation { get; set; }
-    /// <summary>Certificate store name used by SignTool.</summary>
-    public StoreName StoreName { get; set; } = StoreName.My;
-    /// <summary>Certificate store location used by SignTool.</summary>
-    public StoreLocation StoreLocation { get; set; } = StoreLocation.CurrentUser;
-    /// <summary>Optional full path to signtool.exe; PATH is used when omitted.</summary>
-    public string? SignToolPath { get; set; }
-    /// <summary>Directory containing Microsoft's offclearsig.exe.</summary>
-    public string? OfficeSipsDirectory { get; set; }
-    /// <summary>Optional RFC 3161 authority.</summary>
-    public Uri? TimestampAuthorityUrl { get; set; }
-    /// <summary>Maximum duration for each native tool operation.</summary>
-    public TimeSpan ToolTimeout { get; set; } = TimeSpan.FromMinutes(2);
-    /// <summary>Maximum captured tool output.</summary>
-    public int MaxToolOutputCharacters { get; set; } = 64 * 1024;
+    /// <summary>CMS signer settings. SHA-256 signs each profile while MS-OVBA defines its profile-specific content transcript.</summary>
+    public CmsSigningOptions CmsSigning { get; } = new CmsSigningOptions();
+    /// <summary>Whether an available registered Microsoft Office SIP should be used as an additional Windows differential check.</summary>
+    public bool ValidateWithWindowsSipWhenAvailable { get; set; }
 }
 
 /// <summary>Atomic VBA profile signing result.</summary>
@@ -212,7 +210,7 @@ public sealed class OfficeVbaSigningResult {
     }
     /// <summary>Package path.</summary>
     public string FilePath { get; }
-    /// <summary>Whether Windows Office SIP signing prerequisites are available.</summary>
+    /// <summary>Whether the managed implementation supports the input format and project profile.</summary>
     public bool IsSupported { get; }
     /// <summary>Whether all profiles were created, validated, and committed atomically.</summary>
     public bool Succeeded { get; }

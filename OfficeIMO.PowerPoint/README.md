@@ -439,7 +439,7 @@ presentation.AddCustomShow("Executive review", new[] { titleSlide, summarySlide 
 
 `GetVbaProjectBytes()`, `SetVbaProject(...)`, and `RemoveVbaProject()` treat a VBA project as validated, bounded compound-storage content. They do not interpret or generate VBA source. Save macro content only to matching macro-enabled package formats such as `.pptm`, `.potm`, or `.ppsm`.
 
-`InspectVbaSignatures(...)` reports legacy, agile, and V3 profile evidence for `.pptm`, `.potm`, `.ppsm`, and `.ppam`. `ValidateVbaSignatures(...)` adds provider-backed CMS, certificate, revocation, timestamp, and Windows Office SIP content-binding evidence. `SignVbaProject(...)` clears and recreates the three Microsoft profiles atomically; it requires Windows, SignTool, and the registered Office SIP. Apply the VBA signatures before an OPC package signature.
+`InspectVbaSignatures(...)` reports legacy, agile, and V3 profile evidence for `.pptm`, `.potm`, `.ppsm`, and `.ppam`. `ValidateVbaSignatures(...)` adds managed content binding plus provider-backed CMS, certificate, revocation, and timestamp evidence. `SignVbaProject(...)` clears and recreates the three Microsoft profiles atomically on every supported platform. A registered Microsoft Office SIP is an optional Windows differential check. Apply VBA signatures before an OPC package signature.
 
 ### SmartArt and visual proof
 

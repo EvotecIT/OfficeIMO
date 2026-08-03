@@ -551,62 +551,36 @@ namespace OfficeIMO.Tests {
             TraceOfficeSipInterop("certificate-create:start");
             using X509Certificate2 certificate = CreateOfficeSipSigningCertificate();
             TraceOfficeSipInterop("certificate-create:complete");
-            using var personalStore = new X509Store(StoreName.My, StoreLocation.CurrentUser);
-            TraceOfficeSipInterop("certificate-store-open:start");
-            personalStore.Open(OpenFlags.ReadWrite);
-            TraceOfficeSipInterop("certificate-store-open:complete");
-            TraceOfficeSipInterop("certificate-personal-store-add:start");
-            personalStore.Add(certificate);
-            TraceOfficeSipInterop("certificate-personal-store-add:complete");
-            using var trustedPeopleStore = new X509Store(StoreName.TrustedPeople, StoreLocation.CurrentUser);
-            TraceOfficeSipInterop("certificate-trusted-people-store-open:start");
-            trustedPeopleStore.Open(OpenFlags.ReadWrite);
-            TraceOfficeSipInterop("certificate-trusted-people-store-open:complete");
-            TraceOfficeSipInterop("certificate-trusted-people-store-add:start");
-            trustedPeopleStore.Add(certificate);
-            TraceOfficeSipInterop("certificate-trusted-people-store-add:complete");
-            try {
-                var options = new WordMacroProjectSigningOptions {
-                    SignToolPath = Environment.GetEnvironmentVariable("OFFICEIMO_SIGNTOOL_PATH"),
-                    OfficeSipsDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_VBA_SIP_DIRECTORY"),
-                    ToolTimeout = TimeSpan.FromSeconds(30)
-                };
-                TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
-                var dependencies = new WordMacroProjectSigningDependencies(
-                    new TracingOfficeSipToolRunner(new WordMacroProjectProcessRunner()),
-                    new TracingOfficeSipPlatform(new WordMacroProjectWindowsPlatform()));
+            var options = new OfficeVbaSigningOptions { ValidateWithWindowsSipWhenAvailable = true };
+            TrustMacroTestCertificate(options.CmsVerification.CertificateValidation);
 
-                TraceOfficeSipInterop("macro-sign:start");
-                WordMacroProjectSigningResult signing = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
-                TraceOfficeSipInterop("macro-sign:complete:" + signing.Succeeded);
+            TraceOfficeSipInterop("managed-sign:start");
+            OfficeVbaSigningResult signing = WordDocument.TrySignVbaProject(
+                filePath, SecurityProvider, certificate, options);
+            TraceOfficeSipInterop("managed-sign:complete:" + signing.Succeeded);
 
-                Assert.True(signing.Succeeded, string.Join(" | ", signing.Findings.Select(
-                    finding => finding.Code + ": " + finding.Message)));
-                Assert.True(signing.MacroProjectPreserved);
-                Assert.True(signing.ValidationResult!.IsValidUnderPolicy);
-                Assert.Equal(3, signing.ValidationResult.SignatureInfo.Signatures.Count);
+            Assert.True(signing.Succeeded, string.Join(" | ", signing.Findings.Select(
+                finding => finding.Code + ": " + finding.Message)));
+            Assert.True(signing.Validation!.IsValidUnderPolicy);
+            Assert.Equal(3, signing.Validation.SignatureInfo.Signatures.Count);
+            Assert.Contains(signing.Validation.Findings, finding =>
+                finding.Code == "VbaWindowsSipDifferentialValid");
 
-                TraceOfficeSipInterop("macro-validate:start");
-                WordMacroProjectSignatureValidationResult valid =
-                    WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
-                TraceOfficeSipInterop("macro-validate:complete:" + valid.IsValidUnderPolicy);
-                Assert.True(valid.IsValidUnderPolicy);
+            TraceOfficeSipInterop("managed-validate:start");
+            OfficeVbaSignatureValidationResult valid = WordDocument.ValidateVbaSignatures(
+                filePath, SecurityProvider, options);
+            TraceOfficeSipInterop("managed-validate:complete:" + valid.IsValidUnderPolicy);
+            Assert.True(valid.IsValidUnderPolicy);
 
-                TraceOfficeSipInterop("macro-tamper:start");
-                TamperVbaProjectPart(filePath);
-                TraceOfficeSipInterop("macro-tamper:complete");
-                TraceOfficeSipInterop("tampered-validate:start");
-                WordMacroProjectSignatureValidationResult tampered =
-                    WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
-                TraceOfficeSipInterop("tampered-validate:complete:" + tampered.IsValidUnderPolicy);
-                Assert.False(tampered.IsValidUnderPolicy);
-                Assert.Equal(WordSignatureValidationState.Failed, tampered.ContentBindingStatus);
-            } finally {
-                TraceOfficeSipInterop("certificate-store-remove:start");
-                RemoveCertificatesByThumbprint(trustedPeopleStore, certificate.Thumbprint);
-                RemoveCertificatesByThumbprint(personalStore, certificate.Thumbprint);
-                TraceOfficeSipInterop("certificate-store-remove:complete");
-            }
+            TraceOfficeSipInterop("macro-tamper:start");
+            TamperVbaProjectPart(filePath);
+            TraceOfficeSipInterop("macro-tamper:complete");
+            TraceOfficeSipInterop("tampered-validate:start");
+            OfficeVbaSignatureValidationResult tampered = WordDocument.ValidateVbaSignatures(
+                filePath, SecurityProvider, options);
+            TraceOfficeSipInterop("tampered-validate:complete:" + tampered.IsValidUnderPolicy);
+            Assert.False(tampered.IsValidUnderPolicy);
+            Assert.Equal(OfficePackageSignatureValidationState.Failed, tampered.ContentBindingStatus);
         }
 
         private string CreateMacroEnabledTestDocument(string fileName) {

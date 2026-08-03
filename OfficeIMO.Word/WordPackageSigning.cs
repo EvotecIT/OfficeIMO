@@ -1,5 +1,4 @@
 using System.Security.Cryptography.X509Certificates;
-using System.Runtime.InteropServices;
 using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Security;
 
@@ -39,10 +38,8 @@ namespace OfficeIMO.Word {
         /// <summary>VBA project signing capability, which is independent of OPC package signing.</summary>
         public static WordSigningCapability MacroProject { get; } = new WordSigningCapability(
             WordSigningCapabilityKind.VbaMacroProject,
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? "VBA macro-project signing is available through Microsoft OfficeSips and SignTool as a separate Windows-native capability; operational availability is reported per request."
-                : "VBA signature parts can be inspected cross-platform as a separate capability, but content-binding validation requires Microsoft's registered Office SIP on Windows and creation additionally requires OfficeSips tooling plus SignTool.");
+            true,
+            "Managed cross-platform VBA macro-project signing and validation are supported as a separate capability from OPC package signing; an Office security provider is supplied explicitly.");
     }
 
     /// <summary>

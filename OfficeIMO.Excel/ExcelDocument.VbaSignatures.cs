@@ -1,4 +1,6 @@
 using OfficeIMO.Security;
+using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 
 namespace OfficeIMO.Excel;
 
@@ -20,15 +22,17 @@ public partial class ExcelDocument {
     public static OfficeVbaSigningResult SignVbaProject(
         string filePath,
         IOfficeSecurityProvider securityProvider,
-        string certificateThumbprint,
-        OfficeVbaSigningOptions? options = null) =>
-        OfficeVbaSignatureService.Sign(filePath, securityProvider, certificateThumbprint, options);
+        X509Certificate2 signingCertificate,
+        OfficeVbaSigningOptions? options = null,
+        IEnumerable<X509Certificate2>? certificateChain = null) =>
+        OfficeVbaSignatureService.Sign(filePath, securityProvider, signingCertificate, options, certificateChain);
 
     /// <summary>Attempts atomic VBA signing and returns structured failure evidence.</summary>
     public static OfficeVbaSigningResult TrySignVbaProject(
         string filePath,
         IOfficeSecurityProvider securityProvider,
-        string certificateThumbprint,
-        OfficeVbaSigningOptions? options = null) =>
-        OfficeVbaSignatureService.TrySign(filePath, securityProvider, certificateThumbprint, options);
+        X509Certificate2 signingCertificate,
+        OfficeVbaSigningOptions? options = null,
+        IEnumerable<X509Certificate2>? certificateChain = null) =>
+        OfficeVbaSignatureService.TrySign(filePath, securityProvider, signingCertificate, options, certificateChain);
 }

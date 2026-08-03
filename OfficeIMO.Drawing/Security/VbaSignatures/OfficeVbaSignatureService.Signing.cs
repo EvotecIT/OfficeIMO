@@ -1,66 +1,85 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Security;
 
 public static partial class OfficeVbaSignatureService {
-    /// <summary>Creates legacy, agile, and V3 VBA signatures through Microsoft's registered Office SIP.</summary>
+    /// <summary>Creates legacy, agile, and V3 VBA signatures with managed MS-OVBA canonicalization and provider-backed CMS.</summary>
     public static OfficeVbaSigningResult TrySign(
         string filePath,
         IOfficeSecurityProvider securityProvider,
-        string certificateThumbprint,
-        OfficeVbaSigningOptions? options = null) {
+        X509Certificate2 signingCertificate,
+        OfficeVbaSigningOptions? options = null,
+        IEnumerable<X509Certificate2>? certificateChain = null) {
         if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        if (signingCertificate == null) throw new ArgumentNullException(nameof(signingCertificate));
         options ??= new OfficeVbaSigningOptions();
         ValidateOptions(options);
+        ValidateSigningOptions(options);
         string fullPath = NormalizePath(filePath);
         var findings = new List<OfficeVbaSignatureFinding>();
         OfficeVbaSignatureInfo source = Inspect(fullPath, options);
-        if (!source.IsMacroEnabledFormat || !source.HasMacroProject ||
-            source.Findings.Any(finding => finding.State == OfficePackageSignatureValidationState.Failed)) {
+        if (!source.IsMacroEnabledFormat || !source.HasMacroProject || string.IsNullOrWhiteSpace(source.MacroProjectUri)
+            || source.Findings.Any(finding => finding.State == OfficePackageSignatureValidationState.Failed)) {
             findings.AddRange(source.Findings);
             findings.Add(Finding("VbaSigningPreflightFailed", OfficePackageSignatureValidationState.Failed,
-                "VBA signing requires a valid macro-enabled package with vbaProject.bin."));
+                "VBA signing requires a valid macro-enabled package with one bounded vbaProject.bin."));
             return SigningResult(fullPath, true, false, null, findings);
         }
-        if (!TryNormalizeThumbprint(certificateThumbprint, out string thumbprint, out string thumbprintDetail)) {
-            findings.Add(Finding("CertificateThumbprintInvalid", OfficePackageSignatureValidationState.Failed, thumbprintDetail));
+        if (!signingCertificate.HasPrivateKey) {
+            findings.Add(Finding("VbaSigningPrivateKeyMissing", OfficePackageSignatureValidationState.Failed,
+                "The signing certificate has no accessible private key."));
             return SigningResult(fullPath, true, false, null, findings);
         }
-        if (options.ToolTimeout <= TimeSpan.Zero || options.ToolTimeout.TotalMilliseconds > int.MaxValue) {
-            throw new ArgumentOutOfRangeException(nameof(options.ToolTimeout));
-        }
-        if (options.MaxToolOutputCharacters <= 0 || options.MaxToolOutputCharacters > 4 * 1024 * 1024) {
-            throw new ArgumentOutOfRangeException(nameof(options.MaxToolOutputCharacters));
-        }
-        if (options.TimestampAuthorityUrl != null && (!options.TimestampAuthorityUrl.IsAbsoluteUri ||
-            !(options.TimestampAuthorityUrl.Scheme == Uri.UriSchemeHttps || options.TimestampAuthorityUrl.Scheme == Uri.UriSchemeHttp))) {
-            throw new ArgumentException("TimestampAuthorityUrl must be an absolute HTTP or HTTPS URL.", nameof(options));
-        }
-        if (!OfficeVbaWindowsSip.IsAvailable(fullPath, out string sipDetail)) {
-            findings.Add(Finding("MicrosoftOfficeSipUnavailable", OfficePackageSignatureValidationState.Unsupported, sipDetail));
-            return SigningResult(fullPath, false, false, null, findings);
-        }
-        string signTool = string.IsNullOrWhiteSpace(options.SignToolPath)
-            ? "signtool.exe" : Path.GetFullPath(options.SignToolPath!);
-        string clearTool = string.IsNullOrWhiteSpace(options.OfficeSipsDirectory)
-            ? string.Empty : Path.Combine(Path.GetFullPath(options.OfficeSipsDirectory!), "offclearsig.exe");
-        if (string.IsNullOrWhiteSpace(clearTool) || !File.Exists(clearTool)) {
-            findings.Add(Finding("OfficeSignatureClearToolUnavailable", OfficePackageSignatureValidationState.Unsupported,
-                "OfficeSipsDirectory must contain Microsoft's offclearsig.exe."));
-            return SigningResult(fullPath, false, false, null, findings);
-        }
-
         OfficePackageSignatureInfo packageSignatures = OfficePackageSignatureService.Inspect(fullPath,
             new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
         if (packageSignatures.HasSignatures && !options.AllowPackageSignatureInvalidation) {
             findings.Add(Finding("ExistingPackageSignatureInvalidationBlocked", OfficePackageSignatureValidationState.Failed,
                 "VBA signing would invalidate existing OPC package signatures."));
+            return SigningResult(fullPath, true, false, null, findings);
+        }
+        if (!TryReadVbaProject(fullPath, source.MacroProjectUri!, options,
+                out byte[] projectBytes, out string readDetail)) {
+            findings.Add(Finding("VbaProjectReadFailed", OfficePackageSignatureValidationState.Failed, readDetail));
+            return SigningResult(fullPath, true, false, null, findings);
+        }
+        if (!OfficeVbaProjectCanonicalizer.TryCreate(projectBytes, options.MaxMacroProjectBytes,
+                out OfficeVbaProjectCanonicalizer.Result? canonical, out string canonicalDetail)
+            || canonical == null) {
+            findings.Add(Finding("VbaManagedCanonicalizationFailed", OfficePackageSignatureValidationState.Failed,
+                canonicalDetail));
+            return SigningResult(fullPath, true, false, null, findings);
+        }
+
+        var profileParts = new Dictionary<OfficeVbaSignatureProfile, byte[]>();
+        try {
+            foreach (OfficeVbaSignatureProfile profile in new[] {
+                         OfficeVbaSignatureProfile.Legacy,
+                         OfficeVbaSignatureProfile.Agile,
+                         OfficeVbaSignatureProfile.V3 }) {
+                byte[] contentHash = profile switch {
+                    OfficeVbaSignatureProfile.Legacy => canonical.ComputeLegacyHash(),
+                    OfficeVbaSignatureProfile.Agile => canonical.ComputeAgileHash(),
+                    OfficeVbaSignatureProfile.V3 => canonical.ComputeV3Hash(),
+                    _ => throw new ArgumentOutOfRangeException(nameof(profile))
+                };
+                byte[] signedContent = OfficeVbaSignatureEncoding.CreateSignedContent(profile, contentHash);
+                CmsSigningOptions cmsOptions = CopyCmsSigningOptions(options.CmsSigning);
+                cmsOptions.ContentTypeOid = OfficeVbaSignatureEncoding.AuthenticodeContentTypeOid;
+                byte[] cms = securityProvider.SignCmsEncapsulated(
+                    signedContent, signingCertificate, cmsOptions, certificateChain);
+                profileParts[profile] = OfficeVbaSignatureEncoding.CreateDigSigInfoSerialized(
+                    cms, signingCertificate.RawData);
+            }
+        } catch (Exception exception) when (exception is CryptographicException or InvalidOperationException
+            or NotSupportedException or ArgumentException or OverflowException) {
+            findings.Add(Finding("VbaCmsCreationFailed", OfficePackageSignatureValidationState.Failed,
+                "The security provider could not create all VBA CMS profiles. " + exception.Message));
             return SigningResult(fullPath, true, false, null, findings);
         }
 
@@ -69,44 +88,24 @@ public static partial class OfficeVbaSignatureService {
             stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
             OfficePackageFileSnapshot.CopyBounded(fullPath, stagingPath, options.Package.MaxPackageBytes);
             string sourceHash = OfficePackageFileSnapshot.ComputeSha256(stagingPath, options.Package.MaxPackageBytes);
-            ProcessResult clear = RunTool(clearTool, new[] { stagingPath }, options);
-            if (!clear.Succeeded) {
-                findings.Add(ToolFinding("OfficeSignatureClearFailed", "offclearsig.exe", clear));
-                return SigningResult(fullPath, true, false, null, findings);
-            }
-
-            foreach (OfficeVbaSignatureProfile profile in new[] {
-                OfficeVbaSignatureProfile.Legacy,
-                OfficeVbaSignatureProfile.Agile,
-                OfficeVbaSignatureProfile.V3 }) {
-                ProcessResult sign = RunTool(signTool, BuildSignArguments(stagingPath, thumbprint, options), options);
-                if (!sign.Succeeded) {
-                    findings.Add(ToolFinding("VbaSignatureToolFailed", "signtool.exe", sign, profile));
-                    return SigningResult(fullPath, true, false, null, findings);
-                }
-                OfficeVbaSignatureInfo profileReadback = Inspect(stagingPath, options);
-                if (!profileReadback.Signatures.Any(signature => signature.Profile == profile)) {
-                    findings.Add(Finding("VbaSignatureProfileMissing", OfficePackageSignatureValidationState.Failed,
-                        "SignTool did not create the expected " + profile + " VBA signature profile.", profile));
-                    return SigningResult(fullPath, true, false, null, findings);
-                }
-            }
+            OfficeVbaPackageSignatureWriter.Write(stagingPath, source.MacroProjectUri!, profileParts);
 
             OfficeVbaSignatureValidationResult validation = Validate(stagingPath, securityProvider, options);
-            bool hasAllProfiles = validation.SignatureInfo.Signatures.Select(signature => signature.Profile).Distinct().Count() == 3;
+            bool hasAllProfiles = validation.SignatureInfo.Signatures
+                .Select(signature => signature.Profile).Distinct().Count() == 3;
             if (!hasAllProfiles || !validation.IsValidUnderPolicy) {
                 findings.AddRange(validation.Findings);
                 findings.Add(Finding("VbaSignatureReadbackFailed", OfficePackageSignatureValidationState.Failed,
-                    "The completed VBA signatures did not satisfy profile, content-binding, CMS, and trust policy."));
+                    "The managed VBA signatures did not satisfy profile, content-binding, CMS, and trust policy."));
                 return SigningResult(fullPath, true, false, validation, findings);
             }
             string validatedHash = OfficePackageFileSnapshot.ComputeSha256(stagingPath, options.Package.MaxPackageBytes);
             if (!OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
-                stagingPath, fullPath,
-                displaced => string.Equals(sourceHash,
-                    OfficePackageFileSnapshot.ComputeSha256(displaced, options.Package.MaxPackageBytes), StringComparison.Ordinal),
-                installed => string.Equals(validatedHash,
-                    OfficePackageFileSnapshot.ComputeSha256(installed, options.Package.MaxPackageBytes), StringComparison.Ordinal))) {
+                    stagingPath, fullPath,
+                    displaced => string.Equals(sourceHash,
+                        OfficePackageFileSnapshot.ComputeSha256(displaced, options.Package.MaxPackageBytes), StringComparison.Ordinal),
+                    installed => string.Equals(validatedHash,
+                        OfficePackageFileSnapshot.ComputeSha256(installed, options.Package.MaxPackageBytes), StringComparison.Ordinal))) {
                 stagingPath = string.Empty;
                 findings.Add(Finding("SourcePackageChangedDuringSigning", OfficePackageSignatureValidationState.Failed,
                     "The package changed while VBA signatures were staged; the current source was preserved."));
@@ -114,129 +113,52 @@ public static partial class OfficeVbaSignatureService {
             }
             stagingPath = string.Empty;
             findings.Add(Finding("VbaSignaturesCommitted", OfficePackageSignatureValidationState.Passed,
-                "Legacy, agile, and V3 VBA signatures were validated and atomically committed."));
+                "Managed legacy, agile, and V3 VBA signatures were validated and atomically committed."));
             return SigningResult(fullPath, true, true, validation, findings);
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
-            InvalidDataException or ArgumentException or OverflowException) {
+            InvalidDataException or ArgumentException or OverflowException or CryptographicException) {
             findings.Add(Finding("VbaSigningFailed", OfficePackageSignatureValidationState.Failed,
-                "VBA signing failed before atomic commit. " + exception.Message));
+                "Managed VBA signing failed before atomic commit. " + exception.Message));
             return SigningResult(fullPath, true, false, null, findings);
         } finally {
             if (!string.IsNullOrWhiteSpace(stagingPath)) OfficeFileCommit.DeleteIfExists(stagingPath);
         }
     }
 
-    /// <summary>Creates VBA profiles and throws if validated atomic signing does not complete.</summary>
-    public static OfficeVbaSigningResult Sign(string filePath, IOfficeSecurityProvider securityProvider,
-        string certificateThumbprint, OfficeVbaSigningOptions? options = null) {
-        OfficeVbaSigningResult result = TrySign(filePath, securityProvider, certificateThumbprint, options);
-        if (!result.Succeeded) throw new InvalidOperationException(string.Join(" ", result.Findings.Select(finding => finding.Message)));
+    /// <summary>Creates portable managed VBA profiles and throws unless validated atomic signing completes.</summary>
+    public static OfficeVbaSigningResult Sign(
+        string filePath,
+        IOfficeSecurityProvider securityProvider,
+        X509Certificate2 signingCertificate,
+        OfficeVbaSigningOptions? options = null,
+        IEnumerable<X509Certificate2>? certificateChain = null) {
+        OfficeVbaSigningResult result = TrySign(
+            filePath, securityProvider, signingCertificate, options, certificateChain);
+        if (!result.Succeeded) {
+            throw new InvalidOperationException(string.Join(" ", result.Findings.Select(finding => finding.Message)));
+        }
         return result;
     }
 
-    private static IReadOnlyList<string> BuildSignArguments(string filePath, string thumbprint,
-        OfficeVbaSigningOptions options) {
-        var arguments = new List<string> { "sign", "/sha1", thumbprint, "/s", StoreName(options.StoreName) };
-        if (options.StoreLocation == System.Security.Cryptography.X509Certificates.StoreLocation.LocalMachine) arguments.Add("/sm");
-        arguments.Add("/fd");
-        arguments.Add("SHA256");
-        if (options.TimestampAuthorityUrl != null) {
-            arguments.Add("/tr");
-            arguments.Add(options.TimestampAuthorityUrl.AbsoluteUri);
-            arguments.Add("/td");
-            arguments.Add("SHA256");
+    private static void ValidateSigningOptions(OfficeVbaSigningOptions options) {
+        if (options.CmsSigning.MaxContentBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), "CMS content byte limit must be positive.");
         }
-        arguments.Add(filePath);
-        return arguments;
-    }
-
-    private static string StoreName(System.Security.Cryptography.X509Certificates.StoreName value) =>
-        value == System.Security.Cryptography.X509Certificates.StoreName.CertificateAuthority ? "CA" : value.ToString();
-
-    private static ProcessResult RunTool(string executable, IReadOnlyList<string> arguments,
-        OfficeVbaSigningOptions options) {
-        var output = new StringBuilder();
-        bool truncated = false;
-        using var process = new Process {
-            StartInfo = new ProcessStartInfo {
-                FileName = executable,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            }
-        };
-        process.StartInfo.Arguments = string.Join(" ", arguments.Select(QuoteArgument));
-        void Append(string? value) {
-            if (string.IsNullOrEmpty(value) || truncated) return;
-            string line = value!;
-            int remaining = options.MaxToolOutputCharacters - output.Length;
-            if (remaining <= 0) { truncated = true; return; }
-            output.AppendLine(line.Length <= remaining ? line : line.Substring(0, remaining));
-            if (line.Length > remaining) truncated = true;
-        }
-        process.OutputDataReceived += (_, eventArgs) => Append(eventArgs.Data);
-        process.ErrorDataReceived += (_, eventArgs) => Append(eventArgs.Data);
-        try {
-            if (!process.Start()) return new ProcessResult(null, false, "The process did not start.");
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            if (!process.WaitForExit(checked((int)options.ToolTimeout.TotalMilliseconds))) {
-                try {
-#if NETSTANDARD2_0 || NET472
-                    process.Kill();
-#else
-                    process.Kill(entireProcessTree: true);
-#endif
-                } catch { }
-                return new ProcessResult(null, true, output.ToString());
-            }
-            process.WaitForExit();
-            return new ProcessResult(process.ExitCode, false,
-                output + (truncated ? Environment.NewLine + "[output truncated]" : string.Empty));
-        } catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception) {
-            return new ProcessResult(null, false, exception.Message);
+        if (options.CmsSigning.DigestAlgorithm != HashAlgorithmName.SHA256) {
+            throw new NotSupportedException("Managed VBA signature creation currently requires SHA-256 CMS signatures.");
         }
     }
 
-    private static bool TryNormalizeThumbprint(string? value, out string thumbprint, out string detail) {
-        thumbprint = string.Empty;
-        if (string.IsNullOrWhiteSpace(value)) { detail = "A certificate SHA-1 thumbprint is required."; return false; }
-        var characters = new List<char>();
-        foreach (char character in value!) {
-            if (Uri.IsHexDigit(character)) characters.Add(char.ToUpperInvariant(character));
-            else if (!(char.IsWhiteSpace(character) || character == ':' || character == '-')) {
-                detail = "The certificate thumbprint contains an invalid character.";
-                return false;
-            }
-        }
-        if (characters.Count != 40) { detail = "SignTool requires a 40-character SHA-1 thumbprint."; return false; }
-        thumbprint = new string(characters.ToArray());
-        detail = string.Empty;
-        return true;
-    }
-
-    private static string QuoteArgument(string value) {
-        if (value.Length > 0 && value.All(character => !char.IsWhiteSpace(character) && character != '"')) return value;
-        return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-    }
-
-    private static OfficeVbaSignatureFinding ToolFinding(string code, string tool, ProcessResult result,
-        OfficeVbaSignatureProfile? profile = null) => Finding(code,
-        result.TimedOut ? OfficePackageSignatureValidationState.Unsupported : OfficePackageSignatureValidationState.Failed,
-        tool + (result.TimedOut ? " exceeded its timeout. " : " failed. ") + result.Output, profile);
+    private static CmsSigningOptions CopyCmsSigningOptions(CmsSigningOptions source) => new CmsSigningOptions {
+        DigestAlgorithm = source.DigestAlgorithm,
+        ContentTypeOid = source.ContentTypeOid,
+        IncludeSigningTime = source.IncludeSigningTime,
+        SigningTime = source.SigningTime,
+        IncludeCertificateChain = source.IncludeCertificateChain,
+        MaxContentBytes = source.MaxContentBytes
+    };
 
     private static OfficeVbaSigningResult SigningResult(string path, bool supported, bool succeeded,
         OfficeVbaSignatureValidationResult? validation, IReadOnlyList<OfficeVbaSignatureFinding> findings) =>
         new(path, supported, succeeded, validation, findings.ToArray());
-
-    private readonly struct ProcessResult {
-        internal ProcessResult(int? exitCode, bool timedOut, string output) {
-            ExitCode = exitCode; TimedOut = timedOut; Output = output;
-        }
-        internal int? ExitCode { get; }
-        internal bool TimedOut { get; }
-        internal string Output { get; }
-        internal bool Succeeded => ExitCode == 0 && !TimedOut;
-    }
 }

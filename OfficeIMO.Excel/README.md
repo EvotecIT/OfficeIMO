@@ -462,7 +462,7 @@ OfficePackageSignatureValidationReport validation =
     ExcelDocument.ValidatePackageSignatures("report.xlsx", security);
 ```
 
-`InspectVbaSignatures(...)`, `ValidateVbaSignatures(...)`, and `SignVbaProject(...)` use the bounded VBA core shared with Word and PowerPoint. Inspection covers legacy, agile, and V3 carriers in `.xlsm`, `.xltm`, `.xlam`, and `.xlsb`. Signing and Office SIP content-binding validation require Windows, SignTool, and Microsoft's registered Office SIP. Sign the VBA project before applying an OPC package signature.
+`InspectVbaSignatures(...)`, `ValidateVbaSignatures(...)`, and `SignVbaProject(...)` use the managed bounded VBA core shared with Word and PowerPoint. It creates and validates legacy, agile, and V3 carriers in `.xlsm`, `.xltm`, `.xlam`, and `.xlsb` on every supported platform through an explicit `IOfficeSecurityProvider`. A registered Microsoft Office SIP is an optional Windows differential check, not a signing dependency. Sign the VBA project before applying an OPC package signature.
 
 ### DataTable and JSON exchange
 
