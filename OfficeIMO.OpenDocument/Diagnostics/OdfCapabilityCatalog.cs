@@ -44,8 +44,8 @@ public static class OdfCapabilityCatalog {
             "FODT, FODS, and FODP-style single XML documents can be opened and written, including embedded raster image binary data; package-only and exotic embedded-object features may not project losslessly."),
         new OdfCapability("encryption", "OpenDocument encryption", OdfCapabilityLevel.DetectedUnsupported,
             "Manifest encryption is detected before editing and rejected; native key derivation, decryption, and encryption are not implemented."),
-        new OdfCapability("digital-signatures", "OpenDocument digital signatures", OdfCapabilityLevel.Preserved,
-            "Unchanged signature entries are retained; changed signed documents fail unless invalidated signatures are explicitly removed. Signature creation and cryptographic validation are not implemented.")
+        new OdfCapability("digital-signatures", "OpenDocument digital signatures", OdfCapabilityLevel.Limited,
+            "Unchanged signature entries are retained and changed signed documents fail unless invalidated signatures are explicitly removed. The bounded OfficeIMO XML package-manifest profile can be created and cryptographically validated through an explicit security provider; arbitrary producer profiles remain inspection or preservation oriented.")
     };
 
     /// <summary>Advanced capabilities in stable catalog order.</summary>

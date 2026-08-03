@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Security;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Policy applied before saving a presentation that carries digital-signature metadata.</summary>
@@ -128,12 +130,23 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointSignatureReport CreateSignatureReport(PowerPointSignatureMutationAction action) {
-            DigitalSignatureOriginPart? origin = _document?.DigitalSignatureOriginPart;
-            int count = origin?.XmlSignatureParts.Count() ?? 0;
-            bool applicationFlag = _document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
+            OfficePackageSignatureInfo? shared = null;
+            // A binary presentation is projected into a temporary Open XML package. Cloning that
+            // projection can materialize deferred DOM state and invalidate the exact-no-op
+            // preservation fingerprint, so its original binary signature carriers are inspected
+            // directly below without serializing the projection.
+            if (_document != null && _legacyPptPackage == null) {
+                using var snapshot = new MemoryStream();
+                using (_document.Clone(snapshot)) { }
+                shared = OfficePackageSignatureService.Inspect(
+                    snapshot.ToArray(),
+                    new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
+            }
             bool legacyBinarySignature = _legacyPptPackage?.HasBinarySignatureStream == true;
             bool legacyXmlSignature = _legacyPptPackage?.HasXmlSignatureStorage == true;
-            return new PowerPointSignatureReport(origin != null, count, applicationFlag,
+            return new PowerPointSignatureReport(shared?.HasDigitalSignatureOriginPart == true,
+                shared?.SignatureParts.Count ?? 0,
+                shared?.HasApplicationSignatureMetadata == true,
                 legacyBinarySignature, legacyXmlSignature,
                 SignatureMutationPolicy, action);
         }

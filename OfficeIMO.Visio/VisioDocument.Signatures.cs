@@ -1,6 +1,5 @@
 using System;
-using System.IO.Packaging;
-using System.Linq;
+using OfficeIMO.Security;
 
 namespace OfficeIMO.Visio {
     /// <summary>Controls saving when a VSDX package contains digital-signature metadata.</summary>
@@ -46,11 +45,6 @@ namespace OfficeIMO.Visio {
     }
 
     public partial class VisioDocument {
-        private const string DigitalSignatureOriginRelationshipType =
-            "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
-        private const string XmlDigitalSignatureContentType =
-            "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
-
         private VisioSignatureInfo _loadedSignatureInfo = new(0, 0, 0);
 
         /// <summary>
@@ -66,20 +60,14 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioSignatureInfo InspectSignatures() => _loadedSignatureInfo;
 
-        private static VisioSignatureInfo InspectPackageSignatures(Package package) {
-            PackageRelationship[] origins = package
-                .GetRelationshipsByType(DigitalSignatureOriginRelationshipType)
-                .ToArray();
-            int originParts = 0;
-            foreach (PackageRelationship relationship in origins) {
-                if (relationship.TargetMode != TargetMode.Internal) continue;
-                Uri partUri = PackUriHelper.ResolvePartUri(new Uri("/", UriKind.Relative), relationship.TargetUri);
-                if (package.PartExists(partUri)) originParts++;
-            }
-
-            int signatures = package.GetParts().Count(part =>
-                string.Equals(part.ContentType, XmlDigitalSignatureContentType, StringComparison.OrdinalIgnoreCase));
-            return new VisioSignatureInfo(origins.Length, originParts, signatures);
+        private static VisioSignatureInfo InspectPackageSignatures(byte[] packageBytes) {
+            OfficePackageSignatureInfo info = OfficePackageSignatureService.Inspect(
+                packageBytes,
+                new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
+            return new VisioSignatureInfo(
+                info.OriginRelationshipCount,
+                info.OriginPartCount,
+                info.SignatureParts.Count);
         }
 
         private void ApplySignatureMutationPolicy() {

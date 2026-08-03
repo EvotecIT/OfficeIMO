@@ -213,7 +213,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         string[] expected = { "formula-evaluation", "tracked-change-editing", "advanced-charts", "presentation-animations", "flat-xml", "encryption", "digital-signatures" };
         Assert.Equal(expected, OdfCapabilityCatalog.Advanced.Select(capability => capability.Id));
         Assert.Equal(OdfCapabilityLevel.DetectedUnsupported, OdfCapabilityCatalog.Find("encryption")!.Level);
-        Assert.Equal(OdfCapabilityLevel.Preserved, OdfCapabilityCatalog.Find("digital-signatures")!.Level);
+        Assert.Equal(OdfCapabilityLevel.Limited, OdfCapabilityCatalog.Find("digital-signatures")!.Level);
     }
 
     private static OdfDocument ReopenFlat(OdfDocument document) {

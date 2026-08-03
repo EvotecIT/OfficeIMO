@@ -79,7 +79,8 @@ Current editing limits include advanced nested and container behavior, deeper sw
 `InspectSignatures()` detects Open XML signature-origin relationships and XML signature parts. Saving a
 loaded signed diagram is blocked by default because rebuilding the package would invalidate that evidence. Set
 `SignatureMutationPolicy = VisioSignatureMutationPolicy.RemoveInvalidatedSignatures` only when removing the stale
-signature carrier is the intended result. Signature creation and cryptographic validation are not yet implemented.
+signature carrier is the intended result. `SignPackageSignature(...)` and `ValidatePackageSignatures(...)` create
+and cryptographically validate OPC signatures through an explicitly supplied `IOfficeSecurityProvider`.
 
 ## Examples
 
@@ -267,6 +268,6 @@ IReadOnlyList<OfficeImageExportResult> pages = document
 
 - **External:** `System.IO.Packaging`; Microsoft BCL compatibility packages are used on older targets.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The VSDX model, builders, editing, topology, validation, and PNG/JPEG/TIFF/SVG/WebP renderers are first-party.
-- **Security:** Open XML signature carriers are inspected and signed-diagram mutations fail safely without a cryptographic dependency. `OfficeIMO.Security` is not pulled transitively.
+- **Security:** Open XML signature carriers are inspected and signed-diagram mutations fail safely without a cryptographic dependency. Signature creation and validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

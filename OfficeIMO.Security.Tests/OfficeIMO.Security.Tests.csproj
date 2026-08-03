@@ -8,6 +8,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument\OfficeIMO.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">

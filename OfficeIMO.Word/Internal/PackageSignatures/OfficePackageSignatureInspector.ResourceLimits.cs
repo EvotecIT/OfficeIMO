@@ -1,4 +1,5 @@
 #nullable enable
+using OfficeIMO.Security;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Word {

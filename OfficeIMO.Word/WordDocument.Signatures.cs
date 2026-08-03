@@ -11,14 +11,75 @@ namespace OfficeIMO.Word {
         /// Use <see cref="ValidateSignatures(IOfficeSecurityProvider, WordSignatureValidationOptions?)"/> for transform-aware digest and trust validation.
         /// </summary>
         public WordSignatureInfo InspectSignatures() {
-            var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
-            return WordSignatureInspector.Inspect(
-                _wordprocessingDocument,
-                originPart,
-                ApplicationProperties.DigitalSignature != null,
-                packageBytes: null,
-                verifyDigests: false);
+            using var snapshot = new MemoryStream();
+            using (_wordprocessingDocument.Clone(snapshot)) { }
+            OfficeIMO.Security.OfficePackageSignatureInfo shared = OfficePackageSignatureService.Inspect(
+                snapshot.ToArray(), new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
+            return CreateWordSignatureInfo(shared,
+                _wordprocessingDocument.DigitalSignatureOriginPart != null,
+                ApplicationProperties.DigitalSignature != null);
         }
+
+        private static WordSignatureInfo CreateWordSignatureInfo(
+            OfficeIMO.Security.OfficePackageSignatureInfo shared,
+            bool hasLiveOrigin,
+            bool hasLiveApplicationMetadata) {
+            const string signatureContentType =
+                "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
+            WordSignaturePartInfo[] parts = shared.SignatureParts.Select(part =>
+                new WordSignaturePartInfo(
+                    part.Uri,
+                    signatureContentType,
+                    relationshipId: null,
+                    part.Length,
+                    part.SignatureMethodAlgorithm,
+                    part.SignedReferences.Select(reference => reference.DigestMethodAlgorithm)
+                        .Where(algorithm => !string.IsNullOrWhiteSpace(algorithm))
+                        .Select(algorithm => algorithm!)
+                        .Distinct(StringComparer.Ordinal)
+                        .ToArray(),
+                    part.SignedReferences.Select(reference => new WordSignatureReferenceInfo(
+                        reference.Uri,
+                        reference.DigestMethodAlgorithm,
+                        reference.DigestValue,
+                        reference.IsPackagePartReference,
+                        reference.TargetPartUri,
+                        reference.TargetPartExists,
+                        reference.TransformAlgorithms,
+                        MapSharedSignatureState(reference.DigestVerificationStatus),
+                        reference.DigestVerificationDetail)).ToArray(),
+                    part.TimestampKinds.Select(kind => new WordSignatureTimestampInfo(kind, null, null)).ToArray(),
+                    part.X509SubjectNames,
+                    part.ParseError,
+                    part.IsReachableFromOrigin
+                        ? Array.Empty<string>()
+                        : new[] { "The XML signature part is not reachable through the package signature-origin relationship chain." }))
+                .ToArray();
+            var details = new List<string>(shared.Findings);
+            if (!string.IsNullOrWhiteSpace(shared.OriginPartUri)) {
+                details.Add("Digital signature origin part: " + shared.OriginPartUri);
+            }
+            details.AddRange(shared.SignatureParts.Select(part => "XML signature part: " + part.Uri));
+            if (shared.HasApplicationSignatureMetadata || hasLiveApplicationMetadata) {
+                details.Add("Extended application properties advertise digital-signature metadata.");
+            }
+            return new WordSignatureInfo(
+                shared.HasDigitalSignatureOriginPart || hasLiveOrigin,
+                shared.OriginPartUri,
+                originRelationshipId: null,
+                shared.HasApplicationSignatureMetadata || hasLiveApplicationMetadata,
+                parts,
+                shared.Findings,
+                details);
+        }
+
+        private static WordSignatureValidationState MapSharedSignatureState(
+            OfficePackageSignatureValidationState state) => state switch {
+                OfficePackageSignatureValidationState.Passed => WordSignatureValidationState.Passed,
+                OfficePackageSignatureValidationState.Failed => WordSignatureValidationState.Failed,
+                OfficePackageSignatureValidationState.Unsupported => WordSignatureValidationState.Unsupported,
+                _ => WordSignatureValidationState.NotChecked
+            };
 
         /// <summary>
         /// Validates package structure, transform-aware OPC digests, XML signature math, signer trust,

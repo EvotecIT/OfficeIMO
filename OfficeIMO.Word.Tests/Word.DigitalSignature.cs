@@ -420,7 +420,7 @@ namespace OfficeIMO.Tests {
 
             OfficePackageDigestResult result = archive.VerifyReference(reference, 16 * 1024 * 1024);
 
-            Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Failed, result.Status);
+            Assert.Equal(OfficeIMO.Security.OfficePackageSignatureValidationState.Failed, result.Status);
             Assert.Contains("content type", result.Detail, System.StringComparison.OrdinalIgnoreCase);
         }
 

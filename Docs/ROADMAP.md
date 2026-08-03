@@ -12,13 +12,6 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Add reproducible correctness, file-size, elapsed-time, peak-memory, allocation, cancellation, and deterministic-output evidence for representative workloads on every supported operating system.
 - [ ] Add shared conversion reports and strict no-loss policies wherever an adapter can simplify, omit, rasterize, or preserve unsupported content.
 
-## Security and protected content
-
-- [ ] Reuse one dependency-light structural OPC signature implementation across Word, Excel, PowerPoint, and Visio, then add optional `IOfficeSecurityProvider`-backed creation and cryptographic validation to `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Visio` without making `OfficeIMO.Security` transitive.
-- [ ] Reuse Word's bounded VBA signature core for macro-capable Excel and PowerPoint formats, including inspection, validation, signing, and legacy, agile, and V3 profile evidence where each host format supports them.
-- [ ] Add provider-backed XML signature creation and validation for `OfficeIMO.OpenDocument` and `OfficeIMO.Epub`; add ODF encryption only with an interoperable producer corpus, explicit password/key policy, and fail-safe preservation evidence.
-- [ ] Publish a package-level security capability inventory that distinguishes structural inspection, mutation blocking, password protection, cryptographic signing/validation, encryption/decryption, optional-provider requirements, and deliberately unsupported operations.
-
 ## PowerPoint and Visio
 
 - [ ] Broaden imported-chart editing and image/PDF export fidelity across advanced chart families, with explicit diagnostics for producer-specific content that remains preservation-only.

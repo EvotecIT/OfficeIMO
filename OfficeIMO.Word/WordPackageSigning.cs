@@ -1,6 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using System.Runtime.InteropServices;
 using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Security;
 
 namespace OfficeIMO.Word {
     /// <summary>Identifies a distinct Word signing surface.</summary>
