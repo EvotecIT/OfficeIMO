@@ -46,11 +46,12 @@ namespace OfficeIMO.Word.Html {
             string listId = "word-combo-" + formListIndex.ToString(CultureInfo.InvariantCulture);
             IReadOnlyList<(string Value, string DisplayText)> items = comboBox.ExportItems;
             string? selectedValue = comboBox.SelectedValue;
-            string? selectedDisplayText = items
+            (string Value, string DisplayText) selectedItem = items
                 .FirstOrDefault(item =>
                     string.Equals(item.Value, selectedValue, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(item.DisplayText, selectedValue, StringComparison.OrdinalIgnoreCase))
-                .DisplayText;
+                    string.Equals(item.DisplayText, selectedValue, StringComparison.OrdinalIgnoreCase));
+            string? selectedDisplayText = selectedItem.DisplayText;
+            string? selectedInternalValue = selectedItem.Value;
 
             var input = CreateOutputElement(htmlDoc, "input");
             SetOutputAttribute(input, "type", "text", "ComboBox:type");
@@ -64,12 +65,13 @@ namespace OfficeIMO.Word.Html {
                     string.IsNullOrEmpty(selectedDisplayText) ? selectedValue! : selectedDisplayText!,
                     "ComboBox:selected-display");
                 if (!string.IsNullOrEmpty(selectedDisplayText) &&
-                    !string.Equals(selectedValue, selectedDisplayText, StringComparison.Ordinal)) {
+                    !string.IsNullOrEmpty(selectedInternalValue) &&
+                    !string.Equals(selectedInternalValue, selectedDisplayText, StringComparison.Ordinal)) {
                     SetOutputAttribute(
                         htmlDoc,
                         input,
                         "data-word-value",
-                        selectedValue!,
+                        selectedInternalValue!,
                         "ComboBox:selected-internal-value");
                 }
             }

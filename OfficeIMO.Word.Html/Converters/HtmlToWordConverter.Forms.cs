@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Html {
                         string.Equals(option.DisplayText, value, StringComparison.Ordinal) ||
                         string.Equals(option.Value, value, StringComparison.Ordinal))
                     : dataListOptions.FindIndex(option =>
-                        string.Equals(option.Value, selectedInternalValue, StringComparison.Ordinal));
+                        string.Equals(option.Value, selectedInternalValue, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(value) && selectedIndex < 0) {
                     dataListOptions.Insert(0, (value, value));
                     selectedIndex = 0;
