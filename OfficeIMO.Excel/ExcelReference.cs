@@ -315,7 +315,8 @@ namespace OfficeIMO.Excel {
                 && !lastSheetName.StartsWith("[", StringComparison.Ordinal);
         }
 
-        private static string NormalizeQualifierForComparison(string? qualifier) {
+        /// <summary>Normalizes whole-quoted and separately quoted sheet qualifiers without discarding workbook prefixes.</summary>
+        internal static string NormalizeQualifierForComparison(string? qualifier) {
             string value = qualifier?.Trim() ?? string.Empty;
             int separatelyQuotedSeparator = value.IndexOf("':'", StringComparison.Ordinal);
             if (separatelyQuotedSeparator >= 0) {

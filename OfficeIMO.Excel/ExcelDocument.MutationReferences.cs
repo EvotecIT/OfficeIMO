@@ -392,13 +392,16 @@ namespace OfficeIMO.Excel {
             if (!reference.IsQualified) return unqualifiedTargetsEdited;
             string qualifier = reference.Qualifier!;
             if (qualifier.StartsWith("[", StringComparison.Ordinal)) return false;
-            if (qualifier.Length >= 2 && qualifier[0] == '\'' && qualifier[qualifier.Length - 1] == '\'') {
-                qualifier = qualifier.Substring(1, qualifier.Length - 2).Replace("''", "'");
-            }
+            qualifier = ExcelReference.NormalizeQualifierForComparison(qualifier);
+            if (qualifier.StartsWith("[", StringComparison.Ordinal)) return false;
             int colon = qualifier.IndexOf(':');
             if (colon >= 0) {
-                return string.Equals(qualifier.Substring(0, colon), editedSheetName, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(qualifier.Substring(colon + 1), editedSheetName, StringComparison.OrdinalIgnoreCase);
+                string firstSheetName = qualifier.Substring(0, colon);
+                string lastSheetName = qualifier.Substring(colon + 1);
+                if (firstSheetName.StartsWith("[", StringComparison.Ordinal)
+                    || lastSheetName.StartsWith("[", StringComparison.Ordinal)) return false;
+                return string.Equals(firstSheetName, editedSheetName, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(lastSheetName, editedSheetName, StringComparison.OrdinalIgnoreCase);
             }
             return string.Equals(qualifier, editedSheetName, StringComparison.OrdinalIgnoreCase);
         }
