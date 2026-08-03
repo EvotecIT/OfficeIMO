@@ -159,6 +159,25 @@ public sealed class EmailSmimeTests {
     }
 
     [Fact]
+    public void OpaqueSignedMessage_RejectsCodeSigningOnlyCertificate() {
+        using X509Certificate2 certificate = CreateCertificate(
+            "OfficeIMO Code-Signing-Only Signer",
+            "1.3.6.1.5.5.7.3.3");
+        byte[] content = Encoding.ASCII.GetBytes("Content-Type: text/plain\r\n\r\nNot an email signer");
+        byte[] cms = CmsSignedDataSigner.SignEncapsulated(content, certificate);
+        using EmailReadResult read = new EmailDocumentReader().Read(CreateOpaqueMessage(cms, "signed-data"));
+
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            TrustSelfSigned());
+
+        CmsSignerVerificationResult signer = Assert.Single(result.Cryptography!.Signers);
+        Assert.Equal(SecurityValidationStatus.Invalid, signer.CertificateValidation.ChainStatus);
+        Assert.Contains(signer.Findings, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
+    }
+
+    [Fact]
     public void EnvelopedMessage_DecryptsAndProjectsMimeContent() {
         using X509Certificate2 recipient = CreateCertificate("OfficeIMO S-MIME Recipient");
         byte[] content = Encoding.ASCII.GetBytes(
@@ -244,7 +263,9 @@ public sealed class EmailSmimeTests {
         return options;
     }
 
-    private static X509Certificate2 CreateCertificate(string commonName) {
+    private static X509Certificate2 CreateCertificate(
+        string commonName,
+        string enhancedKeyUsageOid = "1.3.6.1.5.5.7.3.4") {
         using RSA rsa = RSA.Create(2048);
         var request = new CertificateRequest(
             "CN=" + commonName,
@@ -256,7 +277,7 @@ public sealed class EmailSmimeTests {
             critical: true));
         request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
             new OidCollection {
-                new Oid("1.3.6.1.5.5.7.3.4")
+                new Oid(enhancedKeyUsageOid)
             },
             critical: false));
         request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));

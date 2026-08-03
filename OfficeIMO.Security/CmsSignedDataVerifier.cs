@@ -301,7 +301,7 @@ public static class CmsSignedDataVerifier {
 
     private static CertificateUsagePurpose MapCertificatePurpose(CertificateValidationPurpose purpose) => purpose switch {
         CertificateValidationPurpose.TimestampAuthority => CertificateUsagePurpose.TimestampAuthority,
-        CertificateValidationPurpose.EmailSigning => CertificateUsagePurpose.CmsSigner,
+        CertificateValidationPurpose.EmailSigning => CertificateUsagePurpose.EmailSigner,
         _ => CertificateUsagePurpose.DocumentSigner
     };
 

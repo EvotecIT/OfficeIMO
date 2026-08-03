@@ -10,7 +10,7 @@ public enum CertificateValidationPurpose {
     /// <summary>A certificate used by an RFC 3161 timestamp authority.</summary>
     TimestampAuthority = 1,
 
-    /// <summary>A certificate used to sign S/MIME email and therefore permitted to declare the email-protection EKU.</summary>
+    /// <summary>A certificate used to sign S/MIME email. When an EKU extension is present, it must permit email protection.</summary>
     EmailSigning = 2
 }
 
