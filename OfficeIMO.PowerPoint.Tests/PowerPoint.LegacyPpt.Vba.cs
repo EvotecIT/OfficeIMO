@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task LegacyVbaNoFormatStreamSavesInferMacroEnabledPptm() {
+        public async Task LegacyVbaNoFormatStreamSavesRequireExplicitPptm() {
             byte[] projectBytes = CreateVbaTestProject("StreamModule",
                 "Sub StreamExport()\nEnd Sub");
             byte[] binary;
@@ -114,11 +114,11 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Load(input);
             using var syncDestination = new MemoryStream();
             imported.Save(syncDestination);
-            AssertMacroEnabledPackage(syncDestination, projectBytes);
+            AssertMacroFreeBytes(syncDestination.ToArray());
 
             using var asyncDestination = new MemoryStream();
             await imported.SaveAsync(asyncDestination);
-            AssertMacroEnabledPackage(asyncDestination, projectBytes);
+            AssertMacroFreeBytes(asyncDestination.ToArray());
 
             Assert.Equal(projectBytes, ReadVbaProject(imported));
         }
@@ -441,22 +441,6 @@ namespace OfficeIMO.Tests {
             byte[] expectedProject) {
             using PresentationDocument document =
                 PresentationDocument.Open(path, false);
-            Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
-                document.DocumentType);
-            VbaProjectPart part = Assert.IsType<VbaProjectPart>(document
-                .PresentationPart!.VbaProjectPart);
-            using Stream input = part.GetStream(FileMode.Open,
-                FileAccess.Read);
-            using var output = new MemoryStream();
-            input.CopyTo(output);
-            Assert.Equal(expectedProject, output.ToArray());
-        }
-
-        private static void AssertMacroEnabledPackage(Stream stream,
-            byte[] expectedProject) {
-            stream.Position = 0;
-            using PresentationDocument document =
-                PresentationDocument.Open(stream, false);
             Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
                 document.DocumentType);
             VbaProjectPart part = Assert.IsType<VbaProjectPart>(document

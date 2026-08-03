@@ -110,12 +110,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Saves the presentation to the provided stream without changing its associated destination.
+        ///     Saves a macro-free PPTX to the provided stream without changing its associated destination.
+        ///     Use the overload accepting <see cref="PowerPointFileFormat"/> with
+        ///     <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
         /// </summary>
         public void Save(Stream destination) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             OfficeStreamWriter.WriteAllBytes(destination,
-                CreatePackageBytesForStreamSave());
+                CreatePackageBytesForSave());
             _discardChangesOnDispose = false;
         }
 
@@ -149,10 +151,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Encodes the presentation as its current Open XML package type,
-        ///     retaining an attached VBA project in a macro-enabled package.
+        ///     Encodes the presentation as a macro-free PPTX package. Use
+        ///     <see cref="ToBytes(PowerPointFileFormat, PowerPointSaveOptions?)"/>
+        ///     with <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
         /// </summary>
-        public byte[] ToBytes() => CreatePackageBytesForStreamSave();
+        public byte[] ToBytes() => CreatePackageBytesForSave();
 
         /// <summary>Encodes the presentation in the requested PowerPoint format.</summary>
         public byte[] ToBytes(PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
@@ -169,7 +172,11 @@ namespace OfficeIMO.PowerPoint {
                 destinationType: destinationType);
         }
 
-        /// <summary>Encodes the presentation in a new writable memory stream positioned at the beginning.</summary>
+        /// <summary>
+        /// Encodes the presentation as a macro-free PPTX in a new writable memory stream positioned at the beginning.
+        /// Use <see cref="ToStream(PowerPointFileFormat, PowerPointSaveOptions?)"/> with
+        /// <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
+        /// </summary>
         public MemoryStream ToStream() => new MemoryStream(ToBytes());
 
         /// <summary>Encodes the presentation in a new stream using the requested format.</summary>
@@ -218,11 +225,15 @@ namespace OfficeIMO.PowerPoint {
             _discardChangesOnDispose = false;
         }
 
-        /// <summary>Asynchronously saves once to a caller-owned writable stream without changing the associated destination.</summary>
+        /// <summary>
+        /// Asynchronously saves a macro-free PPTX to a caller-owned stream without changing the associated destination.
+        /// Use the overload accepting <see cref="PowerPointFileFormat"/> with
+        /// <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
+        /// </summary>
         public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] packageBytes = CreatePackageBytesForStreamSave();
+            byte[] packageBytes = CreatePackageBytesForSave();
             await OfficeStreamWriter.WriteAllBytesAsync(destination, packageBytes, cancellationToken)
                 .ConfigureAwait(false);
             _discardChangesOnDispose = false;
@@ -278,27 +289,6 @@ namespace OfficeIMO.PowerPoint {
                 // Dispose finalizes the cloned package before its bytes are committed.
             }
             return packageStream.ToArray();
-        }
-
-        private byte[] CreatePackageBytesForStreamSave() {
-            ThrowIfDisposed();
-            PresentationDocumentType destinationType =
-                _document!.DocumentType;
-            if (_presentationPart.VbaProjectPart != null
-                && !IsMacroEnabledDocumentType(destinationType)) {
-                destinationType = destinationType
-                    == PresentationDocumentType.Template
-                        ? PresentationDocumentType.MacroEnabledTemplate
-                        : destinationType == PresentationDocumentType.Slideshow
-                            ? PresentationDocumentType
-                                .MacroEnabledSlideshow
-                            : PresentationDocumentType
-                                .MacroEnabledPresentation;
-            }
-            return CreatePackageBytesForSave(
-                preserveVbaProject:
-                    IsMacroEnabledDocumentType(destinationType),
-                destinationType: destinationType);
         }
 
         private byte[] CreateBytesForPath(string filePath, PowerPointSaveOptions? options) {
@@ -484,7 +474,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>
         /// Saves the presentation with password-to-open encryption to a stream. A presentation
-        /// loaded from PPT/POT/PPS retains its binary physical format; other presentations use Open XML.
+        /// loaded from PPT/POT/PPS retains its binary physical format; other presentations use a
+        /// macro-free PPTX package. Use the overload accepting <see cref="PowerPointFileFormat"/>
+        /// with <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
         /// </summary>
         /// <param name="destination">Writable stream receiving the encrypted presentation.</param>
         /// <param name="password">Password used to encrypt the presentation package.</param>
@@ -496,7 +488,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] encryptedBytes = IsLegacyBinaryFormat(SourceFormat)
                 ? CreateEncryptedLegacyPptBytes(password, options: null)
                 : OfficeEncryption.EncryptPackage(
-                    CreatePackageBytesForStreamSave(), password);
+                    CreatePackageBytesForSave(), password);
             OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
         }
 

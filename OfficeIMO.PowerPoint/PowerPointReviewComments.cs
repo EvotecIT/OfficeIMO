@@ -481,6 +481,8 @@ namespace OfficeIMO.PowerPoint {
     }
 
     public sealed partial class PowerPointPresentation {
+        private const int MaxModernCommentTextLength = 32000;
+        private const int MaxModernCommentParagraphCount = 1024;
         /// <summary>Returns editable classic comments for a slide.</summary>
         public IReadOnlyList<PowerPointClassicComment> GetClassicComments(PowerPointSlide slide) {
             EnsureCommentSlide(slide);
@@ -840,6 +842,25 @@ namespace OfficeIMO.PowerPoint {
         internal static void ValidateCommentText(string text) {
             if (string.IsNullOrWhiteSpace(text)) {
                 throw new ArgumentException("Comment text cannot be empty.", nameof(text));
+            }
+            if (text.Length > MaxModernCommentTextLength) {
+                throw new ArgumentException(
+                    $"Modern comment text cannot exceed {MaxModernCommentTextLength:N0} characters.",
+                    nameof(text));
+            }
+            int paragraphCount = 1;
+            for (int index = 0; index < text.Length; index++) {
+                if (text[index] == '\r') {
+                    if (index + 1 < text.Length && text[index + 1] == '\n') index++;
+                    paragraphCount++;
+                } else if (text[index] == '\n') {
+                    paragraphCount++;
+                }
+                if (paragraphCount > MaxModernCommentParagraphCount) {
+                    throw new ArgumentException(
+                        $"Modern comment text cannot exceed {MaxModernCommentParagraphCount:N0} paragraphs.",
+                        nameof(text));
+                }
             }
             PowerPointXmlValueValidator.ValidateCharacters(text,
                 nameof(text), "Comment text");

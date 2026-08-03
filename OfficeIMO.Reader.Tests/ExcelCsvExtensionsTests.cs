@@ -67,6 +67,25 @@ public class ExcelCsvExtensionsTests {
     }
 
     [Fact]
+    public void CsvTextImportEnforcesMaxInputBytesBeforeCreatingOrMutatingSheets() {
+        var options = new ExcelCsvImportOptions {
+            SheetName = "Rejected",
+            LoadOptions = new CsvLoadOptions { MaxInputBytes = 8 }
+        };
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+        ExcelSheet existing = document.AddWorksheet("Existing");
+
+        Assert.Throws<InvalidDataException>(() =>
+            document.ImportCsvText("Name\r\nAlpha", options));
+        Assert.Throws<InvalidDataException>(() =>
+            existing.ImportCsvText("Name\r\nAlpha", options));
+
+        Assert.DoesNotContain(document.Sheets, sheet => sheet.Name == "Rejected");
+        Assert.Equal("A1:A1", existing.GetUsedRangeA1());
+    }
+
+    [Fact]
     public void SaveAsExcelPassesCancellationIntoWorkbookSerialization() {
         CsvDocument csv = CsvDocument.Parse("Name\r\nAlpha");
         using var cancellation = new CancellationTokenSource();

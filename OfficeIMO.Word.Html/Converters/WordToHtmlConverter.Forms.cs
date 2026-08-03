@@ -27,15 +27,17 @@ namespace OfficeIMO.Word.Html {
 
             IReadOnlyList<(string Value, string DisplayText)> items = dropDownList.ExportItems;
             int selectedIndex = -1;
-            for (int index = 0; index < items.Count; index++) {
-                if (string.Equals(items[index].DisplayText, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
-                    selectedIndex = index;
-                    break;
-                }
-            }
-            if (selectedIndex < 0) {
+            if (dropDownList.TryGetSelectedInternalValue(out string selectedInternalValue)) {
                 for (int index = 0; index < items.Count; index++) {
-                    if (string.Equals(items[index].Value, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
+                    if (string.Equals(items[index].Value, selectedInternalValue, StringComparison.OrdinalIgnoreCase)) {
+                        selectedIndex = index;
+                        break;
+                    }
+                }
+            } else {
+                string? selectedDisplayText = dropDownList.SelectedValue;
+                for (int index = 0; index < items.Count; index++) {
+                    if (string.Equals(items[index].DisplayText, selectedDisplayText, StringComparison.OrdinalIgnoreCase)) {
                         selectedIndex = index;
                         break;
                     }

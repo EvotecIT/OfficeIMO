@@ -62,8 +62,8 @@ public static class ExcelDocumentCsvExtensions {
         if (text == null) throw new ArgumentNullException(nameof(text));
         ExcelCsvImportOptions resolved = ResolveOptions(options);
         using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        CsvDocument csv = CsvDocument.Parse(text, loadOptions);
-        using DbDataReader reader = csv.CreateDataReader(resolved.ReaderOptions);
+        using DbDataReader reader = CsvDocument.OpenTextDataReader(
+            text, loadOptions, resolved.ReaderOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 

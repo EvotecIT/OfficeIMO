@@ -12,6 +12,51 @@ public sealed partial class CsvDocument
     private const long MemoryBackedCsvFileLimit = 32L * 1024 * 1024;
 
     /// <summary>
+    /// Creates a forward-only data reader over already-decoded CSV text.
+    /// </summary>
+    /// <param name="text">Decoded CSV text.</param>
+    /// <param name="loadOptions">CSV load options. <see cref="CsvLoadOptions.MaxInputBytes"/> is measured using UTF-8, matching the prior text-import stream contract.</param>
+    /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
+    /// <returns>A data reader suitable for DataTable loading and provider bulk-copy APIs.</returns>
+    public static DbDataReader OpenTextDataReader(
+        string text,
+        CsvLoadOptions? loadOptions = null,
+        CsvDataReaderOptions? readerOptions = null)
+    {
+        if (text == null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
+
+        var options = loadOptions?.Clone() ?? new CsvLoadOptions();
+        if (options.MaxInputBytes <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(loadOptions),
+                "MaxInputBytes must be greater than zero.");
+        }
+
+        var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        long inputBytes = utf8.GetByteCount(text);
+        if (inputBytes > options.MaxInputBytes)
+        {
+            throw new InvalidDataException(
+                $"CSV data exceeds the configured maximum size ({options.MaxInputBytes} bytes).");
+        }
+
+        options.Mode = CsvLoadMode.Stream;
+        readerOptions ??= new CsvDataReaderOptions();
+        if (readerOptions.SchemaSampleSize <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(readerOptions),
+                "Schema sample size must be greater than zero.");
+        }
+
+        CsvDocument document = LoadInternal(
+            () => new StringReader(text), options, utf8, text);
+        return document.CreateDataReader(readerOptions);
+    }
+
+    /// <summary>
     /// Creates a forward-only data reader over a CSV file.
     /// </summary>
     /// <param name="path">Source CSV path.</param>

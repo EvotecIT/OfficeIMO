@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -288,6 +289,138 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(svg.Diagnostics, diagnostic =>
                     diagnostic.Message.Contains("semantic node data",
                         StringComparison.OrdinalIgnoreCase));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void ImportedSmartArtRejectsLargeUnrepresentableTopologyWithoutQuadraticScan() {
+            string filePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+            const int extraNodeCount = 20000;
+
+            try {
+                using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddSmartArt(
+                        PowerPointSmartArtType.BasicProcess,
+                        new[] { "Original" });
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document =
+                       PresentationDocument.Open(filePath, true)) {
+                    DiagramDataPart dataPart = document.PresentationPart!
+                        .SlideParts.Single().DiagramDataParts.Single();
+                    XDocument data;
+                    using (Stream input = dataPart.GetStream(
+                               FileMode.Open, FileAccess.Read)) {
+                        data = XDocument.Load(input);
+                    }
+                    XNamespace dgm =
+                        "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+                    XNamespace a =
+                        "http://schemas.openxmlformats.org/drawingml/2006/main";
+                    XElement pointList = data.Descendants(dgm + "ptLst").Single();
+                    for (int index = 0; index < extraNodeCount; index++) {
+                        pointList.Add(new XElement(dgm + "pt",
+                            new XAttribute("modelId", "hostile-" + index),
+                            new XElement(dgm + "t",
+                                new XElement(a + "p",
+                                    new XElement(a + "r",
+                                        new XElement(a + "t", "x"))))));
+                    }
+                    using Stream output = dataPart.GetStream(
+                        FileMode.Create, FileAccess.Write);
+                    data.Save(output);
+                }
+
+                using PowerPointPresentation imported =
+                    PowerPointPresentation.Load(filePath);
+                PowerPointSmartArt smartArt = Assert.Single(
+                    imported.Slides[0].SmartArts);
+                Stopwatch stopwatch = Stopwatch.StartNew();
+
+                Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
+
+                stopwatch.Stop();
+                Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
+                    $"Topology rejection took {stopwatch.Elapsed}.");
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void ImportedSmartArtOrdersDeepConnectedTopologyWithoutRecursiveStackGrowth() {
+            string filePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+            const int extraNodeCount = 20000;
+
+            try {
+                using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddSmartArt(
+                        PowerPointSmartArtType.BasicProcess,
+                        new[] { "Original" });
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document =
+                       PresentationDocument.Open(filePath, true)) {
+                    DiagramDataPart dataPart = document.PresentationPart!
+                        .SlideParts.Single().DiagramDataParts.Single();
+                    XDocument data;
+                    using (Stream input = dataPart.GetStream(
+                               FileMode.Open, FileAccess.Read)) {
+                        data = XDocument.Load(input);
+                    }
+                    XNamespace dgm =
+                        "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+                    XNamespace a =
+                        "http://schemas.openxmlformats.org/drawingml/2006/main";
+                    XElement pointList = data.Descendants(dgm + "ptLst").Single();
+                    XElement connectionList = data.Descendants(dgm + "cxnLst").Single();
+                    string previousNodeId = (string?)pointList.Elements(dgm + "pt")
+                        .Single(point => point.Attribute("type") == null)
+                        .Attribute("modelId")
+                        ?? throw new InvalidOperationException(
+                            "Generated SmartArt node has no model identifier.");
+
+                    for (int index = 0; index < extraNodeCount; index++) {
+                        string nodeId = "deep-node-" + index;
+                        pointList.Add(new XElement(dgm + "pt",
+                            new XAttribute("modelId", nodeId),
+                            new XElement(dgm + "t",
+                                new XElement(a + "p",
+                                    new XElement(a + "r",
+                                        new XElement(a + "t", "Node " + index))))));
+                        connectionList.Add(new XElement(dgm + "cxn",
+                            new XAttribute("modelId", "deep-connection-" + index),
+                            new XAttribute("type", "parOf"),
+                            new XAttribute("srcId", previousNodeId),
+                            new XAttribute("destId", nodeId),
+                            new XAttribute("srcOrd", index),
+                            new XAttribute("destOrd", 0)));
+                        previousNodeId = nodeId;
+                    }
+                    using Stream output = dataPart.GetStream(
+                        FileMode.Create, FileAccess.Write);
+                    data.Save(output);
+                }
+
+                using PowerPointPresentation imported =
+                    PowerPointPresentation.Load(filePath);
+                PowerPointSmartArt smartArt = Assert.Single(
+                    imported.Slides[0].SmartArts);
+                Stopwatch stopwatch = Stopwatch.StartNew();
+
+                Assert.Equal("Node 19999", smartArt.GetNodeText(extraNodeCount));
+
+                stopwatch.Stop();
+                Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
+                    $"Deep topology ordering took {stopwatch.Elapsed}.");
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

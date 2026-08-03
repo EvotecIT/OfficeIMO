@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PublicMacroApi_RetainsFreshProjectsInStreamOutputs() {
+        public void PublicMacroApi_RequiresExplicitMacroEnabledStreamOutput() {
             byte[] project = CreateVbaTestProject("StreamModule",
                 "Sub StreamMacro()\nEnd Sub");
             using PowerPointPresentation presentation =
@@ -84,12 +84,12 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().AddTitle("Macro stream output");
             presentation.SetVbaProject(project);
 
-            AssertMacroEnabledBytes(presentation.ToBytes(), project);
+            AssertMacroFreeBytes(presentation.ToBytes());
             AssertMacroEnabledBytes(
                 presentation.ToBytes(PowerPointFileFormat.Pptm), project);
             using var inferredStream = new MemoryStream();
             presentation.Save(inferredStream);
-            AssertMacroEnabledBytes(inferredStream.ToArray(), project);
+            AssertMacroFreeBytes(inferredStream.ToArray());
             using var stream = new MemoryStream();
             presentation.Save(stream, PowerPointFileFormat.Pptm);
             AssertMacroEnabledBytes(stream.ToArray(), project);
@@ -102,6 +102,11 @@ namespace OfficeIMO.Tests {
                 "macro-save-pass", PowerPointFileFormat.Pptm);
             AssertEncryptedMacroEnabledBytes(encryptedStream.ToArray(),
                 "macro-save-pass", project);
+            using var safeEncryptedStream = new MemoryStream();
+            presentation.SaveEncrypted(safeEncryptedStream,
+                "macro-safe-pass");
+            AssertEncryptedMacroFreeBytes(safeEncryptedStream.ToArray(),
+                "macro-safe-pass");
 
             using PowerPointPresentation pptx = PowerPointPresentation.Load(
                 new MemoryStream(presentation.ToBytes(
@@ -215,6 +220,26 @@ namespace OfficeIMO.Tests {
                 loaded.OpenXmlDocument.DocumentType);
             Assert.Equal(PowerPointFileFormat.Pptm, loaded.SourceFormat);
             Assert.Equal(expectedProject, loaded.GetVbaProjectBytes());
+        }
+
+        private static void AssertMacroFreeBytes(byte[] bytes) {
+            using PowerPointPresentation loaded = PowerPointPresentation.Load(
+                new MemoryStream(bytes));
+            Assert.Equal(PresentationDocumentType.Presentation,
+                loaded.OpenXmlDocument.DocumentType);
+            Assert.Equal(PowerPointFileFormat.Pptx, loaded.SourceFormat);
+            Assert.False(loaded.HasVbaProject);
+        }
+
+        private static void AssertEncryptedMacroFreeBytes(byte[] bytes,
+            string password) {
+            using PowerPointPresentation loaded =
+                PowerPointPresentation.LoadEncrypted(
+                    new MemoryStream(bytes), password);
+            Assert.Equal(PresentationDocumentType.Presentation,
+                loaded.OpenXmlDocument.DocumentType);
+            Assert.Equal(PowerPointFileFormat.Pptx, loaded.SourceFormat);
+            Assert.False(loaded.HasVbaProject);
         }
     }
 }

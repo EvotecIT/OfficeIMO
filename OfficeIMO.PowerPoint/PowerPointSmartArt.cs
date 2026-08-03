@@ -314,12 +314,14 @@ namespace OfficeIMO.PowerPoint {
             parentByNode = new Dictionary<string, string>(StringComparer.Ordinal);
             sourceOrderByNode = new Dictionary<string, uint>(StringComparer.Ordinal);
 
+            var textBodySet = new HashSet<XElement>(textBodies);
+
             List<XElement> nodePoints = xdoc.Descendants(ns.dgm + "pt")
                 .Where(point => point.Attribute("type") == null)
                 .Where(point => {
                     XElement? body = point.Element(ns.dgm + "t")
                         ?? point.Element(ns.dgm + "txBody");
-                    return body != null && textBodies.Contains(body);
+                    return body != null && textBodySet.Contains(body);
                 })
                 .ToList();
             if (nodePoints.Count == 0 || nodePoints.Count != textBodies.Count) {
@@ -382,32 +384,54 @@ namespace OfficeIMO.PowerPoint {
             var ordered = new List<KeyValuePair<string,
                 (int Index, XElement TextBody)>>();
             var visited = new HashSet<string>(StringComparer.Ordinal);
+            var childrenByParent = new Dictionary<string, List<KeyValuePair<string,
+                (int Index, XElement TextBody)>>>(StringComparer.Ordinal);
+            var rootNodes = new List<KeyValuePair<string,
+                (int Index, XElement TextBody)>>();
 
-            void AppendNode(KeyValuePair<string,
-                (int Index, XElement TextBody)> node) {
-                if (!visited.Add(node.Key)) return;
-                ordered.Add(node);
-                foreach (KeyValuePair<string, (int Index, XElement TextBody)> child
-                         in OrderSiblingNodes(nodes.Where(candidate =>
-                             parentByNode.TryGetValue(candidate.Key,
-                                 out string? parent)
-                             && string.Equals(parent, node.Key,
-                                 StringComparison.Ordinal)), sourceOrderByNode)) {
-                    AppendNode(child);
+            foreach (KeyValuePair<string, (int Index, XElement TextBody)> node in nodes) {
+                if (!parentByNode.TryGetValue(node.Key, out string? parent)) continue;
+                if (documentIds.Contains(parent)) {
+                    rootNodes.Add(node);
+                    continue;
+                }
+                if (!childrenByParent.TryGetValue(parent, out List<KeyValuePair<string,
+                        (int Index, XElement TextBody)>>? children)) {
+                    children = new List<KeyValuePair<string,
+                        (int Index, XElement TextBody)>>();
+                    childrenByParent.Add(parent, children);
+                }
+                children.Add(node);
+            }
+
+            void AppendNodes(IEnumerable<KeyValuePair<string,
+                (int Index, XElement TextBody)>> startingNodes) {
+                var stack = new Stack<KeyValuePair<string,
+                    (int Index, XElement TextBody)>>();
+                KeyValuePair<string, (int Index, XElement TextBody)>[] orderedStarts =
+                    OrderSiblingNodes(startingNodes, sourceOrderByNode).ToArray();
+                for (int index = orderedStarts.Length - 1; index >= 0; index--) {
+                    stack.Push(orderedStarts[index]);
+                }
+
+                while (stack.Count > 0) {
+                    KeyValuePair<string, (int Index, XElement TextBody)> node =
+                        stack.Pop();
+                    if (!visited.Add(node.Key)) continue;
+                    ordered.Add(node);
+                    if (!childrenByParent.TryGetValue(node.Key,
+                            out List<KeyValuePair<string,
+                                (int Index, XElement TextBody)>>? children)) continue;
+                    KeyValuePair<string, (int Index, XElement TextBody)>[] orderedChildren =
+                        OrderSiblingNodes(children, sourceOrderByNode).ToArray();
+                    for (int index = orderedChildren.Length - 1; index >= 0; index--) {
+                        stack.Push(orderedChildren[index]);
+                    }
                 }
             }
 
-            foreach (KeyValuePair<string, (int Index, XElement TextBody)> root
-                     in OrderSiblingNodes(nodes.Where(node =>
-                         parentByNode.TryGetValue(node.Key, out string? parent)
-                         && documentIds.Contains(parent)), sourceOrderByNode)) {
-                AppendNode(root);
-            }
-            foreach (KeyValuePair<string, (int Index, XElement TextBody)> node
-                     in OrderSiblingNodes(nodes.Where(node =>
-                         !visited.Contains(node.Key)), sourceOrderByNode)) {
-                AppendNode(node);
-            }
+            AppendNodes(rootNodes);
+            AppendNodes(nodes.Where(node => !visited.Contains(node.Key)));
             return ordered;
         }
 

@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_UpdateFieldsAndGetReport_ClassifiesDelegatedLayoutFieldsAsExternalLayoutRequired() {
+        public void Test_UpdateFieldsAndGetReport_ClassifiesLayoutFieldsWithoutQueuingDocumentWideRefresh() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph()._paragraph.Append(BuildSimpleField(" TOC ", "stale-toc"));
             document.AddParagraph()._paragraph.Append(BuildSimpleField(" INDEX ", "stale-index"));
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FieldRefreshDelegated", result.DiagnosticCode);
                 Assert.Equal(WordFieldEvaluationBasis.ExternalLayoutRequired, result.EvaluationBasis);
             });
-            Assert.True(document.Settings.UpdateFieldsOnOpen);
+            Assert.False(document.Settings.UpdateFieldsOnOpen);
         }
 
         [Fact]

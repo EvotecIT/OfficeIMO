@@ -137,7 +137,7 @@ public sealed class TnefResourceLimitTests {
     }
 
     [Fact]
-    public void StreamingCountsOnlySelectedMapiPayloadWhenBothRepresentationsExist() {
+    public void StreamingChargesEveryCopiedRepresentationAgainstTheAggregateLimit() {
         byte[] mapiPayload = { 3, 4, 5 };
         byte[] properties = TnefMapiCodec.WriteProperties(new[] {
             new MapiProperty(0x3701, MapiPropertyType.Binary, mapiPayload),
@@ -147,17 +147,46 @@ public sealed class TnefResourceLimitTests {
             (TnefAttributeLevel.Attachment, TnefConstants.AttachRendData, new byte[14]),
             (TnefAttributeLevel.Attachment, TnefConstants.AttachData, new byte[] { 1, 2 }),
             (TnefAttributeLevel.Attachment, TnefConstants.AttachmentProperties, properties));
-        var options = new EmailReaderOptions(
+        var restrictiveOptions = new EmailReaderOptions(
             maxAttachmentBytes: mapiPayload.Length,
             maxTotalAttachmentBytes: mapiPayload.Length);
 
-        using EmailReadResult result = new EmailDocumentReader(options).ReadStreaming(
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailDocumentReader(restrictiveOptions).ReadStreaming(
+                new MemoryStream(bytes, writable: false), "dual-payload.dat"));
+
+        Assert.Equal(nameof(EmailReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
+        Assert.Equal(5, exception.ActualValue);
+
+        var permissiveOptions = new EmailReaderOptions(
+            maxAttachmentBytes: mapiPayload.Length,
+            maxTotalAttachmentBytes: 5);
+        using EmailReadResult result = new EmailDocumentReader(permissiveOptions).ReadStreaming(
             new MemoryStream(bytes, writable: false), "dual-payload.dat");
         EmailAttachment attachment = Assert.Single(result.Document.Attachments);
 
         Assert.Equal(mapiPayload, attachment.Content);
         Assert.Equal(mapiPayload.Length, attachment.Length);
-        Assert.Equal(mapiPayload.Length, result.ProcessingBudget.AttachmentBytes);
+        Assert.Equal(5, result.ProcessingBudget.AttachmentBytes);
+    }
+
+    [Fact]
+    public void StreamingRejectsRepeatedAttachDataForOneAttachmentBeforeAggregateBypass() {
+        byte[] bytes = CreateTnef(
+            (TnefAttributeLevel.Attachment, TnefConstants.AttachRendData, new byte[14]),
+            (TnefAttributeLevel.Attachment, TnefConstants.AttachData, new byte[100]),
+            (TnefAttributeLevel.Attachment, TnefConstants.AttachData, new byte[100]));
+        var options = new EmailReaderOptions(
+            maxAttachmentBytes: 100,
+            maxTotalAttachmentBytes: 150,
+            includeAttachmentContent: false);
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailDocumentReader(options).ReadStreaming(
+                new MemoryStream(bytes, writable: false), "repeated-attach-data.dat"));
+
+        Assert.Equal(nameof(EmailReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
+        Assert.Equal(200, exception.ActualValue);
     }
 
     [Fact]

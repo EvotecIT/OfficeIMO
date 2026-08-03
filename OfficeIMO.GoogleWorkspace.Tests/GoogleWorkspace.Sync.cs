@@ -43,6 +43,12 @@ namespace OfficeIMO.Tests {
                 uri => Assert.Contains("includeItemsFromAllDrives=false", uri, StringComparison.Ordinal));
             Assert.All(changeUris.Where(uri => uri.Contains("driveId=drive-a", StringComparison.Ordinal)),
                 uri => Assert.Contains("includeItemsFromAllDrives=true", uri, StringComparison.Ordinal));
+            GoogleWorkspaceTrackedChange change = result.Changes[0];
+            GoogleWorkspaceChangeSourceResult source = result.Sources[0];
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<GoogleWorkspaceTrackedChange>)result.Changes)[0] = change);
+            Assert.Throws<NotSupportedException>(() =>
+                ((IList<GoogleWorkspaceChangeSourceResult>)result.Sources)[0] = source);
         }
 
         [Fact]
