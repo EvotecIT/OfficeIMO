@@ -152,12 +152,12 @@ namespace OfficeIMO.Excel {
                     index++;
                     continue;
                 }
-                if (!inString && current == '\'' && TrySkipQuotedQualifier(formula, index, out int nextIndex)) {
-                    index = nextIndex;
+                if (!inString && current == '\'') {
+                    index = SkipQuotedQualifierOrMalformedToken(formula, index);
                     continue;
                 }
-                if (!inString && current == '[' && TrySkipBracketedToken(formula, index, out int bracketEnd)) {
-                    index = bracketEnd;
+                if (!inString && current == '[') {
+                    index = SkipBracketedTokenOrRemainder(formula, index);
                     continue;
                 }
                 if (inString || !(char.IsLetter(current) || current == '_')) { index++; continue; }
@@ -177,32 +177,31 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TrySkipQuotedQualifier(string formula, int start, out int nextIndex) {
+        private static int SkipQuotedQualifierOrMalformedToken(string formula, int start) {
             if (!TryFindQuotedTokenEnd(formula, start, out int firstEnd)) {
-                nextIndex = start;
-                return false;
+                return formula.Length;
             }
 
             int separator = firstEnd + 1;
             if (separator < formula.Length && formula[separator] == '!') {
-                nextIndex = separator + 1;
-                return true;
+                return separator + 1;
             }
             if (separator + 1 < formula.Length
                 && formula[separator] == ':'
-                && formula[separator + 1] == '\''
-                && TryFindQuotedTokenEnd(formula, separator + 1, out int secondEnd)
-                && secondEnd + 1 < formula.Length
-                && formula[secondEnd + 1] == '!') {
-                nextIndex = secondEnd + 2;
-                return true;
+                && formula[separator + 1] == '\'') {
+                if (!TryFindQuotedTokenEnd(formula, separator + 1, out int secondEnd)) {
+                    return formula.Length;
+                }
+                return secondEnd + 1 < formula.Length
+                    && formula[secondEnd + 1] == '!'
+                        ? secondEnd + 2
+                        : secondEnd + 1;
             }
 
-            nextIndex = start;
-            return false;
+            return firstEnd + 1;
         }
 
-        private static bool TrySkipBracketedToken(string formula, int start, out int nextIndex) {
+        private static int SkipBracketedTokenOrRemainder(string formula, int start) {
             int depth = 0;
             for (int index = start; index < formula.Length; index++) {
                 if (formula[index] == '\'' && index + 1 < formula.Length
@@ -217,12 +216,10 @@ namespace OfficeIMO.Excel {
                 if (formula[index] == '[') {
                     depth++;
                 } else if (formula[index] == ']' && --depth == 0) {
-                    nextIndex = index + 1;
-                    return true;
+                    return index + 1;
                 }
             }
-            nextIndex = start;
-            return false;
+            return formula.Length;
         }
 
         private static bool TryFindQuotedTokenEnd(string formula, int start, out int end) {

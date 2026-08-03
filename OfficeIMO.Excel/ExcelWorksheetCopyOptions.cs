@@ -23,5 +23,21 @@ namespace OfficeIMO.Excel {
         /// Gets or sets the maximum aggregate formula characters across copied defined names.
         /// </summary>
         public int MaxDefinedNameCharacters { get; set; } = 1_000_000;
+
+        /// <summary>
+        /// Gets or sets the maximum number of in-cell image references copied in package mode.
+        /// </summary>
+        public int MaxInCellImages { get; set; } = 1024;
+
+        /// <summary>
+        /// Gets or sets the maximum payload size of one in-cell image copied in package mode.
+        /// </summary>
+        public long MaxInCellImageBytes { get; set; } = 32_000_000;
+
+        /// <summary>
+        /// Gets or sets the maximum aggregate resolved in-cell image bytes copied in package mode.
+        /// Shared image assets are charged once per referencing cell.
+        /// </summary>
+        public long MaxTotalInCellImageBytes { get; set; } = 64_000_000;
     }
 }

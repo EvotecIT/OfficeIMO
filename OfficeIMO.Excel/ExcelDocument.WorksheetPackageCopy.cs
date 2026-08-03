@@ -47,6 +47,11 @@ namespace OfficeIMO.Excel {
                 sourceDocument,
                 new[] { sourceSheet },
                 definedNameBudget);
+            var inCellImageContext = new InCellImageCopyContext(
+                options.MaxInCellImages,
+                options.MaxInCellImageBytes,
+                options.MaxTotalInCellImageBytes);
+            sourceSheet.PreflightInCellImages(inCellImageContext);
             return CopyWorksheetFromPackage(
                 sourceDocument,
                 sourceSheetName,
@@ -54,7 +59,8 @@ namespace OfficeIMO.Excel {
                 validationMode,
                 rewriteCopiedReferences: true,
                 copyReferencedDefinedNames: true,
-                options.CopyExternalWorkbookReferences).Sheet;
+                options.CopyExternalWorkbookReferences,
+                inCellImageContext).Sheet;
         }
 
         private WorksheetPackageCopyResult CopyWorksheetFromPackage(
@@ -64,7 +70,8 @@ namespace OfficeIMO.Excel {
             SheetNameValidationMode validationMode,
             bool rewriteCopiedReferences,
             bool copyReferencedDefinedNames,
-            bool copyExternalWorkbookReferences) {
+            bool copyExternalWorkbookReferences,
+            InCellImageCopyContext inCellImageContext) {
             MaterializeDeferredDataSetImport();
             sourceDocument.MaterializeDeferredDataSetImport();
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
@@ -127,7 +134,7 @@ namespace OfficeIMO.Excel {
                         externalReferenceMap);
                 }
 
-                sourceSheet.CopyInCellImagesTo(targetSheet);
+                sourceSheet.CopyInCellImagesTo(targetSheet, inCellImageContext);
 
                 copiedPart.Worksheet.Save();
                 if (copiedFormulas) {
@@ -138,6 +145,75 @@ namespace OfficeIMO.Excel {
                 WorkbookRoot.Save();
                 return new WorksheetPackageCopyResult(targetSheet, tableNameMap, externalReferenceMap);
             });
+        }
+
+        /// <summary>
+        /// Tracks logical image references and payload bytes across one package-copy operation.
+        /// Shared assets are charged for every referencing cell so alias-heavy workbooks cannot
+        /// amplify later materialization work while still reusing one physical target part.
+        /// </summary>
+        internal sealed class InCellImageCopyContext {
+            private readonly int _maximumImages;
+            private readonly long _maximumImageBytes;
+            private readonly long _maximumTotalBytes;
+            private readonly Dictionary<OpenXmlPart, byte[]> _sourcePayloads = new Dictionary<OpenXmlPart, byte[]>();
+            private readonly Dictionary<OpenXmlPart, OpenXmlPart> _copiedAssets = new Dictionary<OpenXmlPart, OpenXmlPart>();
+            private int _copiedImages;
+            private long _copiedBytes;
+
+            internal InCellImageCopyContext(
+                int maximumImages,
+                long maximumImageBytes,
+                long maximumTotalBytes) {
+                _maximumImages = maximumImages;
+                _maximumImageBytes = maximumImageBytes;
+                _maximumTotalBytes = maximumTotalBytes;
+            }
+
+            internal long GetMaximumReadableBytes() {
+                if (_copiedImages >= _maximumImages) {
+                    throw new InvalidOperationException(
+                        $"Worksheet copy exceeds the configured in-cell image limit of {_maximumImages}.");
+                }
+                long remainingBytes = _maximumTotalBytes - _copiedBytes;
+                if (remainingBytes < 1) {
+                    throw new InvalidOperationException(
+                        $"Worksheet copy exceeds the configured aggregate in-cell image limit of {_maximumTotalBytes} bytes.");
+                }
+                return Math.Min(_maximumImageBytes, remainingBytes);
+            }
+
+            internal void Consume(long payloadBytes) {
+                if (_copiedImages >= _maximumImages) {
+                    throw new InvalidOperationException(
+                        $"Worksheet copy exceeds the configured in-cell image limit of {_maximumImages}.");
+                }
+                if (payloadBytes < 1 || payloadBytes > _maximumImageBytes) {
+                    throw new InvalidOperationException(
+                        $"Worksheet copy exceeds the configured per-image limit of {_maximumImageBytes} bytes.");
+                }
+
+                long totalBytes = checked(_copiedBytes + payloadBytes);
+                if (totalBytes > _maximumTotalBytes) {
+                    throw new InvalidOperationException(
+                        $"Worksheet copy exceeds the configured aggregate in-cell image limit of {_maximumTotalBytes} bytes.");
+                }
+
+                _copiedImages++;
+                _copiedBytes = totalBytes;
+            }
+
+            internal bool TryGetSourcePayload(OpenXmlPart sourcePart, out byte[] payload) =>
+                _sourcePayloads.TryGetValue(sourcePart, out payload!);
+
+            internal void AddSourcePayload(OpenXmlPart sourcePart, byte[] payload) =>
+                _sourcePayloads.Add(sourcePart, payload);
+
+            internal bool TryGetCopiedAsset(OpenXmlPart sourcePart, out OpenXmlPart targetPart) =>
+                _copiedAssets.TryGetValue(sourcePart, out targetPart!);
+
+            internal void AddCopiedAsset(OpenXmlPart sourcePart, OpenXmlPart targetPart) =>
+                _copiedAssets.Add(sourcePart, targetPart);
         }
 
         private static void RewriteSharedStringCellsToInlineStrings(Worksheet worksheet, SharedStringTablePart? sharedStringTablePart) {

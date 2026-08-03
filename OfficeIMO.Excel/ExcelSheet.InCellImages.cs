@@ -212,10 +212,32 @@ namespace OfficeIMO.Excel {
             return resolvedImagePart;
         }
 
-        internal void CopyInCellImagesTo(ExcelSheet targetSheet) {
+        internal void PreflightInCellImages(ExcelDocument.InCellImageCopyContext context) {
+            if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) return;
+            foreach (Cell sourceCell in WorksheetRoot.Descendants<Cell>()) {
+                if (!lookup!.TryResolve(sourceCell, out OpenXmlPart? imagePart, out _)
+                    || imagePart == null) {
+                    continue;
+                }
+
+                if (!context.TryGetSourcePayload(imagePart, out byte[] payload)) {
+                    using Stream imageStream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+                    long maximumReadableBytes = context.GetMaximumReadableBytes();
+                    payload = ReadInCellImagePayload(
+                        imageStream,
+                        maximumReadableBytes,
+                        maximumReadableBytes);
+                    context.AddSourcePayload(imagePart, payload);
+                }
+                context.Consume(payload.LongLength);
+            }
+        }
+
+        internal void CopyInCellImagesTo(
+            ExcelSheet targetSheet,
+            ExcelDocument.InCellImageCopyContext context) {
             if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) return;
             bool copied = false;
-            var copiedAssets = new Dictionary<OpenXmlPart, OpenXmlPart>();
             foreach (Cell sourceCell in WorksheetRoot.Descendants<Cell>()) {
                 if (!lookup!.TryResolve(sourceCell, out OpenXmlPart? imagePart, out string altText)
                     || imagePart == null
@@ -224,7 +246,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 (int row, int column) = A1.ParseCellRef(cellReference);
-                if (copiedAssets.TryGetValue(imagePart, out OpenXmlPart? copiedAsset)) {
+                if (context.TryGetCopiedAsset(imagePart, out OpenXmlPart copiedAsset)) {
                     _ = targetSheet.SetInCellImageCore(
                         row,
                         column,
@@ -233,15 +255,18 @@ namespace OfficeIMO.Excel {
                         altText,
                         copiedAsset);
                 } else {
-                    using Stream imageStream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+                    if (!context.TryGetSourcePayload(imagePart, out byte[] payload)) {
+                        throw new InvalidOperationException("In-cell images must be preflighted before package copy.");
+                    }
+                    using var payloadStream = new MemoryStream(payload, writable: false);
                     OpenXmlPart targetImagePart = targetSheet.SetInCellImageCore(
                         row,
                         column,
-                        imageStream,
+                        payloadStream,
                         imagePart.ContentType,
                         altText,
                         reusableImagePart: null);
-                    copiedAssets.Add(imagePart, targetImagePart);
+                    context.AddCopiedAsset(imagePart, targetImagePart);
                 }
                 copied = true;
             }

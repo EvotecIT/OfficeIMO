@@ -49,12 +49,15 @@ namespace OfficeIMO.Excel {
                 && formula.IndexOf("LAMBDA", StringComparison.OrdinalIgnoreCase) < 0) {
                 return Array.Empty<FormulaLexicalBinding>();
             }
+            int[] closingParentheses = IndexFormulaClosingParentheses(formula);
             List<FormulaLexicalBinding>? bindings = null;
             for (int index = 0; index < formula.Length; index++) {
                 if (!TryGetFormulaLexicalFunctionCall(formula, index, out bool isLet, out int openingParenthesis)
-                    || !TryFindClosingFormulaParenthesis(formula, openingParenthesis, out int closingParenthesis)) {
+                    || openingParenthesis >= closingParentheses.Length
+                    || closingParentheses[openingParenthesis] < 0) {
                     continue;
                 }
+                int closingParenthesis = closingParentheses[openingParenthesis];
 
                 List<FormulaArgumentSpan> arguments = GetFormulaArgumentSpans(
                     formula,
@@ -91,6 +94,62 @@ namespace OfficeIMO.Excel {
             }
 
             return bindings ?? (IReadOnlyList<FormulaLexicalBinding>)Array.Empty<FormulaLexicalBinding>();
+        }
+
+        private static int[] IndexFormulaClosingParentheses(string formula) {
+            var closingParentheses = new int[formula.Length];
+            for (int index = 0; index < closingParentheses.Length; index++) {
+                closingParentheses[index] = -1;
+            }
+
+            var openings = new Stack<int>();
+            int arrayDepth = 0;
+            int bracketDepth = 0;
+            bool inQuotedQualifier = false;
+            for (int index = 0; index < formula.Length; index++) {
+                char character = formula[index];
+                if (character == '\'' && bracketDepth == 0) {
+                    if (inQuotedQualifier && index + 1 < formula.Length && formula[index + 1] == '\'') {
+                        index++;
+                    } else {
+                        inQuotedQualifier = !inQuotedQualifier;
+                    }
+                    continue;
+                }
+                if (inQuotedQualifier) {
+                    continue;
+                }
+                if (character == '[' && !IsEscapedStructuredReferenceBracket(formula, index)) {
+                    bracketDepth++;
+                    continue;
+                }
+                if (character == ']'
+                    && !IsEscapedStructuredReferenceBracket(formula, index)
+                    && bracketDepth > 0) {
+                    bracketDepth--;
+                    continue;
+                }
+                if (bracketDepth > 0) {
+                    continue;
+                }
+                if (character == '{') {
+                    arrayDepth++;
+                    continue;
+                }
+                if (character == '}' && arrayDepth > 0) {
+                    arrayDepth--;
+                    continue;
+                }
+                if (arrayDepth > 0) {
+                    continue;
+                }
+                if (character == '(') {
+                    openings.Push(index);
+                } else if (character == ')' && openings.Count > 0) {
+                    closingParentheses[openings.Pop()] = index;
+                }
+            }
+            return closingParentheses;
         }
 
         private static void AddFormulaLexicalBinding(

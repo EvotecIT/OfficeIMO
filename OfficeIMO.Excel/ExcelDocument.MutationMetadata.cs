@@ -146,6 +146,7 @@ namespace OfficeIMO.Excel {
             Worksheet? worksheet,
             Func<ExcelReference, ExcelReference?> transform) {
             if (worksheet == null) return;
+            const string SpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
             CellWatches? watches = worksheet.GetFirstChild<CellWatches>();
             if (watches != null) {
@@ -163,13 +164,21 @@ namespace OfficeIMO.Excel {
 
             var affectedContainers = new HashSet<OpenXmlElement>();
             foreach (OpenXmlElement tag in worksheet.Descendants()
-                .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))
+                .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(element.NamespaceUri, SpreadsheetNamespace, StringComparison.Ordinal))
                 .ToList()) {
                 OpenXmlAttribute? attribute = tag.GetAttributes().FirstOrDefault(candidate =>
                     string.Equals(candidate.LocalName, "r", StringComparison.OrdinalIgnoreCase));
                 if (!attribute.HasValue || string.IsNullOrEmpty(attribute.Value.LocalName)) continue;
                 string? rewritten = RewriteMutationSingleReference(attribute.Value.Value, transform);
-                if (tag.Parent is OpenXmlElement container) affectedContainers.Add(container);
+                if (tag.Parent is OpenXmlElement container
+                    && string.Equals(
+                        container.LocalName,
+                        "cellSmartTags",
+                        StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(container.NamespaceUri, SpreadsheetNamespace, StringComparison.Ordinal)) {
+                    affectedContainers.Add(container);
+                }
                 if (rewritten == null) {
                     tag.Remove();
                 } else if (!string.Equals(attribute.Value.Value, rewritten, StringComparison.OrdinalIgnoreCase)) {
@@ -183,7 +192,8 @@ namespace OfficeIMO.Excel {
 
             foreach (OpenXmlElement container in affectedContainers) {
                 uint count = (uint)container.ChildElements.Count(child =>
-                    string.Equals(child.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase));
+                    string.Equals(child.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(child.NamespaceUri, SpreadsheetNamespace, StringComparison.Ordinal));
                 if (count == 0U) {
                     container.Remove();
                     continue;
