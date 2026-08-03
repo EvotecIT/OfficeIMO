@@ -39,20 +39,42 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MacroToolRunnerTimeoutTerminatesWindowsDescendantProcess() {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
-            string childProcessIdPath = Path.Combine(
+            string wrapperStartedPath = Path.Combine(
                 _directoryWithFiles,
-                "macro-tool-child-" + Guid.NewGuid().ToString("N") + ".txt");
-            string scriptPath = Path.Combine(
+                "macro-tool-wrapper-started-" + Guid.NewGuid().ToString("N") + ".txt");
+            string childStartedPath = Path.Combine(
                 _directoryWithFiles,
-                "macro-tool-child-" + Guid.NewGuid().ToString("N") + ".ps1");
-            File.WriteAllText(scriptPath,
-                "$child = Start-Process -FilePath $env:COMSPEC " +
-                "-ArgumentList '/d','/s','/c','ping -n 30 127.0.0.1' -PassThru\r\n" +
-                "[System.IO.File]::WriteAllText('" + childProcessIdPath.Replace("'", "''") + "', [string]$child.Id)\r\n" +
-                "Wait-Process -Id $child.Id\r\n");
+                "macro-tool-child-started-" + Guid.NewGuid().ToString("N") + ".txt");
+            string releaseChildPath = Path.Combine(
+                _directoryWithFiles,
+                "macro-tool-release-child-" + Guid.NewGuid().ToString("N") + ".txt");
+            string childSurvivedPath = Path.Combine(
+                _directoryWithFiles,
+                "macro-tool-child-survived-" + Guid.NewGuid().ToString("N") + ".txt");
+            string childScriptPath = Path.Combine(
+                _directoryWithFiles,
+                "macro-tool-child-" + Guid.NewGuid().ToString("N") + ".cmd");
+            string wrapperScriptPath = Path.Combine(
+                _directoryWithFiles,
+                "macro-tool-wrapper-" + Guid.NewGuid().ToString("N") + ".cmd");
+            string commandInterpreter = Environment.GetEnvironmentVariable("COMSPEC") ?? "cmd.exe";
+            File.WriteAllText(childScriptPath,
+                "@echo off\r\n" +
+                "> \"" + childStartedPath + "\" echo started\r\n" +
+                ":wait_for_release\r\n" +
+                "if not exist \"" + releaseChildPath + "\" (\r\n" +
+                "  ping -n 2 127.0.0.1 >nul\r\n" +
+                "  goto wait_for_release\r\n" +
+                ")\r\n" +
+                "> \"" + childSurvivedPath + "\" echo survived\r\n");
+            File.WriteAllText(wrapperScriptPath,
+                "@echo off\r\n" +
+                "start \"\" /b \"" + commandInterpreter + "\" /d /s /c call \"" + childScriptPath + "\"\r\n" +
+                "> \"" + wrapperStartedPath + "\" echo started\r\n" +
+                "ping -n 30 127.0.0.1 >nul\r\n");
             var invocation = new WordMacroProjectToolInvocation(
-                "powershell.exe",
-                new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-File", scriptPath });
+                commandInterpreter,
+                new[] { "/d", "/s", "/c", "call", wrapperScriptPath });
             var runner = new WordMacroProjectProcessRunner();
 
             WordMacroProjectToolResult result = runner.Run(
@@ -60,17 +82,16 @@ namespace OfficeIMO.Tests {
                 TimeSpan.FromSeconds(8),
                 maxOutputCharacters: 4096);
 
-            Assert.True(result.TimedOut);
-            Assert.True(File.Exists(childProcessIdPath), result.Output);
-            int childProcessId = int.Parse(File.ReadAllText(childProcessIdPath).Trim(),
-                System.Globalization.CultureInfo.InvariantCulture);
-            try {
-                using Process child = Process.GetProcessById(childProcessId);
-                Assert.True(child.WaitForExit(1000),
-                    "The timed-out signing descendant " + childProcessId + " was still running.");
-            } catch (ArgumentException) {
-                // The job object already removed the descendant from the process table.
-            }
+            string resultDetail = "ExitCode=" + result.ExitCode + ", TimedOut=" + result.TimedOut +
+                                  ", Output=" + result.Output;
+            Assert.True(result.TimedOut, resultDetail);
+            Assert.True(File.Exists(wrapperStartedPath), resultDetail);
+            Assert.True(File.Exists(childStartedPath), resultDetail);
+
+            File.WriteAllText(releaseChildPath, "release");
+            Thread.Sleep(TimeSpan.FromSeconds(3));
+            Assert.False(File.Exists(childSurvivedPath),
+                "A signing descendant survived after its parent timed out and the Job Object closed.");
         }
 
         [Fact]
