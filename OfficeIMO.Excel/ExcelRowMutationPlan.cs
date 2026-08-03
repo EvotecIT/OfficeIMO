@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -29,6 +30,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public long MaximumScannedCharacters { get; set; } = 64_000_000;
 
+        /// <summary>Maximum cells that a planned grid operation may inspect or move.</summary>
+        public int MaximumAffectedCells { get; set; } = 1_000_000;
+
+        /// <summary>Maximum XML characters retained for transactional rollback.</summary>
+        public long MaximumSnapshotCharacters { get; set; } = 128_000_000;
+
+        /// <summary>Maximum post-edit package diagnostics returned to the caller.</summary>
+        public int MaximumDiagnostics { get; set; } = 100;
+
         internal ExcelMutationPlanOptions CloneAndValidate() {
             if (MaximumScannedElements < 1) {
                 throw new ArgumentOutOfRangeException(
@@ -40,10 +50,16 @@ namespace OfficeIMO.Excel {
                     nameof(MaximumScannedCharacters),
                     "The mutation-plan character budget must be positive.");
             }
+            if (MaximumAffectedCells < 1) throw new ArgumentOutOfRangeException(nameof(MaximumAffectedCells));
+            if (MaximumSnapshotCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaximumSnapshotCharacters));
+            if (MaximumDiagnostics < 1) throw new ArgumentOutOfRangeException(nameof(MaximumDiagnostics));
 
             return new ExcelMutationPlanOptions {
                 MaximumScannedElements = MaximumScannedElements,
-                MaximumScannedCharacters = MaximumScannedCharacters
+                MaximumScannedCharacters = MaximumScannedCharacters,
+                MaximumAffectedCells = MaximumAffectedCells,
+                MaximumSnapshotCharacters = MaximumSnapshotCharacters,
+                MaximumDiagnostics = MaximumDiagnostics
             };
         }
     }
@@ -78,6 +94,7 @@ namespace OfficeIMO.Excel {
     /// </remarks>
     public sealed class ExcelRowMutationPlan {
         private readonly ExcelSheet _owner;
+        private readonly ExcelMutationPlanOptions _options;
         private int _applyState;
 
         internal ExcelRowMutationPlan(
@@ -87,7 +104,8 @@ namespace OfficeIMO.Excel {
             int firstRow,
             int count,
             int scannedElements,
-            IReadOnlyList<ExcelMutationImpact> impacts) {
+            IReadOnlyList<ExcelMutationImpact> impacts,
+            ExcelMutationPlanOptions options) {
             _owner = owner;
             Kind = kind;
             SheetName = sheetName;
@@ -96,6 +114,7 @@ namespace OfficeIMO.Excel {
             ScannedElements = scannedElements;
             Impacts = new ReadOnlyCollection<ExcelMutationImpact>(
                 new List<ExcelMutationImpact>(impacts));
+            _options = options;
         }
 
         /// <summary>Planned operation.</summary>
@@ -125,18 +144,32 @@ namespace OfficeIMO.Excel {
         /// <summary>Whether an application attempt has started, succeeded, or failed.</summary>
         public bool IsConsumed => Volatile.Read(ref _applyState) != 0;
 
+        /// <summary>Post-edit result after a successful application.</summary>
+        public ExcelMutationResult? Result { get; private set; }
+
         /// <summary>
         /// Revalidates and applies the planned operation exactly once.
         /// </summary>
         public void Apply() {
+            ApplyWithDiagnostics();
+        }
+
+        /// <summary>Revalidates and transactionally applies the plan, returning package diagnostics.</summary>
+        public ExcelMutationResult ApplyWithDiagnostics(CancellationToken cancellationToken = default) {
             if (Interlocked.CompareExchange(ref _applyState, 1, 0) != 0) {
                 throw new InvalidOperationException(
                     "This Excel mutation plan is already being applied, was applied successfully, or a previous attempt failed.");
             }
 
             try {
-                _owner.ApplyStructuralRowMutationPlan(Kind, FirstRow, Count);
+                int affectedCells = Impacts.FirstOrDefault(item => item.Category == "worksheet-cells")?.ItemCount ?? 0;
+                Result = _owner.ApplyTransactionalMutation(
+                    token => _owner.ApplyStructuralRowMutationPlan(Kind, FirstRow, Count, token),
+                    affectedCells,
+                    _options,
+                    cancellationToken);
                 Volatile.Write(ref _applyState, 2);
+                return Result;
             } catch {
                 Volatile.Write(ref _applyState, 3);
                 throw;

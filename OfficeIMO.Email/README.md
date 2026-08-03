@@ -2,6 +2,17 @@
 
 `OfficeIMO.Email` provides a first-party engine for persisted email and Outlook artifacts without a third-party message, compound-file, MIME, RTF, or platform-UI runtime.
 
+```powershell
+dotnet add package OfficeIMO.Email
+```
+
+S/MIME structure detection and unchanged protected-message pass-through are included without a cryptographic package.
+Install the provider only when the application verifies or decrypts S/MIME:
+
+```powershell
+dotnet add package OfficeIMO.Security
+```
+
 Email reads expose an aggregate `ProcessingBudget` snapshot. MIME, MSG, embedded TNEF, and streaming payload paths share one operation ledger, so nested parsers do not receive fresh attachment, property, or structural allowances. `EmailLimitExceededException.Diagnostic` carries a stable actionable non-sensitive diagnostic automatically; store limits expose the equivalent through `EmailStoreDiagnostic.FromLimit`.
 
 Store table, content-search, and OAB search checkpoints are versioned persistence values bound to a complete-source SHA-256 and exact query signature. Persist the checkpoint's `Value`, parse it after restart, and expect resume to fail closed if the source bytes or query changed. Creating a durable checkpoint intentionally reads the complete selected source to establish that identity.
@@ -292,28 +303,32 @@ RTF syntax editing and semantic conversion belong to `OfficeIMO.Rtf`. Generate R
 `EmailDocument.Protection` detects opaque and clear-signed S/MIME plus signed or encrypted OpenPGP/MIME wrappers. It
 retains the original artifact bytes automatically, including Outlook's complete outer `multipart/signed` attachment
 for `IPM.Note.SMIME.MultipartSigned`. `EmailSmime` verifies clear/opaque S/MIME and decrypts
-EnvelopedData through the shared `OfficeIMO.Security` owner; OpenPGP remains outside this package.
+EnvelopedData through an explicitly supplied `OfficeIMO.Security` provider; OpenPGP remains outside this package.
 Writing an unchanged protected document in its source format emits those bytes verbatim; an edited or cross-format
 write is blocked by default because regenerating the wrapper would invalidate its cryptographic meaning.
 
 ```csharp
+using System.Security.Cryptography.X509Certificates;
+using OfficeIMO.Security;
 using X509Certificate2 recipient = LoadRecipientCertificate();
 EmailDocument protectedMessage = EmailDocument.Load("message.eml");
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
 
-EmailSmimeVerificationResult verified = EmailSmime.Verify(protectedMessage);
+EmailSmimeVerificationResult verified = EmailSmime.Verify(protectedMessage, security);
 if (verified.IsCryptographicallyValid) {
     Console.WriteLine(verified.SignedContent?.Subject);
 }
 
-EmailSmimeDecryptionResult decrypted = EmailSmime.Decrypt(protectedMessage, recipient);
+EmailSmimeDecryptionResult decrypted = EmailSmime.Decrypt(protectedMessage, recipient, security);
 if (decrypted.Decrypted) {
     Console.WriteLine(decrypted.DecryptedContent?.Body.Text);
 }
 ```
 
 Certificate/key discovery is intentionally not implicit. Verification accepts caller trust/revocation policy through
-`CmsVerificationOptions`; decryption requires an explicitly supplied recipient certificate. The original protected
-document is never mutated, and the decrypted/signed projection is returned separately. Detached verification first
+`CmsVerificationOptions` and applies the S/MIME email-signing certificate purpose, including the standard
+email-protection EKU; decryption requires an explicitly supplied recipient certificate and provider. The original
+protected document is never mutated, and the decrypted/signed projection is returned separately. Detached verification first
 uses the exact retained MIME bytes and, only when necessary, retries the standard CRLF canonical form used by S/MIME
 mail clients; `SignedMimeEntity` still exposes the original bytes and a structured diagnostic records the fallback.
 The current Bouncy Castle envelope adapter requires an RSA recipient key that the platform certificate handle permits
@@ -384,7 +399,7 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 
 ## Scope boundary
 
-`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, send messages, discover certificates or private keys, or implement DKIM, ARC, or OpenPGP. `EmailSmime.Verify` and `EmailSmime.Decrypt` are thin data-oriented adapters over `OfficeIMO.Security`: they verify exact clear-signed MIME bytes, verify opaque signed-data, decrypt caller-selected EnvelopedData recipients, retain the original protected artifact, and return a separate parsed protected-content document when possible. Certificate/key selection remains explicit and caller-owned.
+`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, send messages, discover certificates or private keys, or implement DKIM, ARC, or OpenPGP. `EmailSmime.Verify` and `EmailSmime.Decrypt` are thin data-oriented adapters over a caller-supplied `IOfficeSecurityProvider`: they verify exact clear-signed MIME bytes, verify opaque signed-data, decrypt caller-selected EnvelopedData recipients, retain the original protected artifact, and return a separate parsed protected-content document when possible. Certificate/key and provider selection remain explicit and caller-owned.
 
 The package does not expose general-purpose CFB transactions. Its Store API area owns PST, OST, OLM, EMLX, Mbox,
 Apple Mail, and Maildir traversal, selection, validation, native export, verified conversion, multi-store merge, and
@@ -397,7 +412,8 @@ For exact pass-through of an ordinary unprotected artifact, read with `preserveR
 
 ## Dependency footprint
 
-- **External:** No third-party email engine or Outlook interop. `System.Text.Encoding.CodePages` supplies legacy encodings; the shared Security owner uses `BouncyCastle.Cryptography` for CMS/S/MIME/X.509 processing.
-- **OfficeIMO:** `OfficeIMO.Drawing`, `OfficeIMO.Rtf`, and `OfficeIMO.Security`. MIME, MSG/MAPI, TNEF, mbox, iCalendar, vCard, Store, OAB, and compressed-RTF handling remain first-party and ship in this package.
+- **External:** no third-party email engine or Outlook interop. `System.Text.Encoding.CodePages` supplies legacy encodings.
+- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Rtf`. MIME, MSG/MAPI, TNEF, mbox, iCalendar, vCard, Store, OAB, protected-wrapper detection, and compressed-RTF handling remain first-party and ship in this package.
+- **Optional security:** install `OfficeIMO.Security` for S/MIME CMS/X.509 verification and EnvelopedData decryption. It is not a transitive Email dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

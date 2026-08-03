@@ -1,17 +1,22 @@
 using System.Security.Cryptography.X509Certificates;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Security;
 
 namespace OfficeIMO.Word {
     internal static class WordMacroProjectSignatureService {
         internal static WordMacroProjectSignatureValidationResult Validate(
             string filePath,
+            IOfficeSecurityProvider securityProvider,
             WordMacroProjectSignatureValidationOptions? options = null,
             WordMacroProjectSigningDependencies? dependencies = null) {
+            if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
             options ??= new WordMacroProjectSignatureValidationOptions();
             dependencies ??= WordMacroProjectSigningDependencies.Default;
             ValidateValidationOptions(options);
-            var inspectionBudget = new WordMacroProjectSignatureInspector.InspectionBudget(options.Inspection);
+            using var inspectionBudget = new WordMacroProjectSignatureInspector.InspectionBudget(
+                options.Inspection,
+                securityProvider);
 
             string fullPath = NormalizePath(filePath);
             if (!File.Exists(fullPath)) {
@@ -121,15 +126,19 @@ namespace OfficeIMO.Word {
 
         internal static WordMacroProjectSigningResult TrySign(
             string filePath,
+            IOfficeSecurityProvider securityProvider,
             string certificateThumbprint,
             WordMacroProjectSigningOptions? options = null,
             WordMacroProjectSigningDependencies? dependencies = null) {
+            if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
             options ??= new WordMacroProjectSigningOptions();
             dependencies ??= WordMacroProjectSigningDependencies.Default;
             ValidateSigningOptions(options);
 
             string fullPath = NormalizePath(filePath);
-            var inspectionBudget = new WordMacroProjectSignatureInspector.InspectionBudget(options.Inspection);
+            using var inspectionBudget = new WordMacroProjectSignatureInspector.InspectionBudget(
+                options.Inspection,
+                securityProvider);
             WordMacroProjectSignatureInfo sourceInfo = WordMacroProjectSignatureInspector.Inspect(
                 fullPath, options.Inspection, inspectionBudget, validateCmsOverride: false);
             var findings = new List<WordMacroProjectSignatureFinding>();
@@ -174,11 +183,16 @@ namespace OfficeIMO.Word {
                     fullPath,
                     stagingPath,
                     options.Inspection.PackageSecurity.MaxPackageBytes);
-                WordMacroProjectSignatureInfo stagingPreflight = WordMacroProjectSignatureInspector.Inspect(
-                    stagingPath,
+                WordMacroProjectSignatureInfo stagingPreflight;
+                using (var stagingPreflightBudget = new WordMacroProjectSignatureInspector.InspectionBudget(
                     options.Inspection,
-                    new WordMacroProjectSignatureInspector.InspectionBudget(options.Inspection),
-                    validateCmsOverride: false);
+                    securityProvider)) {
+                    stagingPreflight = WordMacroProjectSignatureInspector.Inspect(
+                        stagingPath,
+                        options.Inspection,
+                        stagingPreflightBudget,
+                        validateCmsOverride: false);
+                }
                 foreach (WordMacroProjectSignatureFinding finding in stagingPreflight.Findings) {
                     if (!findings.Any(existing =>
                         existing.Code == finding.Code &&
@@ -434,10 +448,9 @@ namespace OfficeIMO.Word {
         }
 
         private static bool HasAllProfiles(WordMacroProjectSignatureInfo info) =>
-            Enum.GetValues(typeof(WordMacroProjectSignatureProfile))
-                .Cast<WordMacroProjectSignatureProfile>()
-                .Where(profile => profile != WordMacroProjectSignatureProfile.Unknown)
-                .All(profile => info.Signatures.Any(signature => signature.Profile == profile));
+            info.Signatures.Any(signature => signature.Profile == WordMacroProjectSignatureProfile.Legacy) &&
+            info.Signatures.Any(signature => signature.Profile == WordMacroProjectSignatureProfile.Agile) &&
+            info.Signatures.Any(signature => signature.Profile == WordMacroProjectSignatureProfile.V3);
 
         private static IReadOnlyList<string> BuildSignArguments(
             string filePath,

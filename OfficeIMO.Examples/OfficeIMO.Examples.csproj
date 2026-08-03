@@ -24,6 +24,7 @@
         <ProjectReference Include="..\\OfficeIMO.Markdown.Pdf\\OfficeIMO.Markdown.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Rtf.Pdf\\OfficeIMO.Rtf.Pdf.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Security\\OfficeIMO.Security.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Html.Pdf\\OfficeIMO.Html.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word\\OfficeIMO.Word.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.GoogleDocs\\OfficeIMO.Word.GoogleDocs.csproj" />

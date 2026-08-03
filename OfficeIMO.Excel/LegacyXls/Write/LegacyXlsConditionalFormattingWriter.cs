@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static class LegacyXlsConditionalFormattingWriter {
@@ -9,6 +10,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsFormulaNameIndex formulaNameIndex,
             out string? reason) {
             reason = null;
+            if (sheet.WorksheetPart.Worksheet?.Descendants<X14.ConditionalFormatting>().Any() == true) {
+                reason = "Office 2010 conditional formatting extension rules";
+                return false;
+            }
             foreach (ConditionalFormatting conditionalFormatting in GetWorksheetConditionalFormattings(sheet)) {
                 if (!TryCreateBlock(conditionalFormatting, headerId: 0, sheetIndex, formulaNameIndex, out _, out _, out _, out reason)) {
                     return false;

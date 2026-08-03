@@ -65,7 +65,7 @@ namespace OfficeIMO.Processes.Internal {
                         });
                         var startupInfo = new StartupInfoEx {
                             StartupInfo = new StartupInfo {
-                                Size = Marshal.SizeOf(typeof(StartupInfoEx)),
+                                Size = Marshal.SizeOf<StartupInfoEx>(),
                                 Flags = StartfUseStdHandles,
                                 StandardInput = inputRead.DangerousGetHandle(),
                                 StandardOutput = outputWrite.DangerousGetHandle(),
@@ -185,7 +185,7 @@ namespace OfficeIMO.Processes.Internal {
 
         private static void CreatePipePair(out SafeFileHandle read, out SafeFileHandle write) {
             var securityAttributes = new SecurityAttributes {
-                Length = Marshal.SizeOf(typeof(SecurityAttributes)),
+                Length = Marshal.SizeOf<SecurityAttributes>(),
                 InheritHandle = true
             };
             if (!CreatePipe(out read, out write, ref securityAttributes, 0)) {
@@ -201,7 +201,7 @@ namespace OfficeIMO.Processes.Internal {
 
         private static void CreateInputPipePair(out SafeFileHandle read, out SafeFileHandle write) {
             var securityAttributes = new SecurityAttributes {
-                Length = Marshal.SizeOf(typeof(SecurityAttributes)),
+                Length = Marshal.SizeOf<SecurityAttributes>(),
                 InheritHandle = true
             };
             if (!CreatePipe(out read, out write, ref securityAttributes, 0)) {

@@ -91,7 +91,6 @@
     <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf.Markdown\OfficeIMO.Rtf.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf.Pdf\OfficeIMO.Rtf.Pdf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
     <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
     <ProjectReference Include="..\OfficeIMO.Visio.Pdf\OfficeIMO.Visio.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
@@ -183,7 +182,6 @@
     <TrimmerRootAssembly Include="OfficeIMO.Rtf" />
     <TrimmerRootAssembly Include="OfficeIMO.Rtf.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Rtf.Pdf" />
-    <TrimmerRootAssembly Include="OfficeIMO.Security" />
     <TrimmerRootAssembly Include="OfficeIMO.Visio" />
     <TrimmerRootAssembly Include="OfficeIMO.Visio.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Word" />

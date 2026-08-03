@@ -1,6 +1,6 @@
 #nullable enable
 using OfficeIMO.Security;
-using System.Security.Cryptography.Xml;
+using System.Text;
 using System.Xml;
 
 namespace OfficeIMO.Word {
@@ -10,6 +10,7 @@ namespace OfficeIMO.Word {
             XmlElement signatureValue,
             WordSignatureValidationOptions options,
             string signaturePartUri,
+            IOfficeSecurityProvider securityProvider,
             OfficePackageTimestampValidationBudget timestampBudget,
             List<Rfc3161TimestampVerificationResult> results,
             List<WordSignatureValidationFinding> findings) {
@@ -38,14 +39,18 @@ namespace OfficeIMO.Word {
                 }
                 byte[] timestampedData;
                 try {
-                    timestampedData = CanonicalizeTimestampedSignatureValue(signatureValue, tokenElement);
+                    timestampedData = CanonicalizeTimestampedSignatureValue(
+                        signatureValue,
+                        tokenElement,
+                        securityProvider,
+                        options.MaxSignatureBytes);
                 } catch (NotSupportedException exception) {
                     findings.Add(Finding("TimestampCanonicalizationUnsupported", WordSignatureValidationState.Unsupported,
                         exception.Message, signaturePartUri));
                     continue;
                 }
                 timestampBudget.ReserveVerification();
-                Rfc3161TimestampVerificationResult result = Rfc3161TimestampVerifier.Verify(
+                Rfc3161TimestampVerificationResult result = securityProvider.VerifyTimestamp(
                     encoded,
                     timestampedData,
                     options.TimestampCertificateValidation,
@@ -101,7 +106,7 @@ namespace OfficeIMO.Word {
 
             return signatureElement.ChildNodes
                 .OfType<XmlElement>()
-                .Where(element => element.LocalName == "Object" && element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl)
+                .Where(element => element.LocalName == "Object" && element.NamespaceURI == XmlDigitalSignatureAlgorithms.Namespace)
                 .SelectMany(dataObject => dataObject.ChildNodes.OfType<XmlElement>())
                 .Where(qualifyingProperties =>
                     qualifyingProperties.LocalName == "QualifyingProperties" &&
@@ -130,7 +135,11 @@ namespace OfficeIMO.Word {
                 .ToArray();
         }
 
-        private static byte[] CanonicalizeTimestampedSignatureValue(XmlElement signatureValue, XmlElement tokenElement) {
+        private static byte[] CanonicalizeTimestampedSignatureValue(
+            XmlElement signatureValue,
+            XmlElement tokenElement,
+            IOfficeSecurityProvider securityProvider,
+            long maxOutputBytes) {
             XmlElement? timestampProperty = tokenElement;
             while (timestampProperty != null && !timestampProperty.LocalName.Equals("SignatureTimeStamp", StringComparison.Ordinal)) {
                 timestampProperty = timestampProperty.ParentNode as XmlElement;
@@ -140,45 +149,23 @@ namespace OfficeIMO.Word {
                 .OfType<XmlElement>()
                 .FirstOrDefault(element =>
                     element.LocalName.Equals("CanonicalizationMethod", StringComparison.Ordinal) &&
-                    element.NamespaceURI == SignedXml.XmlDsigNamespaceUrl);
-            string algorithm = canonicalizationMethod?.GetAttribute("Algorithm") ?? SignedXml.XmlDsigC14NTransformUrl;
+                    element.NamespaceURI == XmlDigitalSignatureAlgorithms.Namespace);
+            string algorithm = canonicalizationMethod?.GetAttribute("Algorithm") ?? XmlDigitalSignatureAlgorithms.CanonicalXml;
             string? inclusiveNamespacesPrefixList = canonicalizationMethod?
                 .ChildNodes
                 .OfType<XmlElement>()
                 .FirstOrDefault(element =>
                     element.LocalName.Equals("InclusiveNamespaces", StringComparison.Ordinal) &&
-                    element.NamespaceURI == SignedXml.XmlDsigExcC14NTransformUrl)?
+                    element.NamespaceURI == XmlDigitalSignatureAlgorithms.ExclusiveCanonicalXml)?
                 .GetAttribute("PrefixList");
-
-            Transform transform;
-            switch (algorithm) {
-                case SignedXml.XmlDsigC14NTransformUrl:
-                    transform = new XmlDsigC14NTransform();
-                    break;
-                case SignedXml.XmlDsigC14NWithCommentsTransformUrl:
-                    transform = new XmlDsigC14NWithCommentsTransform();
-                    break;
-                case SignedXml.XmlDsigExcC14NTransformUrl:
-                    transform = new XmlDsigExcC14NTransform {
-                        InclusiveNamespacesPrefixList = inclusiveNamespacesPrefixList
-                    };
-                    break;
-                case SignedXml.XmlDsigExcC14NWithCommentsTransformUrl:
-                    transform = new XmlDsigExcC14NTransform(includeComments: true) {
-                        InclusiveNamespacesPrefixList = inclusiveNamespacesPrefixList
-                    };
-                    break;
-                default:
-                    throw new NotSupportedException("XAdES timestamp canonicalization method " + algorithm + " is not supported.");
-            }
 
             var input = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
             XmlElement imported = (XmlElement)input.ImportNode(signatureValue, deep: true);
             var namespaceNames = new HashSet<string>(StringComparer.Ordinal);
             var inheritedXmlAttributeNames = new HashSet<string>(StringComparer.Ordinal);
             bool includeInheritedXmlAttributes =
-                algorithm == SignedXml.XmlDsigC14NTransformUrl ||
-                algorithm == SignedXml.XmlDsigC14NWithCommentsTransformUrl;
+                algorithm == XmlDigitalSignatureAlgorithms.CanonicalXml ||
+                algorithm == XmlDigitalSignatureAlgorithms.CanonicalXmlWithComments;
             for (XmlElement? ancestor = signatureValue; ancestor != null; ancestor = ancestor.ParentNode as XmlElement) {
                 foreach (XmlAttribute attribute in ancestor.Attributes) {
                     if (attribute.Prefix == "xmlns" || attribute.Name == "xmlns") {
@@ -199,11 +186,11 @@ namespace OfficeIMO.Word {
                 }
             }
             input.AppendChild(imported);
-            transform.LoadInput(input);
-            using Stream canonical = (Stream)transform.GetOutput(typeof(Stream));
-            using var output = new MemoryStream();
-            canonical.CopyTo(output);
-            return output.ToArray();
+            return securityProvider.CanonicalizeXml(
+                Encoding.UTF8.GetBytes(input.OuterXml),
+                algorithm,
+                inclusiveNamespacesPrefixList,
+                maxOutputBytes);
         }
 
         private static WordSignatureValidationState ResolveTimestampStatus(

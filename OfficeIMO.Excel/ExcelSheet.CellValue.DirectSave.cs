@@ -224,6 +224,8 @@ namespace OfficeIMO.Excel {
 
             if (MirrorPendingDirectCellValueBufferToWorksheet || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
                 ApplyPendingDirectCellValueToDom(row, column, value);
+            } else if (value is not DirectFormulaCellValue) {
+                _excelDocument.MarkFormulaInputMutation();
             }
 
             if (!_excelDocument.IsPackageDirty) {

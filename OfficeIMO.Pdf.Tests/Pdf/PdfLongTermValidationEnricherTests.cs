@@ -100,7 +100,7 @@ public class PdfLongTermValidationEnricherTests {
                 FieldName = "LtvSignature",
                 ReservedSignatureContentsBytes = 8192
             });
-        using var signer = new PdfCmsExternalSigner(certificate);
+        using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
         return PdfIncrementalUpdater.ApplyExternalSignature(
             preparation,
             signer.Sign(new PdfExternalSignatureRequest(preparation)));
@@ -109,7 +109,7 @@ public class PdfLongTermValidationEnricherTests {
     private static PdfCmsSignatureCryptographyProvider CreateProvider() {
         var options = new CmsVerificationOptions();
         options.CertificateValidation.ChainEvaluator = static (_, _) => true;
-        return new PdfCmsSignatureCryptographyProvider(options);
+        return new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, options);
     }
 
     private static byte[] TrimDerContainer(byte[] value) {

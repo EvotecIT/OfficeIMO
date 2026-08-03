@@ -45,6 +45,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Conditional formatting icon sets are rendered as deterministic dependency-free approximations.</summary>
     public const string ConditionalIconSetApproximation = "ExcelConditionalIconSetApproximation";
 
+    /// <summary>Office extension conditional-formatting semantics are projected through the dependency-free renderer.</summary>
+    public const string ConditionalExtensionApproximation = "ExcelConditionalExtensionApproximation";
+
     /// <summary>Unsupported conditional formatting color scale variant.</summary>
     public const string ConditionalColorScaleUnsupported = "ExcelConditionalColorScaleUnsupported";
 

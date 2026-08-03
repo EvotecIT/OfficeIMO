@@ -2,10 +2,10 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailTransportBoundaryTests {
     [Fact]
-    public void ArtifactEngineReferencesSecurityButNoMailOrCloudTransportSdk() {
+    public void ArtifactEngineKeepsSecurityAndTransportProvidersOptional() {
         string root = FindRepositoryRoot();
         string project = File.ReadAllText(Path.Combine(root, "OfficeIMO.Email", "OfficeIMO.Email.csproj"));
-        Assert.Contains("OfficeIMO.Security.csproj", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("OfficeIMO.Security.csproj", project, StringComparison.Ordinal);
         Assert.DoesNotContain("MailKit", project, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("MimeKit", project, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Microsoft.Graph", project, StringComparison.OrdinalIgnoreCase);

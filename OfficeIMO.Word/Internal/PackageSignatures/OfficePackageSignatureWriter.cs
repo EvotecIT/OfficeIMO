@@ -6,9 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Xml;
 using System.Xml;
 using System.Xml.Linq;
+using OfficeIMO.Security;
 
 namespace OfficeIMO.Word {
     /// <summary>Options for signing an Open Packaging Convention package.</summary>
@@ -80,6 +80,7 @@ namespace OfficeIMO.Word {
         internal static OfficePackageSigningResult Sign(
             string filePath,
             X509Certificate2 certificate,
+            IOfficeSecurityProvider securityProvider,
             OfficePackageSigningOptions? options = null) {
             options ??= new OfficePackageSigningOptions();
             if (string.IsNullOrWhiteSpace(filePath)) return Failed(filePath ?? string.Empty, "A package path is required.");
@@ -87,6 +88,7 @@ namespace OfficeIMO.Word {
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) return Failed(fullPath, "The package file does not exist.");
             if (certificate == null) return Failed(fullPath, "A signing certificate is required.");
+            if (securityProvider == null) return Failed(fullPath, "An OfficeIMO security provider is required.");
             if (options.MaxPackageParts <= 0) return Failed(fullPath, "MaxPackageParts must be greater than zero.");
             if (options.MaxPackageBytes <= 0) return Failed(fullPath, "MaxPackageBytes must be greater than zero.");
             if (options.MaxPartBytes <= 0) return Failed(fullPath, "MaxPartBytes must be greater than zero.");
@@ -104,8 +106,6 @@ namespace OfficeIMO.Word {
             string stagingPath = string.Empty;
             try {
                 if (!certificate.HasPrivateKey) return Failed(fullPath, "The signing certificate must include a private key.");
-                using RSA? signingKey = certificate.GetRSAPrivateKey();
-                if (signingKey == null) return Failed(fullPath, "OPC package signing requires an RSA certificate with an accessible private key.");
                 IReadOnlyList<X509Certificate2> signingCertificates = ValidateSigningCertificates(certificate, options);
 
                 stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
@@ -114,7 +114,7 @@ namespace OfficeIMO.Word {
                 EnsurePackagePartCountWithinLimit(stagingPath, options);
                 PrepareDigitalSignatureMetadata(stagingPath);
                 byte[] packageBytes = File.ReadAllBytes(stagingPath);
-                SigningPayload payload = CreateSignature(packageBytes, signingCertificates, signingKey, options);
+                SigningPayload payload = CreateSignature(packageBytes, signingCertificates, securityProvider, options);
                 SignaturePartWriteResult write = AddSignaturePart(stagingPath, payload.SignatureXml);
                 EnsureSignedPackageWithinLimits(stagingPath, options);
                 options.BeforeValidation?.Invoke(stagingPath);
@@ -242,12 +242,13 @@ namespace OfficeIMO.Word {
         private static SigningPayload CreateSignature(
             byte[] packageBytes,
             IReadOnlyList<X509Certificate2> signingCertificates,
-            RSA signingKey,
+            IOfficeSecurityProvider securityProvider,
             OfficePackageSigningOptions options) {
             using var package = new OfficePackageSignatureArchive(
                 packageBytes,
                 options.MaxPackageParts,
-                options.MaxPartBytes);
+                options.MaxPartBytes,
+                securityProvider);
             List<string> partUris = ResolvePartUris(package, options, out IReadOnlyList<string> missingPartUris);
             if (missingPartUris.Count > 0) {
                 throw new InvalidOperationException("Requested signing part(s) were not found: " + string.Join(", ", missingPartUris) + ".");
@@ -255,7 +256,7 @@ namespace OfficeIMO.Word {
             if (partUris.Count == 0) throw new InvalidOperationException("No package parts were selected for signing.");
 
             string signatureId = ResolveSignatureId(options.SignatureId);
-            XNamespace ds = SignedXml.XmlDsigNamespaceUrl;
+            XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
             XNamespace opc = DigitalSignatureNamespace;
             var manifest = new XElement(ds + "Manifest");
             int authenticatedReferenceCount = checked(partUris.Count + 1);
@@ -324,46 +325,27 @@ namespace OfficeIMO.Word {
                         new XElement(opc + "Format", "YYYY-MM-DDThh:mm:ss.sTZD"),
                         new XElement(opc + "Value", signingTime.ToString("yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK", System.Globalization.CultureInfo.InvariantCulture)))));
 
-            XmlDocument objectDocument = CreateXmlDocument();
-            objectDocument.LoadXml(new XElement("Root", manifest, signatureProperties).ToString(SaveOptions.DisableFormatting));
-            var packageObject = new DataObject {
-                Id = PackageObjectId,
-                Data = objectDocument.DocumentElement!.ChildNodes
-            };
-
-            XmlDocument signatureDocument = CreateXmlDocument();
-            var signedXml = new SignedXml(signatureDocument) {
-                SigningKey = signingKey
-            };
-            signedXml.Signature.Id = signatureId;
-            signedXml.SignedInfo!.CanonicalizationMethod = SignedXml.XmlDsigC14NTransformUrl;
-            signedXml.SignedInfo.SignatureMethod = ResolveSignatureMethod(options.HashAlgorithm);
-            signedXml.AddObject(packageObject);
-            signedXml.AddReference(new Reference("#" + PackageObjectId) {
-                Type = ObjectReferenceType,
-                DigestMethod = options.HashAlgorithm
-            });
-
-            var keyInfo = new KeyInfo();
-            var x509Data = new KeyInfoX509Data(signingCertificates[0]);
-            for (int certificateIndex = 1; certificateIndex < signingCertificates.Count; certificateIndex++) {
-                x509Data.AddCertificate(signingCertificates[certificateIndex]);
+            byte[] objectXml = System.Text.Encoding.UTF8.GetBytes(
+                new XElement("Root", manifest, signatureProperties).ToString(SaveOptions.DisableFormatting));
+            if (objectXml.LongLength > options.MaxSignatureBytes) {
+                throw new InvalidDataException(
+                    "The generated signature XML exceeds the " + options.MaxSignatureBytes + " byte signing limit.");
             }
-            keyInfo.AddClause(x509Data);
-            signedXml.KeyInfo = keyInfo;
-            signedXml.ComputeSignature();
-
-            XmlElement signature = signedXml.GetXml();
-            signatureDocument.AppendChild(signatureDocument.ImportNode(signature, deep: true));
-            using var output = new SignatureBoundedMemoryStream(options.MaxSignatureBytes);
-            using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
-                Encoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-                Indent = false,
-                OmitXmlDeclaration = false
-            })) {
-                signatureDocument.Save(writer);
-            }
-            return new SigningPayload(output.ToArray(), partUris.Count, relationshipSelectorCount);
+            var request = new XmlDigitalSignatureCreationRequest(
+                objectXml,
+                signingCertificates[0],
+                signatureId,
+                PackageObjectId,
+                ObjectReferenceType,
+                XmlDigitalSignatureAlgorithms.CanonicalXml,
+                ResolveSignatureMethod(options.HashAlgorithm),
+                options.HashAlgorithm) {
+                AdditionalCertificates = signingCertificates.Skip(1).ToArray(),
+                MaxObjectBytes = options.MaxSignatureBytes,
+                MaxOutputBytes = options.MaxSignatureBytes
+            };
+            byte[] signatureXml = securityProvider.CreateXmlSignature(request);
+            return new SigningPayload(signatureXml, partUris.Count, relationshipSelectorCount);
         }
 
         private static SignaturePartWriteResult AddSignaturePart(string packagePath, byte[] signatureXml) {
@@ -501,7 +483,7 @@ namespace OfficeIMO.Word {
             remainingRelationshipSelectors--;
             ids.Sort(StringComparer.Ordinal);
 
-            XNamespace ds = SignedXml.XmlDsigNamespaceUrl;
+            XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
             XNamespace opc = DigitalSignatureNamespace;
             var relationshipTransform = new XElement(
                 ds + "Transform",
@@ -511,14 +493,14 @@ namespace OfficeIMO.Word {
                 OfficePackageSignatureArchive.NormalizePartUri(relationshipPartUri) + "?ContentType=" + Uri.EscapeDataString(OfficePackageSignatureArchive.RelationshipsContentType),
                 options.HashAlgorithm,
                 relationshipTransform,
-                new XElement(ds + "Transform", new XAttribute("Algorithm", SignedXml.XmlDsigC14NTransformUrl)));
+                new XElement(ds + "Transform", new XAttribute("Algorithm", XmlDigitalSignatureAlgorithms.CanonicalXml)));
         }
 
         private static XElement CreateReference(
             string uri,
             string digestMethod,
             params XElement[] transforms) {
-            XNamespace ds = SignedXml.XmlDsigNamespaceUrl;
+            XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
             return new XElement(
                 ds + "Reference",
                 new XAttribute("URI", uri),
@@ -550,7 +532,7 @@ namespace OfficeIMO.Word {
 
         private static bool IsRelationshipPart(string uri) =>
             uri.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) &&
-            (uri.Contains("/_rels/", StringComparison.OrdinalIgnoreCase) || uri.Equals("/_rels/.rels", StringComparison.OrdinalIgnoreCase));
+            (uri.IndexOf("/_rels/", StringComparison.OrdinalIgnoreCase) >= 0 || uri.Equals("/_rels/.rels", StringComparison.OrdinalIgnoreCase));
 
         private static bool IsSignaturePart(string uri) =>
             uri.StartsWith("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) ||
@@ -575,16 +557,16 @@ namespace OfficeIMO.Word {
 
         private static string ResolveSignatureMethod(string digestMethod) {
             switch (digestMethod.Trim()) {
-                case SignedXml.XmlDsigSHA1Url:
-                    return SignedXml.XmlDsigRSASHA1Url;
+                case "http://www.w3.org/2000/09/xmldsig#sha1":
+                    return XmlDigitalSignatureAlgorithms.RsaSha1;
                 case "http://www.w3.org/2001/04/xmlenc#sha256":
                 case "http://www.w3.org/2001/04/xmldsig-more#sha256":
-                    return SignedXml.XmlDsigRSASHA256Url;
+                    return XmlDigitalSignatureAlgorithms.RsaSha256;
                 case "http://www.w3.org/2001/04/xmldsig-more#sha384":
-                    return SignedXml.XmlDsigRSASHA384Url;
+                    return XmlDigitalSignatureAlgorithms.RsaSha384;
                 case "http://www.w3.org/2001/04/xmlenc#sha512":
                 case "http://www.w3.org/2001/04/xmldsig-more#sha512":
-                    return SignedXml.XmlDsigRSASHA512Url;
+                    return XmlDigitalSignatureAlgorithms.RsaSha512;
                 default:
                     throw new NotSupportedException("The OPC package signature hash algorithm is not supported: " + digestMethod + ".");
             }

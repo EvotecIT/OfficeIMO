@@ -97,7 +97,13 @@ namespace OfficeIMO.Excel {
                     ExcelFormatCapabilityStatus.CompatibleRecipe,
                     ExcelFormatCapabilityStatus.Unsupported,
                     ExcelFormatCapabilityStatus.Unsupported,
-                    "XLSX recipes use classic chart primitives for broad Excel compatibility; true ChartEx authoring is not yet implemented."),
+                    "These helpers intentionally use classic chart primitives; native ChartEx has a separate authoring surface."),
+                new ExcelFormatCapabilityEntry(
+                    "Native ChartEx authoring and mutation",
+                    ExcelFormatCapabilityStatus.NativeSubset,
+                    ExcelFormatCapabilityStatus.Unsupported,
+                    ExcelFormatCapabilityStatus.PreserveOnly,
+                    "XLSX supports funnel, waterfall, box-and-whisker, treemap, and sunburst authoring plus title, layout, placement, and authored-data mutation; unknown imported markup is preserved."),
                 new ExcelFormatCapabilityEntry(
                     "Pivot table authoring",
                     ExcelFormatCapabilityStatus.NativeSubset,
@@ -110,6 +116,18 @@ namespace OfficeIMO.Excel {
                     ExcelFormatCapabilityStatus.Unsupported,
                     ExcelFormatCapabilityStatus.Unsupported,
                     "XLSX source updates validate headers, guard shared caches, invalidate stale records, and request refresh on open."),
+                new ExcelFormatCapabilityEntry(
+                    "Native slicer and timeline views",
+                    ExcelFormatCapabilityStatus.NativeSubset,
+                    ExcelFormatCapabilityStatus.PreserveOnly,
+                    ExcelFormatCapabilityStatus.PreserveOnly,
+                    "XLSX authors native views for supported PivotTable fields, reuses shared caches, remaps drawing placement during structural edits, and preserves unsupported imported siblings."),
+                new ExcelFormatCapabilityEntry(
+                    "Query-backed table refresh",
+                    ExcelFormatCapabilityStatus.NativeSubset,
+                    ExcelFormatCapabilityStatus.Unsupported,
+                    ExcelFormatCapabilityStatus.PreserveOnly,
+                    "XLSX query tables can be authored and refreshed only through an explicit caller host, execution policy, cancellation token, and bounded transactional materialization."),
                 new ExcelFormatCapabilityEntry(
                     "Slicer cache metadata",
                     ExcelFormatCapabilityStatus.MetadataOnly,

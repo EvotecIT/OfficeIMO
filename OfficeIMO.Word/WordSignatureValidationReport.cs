@@ -225,8 +225,8 @@ namespace OfficeIMO.Word {
                 .SelectMany(signature => signature.Findings)
                 .ToArray();
             string[] findings = structural.Findings
-                .Where(finding => !finding.Contains("not part of this structural-only report", StringComparison.OrdinalIgnoreCase) &&
-                                  !finding.Contains("only RFC 3161 tokens can establish", StringComparison.OrdinalIgnoreCase))
+                .Where(finding => finding.IndexOf("not part of this structural-only report", StringComparison.OrdinalIgnoreCase) < 0 &&
+                                  finding.IndexOf("only RFC 3161 tokens can establish", StringComparison.OrdinalIgnoreCase) < 0)
                 .Concat(diagnostics.Select(diagnostic => diagnostic.Message))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();

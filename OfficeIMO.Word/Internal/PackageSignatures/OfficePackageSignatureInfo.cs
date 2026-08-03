@@ -1,5 +1,6 @@
 #nullable enable
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Security;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -226,7 +227,8 @@ namespace OfficeIMO.Word {
             int maxCertificates = 64,
             long maxCertificateBytes = 4L * 1024 * 1024,
             long maxTotalCertificateBytes = 64L * 1024 * 1024,
-            bool verifyDigests = true) {
+            bool verifyDigests = true,
+            IOfficeSecurityProvider? securityProvider = null) {
             if (package == null) throw new ArgumentNullException(nameof(package));
             if (maxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificates));
             if (maxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificateBytes));
@@ -244,7 +246,11 @@ namespace OfficeIMO.Word {
             string? digestInspectionUnavailableDetail = null;
             if (packageBytes != null) {
                 try {
-                    signatureArchive = new OfficePackageSignatureArchive(packageBytes, maxPackageParts, maxPartBytes);
+                    signatureArchive = new OfficePackageSignatureArchive(
+                        packageBytes,
+                        maxPackageParts,
+                        maxPartBytes,
+                        securityProvider);
                 } catch (OfficePackageSignatureResourceLimitException ex) {
                     digestInspectionUnavailableDetail = "Digest inspection was not performed because the bounded OPC archive could not be opened: " + ex.Message;
                     unsupportedDetails.Add(digestInspectionUnavailableDetail);

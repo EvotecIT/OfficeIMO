@@ -32,7 +32,7 @@ public class PdfExternalEngineProofTests {
         byte[] signed = Sign(rewritten, certificate);
         var options = new CmsVerificationOptions();
         options.CertificateValidation.ChainEvaluator = static (_, _) => true;
-        var provider = new PdfCmsSignatureCryptographyProvider(options);
+        var provider = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, options);
         PdfSignatureValidationReport signatureReport = PdfSignatureValidator.Validate(signed, provider);
         Assert.True(signatureReport.IsStructurallyValid);
         Assert.True(signatureReport.MathematicalSignaturesVerified);
@@ -62,7 +62,7 @@ public class PdfExternalEngineProofTests {
                 },
                 ReservedSignatureContentsBytes = 8192
             });
-        using var signer = new PdfCmsExternalSigner(certificate);
+        using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
         return PdfIncrementalUpdater.ApplyExternalSignature(
             preparation,
             signer.Sign(new PdfExternalSignatureRequest(preparation)));

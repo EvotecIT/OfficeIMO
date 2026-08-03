@@ -324,6 +324,26 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>Transactionally inserts a cell block at this range.</summary>
+        public ExcelMutationResult Insert(ExcelCellShiftDirection direction, ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+            Sheet.InsertCells(Address, direction, options, cancellationToken);
+
+        /// <summary>Transactionally deletes this cell block.</summary>
+        public ExcelMutationResult Delete(ExcelCellShiftDirection direction, ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+            Sheet.DeleteCells(Address, direction, options, cancellationToken);
+
+        /// <summary>Copies this range to a destination top-left cell.</summary>
+        public ExcelMutationResult CopyTo(string destinationTopLeft, ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+            Sheet.CopyRange(Address, destinationTopLeft, options, cancellationToken);
+
+        /// <summary>Moves this range to a destination top-left cell.</summary>
+        public ExcelMutationResult MoveTo(string destinationTopLeft, ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+            Sheet.MoveRange(Address, destinationTopLeft, options, cancellationToken);
+
+        /// <summary>Copies this range to a destination with rows and columns transposed.</summary>
+        public ExcelMutationResult TransposeTo(string destinationTopLeft, ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+            Sheet.TransposeRange(Address, destinationTopLeft, options, cancellationToken);
+
         /// <summary>
         /// Applies AutoFilter to the range using optional zero-based column criteria.
         /// </summary>
@@ -557,6 +577,25 @@ namespace OfficeIMO.Excel {
         public ExcelTable ClearTotals() {
             Sheet.ClearTableTotals(NameOrRange);
             return this;
+        }
+
+        /// <summary>Renames this table and its workbook references.</summary>
+        public ExcelTable Rename(string newName, TableNameValidationMode validationMode = TableNameValidationMode.Strict) {
+            return new ExcelTable(Sheet, Sheet.RenameTable(NameOrRange, newName, validationMode));
+        }
+
+        /// <summary>Replaces the table's ordered column schema and optionally resizes its range.</summary>
+        public ExcelTable SetSchema(IReadOnlyList<string> columnNames, string? newRange = null) {
+            string stableName = Sheet.ResolveTableName(NameOrRange);
+            Sheet.SetTableSchema(stableName, columnNames, newRange);
+            return new ExcelTable(Sheet, stableName);
+        }
+
+        /// <summary>Resizes the table, preserving current column names where possible.</summary>
+        public ExcelTable Resize(string newRange) {
+            string stableName = Sheet.ResolveTableName(NameOrRange);
+            Sheet.ResizeTable(stableName, newRange);
+            return new ExcelTable(Sheet, stableName);
         }
 
         /// <summary>

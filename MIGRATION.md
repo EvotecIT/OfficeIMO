@@ -24,8 +24,45 @@ The repository source is on the coordinated `3.1.x` line; the latest NuGet relea
 | `OfficeIMO.OpenDocument.Pdf` | Install only the required `OfficeIMO.OpenDocument.Odt.Pdf`, `OfficeIMO.OpenDocument.Ods.Pdf`, or `OfficeIMO.OpenDocument.Odp.Pdf` adapter. |
 | `OfficeIMO.Reader.Tool` and the `officeimo-reader` executable | `OfficeIMO.Tool` and the `officeimo reader` command area. |
 | Public `SixLabors.ImageSharp` color/image helper types | First-party `OfficeIMO.Drawing` types such as `OfficeColor`. |
+| Cryptographic operations reached through a format package's transitive `OfficeIMO.Security` dependency | Install `OfficeIMO.Security` explicitly and pass `OfficeSecurityProvider.Default` through the format API. |
 
 There is no replacement umbrella OpenDocument PDF package. The focused packages keep Word, Excel, and PowerPoint dependencies out of applications that do not use those routes.
+
+### Optional security provider
+
+Word, PDF, and Email no longer pull cryptographic packages into applications that only create, read, inspect, or
+convert documents. Applications that create or cryptographically validate signatures, or decrypt S/MIME content,
+must add the optional provider explicitly:
+
+```powershell
+dotnet add package OfficeIMO.Security
+```
+
+```csharp
+using OfficeIMO.Security;
+
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
+```
+
+Pass that provider to the format-owned operation. The format package continues to own byte ranges, package parts,
+relationships, signed-content selection, preservation policy, and document mutation. `OfficeIMO.Security` owns CMS,
+XML DSig, X.509, and RFC 3161 cryptography.
+
+| OfficeIMO 3.0 call shape | OfficeIMO 3.1 call shape |
+| --- | --- |
+| `WordDocument.SignPackage(path, certificateOrThumbprint, ...)` | `WordDocument.SignPackage(path, security, certificateOrThumbprint, ...)` |
+| `document.ValidateSignatures(options)` | `document.ValidateSignatures(security, options)` |
+| `WordDocument.SignMacroProject(path, certificateThumbprint, options)` | `WordDocument.SignMacroProject(path, security, certificateThumbprint, options)` |
+| `WordDocument.ValidateMacroProjectSignature(path, options)` | `WordDocument.ValidateMacroProjectSignature(path, security, options)` |
+| `new PdfCmsExternalSigner(certificate, ...)` | `new PdfCmsExternalSigner(security, certificate, ...)` |
+| `new PdfCmsSignatureCryptographyProvider(options)` | `new PdfCmsSignatureCryptographyProvider(security, options)` |
+| `EmailSmime.Verify(document, options)` | `EmailSmime.Verify(document, security, options)` |
+| `EmailSmime.Decrypt(document, certificate, options)` | `EmailSmime.Decrypt(document, certificate, security, options)` |
+
+Structural signature inspection and fail-safe mutation policies remain available without the optional package. Excel,
+PowerPoint, Visio, OpenDocument, and EPUB currently inspect or safely handle their native signature carriers without
+claiming cryptographic validation; they do not require `OfficeIMO.Security` until a provider-backed format adapter is
+implemented.
 
 | Route | Focused package | Reverse entry point |
 | --- | --- | --- |
@@ -180,7 +217,7 @@ reader options or the resulting worksheet/table when those details are needed.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
-The shared `OfficeRenderingProfile` and Excel structural row mutation methods `PlanInsertRows(...)` and `PlanDeleteRows(...)` are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy, and use a mutation plan when an application must inspect workbook impact before applying a row change.
+The shared `OfficeRenderingProfile` and Excel structural mutation planning APIs are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy. Use `PlanInsertRows(...)` / `PlanDeleteRows(...)`, `PlanInsertColumns(...)` / `PlanDeleteColumns(...)`, or the range mutation plans when an application must inspect workbook impact before a transactional change; existing direct mutation calls remain available.
 
 ### PDF conversion and import
 
@@ -376,7 +413,7 @@ OfficeIMO 2.0 established the shared lifecycle and result vocabulary used by the
 
 ### Shared foundation package
 
-The compiled `OfficeIMO.Shared` implementation package no longer exists. `OfficeIMO.SharedSource` is source-only and is not a runtime package replacement. Move direct package references and namespace imports to the public owner of each reusable value: shared colors, fonts, images, charts, lifecycle options, stream contracts, and export results belong to `OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; neutral CMS, X.509, and RFC 3161 contracts belong to `OfficeIMO.Security`. Native document behavior remains in its format package.
+The compiled `OfficeIMO.Shared` implementation package no longer exists. `OfficeIMO.SharedSource` is source-only and is not a runtime package replacement. Move direct package references and namespace imports to the public owner of each reusable value: shared colors, fonts, images, charts, lifecycle options, stream contracts, export results, and dependency-free security provider contracts belong to `OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; the optional concrete CMS, XML DSig, X.509, and RFC 3161 provider belongs to `OfficeIMO.Security`. Native document behavior remains in its format package.
 
 There is no `OfficeIMO.Core` package and no `.Drawing`-to-`.Core` rename. Native packages own parsing, loading, editing, validation, and serialization for their formats. Adapter packages project one native model into another rather than exposing another parser or document model. `OfficeIMO.Html` owns the canonical HTML source model and resource policy; format adapters consume it. These ownership changes replace direct use of the former shared implementation layer rather than introducing a catch-all dependency.
 

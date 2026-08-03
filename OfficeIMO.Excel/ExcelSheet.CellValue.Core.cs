@@ -85,10 +85,11 @@ namespace OfficeIMO.Excel {
             var (cellValue, dataType) = CoerceForCell(value);
 
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = cellValue;
             cell.DataType = dataType;
             ApplyAutomaticCellFormatting(cell, value, dataType);
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private void CellStringValueCore(int row, int column, string? value) {
@@ -97,7 +98,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            CoerceValueHelper.ValidateSharedStringLength(value!, nameof(value));
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             string text = value!;
             if (TryGetCellValueSharedStringIndex(text, out int cachedSharedStringIndex, out bool cachedContainsLineBreak)) {
                 SetExistingCellSharedStringValue(cell, cachedSharedStringIndex, cachedContainsLineBreak);
@@ -113,7 +116,7 @@ namespace OfficeIMO.Excel {
                 SetExistingCellPlainStringValue(cell, text);
             }
 
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private bool TryGetCellValueSharedStringIndex(string text, out int index, out bool containsLineBreak) {
@@ -143,10 +146,11 @@ namespace OfficeIMO.Excel {
 
         private void CellEmptyStringValueCore(int row, int column) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(string.Empty);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
             cell.InlineString = null;
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private void SetExistingCellSharedStringValue(Cell cell, string value, int sharedStringIndex) {
@@ -173,49 +177,55 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellDoubleValueCore(int row, int column, double value) {
+            string text = InvariantNumberText.Get(value);
             var cell = GetCell(row, column);
-            cell.CellValue = new CellValue(InvariantNumberText.Get(value));
+            ClearCellValueMetadata(cell);
+            cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private void CellDecimalValueCore(int row, int column, decimal value) {
+            string text = value.ToString(CultureInfo.InvariantCulture);
             var cell = GetCell(row, column);
-            cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
+            ClearCellValueMetadata(cell);
+            cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private void CellNumberTextValueCore(int row, int column, string text) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private void CellBooleanValueCore(int row, int column, bool value) {
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(value ? "1" : "0");
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private void CellDateTimeValueCore(int row, int column, DateTime value) {
             double serial = ExcelDateSystemConverter.ToSerial(value, _excelDocument.DateSystem);
+            string text = InvariantNumberText.Get(serial);
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
+            cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
                 : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value) {
             var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
-            var cell = GetCell(row, column);
-
             DateTime converted;
             try {
                 converted = dateTimeOffsetStrategy(value);
@@ -223,19 +233,11 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("The configured DateTimeOffset write strategy threw an exception.", ex);
             }
 
+            string? numericText = null;
             if (value.UtcDateTime >= CellValueExcelMinimumSupportedDate) {
                 try {
                     double serial = ExcelDateSystemConverter.ToSerial(converted, _excelDocument.DateSystem);
-                    cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
-                    cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-
-                    uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-                    cell.StyleIndex = baseStyleIndex == 0U
-                        ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
-                        : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
-
-                    ClearHeaderCacheForCellMutation(row, column);
-                    return;
+                    numericText = InvariantNumberText.Get(serial);
                 } catch (ArgumentException) {
                     // Fall back to ISO text below for values Excel cannot represent numerically.
                 } catch (OverflowException) {
@@ -243,53 +245,92 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            if (numericText != null) {
+                var numericCell = GetCell(row, column);
+                ClearCellValueMetadata(numericCell);
+                numericCell.CellValue = new CellValue(numericText);
+                numericCell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+
+                uint baseStyleIndex = numericCell.StyleIndex?.Value ?? 0U;
+                numericCell.StyleIndex = baseStyleIndex == 0U
+                    ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
+                    : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
+
+                CompleteCellValueMutation(row, column);
+                return;
+            }
+
             string fallbackText = value.ToString("o", CultureInfo.InvariantCulture);
             int sharedStringIndex = _excelDocument.GetSharedStringIndex(fallbackText, validateNewString: true, out bool containsLineBreak);
-            SetExistingCellSharedStringValue(cell, sharedStringIndex, containsLineBreak);
-            ClearHeaderCacheForCellMutation(row, column);
+            var fallbackCell = GetCell(row, column);
+            ClearCellValueMetadata(fallbackCell);
+            SetExistingCellSharedStringValue(fallbackCell, sharedStringIndex, containsLineBreak);
+            CompleteCellValueMutation(row, column);
         }
 
 #if NET6_0_OR_GREATER
         private void CellDateOnlyValueCore(int row, int column, DateOnly value) {
+            string text = InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(
+                value.ToDateTime(TimeOnly.MinValue),
+                _excelDocument.DateSystem));
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(value.ToDateTime(TimeOnly.MinValue), _excelDocument.DateSystem)));
+            cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
                 : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 
         private void CellTimeOnlyValueCore(int row, int column, TimeOnly value) {
+            string text = InvariantNumberText.Get(value.ToTimeSpan().TotalDays);
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(InvariantNumberText.Get(value.ToTimeSpan().TotalDays));
+            cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDurationStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 46))
                 : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDurationStyleIndexes, baseStyleIndex, 46);
-            ClearHeaderCacheForCellMutation(row, column);
+            CompleteCellValueMutation(row, column);
         }
 #endif
 
         private void CellFormulaCore(int row, int column, string formula) {
-            Cell cell = GetCell(row, column);
-            // Excel formulas in XML should not start with '=' and must not include illegal control characters
             var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
+            Cell cell = GetCell(row, column);
+            bool retainsCachedValue = cell.CellValue != null;
+            ClearCellValueMetadata(cell);
+            // Excel formulas in XML should not start with '=' and must not include illegal control characters
             cell.CellFormula = new CellFormula(safe);
+            if (retainsCachedValue) {
+                cell.CellFormula.CalculateCell = true;
+            }
+            _excelDocument.MarkFormulaAuthored(
+                _worksheetPart,
+                A1.CellReference(row, column),
+                retainedCachedValue: retainsCachedValue);
             ClearHeaderCacheForCellMutation(row, column);
         }
 
         private void CellTimeSpanValueCore(int row, int column, TimeSpan value) {
             double serial = value.TotalDays;
+            string text = InvariantNumberText.Get(serial);
             var cell = GetCell(row, column);
+            ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
+            cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDurationStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 46))
                 : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDurationStyleIndexes, baseStyleIndex, 46);
+            CompleteCellValueMutation(row, column);
+        }
+
+        private void CompleteCellValueMutation(int row, int column) {
+            _excelDocument.MarkFormulaInputMutation();
             ClearHeaderCacheForCellMutation(row, column);
         }
 

@@ -9,8 +9,13 @@ namespace OfficeIMO.Excel {
         private readonly Stream _inner;
         private readonly long _maximumBytes;
         private readonly bool _leaveOpen;
+        private readonly CancellationToken _cancellationToken;
 
-        internal ExcelBoundedSeekableStream(Stream inner, long maximumBytes, bool leaveOpen = false) {
+        internal ExcelBoundedSeekableStream(
+            Stream inner,
+            long maximumBytes,
+            bool leaveOpen = false,
+            CancellationToken cancellationToken = default) {
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             if (!inner.CanSeek || !inner.CanWrite) {
                 throw new ArgumentException("The staging stream must be seekable and writable.", nameof(inner));
@@ -18,6 +23,7 @@ namespace OfficeIMO.Excel {
             if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
             _maximumBytes = maximumBytes;
             _leaveOpen = leaveOpen;
+            _cancellationToken = cancellationToken;
         }
 
         public override bool CanRead => _inner.CanRead;
@@ -56,6 +62,7 @@ namespace OfficeIMO.Excel {
         }
 
         public override void SetLength(long value) {
+            _cancellationToken.ThrowIfCancellationRequested();
             EnsureWithinLimit(value);
             _inner.SetLength(value);
         }
@@ -81,6 +88,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void EnsureWriteWithinLimit(int count) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
             EnsureWithinLimit(checked(_inner.Position + count));
         }

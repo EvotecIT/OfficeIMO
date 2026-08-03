@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,9 +28,9 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
 
             EnsureTargetDirectory(targetPath);
-            string temporaryPath = CreateTemporaryPath(targetPath);
+            string temporaryPath = string.Empty;
             try {
-                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                using (var stream = CreateTemporaryFile(targetPath, FileOptions.None, out temporaryPath)) {
                     writer(stream);
                     stream.Flush();
                 }
@@ -60,9 +61,9 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
             EnsureTargetDirectory(targetPath);
             string fullTargetPath = GetFullTargetPath(targetPath);
-            string temporaryPath = CreateTemporaryPath(fullTargetPath);
+            string temporaryPath = string.Empty;
             try {
-                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                using (var stream = CreateTemporaryFile(fullTargetPath, FileOptions.None, out temporaryPath)) {
                     stream.Write(bytes, 0, bytes.Length);
                     stream.Flush();
                 }
@@ -87,9 +88,9 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
 
             EnsureTargetDirectory(targetPath);
-            string temporaryPath = CreateTemporaryPath(targetPath);
+            string temporaryPath = string.Empty;
             try {
-                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+                using (var stream = CreateTemporaryFile(targetPath, FileOptions.Asynchronous, out temporaryPath, 8192)) {
 #if NET6_0_OR_GREATER
                     await stream.WriteAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
 #else
@@ -119,9 +120,9 @@ namespace OfficeIMO.Drawing.Internal {
             cancellationToken.ThrowIfCancellationRequested();
             EnsureTargetDirectory(targetPath);
             string fullTargetPath = GetFullTargetPath(targetPath);
-            string temporaryPath = CreateTemporaryPath(fullTargetPath);
+            string temporaryPath = string.Empty;
             try {
-                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+                using (var stream = CreateTemporaryFile(fullTargetPath, FileOptions.Asynchronous, out temporaryPath, 8192)) {
 #if NET6_0_OR_GREATER
                     await stream.WriteAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
 #else
@@ -151,9 +152,9 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
             cancellationToken.ThrowIfCancellationRequested();
             EnsureTargetDirectory(targetPath);
-            string temporaryPath = CreateTemporaryPath(targetPath);
+            string temporaryPath = string.Empty;
             try {
-                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+                using (var stream = CreateTemporaryFile(targetPath, FileOptions.Asynchronous, out temporaryPath, 8192)) {
                     writer(stream);
                     cancellationToken.ThrowIfCancellationRequested();
                     await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -180,10 +181,9 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
             cancellationToken.ThrowIfCancellationRequested();
             EnsureTargetDirectory(targetPath);
-            string temporaryPath = CreateTemporaryPath(targetPath);
+            string temporaryPath = string.Empty;
             try {
-                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite,
-                           FileShare.None, 8192, FileOptions.Asynchronous)) {
+                using (var stream = CreateTemporaryFile(targetPath, FileOptions.Asynchronous, out temporaryPath, 8192)) {
                     await writer(stream, cancellationToken).ConfigureAwait(false);
                     cancellationToken.ThrowIfCancellationRequested();
                     await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -207,6 +207,17 @@ namespace OfficeIMO.Drawing.Internal {
 
             string fileName = Path.GetFileName(fullTargetPath);
             return Path.Combine(directory, $".{fileName}.{Guid.NewGuid():N}.tmp");
+        }
+
+        /// <summary>Creates an owner-only same-directory staging file suitable for an atomic commit.</summary>
+        public static FileStream CreateTemporaryFile(
+            string targetPath,
+            FileOptions options,
+            out string temporaryPath,
+            int bufferSize = 81920) {
+            EnsureTargetDirectory(targetPath);
+            temporaryPath = CreateTemporaryPath(targetPath);
+            return OfficeTemporaryFile.CreateAtPath(temporaryPath, bufferSize, options);
         }
 
         /// <summary>Creates a same-directory staging path that preserves the destination extension.</summary>
@@ -412,14 +423,12 @@ namespace OfficeIMO.Drawing.Internal {
                 // The destination appeared after the existence check. Replace it below.
             }
 
-#if NET6_0_OR_GREATER
-            if (!OperatingSystem.IsWindows()) {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 // A rename/replace installs the staging inode on Unix. Apply the existing
                 // destination's mode first so a restrictive workbook or document cannot be
                 // widened to the staging file's default umask-derived permissions.
-                File.SetUnixFileMode(temporaryPath, File.GetUnixFileMode(fullTargetPath));
+                OfficeTemporaryFile.CopyUnixFileMode(fullTargetPath, temporaryPath);
             }
-#endif
 
             try {
                 ExecuteWithRetry(() => File.Replace(temporaryPath, fullTargetPath, destinationBackupFileName: null));
@@ -561,6 +570,7 @@ namespace OfficeIMO.Drawing.Internal {
 
             try {
                 if (File.Exists(targetPath)) return false;
+                OfficeTemporaryFile.ApplyDefaultUnixCreationMode(sourcePath);
                 try {
                     ExecuteWithRetry(() => File.Move(sourcePath, targetPath));
                     return true;

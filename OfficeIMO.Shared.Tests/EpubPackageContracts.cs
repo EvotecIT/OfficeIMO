@@ -59,6 +59,13 @@ public sealed class EpubPackageContractTests {
             item.Severity == EpubDiagnosticSeverity.Warning &&
             item.Path == "EPUB/protected.bin");
         Assert.Contains(document.Diagnostics, item => item.Code == "epub.layout.fixed");
+        Assert.True(document.HasSignatures);
+        Assert.True(document.Signatures.IsWellFormed);
+        Assert.Equal(1, document.Signatures.XmlSignatureCount);
+        Assert.Contains(document.Diagnostics, item =>
+            item.Code == "epub.signatures.present" &&
+            item.Severity == EpubDiagnosticSeverity.Info &&
+            item.Path == "META-INF/signatures.xml");
         Assert.DoesNotContain(document.Warnings, warning => warning.Contains("font obfuscation", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(document.Warnings, warning => warning.Contains("unsupported encryption", StringComparison.OrdinalIgnoreCase));
     }
@@ -278,6 +285,11 @@ public sealed class EpubPackageContractTests {
                 "<enc:EncryptedData><enc:EncryptionMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#aes256-cbc\"/>" +
                 "<enc:CipherData><enc:CipherReference URI=\"EPUB/protected.bin\"/></enc:CipherData></enc:EncryptedData>" +
                 "</encryption>");
+            WriteTextEntry(
+                archive,
+                "META-INF/signatures.xml",
+                "<signatures xmlns=\"http://www.idpf.org/2016/encryption#\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">" +
+                "<ds:Signature><ds:SignedInfo/></ds:Signature></signatures>");
             WriteTextEntry(
                 archive,
                 "EPUB/package.opf",

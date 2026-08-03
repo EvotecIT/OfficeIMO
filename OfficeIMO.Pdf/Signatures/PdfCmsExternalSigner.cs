@@ -5,24 +5,29 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>First-party PDF detached-CMS signer backed by the shared OfficeIMO security engine.</summary>
 public sealed class PdfCmsExternalSigner : IPdfExternalSigner, IDisposable {
+    private readonly IOfficeSecurityProvider _securityProvider;
     private readonly X509Certificate2 _certificate;
     private readonly List<X509Certificate2> _certificateChain;
     private bool _disposed;
 
     /// <summary>Creates an RSA CMS signer and clones the certificate handles used by it.</summary>
     public PdfCmsExternalSigner(
+        IOfficeSecurityProvider securityProvider,
         X509Certificate2 certificate,
         string? name = null,
         CmsSigningOptions? signingOptions = null,
         IEnumerable<X509Certificate2>? certificateChain = null) {
 #if NETSTANDARD2_0 || NET472
+        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
         if (certificate == null) throw new ArgumentNullException(nameof(certificate));
 #else
+        ArgumentNullException.ThrowIfNull(securityProvider);
         ArgumentNullException.ThrowIfNull(certificate);
 #endif
         if (!certificate.HasPrivateKey) {
             throw new ArgumentException("The signing certificate must include a private key.", nameof(certificate));
         }
+        _securityProvider = securityProvider;
         _certificate = new X509Certificate2(certificate);
         _certificateChain = certificateChain?.Select(static item => new X509Certificate2(item)).ToList()
             ?? new List<X509Certificate2>();
@@ -44,7 +49,7 @@ public sealed class PdfCmsExternalSigner : IPdfExternalSigner, IDisposable {
         ArgumentNullException.ThrowIfNull(request);
 #endif
         ThrowIfDisposed();
-        return CmsSignedDataSigner.SignDetached(
+        return _securityProvider.SignCmsDetached(
             request.SignedContent,
             _certificate,
             SigningOptions,

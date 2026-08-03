@@ -733,8 +733,15 @@ namespace OfficeIMO.Excel {
             values[2] += rowDelta;
             values[4] += columnDelta;
             values[6] += rowDelta;
-            if (values[0] < 0 || values[2] < 0 || values[4] < 0 || values[6] < 0) {
-                return false;
+            if (values[0] < 0
+                || values[2] < 0
+                || values[4] < 0
+                || values[6] < 0
+                || values[0] >= A1.MaxColumns
+                || values[4] >= A1.MaxColumns
+                || values[2] >= A1.MaxRows
+                || values[6] >= A1.MaxRows) {
+                throw new InvalidOperationException("Moving the comment would place its VML anchor outside worksheet limits.");
             }
 
             anchor!.Value = string.Join(
@@ -801,8 +808,8 @@ namespace OfficeIMO.Excel {
                 || values[2] < 0
                 || values[4] < 0
                 || values[6] < 0
-                || values[2] > A1.MaxRows
-                || values[6] > A1.MaxRows) {
+                || values[2] >= A1.MaxRows
+                || values[6] >= A1.MaxRows) {
                 return false;
             }
 
@@ -816,6 +823,60 @@ namespace OfficeIMO.Excel {
             anchor!.Value = string.Join(
                 ", ",
                 values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
+            return true;
+        }
+
+        private static bool RemapVmlAnchorColumns(
+            XElement? anchor,
+            int firstAffectedColumn,
+            int count,
+            bool deleting,
+            VmlAnchorPlacement placement) {
+            if (!TryParseVmlAnchor(anchor, out int[] values)
+                || placement == VmlAnchorPlacement.Absolute) return false;
+
+            int originalFromColumn = values[0];
+            int originalToColumn = values[4];
+            if (placement == VmlAnchorPlacement.OneCell) {
+                ExcelReference point = ExcelReference.Parse(A1.CellReference(1, values[0] + 1));
+                ExcelReference? mapped = ExcelDocument.TransformColumnReference(
+                    point,
+                    firstAffectedColumn,
+                    firstAffectedColumn + count - 1,
+                    count,
+                    deleting);
+                int newFromColumn = mapped?.Start.Column - 1 ?? firstAffectedColumn - 1;
+                int actualDelta = newFromColumn - values[0];
+                values[0] = newFromColumn;
+                values[4] += actualDelta;
+            } else {
+                int firstSpannedColumn = values[0] + 1;
+                int lastSpannedColumn = values[4];
+                if (lastSpannedColumn >= firstSpannedColumn) {
+                    ExcelReference span = ExcelReference.Parse(
+                        A1.CellReference(1, firstSpannedColumn) + ":" +
+                        A1.CellReference(1, lastSpannedColumn));
+                    ExcelReference? mapped = ExcelDocument.TransformColumnReference(
+                        span,
+                        firstAffectedColumn,
+                        firstAffectedColumn + count - 1,
+                        count,
+                        deleting);
+                    if (mapped == null) {
+                        values[0] = firstAffectedColumn - 1;
+                        values[4] = firstAffectedColumn - 1;
+                    } else {
+                        mapped.GetBounds(out _, out int firstColumn, out _, out int lastColumn);
+                        values[0] = firstColumn - 1;
+                        values[4] = lastColumn;
+                    }
+                }
+            }
+
+            if (values[0] < 0 || values[4] < 0
+                || values[0] >= A1.MaxColumns || values[4] >= A1.MaxColumns) return false;
+            if (values[0] == originalFromColumn && values[4] == originalToColumn) return false;
+            anchor!.Value = string.Join(", ", values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
             return true;
         }
 

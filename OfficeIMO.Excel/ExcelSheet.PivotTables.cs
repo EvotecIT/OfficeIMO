@@ -544,7 +544,6 @@ namespace OfficeIMO.Excel {
                     ColumnGrandTotals = showColumnGrandTotals,
                     MultipleFieldFilters = true,
                     DataCaption = "Values",
-                    PivotTableStyleName = string.IsNullOrWhiteSpace(pivotStyleName) ? null : pivotStyleName,
                     Location = new Location {
                         Reference = pivotRef,
                         FirstHeaderRow = 1U,
@@ -555,6 +554,9 @@ namespace OfficeIMO.Excel {
                     PivotFilters = pivotFiltersElement,
                     DataFields = dataFieldsElement
                 };
+                if (!string.IsNullOrWhiteSpace(pivotStyleName)) {
+                    pivotDefinition.PivotTableStyleName = pivotStyleName;
+                }
 
                 if (rowFieldsElement != null) pivotDefinition.RowFields = rowFieldsElement;
                 if (columnFieldsElement != null) pivotDefinition.ColumnFields = columnFieldsElement;

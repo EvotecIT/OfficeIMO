@@ -40,7 +40,7 @@ namespace OfficeIMO.Word {
                         LimitFlags = JobObjectLimitKillOnJobClose
                     }
                 };
-                int size = Marshal.SizeOf(typeof(JobObjectExtendedLimitInformation));
+                int size = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
                 if (!SetInformationJobObject(job, JobObjectExtendedLimitInformationClass, ref limits, size)) {
                     detail = new Win32Exception(Marshal.GetLastWin32Error()).Message;
                     return false;
@@ -79,7 +79,7 @@ namespace OfficeIMO.Word {
         }
 
         private bool TryGetActiveProcessCount(out uint activeProcesses) {
-            int size = Marshal.SizeOf(typeof(JobObjectBasicAccountingInformation));
+            int size = Marshal.SizeOf<JobObjectBasicAccountingInformation>();
             bool succeeded = QueryInformationJobObject(
                 _job,
                 JobObjectBasicAccountingInformationClass,

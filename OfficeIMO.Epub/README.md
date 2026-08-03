@@ -34,6 +34,20 @@ foreach (string warning in book.Warnings) {
 }
 ```
 
+### Inspect package signatures
+
+```csharp
+EpubDocument book = EpubDocument.Load("signed.epub");
+
+if (book.HasSignatures) {
+    Console.WriteLine($"Signature elements: {book.Signatures.SignatureCount}");
+    Console.WriteLine($"Well-formed signatures.xml: {book.Signatures.IsWellFormed}");
+}
+```
+
+The parser reads `META-INF/signatures.xml` under the normal bounded package limits and reports malformed signature
+metadata. It does not claim cryptographic validation and does not require `OfficeIMO.Security`.
+
 ### Inspect bounded manifest resources
 
 ```csharp
@@ -153,5 +167,6 @@ foreach (string warning in book.Warnings) {
 
 - **External:** None; no third-party EPUB engine.
 - **OfficeIMO:** `OfficeIMO.Drawing`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party.
+- **Security:** `META-INF/signatures.xml` discovery is structural and provider-free. Signature creation and cryptographic validation are not currently implemented.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        internal const int MaximumWorkbookConnectionMetadataCharacters = 1_000_000;
         private const string WorkbookConnectionRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/connections";
         private const string WorkbookConnectionContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.connections+xml";
         private const string WorksheetQueryTableRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/queryTable";
@@ -242,14 +243,42 @@ namespace OfficeIMO.Excel {
             WriteOpenXmlPartText(part, xml);
         }
 
-        private static string ReadOpenXmlPartText(OpenXmlPart part) {
-            if (part is ConnectionsPart connectionsPart && connectionsPart.Connections != null) {
-                return connectionsPart.Connections.OuterXml;
+        internal static string ReadOpenXmlPartText(OpenXmlPart part) {
+            if (part is ConnectionsPart connectionsPart && connectionsPart.IsRootElementLoaded) {
+                Connections? connections = connectionsPart.Connections;
+                if (connections == null) return string.Empty;
+                try {
+                    ExcelSheet.MeasureMutationSnapshotRoot(
+                        connections,
+                        MaximumWorkbookConnectionMetadataCharacters,
+                        MaximumWorkbookConnectionMetadataCharacters);
+                } catch (InvalidOperationException exception) {
+                    throw new InvalidDataException(
+                        $"Workbook connection metadata exceeds {MaximumWorkbookConnectionMetadataCharacters} characters.",
+                        exception);
+                }
+                string xml = connections.OuterXml;
+                if (xml.Length > MaximumWorkbookConnectionMetadataCharacters) {
+                    throw new InvalidDataException(
+                        $"Workbook connection metadata exceeds {MaximumWorkbookConnectionMetadataCharacters} characters.");
+                }
+                return xml;
             }
 
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
             using var reader = new StreamReader(stream, Encoding.UTF8);
-            return reader.ReadToEnd();
+            var text = new StringBuilder(Math.Min(8192, MaximumWorkbookConnectionMetadataCharacters));
+            var buffer = new char[4096];
+            while (true) {
+                int read = reader.Read(buffer, 0, buffer.Length);
+                if (read == 0) break;
+                if (text.Length > MaximumWorkbookConnectionMetadataCharacters - read) {
+                    throw new InvalidDataException(
+                        $"Workbook connection metadata exceeds {MaximumWorkbookConnectionMetadataCharacters} characters.");
+                }
+                text.Append(buffer, 0, read);
+            }
+            return text.ToString();
         }
 
         private static void WriteOpenXmlPartText(OpenXmlPart part, string xml) {

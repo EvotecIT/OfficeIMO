@@ -6,14 +6,18 @@ using OfficeIMO.Security;
 
 namespace OfficeIMO.Word {
     internal static class WordMacroProjectSignatureInspector {
-        internal sealed class InspectionBudget {
-            internal InspectionBudget(WordMacroProjectSignatureInspectionOptions options) {
-                TimestampBudget = options.ValidateCms && options.CmsVerification.ValidateTimestamps
-                    ? new CmsSignedDataVerifier.TimestampVerificationBudget(options.CmsVerification)
+        internal sealed class InspectionBudget : IDisposable {
+            internal InspectionBudget(
+                WordMacroProjectSignatureInspectionOptions options,
+                IOfficeSecurityProvider? securityProvider) {
+                CmsSession = options.ValidateCms && securityProvider != null
+                    ? securityProvider.CreateCmsVerificationSession(options.CmsVerification)
                     : null;
             }
 
-            internal CmsSignedDataVerifier.TimestampVerificationBudget? TimestampBudget { get; }
+            internal ICmsVerificationSession? CmsSession { get; }
+
+            public void Dispose() => CmsSession?.Dispose();
         }
 
         internal const string LegacyRelationship = "http://schemas.microsoft.com/office/2006/relationships/vbaProjectSignature";
@@ -27,8 +31,21 @@ namespace OfficeIMO.Word {
 
         internal static WordMacroProjectSignatureInfo Inspect(
             string filePath,
-            WordMacroProjectSignatureInspectionOptions? options = null) =>
-            Inspect(filePath, options, operationBudget: null, profileFilter: null, validateCmsOverride: null);
+            WordMacroProjectSignatureInspectionOptions? options = null) {
+            options ??= new WordMacroProjectSignatureInspectionOptions();
+            using var operationBudget = new InspectionBudget(options, securityProvider: null);
+            return Inspect(filePath, options, operationBudget, profileFilter: null, validateCmsOverride: false);
+        }
+
+        internal static WordMacroProjectSignatureInfo Inspect(
+            string filePath,
+            IOfficeSecurityProvider securityProvider,
+            WordMacroProjectSignatureInspectionOptions? options = null) {
+            if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+            options ??= new WordMacroProjectSignatureInspectionOptions();
+            using var operationBudget = new InspectionBudget(options, securityProvider);
+            return Inspect(filePath, options, operationBudget);
+        }
 
         internal static WordMacroProjectSignatureInfo Inspect(
             string filePath,
@@ -39,7 +56,7 @@ namespace OfficeIMO.Word {
             Action? afterSnapshotCaptured = null) {
             options ??= new WordMacroProjectSignatureInspectionOptions();
             ValidateOptions(options);
-            operationBudget ??= new InspectionBudget(options);
+            operationBudget ??= new InspectionBudget(options, securityProvider: null);
 
             string fullPath = NormalizePath(filePath);
             bool macroEnabled = IsMacroEnabledPath(fullPath);
@@ -124,7 +141,7 @@ namespace OfficeIMO.Word {
             if (options.MaxTotalSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalSignatureBytes));
             if (options.MaxRelationships <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRelationships));
             OfficePackageSecurityInspector.ValidateOptions(options.PackageSecurity);
-            CmsSignedDataVerifier.ValidateOptions(options.CmsVerification);
+            ValidateCmsOptions(options.CmsVerification);
         }
 
         internal static bool IsMacroEnabledPath(string filePath) {
@@ -212,6 +229,16 @@ namespace OfficeIMO.Word {
                     null, null, findings);
             }
 
+            if (operationBudget.CmsSession == null) {
+                findings.Add(Finding("SecurityProviderRequired", WordSignatureValidationState.NotChecked,
+                    "CMS signature, certificate, revocation, and timestamp validation requires an explicit OfficeIMO.Security provider.",
+                    profile));
+                return CreatePartInfo(profile, part, relationshipType, length, false,
+                    WordSignatureValidationState.NotChecked, WordSignatureValidationState.NotChecked,
+                    WordSignatureValidationState.NotChecked, WordSignatureValidationState.NotChecked,
+                    null, null, findings);
+            }
+
             if (!TryExtractCms(encodedPart, options.CmsVerification.MaxEncodedBytes,
                     out byte[] cmsBytes, out string parseDetail)) {
                 findings.Add(Finding("MacroSignatureContainerMalformed", WordSignatureValidationState.Failed,
@@ -222,16 +249,9 @@ namespace OfficeIMO.Word {
                     null, null, findings);
             }
 
-            CmsVerificationResult cms = operationBudget.TimestampBudget == null
-                ? CmsSignedDataVerifier.Verify(
-                    cmsBytes,
-                    options.CmsVerification,
-                    CertificateValidationPurpose.DocumentSigning)
-                : CmsSignedDataVerifier.Verify(
-                    cmsBytes,
-                    options.CmsVerification,
-                    operationBudget.TimestampBudget,
-                    CertificateValidationPurpose.DocumentSigning);
+            CmsVerificationResult cms = operationBudget.CmsSession.Verify(
+                cmsBytes,
+                CertificateValidationPurpose.DocumentSigning);
             bool hasSingleSigner = cms.Signers.Count == 1;
             if (!hasSingleSigner) {
                 findings.Add(Finding(
@@ -307,6 +327,17 @@ namespace OfficeIMO.Word {
             cms = new byte[signatureLength];
             Buffer.BlockCopy(encodedPart, checked((int)partSignatureOffset), cms, 0, checked((int)signatureLength));
             return true;
+        }
+
+        private static void ValidateCmsOptions(CmsVerificationOptions options) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (options.MaxEncodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEncodedBytes));
+            if (options.MaxContentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxContentBytes));
+            if (options.MaxSigners <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSigners));
+            if (options.MaxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificates));
+            if (options.MaxTimestampTokens <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTimestampTokens));
+            if (options.MaxTimestampTokenBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTimestampTokenBytes));
+            if (options.MaxTotalTimestampBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalTimestampBytes));
         }
 
         private static uint ReadUInt32(byte[] bytes, int offset) =>

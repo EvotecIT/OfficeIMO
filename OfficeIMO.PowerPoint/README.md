@@ -601,5 +601,6 @@ PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns
 
 - **External:** Open XML SDK for `.pptx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The presentation model, composition system, inspection, encryption workflow, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
+- **Security:** Open XML and legacy signature carriers are inspected and signed-presentation mutations fail safely without a cryptographic dependency. Signature creation and cryptographic validation are not yet implemented; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

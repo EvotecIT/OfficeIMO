@@ -15,6 +15,15 @@ using System.IO;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
+        internal void ResetMutationCachesAfterRollback() {
+            _sharedStringTablePart = null;
+            _sharedStringCache.Clear();
+            _sharedStringTableCount = -1;
+            _sharedStringTableDirty = false;
+            _tableNameCache = null;
+            _nextTableId = null;
+        }
+
         internal SharedStringTablePart SharedStringTablePart {
             get {
                 // Check if already initialized without lock first (double-check locking pattern)

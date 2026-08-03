@@ -164,7 +164,10 @@ public class PdfCmsSignatureValidationTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("External signer callback source"))
             .ToBytes();
-        using var signer = new PdfCmsExternalSigner(certificate, "Test local certificate signer");
+        using var signer = new PdfCmsExternalSigner(
+            OfficeSecurityProvider.Default,
+            certificate,
+            "Test local certificate signer");
 
         PdfExternalSignatureCompletion completion = PdfIncrementalUpdater.SignExternal(
             source,
@@ -187,6 +190,7 @@ public class PdfCmsSignatureValidationTests {
     private static byte[] CreateSignedPdf(X509Certificate2 certificate) {
         PdfExternalSignaturePreparation preparation = CreateSigningPreparation();
         using var signer = new PdfCmsExternalSigner(
+            OfficeSecurityProvider.Default,
             certificate,
             signingOptions: new CmsSigningOptions { SigningTime = DateTimeOffset.UtcNow });
         return PdfIncrementalUpdater.ApplyExternalSignature(
@@ -344,7 +348,7 @@ public class PdfCmsSignatureValidationTests {
         Func<X509Certificate2, X509Chain, bool> chainEvaluator) {
         var options = new CmsVerificationOptions();
         options.CertificateValidation.ChainEvaluator = chainEvaluator;
-        return new PdfCmsSignatureCryptographyProvider(options);
+        return new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, options);
     }
 
     private sealed class SingleCertificateStore :

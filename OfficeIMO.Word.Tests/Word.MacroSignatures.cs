@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
             AddMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.V3, certificate);
             var options = CreateMacroSignatureInspectionOptions();
 
-            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, options);
+            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options);
 
             Assert.Equal(3, info.Signatures.Count);
             Assert.True(info.HasV3Signature);
@@ -89,7 +89,9 @@ namespace OfficeIMO.Tests {
             AddRawMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.V3,
                 CreateMacroSignatureContainer(new byte[] { 0x30, 0x00 }, declaredLength: uint.MaxValue));
 
-            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath);
+            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(
+                filePath,
+                SecurityProvider);
 
             WordMacroProjectSignaturePartInfo signature = Assert.Single(info.Signatures);
             Assert.False(signature.CmsParsed);
@@ -107,7 +109,7 @@ namespace OfficeIMO.Tests {
                 MaxSignatureBytes = 100,
                 MaxTotalSignatureBytes = 100
             };
-            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, options);
+            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options);
 
             Assert.True(info.HasMacroProject);
             Assert.NotNull(info.MacroProjectPartUri);
@@ -125,7 +127,7 @@ namespace OfficeIMO.Tests {
                 MaxMacroProjectBytes = 1
             };
 
-            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, options);
+            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options);
 
             Assert.True(info.HasMacroProject);
             Assert.NotNull(info.MacroProjectPartUri);
@@ -143,7 +145,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSignatureInspectionOptions();
             options.PackageSecurity.MaxPartCount = 1;
 
-            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, options);
+            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options);
 
             Assert.False(info.HasMacroProject);
             Assert.Contains(info.Findings, finding =>
@@ -160,8 +162,7 @@ namespace OfficeIMO.Tests {
                 new RecordingMacroToolRunner(_ => throw new InvalidOperationException("Runner must not execute.")),
                 new TestMacroSigningPlatform(isWindows: false));
 
-            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
-                filePath, new WordMacroProjectSignatureValidationOptions(), dependencies);
+            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, new WordMacroProjectSignatureValidationOptions(), dependencies);
 
             Assert.False(result.IsSupported);
             Assert.False(result.IsValidUnderPolicy);
@@ -180,8 +181,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSignatureValidationOptions();
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
-                filePath, options, dependencies);
+            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
 
             Assert.True(result.IsSupported);
             Assert.True(result.IsValidUnderPolicy, string.Join(" | ", result.Findings.Select(
@@ -202,8 +202,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSignatureValidationOptions();
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
-                filePath, options, dependencies);
+            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
 
             Assert.True(result.IsValidUnderPolicy, string.Join(" | ", result.Findings.Select(
                 finding => finding.Code + ": " + finding.Message)));
@@ -225,8 +224,7 @@ namespace OfficeIMO.Tests {
                 new RecordingMacroToolRunner(_ => Success()),
                 new TestMacroSigningPlatform(isWindows: true));
 
-            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
-                filePath, options, dependencies);
+            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
 
             Assert.True(result.IsValidUnderPolicy, string.Join(" | ", result.Findings.Select(
                 finding => finding.Code + ": " + finding.Message)));
@@ -246,8 +244,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSignatureValidationOptions();
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSignatureValidationResult missingV3 = WordMacroProjectSignatureService.Validate(
-                filePath, options, dependencies);
+            WordMacroProjectSignatureValidationResult missingV3 = WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
 
             Assert.False(missingV3.IsValidUnderPolicy);
             Assert.Equal(WordSignatureValidationState.NotChecked, missingV3.ContentBindingStatus);
@@ -256,16 +253,14 @@ namespace OfficeIMO.Tests {
 
             options.RequireV3Signature = false;
             options.RequireTimestamp = true;
-            WordMacroProjectSignatureValidationResult missingTimestamp = WordMacroProjectSignatureService.Validate(
-                filePath, options, dependencies);
+            WordMacroProjectSignatureValidationResult missingTimestamp = WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
 
             Assert.Equal(WordSignatureValidationState.Passed, missingTimestamp.ContentBindingStatus);
             Assert.False(missingTimestamp.IsValidUnderPolicy);
             Assert.Empty(runner.Invocations);
 
             options.Inspection.ValidateCms = false;
-            Assert.Throws<ArgumentException>(() => WordMacroProjectSignatureService.Validate(
-                filePath, options, dependencies));
+            Assert.Throws<ArgumentException>(() => WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies));
         }
 
         [Fact]
@@ -284,8 +279,7 @@ namespace OfficeIMO.Tests {
             };
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.True(result.Succeeded);
             Assert.True(result.MacroProjectPreserved);
@@ -307,7 +301,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("/f", invocation.Arguments);
                 Assert.DoesNotContain("/as", invocation.Arguments);
             });
-            WordMacroProjectSignatureInfo committed = WordDocument.InspectMacroProjectSignatures(filePath, options.Inspection);
+            WordMacroProjectSignatureInfo committed = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options.Inspection);
             Assert.Equal(3, committed.Signatures.Count);
             Assert.Equal(originalMacroHash, committed.MacroProjectSha256);
         }
@@ -341,8 +335,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.True(result.MacroProjectPreserved);
@@ -369,8 +362,7 @@ namespace OfficeIMO.Tests {
                 runner, new TestMacroSigningPlatform(isWindows: true));
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.Contains(result.Findings, finding => finding.Code == "CmsMalformed");
@@ -389,8 +381,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             options.Inspection.PackageSecurity.MaxPackageBytes = originalLength + 1024;
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.Empty(runner.Invocations);
@@ -417,8 +408,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             options.Inspection.PackageSecurity.MaxPartCount = originalEntryCount + 1;
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.Empty(runner.Invocations);
@@ -442,8 +432,7 @@ namespace OfficeIMO.Tests {
                 runner, new TestMacroSigningPlatform(isWindows: true));
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
@@ -464,8 +453,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult blocked = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult blocked = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.False(blocked.Succeeded);
             Assert.Empty(blockedRunner.Invocations);
@@ -473,8 +461,7 @@ namespace OfficeIMO.Tests {
                 finding => finding.Code == "ExistingPackageSignatureInvalidationBlocked");
 
             options.ExistingPackageSignaturePolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation;
-            WordMacroProjectSigningResult allowed = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult allowed = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.True(allowed.Succeeded);
             Assert.Contains(allowed.Findings,
@@ -493,8 +480,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.Empty(runner.Invocations);
@@ -513,8 +499,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.Contains(result.Findings, finding => finding.Code == "SourcePackageChangedDuringSigning");
@@ -529,8 +514,7 @@ namespace OfficeIMO.Tests {
             var dependencies = new WordMacroProjectSigningDependencies(
                 runner, new TestMacroSigningPlatform(isWindows: true));
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, "0011 & calc.exe", new WordMacroProjectSigningOptions(), dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, "0011 & calc.exe", new WordMacroProjectSigningOptions(), dependencies);
 
             Assert.False(result.Succeeded);
             Assert.Empty(runner.Invocations);
@@ -545,8 +529,7 @@ namespace OfficeIMO.Tests {
                 new TestMacroSigningPlatform(isWindows: true));
             var options = new WordMacroProjectSigningOptions { RequireTimestamp = true };
 
-            Assert.Throws<ArgumentException>(() => WordMacroProjectSignatureService.TrySign(
-                filePath, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies));
+            Assert.Throws<ArgumentException>(() => WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, "00112233445566778899AABBCCDDEEFF00112233", options, dependencies));
         }
 
         [Fact]
@@ -594,8 +577,7 @@ namespace OfficeIMO.Tests {
                     new TracingOfficeSipPlatform(new WordMacroProjectWindowsPlatform()));
 
                 TraceOfficeSipInterop("macro-sign:start");
-                WordMacroProjectSigningResult signing = WordMacroProjectSignatureService.TrySign(
-                    filePath, certificate.Thumbprint!, options, dependencies);
+                WordMacroProjectSigningResult signing = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
                 TraceOfficeSipInterop("macro-sign:complete:" + signing.Succeeded);
 
                 Assert.True(signing.Succeeded, string.Join(" | ", signing.Findings.Select(
@@ -606,7 +588,7 @@ namespace OfficeIMO.Tests {
 
                 TraceOfficeSipInterop("macro-validate:start");
                 WordMacroProjectSignatureValidationResult valid =
-                    WordMacroProjectSignatureService.Validate(filePath, options, dependencies);
+                    WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
                 TraceOfficeSipInterop("macro-validate:complete:" + valid.IsValidUnderPolicy);
                 Assert.True(valid.IsValidUnderPolicy);
 
@@ -615,7 +597,7 @@ namespace OfficeIMO.Tests {
                 TraceOfficeSipInterop("macro-tamper:complete");
                 TraceOfficeSipInterop("tampered-validate:start");
                 WordMacroProjectSignatureValidationResult tampered =
-                    WordMacroProjectSignatureService.Validate(filePath, options, dependencies);
+                    WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
                 TraceOfficeSipInterop("tampered-validate:complete:" + tampered.IsValidUnderPolicy);
                 Assert.False(tampered.IsValidUnderPolicy);
                 Assert.Equal(WordSignatureValidationState.Failed, tampered.ContentBindingStatus);

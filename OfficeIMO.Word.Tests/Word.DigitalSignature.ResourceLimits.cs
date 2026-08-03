@@ -34,8 +34,7 @@ namespace OfficeIMO.Tests {
             byte[] originalBytes = File.ReadAllBytes(filePath);
             using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
 
-            WordPackageSigningResult result = WordDocument.TrySignPackage(
-                filePath,
+            WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, SecurityProvider,
                 signer,
                 new WordPackageSigningOptions { MaxPackageParts = 1 });
 
@@ -53,7 +52,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, signer);
+            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, SecurityProvider, signer);
             Assert.True(signing.Succeeded);
             long packageLength = new FileInfo(filePath).Length;
 
@@ -61,7 +60,7 @@ namespace OfficeIMO.Tests {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadWrite,
                 MaxInputBytes = packageLength
             });
-            WordSignatureValidationReport validation = loaded.ValidateSignatures(
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider,
                 new WordSignatureValidationOptions { MaxPackageBytes = packageLength - 1 });
 
             WordSignatureValidationFinding finding = Assert.Single(validation.Diagnostics,
@@ -79,8 +78,7 @@ namespace OfficeIMO.Tests {
 
             using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
             using X509Certificate2 additional = CreateSelfSignedSigningCertificate("CN=OfficeIMO Duplicate Additional Certificate");
-            WordPackageSigningResult result = WordDocument.SignPackage(
-                filePath,
+            WordPackageSigningResult result = WordDocument.SignPackage(filePath, SecurityProvider,
                 signer,
                 new WordPackageSigningOptions {
                     AdditionalCertificates = Enumerable.Repeat(additional, 64).ToArray(),
@@ -101,7 +99,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, signer);
+            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, SecurityProvider, signer);
             Assert.True(signing.Succeeded);
 
             using (FileStream packageStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite))
@@ -130,17 +128,17 @@ namespace OfficeIMO.Tests {
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
             });
-            WordSignatureValidationReport missing = loaded.ValidateSignatures();
+            WordSignatureValidationReport missing = loaded.ValidateSignatures(SecurityProvider);
             using X509Certificate2 unrelated = CreateSelfSignedSigningCertificate(
                 "CN=OfficeIMO Unrelated Caller Certificate");
             var boundedOptions = new WordSignatureValidationOptions { MaxCertificates = 1 };
             boundedOptions.CertificateValidation.ExtraCertificates.Add(unrelated);
             boundedOptions.CertificateValidation.ExtraCertificates.Add(signer);
-            WordSignatureValidationReport bounded = loaded.ValidateSignatures(boundedOptions);
+            WordSignatureValidationReport bounded = loaded.ValidateSignatures(SecurityProvider, boundedOptions);
             var options = new WordSignatureValidationOptions();
             options.CertificateValidation.ValidateChain = false;
             options.CertificateValidation.ExtraCertificates.Add(signer);
-            WordSignatureValidationReport supplied = loaded.ValidateSignatures(options);
+            WordSignatureValidationReport supplied = loaded.ValidateSignatures(SecurityProvider, options);
 
             Assert.Contains(missing.Diagnostics, finding => finding.Code == "SignerCertificateMissing");
             Assert.Contains(bounded.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
@@ -161,8 +159,7 @@ namespace OfficeIMO.Tests {
             byte[] originalBytes = File.ReadAllBytes(filePath);
 
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult result = WordDocument.TrySignPackage(
-                filePath,
+            WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, SecurityProvider,
                 certificate,
                 new WordPackageSigningOptions { MaxSignatureBytes = 512 });
 
@@ -193,10 +190,10 @@ namespace OfficeIMO.Tests {
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using WordDocument loaded = WordDocument.Load(filePath);
-            WordSignatureValidationReport bounded = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+            WordSignatureValidationReport bounded = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 MaxTotalDigestBytes = 768
             });
-            WordSignatureValidationReport allowed = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+            WordSignatureValidationReport allowed = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 MaxTotalDigestBytes = 4096
             });
 
@@ -274,11 +271,11 @@ namespace OfficeIMO.Tests {
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
             });
-            WordSignatureValidationReport bounded = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+            WordSignatureValidationReport bounded = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 ValidateCryptographicSignature = false,
                 MaxTimestampTokens = 1
             });
-            WordSignatureValidationReport allowed = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+            WordSignatureValidationReport allowed = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 ValidateCryptographicSignature = false,
                 MaxTimestampTokens = 2
             });
@@ -319,6 +316,7 @@ namespace OfficeIMO.Tests {
                 package.DigitalSignatureOriginPart,
                 packageBytes,
                 signatureInfo,
+                SecurityProvider,
                 new WordSignatureValidationOptions {
                     ValidateCryptographicSignature = false,
                     MaxTotalCertificateBytes = firstBytes.LongLength + 1
@@ -341,7 +339,7 @@ namespace OfficeIMO.Tests {
             }
             using X509Certificate2 signer = CreateSelfSignedSigningCertificate();
             byte[] certificateBytes = signer.Export(X509ContentType.Cert);
-            Assert.True(WordDocument.SignPackage(filePath, signer).Succeeded);
+            Assert.True(WordDocument.SignPackage(filePath, SecurityProvider, signer).Succeeded);
             string encodedCertificate = Convert.ToBase64String(certificateBytes);
             string wrappedCertificate = Convert.ToBase64String(
                 certificateBytes,
@@ -383,7 +381,7 @@ namespace OfficeIMO.Tests {
             };
             options.CertificateValidation.DisableCertificateDownloads = false;
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
-            WordSignatureValidationReport validation = loaded.ValidateSignatures(options);
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, options);
 
             Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
             Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
@@ -414,7 +412,7 @@ namespace OfficeIMO.Tests {
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
             });
-            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 MaxTotalDigestBytes = 1024
             });
 
@@ -429,11 +427,11 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            Assert.True(WordDocument.SignPackage(filePath, certificate).Succeeded);
+            Assert.True(WordDocument.SignPackage(filePath, SecurityProvider, certificate).Succeeded);
 
             using WordDocument loaded = WordDocument.Load(filePath);
             loaded.AddParagraph(new string('x', 16_384));
-            WordSignatureValidationReport validation = loaded.ValidateSignatures(
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider,
                 new WordSignatureValidationOptions {
                     MaxPartBytes = 4096,
                     MaxPackageBytes = 16L * 1024 * 1024

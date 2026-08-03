@@ -19,6 +19,7 @@ This guide describes the current safe path for large workbook generation, readin
 | Forward-only CSV reads | `CsvDocument.OpenDataReader(...)` | The parallel API remains in `OfficeIMO.CSV`, with CSV-specific delimiter, encoding, compression, and schema options. |
 | Multiple worksheets | `DbDataReader.NextResult()` | Results stay in workbook order. Set `ExcelReadOptions.SheetName` when only one worksheet should be opened. |
 | Unknown workbook edit intake | `ExcelDocument.Load(...)`, `InspectFeatures()`, and `InspectFormulas()` | Use the editable document model only when the workbook will be inspected, mutated, converted, or saved again. Treat preserve-only and unsupported findings as a preflight signal. |
+| Large Open XML edit intake | `ExcelDocument.OpenFileBacked(...)` | Stages the editable package in an owner-only temporary file, enforces `MaxInputBytes`, honors Open XML part limits, and observes cancellation while copying. XLS/XLSB projection continues through `Load`. |
 
 Example:
 
@@ -70,6 +71,21 @@ if (!features.Can(ExcelPreflightCapability.ExportPdfReport)) {
 
 `ExcelPreflightCapability` covers readback, cell-value edits, structure-changing edits, cached formula reads, OfficeIMO formula calculation, template binding, and first-party PDF report export. This is intentionally separate from benchmark guidance and does not require benchmark runs in CI.
 
+For structure-changing work, produce a bounded plan before committing:
+
+```csharp
+var limits = new ExcelMutationPlanOptions {
+    MaximumAffectedCells = 500_000,
+    MaximumSnapshotCharacters = 64_000_000,
+    MaximumDiagnostics = 50
+};
+
+ExcelStructuralMutationPlan plan = document["Data"].PlanMoveRange("A2:F50000", "H2", limits);
+ExcelMutationResult result = plan.Apply(cancellationToken);
+```
+
+The transaction revalidates ownership conflicts, retains a bounded rollback snapshot, and returns bounded post-edit Open XML diagnostics. Established direct writers, streaming readers, ordinary `Load`, and unchanged-package save paths do not route through this transaction unless the caller selects it.
+
 ## Measuring A Change
 
 Use the benchmark harness for repeatable local evidence:
@@ -101,7 +117,7 @@ substitute one platform when another platform is missing.
 
 ## Current Boundaries
 
-- Large workbook guidance is strongest for generated report-style workbooks and bounded read workflows.
+- Large workbook guidance is strongest for generated report-style workbooks, bounded reads, and explicitly file-backed Open XML edits.
 - Feature-rich externally authored workbooks should be inspected before mutation because preserve-only package parts may need round-trip care.
 - Fast package writers are automatic optimizations, not a compatibility promise for every workbook shape.
 - Rendering/export is not part of the current large-workbook promise.

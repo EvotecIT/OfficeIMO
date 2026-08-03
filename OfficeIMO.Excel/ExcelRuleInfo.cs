@@ -1,10 +1,28 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Read-only snapshot of a conditional formatting rule.
+    /// Identifies the SpreadsheetML surface that owns a conditional-formatting rule.
+    /// </summary>
+    public enum ExcelConditionalFormattingSource {
+        /// <summary>The rule is stored in the standard worksheet conditional-formatting collection.</summary>
+        Standard,
+        /// <summary>The rule is stored in the Office 2010 conditional-formatting extension collection.</summary>
+        Office2010Extension
+    }
+
+    /// <summary>
+    /// Format-neutral conditional-formatting rule model. Instances returned by a worksheet
+    /// are editable snapshots and can be applied through <see cref="ExcelSheet.UpdateConditionalFormattingRule"/>.
     /// </summary>
     public sealed class ExcelConditionalFormattingInfo {
+        /// <summary>Gets the SpreadsheetML surface that owns the rule.</summary>
+        public ExcelConditionalFormattingSource Source { get; set; }
+        /// <summary>Gets the persistent extension rule identifier when the imported rule provides one.</summary>
+        public string? ExtensionId { get; internal set; }
+        /// <summary>Gets whether markup not projected by this model is attached to the rule or its container and will be preserved by lifecycle edits.</summary>
+        public bool HasPreservedUnknownMarkup { get; internal set; }
         /// <summary>Gets or sets the A1 range covered by the rule.</summary>
         public string Range { get; set; } = string.Empty;
         /// <summary>Gets or sets the OpenXML conditional formatting type.</summary>
@@ -39,7 +57,10 @@ namespace OfficeIMO.Excel {
         public ExcelCellBorderSnapshot? DifferentialBorder { get; set; }
         /// <summary>Gets or sets formulas attached to the rule.</summary>
         public IReadOnlyList<string> Formulas { get; set; } = Array.Empty<string>();
-        /// <summary>Gets or sets ARGB colors attached to a color-scale rule, in rule order.</summary>
+        /// <summary>
+        /// Gets or sets ARGB colors attached to a color-scale rule, in rule order. An empty entry in an
+        /// imported rule represents a theme, indexed, or automatic color that remains preserved unless replaced.
+        /// </summary>
         public IReadOnlyList<string> ColorScaleColors { get; set; } = Array.Empty<string>();
         /// <summary>Gets or sets color-scale thresholds in rule order.</summary>
         public IReadOnlyList<ExcelConditionalFormatThreshold> ColorScaleThresholds { get; set; } = Array.Empty<ExcelConditionalFormatThreshold>();
@@ -49,14 +70,44 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelConditionalFormatThreshold> DataBarThresholds { get; set; } = Array.Empty<ExcelConditionalFormatThreshold>();
         /// <summary>Gets or sets whether the data-bar rule displays the underlying cell value.</summary>
         public bool DataBarShowValue { get; set; } = true;
+        /// <summary>Gets or sets the minimum data-bar length percentage for Office extension rules.</summary>
+        public uint? DataBarMinimumLength { get; set; }
+        /// <summary>Gets or sets the maximum data-bar length percentage for Office extension rules.</summary>
+        public uint? DataBarMaximumLength { get; set; }
+        /// <summary>Gets or sets whether an Office extension data bar has a border.</summary>
+        public bool? DataBarBorder { get; set; }
+        /// <summary>Gets or sets whether an Office extension data bar uses a gradient fill.</summary>
+        public bool? DataBarGradient { get; set; }
+        /// <summary>Gets or sets the Office extension data-bar direction.</summary>
+        public string? DataBarDirection { get; set; }
+        /// <summary>Gets or sets the Office extension data-bar axis position.</summary>
+        public string? DataBarAxisPosition { get; set; }
+        /// <summary>Gets or sets whether negative bars reuse the positive fill color.</summary>
+        public bool? DataBarNegativeColorSameAsPositive { get; set; }
+        /// <summary>Gets or sets whether negative bar borders reuse the positive border color.</summary>
+        public bool? DataBarNegativeBorderColorSameAsPositive { get; set; }
+        /// <summary>Gets or sets the ARGB data-bar border color.</summary>
+        public string? DataBarBorderColor { get; set; }
+        /// <summary>Gets or sets the ARGB negative data-bar fill color.</summary>
+        public string? DataBarNegativeColor { get; set; }
+        /// <summary>Gets or sets the ARGB negative data-bar border color.</summary>
+        public string? DataBarNegativeBorderColor { get; set; }
+        /// <summary>Gets or sets the ARGB data-bar axis color.</summary>
+        public string? DataBarAxisColor { get; set; }
         /// <summary>Gets or sets the icon-set name attached to an icon-set rule.</summary>
         public string? IconSet { get; set; }
         /// <summary>Gets or sets whether the icon-set rule displays the underlying cell value.</summary>
         public bool IconSetShowValue { get; set; } = true;
         /// <summary>Gets or sets whether the icon-set rule reverses icon order.</summary>
         public bool IconSetReverse { get; set; }
+        /// <summary>Gets or sets whether an Office extension icon set interprets thresholds as percentages.</summary>
+        public bool? IconSetPercent { get; set; }
+        /// <summary>Gets or sets whether an Office extension icon set uses explicit custom icons.</summary>
+        public bool? IconSetCustom { get; set; }
         /// <summary>Gets or sets icon-set thresholds in rule order.</summary>
         public IReadOnlyList<ExcelConditionalIconSetThreshold> IconSetThresholds { get; set; } = Array.Empty<ExcelConditionalIconSetThreshold>();
+        /// <summary>Gets or sets custom icon references in rule order.</summary>
+        public IReadOnlyList<ExcelConditionalFormatIcon> CustomIcons { get; set; } = Array.Empty<ExcelConditionalFormatIcon>();
         /// <summary>Gets or sets the top/bottom rule rank, when present.</summary>
         public uint? TopBottomRank { get; set; }
         /// <summary>Gets or sets whether the top/bottom rule selects bottom values.</summary>
@@ -69,6 +120,14 @@ namespace OfficeIMO.Excel {
         public bool AboveAverageEqual { get; set; }
         /// <summary>Gets or sets the standard-deviation threshold for above-average rules, when present.</summary>
         public int? AboveAverageStdDev { get; set; }
+
+        internal ExcelSheet? OwnerSheet { get; set; }
+        internal OpenXmlElement? OwnerContainer { get; set; }
+        internal OpenXmlElement? BackingRule { get; set; }
+        internal string? ProjectedFormulaSignature { get; set; }
+        internal string? ProjectedVisualSignature { get; set; }
+        internal string? ProjectedStyleSignature { get; set; }
+        internal string? ProjectedType { get; set; }
     }
 
     /// <summary>
@@ -91,6 +150,16 @@ namespace OfficeIMO.Excel {
         public string? Value { get; set; }
         /// <summary>Gets or sets whether values equal to the threshold are included in the higher icon bucket.</summary>
         public bool GreaterThanOrEqual { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Identifies an icon used by a custom Office extension icon-set rule.
+    /// </summary>
+    public sealed class ExcelConditionalFormatIcon {
+        /// <summary>Gets or sets the icon-set family.</summary>
+        public string IconSet { get; set; } = string.Empty;
+        /// <summary>Gets or sets the zero-based icon identifier within the family.</summary>
+        public uint IconId { get; set; }
     }
 
     /// <summary>
