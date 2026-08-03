@@ -10,7 +10,7 @@ OfficeIMO.PowerPoint is strongest when the output must stay editable and the wor
 |---|---|---|---|---|
 | Slides, ordering, sections, size, metadata | Yes | Yes | Yes | Includes duplicate and cross-deck slide import workflows. |
 | Text boxes, rich runs, bullets, links, notes | Yes | Yes | Yes | `InspectPreflight()` measures bounds and reports clipped or unreadably reduced text. |
-| Auto shapes, lines, connectors, groups | Yes | Yes | Yes, within reported renderer limits | Custom geometry and effects may be approximated in fixed-layout exports. |
+| Auto shapes, lines, connectors, groups, custom paths and polygons | Yes | Yes | Yes, within reported renderer limits | Shared `OfficeShape` paths and polygons write editable DrawingML custom geometry. Effects may still be approximated in fixed-layout exports. |
 | Pictures and SVG assets | Yes | Yes | Yes | Crop and transforms are supported; broken image relationships are preflight errors. |
 | Native tables | Yes | Yes | Yes | `AddTableSlides(...)` creates deterministic continuation pages and repeats headers. |
 | Semantic story families | Yes | Yes | Yes | Executive, chart, comparison, screenshot, appendix, architecture, and closing stories each have two editable compositions. |
@@ -21,9 +21,13 @@ OfficeIMO.PowerPoint is strongest when the output must stay editable and the wor
 | Other chart XML already present in a deck | Limited edit surface | Yes | Snapshot/export support varies | Inspect and test the concrete family before promising mutation parity. |
 | Themes, masters, layouts, placeholders | Inspect, select, copy from `.pptx`/`.potx`, and map by semantic name | Yes | Inherited content is included where supported | Template inventory includes brand tokens, footer content, assets, and safe areas. |
 | Transitions | Yes | Yes | Static proof only | Preview exports show the slide state, not animated playback. |
-| SmartArt and advanced diagrams | Limited inspection/rendering | Yes | May be approximated or reported | Prefer native shapes for generated diagrams that must be predictably editable. |
-| Audio, video, embedded and linked content | Limited mutation | Yes | Reported or represented by a fallback | Do not treat a preview as playback proof. |
-| Comments, advanced animation timelines, custom XML, ActiveX, macros | No general authoring contract | Preserve/report where possible | Not a fidelity promise | Use `InspectFeatures()` before edit-heavy round trips. |
+| Semantic SmartArt | Yes: process, hierarchy, cycle, list, matrix, pyramid, relationship | Yes | Yes | Node text stays editable; other imported SmartArt layouts remain preservation/reporting scenarios. |
+| Classic and modern comments | Yes | Yes | Metadata proof | Classic comments cover PPTX and supported PPT round trips. Modern Open XML comments support replies, status, reassignment, and removal. |
+| Shape, text, and chart animations | Yes for supported effects | Broader timelines are preserved and reported | Static proof only | Image and PDF exports prove the static slide state, not playback timing. |
+| Custom shows | Yes | Yes | Structural proof | Slide membership, order, rename, and removal use the presentation API. |
+| Audio, video, embedded and linked content | OLE storage has a typed add/replace surface; other media mutation varies | Yes | Reported or represented by a fallback | Do not treat a preview as playback proof. |
+| VBA projects | Add, replace, extract, and remove opaque projects | Yes in matching macro-enabled formats | Structural proof only | OfficeIMO validates bounded compound storage but does not generate or interpret VBA source. |
+| Custom XML and ActiveX | No general authoring contract | Preserve/report where possible | Not a fidelity promise | Use `InspectFeatures()` before edit-heavy round trips. |
 | Digital signatures | Inspect/report only | Save policy applies | Not applicable | Editing a signed package can invalidate its signature. |
 
 ## Generation checks

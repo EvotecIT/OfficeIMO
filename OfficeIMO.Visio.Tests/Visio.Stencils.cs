@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -470,6 +471,22 @@ namespace OfficeIMO.Tests {
                 enumerableType,
                 typeof(string)
             }));
+            Assert.NotNull(typeof(VisioStencilShape).GetConstructor(new[] {
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(double),
+                typeof(double),
+                enumerableType,
+                enumerableType,
+                enumerableType,
+                typeof(string),
+                typeof(VisioMeasurementUnit?),
+                typeof(string),
+                typeof(VisioStencilPreviewImage),
+                typeof(IEnumerable<VisioStencilConnectionPoint>)
+            }));
             Assert.Contains(
                 typeof(VisioStencilCatalogBuilder).GetMethods().Where(method => method.Name == nameof(VisioStencilCatalogBuilder.AddWithMetadata)),
                 method => method.GetParameters().Length == 10);
@@ -515,6 +532,55 @@ namespace OfficeIMO.Tests {
             VisioDocument loadedDocument = VisioDocument.Load(filePath);
             Assert.Equal(new[] { "api", "queue" }, loadedDocument.Pages[0].Shapes.Select(shape => shape.Id));
             Assert.Single(loadedDocument.Pages[0].Connectors);
+        }
+
+        [Theory]
+        [InlineData("Invalid\u0001license", null)]
+        [InlineData(null, "Invalid\u0001attribution")]
+        public void StencilShapeRejectsXmlInvalidProvenance(string? sourceLicense,
+            string? sourceAttribution) {
+            Assert.Throws<ArgumentException>(() => new VisioStencilShape(
+                "vendor.shape", "Vendor shape", "VendorShape", "Vendor",
+                1, 1, keywords: null, aliases: null, tags: null,
+                iconNameU: null, defaultUnit: null, sourcePackagePath: null,
+                previewImage: null, sourceConnectionPoints: null,
+                isSupported: false, sourceLicense: sourceLicense,
+                sourceAttribution: sourceAttribution));
+        }
+
+        [Fact]
+        public void StencilCatalogManifestPreservesLicensingAndUnsupportedState() {
+            VisioStencilCatalog source = VisioStencilCatalog.Create(
+                "Licensed package", builder => builder.AddWithMetadata(
+                    "external.unsupported",
+                    "Unsupported package master",
+                    "VendorMaster",
+                    "External",
+                    1.8,
+                    0.9,
+                    keywords: new[] { "vendor" },
+                    aliases: null,
+                    tags: new[] { "package", "generic" },
+                    iconNameU: "VendorMaster",
+                    defaultUnit: VisioMeasurementUnit.Inches,
+                    sourcePackagePath: "vendor.vssx",
+                    previewImage: null,
+                    sourceConnectionPoints: null,
+                    isSupported: false,
+                    sourceLicense: "Vendor license - redistribution prohibited",
+                    sourceAttribution: "Example Vendor"));
+
+            using MemoryStream manifest = new();
+            source.Save(manifest);
+            manifest.Position = 0;
+            VisioStencilShape loaded = Assert.Single(
+                VisioStencilCatalog.Load(manifest).Shapes);
+
+            Assert.False(loaded.IsSupported);
+            Assert.Equal("Vendor license - redistribution prohibited",
+                loaded.SourceLicense);
+            Assert.Equal("Example Vendor", loaded.SourceAttribution);
+            Assert.Null(loaded.SourcePackagePath);
         }
 
         [Fact]
@@ -775,13 +841,19 @@ namespace OfficeIMO.Tests {
             VisioStencilCatalog withGeneric = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
                 IncludeUnsupportedMasters = true,
                 Category = "Template Masters",
-                MasterNames = new[] { "FancyCloud" }
+                MasterNames = new[] { "FancyCloud" },
+                SourceLicense = "Vendor-EULA",
+                SourceAttribution = "Template Vendor"
             });
 
             Assert.Single(supportedOnly.Shapes);
             Assert.Equal("Rectangle", supportedOnly.Shapes[0].MasterNameU);
+            Assert.True(supportedOnly.Shapes[0].IsSupported);
             Assert.Single(withGeneric.Shapes);
             Assert.Equal("FancyCloud", withGeneric.Shapes[0].MasterNameU);
+            Assert.False(withGeneric.Shapes[0].IsSupported);
+            Assert.Equal("Vendor-EULA", withGeneric.Shapes[0].SourceLicense);
+            Assert.Equal("Template Vendor", withGeneric.Shapes[0].SourceAttribution);
             Assert.Contains("generic", withGeneric.Shapes[0].Tags);
             Assert.Contains(withGeneric.Search("vstx"), shape => shape.MasterNameU == "FancyCloud");
         }
@@ -1070,7 +1142,9 @@ namespace OfficeIMO.Tests {
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
             VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
                 IncludeUnsupportedMasters = true,
-                Category = "External"
+                Category = "External",
+                SourceLicense = "Vendor-EULA",
+                SourceAttribution = "Example Vendor"
             });
             Assert.Equal("fancy-cloud", catalog.Get("fancy-cloud").Id);
 
@@ -1084,6 +1158,12 @@ namespace OfficeIMO.Tests {
             Assert.Single(imported);
             Assert.Same(imported[0], cloud.Master);
             Assert.Equal("FancyCloud", cloud.MasterNameU);
+            Assert.False(cloud.Master!.StencilIsSupported);
+            Assert.Equal("Vendor-EULA", cloud.Master.StencilSourceLicense);
+            Assert.Equal("Example Vendor", cloud.Master.StencilSourceAttribution);
+            Assert.Equal("false", cloud.GetUserCellValue(VisioSemanticUserCells.StencilIsSupported));
+            Assert.Equal("Vendor-EULA", cloud.GetUserCellValue(VisioSemanticUserCells.StencilSourceLicense));
+            Assert.Equal("Example Vendor", cloud.GetUserCellValue(VisioSemanticUserCells.StencilSourceAttribution));
             Assert.Empty(VisioValidator.Validate(filePath));
 
             using ZipArchive zip = ZipFile.OpenRead(filePath);
@@ -1096,6 +1176,9 @@ namespace OfficeIMO.Tests {
             XElement masterUserSection = masterDocument.Root!.Element(ns + "PageSheet")!.Elements(ns + "Section").Single(section => (string?)section.Attribute("N") == "User");
             Assert.Equal("1", GetUserCellValue(masterUserSection, ns, "OfficeIMO.PackageBackedMaster"));
             Assert.Equal("fancy-cloud", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilId));
+            Assert.Equal("false", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilIsSupported));
+            Assert.Equal("Vendor-EULA", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilSourceLicense));
+            Assert.Equal("Example Vendor", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilSourceAttribution));
 
             XDocument pageDocument = XDocument.Load(zip.GetEntry("visio/pages/page1.xml")!.Open());
             XElement pageShape = pageDocument.Root!.Element(ns + "Shapes")!.Element(ns + "Shape")!;
@@ -1114,6 +1197,215 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(masterRelationships.Root!.Elements(packageRel + "Relationship").FirstOrDefault(element =>
                 (string?)element.Attribute("Id") == "rIdImage" &&
                 ((string?)element.Attribute("Target"))!.Contains("officeimo-master1-rel1.emf", StringComparison.OrdinalIgnoreCase)));
+
+            VisioDocument reloaded = VisioDocument.Load(filePath);
+            VisioShape reloadedCloud = Assert.Single(reloaded.Pages[0].Shapes);
+            Assert.False(reloadedCloud.Master!.StencilIsSupported);
+            Assert.Equal("Vendor-EULA", reloadedCloud.Master.StencilSourceLicense);
+            Assert.Equal("Example Vendor", reloadedCloud.Master.StencilSourceAttribution);
+            Assert.Equal("false", reloadedCloud.GetUserCellValue(VisioSemanticUserCells.StencilIsSupported));
+            Assert.Equal("Vendor-EULA", reloadedCloud.GetUserCellValue(VisioSemanticUserCells.StencilSourceLicense));
+            Assert.Equal("Example Vendor", reloadedCloud.GetUserCellValue(VisioSemanticUserCells.StencilSourceAttribution));
+        }
+
+        [Fact]
+        public void PackageStencilMasterCollisionRejectsCrossPackageProvenanceMutation() {
+            string firstPackage = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            string secondPackage = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            try {
+                CreatePackageWithRawGroupMaster(firstPackage, "SharedMaster",
+                    "First Shared Master");
+                CreatePackageWithRawGroupMaster(secondPackage, "SharedMaster",
+                    "Second Shared Master");
+                VisioStencilCatalog firstCatalog =
+                    VisioStencilPackageCatalog.Load(firstPackage,
+                        new VisioStencilPackageLoadOptions {
+                            IncludeUnsupportedMasters = true,
+                            Category = "External",
+                            SourceLicense = "First-License",
+                            SourceAttribution = "First Vendor"
+                        });
+                VisioStencilCatalog secondCatalog =
+                    VisioStencilPackageCatalog.Load(secondPackage,
+                        new VisioStencilPackageLoadOptions {
+                            IncludeUnsupportedMasters = true,
+                            Category = "External",
+                            SourceLicense = "Second-License",
+                            SourceAttribution = "Second Vendor"
+                        });
+                VisioStencilShape firstStencil = firstCatalog.Shapes.Single();
+                VisioStencilShape secondStencil = secondCatalog.Shapes.Single();
+                VisioDocument document = VisioDocument.Create(
+                    Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+                VisioPage page = document.AddPage("Collision");
+                page.AddStencilShape(firstStencil, "first", 2, 4);
+                Assert.True(document.TryGetMaster("SharedMaster",
+                    out VisioMaster? registered));
+                Assert.NotNull(registered);
+
+                InvalidOperationException exception =
+                    Assert.Throws<InvalidOperationException>(() =>
+                        page.AddStencilShape(secondStencil, "second", 5, 4));
+
+                Assert.Contains("already bound to source package",
+                    exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Single(page.Shapes);
+                Assert.Equal(Path.GetFullPath(firstPackage),
+                    registered!.StencilSourcePackagePath);
+                Assert.Equal("First-License", registered.StencilSourceLicense);
+                Assert.Equal("First Vendor",
+                    registered.StencilSourceAttribution);
+            } finally {
+                if (File.Exists(firstPackage)) File.Delete(firstPackage);
+                if (File.Exists(secondPackage)) File.Delete(secondPackage);
+            }
+        }
+
+        [Fact]
+        public void PackageStencilMasterRejectsSourceLessProvenanceMutation() {
+            string packagePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            try {
+                CreatePackageWithRawGroupMaster(packagePath, "SharedMaster",
+                    "Package Master");
+                VisioStencilCatalog packageCatalog =
+                    VisioStencilPackageCatalog.Load(packagePath,
+                        new VisioStencilPackageLoadOptions {
+                            IncludeUnsupportedMasters = true,
+                            Category = "External",
+                            SourceLicense = "Package-License",
+                            SourceAttribution = "Package Vendor"
+                        });
+                VisioStencilShape packageStencil = packageCatalog.Shapes.Single();
+                var sourceLessStencil = new VisioStencilShape(
+                    "built-in.shared", "Built-in Shared", "SharedMaster",
+                    "Built-in", 1D, 1D, keywords: null, aliases: null,
+                    tags: null, iconNameU: null, defaultUnit: null,
+                    sourcePackagePath: null, previewImage: null,
+                    sourceConnectionPoints: null, isSupported: true,
+                    sourceLicense: null, sourceAttribution: null);
+                VisioDocument document = VisioDocument.Create();
+                VisioPage page = document.AddPage("Collision");
+                page.AddStencilShape(packageStencil, "package", 2D, 4D);
+                Assert.True(document.TryGetMaster("SharedMaster",
+                    out VisioMaster? registered));
+
+                InvalidOperationException exception =
+                    Assert.Throws<InvalidOperationException>(() =>
+                        page.AddStencilShape(sourceLessStencil, "built-in",
+                            5D, 4D));
+
+                Assert.Contains("source-less stencil metadata",
+                    exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Single(page.Shapes);
+                Assert.Equal(Path.GetFullPath(packagePath),
+                    registered!.StencilSourcePackagePath);
+                Assert.False(registered.StencilIsSupported);
+                Assert.Equal("Package-License", registered.StencilSourceLicense);
+                Assert.Equal("Package Vendor",
+                    registered.StencilSourceAttribution);
+            } finally {
+                if (File.Exists(packagePath)) File.Delete(packagePath);
+            }
+        }
+
+        [Fact]
+        public void PackageStencilImportPreflightsEveryCollisionBeforeMutation() {
+            string firstPackage = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            string secondPackage = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".vssx");
+            try {
+                CreatePackageWithMasterDimensions(firstPackage,
+                    ("SharedMaster", "First Shared Master", 1D, 1D, null));
+                CreatePackageWithMasterDimensions(secondPackage,
+                    ("NewMaster", "New Master", 1D, 1D, null),
+                    ("SharedMaster", "Second Shared Master", 1D, 1D, null));
+                using (ZipArchive zip = ZipFile.Open(secondPackage,
+                           ZipArchiveMode.Update)) {
+                    XNamespace ns =
+                        "http://schemas.microsoft.com/office/visio/2012/main";
+                    WriteZipXml(zip, "visio/document.xml", new XDocument(
+                        new XElement(ns + "VisioDocument",
+                            new XElement(ns + "DocumentSettings"),
+                            new XElement(ns + "Colors",
+                                new XElement(ns + "ColorEntry",
+                                    new XAttribute("IX", "24"),
+                                    new XAttribute("RGB", "#50E6FF"))))));
+                    WriteZipXml(zip, "visio/theme/theme1.xml", new XDocument(
+                        new XElement(XName.Get("theme",
+                                "http://schemas.openxmlformats.org/drawingml/2006/main"),
+                            new XAttribute("name", "Rejected Theme"))));
+                }
+
+                VisioDocument document = VisioDocument.Create();
+                document.ImportStencilMastersAndGet(firstPackage);
+                int colorCount = document.PreservedColorsElements.Count;
+
+                Assert.Throws<InvalidOperationException>(() =>
+                    document.ImportStencilMastersAndGet(secondPackage));
+
+                Assert.Equal(colorCount,
+                    document.PreservedColorsElements.Count);
+                Assert.Null(document.PackageTheme);
+                Assert.False(document.TryGetMaster("NewMaster", out _));
+                Assert.True(document.TryGetMaster("SharedMaster",
+                    out VisioMaster? shared));
+                Assert.Equal(Path.GetFullPath(firstPackage),
+                    shared!.StencilSourcePackagePath);
+            } finally {
+                if (File.Exists(firstPackage)) File.Delete(firstPackage);
+                if (File.Exists(secondPackage)) File.Delete(secondPackage);
+            }
+        }
+
+        [Fact]
+        public void PackageStencilProvenanceUsesPlatformPathCaseSemantics() {
+            string path = Path.GetFullPath(Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-CasePath.vssx"));
+            string differentlyCased = path.Replace("CasePath", "casepath");
+            try {
+                File.WriteAllText(path, "stencil provenance");
+                var master = new VisioMaster("1", "CaseMaster",
+                    new VisioShape("1", 0, 0, 1, 1, string.Empty)) {
+                    StencilSourcePackagePath = path
+                };
+
+                if (File.Exists(differentlyCased)) {
+                    VisioStencilMetadata.EnsureSourcePackageMatches(master,
+                        differentlyCased);
+                } else {
+                    Assert.Throws<InvalidOperationException>(() =>
+                        VisioStencilMetadata.EnsureSourcePackageMatches(master,
+                            differentlyCased));
+                }
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void PackageStencilProvenanceResolvesUnixSymbolicLinkAliases() {
+#if NET6_0_OR_GREATER
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+            string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string source = Path.Combine(directory, "source.vssx");
+            string alias = Path.Combine(directory, "alias.vssx");
+            try {
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(source, "stencil provenance");
+                File.CreateSymbolicLink(alias, source);
+
+                Assert.True(VisioStencilMetadata.SourcePackagePathsMatch(
+                    source, alias));
+            } finally {
+                if (Directory.Exists(directory)) {
+                    Directory.Delete(directory, recursive: true);
+                }
+            }
+#endif
         }
 
         [Fact]

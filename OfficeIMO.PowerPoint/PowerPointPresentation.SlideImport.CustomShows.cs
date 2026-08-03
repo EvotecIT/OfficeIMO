@@ -255,6 +255,12 @@ namespace OfficeIMO.PowerPoint {
                 resolved.Add(slidePart);
             }
 
+            if (resolved.Count == 0) {
+                customShow = null;
+                slides = Array.Empty<SlidePart>();
+                return false;
+            }
+
             customShow = matches[0];
             slides = resolved.ToArray();
             return true;
@@ -276,37 +282,30 @@ namespace OfficeIMO.PowerPoint {
                 .Select(show => show.Name?.Value)
                 .Where(name => !string.IsNullOrEmpty(name))
                 .Cast<string>()
-                ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+                ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 
             foreach (CustomShow sourceShow in sourceShows) {
                 uint sourceId = sourceShow.Id!.Value;
                 uint targetId = AllocateCustomShowId(sourceId, usedIds);
                 string targetName = AllocateCustomShowName(
                     sourceShow.Name!.Value!, usedNames);
-                var slideList = new SlideList();
-                foreach (SlideListEntry sourceEntry in sourceShow.SlideList?
-                             .Elements<SlideListEntry>()
-                         ?? Enumerable.Empty<SlideListEntry>()) {
-                    string sourceRelationshipId = sourceEntry.Id!.Value!;
+                var targetShow = (CustomShow)sourceShow.CloneNode(true);
+                SlideList targetSlideList = targetShow.SlideList
+                    ?? targetShow.PrependChild(new SlideList());
+                foreach (SlideListEntry targetEntry in targetSlideList
+                             .Elements<SlideListEntry>()) {
+                    string sourceRelationshipId = targetEntry.Id!.Value!;
                     SlidePart sourceSlidePart = (SlidePart)
                         sourcePresentation._presentationPart.GetPartById(
                             sourceRelationshipId);
                     SlidePart targetSlidePart =
                         importedSlides[sourceSlidePart].SlidePart;
-                    slideList.Append(new SlideListEntry {
-                        Id = _presentationPart.GetIdOfPart(targetSlidePart)
-                    });
+                    targetEntry.Id = _presentationPart.GetIdOfPart(
+                        targetSlidePart);
                 }
 
-                var targetShow = (CustomShow)sourceShow.CloneNode(true);
                 targetShow.Id = targetId;
                 targetShow.Name = targetName;
-                if (targetShow.SlideList != null) {
-                    targetShow.ReplaceChild(slideList,
-                        targetShow.SlideList);
-                } else {
-                    targetShow.PrependChild(slideList);
-                }
                 PresentationRoot.CustomShowList ??= new CustomShowList();
                 PresentationRoot.CustomShowList.Append(targetShow);
                 idMap.Add(sourceId, targetId);
@@ -320,14 +319,9 @@ namespace OfficeIMO.PowerPoint {
             uint preferredId,
             ISet<uint> usedIds) {
             if (usedIds.Add(preferredId)) return preferredId;
-            uint candidate = 0;
-            while (!usedIds.Add(candidate)) {
-                if (candidate == uint.MaxValue) {
-                    throw new InvalidOperationException(
-                        "The presentation has no available custom-show identifiers.");
-                }
-                candidate++;
-            }
+            uint candidate = FindAvailableUInt32Id(usedIds, 0U,
+                "custom-show");
+            usedIds.Add(candidate);
             return candidate;
         }
 
@@ -457,7 +451,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsCustomShowActionValue(string? action) =>
             action?.StartsWith("ppaction://customshow?id=",
-                StringComparison.Ordinal) == true;
+                StringComparison.OrdinalIgnoreCase) == true;
 
         private static bool TryParseCustomShowAction(
             string? action,

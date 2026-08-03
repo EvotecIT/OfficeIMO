@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             }
             A.HyperlinkOnClick action = properties
                 .GetFirstChild<A.HyperlinkOnClick>()!;
-            action.Action = "ppaction://customshow?id=17&return=true";
+            action.Action = "PPAction://CustomShow?id=17&return=true";
 
             presentation.RemoveSlide(1);
 

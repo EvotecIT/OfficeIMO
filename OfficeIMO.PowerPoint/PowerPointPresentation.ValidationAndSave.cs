@@ -148,12 +148,26 @@ namespace OfficeIMO.PowerPoint {
             _discardChangesOnDispose = false;
         }
 
-        /// <summary>Encodes the presentation as a PPTX package.</summary>
-        public byte[] ToBytes() => CreatePackageBytesForSave();
+        /// <summary>
+        ///     Encodes the presentation as its current Open XML package type,
+        ///     retaining an attached VBA project in a macro-enabled package.
+        /// </summary>
+        public byte[] ToBytes() => CreatePackageBytesForStreamSave();
 
         /// <summary>Encodes the presentation in the requested PowerPoint format.</summary>
-        public byte[] ToBytes(PowerPointFileFormat format, PowerPointSaveOptions? options = null) =>
-            IsLegacyBinaryFormat(format) ? CreateLegacyPptBytesForSave(options) : CreatePackageBytesForSave();
+        public byte[] ToBytes(PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
+            if (IsLegacyBinaryFormat(format)) {
+                return CreateLegacyPptBytesForSave(options);
+            }
+            PresentationDocumentType destinationType = format
+                == PowerPointFileFormat.Pptm
+                    ? PresentationDocumentType.MacroEnabledPresentation
+                    : PresentationDocumentType.Presentation;
+            return CreatePackageBytesForSave(
+                preserveVbaProject: IsMacroEnabledDocumentType(
+                    destinationType),
+                destinationType: destinationType);
+        }
 
         /// <summary>Encodes the presentation in a new writable memory stream positioned at the beginning.</summary>
         public MemoryStream ToStream() => new MemoryStream(ToBytes());
@@ -268,11 +282,19 @@ namespace OfficeIMO.PowerPoint {
 
         private byte[] CreatePackageBytesForStreamSave() {
             ThrowIfDisposed();
-            if (IsLegacyBinaryFormat(SourceFormat)) {
-                return CreatePackageBytesForSave();
-            }
             PresentationDocumentType destinationType =
                 _document!.DocumentType;
+            if (_presentationPart.VbaProjectPart != null
+                && !IsMacroEnabledDocumentType(destinationType)) {
+                destinationType = destinationType
+                    == PresentationDocumentType.Template
+                        ? PresentationDocumentType.MacroEnabledTemplate
+                        : destinationType == PresentationDocumentType.Slideshow
+                            ? PresentationDocumentType
+                                .MacroEnabledSlideshow
+                            : PresentationDocumentType
+                                .MacroEnabledPresentation;
+            }
             return CreatePackageBytesForSave(
                 preserveVbaProject:
                     IsMacroEnabledDocumentType(destinationType),
@@ -490,7 +512,7 @@ namespace OfficeIMO.PowerPoint {
             if (password == null) throw new ArgumentNullException(nameof(password));
             byte[] encryptedBytes = IsLegacyBinaryFormat(format)
                 ? CreateEncryptedLegacyPptBytes(password, options)
-                : OfficeEncryption.EncryptPackage(CreatePackageBytesForSave(),
+                : OfficeEncryption.EncryptPackage(ToBytes(format, options),
                     password);
             OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
         }
@@ -507,7 +529,7 @@ namespace OfficeIMO.PowerPoint {
             if (password == null) throw new ArgumentNullException(nameof(password));
             return IsLegacyBinaryFormat(format)
                 ? CreateEncryptedLegacyPptBytes(password, options)
-                : OfficeEncryption.EncryptPackage(CreatePackageBytesForSave(),
+                : OfficeEncryption.EncryptPackage(ToBytes(format, options),
                     password);
         }
 

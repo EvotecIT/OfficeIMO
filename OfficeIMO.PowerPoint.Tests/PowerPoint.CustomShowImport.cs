@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                         Id = sourcePart.GetIdOfPart(secondShowSlide.SlidePart)
                     })) {
                     Id = 17U,
-                    Name = "Tour"
+                    Name = "tour"
                 };
             var extension = new Extension {
                 Uri = "{40A09A7A-19E1-4D9D-A417-7F2234A3D10B}"
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, shows.Length);
             CustomShow importedShow = Assert.Single(shows,
                 show => show.Id?.Value != 17U);
-            Assert.Equal("Tour (2)", importedShow.Name?.Value);
+            Assert.Equal("tour (2)", importedShow.Name?.Value);
             Assert.Equal(extension.OuterXml,
                 importedShow.ExtensionList!.Elements<Extension>()
                     .Single().OuterXml);
@@ -99,6 +99,63 @@ namespace OfficeIMO.Tests {
             Assert.Empty(exported.Slides[0].SlidePart.Slide!
                 .Descendants<A.HyperlinkOnClick>());
             Assert.Empty(exported.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportPreservesCustomShowSlideListProducerMetadata() {
+            const string ProducerNamespace = "urn:officeimo:test";
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide requested = source.AddSlide();
+            PowerPointAutoShape actionShape = requested.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            PowerPointSlide showSlide = source.AddSlide();
+            PresentationPart sourcePart = source.OpenXmlDocument
+                .PresentationPart!;
+            var entry = new SlideListEntry {
+                Id = sourcePart.GetIdOfPart(showSlide.SlidePart)
+            };
+            entry.SetAttribute(new OpenXmlAttribute("producer", "metadata",
+                ProducerNamespace, "entry"));
+            var slideList = new SlideList(entry);
+            slideList.SetAttribute(new OpenXmlAttribute("producer",
+                "metadata", ProducerNamespace, "list"));
+            slideList.Append(new OpenXmlUnknownElement("producer",
+                "listExtension", ProducerNamespace));
+            sourcePart.Presentation!.CustomShowList = new CustomShowList(
+                new CustomShow(slideList) {
+                    Id = 41U,
+                    Name = "Producer tour"
+                });
+            NonVisualDrawingProperties actionProperties =
+                ((Shape)actionShape.Element).NonVisualShapeProperties!
+                .NonVisualDrawingProperties!;
+            actionProperties.Append(new A.HyperlinkOnClick {
+                Id = string.Empty,
+                Action = "ppaction://customshow?id=41&return=true"
+            });
+
+            using PowerPointPresentation target =
+                PowerPointPresentation.Create();
+
+            target.ImportSlide(source, 0);
+
+            CustomShow importedShow = Assert.Single(target.OpenXmlDocument
+                .PresentationPart!.Presentation!.CustomShowList!
+                .Elements<CustomShow>());
+            SlideList importedList = importedShow.SlideList!;
+            SlideListEntry importedEntry = Assert.Single(importedList
+                .Elements<SlideListEntry>());
+            Assert.Equal("list", importedList.GetAttribute("metadata",
+                ProducerNamespace).Value);
+            Assert.Equal("entry", importedEntry.GetAttribute("metadata",
+                ProducerNamespace).Value);
+            Assert.Contains(importedList.ChildElements, child =>
+                child.LocalName == "listExtension"
+                && child.NamespaceUri == ProducerNamespace);
+            SlidePart importedShowSlide = (SlidePart)target.OpenXmlDocument
+                .PresentationPart.GetPartById(importedEntry.Id!.Value!);
+            Assert.Same(target.Slides[1].SlidePart, importedShowSlide);
         }
 
         [Fact]
@@ -226,6 +283,37 @@ namespace OfficeIMO.Tests {
             Assert.Empty(imported.SlidePart.HyperlinkRelationships);
             Assert.DoesNotContain(imported.SlidePart.Parts,
                 pair => pair.RelationshipId == InternalRelationshipId);
+            Assert.Empty(target.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportDiscardsActionsTargetingEmptyCustomShows() {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide requested = source.AddSlide();
+            PowerPointAutoShape actionShape = requested.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            source.OpenXmlDocument.PresentationPart!.Presentation!
+                .CustomShowList = new CustomShowList(
+                    new CustomShow(new SlideList()) {
+                        Id = 17U,
+                        Name = "Empty tour"
+                    });
+            GetNonVisualProperties(actionShape).Append(
+                new A.HyperlinkOnClick {
+                    Id = string.Empty,
+                    Action = "ppaction://customshow?id=17&return=true"
+                });
+
+            using PowerPointPresentation target =
+                PowerPointPresentation.Create();
+
+            PowerPointSlide imported = target.ImportSlide(source, 0);
+
+            Assert.Empty(imported.SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>());
+            Assert.Null(target.OpenXmlDocument.PresentationPart!
+                .Presentation!.CustomShowList);
             Assert.Empty(target.ValidateDocument());
         }
 

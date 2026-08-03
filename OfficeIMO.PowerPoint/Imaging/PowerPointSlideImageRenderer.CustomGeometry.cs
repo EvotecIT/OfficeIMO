@@ -1,12 +1,47 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
         private const double DrawingMlAngleUnitsPerDegree = 60000D;
+
+        internal static bool TryCreateCustomGeometryDrawing(
+            PowerPointShape shape, double width, double height,
+            out OfficeDrawing? drawing, out string? reason) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            drawing = null;
+            reason = null;
+            if (width <= 0D || height <= 0D) {
+                reason = "The custom-geometry frame has no renderable area.";
+                return false;
+            }
+            var candidate = new OfficeDrawing(width, height);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            A.ColorScheme? colorScheme = shape.OwnerSlide == null
+                ? null
+                : GetSlideColorScheme(shape.OwnerSlide);
+            if (!TryAddCustomGeometryShape(candidate, shape,
+                    left: 0D, top: 0D, width, height, diagnostics,
+                    PowerPointShapeBoundsMapping.Identity, colorScheme)) {
+                reason = "The PowerPoint shape has no custom geometry.";
+                return false;
+            }
+            OfficeImageExportDiagnostic? failure = diagnostics.FirstOrDefault(
+                diagnostic => diagnostic.Severity
+                        != OfficeImageExportDiagnosticSeverity.Info
+                    || diagnostic.LossKind != OfficeImageExportLossKind.None);
+            if (failure != null || candidate.Elements.Count == 0) {
+                reason = failure?.Message
+                    ?? "The custom geometry produced no visible Drawing paths.";
+                return false;
+            }
+            drawing = candidate;
+            return true;
+        }
 
         private static bool TryAddCustomGeometryShape(
             OfficeDrawing drawing,
@@ -23,42 +58,119 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            if (!TryCreateCustomGeometryShape(customGeometry, width, height, out OfficeShape? drawingShape) || drawingShape == null) {
-                AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint custom geometry shape because its paths use commands, guides, or formulas that are not yet projected through OfficeIMO.Drawing.");
+            if (!TryCreateCustomGeometryShapes(customGeometry, width, height,
+                    out List<CustomGeometryPathProjection>? projections)
+                    || projections == null) {
+                AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint custom geometry shape because its paths use commands, guides, formulas, or per-path styling that are not yet projected faithfully through OfficeIMO.Drawing.");
                 return true;
             }
 
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
-            ApplyShapeTransform(drawingShape, shape, width, height);
-            drawing.AddShape(drawingShape, left, top);
+            int visiblePathCount = projections.Count(projection =>
+                projection.HasFill || projection.HasStroke);
+            if (visiblePathCount > 1
+                && HasProjectableShapeEffects(shape, colorScheme, mapping)) {
+                AddUnsupportedShapeDiagnostic(diagnostics, shape,
+                    "Skipped a multi-path PowerPoint custom geometry shape because its shape-level shadow or glow cannot be composited faithfully across separate Drawing paths.");
+                return true;
+            }
+
+            foreach (CustomGeometryPathProjection projection in projections) {
+                OfficeShape drawingShape = projection.Shape;
+                ApplyShapeStyle(drawingShape, shape, colorScheme, mapping,
+                    diagnostics);
+                if (!projection.HasFill) {
+                    drawingShape.FillColor = null;
+                    drawingShape.FillGradient = null;
+                    drawingShape.FillRadialGradient = null;
+                }
+                if (!projection.HasStroke) {
+                    drawingShape.StrokeColor = null;
+                    drawingShape.StrokeGradient = null;
+                    drawingShape.StrokeRadialGradient = null;
+                    drawingShape.StrokeWidth = 0D;
+                    drawingShape.StrokeStartMarker = null;
+                    drawingShape.StrokeEndMarker = null;
+                }
+                if (!projection.HasFill && !projection.HasStroke) {
+                    drawingShape.Glow = null;
+                    drawingShape.Shadow = null;
+                }
+                ApplyShapeTransform(drawingShape, shape, width, height);
+                drawing.AddShape(drawingShape, left, top);
+            }
             return true;
         }
 
-        private static bool TryCreateCustomGeometryShape(A.CustomGeometry customGeometry, double width, double height, out OfficeShape? drawingShape) {
-            drawingShape = null;
+        private static bool HasProjectableShapeEffects(PowerPointShape shape,
+            A.ColorScheme? colorScheme,
+            PowerPointShapeBoundsMapping mapping) {
+            A.EffectList? effects = GetOpenXmlShapeProperties(shape)?
+                .GetFirstChild<A.EffectList>();
+            if (effects == null) return false;
+
+            A.Glow? glow = effects.GetFirstChild<A.Glow>();
+            if (glow != null && TryCreateGlow(glow, colorScheme, mapping,
+                    out _)) {
+                return true;
+            }
+
+            A.OuterShadow? shadow = effects.GetFirstChild<A.OuterShadow>();
+            return shadow != null && TryCreateShadow(shadow, colorScheme,
+                mapping, out _);
+        }
+
+        private static bool TryCreateCustomGeometryShapes(
+            A.CustomGeometry customGeometry, double width, double height,
+            out List<CustomGeometryPathProjection>? projections) {
+            projections = null;
             A.PathList? pathList = customGeometry.PathList;
             if (pathList == null) {
                 return false;
             }
 
-            var commands = new List<OfficePathCommand>();
+            var resolved = new List<CustomGeometryPathProjection>();
             foreach (A.Path path in pathList.Elements<A.Path>()) {
+                A.PathFillModeValues? fillMode = path.Fill?.Value;
+                if (fillMode.HasValue
+                    && fillMode.Value != A.PathFillModeValues.None
+                    && fillMode.Value != A.PathFillModeValues.Norm) {
+                    return false;
+                }
+
+                var commands = new List<OfficePathCommand>();
                 if (!TryAppendCustomGeometryPath(customGeometry, path, width, height, commands)) {
+                    return false;
+                }
+
+                try {
+                    OfficeShape projectedShape = OfficeShape.Path(
+                        width, height, commands);
+                    projectedShape.FillRule = OfficeFillRule.NonZero;
+                    resolved.Add(new CustomGeometryPathProjection(
+                        projectedShape,
+                        fillMode != A.PathFillModeValues.None,
+                        path.Stroke?.Value != false));
+                } catch (ArgumentException) {
                     return false;
                 }
             }
 
-            if (commands.Count == 0) {
-                return false;
+            if (resolved.Count == 0) return false;
+            projections = resolved;
+            return true;
+        }
+
+        private sealed class CustomGeometryPathProjection {
+            internal CustomGeometryPathProjection(OfficeShape shape,
+                bool hasFill, bool hasStroke) {
+                Shape = shape;
+                HasFill = hasFill;
+                HasStroke = hasStroke;
             }
 
-            try {
-                drawingShape = OfficeShape.Path(commands);
-                return true;
-            } catch (ArgumentException) {
-                drawingShape = null;
-                return false;
-            }
+            internal OfficeShape Shape { get; }
+            internal bool HasFill { get; }
+            internal bool HasStroke { get; }
         }
 
         private static bool TryAppendCustomGeometryPath(A.CustomGeometry customGeometry, A.Path path, double width, double height, List<OfficePathCommand> commands) {
@@ -77,6 +189,7 @@ namespace OfficeIMO.PowerPoint {
             bool hasMove = false;
             bool hasDraw = false;
             OfficePoint currentPoint = default;
+            OfficePoint currentSubpathStart = default;
 
             foreach (DocumentFormat.OpenXml.OpenXmlElement child in path.ChildElements) {
                 if (child is A.MoveTo moveTo) {
@@ -86,6 +199,7 @@ namespace OfficeIMO.PowerPoint {
 
                     commands.Add(OfficePathCommand.MoveTo(point));
                     currentPoint = point;
+                    currentSubpathStart = point;
                     hasMove = true;
                 } else if (child is A.LineTo lineTo) {
                     if (!hasMove || !TryGetCustomGeometryPoint(lineTo.Point, scaleX, scaleY, guides, out OfficePoint point)) {
@@ -126,6 +240,7 @@ namespace OfficeIMO.PowerPoint {
                     }
 
                     commands.Add(OfficePathCommand.Close());
+                    currentPoint = currentSubpathStart;
                 } else {
                     return false;
                 }
@@ -371,8 +486,8 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 case "at2":
                     if (parts.Length == 3 &&
-                        TryResolveCustomGeometryCoordinate(parts[1], guides, out double arcTangentY) &&
-                        TryResolveCustomGeometryCoordinate(parts[2], guides, out double arcTangentX)) {
+                        TryResolveCustomGeometryCoordinate(parts[1], guides, out double arcTangentX) &&
+                        TryResolveCustomGeometryCoordinate(parts[2], guides, out double arcTangentY)) {
                         value = ConvertRadiansToCustomGeometryAngle(Math.Atan2(arcTangentY, arcTangentX));
                         return IsFiniteCustomGeometryValue(value);
                     }

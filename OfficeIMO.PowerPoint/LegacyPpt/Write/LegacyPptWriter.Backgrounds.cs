@@ -106,8 +106,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             P.Background source, string ownerName,
             out LegacyPptWriterBackground? background, out string? reason) {
             A.ColorScheme? colorScheme = GetBackgroundColorScheme(ownerPart);
-            A.SchemeColor? placeholderColor = source.BackgroundStyleReference?
-                .GetFirstChild<A.SchemeColor>();
+            OpenXmlElement? placeholderColor = source.BackgroundStyleReference;
             OpenXmlElement? fill = GetBackgroundFill(ownerPart, source,
                 out OpenXmlPart fillOwnerPart);
             if (fill == null) {
@@ -243,7 +242,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryReadGradientBackground(A.GradientFill gradient,
-            A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor,
+            A.ColorScheme? colorScheme, OpenXmlElement? placeholderColor,
             string ownerName, out LegacyPptWriterBackground? background,
             out string? reason) {
             A.LinearGradientFill? linear = gradient.GetFirstChild<A.LinearGradientFill>();

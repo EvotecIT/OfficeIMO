@@ -79,6 +79,9 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>When true, supported slide charts are rendered through shared vector chart primitives. Defaults to true.</summary>
     public bool IncludeCharts { get; set; } = true;
 
+    /// <summary>When true, supported SmartArt diagrams are rendered through shared vector diagram primitives. Defaults to true.</summary>
+    public bool IncludeSmartArt { get; set; } = true;
+
     /// <summary>When true, slides marked hidden in PowerPoint are exported. Defaults to false.</summary>
     public bool IncludeHiddenSlides { get; set; }
 
@@ -197,6 +200,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = true;
                 IncludeTables = true;
                 IncludeCharts = true;
+                IncludeSmartArt = true;
                 IncludeHiddenSlides = false;
                 break;
             case PdfCore.PdfExportProfile.Lightweight:
@@ -206,6 +210,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = false;
                 IncludeTables = true;
                 IncludeCharts = false;
+                IncludeSmartArt = true;
                 IncludeHiddenSlides = false;
                 break;
             case PdfCore.PdfExportProfile.PrintReady:
@@ -215,6 +220,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = true;
                 IncludeTables = true;
                 IncludeCharts = true;
+                IncludeSmartArt = true;
                 IncludeHiddenSlides = false;
                 break;
             case PdfCore.PdfExportProfile.TextOnly:
@@ -224,6 +230,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = false;
                 IncludeTables = true;
                 IncludeCharts = false;
+                IncludeSmartArt = false;
                 IncludeHiddenSlides = false;
                 break;
             default:

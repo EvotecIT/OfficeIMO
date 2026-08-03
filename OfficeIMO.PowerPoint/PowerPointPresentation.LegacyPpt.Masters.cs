@@ -840,11 +840,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyLegacyLineJoin(A.Outline outline, uint? value) {
-            outline.RemoveAllChildren<A.Bevel>();
+            outline.RemoveAllChildren<A.LineJoinBevel>();
             outline.RemoveAllChildren<A.Miter>();
             outline.RemoveAllChildren<A.Round>();
             OpenXmlElement? join = value switch {
-                0 => new A.Bevel(),
+                0 => new A.LineJoinBevel(),
                 1 => new A.Miter(),
                 2 => new A.Round(),
                 _ => null
@@ -905,7 +905,7 @@ namespace OfficeIMO.PowerPoint {
             int order = child switch {
                 A.NoFill or A.SolidFill or A.GradientFill or A.PatternFill => 0,
                 A.PresetDash or A.CustomDash => 1,
-                A.Round or A.Bevel or A.Miter => 2,
+                A.Round or A.LineJoinBevel or A.Miter => 2,
                 A.HeadEnd => 3,
                 A.TailEnd => 4,
                 _ => 100
@@ -913,7 +913,7 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlElement? before = outline.ChildElements.FirstOrDefault(existing => (existing switch {
                 A.NoFill or A.SolidFill or A.GradientFill or A.PatternFill => 0,
                 A.PresetDash or A.CustomDash => 1,
-                A.Round or A.Bevel or A.Miter => 2,
+                A.Round or A.LineJoinBevel or A.Miter => 2,
                 A.HeadEnd => 3,
                 A.TailEnd => 4,
                 _ => 100

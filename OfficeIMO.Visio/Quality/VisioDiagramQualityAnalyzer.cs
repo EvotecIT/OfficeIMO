@@ -15,6 +15,8 @@ namespace OfficeIMO.Visio {
         private const string ConnectorLabelOutsidePageKind = "ConnectorLabelOutsidePage";
         private const string ConnectorLabelOverlapsShapeKind = "ConnectorLabelOverlapsShape";
         private const string ConnectorLabelOverlapKind = "ConnectorLabelOverlap";
+        private const string ConnectorLabelCrossesConnectorKind =
+            "ConnectorLabelCrossesConnector";
         private const string ConnectorMissingLabelKind = "ConnectorMissingLabel";
 
         /// <summary>
@@ -195,8 +197,10 @@ namespace OfficeIMO.Visio {
             VisioDiagramQualityOptions options,
             List<VisioDiagramQualityIssue> issues) {
             List<ConnectorLabelBounds> connectorLabelBounds = new();
+            var connectorPaths = new Dictionary<VisioConnector, List<Point>>();
             foreach (VisioConnector connector in page.Connectors) {
                 List<Point> path = BuildConnectorPath(connector);
+                connectorPaths[connector] = path;
                 if (options.RequireConnectorLabels && string.IsNullOrWhiteSpace(connector.Label)) {
                     issues.Add(new VisioDiagramQualityIssue(
                         VisioDiagramQualityIssueSeverity.Information,
@@ -208,6 +212,7 @@ namespace OfficeIMO.Visio {
 
                 if (options.CheckConnectorLabels &&
                     !string.IsNullOrWhiteSpace(connector.Label) &&
+                    HasDeterministicLabelPlacement(connector) &&
                     TryGetConnectorLabelBounds(connector, path, out VisioShapeBounds labelBounds)) {
                     ConnectorLabelBounds connectorLabel = new(connector, labelBounds);
                     connectorLabelBounds.Add(connectorLabel);
@@ -259,6 +264,37 @@ namespace OfficeIMO.Visio {
 
             if (options.CheckConnectorLabels && options.CheckConnectorLabelOverlaps) {
                 AnalyzeConnectorLabelOverlaps(page, connectorLabelBounds, options, issues);
+            }
+
+            if (options.CheckConnectorLabels &&
+                options.CheckConnectorLabelPathOverlaps) {
+                AnalyzeConnectorLabelPathOverlaps(page, connectorLabelBounds,
+                    connectorPaths, issues);
+            }
+        }
+
+        private static void AnalyzeConnectorLabelPathOverlaps(
+            VisioPage page,
+            IReadOnlyList<ConnectorLabelBounds> connectorLabelBounds,
+            IReadOnlyDictionary<VisioConnector, List<Point>> connectorPaths,
+            List<VisioDiagramQualityIssue> issues) {
+            foreach (ConnectorLabelBounds label in connectorLabelBounds) {
+                foreach (KeyValuePair<VisioConnector, List<Point>> path in
+                         connectorPaths) {
+                    if (ReferenceEquals(label.Connector, path.Key) ||
+                        !HasDeterministicRoute(path.Key) ||
+                        !PathIntersectsBounds(path.Value, label.Bounds)) {
+                        continue;
+                    }
+
+                    issues.Add(new VisioDiagramQualityIssue(
+                        VisioDiagramQualityIssueSeverity.Warning,
+                        ConnectorLabelCrossesConnectorKind,
+                        $"Connector '{label.Connector.Id}' label crosses unrelated connector '{path.Key.Id}'.",
+                        page.Name,
+                        connectorId: label.Connector.Id,
+                        otherConnectorId: path.Key.Id));
+                }
             }
         }
 
@@ -363,8 +399,15 @@ namespace OfficeIMO.Visio {
         private static bool HasDeterministicRoute(VisioConnector connector) {
             return connector.Waypoints.Count > 0 ||
                    connector.Kind == ConnectorKind.RightAngle ||
-                   connector.Kind == ConnectorKind.Straight ||
-                   connector.Kind == ConnectorKind.Curved;
+                   connector.Kind == ConnectorKind.Straight;
+        }
+
+        private static bool HasDeterministicLabelPlacement(
+            VisioConnector connector) {
+            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+            return HasDeterministicRoute(connector)
+                || (placement?.AbsolutePinX.HasValue == true
+                    && placement.AbsolutePinY.HasValue);
         }
 
         private static List<Point> BuildConnectorPath(VisioConnector connector) {

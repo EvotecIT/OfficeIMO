@@ -135,7 +135,37 @@ namespace OfficeIMO.Visio.Stencils {
             string? sourcePackagePath,
             VisioStencilPreviewImage? previewImage,
             IEnumerable<VisioStencilConnectionPoint>? sourceConnectionPoints) {
-            return Add(CreateShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath, previewImage, sourceConnectionPoints));
+            return AddWithMetadata(id, name, masterNameU, category, defaultWidth,
+                defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit,
+                sourcePackagePath, previewImage, sourceConnectionPoints,
+                isSupported: true, sourceLicense: null, sourceAttribution: null);
+        }
+
+        /// <summary>
+        /// Adds a stencil shape with explicit support state and source licensing metadata.
+        /// </summary>
+        public VisioStencilCatalogBuilder AddWithMetadata(
+            string id,
+            string name,
+            string masterNameU,
+            string category,
+            double defaultWidth,
+            double defaultHeight,
+            IEnumerable<string>? keywords,
+            IEnumerable<string>? aliases,
+            IEnumerable<string>? tags,
+            string? iconNameU,
+            VisioMeasurementUnit? defaultUnit,
+            string? sourcePackagePath,
+            VisioStencilPreviewImage? previewImage,
+            IEnumerable<VisioStencilConnectionPoint>? sourceConnectionPoints,
+            bool isSupported,
+            string? sourceLicense,
+            string? sourceAttribution) {
+            return Add(CreateShape(id, name, masterNameU, category, defaultWidth,
+                defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit,
+                sourcePackagePath, previewImage, sourceConnectionPoints,
+                isSupported, sourceLicense, sourceAttribution));
         }
 
         /// <summary>
@@ -172,7 +202,10 @@ namespace OfficeIMO.Visio.Stencils {
             VisioMeasurementUnit? defaultUnit,
             string? sourcePackagePath,
             VisioStencilPreviewImage? previewImage,
-            IEnumerable<VisioStencilConnectionPoint>? sourceConnectionPoints) {
+            IEnumerable<VisioStencilConnectionPoint>? sourceConnectionPoints,
+            bool isSupported,
+            string? sourceLicense,
+            string? sourceAttribution) {
             string prefix = id.Contains(".") ? id.Substring(0, id.IndexOf('.')) : id;
             string localId = id.Contains(".") ? id.Substring(id.IndexOf('.') + 1) : id;
             IEnumerable<string> effectiveKeywords = keywords ?? Enumerable.Empty<string>();
@@ -200,7 +233,10 @@ namespace OfficeIMO.Visio.Stencils {
                 defaultUnit,
                 sourcePackagePath,
                 previewImage,
-                sourceConnectionPoints);
+                sourceConnectionPoints,
+                isSupported,
+                sourceLicense,
+                sourceAttribution);
         }
     }
 }
