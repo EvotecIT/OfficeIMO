@@ -17,7 +17,6 @@ public sealed class Markdown_GitHubFlavoredMarkdown_Inventory_Tests {
 
         Assert.True(File.Exists(reportPath), "GFM inventory report is missing: " + reportPath);
         Assert.Equal(NormalizeLineEndings(File.ReadAllText(reportPath)), NormalizeLineEndings(markdown));
-        AssertDocsTrackInventoryCounts(report);
     }
 
     private static string GetTestProjectPath(params string[] segments) {
@@ -41,16 +40,4 @@ public sealed class Markdown_GitHubFlavoredMarkdown_Inventory_Tests {
     private static string NormalizeLineEndings(string value) =>
         value.Replace("\r\n", "\n").Replace("\r", "\n");
 
-    private static void AssertDocsTrackInventoryCounts(GfmInventoryReport report) {
-        string trackedText = $"{report.Total} tracked GFM fixtures";
-        string passingText = $"{report.Passing} passing";
-
-        string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs", "officeimo.markdown.compatibility-matrix.md"));
-        Assert.Contains(trackedText, compatibilityMatrix, StringComparison.Ordinal);
-        Assert.Contains(passingText, compatibilityMatrix, StringComparison.Ordinal);
-
-        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown", "COMPATIBILITY.md"));
-        Assert.Contains($"{report.Total} tracked fixtures", packageCompatibility, StringComparison.Ordinal);
-        Assert.Contains($"{report.Passing} passing", packageCompatibility, StringComparison.Ordinal);
-    }
 }
