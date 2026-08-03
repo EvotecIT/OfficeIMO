@@ -49,6 +49,51 @@ public sealed class PowerPointSharedChartTextStyleTests {
     }
 
     [Fact]
+    public void SharedSnapshot_PreservesAxisTitleFontSeparatelyFromLabels() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChartPoints(
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            }), 40, 40, 500, 300);
+        chart.SetLegendTextStyle(fontName: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
+            .SetValueAxisLabelTextStyle(fontName: "Arial")
+            .SetCategoryAxisTitle("Quarter")
+            .SetCategoryAxisTitleTextStyle(fontName: "Georgia")
+            .SetValueAxisTitle("Revenue")
+            .SetValueAxisTitleTextStyle(fontName: "Georgia");
+
+        Assert.True(chart.TryGetOfficeSnapshot(
+            out OfficeChartSnapshot snapshot));
+        Assert.Equal("Arial", snapshot.Style.FontFamily);
+        Assert.Equal("Quarter", snapshot.Layout.CategoryAxisTitle);
+        Assert.Equal("Revenue", snapshot.Layout.ValueAxisTitle);
+        Assert.Equal("Georgia", snapshot.Layout.AxisTitleFontFamily);
+    }
+
+    [Fact]
+    public void SharedSnapshot_RejectsConflictingAxisTitleFonts() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChartPoints(
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            }), 40, 40, 500, 300);
+        chart.SetLegendTextStyle(fontName: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
+            .SetValueAxisLabelTextStyle(fontName: "Arial")
+            .SetCategoryAxisTitle("Quarter")
+            .SetCategoryAxisTitleTextStyle(fontName: "Georgia")
+            .SetValueAxisTitle("Revenue")
+            .SetValueAxisTitleTextStyle(fontName: "Times New Roman");
+
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void SharedSnapshot_RejectsMixedTitleRunFonts() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(

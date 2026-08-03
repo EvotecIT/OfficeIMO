@@ -180,11 +180,7 @@ namespace OfficeIMO.PowerPoint {
 
         private bool TryReadSharedTextStyle(C.Chart chart,
             out OfficeChartStyle? style) {
-            string? chartDefaultTypeface = chart.Parent?
-                .GetFirstChild<C.TextProperties>()?
-                .Descendants<A.LatinFont>()
-                .Select(font => font.Typeface?.Value)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            string? chartDefaultTypeface = ReadChartDefaultTypeface(chart);
             OpenXmlElement[] bodyTextAreas = chart.Descendants()
                 .Where(IsRelevantBodyTextArea)
                 .ToArray();
@@ -212,11 +208,50 @@ namespace OfficeIMO.PowerPoint {
                 style = null;
                 return false;
             }
+            if (!TryReadAxisTitleTypeface(chart, chartDefaultTypeface,
+                    out _)) {
+                style = null;
+                return false;
+            }
             style = bodyFont == null && titleFont == null
                 ? null
                 : new OfficeChartStyle(fontFamily: bodyFont,
                     titleFontFamily: titleFont);
             return true;
+        }
+
+        private static string? ReadChartDefaultTypeface(C.Chart chart) =>
+            chart.Parent?.GetFirstChild<C.TextProperties>()?
+                .Descendants<A.LatinFont>()
+                .Select(font => font.Typeface?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+        private bool TryReadAxisTitleTypeface(C.Chart chart,
+            string? chartDefaultTypeface, out string? axisTitleFont) {
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            C.Title[] titles = plotArea == null
+                ? Array.Empty<C.Title>()
+                : plotArea.Elements()
+                    .Where(axis => axis is C.CategoryAxis
+                        or C.DateAxis or C.ValueAxis or C.SeriesAxis)
+                    .Select(axis => axis.GetFirstChild<C.Title>())
+                    .Where(title => title != null
+                        && title.Descendants<A.Text>()
+                            .Any(text => !string.IsNullOrEmpty(text.Text)))
+                    .Cast<C.Title>()
+                    .ToArray();
+            string?[] fonts = titles.Select(title =>
+                    ReadTitleTypeface(title, chartDefaultTypeface))
+                .ToArray();
+            if (fonts.Any(string.IsNullOrWhiteSpace)) {
+                axisTitleFont = null;
+                return false;
+            }
+            string[] distinct = fonts.Select(font => font!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            axisTitleFont = distinct.Length == 1 ? distinct[0] : null;
+            return distinct.Length <= 1;
         }
 
         private string? ReadBodyTypeface(

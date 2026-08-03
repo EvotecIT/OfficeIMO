@@ -570,7 +570,7 @@ namespace OfficeIMO.PowerPoint {
                 ReadSharedTextStyle(chart));
         }
 
-        private static OfficeChartLayout ReadChartLayout(
+        private OfficeChartLayout ReadChartLayout(
             C.Chart chart, PowerPointChartSnapshotKind kind) {
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.LegendPositionValues? nativePosition =
@@ -602,8 +602,9 @@ namespace OfficeIMO.PowerPoint {
                 OfficeChartAxisTickMark.None;
             OfficeChartAxisTickMark verticalMinorTickMark =
                 OfficeChartAxisTickMark.None;
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (kind == PowerPointChartSnapshotKind.Bubble &&
-                chart.GetFirstChild<C.PlotArea>() is C.PlotArea plotArea &&
+                plotArea != null &&
                 plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubble &&
                 TryGetReferencedBubbleAxes(
                     plotArea, bubble, out C.ValueAxis horizontalAxis,
@@ -626,7 +627,42 @@ namespace OfficeIMO.PowerPoint {
                 verticalMinorTickMark = ReadAxisTickMark(
                     verticalAxis.GetFirstChild<C.MinorTickMark>()?
                         .Val?.Value);
+            } else if (plotArea != null) {
+                OpenXmlCompositeElement? categoryAxis =
+                    (OpenXmlCompositeElement?)plotArea
+                        .Elements<C.CategoryAxis>().FirstOrDefault()
+                    ?? plotArea.Elements<C.DateAxis>().FirstOrDefault();
+                C.ValueAxis? valueAxis = plotArea.Elements<C.ValueAxis>()
+                    .FirstOrDefault();
+                if (categoryAxis != null) {
+                    horizontalAxisTitle = ReadAxisTitle(categoryAxis);
+                    verticalAxisTitle = valueAxis == null
+                        ? null
+                        : ReadAxisTitle(valueAxis);
+                } else {
+                    C.ValueAxis? positionedHorizontalAxis = plotArea
+                        .Elements<C.ValueAxis>().FirstOrDefault(axis =>
+                            axis.AxisPosition?.Val?.Value
+                                == C.AxisPositionValues.Bottom
+                            || axis.AxisPosition?.Val?.Value
+                                == C.AxisPositionValues.Top);
+                    C.ValueAxis? positionedVerticalAxis = plotArea
+                        .Elements<C.ValueAxis>().FirstOrDefault(axis =>
+                            axis.AxisPosition?.Val?.Value
+                                == C.AxisPositionValues.Left
+                            || axis.AxisPosition?.Val?.Value
+                                == C.AxisPositionValues.Right);
+                    horizontalAxisTitle = positionedHorizontalAxis == null
+                        ? null
+                        : ReadAxisTitle(positionedHorizontalAxis);
+                    verticalAxisTitle = positionedVerticalAxis == null
+                        ? null
+                        : ReadAxisTitle(positionedVerticalAxis);
+                }
             }
+
+            TryReadAxisTitleTypeface(chart,
+                ReadChartDefaultTypeface(chart), out string? axisTitleFont);
 
             return new OfficeChartLayout(overlayLegend: overlay,
                 overlayTitle: overlayTitle,
@@ -639,7 +675,8 @@ namespace OfficeIMO.PowerPoint {
                 horizontalAxisMajorTickMark: horizontalMajorTickMark,
                 verticalAxisMajorTickMark: verticalMajorTickMark,
                 horizontalAxisMinorTickMark: horizontalMinorTickMark,
-                verticalAxisMinorTickMark: verticalMinorTickMark);
+                verticalAxisMinorTickMark: verticalMinorTickMark,
+                axisTitleFontFamily: axisTitleFont);
         }
 
         private static OfficeChartAxisTickMark ReadAxisTickMark(
@@ -652,7 +689,7 @@ namespace OfficeIMO.PowerPoint {
                         ? OfficeChartAxisTickMark.Cross
                         : OfficeChartAxisTickMark.None;
 
-        private static string? ReadAxisTitle(C.ValueAxis axis) =>
+        private static string? ReadAxisTitle(OpenXmlCompositeElement axis) =>
             ReadChartText(
                 axis.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>());
 

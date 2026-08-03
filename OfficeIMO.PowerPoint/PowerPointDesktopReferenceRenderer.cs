@@ -243,6 +243,12 @@ namespace OfficeIMO.PowerPoint {
                 return true;
             }
 
+            if (HasOmissionContaining("PowerPoint OLE object")
+                && slide.OleObjects.Any(ole => IsPotentiallyVisibleOnSlide(
+                    slide, ole))) {
+                return true;
+            }
+
             return HasOmissionContaining("custom geometry")
                 && slide.Shapes.Any(shape =>
                     IsPotentiallyVisibleOnSlide(slide, shape)

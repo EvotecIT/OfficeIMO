@@ -130,6 +130,9 @@ namespace OfficeIMO.PowerPoint {
                     AddAutoShape(drawing, autoShape, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointConnectionShape connectionShape) {
                     AddAutoShape(drawing, connectionShape, diagnostics, mapping, colorScheme);
+                } else if (shape is PowerPointOleObject) {
+                    AddUnsupportedShapeDiagnostic(diagnostics, shape,
+                        "Skipped a PowerPoint OLE object because embedded-object previews are not yet projected through OfficeIMO.Drawing.");
                 } else if (HasUnsupportedTransform(shape)) {
                     AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint shape because rotated or flipped slide content is not yet projected through OfficeIMO.Drawing.");
                     continue;
