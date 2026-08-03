@@ -146,6 +146,9 @@ namespace OfficeIMO.Visio.Stencils {
                         new XAttribute("DefaultWidth", XmlConvert.ToString(shape.DefaultWidth)),
                         new XAttribute("DefaultHeight", XmlConvert.ToString(shape.DefaultHeight)),
                         new XAttribute("IconNameU", shape.IconNameU),
+                        !shape.IsSupported ? new XAttribute("Supported", false) : null,
+                        string.IsNullOrWhiteSpace(shape.SourceLicense) ? null : new XAttribute("SourceLicense", shape.SourceLicense),
+                        string.IsNullOrWhiteSpace(shape.SourceAttribution) ? null : new XAttribute("SourceAttribution", shape.SourceAttribution),
                         shape.DefaultUnit.HasValue ? new XAttribute("DefaultUnit", shape.DefaultUnit.Value.ToString()) : null,
                         string.IsNullOrWhiteSpace(shape.SourcePackagePath) ? null : new XAttribute("SourcePackagePath", shape.SourcePackagePath),
                         PreviewImage(shape.PreviewImage),
@@ -196,7 +199,10 @@ namespace OfficeIMO.Visio.Stencils {
                     ReadUnit(shape, "DefaultUnit"),
                     ResolveSourcePackagePath((string?)shape.Attribute("SourcePackagePath"), options),
                     ReadPreviewImage(shape),
-                    ReadConnectionPoints(shape));
+                    ReadConnectionPoints(shape),
+                    ReadBoolean(shape, "Supported", defaultValue: true),
+                    (string?)shape.Attribute("SourceLicense"),
+                    (string?)shape.Attribute("SourceAttribution"));
             }
 
             return builder.Build();
@@ -443,9 +449,12 @@ namespace OfficeIMO.Visio.Stencils {
             return parsed;
         }
 
-        private static bool ReadBoolean(XElement element, string attributeName) {
+        private static bool ReadBoolean(XElement element, string attributeName,
+            bool defaultValue = false) {
             string? value = (string?)element.Attribute(attributeName);
-            return !string.IsNullOrWhiteSpace(value) && XmlConvert.ToBoolean(value);
+            return string.IsNullOrWhiteSpace(value)
+                ? defaultValue
+                : XmlConvert.ToBoolean(value);
         }
 
         private static XDocument LoadXml(Stream stream) {

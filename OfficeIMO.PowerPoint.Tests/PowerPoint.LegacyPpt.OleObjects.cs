@@ -702,6 +702,32 @@ namespace OfficeIMO.Tests {
             Assert.Contains("loss-blocked", capability.Note);
         }
 
+        [Fact]
+        public void DesktopReferenceLaneTreatsSkippedVisibleOleObjectAsExpectedContent() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(640, 360);
+            PowerPointSlide slide = presentation.AddSlide();
+            using var storage = new MemoryStream(
+                CreateOleTestStorage("Desktop reference OLE"),
+                writable: false);
+            PowerPointOleObject ole = slide.AddOleObject(storage, "Package");
+
+            OfficeImageExportResult rendered = slide.ExportImage(
+                OfficeImageExportFormat.Png);
+            Assert.Contains(rendered.Diagnostics, diagnostic =>
+                diagnostic.Code
+                    == PowerPointImageExportDiagnosticCodes.UnsupportedShape
+                && diagnostic.Message.Contains("OLE object",
+                    StringComparison.OrdinalIgnoreCase));
+            Assert.True(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
+
+            ole.LeftPoints = 700;
+            Assert.False(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
+        }
+
         private static byte[] CreateOleTestStorage(string contents) {
             using var output = new MemoryStream();
             using (RootStorage root = RootStorage.Create(output,

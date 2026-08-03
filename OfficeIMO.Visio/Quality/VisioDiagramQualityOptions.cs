@@ -27,6 +27,9 @@ namespace OfficeIMO.Visio {
         /// <summary>Whether to report connector labels overlapping each other.</summary>
         public bool CheckConnectorLabelOverlaps { get; set; } = true;
 
+        /// <summary>Whether connector labels should be checked against unrelated connector paths.</summary>
+        public bool CheckConnectorLabelPathOverlaps { get; set; } = true;
+
         /// <summary>Whether every connector is expected to have a text label.</summary>
         public bool RequireConnectorLabels { get; set; }
 
@@ -50,6 +53,7 @@ namespace OfficeIMO.Visio {
                 CheckConnectorLabels = CheckConnectorLabels,
                 CheckConnectorLabelShapeOverlaps = CheckConnectorLabelShapeOverlaps,
                 CheckConnectorLabelOverlaps = CheckConnectorLabelOverlaps,
+                CheckConnectorLabelPathOverlaps = CheckConnectorLabelPathOverlaps,
                 RequireConnectorLabels = RequireConnectorLabels,
                 PageBoundsTolerance = PageBoundsTolerance,
                 MinimumShapeOverlapRatio = MinimumShapeOverlapRatio,

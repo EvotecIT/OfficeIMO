@@ -501,6 +501,13 @@ namespace OfficeIMO.Visio.Diagrams {
             AddLinks(page);
             AddCallouts(page);
             AddTitle(page);
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                FitToContent = false,
+                ResizeShapesToText = false,
+                ResizeConnectorLabelsToText = true,
+                ResolveConnectorShapeIntersections = true,
+                ResolveConnectorLabelOverlaps = true
+            });
             _document.RequestRecalcOnOpen();
             return page;
         }

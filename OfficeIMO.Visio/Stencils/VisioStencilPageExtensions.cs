@@ -94,9 +94,16 @@ namespace OfficeIMO.Visio.Stencils {
             string shapeText = text ?? stencil.Name;
 
             if (document != null &&
-                !string.IsNullOrWhiteSpace(stencil.SourcePackagePath) &&
-                document.TryGetMaster(stencil.MasterNameU, out _) == false) {
-                document.ImportStencilMasters(stencil.SourcePackagePath!, new[] { stencil.MasterNameU });
+                !string.IsNullOrWhiteSpace(stencil.SourcePackagePath)) {
+                if (document.TryGetMaster(stencil.MasterNameU,
+                        out VisioMaster? existingMaster)
+                    && existingMaster?.IsPackageBacked == true) {
+                    VisioStencilMetadata.EnsureSourcePackageMatches(
+                        existingMaster, stencil.SourcePackagePath!);
+                } else {
+                    document.ImportStencilMasters(stencil.SourcePackagePath!,
+                        new[] { stencil.MasterNameU });
+                }
             }
 
             if (document?.TryGetMaster(stencil.MasterNameU, out VisioMaster? registeredMaster) == true && registeredMaster != null) {

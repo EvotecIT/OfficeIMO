@@ -41,7 +41,8 @@ document.Save();
 - Provides fluent diagram builders for common flowchart, block, dependency, architecture, network, topology, swimlane, org chart, sequence, timeline, and generic graph scenarios.
 - Supports loaded-diagram editing, shape selection, topology queries, stencil replacement/migration planning, and container maintenance.
 - Exports headless PNG, JPEG, TIFF, SVG, and lossless WebP previews for proof and review workflows.
-- Includes validation and quality analysis for generated and loaded diagrams.
+- Includes validation and quality analysis for generated and loaded diagrams, including connector-label collisions with unrelated connector paths.
+- Carries caller-supplied stencil license, attribution, and unsupported-master state through shapes, catalogs, and manifests without inferring redistribution rights.
 
 ## Editing existing diagrams
 
@@ -189,6 +190,18 @@ page.SelectWithShapeData("Owner", "Platform")
 document.Save();
 ```
 
+When a catalog comes from an external package, make its provenance explicit:
+
+```csharp
+var options = new VisioStencilPackageLoadOptions {
+    SourceLicense = "License identifier or notice supplied by the caller",
+    SourceAttribution = "Required source attribution",
+    IncludeUnsupportedMasters = true
+};
+```
+
+Unsupported masters remain marked as unsupported even when included for inventory or migration planning. Including them does not turn them into a fully supported authoring contract or grant redistribution rights.
+
 ### Headless image export
 
 ```csharp
@@ -227,7 +240,7 @@ IReadOnlyList<OfficeImageExportResult> pages = document
 ## Related packages and limits
 
 - `OfficeIMO.Visio` generates and edits `.vsdx` packages without requiring desktop Visio at runtime.
-- External stencil packages retain their package and licensing requirements.
+- External stencil packages retain their package and licensing requirements; OfficeIMO records caller-supplied provenance but never infers licensing terms.
 - Use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for PowerShell workflows.
 - Open Visio product work is listed in the repository [roadmap](../Docs/ROADMAP.md).
 

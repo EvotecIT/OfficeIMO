@@ -44,6 +44,16 @@ document.Save();
 
 Use an explicit stencil path when the application owns or is licensed to use a VSSX/VSTX pack. Discovery helpers can inspect installed Visio stencil locations on Windows, while server and cross-platform applications can point at a deployed stencil repository.
 
+```csharp
+var options = new VisioStencilPackageLoadOptions {
+    SourceLicense = "License identifier or notice supplied by the caller",
+    SourceAttribution = "Required source attribution",
+    IncludeUnsupportedMasters = true
+};
+```
+
+License and attribution values are caller-supplied metadata carried into shapes, catalogs, and manifests. OfficeIMO does not infer licensing terms. Masters included only for inventory or migration remain explicitly unsupported rather than silently becoming supported authoring content.
+
 The [external stencil examples](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Examples/Visio) show catalog loading, master inspection, placement, and validation. They do not bundle third-party stencil packs.
 
 ## Keep mappings stable

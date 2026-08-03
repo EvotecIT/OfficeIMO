@@ -102,7 +102,9 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.ColorScheme? colorScheme = themePart?.Theme?.ThemeElements?.ColorScheme;
-            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(), colorScheme, styleReference.GetFirstChild<A.SchemeColor>());
+            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
+                fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(),
+                colorScheme, styleReference);
             string? solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
             if (!string.IsNullOrWhiteSpace(solidColor)) {
                 return PowerPointSlideBackground.SolidColor(solidColor!);
@@ -110,7 +112,8 @@ namespace OfficeIMO.PowerPoint {
 
             A.GradientFill? gradientFill = fill as A.GradientFill ?? fill.GetFirstChild<A.GradientFill>();
             if (gradientFill != null) {
-                return GetBackgroundGradient(gradientFill, colorScheme, styleReference.GetFirstChild<A.SchemeColor>());
+                return GetBackgroundGradient(gradientFill, colorScheme,
+                    styleReference);
             }
 
             return PowerPointSlideBackground.Unsupported("The slide background references a theme background fill type that is not currently supported by OfficeIMO exporters.");
@@ -193,7 +196,9 @@ namespace OfficeIMO.PowerPoint {
             return Math.Min(0.999999D, Math.Max(0D, value.Value / 100000D));
         }
 
-        private static PowerPointSlideBackground GetBackgroundGradient(A.GradientFill gradientFill, A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor) {
+        private static PowerPointSlideBackground GetBackgroundGradient(
+            A.GradientFill gradientFill, A.ColorScheme? colorScheme,
+            OpenXmlElement? placeholderColor) {
             A.LinearGradientFill? linearGradientFill = gradientFill.GetFirstChild<A.LinearGradientFill>();
             if (linearGradientFill == null) {
                 return PowerPointSlideBackground.Unsupported("The slide background uses a path or radial gradient, which is not currently supported by OfficeIMO exporters.");

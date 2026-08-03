@@ -14,6 +14,22 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     A cycle-oriented SmartArt diagram.
         /// </summary>
-        BasicCycle
+        BasicCycle,
+        /// <summary>
+        ///     A vertically ordered list diagram.
+        /// </summary>
+        BasicList,
+        /// <summary>
+        ///     A balanced row-and-column matrix diagram.
+        /// </summary>
+        BasicMatrix,
+        /// <summary>
+        ///     A stacked pyramid diagram ordered from apex to base.
+        /// </summary>
+        BasicPyramid,
+        /// <summary>
+        ///     A central concept with surrounding related nodes.
+        /// </summary>
+        BasicRelationship
     }
 }

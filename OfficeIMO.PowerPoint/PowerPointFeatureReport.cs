@@ -6,9 +6,13 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
+using P = DocumentFormat.OpenXml.Presentation;
+using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
@@ -335,6 +339,21 @@ namespace OfficeIMO.PowerPoint {
                 packageFoundationDetails);
             Add(features, "Structure", "Sections", PowerPointFeatureSupportLevel.Editable, GetSections().Count, null,
                 "Sections can be authored, inspected, renamed, moved, and synchronized with slides.");
+            PowerPointCustomShow[] customShows = CustomShows.ToArray();
+            IReadOnlyList<string> unsafeCustomShowDetails =
+                DescribeUnsafeCustomShowStructure();
+            bool customShowsAreEditable = unsafeCustomShowDetails.Count == 0;
+            Add(features, "Presentation", "Custom shows", customShowsAreEditable
+                    ? PowerPointFeatureSupportLevel.Editable
+                    : PowerPointFeatureSupportLevel.Preserved,
+                Math.Max(customShows.Length,
+                    unsafeCustomShowDetails.Count == 0 ? 0 : 1), null,
+                customShowsAreEditable
+                    ? "Named slide sequences can be authored, inspected, renamed, reordered, and removed while linked actions remain synchronized."
+                    : "Malformed or producer-extended custom-show structures are preserved but are not safe for the editable custom-show surface.",
+                customShowsAreEditable
+                    ? customShows.Select(show => $"{show.Name}: {show.Slides.Count} slide(s)").ToList()
+                    : unsafeCustomShowDetails);
             Add(features, "Content", "Text boxes", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTextBoxes), null,
                 "Text boxes, runs, common formatting, markdown import, hyperlinks, and replacement are editable.");
             Add(features, "Content", "Tables", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTables), null,
@@ -392,7 +411,23 @@ namespace OfficeIMO.PowerPoint {
                 "Linked package relationships outside hyperlink markup are detected as preserve-only package metadata.",
                 externalPackageRelationshipDetails);
 
-            var commentDetails = DescribeCommentParts(allParts);
+            OpenXmlPart[] commentParts = allParts.Where(IsCommentPart).ToArray();
+            var commentDetails = commentParts
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            bool hasUnsupportedCommentParts = commentParts.Any(part =>
+                (part is not SlideCommentsPart
+                 && part is not CommentAuthorsPart
+                 && part is not PowerPointCommentPart
+                 && part is not PowerPointAuthorsPart)
+                || HasUnsupportedCommentMarkup(part))
+                || !HasEditableCommentGraph();
+            PowerPointFeatureSupportLevel commentSupportLevel =
+                hasUnsupportedCommentParts
+                    ? PowerPointFeatureSupportLevel.Preserved
+                    : PowerPointFeatureSupportLevel.Editable;
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             PowerPointOleObject[] editableOleObjects = Slides
                 .SelectMany(slide => slide.OleObjects).ToArray();
@@ -407,15 +442,28 @@ namespace OfficeIMO.PowerPoint {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            var vbaDetails = DescribeVbaProjectParts(allParts);
+            OpenXmlPart[] vbaParts = FindVbaProjectParts(allParts);
+            var vbaDetails = vbaParts
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            bool hasEditableVbaProject = vbaParts.Length == 1
+                && ReferenceEquals(vbaParts[0], _presentationPart.VbaProjectPart)
+                && IsValidEditableVbaProject(_presentationPart.VbaProjectPart);
+            PowerPointFeatureSupportLevel vbaSupportLevel = vbaParts.Length == 0 || hasEditableVbaProject
+                ? PowerPointFeatureSupportLevel.Editable
+                : PowerPointFeatureSupportLevel.Preserved;
             var webExtensionDetails = DescribeWebExtensionParts(allParts);
             var signatureDetails = DescribeDigitalSignatureParts(allParts);
             if (_document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                 signatureDetails.Add("Extended application properties contain digital signature metadata.");
             }
 
-            Add(features, "Review", "Comments", PowerPointFeatureSupportLevel.Preserved, commentDetails.Count, null,
-                "Comment package metadata is detected as preserve-only review content.",
+            Add(features, "Review", "Comments", commentSupportLevel, commentDetails.Count, null,
+                hasUnsupportedCommentParts
+                    ? "Plain classic and modern comment graphs are editable; rich or unrecognized comment structures and additional comment metadata are preserved without destructive mutation."
+                    : "Classic comments and modern threaded comments/replies can be created, edited, reassigned, and removed; classic comments also round-trip through binary PPT.",
                 commentDetails);
             Add(features, "Compatibility", "Custom XML parts", PowerPointFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
@@ -437,8 +485,12 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Compatibility", "ActiveX controls", PowerPointFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
                 "ActiveX metadata and native control storage are detected and retained as preserve-only advanced presentation content.",
                 activeXControlDetails);
-            Add(features, "Compatibility", "VBA macros", PowerPointFeatureSupportLevel.Preserved, vbaDetails.Count, null,
-                "VBA project parts are detected as preserve-only macro content; OfficeIMO does not edit or sign VBA modules.",
+            Add(features, "Compatibility", "VBA macros",
+                vbaSupportLevel,
+                vbaDetails.Count, null,
+                vbaSupportLevel == PowerPointFeatureSupportLevel.Editable
+                    ? "VBA project compound storages can be inspected, added, replaced, removed, and preserved through macro-enabled saves; OfficeIMO does not edit or sign VBA modules."
+                    : "Unrecognized or malformed VBA project parts, including projects with related signature or cache parts, are preserved as package content but cannot be safely mutated through the VBA project API.",
                 vbaDetails);
             Add(features, "Compatibility", "Web extensions and task panes", PowerPointFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
                 "Office add-in and task-pane package metadata is detected as preserve-only advanced content.",
@@ -514,6 +566,119 @@ namespace OfficeIMO.PowerPoint {
                     pending.Push((pair.OpenXmlPart, depth + 1));
                 }
             }
+        }
+
+        private IReadOnlyList<string> DescribeUnsafeCustomShowStructure() =>
+            DescribeUnsafeCustomShowStructure(new LegacyPptWriter
+                .LegacyPptWriterSoundCatalog());
+
+        internal IReadOnlyList<string> DescribeUnsafeCustomShowStructure(
+            LegacyPptWriter.LegacyPptWriterSoundCatalog soundCatalog) {
+            if (soundCatalog == null) {
+                throw new ArgumentNullException(nameof(soundCatalog));
+            }
+            CustomShowList? list = PresentationRoot.CustomShowList;
+            if (list == null) return Array.Empty<string>();
+
+            var details = new List<string>();
+            if (list.ExtendedAttributes.Any()) {
+                details.Add("Custom-show list contains unsupported producer attributes.");
+            }
+            if (list.ChildElements.Any(child => child is not CustomShow)) {
+                details.Add("Custom-show list contains unsupported producer extension children.");
+            }
+
+            CustomShow[] shows = list.Elements<CustomShow>().ToArray();
+            var ids = new HashSet<uint>();
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int index = 0; index < shows.Length; index++) {
+                CustomShow show = shows[index];
+                string scope = $"Custom show {index + 1}";
+                if (show.ExtendedAttributes.Any()) {
+                    details.Add(scope + " contains unsupported producer attributes.");
+                }
+                if (show.Id?.Value is not uint id) {
+                    details.Add(scope + " has no identifier.");
+                } else if (!ids.Add(id)) {
+                    details.Add(scope + $" duplicates identifier {id}.");
+                }
+
+                string? name = show.Name?.Value;
+                if (string.IsNullOrWhiteSpace(name)) {
+                    details.Add(scope + " has no name.");
+                } else if (!names.Add(name!)) {
+                    details.Add(scope + $" duplicates name '{name}'.");
+                }
+
+                if (show.ChildElements.Any(child => child is not SlideList)) {
+                    details.Add(scope + " contains unsupported producer extension children.");
+                }
+                SlideList[] slideLists = show.Elements<SlideList>().ToArray();
+                if (slideLists.Length != 1) {
+                    details.Add(scope + $" contains {slideLists.Length} slide lists; exactly one is required.");
+                }
+                SlideList? slideList = slideLists.FirstOrDefault();
+                if (slideList == null) {
+                    details.Add(scope + " has no slide list.");
+                    continue;
+                }
+                if (slideList.ExtendedAttributes.Any()) {
+                    details.Add(scope + " slide list contains unsupported producer attributes.");
+                }
+                if (slideList.ChildElements.Any(child => child is not SlideListEntry)) {
+                    details.Add(scope + " slide list contains unsupported producer extension children.");
+                }
+
+                SlideListEntry[] entries = slideList.Elements<SlideListEntry>()
+                    .ToArray();
+                if (entries.Length == 0) {
+                    details.Add(scope + " has an empty slide list.");
+                }
+                for (int entryIndex = 0; entryIndex < entries.Length;
+                     entryIndex++) {
+                    SlideListEntry entry = entries[entryIndex];
+                    if (entry.ExtendedAttributes.Any()) {
+                        details.Add(scope + $" slide {entryIndex + 1} contains unsupported producer attributes.");
+                    }
+                    if (entry.ChildElements.Count > 0) {
+                        details.Add(scope + $" slide {entryIndex + 1} contains unsupported producer extension children.");
+                    }
+                    string? relationshipId = entry.Id?.Value;
+                    if (string.IsNullOrWhiteSpace(relationshipId)
+                        || !_presentationPart.TryGetPartById(relationshipId!,
+                            out OpenXmlPart? part)
+                        || part is not SlidePart slidePart
+                        || !_slides.Any(slide => ReferenceEquals(
+                            slide.SlidePart, slidePart))) {
+                        details.Add(scope + $" slide {entryIndex + 1} has an unresolved slide relationship.");
+                    }
+                }
+            }
+
+            foreach (PowerPointSlide slide in _slides) {
+                foreach (A.HyperlinkType hyperlink in slide.SlidePart.Slide?
+                             .Descendants<A.HyperlinkType>()
+                         ?? Enumerable.Empty<A.HyperlinkType>()) {
+                    string? action = hyperlink.Action?.Value;
+                    if (!PowerPointCustomShowAction.IsCustomShowAction(action)) {
+                        LegacyPptWriter.TryRegisterHyperlinkSound(
+                            slide.SlidePart, hyperlink, soundCatalog,
+                            out _, out _);
+                        continue;
+                    }
+                    if (!LegacyPptWriter.TryValidateCustomShowHyperlink(
+                            slide.SlidePart, hyperlink, soundCatalog,
+                            out uint targetId, out _, out _,
+                            out string? reason)) {
+                        details.Add("A slide contains an unsupported custom-show hyperlink: "
+                            + reason);
+                    } else if (!ids.Contains(targetId)) {
+                        details.Add($"A slide custom-show action targets missing identifier {targetId}.");
+                    }
+                }
+            }
+
+            return details.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
 
         private static List<string> DescribePackageFoundationParts(IEnumerable<OpenXmlPart> parts) {
@@ -974,13 +1139,230 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
         }
 
-        private static List<string> DescribeVbaProjectParts(IEnumerable<OpenXmlPart> parts) {
+        private static OpenXmlPart[] FindVbaProjectParts(IEnumerable<OpenXmlPart> parts) {
             return parts
                 .Where(part => string.Equals(part.ContentType, "application/vnd.ms-office.vbaProject", StringComparison.OrdinalIgnoreCase))
-                .Select(DescribePart)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+                .ToArray();
+        }
+
+        private static bool HasUnsupportedCommentMarkup(OpenXmlPart part) {
+            OpenXmlPartRootElement? root = part.RootElement;
+            if (root == null) return true;
+            return EnumerateSelfAndDescendants(root).Any(element =>
+                element.ExtendedAttributes.Any()
+                || element is OpenXmlUnknownElement
+                || string.Equals(element.LocalName, "extLst",
+                    StringComparison.Ordinal));
+        }
+
+        private bool HasEditableCommentGraph() {
+            P.CommentAuthor[] classicAuthors = _presentationPart
+                .CommentAuthorsPart?.CommentAuthorList?
+                .Elements<P.CommentAuthor>().ToArray()
+                ?? Array.Empty<P.CommentAuthor>();
+            if (_presentationPart.CommentAuthorsPart != null
+                && _presentationPart.CommentAuthorsPart.CommentAuthorList == null) {
+                return false;
+            }
+            var classicIdentities = new HashSet<string>(StringComparer.Ordinal);
+            foreach (P.CommentAuthor author in classicAuthors) {
+                if (author.Id?.Value == null
+                    || author.LastIndex?.Value == null
+                    || !LegacyPptWriter.HasCanonicalClassicAuthorColorIndex(
+                        author)
+                    || !LegacyPptWriter
+                        .TryGetBinaryCompatibleClassicAuthorIdentity(author,
+                            out _, out _, out string identity)
+                    || !classicIdentities.Add(identity)) {
+                    return false;
+                }
+            }
+            if (classicAuthors.Where(author => author.Id?.Value != null)
+                .GroupBy(author => author.Id!.Value)
+                .Any(group => group.Count() != 1)) return false;
+
+            var classicAuthorIds = new HashSet<uint>(classicAuthors
+                .Select(author => author.Id!.Value));
+            var referencedClassicAuthorIds = new HashSet<uint>();
+            var classicCommentKeys = new HashSet<(uint AuthorId, uint Index)>();
+            var classicMaximumIndexes = new Dictionary<uint, uint>();
+            foreach (SlideCommentsPart part in Slides.Select(slide =>
+                         slide.SlidePart.SlideCommentsPart).Where(part => part != null)!) {
+                if (part.CommentList == null) return false;
+                foreach (P.Comment comment in part.CommentList.Elements<P.Comment>()) {
+                    if (comment.AuthorId?.Value == null
+                        || comment.Index?.Value == null
+                        || comment.Index.Value > int.MaxValue
+                        || comment.DateTime?.Value == null
+                        || comment.Position?.X?.Value == null
+                        || comment.Position.Y?.Value == null
+                        || comment.Text == null
+                        || comment.Text.Text?.Length > 32000
+                        || comment.Text.Text?.IndexOf('\0') >= 0
+                        || comment.Position.X.Value < int.MinValue
+                        || comment.Position.X.Value > int.MaxValue
+                        || comment.Position.Y.Value < int.MinValue
+                        || comment.Position.Y.Value > int.MaxValue
+                        || !classicAuthorIds.Contains(comment.AuthorId.Value)
+                        || !classicCommentKeys.Add((comment.AuthorId.Value,
+                            comment.Index.Value))) {
+                        return false;
+                    }
+                    referencedClassicAuthorIds.Add(comment.AuthorId.Value);
+                    if (!classicMaximumIndexes.TryGetValue(
+                            comment.AuthorId.Value, out uint maximumIndex)
+                        || comment.Index.Value > maximumIndex) {
+                        classicMaximumIndexes[comment.AuthorId.Value] =
+                            comment.Index.Value;
+                    }
+                }
+            }
+
+            if (classicAuthors.Any(author =>
+                    !LegacyPptWriter.HasCanonicalClassicAuthorLastIndex(
+                        author.Id!.Value, author.LastIndex!.Value,
+                        classicMaximumIndexes))) {
+                return false;
+            }
+
+            P188.Author[] modernAuthors = _presentationPart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointAuthorsPart>()
+                .SelectMany(part => part.AuthorList?.Elements<P188.Author>()
+                    ?? Enumerable.Empty<P188.Author>()).ToArray();
+            if (_presentationPart.Parts.Select(pair => pair.OpenXmlPart)
+                    .OfType<PowerPointAuthorsPart>()
+                    .Any(part => part.AuthorList == null)
+                || modernAuthors.Any(author => string.IsNullOrWhiteSpace(
+                        author.Id?.Value)
+                    || string.IsNullOrWhiteSpace(author.Name?.Value))
+                || modernAuthors.GroupBy(author => author.Id!.Value!,
+                        StringComparer.OrdinalIgnoreCase)
+                    .Any(group => group.Count() != 1)) {
+                return false;
+            }
+
+            var modernAuthorIds = new HashSet<string>(modernAuthors
+                .Select(author => author.Id!.Value!),
+                StringComparer.OrdinalIgnoreCase);
+            var modernCommentIds = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+            var referencedModernAuthorIds = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+            foreach (PowerPointCommentPart part in Slides
+                         .SelectMany(slide => slide.SlidePart.Parts
+                             .Select(pair => pair.OpenXmlPart))
+                         .OfType<PowerPointCommentPart>()) {
+                if (part.CommentList == null) return false;
+                foreach (P188.Comment comment in part.CommentList
+                             .Elements<P188.Comment>()) {
+                    if (!HasEditableModernCommentFields(comment,
+                            modernAuthorIds, modernCommentIds,
+                            referencedModernAuthorIds)) {
+                        return false;
+                    }
+                    P188.CommentReplyList[] replyLists = comment
+                        .Elements<P188.CommentReplyList>().ToArray();
+                    if (replyLists.Length > 1) return false;
+                    P188.CommentReplyList? replyList = replyLists
+                        .SingleOrDefault();
+                    P188.CommentReply[] replies = comment
+                        .Descendants<P188.CommentReply>().ToArray();
+                    if (replies.Any(reply =>
+                            !ReferenceEquals(reply.Parent, replyList))) {
+                        return false;
+                    }
+                    foreach (P188.CommentReply reply in replies) {
+                        if (!HasEditableModernCommentFields(reply,
+                                modernAuthorIds, modernCommentIds,
+                                referencedModernAuthorIds)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return classicAuthorIds.SetEquals(referencedClassicAuthorIds)
+                && modernAuthorIds.SetEquals(referencedModernAuthorIds);
+        }
+
+        private static bool HasEditableModernCommentFields(
+            OpenXmlCompositeElement comment,
+            ISet<string> authorIds,
+            ISet<string> commentIds,
+            ISet<string> referencedAuthorIds) {
+            string? id;
+            string? authorId;
+            bool hasStatus;
+            bool hasCreated;
+            if (comment is P188.Comment root) {
+                id = root.Id?.Value;
+                authorId = root.AuthorId?.Value;
+                hasStatus = root.Status?.Value != null;
+                hasCreated = root.Created?.Value != null;
+            } else if (comment is P188.CommentReply reply) {
+                id = reply.Id?.Value;
+                authorId = reply.AuthorId?.Value;
+                hasStatus = reply.Status?.Value != null;
+                hasCreated = reply.Created?.Value != null;
+            } else {
+                return false;
+            }
+            bool valid = !string.IsNullOrWhiteSpace(id)
+                && !string.IsNullOrWhiteSpace(authorId)
+                && hasStatus
+                && hasCreated
+                && comment.GetFirstChild<P188.TextBodyType>()
+                    is P188.TextBodyType body
+                && PowerPointPresentation.HasPlainModernCommentTextBody(body)
+                && (comment is not P188.Comment rootComment
+                    || rootComment.GetFirstChild<P188.Point2DType>()
+                        is not P188.Point2DType position
+                    || position.X?.Value is long x
+                        && position.Y?.Value is long y
+                        && PowerPointDrawingValueValidator
+                            .IsCoordinateInRange(x)
+                        && PowerPointDrawingValueValidator
+                            .IsCoordinateInRange(y))
+                && authorIds.Contains(authorId!)
+                && commentIds.Add(id!);
+            if (valid) referencedAuthorIds.Add(authorId!);
+            return valid;
+        }
+
+        private static bool IsValidEditableVbaProject(VbaProjectPart? part) {
+            if (part == null || part.Parts.Any()) {
+                return false;
+            }
+
+            try {
+                using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                if (stream.CanSeek && stream.Length > DefaultMaximumVbaProjectBytes) {
+                    return false;
+                }
+
+                using var copy = new MemoryStream();
+                var buffer = new byte[81920];
+                long total = 0L;
+                while (true) {
+                    int read = stream.Read(buffer, 0, buffer.Length);
+                    if (read <= 0) {
+                        break;
+                    }
+
+                    total += read;
+                    if (total > DefaultMaximumVbaProjectBytes) {
+                        return false;
+                    }
+
+                    copy.Write(buffer, 0, read);
+                }
+
+                return LegacyPptVbaProjectCodec.IsValidProject(copy.ToArray(), out _);
+            } catch (IOException) {
+                return false;
+            } catch (InvalidDataException) {
+                return false;
+            }
         }
 
         private static List<string> DescribeActiveXControlParts(IEnumerable<OpenXmlPart> parts) {
@@ -1079,15 +1461,6 @@ namespace OfficeIMO.PowerPoint {
                     part.Uri.OriginalString.IndexOf("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) >= 0
                     || part.ContentType.IndexOf("digital-signature", StringComparison.OrdinalIgnoreCase) >= 0
                     || part.ContentType.IndexOf("xmlsignature", StringComparison.OrdinalIgnoreCase) >= 0)
-                .Select(DescribePart)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-
-        private static List<string> DescribeCommentParts(IEnumerable<OpenXmlPart> parts) {
-            return parts
-                .Where(IsCommentPart)
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)

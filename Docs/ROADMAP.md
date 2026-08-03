@@ -38,14 +38,14 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 ## PowerPoint and Visio
 
-- [ ] Broaden PowerPoint editing, template-layout, chart/table, animation-preservation, and source-producer corpus coverage through the existing presentation API.
-- [ ] Add fixture-backed PowerPoint authoring only where current demand justifies it, including shape/text/chart animations, broader SmartArt and custom geometry, advanced chart families, comment/reply mutation, OLE, macros, and custom shows.
-- [ ] Establish repeatable PowerPoint create/save, open/edit/save, image-export, and PDF-export baselines for small, normal, and large decks before setting regression budgets.
-- [ ] Improve Visio dense layout, label placement, routing, graph and data-driven diagrams, and editable existing-diagram workflows.
-- [ ] Expand the Visio stencil platform while preserving package licensing and unsupported content explicitly.
+- [ ] Broaden imported-chart editing and image/PDF export fidelity across advanced chart families, with explicit diagnostics for producer-specific content that remains preservation-only.
+- [ ] Expand editable SmartArt coverage only where imported layout and connection topology can be represented without changing diagram meaning; preserve or reject unsupported topologies explicitly.
+- [ ] Extend typed animation timeline authoring and editing beyond the currently supported shape, text, and chart effects while preserving unsupported sequences losslessly.
+- [ ] Deepen typed media and OLE editing for linked and embedded audio, video, playback metadata, and package payloads while continuing to preserve unsupported content.
+- [ ] Extend typed Visio editing for advanced nested containers, deeper swimlane metadata and automatic lane assignment, and richer threaded comment and author workflows.
+- [ ] Complete advanced Visio resize-to-content and broader whole-diagram relayout and polish for dense imported diagrams.
+- [ ] Add typed Visio APIs for data graphics, legends, and additional high-value ShapeSheet sections and formulas while continuing to preserve unmodeled package content explicitly.
 - [ ] Prove Visio template, stencil, and macro-enabled package variants with representative load, reader, and conversion fixtures before advertising them beyond the current `.vsdx` boundary.
-- [ ] Keep generated Visio galleries structurally validated and visually reviewed across representative diagram families.
-- [ ] Harden optional desktop-reference validation without making Microsoft Office or Visio a runtime dependency.
 
 ## PDF, HTML, and image rendering
 

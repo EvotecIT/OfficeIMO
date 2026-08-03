@@ -168,9 +168,9 @@
     <g data-visio-connector-id="4">
       <path d="M 710.52 402.24 L 902.94 402.24 L 902.94 402.24 L 1060.8 402.24" fill="none" stroke="#007EA7" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 1060.8 402.24 L 1053.592 405.711 L 1053.592 398.769 Z" fill="#007EA7" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="867.84" y="378.64" width="35.64" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
-      <text x="885.66" y="386.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#005677">
-        <tspan x="885.66" dy="0">10Gb</tspan>
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="839.818" y="378.64" width="35.64" height="18.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="857.638" y="386.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#005677">
+        <tspan x="857.638" dy="0">10Gb</tspan>
       </text>
     </g>
     <g data-visio-connector-id="5">

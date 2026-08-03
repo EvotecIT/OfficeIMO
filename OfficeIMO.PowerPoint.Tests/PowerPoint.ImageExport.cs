@@ -839,10 +839,10 @@ namespace OfficeIMO.Tests {
                 .Last();
             A.Outline outline = shape.ShapeProperties!.GetFirstChild<A.Outline>()!;
             outline.CapType = A.LineCapValues.Round;
-            outline.RemoveAllChildren<A.Bevel>();
+            outline.RemoveAllChildren<A.LineJoinBevel>();
             outline.RemoveAllChildren<A.Round>();
             outline.RemoveAllChildren<A.Miter>();
-            outline.Append(new A.Bevel());
+            outline.Append(new A.LineJoinBevel());
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);

@@ -359,7 +359,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         properties.Add(new LegacyPptWriterFoptProperty(0x01CE,
                             dashValue));
                         break;
-                    case A.Bevel bevel:
+                    case A.LineJoinBevel bevel:
                         if (bevel.HasAttributes || bevel.HasChildren) {
                             reason = "The bevel line join contains an unsupported extension.";
                             return false;

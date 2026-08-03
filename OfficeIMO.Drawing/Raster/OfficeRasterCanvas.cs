@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 
 namespace OfficeIMO.Drawing;
 
@@ -8,6 +11,7 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public sealed partial class OfficeRasterCanvas {
     private const int AntiAliasSamples = 3;
+    private const int MaximumContourCoverageTileWidth = 8192;
     private const double MinimumDashSegmentAdvance = 1E-9D;
     private const double MinimumRasterDashLength = 0.25D;
     private static readonly OfficeTrueTypeFont? DefaultFont = OfficeTrueTypeFont.TryLoadDefault();
@@ -764,14 +768,174 @@ public sealed partial class OfficeRasterCanvas {
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
+        int rasterWidth = right - left + 1;
+        if (rasterWidth <= 0 || bottom < top) return;
+        int coverageLength = Math.Min(rasterWidth,
+            MaximumContourCoverageTileWidth);
+#if NET8_0_OR_GREATER
+        byte[] coverage = ArrayPool<byte>.Shared.Rent(coverageLength);
+#else
+        byte[] coverage = new byte[coverageLength];
+#endif
+        try {
+            RasterizeAndBlendContourCoverage(contours, fillRule, color,
+                left, right, top, bottom, coverage);
+        } finally {
+#if NET8_0_OR_GREATER
+            ArrayPool<byte>.Shared.Return(coverage);
+#endif
+        }
+    }
+
+    private void RasterizeAndBlendContourCoverage(
+        IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
+        OfficeFillRule fillRule,
+        OfficeColor color,
+        int left,
+        int right,
+        int top,
+        int bottom,
+        byte[] coverage) {
+        int samples = CoverageSamples;
+        int maximumCoverage = samples * samples;
+        int edgeCapacity = 0;
+        for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
+            edgeCapacity += contours[contourIndex].Count;
+        }
+        var crossingsBySample = new List<ContourCrossing>[samples];
+        for (int sy = 0; sy < samples; sy++) {
+            crossingsBySample[sy] = new List<ContourCrossing>(edgeCapacity);
+        }
         for (int py = top; py <= bottom; py++) {
-            for (int px = left; px <= right; px++) {
-                double coverage = ContoursCoverage(contours, px, py, fillRule);
-                if (coverage > 0D) {
-                    BlendPixel(px, py, ApplyCoverage(color, coverage));
+            for (int sy = 0; sy < samples; sy++) {
+                List<ContourCrossing> crossings = crossingsBySample[sy];
+                double sampleY = py + (sy + 0.5D) / samples;
+                crossings.Clear();
+                AddContourCrossings(contours, sampleY, crossings);
+                crossings.Sort(ContourCrossingComparer.Instance);
+            }
+            for (int tileLeft = left; tileLeft <= right;
+                 tileLeft += coverage.Length) {
+                int tileRight = Math.Min(right,
+                    tileLeft + coverage.Length - 1);
+                int tileWidth = tileRight - tileLeft + 1;
+                Array.Clear(coverage, 0, tileWidth);
+                for (int sy = 0; sy < samples; sy++) {
+                    List<ContourCrossing> crossings = crossingsBySample[sy];
+                    if (crossings.Count < 2) continue;
+                    AddContourIntervals(crossings, fillRule, tileLeft,
+                        tileRight, samples, 0, coverage);
+                }
+                for (int px = tileLeft; px <= tileRight; px++) {
+                    int covered = coverage[px - tileLeft];
+                    if (covered > 0) {
+                        BlendPixel(px, py, ApplyCoverage(color,
+                            covered / (double)maximumCoverage));
+                    }
                 }
             }
         }
+    }
+
+    private static void AddContourCrossings(
+        IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
+        double sampleY,
+        List<ContourCrossing> crossings) {
+        for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
+            IReadOnlyList<OfficePoint> contour = contours[contourIndex];
+            if (contour.Count < 3) continue;
+            OfficePoint start = contour[contour.Count - 1];
+            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                OfficePoint end = contour[pointIndex];
+                bool upward = start.Y <= sampleY && end.Y > sampleY;
+                bool downward = start.Y > sampleY && end.Y <= sampleY;
+                if (upward || downward) {
+                    double deltaY = end.Y - start.Y;
+                    double crossingX = start.X +
+                        ((sampleY - start.Y) * (end.X - start.X) / deltaY);
+                    crossings.Add(new ContourCrossing(crossingX,
+                        upward ? 1 : -1));
+                }
+                start = end;
+            }
+        }
+    }
+
+    private static void AddContourIntervals(
+        List<ContourCrossing> crossings,
+        OfficeFillRule fillRule,
+        int left,
+        int right,
+        int samples,
+        int rowOffset,
+        byte[] coverage) {
+        int winding = 0;
+        double previousX = crossings[0].X;
+        int index = 0;
+        while (index < crossings.Count) {
+            double x = crossings[index].X;
+            bool inside = fillRule == OfficeFillRule.NonZero
+                ? winding != 0
+                : (winding & 1) == 1;
+            if (inside && x > previousX) {
+                AddContourIntervalCoverage(previousX, x, left, right, samples,
+                    rowOffset, coverage);
+            }
+
+            int crossingCount = 0;
+            int windingDelta = 0;
+            do {
+                crossingCount++;
+                windingDelta += crossings[index].WindingDelta;
+                index++;
+            } while (index < crossings.Count &&
+                     Math.Abs(crossings[index].X - x) <= 1E-9D);
+
+            winding += fillRule == OfficeFillRule.NonZero
+                ? windingDelta
+                : crossingCount;
+            previousX = x;
+        }
+    }
+
+    private static void AddContourIntervalCoverage(
+        double startX,
+        double endX,
+        int left,
+        int right,
+        int samples,
+        int rowOffset,
+        byte[] coverage) {
+        int firstPixel = Math.Max(left, (int)Math.Floor(startX));
+        int lastPixel = Math.Min(right, (int)Math.Floor(endX));
+        for (int px = firstPixel; px <= lastPixel; px++) {
+            int covered = 0;
+            for (int sx = 0; sx < samples; sx++) {
+                double sampleX = px + (sx + 0.5D) / samples;
+                if (sampleX >= startX && sampleX < endX) covered++;
+            }
+            if (covered > 0) {
+                coverage[rowOffset + px - left] += checked((byte)covered);
+            }
+        }
+    }
+
+    private readonly struct ContourCrossing {
+        internal ContourCrossing(double x, int windingDelta) {
+            X = x;
+            WindingDelta = windingDelta;
+        }
+
+        internal double X { get; }
+        internal int WindingDelta { get; }
+    }
+
+    private sealed class ContourCrossingComparer : IComparer<ContourCrossing> {
+        internal static readonly ContourCrossingComparer Instance =
+            new ContourCrossingComparer();
+
+        public int Compare(ContourCrossing x, ContourCrossing y) =>
+            x.X.CompareTo(y.X);
     }
 
     private void FillPolygonCore(IReadOnlyList<OfficePoint> points, OfficeColor color) {
@@ -937,36 +1101,6 @@ public sealed partial class OfficeRasterCanvas {
             for (int sx = 0; sx < samples; sx++) {
                 double sampleX = x + (sx + 0.5D) / samples;
                 if (ContainsPoint(points, sampleX, sampleY)) {
-                    covered++;
-                }
-            }
-        }
-
-        return covered / (double)(samples * samples);
-    }
-
-    private double ContoursCoverage(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, int x, int y, OfficeFillRule fillRule) {
-        int samples = CoverageSamples;
-        int covered = 0;
-        for (int sy = 0; sy < samples; sy++) {
-            double sampleY = y + (sy + 0.5D) / samples;
-            for (int sx = 0; sx < samples; sx++) {
-                double sampleX = x + (sx + 0.5D) / samples;
-                int winding = 0;
-                for (int i = 0; i < contours.Count; i++) {
-                    IReadOnlyList<OfficePoint> contour = contours[i];
-                    if (contour.Count < 3) {
-                        continue;
-                    }
-
-                    if (fillRule == OfficeFillRule.NonZero) {
-                        winding += GetWindingNumber(contour, sampleX, sampleY);
-                    } else if (ContainsPoint(contour, sampleX, sampleY)) {
-                        winding++;
-                    }
-                }
-
-                if (fillRule == OfficeFillRule.NonZero ? winding != 0 : (winding & 1) == 1) {
                     covered++;
                 }
             }

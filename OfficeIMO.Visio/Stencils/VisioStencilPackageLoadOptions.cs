@@ -33,6 +33,17 @@ namespace OfficeIMO.Visio.Stencils {
         public bool IncludeUnsupportedMasters { get; set; }
 
         /// <summary>
+        /// Gets or sets the source package license identifier or license notice.
+        /// OfficeIMO records this caller-supplied value but does not infer licensing terms.
+        /// </summary>
+        public string? SourceLicense { get; set; }
+
+        /// <summary>
+        /// Gets or sets source attribution that must travel with catalog manifests.
+        /// </summary>
+        public string? SourceAttribution { get; set; }
+
+        /// <summary>
         /// Gets or sets whether default stencil sizes should be learned from master shape dimensions when package master parts are available.
         /// Defaults to true.
         /// </summary>

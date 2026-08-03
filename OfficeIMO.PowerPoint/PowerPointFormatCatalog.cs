@@ -61,6 +61,7 @@ public static class PowerPointFormatCatalog {
             PowerPointFileFormat.Ppt => Formats[0],
             PowerPointFileFormat.Pot => Formats[1],
             PowerPointFileFormat.Pps => Formats[2],
+            PowerPointFileFormat.Pptm => Formats[5],
             _ => Formats[4]
         };
     }

@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 153,
+    "projectCount": 155,
     "productionComponentCount": 92,
     "testProjectCount": 31,
-    "benchmarkProjectCount": 12,
+    "benchmarkProjectCount": 14,
     "validationProjectCount": 19,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39660
+    "conceptualWordCount": 39837
   },
   "categories": [
     {
@@ -131,7 +131,7 @@
       "description": "Shared zero-dependency document, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
-      "sourceFileCount": 328,
+      "sourceFileCount": 329,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -625,7 +625,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 933,
+      "sourceFileCount": 934,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -638,7 +638,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 439,
+      "sourceFileCount": 447,
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
