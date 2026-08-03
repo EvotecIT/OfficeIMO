@@ -25,13 +25,30 @@ namespace OfficeIMO.Word.Html {
             SetOutputAttribute(select, "disabled", string.Empty, "DropDown:disabled");
             ApplyContentControlMetadata(select, dropDownList.Alias, dropDownList.Tag);
 
-            foreach (var item in dropDownList.ExportItems) {
+            IReadOnlyList<(string Value, string DisplayText)> items = dropDownList.ExportItems;
+            int selectedIndex = -1;
+            for (int index = 0; index < items.Count; index++) {
+                if (string.Equals(items[index].DisplayText, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
+                    selectedIndex = index;
+                    break;
+                }
+            }
+            if (selectedIndex < 0) {
+                for (int index = 0; index < items.Count; index++) {
+                    if (string.Equals(items[index].Value, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
+                        selectedIndex = index;
+                        break;
+                    }
+                }
+            }
+
+            for (int index = 0; index < items.Count; index++) {
+                (string Value, string DisplayText) item = items[index];
                 var option = CreateOutputElement(htmlDoc, "option");
                 SetOutputAttribute(htmlDoc, option, "value", item.Value, "DropDownOption:value");
                 SetOutputText(htmlDoc, option, item.DisplayText, "DropDownOption:display-text");
 
-                if (string.Equals(item.Value, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(item.DisplayText, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
+                if (index == selectedIndex) {
                     SetOutputAttribute(option, "selected", string.Empty, "DropDownOption:selected");
                 }
 

@@ -203,8 +203,17 @@ namespace OfficeIMO.Word {
                     out ParagraphNumberingStyleCatalog? styleCatalog)) {
                 return ShapeScanResult.ResourceLimitExceeded;
             }
-            return ScanComparisonElements(mainPart, comparisonWorkBudget, element =>
-                element is Paragraph paragraph && ResolveParagraphNumberingProperties(paragraph, styleCatalog!) != null);
+            return ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
+                if (element is not Paragraph paragraph) return ShapeScanResult.Absent;
+                if (!TryResolveParagraphNumberingProperties(
+                        paragraph,
+                        styleCatalog!,
+                        comparisonWorkBudget,
+                        out NumberingProperties? numbering)) {
+                    return ShapeScanResult.ResourceLimitExceeded;
+                }
+                return numbering == null ? ShapeScanResult.Absent : ShapeScanResult.Present;
+            });
         }
 
         private static ShapeScanResult ContainsMoveMarkup(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
@@ -215,13 +224,23 @@ namespace OfficeIMO.Word {
         private static ShapeScanResult ScanComparisonElements(
             MainDocumentPart mainPart,
             ComparisonWorkBudget comparisonWorkBudget,
-            Func<OpenXmlElement, bool> predicate) {
+            Func<OpenXmlElement, bool> predicate) => ScanComparisonElements(
+                mainPart,
+                comparisonWorkBudget,
+                element => predicate(element) ? ShapeScanResult.Present : ShapeScanResult.Absent);
+
+        private static ShapeScanResult ScanComparisonElements(
+            MainDocumentPart mainPart,
+            ComparisonWorkBudget comparisonWorkBudget,
+            Func<OpenXmlElement, ShapeScanResult> inspect) {
             foreach (OpenXmlCompositeElement root in EnumerateComparisonRoots(mainPart)) {
                 if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
-                if (predicate(root)) return ShapeScanResult.Present;
+                ShapeScanResult rootResult = inspect(root);
+                if (rootResult != ShapeScanResult.Absent) return rootResult;
                 foreach (OpenXmlElement element in root.Descendants()) {
                     if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
-                    if (predicate(element)) return ShapeScanResult.Present;
+                    ShapeScanResult elementResult = inspect(element);
+                    if (elementResult != ShapeScanResult.Absent) return elementResult;
                 }
             }
             return ShapeScanResult.Absent;

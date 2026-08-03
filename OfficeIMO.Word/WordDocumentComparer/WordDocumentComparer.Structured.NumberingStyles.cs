@@ -6,10 +6,26 @@ namespace OfficeIMO.Word {
         private static NumberingProperties? ResolveParagraphNumberingProperties(
             Paragraph paragraph,
             ParagraphNumberingStyleCatalog styleCatalog) {
+            _ = TryResolveParagraphNumberingProperties(
+                paragraph,
+                styleCatalog,
+                comparisonWorkBudget: null,
+                out NumberingProperties? numbering);
+            return numbering;
+        }
+
+        private static bool TryResolveParagraphNumberingProperties(
+            Paragraph paragraph,
+            ParagraphNumberingStyleCatalog styleCatalog,
+            ComparisonWorkBudget? comparisonWorkBudget,
+            out NumberingProperties? numbering) {
             NumberingProperties? directNumbering = paragraph.ParagraphProperties?.NumberingProperties;
-            if (directNumbering != null) return directNumbering;
+            if (directNumbering != null) {
+                numbering = directNumbering;
+                return true;
+            }
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            return styleCatalog.ResolveNumbering(styleId);
+            return styleCatalog.TryResolveNumbering(styleId, comparisonWorkBudget, out numbering);
         }
 
         /// <summary>Caches the combined style definitions used while resolving paragraph numbering for one analysis.</summary>
@@ -29,33 +45,97 @@ namespace OfficeIMO.Word {
             internal IReadOnlyList<string> DefaultParagraphStyleIds { get; }
 
             internal NumberingProperties? ResolveNumbering(string? styleId) {
+                _ = TryResolveNumbering(styleId, comparisonWorkBudget: null, out NumberingProperties? numbering);
+                return numbering;
+            }
+
+            internal bool TryResolveNumbering(
+                string? styleId,
+                ComparisonWorkBudget? comparisonWorkBudget,
+                out NumberingProperties? numbering) {
                 string cacheKey = string.IsNullOrWhiteSpace(styleId)
                     ? DefaultParagraphStylesCacheKey
                     : styleId!;
-                if (_resolvedNumbering.TryGetValue(cacheKey, out NumberingProperties? cached)) return cached;
-
-                var pendingStyleIds = new Stack<string>();
-                if (cacheKey == DefaultParagraphStylesCacheKey) {
-                    foreach (string defaultStyleId in DefaultParagraphStyleIds) pendingStyleIds.Push(defaultStyleId);
-                } else {
-                    pendingStyleIds.Push(cacheKey);
+                if (_resolvedNumbering.TryGetValue(cacheKey, out NumberingProperties? cached)) {
+                    numbering = cached;
+                    return true;
                 }
-                var visited = new HashSet<string>(StringComparer.Ordinal);
-                while (pendingStyleIds.Count > 0) {
-                    string currentStyleId = pendingStyleIds.Pop();
-                    if (!visited.Add(currentStyleId)) continue;
-                    foreach (Style style in StylesById[currentStyleId]) {
-                        NumberingProperties? numbering = style.StyleParagraphProperties?.NumberingProperties;
-                        if (numbering != null) {
-                            _resolvedNumbering[cacheKey] = numbering;
-                            return numbering;
+
+                var visiting = new HashSet<string>(StringComparer.Ordinal);
+                if (cacheKey == DefaultParagraphStylesCacheKey) {
+                    foreach (string defaultStyleId in DefaultParagraphStyleIds) {
+                        if (!TryResolveStyleNumbering(
+                                defaultStyleId,
+                                comparisonWorkBudget,
+                                visiting,
+                                out NumberingProperties? resolved)) {
+                            numbering = null;
+                            return false;
                         }
-                        string? baseStyleId = style.BasedOn?.Val?.Value;
-                        if (!string.IsNullOrWhiteSpace(baseStyleId)) pendingStyleIds.Push(baseStyleId!);
+                        if (resolved != null) {
+                            _resolvedNumbering[cacheKey] = resolved;
+                            numbering = resolved;
+                            return true;
+                        }
+                    }
+                    _resolvedNumbering[cacheKey] = null;
+                    numbering = null;
+                    return true;
+                }
+
+                return TryResolveStyleNumbering(cacheKey, comparisonWorkBudget, visiting, out numbering);
+            }
+
+            private bool TryResolveStyleNumbering(
+                string styleId,
+                ComparisonWorkBudget? comparisonWorkBudget,
+                HashSet<string> visiting,
+                out NumberingProperties? numbering) {
+                if (_resolvedNumbering.TryGetValue(styleId, out NumberingProperties? cached)) {
+                    numbering = cached;
+                    return true;
+                }
+                if (!visiting.Add(styleId)) {
+                    numbering = null;
+                    return true;
+                }
+                if (comparisonWorkBudget != null && !comparisonWorkBudget.TryConsume(1)) {
+                    visiting.Remove(styleId);
+                    numbering = null;
+                    return false;
+                }
+
+                foreach (Style style in StylesById[styleId]) {
+                    NumberingProperties? direct = style.StyleParagraphProperties?.NumberingProperties;
+                    if (direct != null) {
+                        visiting.Remove(styleId);
+                        _resolvedNumbering[styleId] = direct;
+                        numbering = direct;
+                        return true;
+                    }
+                    string? baseStyleId = style.BasedOn?.Val?.Value;
+                    if (string.IsNullOrWhiteSpace(baseStyleId)) continue;
+                    if (!TryResolveStyleNumbering(
+                            baseStyleId!,
+                            comparisonWorkBudget,
+                            visiting,
+                            out NumberingProperties? inherited)) {
+                        visiting.Remove(styleId);
+                        numbering = null;
+                        return false;
+                    }
+                    if (inherited != null) {
+                        visiting.Remove(styleId);
+                        _resolvedNumbering[styleId] = inherited;
+                        numbering = inherited;
+                        return true;
                     }
                 }
-                _resolvedNumbering[cacheKey] = null;
-                return null;
+
+                visiting.Remove(styleId);
+                _resolvedNumbering[styleId] = null;
+                numbering = null;
+                return true;
             }
 
             internal static ParagraphNumberingStyleCatalog? Create(

@@ -29,6 +29,12 @@ namespace OfficeIMO.Word.Html {
                 return countingWriter.CharacterCount;
             }
 
+            long MeasureSerializedHtmlCharacters(INode node) {
+                using var countingWriter = new CountingHtmlWriter();
+                node.ToHtml(countingWriter, HtmlMarkupFormatter.Instance);
+                return countingWriter.CharacterCount;
+            }
+
             long GetBase64ImageOutputCharacters(long imageBytes, string mime) {
                 long base64Characters = imageBytes > (long.MaxValue / 4L) * 3L
                     ? long.MaxValue
@@ -241,12 +247,24 @@ namespace OfficeIMO.Word.Html {
                         var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
                         if (ext == ".svg") {
                             if (options.EmbedImagesAsBase64) {
-                                var svgXml = Encoding.UTF8.GetString(ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image.svg", inlineMarkup: true));
+                                byte[] svgBytes = ReadEmbeddedImageBytes(
+                                    imgObj,
+                                    imgObj.FileName ?? "image.svg",
+                                    inlineMarkup: true);
+                                var svgXml = Encoding.UTF8.GetString(svgBytes);
                                 var parser = new HtmlParser();
                                 var fragment = parser.ParseFragment(svgXml, body);
                                 var svgElement = fragment.OfType<IElement>().FirstOrDefault();
                                 if (svgElement != null) {
+                                    ReleaseOutputCharacters(htmlDoc, svgBytes.LongLength);
+                                    ReserveOutputCharacters(
+                                        htmlDoc,
+                                        MeasureSerializedHtmlCharacters(svgElement),
+                                        "An inline SVG image cannot fit within the configured HTML output-character limit after parsing.",
+                                        "InlineSvg:serialized");
                                     target.Add(svgElement);
+                                } else {
+                                    ReleaseOutputCharacters(htmlDoc, svgBytes.LongLength);
                                 }
                             } else {
                                 var imgSvg = (IHtmlImageElement)CreateOutputElement(htmlDoc, "img");

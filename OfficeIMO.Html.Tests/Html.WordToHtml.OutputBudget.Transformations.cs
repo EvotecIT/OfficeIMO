@@ -3,6 +3,8 @@ using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System;
+using System.IO;
+using System.Text;
 using Xunit;
 using M = DocumentFormat.OpenXml.Math;
 
@@ -82,6 +84,30 @@ namespace OfficeIMO.Tests {
 
             Assert.True(bounded.Succeeded);
             Assert.Equal(expected, bounded.RequireValue());
+        }
+
+        [Fact]
+        public void Test_WordToHtml_OutputBudgetMeasuresParsedInlineSvgMarkup() {
+            using WordDocument document = WordDocument.Create();
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\" viewBox=\"0 0 10 10\">" +
+                         string.Concat(Enumerable.Repeat("<g/>", 512)) +
+                         "</svg>";
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(svg))) {
+                document.AddParagraph().AddImage(stream, "compact.svg", width: null, height: null);
+            }
+            string expected = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false
+            }).RequireValue();
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = expected.Length - 1
+                }));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("InlineSvg:serialized", exception.LimitSource);
+            Assert.True(exception.Actual > exception.Limit);
         }
     }
 }

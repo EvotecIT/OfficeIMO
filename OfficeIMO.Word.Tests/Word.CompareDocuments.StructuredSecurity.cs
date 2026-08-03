@@ -326,6 +326,85 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));
         }
 
+        [Fact]
+        public void NumberingStyleInheritanceConsumesDisclosureWorkBudget() {
+            string path = Path.Combine(_directoryWithFiles, "compare_structure_numbering_style_inheritance_budget.docx");
+            int styleCount;
+            using (WordDocument document = WordDocument.Create(path)) {
+                const int inheritanceDepth = 32;
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleParagraphProperties(new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = 1 }))) {
+                    Type = StyleValues.Paragraph,
+                    StyleId = "BudgetBaseStyle"
+                });
+                string baseStyleId = "BudgetBaseStyle";
+                for (int index = 0; index < inheritanceDepth; index++) {
+                    string styleId = "BudgetInheritedStyle" + index;
+                    styles.Append(new Style(new BasedOn { Val = baseStyleId }) {
+                        Type = StyleValues.Paragraph,
+                        StyleId = styleId
+                    });
+                    baseStyleId = styleId;
+                }
+                WordParagraph paragraph = document.AddParagraph("Bounded inherited numbering");
+                paragraph._paragraph.ParagraphProperties = new ParagraphProperties(
+                    new ParagraphStyleId { Val = baseStyleId });
+                styleCount = styles.Elements<Style>().Count();
+                document.Save();
+            }
+
+            using WordDocument loaded = WordDocument.Load(path);
+            object comparisonWorkBudget = CreateComparisonWorkBudget(styleCount + 8L);
+            Type cacheType = typeof(WordDocumentComparer).GetNestedType(
+                "ParagraphNumberingStyleCatalogCache",
+                BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Numbering style catalog cache was not found.");
+            object cache = Activator.CreateInstance(cacheType, nonPublic: true)
+                ?? throw new InvalidOperationException("Numbering style catalog cache could not be created.");
+            MethodInfo containsNumberingFormatting = typeof(WordDocumentComparer).GetMethod(
+                "ContainsNumberingFormatting",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Numbering-formatting limitation scan was not found.");
+
+            object scanResult = containsNumberingFormatting.Invoke(
+                null,
+                new[] {
+                    loaded._wordprocessingDocument.MainDocumentPart!,
+                    comparisonWorkBudget,
+                    cache
+                }) ?? throw new InvalidOperationException("Numbering-formatting limitation scan returned no result.");
+
+            Assert.Equal("ResourceLimitExceeded", scanResult.ToString());
+            Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));
+
+            object completedCache = Activator.CreateInstance(cacheType, nonPublic: true)
+                ?? throw new InvalidOperationException("Numbering style catalog cache could not be recreated.");
+            object completeBudget = CreateComparisonWorkBudget(styleCount + 128L);
+            object completeResult = containsNumberingFormatting.Invoke(
+                null,
+                new[] {
+                    loaded._wordprocessingDocument.MainDocumentPart!,
+                    completeBudget,
+                    completedCache
+                }) ?? throw new InvalidOperationException("Numbering-formatting limitation scan returned no completed result.");
+            Assert.Equal("Present", completeResult.ToString());
+
+            loaded.Paragraphs[0]._paragraph.ParagraphProperties!.ParagraphStyleId!.Val = "BudgetInheritedStyle0";
+            object cachedAncestorBudget = CreateComparisonWorkBudget(2);
+            object cachedAncestorResult = containsNumberingFormatting.Invoke(
+                null,
+                new[] {
+                    loaded._wordprocessingDocument.MainDocumentPart!,
+                    cachedAncestorBudget,
+                    completedCache
+                }) ?? throw new InvalidOperationException("Cached numbering-style resolution returned no result.");
+            Assert.Equal("Present", cachedAncestorResult.ToString());
+            Assert.Equal(0, GetRemainingComparisonWorkUnits(cachedAncestorBudget));
+        }
+
         private static TimeSpan MeasureSimilarity(
             Func<string, string, double> similarity,
             string source,
