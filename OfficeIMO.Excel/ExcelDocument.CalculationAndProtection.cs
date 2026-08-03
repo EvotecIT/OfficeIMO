@@ -1,13 +1,210 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private long _formulaInputMutationVersion;
+        private long _formulaAuthoredMutationVersion;
+        private readonly ConcurrentDictionary<Uri, long> _formulaRecalculationVersions = new();
+        private readonly ConcurrentDictionary<Uri, long> _formulaAuthoredRecalculationVersions = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaAuthoredVersions = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaCellRecalculationVersions = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyBaselines = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaCellDependencyRecalculationVersions = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyMutationVersions = new();
+
         /// <summary>
         /// Formula calculation and cached-result policy used during save.
         /// </summary>
         public ExcelCalculationOptions Calculation { get; } = new ExcelCalculationOptions();
+
+        internal void MarkFormulaInputMutation() {
+            Interlocked.Increment(ref _formulaInputMutationVersion);
+        }
+
+        internal long CaptureFormulaInputMutationVersion() =>
+            Interlocked.Read(ref _formulaInputMutationVersion);
+
+        internal FormulaMutationState CaptureFormulaMutationState() => new FormulaMutationState(
+            Interlocked.Read(ref _formulaInputMutationVersion),
+            Interlocked.Read(ref _formulaAuthoredMutationVersion),
+            new Dictionary<Uri, long>(_formulaRecalculationVersions),
+            new Dictionary<Uri, long>(_formulaAuthoredRecalculationVersions),
+            new Dictionary<(Uri WorksheetUri, string CellReference), long>(_formulaAuthoredVersions),
+            new Dictionary<(Uri WorksheetUri, string CellReference), long>(_formulaCellRecalculationVersions),
+            new Dictionary<(Uri WorksheetUri, string CellReference), long>(_formulaDependencyBaselines),
+            new Dictionary<(Uri WorksheetUri, string CellReference), long>(_formulaCellDependencyRecalculationVersions),
+            new Dictionary<(Uri WorksheetUri, string CellReference), long>(_formulaDependencyMutationVersions));
+
+        internal void RestoreFormulaMutationState(FormulaMutationState state) {
+            if (state == null) throw new ArgumentNullException(nameof(state));
+            Interlocked.Exchange(ref _formulaInputMutationVersion, state.InputMutationVersion);
+            Interlocked.Exchange(ref _formulaAuthoredMutationVersion, state.AuthoredMutationVersion);
+            RestoreFormulaMutationDictionary(_formulaRecalculationVersions, state.RecalculationVersions);
+            RestoreFormulaMutationDictionary(_formulaAuthoredRecalculationVersions, state.AuthoredRecalculationVersions);
+            RestoreFormulaMutationDictionary(_formulaAuthoredVersions, state.AuthoredVersions);
+            RestoreFormulaMutationDictionary(_formulaCellRecalculationVersions, state.CellRecalculationVersions);
+            RestoreFormulaMutationDictionary(_formulaDependencyBaselines, state.DependencyBaselines);
+            RestoreFormulaMutationDictionary(
+                _formulaCellDependencyRecalculationVersions,
+                state.CellDependencyRecalculationVersions);
+            RestoreFormulaMutationDictionary(_formulaDependencyMutationVersions, state.DependencyMutationVersions);
+        }
+
+        private static void RestoreFormulaMutationDictionary<TKey>(
+            ConcurrentDictionary<TKey, long> target,
+            IReadOnlyDictionary<TKey, long> snapshot) where TKey : notnull {
+            target.Clear();
+            foreach (KeyValuePair<TKey, long> item in snapshot) target[item.Key] = item.Value;
+        }
+
+        internal sealed class FormulaMutationState {
+            internal FormulaMutationState(
+                long inputMutationVersion,
+                long authoredMutationVersion,
+                IReadOnlyDictionary<Uri, long> recalculationVersions,
+                IReadOnlyDictionary<Uri, long> authoredRecalculationVersions,
+                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> authoredVersions,
+                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> cellRecalculationVersions,
+                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> dependencyBaselines,
+                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> cellDependencyRecalculationVersions,
+                IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> dependencyMutationVersions) {
+                InputMutationVersion = inputMutationVersion;
+                AuthoredMutationVersion = authoredMutationVersion;
+                RecalculationVersions = recalculationVersions;
+                AuthoredRecalculationVersions = authoredRecalculationVersions;
+                AuthoredVersions = authoredVersions;
+                CellRecalculationVersions = cellRecalculationVersions;
+                DependencyBaselines = dependencyBaselines;
+                CellDependencyRecalculationVersions = cellDependencyRecalculationVersions;
+                DependencyMutationVersions = dependencyMutationVersions;
+            }
+
+            internal long InputMutationVersion { get; }
+            internal long AuthoredMutationVersion { get; }
+            internal IReadOnlyDictionary<Uri, long> RecalculationVersions { get; }
+            internal IReadOnlyDictionary<Uri, long> AuthoredRecalculationVersions { get; }
+            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> AuthoredVersions { get; }
+            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> CellRecalculationVersions { get; }
+            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> DependencyBaselines { get; }
+            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> CellDependencyRecalculationVersions { get; }
+            internal IReadOnlyDictionary<(Uri WorksheetUri, string CellReference), long> DependencyMutationVersions { get; }
+        }
+
+        internal bool HasFormulaInputMutationsAfterLastRecalculation(WorksheetPart worksheetPart) {
+            long mutationVersion = Interlocked.Read(ref _formulaInputMutationVersion);
+            return mutationVersion > 0
+                && (!_formulaRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)
+                    || recalculationVersion < mutationVersion);
+        }
+
+        internal void MarkFormulaAuthored(
+            WorksheetPart worksheetPart,
+            string cellReference,
+            bool retainedCachedValue = false) {
+            var key = (worksheetPart.Uri, cellReference);
+            _formulaAuthoredVersions[key] = Interlocked.Read(ref _formulaInputMutationVersion);
+            long dependencyVersion = Interlocked.Increment(ref _formulaAuthoredMutationVersion);
+            _formulaDependencyBaselines[key] = dependencyVersion;
+            _formulaDependencyMutationVersions[key] = dependencyVersion;
+            if (retainedCachedValue) MarkFormulaInputMutation();
+        }
+
+        internal bool HasFormulaInputMutationsAfterFormulaBaseline(WorksheetPart worksheetPart, string cellReference) {
+            long mutationVersion = Interlocked.Read(ref _formulaInputMutationVersion);
+            if (mutationVersion == 0) {
+                return false;
+            }
+
+            long baseline = 0;
+            if (_formulaRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)) {
+                baseline = recalculationVersion;
+            }
+            if (_formulaAuthoredVersions.TryGetValue((worksheetPart.Uri, cellReference), out long authoredVersion)
+                && authoredVersion > baseline) {
+                baseline = authoredVersion;
+            }
+            if (_formulaCellRecalculationVersions.TryGetValue((worksheetPart.Uri, cellReference), out long cellRecalculationVersion)
+                && cellRecalculationVersion > baseline) {
+                baseline = cellRecalculationVersion;
+            }
+
+            return mutationVersion > baseline;
+        }
+
+        internal void MarkFormulaSheetRecalculated(WorksheetPart worksheetPart, long mutationVersion) {
+            _formulaRecalculationVersions[worksheetPart.Uri] = mutationVersion;
+            _formulaAuthoredRecalculationVersions[worksheetPart.Uri] =
+                Interlocked.Read(ref _formulaAuthoredMutationVersion);
+        }
+
+        internal void MarkFormulaCellRecalculated(
+            WorksheetPart worksheetPart,
+            string cellReference,
+            long mutationVersion) {
+            var key = (worksheetPart.Uri, cellReference);
+            _formulaCellRecalculationVersions[key] = mutationVersion;
+            _formulaCellDependencyRecalculationVersions[key] =
+                Interlocked.Read(ref _formulaAuthoredMutationVersion);
+        }
+
+        internal long GetFormulaDependencyBaseline(WorksheetPart worksheetPart, string cellReference) {
+            long baseline = 0;
+            if (_formulaAuthoredRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)) {
+                baseline = recalculationVersion;
+            }
+            if (_formulaDependencyBaselines.TryGetValue((worksheetPart.Uri, cellReference), out long authoredVersion)
+                && authoredVersion > baseline) {
+                baseline = authoredVersion;
+            }
+            if (_formulaCellDependencyRecalculationVersions.TryGetValue(
+                    (worksheetPart.Uri, cellReference),
+                    out long cellRecalculationVersion)
+                && cellRecalculationVersion > baseline) {
+                baseline = cellRecalculationVersion;
+            }
+            return baseline;
+        }
+
+        internal bool HasFormulaDependencyMutationAfter(
+            WorksheetPart worksheetPart,
+            int firstRow,
+            int firstColumn,
+            int lastRow,
+            int lastColumn,
+            long baseline) {
+            long cellCount = (long)(lastRow - firstRow + 1) * (lastColumn - firstColumn + 1);
+            if (cellCount <= 4096L) {
+                for (int row = firstRow; row <= lastRow; row++) {
+                    for (int column = firstColumn; column <= lastColumn; column++) {
+                        if (_formulaDependencyMutationVersions.TryGetValue(
+                                (worksheetPart.Uri, A1.CellReference(row, column)),
+                                out long mutationVersion)
+                            && mutationVersion > baseline) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            foreach (KeyValuePair<(Uri WorksheetUri, string CellReference), long> item in _formulaDependencyMutationVersions) {
+                if (item.Value <= baseline
+                    || item.Key.WorksheetUri != worksheetPart.Uri
+                    || !A1.TryParseCellReferenceFast(item.Key.CellReference, out int row, out int column)) {
+                    continue;
+                }
+                if (row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         /// <summary>
         /// Returns true when workbook-level structure or window protection is present.

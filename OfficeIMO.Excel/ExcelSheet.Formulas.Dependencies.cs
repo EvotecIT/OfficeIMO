@@ -199,15 +199,15 @@ namespace OfficeIMO.Excel {
             int? sourceColumn) {
             string localReferenceFormula = MaskFormulaNonLocalReferenceSegments(valueDependencyFormula);
             string directReferenceFormula = MaskFormulaStructuredReferenceSegments(localReferenceFormula);
-            List<FormulaDependencyReferenceMatch> dependencyMatches = FormulaReferenceRegex.Matches(directReferenceFormula)
+            List<FormulaDependencyReferenceMatch> dependencyMatches = ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
                     .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
                     .Where(match => !IsFormulaDependencyFunctionToken(searchableFormula, match))
-                    .Where(match => !string.IsNullOrWhiteSpace(match.Groups["reference"].Value))
+                    .Where(match => !string.IsNullOrWhiteSpace(match.Value))
                     .Select(match => new FormulaDependencyReferenceMatch(
                         match.Index,
                         match.Length,
-                        match.Groups["reference"].Value))
+                        match.Value))
                     .ToList();
             IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(searchableFormula);
             foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(valueDependencyFormula)) {
@@ -343,9 +343,11 @@ namespace OfficeIMO.Excel {
                 int bracketDepth = 0;
                 int cursor = end;
                 for (; cursor < formula.Length; cursor++) {
-                    if (formula[cursor] == '[') {
+                    if (formula[cursor] == '['
+                        && !IsEscapedStructuredReferenceBracket(formula, cursor)) {
                         bracketDepth++;
-                    } else if (formula[cursor] == ']') {
+                    } else if (formula[cursor] == ']'
+                        && !IsEscapedStructuredReferenceBracket(formula, cursor)) {
                         bracketDepth--;
                         if (bracketDepth == 0) {
                             end = cursor + 1;
@@ -419,13 +421,8 @@ namespace OfficeIMO.Excel {
             return bracketDepth > 0;
         }
 
-        private static bool IsEscapedStructuredReferenceBracket(string formula, int position) {
-            int apostropheCount = 0;
-            for (int index = position - 1; index >= 0 && formula[index] == '\''; index--) {
-                apostropheCount++;
-            }
-            return (apostropheCount & 1) != 0;
-        }
+        private static bool IsEscapedStructuredReferenceBracket(string formula, int position) =>
+            ExcelFormulaSyntaxTree.IsEscapedStructuredCharacter(formula, position);
 
         private static bool IsFormulaAliasIdentifierCharacter(char character) {
             return char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '\\';
@@ -445,7 +442,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string reference = match.Groups["reference"].Value;
+            string reference = match.Value;
             int qualifierSeparator = reference.LastIndexOf('!');
             if (qualifierSeparator > 0) {
                 string qualifier = reference.Substring(0, qualifierSeparator);
@@ -458,7 +455,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool IsFormulaDependencyFunctionToken(string formula, Match match) {
-            string token = match.Groups["reference"].Value;
+            string token = match.Value;
             if (token.IndexOf('!') >= 0 || token.IndexOf(':') >= 0 || token.IndexOf('$') >= 0) {
                 return false;
             }
@@ -573,6 +570,9 @@ namespace OfficeIMO.Excel {
 
         private string NormalizeFormulaDependencyReference(string reference, int? sourceRow) {
             string normalized = reference.Trim().Replace("$", string.Empty);
+            if (normalized.EndsWith("#", StringComparison.Ordinal)) {
+                normalized = normalized.Substring(0, normalized.Length - 1);
+            }
             if (TryResolveFormulaDependencyReference(
                 normalized,
                 sourceRow,
@@ -691,11 +691,15 @@ namespace OfficeIMO.Excel {
         private static string MaskFormulaStructuredReferenceSegments(string formula) {
             var builder = new StringBuilder(formula.Length);
             int bracketDepth = 0;
-            foreach (char character in formula) {
-                if (character == '[') {
+            for (int index = 0; index < formula.Length; index++) {
+                char character = formula[index];
+                if (character == '['
+                    && !IsEscapedStructuredReferenceBracket(formula, index)) {
                     bracketDepth++;
                     builder.Append(' ');
-                } else if (character == ']' && bracketDepth > 0) {
+                } else if (character == ']'
+                    && !IsEscapedStructuredReferenceBracket(formula, index)
+                    && bracketDepth > 0) {
                     bracketDepth--;
                     builder.Append(' ');
                 } else {

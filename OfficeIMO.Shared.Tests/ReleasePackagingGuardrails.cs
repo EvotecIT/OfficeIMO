@@ -602,7 +602,7 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("# OfficeIMO roadmap", roadmap, StringComparison.Ordinal);
         Assert.Contains("It contains open work only", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
-        Assert.Contains("## Excel", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Complete the remaining conditional-formatting rule and extension surface", roadmap, StringComparison.Ordinal);
         Assert.Contains("## PDF, HTML, and image rendering", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Markdown and text formats", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Reader and document intelligence", roadmap, StringComparison.Ordinal);
@@ -614,8 +614,11 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("advanced drawing, imported chart mutation, SmartArt editing", roadmap, StringComparison.Ordinal);
         Assert.Contains("effective-formatting and true move semantics", roadmap, StringComparison.Ordinal);
         Assert.Contains("aggregate budgets for supported non-image resources", roadmap, StringComparison.Ordinal);
-        Assert.Contains("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
-        Assert.Contains("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Excel", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Build one reusable reference syntax tree", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Complete the remaining conditional-formatting rule and extension surface", roadmap, StringComparison.Ordinal);
         Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
         Assert.Contains("generic-attribute ownership across the remaining supported block and inline families", roadmap, StringComparison.Ordinal);
         Assert.Contains("precise source locations partial until lossless trivia", roadmap, StringComparison.Ordinal);

@@ -111,6 +111,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool HasAbsoluteAnchor => _anchor is Xdr.AbsoluteAnchor;
 
+        internal ExcelImagePlacement Placement {
+            get {
+                if (_anchor is not Xdr.TwoCellAnchor twoCell) return ExcelImagePlacement.FreeFloating;
+                if (twoCell.EditAs?.Value == Xdr.EditAsValues.OneCell) return ExcelImagePlacement.MoveOnly;
+                if (twoCell.EditAs?.Value == Xdr.EditAsValues.Absolute) return ExcelImagePlacement.FreeFloating;
+                return ExcelImagePlacement.MoveAndSize;
+            }
+        }
+
         /// <summary>
         /// Gets the 1-based ending row index for two-cell anchored images, when available.
         /// </summary>

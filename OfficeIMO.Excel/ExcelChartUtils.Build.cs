@@ -490,7 +490,8 @@ namespace OfficeIMO.Excel {
                 new Order { Val = (uint)seriesIndex },
                 CreateSeriesText(range, seriesIndex, series?.Name ?? $"Series {seriesIndex + 1}"),
                 CreateCategoryAxisData(range),
-                CreateValues(range, seriesIndex, series)
+                CreateValues(range, seriesIndex, series),
+                new Smooth { Val = false }
             );
         }
 
@@ -746,7 +747,8 @@ namespace OfficeIMO.Excel {
                 new Order { Val = (uint)seriesIndex },
                 CreateSeriesText(range, seriesIndex, series?.Name ?? $"Series {seriesIndex + 1}"),
                 CreateXValues(range, xValues, useLiteralXValues),
-                CreateYValues(range, seriesIndex, series)
+                CreateYValues(range, seriesIndex, series),
+                new Smooth { Val = false }
             );
         }
 
@@ -774,7 +776,8 @@ namespace OfficeIMO.Excel {
                 new Order { Val = (uint)seriesIndex },
                 CreateSeriesTextLiteral(name),
                 CreateXValuesFromRange(seriesRange.XRangeA1, defaultSheetName),
-                CreateYValuesFromRange(seriesRange.YRangeA1, defaultSheetName)
+                CreateYValuesFromRange(seriesRange.YRangeA1, defaultSheetName),
+                new Smooth { Val = false }
             );
         }
 

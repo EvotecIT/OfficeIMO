@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         private int _nextConditionalFormattingPriority;
 
         internal bool HasConditionalFormatting =>
-            WorksheetRoot.GetFirstChild<ConditionalFormatting>() != null;
+            WorksheetRoot.GetFirstChild<ConditionalFormatting>() != null || HasOffice2010ConditionalFormatting();
 
         /// <summary>
         /// Lists conditional formatting rules on the worksheet.
@@ -17,6 +17,21 @@ namespace OfficeIMO.Excel {
             GetConditionalFormattingRules(a1Range, int.MaxValue, out _);
 
         internal IReadOnlyList<ExcelConditionalFormattingInfo> GetConditionalFormattingRules(
+            string? a1Range,
+            int maximumRules,
+            out bool truncated) {
+            var result = Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+                IReadOnlyList<ExcelConditionalFormattingInfo> rules = GetConditionalFormattingRulesCore(
+                    a1Range,
+                    maximumRules,
+                    out bool wasTruncated);
+                return (Rules: rules, Truncated: wasTruncated);
+            });
+            truncated = result.Truncated;
+            return result.Rules;
+        }
+
+        private IReadOnlyList<ExcelConditionalFormattingInfo> GetConditionalFormattingRulesCore(
             string? a1Range,
             int maximumRules,
             out bool truncated) {
@@ -96,6 +111,18 @@ namespace OfficeIMO.Excel {
                 if (discoveryLimitReached) break;
             }
 
+            if (!discoveryLimitReached && WorksheetRoot.GetFirstChild<WorksheetExtensionList>() != null) {
+                CollectOffice2010ConditionalFormattingRules(
+                    filter,
+                    maximumRules,
+                    maximumDiscoveryItems,
+                    list,
+                    retained,
+                    ref ruleOrder,
+                    ref containersExamined,
+                    ref truncated);
+            }
+
             if (retained != null) {
                 foreach (ConditionalFormattingCandidate candidate in retained) {
                     list.Add(ReadConditionalFormattingInfo(candidate.Rule, candidate.Range, stylesheet, workbookPart));
@@ -105,13 +132,30 @@ namespace OfficeIMO.Excel {
             return list;
         }
 
-        private static ExcelConditionalFormattingInfo ReadConditionalFormattingInfo(
+        private ExcelConditionalFormattingInfo ReadConditionalFormattingInfo(
+            OpenXmlElement rule,
+            string range,
+            Stylesheet? stylesheet,
+            WorkbookPart workbookPart) {
+            if (rule is ConditionalFormattingRule standardRule) {
+                return ReadConditionalFormattingInfo(standardRule, range, stylesheet, workbookPart);
+            }
+
+            return ReadOffice2010ConditionalFormattingInfo(rule, range, workbookPart);
+        }
+
+        private ExcelConditionalFormattingInfo ReadConditionalFormattingInfo(
             ConditionalFormattingRule rule,
             string range,
             Stylesheet? stylesheet,
             WorkbookPart workbookPart) {
             uint? differentialFormatId = ReadDifferentialFormatId(rule);
-            return new ExcelConditionalFormattingInfo {
+            var info = new ExcelConditionalFormattingInfo {
+                Source = ExcelConditionalFormattingSource.Standard,
+                OwnerSheet = this,
+                OwnerContainer = rule.Parent,
+                BackingRule = rule,
+                HasPreservedUnknownMarkup = HasUnprojectedConditionalFormattingMarkup(rule, rule.Parent),
                 Range = range,
                 Type = ReadConditionalFormatType(rule),
                 Operator = ReadConditionalFormatOperator(rule),
@@ -145,16 +189,18 @@ namespace OfficeIMO.Excel {
                 AboveAverageEqual = rule.EqualAverage?.Value ?? false,
                 AboveAverageStdDev = rule.StdDev?.Value
             };
+            CaptureConditionalFormattingProjectionSignatures(info);
+            return info;
         }
 
-        private static int NormalizeConditionalFormattingPriority(ConditionalFormattingRule rule) {
-            int priority = (int)(rule.Priority?.Value ?? 0);
+        private static int NormalizeConditionalFormattingPriority(OpenXmlElement rule) {
+            int priority = ReadConditionalFormattingPriority(rule);
             return priority <= 0 ? int.MaxValue : priority;
         }
 
         private readonly struct ConditionalFormattingCandidate {
             internal ConditionalFormattingCandidate(
-                ConditionalFormattingRule rule,
+                OpenXmlElement rule,
                 string range,
                 int priority,
                 long order) {
@@ -164,7 +210,7 @@ namespace OfficeIMO.Excel {
                 Order = order;
             }
 
-            internal ConditionalFormattingRule Rule { get; }
+            internal OpenXmlElement Rule { get; }
             internal string Range { get; }
             internal int Priority { get; }
             internal long Order { get; }
@@ -256,9 +302,7 @@ namespace OfficeIMO.Excel {
             }
 
             return colorScale.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>()
-                .Select(color => color.Rgb?.Value)
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Select(value => value!)
+                .Select(color => color.Rgb?.Value ?? string.Empty)
                 .ToArray();
         }
 
@@ -303,11 +347,7 @@ namespace OfficeIMO.Excel {
 
         private static string? ReadIconSetName(ConditionalFormattingRule rule) {
             IconSet? iconSet = rule.GetFirstChild<IconSet>();
-            if (iconSet?.IconSetValue?.Value == IconSetValues.ThreeTrafficLights1) {
-                return nameof(IconSetValues.ThreeTrafficLights1);
-            }
-
-            return iconSet?.IconSetValue?.InnerText;
+            return NormalizeConditionalIconSetName(iconSet?.IconSetValue?.InnerText);
         }
 
         private static bool ReadIconSetShowValue(ConditionalFormattingRule rule) {
@@ -922,7 +962,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ClearConditionalFormattingCore(string? a1Range) {
-            bool changed = false;
+            bool changed = ClearOffice2010ConditionalFormattingCore(a1Range);
             if (string.IsNullOrWhiteSpace(a1Range)) {
                 foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>().ToList()) {
                     conditional.Remove();
@@ -942,6 +982,7 @@ namespace OfficeIMO.Excel {
                     } else {
                         string replacement = string.Join(" ", remaining);
                         conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = replacement };
+                        RemapConditionalFormattingAnchorFormulas(conditional, range, replacement);
                         changed = true;
                     }
                 }
@@ -1028,6 +1069,15 @@ namespace OfficeIMO.Excel {
                     if (value >= priority) {
                         priority = value + 1;
                     }
+                }
+            }
+
+            WorksheetExtensionList? extensions = worksheet.GetFirstChild<WorksheetExtensionList>();
+            if (extensions != null) {
+                foreach (DocumentFormat.OpenXml.Office2010.Excel.ConditionalFormattingRule rule in
+                    extensions.Descendants<DocumentFormat.OpenXml.Office2010.Excel.ConditionalFormattingRule>()) {
+                    int value = (int)(rule.Priority?.Value ?? 0);
+                    if (value >= priority) priority = value + 1;
                 }
             }
 

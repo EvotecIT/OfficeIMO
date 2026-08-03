@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.IO;
 using System.Globalization;
 using System.Text;
 
@@ -597,25 +598,11 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<(FilterOperatorValues Operator, string Value)> conditions) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             if (conditions == null || conditions.Count == 0) throw new ArgumentException("At least one condition is required.", nameof(conditions));
+            range = ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
-                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
-                    autoFilter?.Remove();
-                    autoFilter = new AutoFilter { Reference = range };
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
-                        if (conditionalFormatting != null) {
-                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
-                        } else {
-                            worksheet.InsertAfter(autoFilter, sheetData);
-                        }
-                    } else {
-                        worksheet.Append(autoFilter);
-                    }
-                }
+                AutoFilter autoFilter = GetOrReplaceAutoFilter(worksheet, range, out Table? tableOwner);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -634,32 +621,18 @@ namespace OfficeIMO.Excel {
                 if (customFilters.Elements<CustomFilter>().Any()) {
                     filterColumn.Append(customFilters);
                     autoFilter.Append(filterColumn);
-                    worksheet.Save();
+                    SaveAutoFilterOwner(worksheet, tableOwner);
                 }
             });
         }
 
         internal void ApplyAutoFilterBlankCriteria(string range, uint columnId) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
+            range = ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
-                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
-                    autoFilter?.Remove();
-                    autoFilter = new AutoFilter { Reference = range };
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
-                        if (conditionalFormatting != null) {
-                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
-                        } else {
-                            worksheet.InsertAfter(autoFilter, sheetData);
-                        }
-                    } else {
-                        worksheet.Append(autoFilter);
-                    }
-                }
+                AutoFilter autoFilter = GetOrReplaceAutoFilter(worksheet, range, out Table? tableOwner);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -667,7 +640,7 @@ namespace OfficeIMO.Excel {
                 var filterColumn = new FilterColumn { ColumnId = columnId };
                 filterColumn.Append(new Filters { Blank = true });
                 autoFilter.Append(filterColumn);
-                worksheet.Save();
+                SaveAutoFilterOwner(worksheet, tableOwner);
             });
         }
 
@@ -678,26 +651,17 @@ namespace OfficeIMO.Excel {
             bool isTop,
             bool isPercent) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
-            if (value < 1 || value > 500) throw new ArgumentOutOfRangeException(nameof(value), "Top10 AutoFilter values must be between 1 and 500.");
+            ushort maximumValue = isPercent ? (ushort)100 : (ushort)500;
+            if (value < 1 || value > maximumValue) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    $"Top10 AutoFilter values must be between 1 and {maximumValue}.");
+            }
+            range = ValidateAutoFilterColumnOffset(range, columnId);
 
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
-                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
-                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
-                    autoFilter?.Remove();
-                    autoFilter = new AutoFilter { Reference = range };
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
-                        if (conditionalFormatting != null) {
-                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
-                        } else {
-                            worksheet.InsertAfter(autoFilter, sheetData);
-                        }
-                    } else {
-                        worksheet.Append(autoFilter);
-                    }
-                }
+                AutoFilter autoFilter = GetOrReplaceAutoFilter(worksheet, range, out Table? tableOwner);
 
                 FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
                 existingColumn?.Remove();
@@ -709,8 +673,128 @@ namespace OfficeIMO.Excel {
                     Val = (double)value,
                 });
                 autoFilter.Append(filterColumn);
-                worksheet.Save();
+                SaveAutoFilterOwner(worksheet, tableOwner);
             });
+        }
+
+        private AutoFilter GetOrReplaceAutoFilter(Worksheet worksheet, string range, out Table? tableOwner) {
+            Table[] matchingTables = _worksheetPart.TableDefinitionParts
+                .Select(part => part.Table)
+                .Where(table => table != null
+                    && TryGetTableAutoFilterRange(table, out string tableFilterRange)
+                    && (AutoFilterRangesMatch(table.Reference?.Value, range)
+                        || AutoFilterRangesMatch(tableFilterRange, range)))
+                .Cast<Table>()
+                .ToArray();
+            if (matchingTables.Length > 1) {
+                throw new InvalidDataException("Multiple table AutoFilters own the requested range.");
+            }
+            if (matchingTables.Length == 1) {
+                tableOwner = matchingTables[0];
+                TryGetTableAutoFilterRange(tableOwner, out string tableFilterRange);
+                AutoFilter? worksheetFilter = worksheet.GetFirstChild<AutoFilter>();
+                if (worksheetFilter != null
+                    && AutoFilterRangesOverlap(worksheetFilter.Reference?.Value, tableOwner.Reference?.Value)) {
+                    worksheetFilter.Remove();
+                }
+                AutoFilter? tableFilter = tableOwner.GetFirstChild<AutoFilter>();
+                if (tableFilter == null) {
+                    tableFilter = new AutoFilter { Reference = tableFilterRange };
+                    TableColumns? tableColumns = tableOwner.GetFirstChild<TableColumns>();
+                    if (tableColumns == null) tableOwner.Append(tableFilter);
+                    else tableOwner.InsertBefore(tableFilter, tableColumns);
+                } else {
+                    tableFilter.Reference = tableFilterRange;
+                }
+                return tableFilter;
+            }
+            tableOwner = null;
+            return GetOrReplaceWorksheetAutoFilter(worksheet, range);
+        }
+
+        private static void SaveAutoFilterOwner(Worksheet worksheet, Table? tableOwner) {
+            if (tableOwner != null) tableOwner.Save();
+            else worksheet.Save();
+        }
+
+        private static AutoFilter GetOrReplaceWorksheetAutoFilter(Worksheet worksheet, string range) {
+            AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
+            if (autoFilter != null && AutoFilterRangesMatch(autoFilter.Reference?.Value, range)) {
+                return autoFilter;
+            }
+            autoFilter?.Remove();
+            autoFilter = new AutoFilter { Reference = range };
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                worksheet.Append(autoFilter);
+                return autoFilter;
+            }
+            ConditionalFormatting? conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
+            if (conditionalFormatting != null) worksheet.InsertBefore(autoFilter, conditionalFormatting);
+            else worksheet.InsertAfter(autoFilter, sheetData);
+            return autoFilter;
+        }
+
+        private static bool AutoFilterRangesMatch(string? existingRange, string requestedRange) {
+            if (!ExcelReference.TryParse(existingRange, out ExcelReference? existing)
+                || !ExcelReference.TryParse(requestedRange, out ExcelReference? requested)
+                || existing!.IsQualified
+                || requested!.IsQualified) {
+                return false;
+            }
+            existing.GetBounds(out int existingR1, out int existingC1, out int existingR2, out int existingC2);
+            requested.GetBounds(out int requestedR1, out int requestedC1, out int requestedR2, out int requestedC2);
+            return existingR1 == requestedR1
+                && existingC1 == requestedC1
+                && existingR2 == requestedR2
+                && existingC2 == requestedC2;
+        }
+
+        private static bool AutoFilterRangesOverlap(string? firstRange, string? secondRange) {
+            if (!ExcelReference.TryParse(firstRange, out ExcelReference? first)
+                || !ExcelReference.TryParse(secondRange, out ExcelReference? second)
+                || first!.IsQualified
+                || second!.IsQualified) {
+                return false;
+            }
+            first.GetBounds(out int firstR1, out int firstC1, out int firstR2, out int firstC2);
+            second.GetBounds(out int secondR1, out int secondC1, out int secondR2, out int secondC2);
+            return firstR1 <= secondR2
+                && firstR2 >= secondR1
+                && firstC1 <= secondC2
+                && firstC2 >= secondC1;
+        }
+
+        private static bool TryGetTableAutoFilterRange(Table table, out string range) {
+            range = string.Empty;
+            if (table.HeaderRowCount?.Value == 0U
+                || !A1.TryParseRange(table.Reference?.Value ?? string.Empty, out int r1, out int c1, out int r2, out int c2)) {
+                return false;
+            }
+            int totalsRows = table.TotalsRowShown?.Value == true
+                ? Math.Max(1, checked((int)(table.TotalsRowCount?.Value ?? 1U)))
+                : 0;
+            int filterLastRow = r2 - totalsRows;
+            if (filterLastRow < r1) return false;
+            range = A1.CellReference(r1, c1) + ":" + A1.CellReference(filterLastRow, c2);
+            return true;
+        }
+
+        private static string ValidateAutoFilterColumnOffset(string range, uint columnId) {
+            ExcelReference reference = ExcelReference.Parse(range);
+            if (reference.Kind != ExcelReferenceKind.Cell && reference.Kind != ExcelReferenceKind.Range) {
+                throw new ArgumentException("AutoFilter ranges require a cell or rectangular range reference.", nameof(range));
+            }
+            if (reference.IsQualified) {
+                throw new ArgumentException("Worksheet AutoFilter ranges must be local, unqualified references.", nameof(range));
+            }
+            reference.GetBounds(out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
+            uint width = checked((uint)(lastColumn - firstColumn + 1));
+            if (columnId >= width) throw new ArgumentOutOfRangeException(nameof(columnId), "AutoFilter column offset must be inside the filter range.");
+            string firstCell = A1.CellReference(firstRow, firstColumn);
+            return reference.Kind == ExcelReferenceKind.Cell
+                ? firstCell
+                : firstCell + ":" + A1.CellReference(lastRow, lastColumn);
         }
 
     }

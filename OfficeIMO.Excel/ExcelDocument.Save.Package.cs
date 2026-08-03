@@ -11,6 +11,7 @@ using System.Xml;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
@@ -215,8 +216,11 @@ namespace OfficeIMO.Excel {
             _requiresSavePreflight = false;
         }
 
-        private static string CreateTemporarySavePath(string targetPath) {
-            return OfficeFileCommit.CreateTemporaryPath(targetPath);
+        private static FileStream CreateTemporarySaveFile(
+            string targetPath,
+            FileOptions options,
+            out string temporaryPath) {
+            return OfficeFileCommit.CreateTemporaryFile(targetPath, options, out temporaryPath);
         }
 
         private static void ReplaceTargetFile(string temporaryPath, string targetPath) {
@@ -229,7 +233,7 @@ namespace OfficeIMO.Excel {
 
         private bool TrySaveWithSimplePackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason, CancellationToken ct = default, bool alreadyPrepared = false) {
             skipReason = null;
-            var temporaryPath = CreateTemporarySavePath(targetPath);
+            string temporaryPath = string.Empty;
             byte[]? packageBytes = null;
 
             try {
@@ -237,7 +241,7 @@ namespace OfficeIMO.Excel {
                     PrepareWorkbookForSave(options);
                 }
 
-                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                using (var fs = CreateTemporarySaveFile(targetPath, FileOptions.None, out temporaryPath)) {
                     if (!TryWriteSimpleWorkbookPackage(fs, options, updateDocumentState: false, out skipReason, ct)) {
                         return false;
                     }
@@ -273,11 +277,11 @@ namespace OfficeIMO.Excel {
 
         private bool TrySaveWithExtendedPackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason, CancellationToken ct = default) {
             skipReason = null;
-            var temporaryPath = CreateTemporarySavePath(targetPath);
+            string temporaryPath = string.Empty;
             byte[]? packageBytes = null;
 
             try {
-                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                using (var fs = CreateTemporarySaveFile(targetPath, FileOptions.None, out temporaryPath)) {
                     if (!TryWriteExtendedWorkbookPackage(fs, options, updateDocumentState: false, out skipReason, ct)) {
                         return false;
                     }
@@ -336,6 +340,9 @@ namespace OfficeIMO.Excel {
             var previousPackageStream = _packageStream;
             bool keepPackageStream = _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose;
             bool previousDocumentDisposed = false;
+            bool reuseOwnedFileBackedStream = reusablePackageStream == null
+                && _usesFileBackedPackage
+                && _ownedOpenStream != null;
 
             Stream mem;
             if (reusablePackageStream != null) {
@@ -352,6 +359,16 @@ namespace OfficeIMO.Excel {
                 reusablePackageStream.Flush();
                 reusablePackageStream.Position = 0;
                 mem = reusablePackageStream;
+            } else if (reuseOwnedFileBackedStream) {
+                // Keep an explicitly file-backed edit session file-backed after save. The finalized
+                // package bytes are bounded by ExcelSaveOptions before this point and are not retained.
+                try { previousDocument.Dispose(); } catch { }
+                previousDocumentDisposed = true;
+                PrepareDestinationStreamForWrite(_ownedOpenStream!);
+                _ownedOpenStream!.Write(packageBytes, 0, packageBytes.Length);
+                _ownedOpenStream.Flush();
+                _ownedOpenStream.Position = 0;
+                mem = _ownedOpenStream;
             } else {
                 mem = keepPackageStream
                     ? new NonDisposingMemoryStream(packageBytes.Length + 8192)
@@ -371,7 +388,7 @@ namespace OfficeIMO.Excel {
             _sheetCacheDirty = true;
             _packageStream = keepPackageStream ? mem : null;
             ReinitializePackageBoundHelpers();
-            MarkPackageClean(packageBytes, simplePackageContentKnown);
+            MarkPackageClean(reuseOwnedFileBackedStream ? null : packageBytes, simplePackageContentKnown);
 
             if (previousPackageStream != null && !ReferenceEquals(previousPackageStream, mem)) {
                 DisposeStream(previousPackageStream);
@@ -485,6 +502,24 @@ namespace OfficeIMO.Excel {
 
             var errors = ValidateOpenXml(finalizedBytes);
             if (errors.Count > 0) {
+                throw new InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+            }
+        }
+
+        internal static void ThrowIfOpenXmlValidationFails(
+            string packagePath,
+            ExcelSaveOptions? options,
+            CancellationToken cancellationToken = default) {
+            if (options?.ValidateOpenXml != true) return;
+
+            cancellationToken.ThrowIfCancellationRequested();
+            using SpreadsheetDocument document = SpreadsheetDocument.Open(packagePath, false);
+            var validator = new OpenXmlValidator();
+            var errors = validator.Validate(document, cancellationToken)
+                .Select(error => $"{error.ErrorType}: {error.Description} at {error.Path}")
+                .ToArray();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (errors.Length > 0) {
                 throw new InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
             }
         }

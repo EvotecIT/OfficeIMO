@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordTable outer = document.AddTable(1, 1);
             WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
-            nested.Rows[0].Cells[0].Paragraphs[0].Text = new string('y', 2000000);
+            nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested content";
 
             await AssertVisualSnapshotCancelsDuringWork(
                 document,
@@ -180,11 +180,13 @@ namespace OfficeIMO.Tests {
                     }
                 }
             };
-            Task render = Task.Run(() => {
-                document.CreateVisualSnapshots(
+            Task render = Task.Factory.StartNew(
+                () => document.CreateVisualSnapshots(
                     options,
-                    cancellation.Token);
-            });
+                    cancellation.Token),
+                System.Threading.CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
 
             bool reached = checkpointReached.Wait(TimeSpan.FromSeconds(5));
             cancellation.Cancel();

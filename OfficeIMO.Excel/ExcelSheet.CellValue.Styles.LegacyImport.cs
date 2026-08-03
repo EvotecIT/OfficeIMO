@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel {
                 cell.CellValue = new CellValue(errorText);
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
                 cell.InlineString = null;
-                ClearHeaderCacheForCellMutation(row, column);
+                CompleteCellValueMutation(row, column);
             });
         }
 

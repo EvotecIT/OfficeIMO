@@ -45,6 +45,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ExcelFormatCapabilityStatus.Unsupported, modernCharts.Xls);
             Assert.Equal(ExcelFormatCapabilityStatus.Unsupported, modernCharts.Xlsb);
 
+            ExcelFormatCapabilityEntry chartEx = Assert.IsType<ExcelFormatCapabilityEntry>(report.Find("Native ChartEx authoring and mutation"));
+            Assert.Equal(ExcelFormatCapabilityStatus.NativeSubset, chartEx.Xlsx);
+            Assert.Equal(ExcelFormatCapabilityStatus.Unsupported, chartEx.Xls);
+
+            ExcelFormatCapabilityEntry pivotViews = Assert.IsType<ExcelFormatCapabilityEntry>(report.Find("Native slicer and timeline views"));
+            Assert.Equal(ExcelFormatCapabilityStatus.NativeSubset, pivotViews.Xlsx);
+
+            ExcelFormatCapabilityEntry queryRefresh = Assert.IsType<ExcelFormatCapabilityEntry>(report.Find("Query-backed table refresh"));
+            Assert.Equal(ExcelFormatCapabilityStatus.NativeSubset, queryRefresh.Xlsx);
+            Assert.Equal(ExcelFormatCapabilityStatus.Unsupported, queryRefresh.Xls);
+
             ExcelFormatCapabilityEntry slicers = Assert.IsType<ExcelFormatCapabilityEntry>(report.Find("Slicer cache metadata"));
             Assert.Equal(ExcelFormatCapabilityStatus.MetadataOnly, slicers.Xlsx);
             Assert.Equal(ExcelFormatCapabilityStatus.PreserveOnly, slicers.Xls);
@@ -54,6 +65,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("| Feature | XLSX | XLS | XLSB |", markdown);
             Assert.Contains("Pivot table authoring", markdown);
             Assert.Contains("Slicer cache metadata", markdown);
+            Assert.Contains("Native ChartEx authoring and mutation", markdown);
+            Assert.Contains("Query-backed table refresh", markdown);
         }
     }
 }

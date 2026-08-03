@@ -1,0 +1,272 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+
+namespace OfficeIMO.Excel {
+    /// <summary>Controls reference-aware formula search.</summary>
+    public sealed class ExcelFormulaSearchOptions {
+        /// <summary>Optional formula text fragment, excluding or including a leading equals sign.</summary>
+        public string? Text { get; set; }
+
+        /// <summary>Optional A1 cell/range reference. Intersecting formula references are matched.</summary>
+        public string? Reference { get; set; }
+
+        /// <summary>Optional function name such as <c>SUM</c> or <c>XLOOKUP</c>.</summary>
+        public string? Function { get; set; }
+
+        /// <summary>Whether text and function matching is case-sensitive.</summary>
+        public bool MatchCase { get; set; }
+
+        /// <summary>Maximum returned formula cells.</summary>
+        public int MaximumResults { get; set; } = 1_000;
+
+        internal void Validate() {
+            if (string.IsNullOrWhiteSpace(Text)
+                && string.IsNullOrWhiteSpace(Reference)
+                && string.IsNullOrWhiteSpace(Function)) {
+                throw new InvalidOperationException("Formula search requires Text, Reference, or Function.");
+            }
+            if (MaximumResults < 1) throw new ArgumentOutOfRangeException(nameof(MaximumResults));
+            if (!string.IsNullOrWhiteSpace(Function)
+                && Function!.Any(character => !(char.IsLetterOrDigit(character) || character == '_' || character == '.'))) {
+                throw new ArgumentException("Formula function names may contain only letters, digits, underscores, and periods.", nameof(Function));
+            }
+        }
+    }
+
+    public partial class ExcelSheet {
+        /// <summary>Searches formula text, function calls, or parsed references on this worksheet.</summary>
+        public IReadOnlyList<ExcelFormulaCellInfo> SearchFormulas(ExcelFormulaSearchOptions options) =>
+            SearchFormulaCells(
+                GetFormulaCells(),
+                options,
+                string.IsNullOrWhiteSpace(options?.Reference)
+                    ? Array.Empty<string>()
+                    : _excelDocument.GetSheetNames());
+
+        internal static IReadOnlyList<ExcelFormulaCellInfo> SearchFormulaCells(
+            IEnumerable<ExcelFormulaCellInfo> formulas,
+            ExcelFormulaSearchOptions options,
+            IReadOnlyList<string> workbookSheetNames) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            options.Validate();
+            ExcelReference? target = null;
+            if (!string.IsNullOrWhiteSpace(options.Reference)) {
+                target = ExcelReference.Parse(options.Reference!);
+            }
+
+            var matches = new List<ExcelFormulaCellInfo>();
+            StringComparison comparison = options.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            string? requestedText = options.Text;
+            if (!string.IsNullOrEmpty(requestedText) && requestedText![0] == '=') requestedText = requestedText.Substring(1);
+            foreach (ExcelFormulaCellInfo formula in formulas) {
+                if (!string.IsNullOrWhiteSpace(requestedText)
+                    && formula.Formula.IndexOf(requestedText!, comparison) < 0) {
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(options.Function)
+                    && !ContainsFunction(formula.Formula, options.Function!, comparison)) {
+                    continue;
+                }
+                if (target != null && !ContainsIntersectingReference(formula, target, workbookSheetNames)) {
+                    continue;
+                }
+
+                matches.Add(formula);
+                if (matches.Count >= options.MaximumResults) break;
+            }
+            return new ReadOnlyCollection<ExcelFormulaCellInfo>(matches);
+        }
+
+        private static bool ContainsIntersectingReference(
+            ExcelFormulaCellInfo formula,
+            ExcelReference target,
+            IReadOnlyList<string> workbookSheetNames) {
+            foreach (ExcelFormulaReferenceSyntax syntax in formula.SyntaxTree.Nodes.OfType<ExcelFormulaReferenceSyntax>()) {
+                ExcelReference candidate = syntax.Reference;
+                string candidateQualifier = candidate.Qualifier ?? formula.SheetName;
+                string targetQualifier = target.Qualifier ?? formula.SheetName;
+                if (!QualifiersOverlap(candidateQualifier, targetQualifier, workbookSheetNames)) continue;
+                candidate.GetBounds(out int cr1, out int cc1, out int cr2, out int cc2);
+                target.GetBounds(out int tr1, out int tc1, out int tr2, out int tc2);
+                if (cr1 <= tr2 && cr2 >= tr1 && cc1 <= tc2 && cc2 >= tc1) return true;
+            }
+            return false;
+        }
+
+        private static bool QualifiersOverlap(
+            string candidateQualifier,
+            string targetQualifier,
+            IReadOnlyList<string> workbookSheetNames) {
+            if (TryResolveQualifierSheetSpan(candidateQualifier, workbookSheetNames, out int candidateFirst, out int candidateLast)
+                && TryResolveQualifierSheetSpan(targetQualifier, workbookSheetNames, out int targetFirst, out int targetLast)) {
+                return candidateFirst <= targetLast && candidateLast >= targetFirst;
+            }
+            return string.Equals(
+                NormalizeQualifier(candidateQualifier),
+                NormalizeQualifier(targetQualifier),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryResolveQualifierSheetSpan(
+            string qualifier,
+            IReadOnlyList<string> workbookSheetNames,
+            out int first,
+            out int last) {
+            first = last = -1;
+            if (ExcelReference.TryGetThreeDimensionalSheetRange(
+                    qualifier,
+                    out string firstSheetName,
+                    out string lastSheetName)) {
+                int firstIndex = FindSheetIndex(workbookSheetNames, firstSheetName);
+                int lastIndex = FindSheetIndex(workbookSheetNames, lastSheetName);
+                if (firstIndex < 0 || lastIndex < 0) return false;
+                first = Math.Min(firstIndex, lastIndex);
+                last = Math.Max(firstIndex, lastIndex);
+                return true;
+            }
+
+            int index = FindSheetIndex(workbookSheetNames, NormalizeQualifier(qualifier));
+            if (index < 0) return false;
+            first = last = index;
+            return true;
+        }
+
+        private static int FindSheetIndex(IReadOnlyList<string> workbookSheetNames, string sheetName) {
+            for (int index = 0; index < workbookSheetNames.Count; index++) {
+                if (SheetNameLookup.Matches(workbookSheetNames[index], sheetName)) return index;
+            }
+            return -1;
+        }
+
+        private static bool ContainsFunction(string formula, string requested, StringComparison comparison) {
+            int index = 0;
+            bool inString = false;
+            IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(formula);
+            while (index < formula.Length) {
+                char current = formula[index];
+                if (current == '"') {
+                    if (inString && index + 1 < formula.Length && formula[index + 1] == '"') { index += 2; continue; }
+                    inString = !inString;
+                    index++;
+                    continue;
+                }
+                if (!inString && current == '\'' && TrySkipQuotedQualifier(formula, index, out int nextIndex)) {
+                    index = nextIndex;
+                    continue;
+                }
+                if (!inString && current == '[' && TrySkipBracketedToken(formula, index, out int bracketEnd)) {
+                    index = bracketEnd;
+                    continue;
+                }
+                if (inString || !(char.IsLetter(current) || current == '_')) { index++; continue; }
+
+                int start = index++;
+                while (index < formula.Length
+                    && (char.IsLetterOrDigit(formula[index]) || formula[index] == '_' || formula[index] == '.')) index++;
+                int cursor = index;
+                while (cursor < formula.Length && char.IsWhiteSpace(formula[cursor])) cursor++;
+                if (cursor < formula.Length && formula[cursor] == '(') {
+                    string token = formula.Substring(start, index - start);
+                    if (lexicalBindings.Any(binding => binding.Shadows(token, start, token.Length))) continue;
+                    string name = NormalizeFunctionName(token);
+                    if (string.Equals(name, NormalizeFunctionName(requested), comparison)) return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool TrySkipQuotedQualifier(string formula, int start, out int nextIndex) {
+            if (!TryFindQuotedTokenEnd(formula, start, out int firstEnd)) {
+                nextIndex = start;
+                return false;
+            }
+
+            int separator = firstEnd + 1;
+            if (separator < formula.Length && formula[separator] == '!') {
+                nextIndex = separator + 1;
+                return true;
+            }
+            if (separator + 1 < formula.Length
+                && formula[separator] == ':'
+                && formula[separator + 1] == '\''
+                && TryFindQuotedTokenEnd(formula, separator + 1, out int secondEnd)
+                && secondEnd + 1 < formula.Length
+                && formula[secondEnd + 1] == '!') {
+                nextIndex = secondEnd + 2;
+                return true;
+            }
+
+            nextIndex = start;
+            return false;
+        }
+
+        private static bool TrySkipBracketedToken(string formula, int start, out int nextIndex) {
+            int depth = 0;
+            for (int index = start; index < formula.Length; index++) {
+                if (formula[index] == '\'' && index + 1 < formula.Length
+                    && (formula[index + 1] == '['
+                        || formula[index + 1] == ']'
+                        || formula[index + 1] == '#'
+                        || formula[index + 1] == '@'
+                        || formula[index + 1] == '\'')) {
+                    index++;
+                    continue;
+                }
+                if (formula[index] == '[') {
+                    depth++;
+                } else if (formula[index] == ']' && --depth == 0) {
+                    nextIndex = index + 1;
+                    return true;
+                }
+            }
+            nextIndex = start;
+            return false;
+        }
+
+        private static bool TryFindQuotedTokenEnd(string formula, int start, out int end) {
+            int index = start + 1;
+            while (index < formula.Length) {
+                if (formula[index] != '\'') {
+                    index++;
+                    continue;
+                }
+                if (index + 1 < formula.Length && formula[index + 1] == '\'') {
+                    index += 2;
+                    continue;
+                }
+                end = index;
+                return true;
+            }
+            end = start;
+            return false;
+        }
+
+        private static string NormalizeFunctionName(string value) {
+            string result = value;
+            if (result.StartsWith("_xlfn.", StringComparison.OrdinalIgnoreCase)) result = result.Substring(6);
+            if (result.StartsWith("_xlws.", StringComparison.OrdinalIgnoreCase)) result = result.Substring(6);
+            return result;
+        }
+
+        private static string NormalizeQualifier(string value) {
+            string result = value.Trim();
+            if (result.Length >= 2 && result[0] == '\'' && result[result.Length - 1] == '\'') {
+                result = result.Substring(1, result.Length - 2).Replace("''", "'");
+            }
+            return result;
+        }
+    }
+
+    public partial class ExcelDocument {
+        /// <summary>Searches formula text, function calls, or parsed references across the workbook.</summary>
+        public IReadOnlyList<ExcelFormulaCellInfo> SearchFormulas(ExcelFormulaSearchOptions options) =>
+            ExcelSheet.SearchFormulaCells(
+                InspectFormulas().Formulas,
+                options,
+                string.IsNullOrWhiteSpace(options?.Reference)
+                    ? Array.Empty<string>()
+                    : GetSheetNames());
+    }
+}

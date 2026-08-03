@@ -127,6 +127,8 @@ namespace OfficeIMO.Excel {
                         externalReferenceMap);
                 }
 
+                sourceSheet.CopyInCellImagesTo(targetSheet);
+
                 copiedPart.Worksheet.Save();
                 if (copiedFormulas) {
                     MarkRequiresSavePreflight();

@@ -127,6 +127,10 @@ namespace OfficeIMO.Excel {
 
             AlignSpreadsheetDocumentTypeWithFilePath(path);
 
+            if (TrySaveFileBackedPackageToFile(path, options, CancellationToken.None)) {
+                return;
+            }
+
             if (TrySaveDirectDataSetPackageToFile(path, options, CancellationToken.None, out _)) {
                 return;
             }
@@ -273,6 +277,10 @@ namespace OfficeIMO.Excel {
             }
 
             AlignSpreadsheetDocumentTypeWithFilePath(target);
+
+            if (TrySaveFileBackedPackageToFile(target, options, cancellationToken)) {
+                return;
+            }
 
             if (TrySaveDirectDataSetPackageToFile(target, options, cancellationToken, out _)) {
                 return;

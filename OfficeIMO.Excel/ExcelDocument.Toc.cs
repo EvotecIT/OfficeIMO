@@ -158,6 +158,34 @@ namespace OfficeIMO.Excel {
 
                 int removedIdx = all.IndexOf(sheet);
                 var relId = sheet.Id?.Value;
+                DocumentFormat.OpenXml.Packaging.WorksheetPart? part = null;
+                if (!string.IsNullOrEmpty(relId)) {
+                    try {
+                        part = _workBookPart.GetPartById(relId!) as DocumentFormat.OpenXml.Packaging.WorksheetPart;
+                    } catch (ArgumentOutOfRangeException exception) {
+                        throw new InvalidDataException(
+                            $"Worksheet '{sheetName}' has no valid package relationship.",
+                            exception);
+                    }
+                }
+                if (part == null) {
+                    throw new InvalidDataException($"Worksheet '{sheetName}' has no valid package relationship.");
+                }
+                ValidateOwnedChartDataSheetRemoval(sheet.Name?.Value ?? sheetName);
+                IReadOnlyList<uint> queryConnectionIds = GetWorksheetQueryConnectionIds(part);
+
+                // The cleanup may touch shared caches, other worksheets, and drawings. Keep it
+                // under the same workbook write lock and one rollback boundary as the removal.
+                if (WorkbookPartRoot.SlicerCacheParts.Any() || WorkbookPartRoot.TimeLineCacheParts.Any()) {
+                    var removedSheet = new ExcelSheet(this, _spreadSheetDocument, sheet, registerSheetWrapper: false);
+                    using (Locking.EnterNoLockScope()) {
+                        removedSheet.ApplyTransactionalMutation(_ => {
+                            PreparePivotInteractionsForWorksheetRemoval(removedSheet.Name);
+                            return 0;
+                        }, new ExcelMutationPlanOptions(), System.Threading.CancellationToken.None);
+                    }
+                }
+
                 sheet.Remove();
 
                 // Clean up defined names scoped to the removed sheet, and reindex others after the removal
@@ -179,15 +207,12 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (!string.IsNullOrEmpty(relId)) {
-                    var part = (DocumentFormat.OpenXml.Packaging.WorksheetPart)_workBookPart.GetPartById(relId!);
-                    foreach (var t in part.TableDefinitionParts.ToList()) {
-                        part.DeletePart(t);
-                    }
-                    _workBookPart.DeletePart(part);
-                }
+                _workBookPart.DeletePart(part);
+                CompleteOwnedChartDataSheetRemoval(sheet.Name?.Value ?? sheetName);
+                RemoveUnusedAuthoredQueryConnections(queryConnectionIds);
                 wb.Save();
                 MarkSheetCacheDirty();
+                MarkRequiresSavePreflight();
             });
         }
     }

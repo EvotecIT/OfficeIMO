@@ -154,6 +154,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (worksheetChanged) {
+                    if (options.HasFlag(ExcelClearOptions.Values)
+                        || options.HasFlag(ExcelClearOptions.Formulas)) {
+                        _excelDocument.MarkFormulaInputMutation();
+                    }
                     ws.Save();
                     ClearHeaderCache();
                 }
@@ -171,38 +175,33 @@ namespace OfficeIMO.Excel {
             bool clearStyles = options.HasFlag(ExcelClearOptions.Styles);
             bool changed = false;
 
-            foreach (var row in sheetData.Elements<Row>()) {
-                uint rowIndex = row.RowIndex?.Value ?? 0U;
-                if (rowIndex < (uint)bounds.r1 || rowIndex > (uint)bounds.r2) {
+            foreach ((Cell cell, int rowIndex, int columnIndex) in EnumerateCellsWithEffectiveCoordinates()) {
+                if (rowIndex < bounds.r1
+                    || rowIndex > bounds.r2
+                    || columnIndex < bounds.c1
+                    || columnIndex > bounds.c2) {
                     continue;
                 }
 
-                foreach (var cell in row.Elements<Cell>()) {
-                    if (cell.CellReference?.Value is not string reference) {
-                        continue;
-                    }
+                if (clearValues && (cell.CellValue != null
+                    || cell.DataType != null
+                    || cell.InlineString != null
+                    || HasCellValueMetadata(cell))) {
+                    cell.CellValue = null;
+                    cell.DataType = null;
+                    cell.InlineString = null;
+                    ClearCellValueMetadata(cell);
+                    changed = true;
+                }
 
-                    int columnIndex = GetColumnIndex(reference);
-                    if (columnIndex < bounds.c1 || columnIndex > bounds.c2) {
-                        continue;
-                    }
+                if (clearFormulas && cell.CellFormula != null) {
+                    cell.CellFormula = null;
+                    changed = true;
+                }
 
-                    if (clearValues && (cell.CellValue != null || cell.DataType != null || cell.InlineString != null)) {
-                        cell.CellValue = null;
-                        cell.DataType = null;
-                        cell.InlineString = null;
-                        changed = true;
-                    }
-
-                    if (clearFormulas && cell.CellFormula != null) {
-                        cell.CellFormula = null;
-                        changed = true;
-                    }
-
-                    if (clearStyles && cell.StyleIndex != null) {
-                        cell.StyleIndex = null;
-                        changed = true;
-                    }
+                if (clearStyles && cell.StyleIndex != null) {
+                    cell.StyleIndex = null;
+                    changed = true;
                 }
             }
 

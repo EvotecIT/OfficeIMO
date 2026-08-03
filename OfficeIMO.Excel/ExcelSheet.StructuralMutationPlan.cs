@@ -476,7 +476,7 @@ namespace OfficeIMO.Excel {
             }
 
             var queryConnectionIds = new HashSet<uint>();
-            foreach (QueryTablePart queryPart in _worksheetPart.QueryTableParts) {
+            foreach (QueryTablePart queryPart in ExcelPackageQueryTableParts.Enumerate(_worksheetPart)) {
                 budget.Consume();
                 var queryElements = new List<OpenXmlElement>();
                 foreach (OpenXmlElement element in queryPart.QueryTable?.Descendants()
@@ -494,10 +494,9 @@ namespace OfficeIMO.Excel {
                     queryConnectionIds.Add(connectionId);
                 }
             }
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections != null) {
+            foreach (WorkbookConnectionRoot connectionRoot in LoadWorkbookConnectionRoots(budget)) {
                 budget.Consume();
-                foreach (Connection connection in connections.Elements<Connection>()) {
+                foreach (Connection connection in connectionRoot.Connections.Elements<Connection>()) {
                     budget.Consume();
                     bool isTargetConnection = connection.Id?.Value is uint connectionId
                         && queryConnectionIds.Contains(connectionId);
@@ -560,6 +559,10 @@ namespace OfficeIMO.Excel {
             validation += externalValidationImpacts.Count;
             conditionalFormatting += externalConditionalFormattingImpacts.Count;
             sparklines += externalSparklineImpacts.Count;
+            if (cells > effective.MaximumAffectedCells) {
+                throw new InvalidOperationException(
+                    $"Row mutation affects {cells} cells, exceeding MaximumAffectedCells ({effective.MaximumAffectedCells}).");
+            }
             AddImpact(
                 impacts,
                 "worksheet-cells",
@@ -669,7 +672,8 @@ namespace OfficeIMO.Excel {
                 firstRow,
                 count,
                 budget.Scanned,
-                impacts);
+                impacts,
+                effective);
         }
 
         private void EnsureMutationPlanCanInspectWithoutMaterializing() {

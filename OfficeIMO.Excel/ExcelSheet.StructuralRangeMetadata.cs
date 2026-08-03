@@ -465,7 +465,7 @@ namespace OfficeIMO.Excel {
             int firstAffectedRow,
             int rowDelta,
             int? lastDeletedRow) {
-            foreach (QueryTablePart part in _worksheetPart.QueryTableParts) {
+            foreach (QueryTablePart part in ExcelPackageQueryTableParts.Enumerate(_worksheetPart)) {
                 QueryTable? queryTable = part.QueryTable;
                 if (queryTable != null
                     && RemapShiftedSortStateReferences(

@@ -250,6 +250,103 @@ namespace OfficeIMO.Shared.Tests {
 
 #if NET6_0_OR_GREATER
         [Fact]
+        public void CreateTemporaryFile_UsesOwnerOnlyUnixMode() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "private.xlsx");
+            string temporaryPath = string.Empty;
+            Directory.CreateDirectory(root);
+
+            try {
+                using (OfficeFileCommit.CreateTemporaryFile(
+                    destination,
+                    FileOptions.SequentialScan,
+                    out temporaryPath)) {
+                    const UnixFileMode accessBits = UnixFileMode.UserRead
+                        | UnixFileMode.UserWrite
+                        | UnixFileMode.UserExecute
+                        | UnixFileMode.GroupRead
+                        | UnixFileMode.GroupWrite
+                        | UnixFileMode.GroupExecute
+                        | UnixFileMode.OtherRead
+                        | UnixFileMode.OtherWrite
+                        | UnixFileMode.OtherExecute;
+                    Assert.Equal(
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                        File.GetUnixFileMode(temporaryPath) & accessBits);
+                }
+            } finally {
+                OfficeFileCommit.DeleteIfExists(temporaryPath);
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
+        public void NetStandardUnixFallback_CreatesOwnerOnlyFileAtomicallyAndSupportsDeleteOnClose() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string retainedPath = Path.Combine(root, "retained.tmp");
+            string movedRetainedPath = Path.Combine(root, "retained-original.tmp");
+            string victimPath = Path.Combine(root, "victim.tmp");
+            string unlinkedPath = Path.Combine(root, "unlinked.tmp");
+            string occupiedPath = Path.Combine(root, "occupied.tmp");
+            Directory.CreateDirectory(root);
+
+            try {
+                using (FileStream stream = OfficeTemporaryFile.CreateUnixOwnerOnly(
+                    retainedPath,
+                    4096,
+                    FileOptions.None)) {
+                    const UnixFileMode accessBits = UnixFileMode.UserRead
+                        | UnixFileMode.UserWrite
+                        | UnixFileMode.UserExecute
+                        | UnixFileMode.GroupRead
+                        | UnixFileMode.GroupWrite
+                        | UnixFileMode.GroupExecute
+                        | UnixFileMode.OtherRead
+                        | UnixFileMode.OtherWrite
+                        | UnixFileMode.OtherExecute;
+                    Assert.Equal(
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                        File.GetUnixFileMode(retainedPath) & accessBits);
+                    File.Move(retainedPath, movedRetainedPath);
+                    File.WriteAllBytes(victimPath, new byte[] { 7 });
+                    File.CreateSymbolicLink(retainedPath, victimPath);
+                    stream.WriteByte(1);
+                    stream.Flush();
+                    Assert.Equal(new byte[] { 7 }, File.ReadAllBytes(victimPath));
+                    Assert.Equal(new byte[] { 1 }, File.ReadAllBytes(movedRetainedPath));
+                }
+
+                using (FileStream stream = OfficeTemporaryFile.CreateUnixOwnerOnly(
+                    unlinkedPath,
+                    4096,
+                    FileOptions.DeleteOnClose)) {
+                    Assert.True(File.Exists(unlinkedPath));
+                    stream.WriteByte(2);
+                    Assert.Equal(1L, stream.Length);
+                }
+                Assert.False(File.Exists(unlinkedPath));
+
+                File.WriteAllBytes(occupiedPath, new byte[] { 7, 8, 9 });
+                Assert.Throws<IOException>(() => OfficeTemporaryFile.CreateUnixOwnerOnly(
+                    occupiedPath,
+                    4096,
+                    FileOptions.None));
+                Assert.Equal(new byte[] { 7, 8, 9 }, File.ReadAllBytes(occupiedPath));
+            } finally {
+                OfficeFileCommit.DeleteIfExists(retainedPath);
+                OfficeFileCommit.DeleteIfExists(movedRetainedPath);
+                OfficeFileCommit.DeleteIfExists(victimPath);
+                OfficeFileCommit.DeleteIfExists(unlinkedPath);
+                OfficeFileCommit.DeleteIfExists(occupiedPath);
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
         public void CommitTemporaryFile_PreservesRestrictiveUnixMode() {
             if (OperatingSystem.IsWindows()) return;
 
@@ -265,6 +362,96 @@ namespace OfficeIMO.Shared.Tests {
                 OfficeFileCommit.CommitTemporaryFile(temporary, destination);
 
                 Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(destination));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
+        public void CommitTemporaryFile_NewDestinationUsesNormalUnixCreationMode() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string baseline = Path.Combine(root, "baseline.bin");
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporaryPath = string.Empty;
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(baseline, new byte[] { 1 });
+
+            try {
+                using (FileStream staging = OfficeFileCommit.CreateTemporaryFile(
+                    destination,
+                    FileOptions.SequentialScan,
+                    out temporaryPath)) {
+                    staging.WriteByte(2);
+                }
+                const UnixFileMode accessBits = UnixFileMode.UserRead
+                    | UnixFileMode.UserWrite
+                    | UnixFileMode.UserExecute
+                    | UnixFileMode.GroupRead
+                    | UnixFileMode.GroupWrite
+                    | UnixFileMode.GroupExecute
+                    | UnixFileMode.OtherRead
+                    | UnixFileMode.OtherWrite
+                    | UnixFileMode.OtherExecute;
+                Assert.Equal(
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                    File.GetUnixFileMode(temporaryPath) & accessBits);
+
+                OfficeFileCommit.CommitTemporaryFile(temporaryPath, destination);
+                temporaryPath = string.Empty;
+
+                Assert.Equal(
+                    File.GetUnixFileMode(baseline) & accessBits,
+                    File.GetUnixFileMode(destination) & accessBits);
+                Assert.Equal(new byte[] { 2 }, File.ReadAllBytes(destination));
+            } finally {
+                OfficeFileCommit.DeleteIfExists(temporaryPath);
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
+        public void NetStandardUnixFallback_CopiesDestinationModeBeforeReplacement() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string source = Path.Combine(root, "source.bin");
+            string staging = Path.Combine(root, "staging.bin");
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(source, new byte[] { 1 });
+            File.WriteAllBytes(staging, new byte[] { 2 });
+
+            try {
+                File.SetUnixFileMode(source, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+                File.SetUnixFileMode(staging, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+
+                OfficeTemporaryFile.CopyUnixFileModePortable(source, staging);
+
+                Assert.Equal(File.GetUnixFileMode(source), File.GetUnixFileMode(staging));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
+        public void OlderUnixFallback_CopiesDestinationModeWithoutManagedUnixApis() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string source = Path.Combine(root, "source.bin");
+            string staging = Path.Combine(root, "staging.bin");
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(source, new byte[] { 1 });
+            File.WriteAllBytes(staging, new byte[] { 2 });
+
+            try {
+                File.SetUnixFileMode(source, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+                File.SetUnixFileMode(staging, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+
+                OfficeTemporaryFile.CopyUnixFileModeNative(source, staging);
+
+                Assert.Equal(File.GetUnixFileMode(source), File.GetUnixFileMode(staging));
             } finally {
                 if (Directory.Exists(root)) Directory.Delete(root, true);
             }
