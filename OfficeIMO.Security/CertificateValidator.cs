@@ -24,7 +24,7 @@ public static class CertificateValidator {
         var findings = new List<SecurityFinding>();
         CertificateUsagePurpose usagePurpose = purpose switch {
             CertificateValidationPurpose.TimestampAuthority => CertificateUsagePurpose.TimestampAuthority,
-            CertificateValidationPurpose.EmailSigning => CertificateUsagePurpose.CmsSigner,
+            CertificateValidationPurpose.EmailSigning => CertificateUsagePurpose.EmailSigner,
             _ => CertificateUsagePurpose.DocumentSigner
         };
         CertificateValidationResult validation = CertificateChainValidator.Validate(

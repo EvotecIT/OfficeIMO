@@ -6,6 +6,7 @@ namespace OfficeIMO.Security;
 internal enum CertificateUsagePurpose {
     CmsSigner,
     DocumentSigner,
+    EmailSigner,
     TimestampAuthority
 }
 
@@ -170,6 +171,8 @@ internal static class CertificateChainValidator {
                         ? "timestamping."
                         : purpose == CertificateUsagePurpose.DocumentSigner
                             ? "document signing."
+                            : purpose == CertificateUsagePurpose.EmailSigner
+                                ? "email signing."
                             : "CMS signing."),
                 signerIndex));
         }
@@ -185,6 +188,11 @@ internal static class CertificateChainValidator {
             return oid is "2.5.29.37.0" or
                 "1.3.6.1.5.5.7.3.3" or
                 "1.3.6.1.4.1.311.10.3.12";
+        }
+
+        if (purpose == CertificateUsagePurpose.EmailSigner) {
+            return oid is "2.5.29.37.0" or
+                "1.3.6.1.5.5.7.3.4";
         }
 
         return oid is "2.5.29.37.0" or

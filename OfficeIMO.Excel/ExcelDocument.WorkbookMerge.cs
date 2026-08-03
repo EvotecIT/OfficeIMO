@@ -23,14 +23,25 @@ namespace OfficeIMO.Excel {
             options ??= new ExcelWorkbookMergeOptions();
             if (options.MaxDefinedNames <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNames));
             if (options.MaxDefinedNameCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNameCharacters));
+            if (options.MaxInCellImages <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImages));
+            if (options.MaxInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImageBytes));
+            if (options.MaxTotalInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalInCellImageBytes));
             var definedNameBudget = new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters);
+            var inCellImageContext = new InCellImageCopyContext(
+                options.MaxInCellImages,
+                options.MaxInCellImageBytes,
+                options.MaxTotalInCellImageBytes);
             List<ExcelSheet> sourceSheets = ResolveWorkbookMergeSheets(sourceDocument, options).ToList();
-            if (options.CopyMode == ExcelWorksheetCopyMode.Package
-                && !ReferenceEquals(sourceDocument, this)) {
-                PreflightReferencedDefinedNamesFromSource(
-                    sourceDocument,
-                    sourceSheets,
-                    definedNameBudget);
+            if (options.CopyMode == ExcelWorksheetCopyMode.Package) {
+                foreach (ExcelSheet sourceSheet in sourceSheets) {
+                    sourceSheet.PreflightInCellImages(inCellImageContext);
+                }
+                if (!ReferenceEquals(sourceDocument, this)) {
+                    PreflightReferencedDefinedNamesFromSource(
+                        sourceDocument,
+                        sourceSheets,
+                        definedNameBudget);
+                }
             }
             var importedSourceNames = new List<string>(sourceSheets.Count);
             var createdTargetNames = new List<string>(sourceSheets.Count);
@@ -57,7 +68,8 @@ namespace OfficeIMO.Excel {
                         options.SheetNameValidationMode,
                         rewriteCopiedReferences: false,
                         copyReferencedDefinedNames: false,
-                        options.CopyExternalWorkbookReferences);
+                        options.CopyExternalWorkbookReferences,
+                        inCellImageContext);
                     targetSheet = copyResult.Sheet;
                     foreach (var tableName in copyResult.TableNameMap) {
                         tableNameMap[tableName.Key] = tableName.Value;

@@ -77,10 +77,10 @@ namespace OfficeIMO.Tests {
         [InlineData(PresentationDocumentType.MacroEnabledPresentation)]
         [InlineData(PresentationDocumentType.MacroEnabledTemplate)]
         [InlineData(PresentationDocumentType.MacroEnabledSlideshow)]
-        public async Task StreamSavesPreserveLoadedPackageTypeAndVba(
-            PresentationDocumentType expectedType) {
+        public async Task ParameterlessStreamSavesEmitMacroFreePresentation(
+            PresentationDocumentType sourceType) {
             byte[] vbaBytes = { 2, 4, 6, 8 };
-            using MemoryStream source = CreatePackageStream(expectedType,
+            using MemoryStream source = CreatePackageStream(sourceType,
                 vbaBytes);
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Load(source);
@@ -88,21 +88,28 @@ namespace OfficeIMO.Tests {
                 "Saved to associated stream";
 
             presentation.Save();
-            AssertPackage(source, expectedType, hasVba: true, vbaBytes);
+            AssertPackage(source, PresentationDocumentType.Presentation,
+                hasVba: false, vbaBytes);
 
             presentation.Slides[0].AddTextBox("Saved asynchronously");
             await presentation.SaveAsync();
-            AssertPackage(source, expectedType, hasVba: true, vbaBytes);
+            AssertPackage(source, PresentationDocumentType.Presentation,
+                hasVba: false, vbaBytes);
 
             using var encrypted = new MemoryStream();
             presentation.SaveEncrypted(encrypted, "OfficeIMO-stream-pass");
             using PowerPointPresentation decrypted =
                 PowerPointPresentation.LoadEncrypted(encrypted,
                     "OfficeIMO-stream-pass");
-            Assert.Equal(expectedType,
+            Assert.Equal(PresentationDocumentType.Presentation,
                 decrypted.OpenXmlDocument.DocumentType);
+            Assert.Null(decrypted.OpenXmlDocument.PresentationPart!
+                .VbaProjectPart);
+
+            Assert.Equal(sourceType,
+                presentation.OpenXmlDocument.DocumentType);
             Assert.Equal(vbaBytes, ReadVbaBytes(
-                decrypted.OpenXmlDocument.PresentationPart!
+                presentation.OpenXmlDocument.PresentationPart!
                     .VbaProjectPart));
         }
 

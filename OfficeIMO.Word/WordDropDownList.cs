@@ -48,14 +48,22 @@ namespace OfficeIMO.Word {
             int selectedIndex) {
             var dropDown = _sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault()
                 ?? throw new InvalidOperationException("Dropdown list properties are missing from the structured document tag.");
-            WordContentControlListItems.SetImportedItems(dropDown, _sdtRun, items, selectedIndex);
+            var selectedItem = WordContentControlListItems.SetImportedItems(
+                dropDown, _sdtRun, items, selectedIndex);
+            dropDown.LastValue = selectedItem.Value;
         }
 
         /// <summary>
-        /// Gets or sets the currently selected value displayed by the dropdown list.
+        /// Gets the selected item's internal value, or selects an item by display text or internal value.
         /// </summary>
         public string? SelectedValue {
             get {
+                var dropDown = _sdtRun.SdtProperties?.Elements<SdtContentDropDownList>()
+                    .FirstOrDefault();
+                if (dropDown?.LastValue != null) {
+                    return dropDown.LastValue.Value ?? string.Empty;
+                }
+
                 var text = _sdtRun.SdtContentRun?.Descendants<Text>().FirstOrDefault();
                 return text?.Text;
             }
@@ -65,15 +73,21 @@ namespace OfficeIMO.Word {
                     throw new InvalidOperationException("Dropdown list properties are missing from the structured document tag.");
                 }
 
+                ListItem? selectedItem = null;
                 if (!string.IsNullOrEmpty(value)) {
-                    var allowedValues = ddl.Elements<ListItem>()
-                        .SelectMany(li => new[] { li.Value?.Value, li.DisplayText?.Value })
-                        .Where(item => !string.IsNullOrEmpty(item))
-                        .ToList();
+                    List<ListItem> items = ddl.Elements<ListItem>().ToList();
+                    selectedItem = items.FirstOrDefault(item =>
+                        string.Equals(item.DisplayText?.Value, value, StringComparison.OrdinalIgnoreCase))
+                        ?? items.FirstOrDefault(item =>
+                            string.Equals(item.Value?.Value, value, StringComparison.OrdinalIgnoreCase));
 
-                    if (!allowedValues.Any(item => string.Equals(item, value, StringComparison.OrdinalIgnoreCase))) {
+                    if (selectedItem == null) {
                         throw new ArgumentException("The selected dropdown list value must match one of the provided items.", nameof(value));
                     }
+                    ddl.LastValue = selectedItem.Value?.Value
+                        ?? selectedItem.DisplayText?.Value;
+                } else {
+                    ddl.LastValue = null;
                 }
 
                 var content = _sdtRun.SdtContentRun ?? (_sdtRun.SdtContentRun = new SdtContentRun());
@@ -89,9 +103,22 @@ namespace OfficeIMO.Word {
                     run.Append(text);
                 }
 
-                text.Text = value ?? string.Empty;
+                text.Text = selectedItem?.DisplayText?.Value
+                    ?? selectedItem?.Value?.Value
+                    ?? string.Empty;
                 text.Space = SpaceProcessingModeValues.Preserve;
             }
+        }
+
+        internal bool TryGetSelectedInternalValue(out string value) {
+            var dropDown = _sdtRun.SdtProperties?.Elements<SdtContentDropDownList>()
+                .FirstOrDefault();
+            if (dropDown?.LastValue != null) {
+                value = dropDown.LastValue.Value ?? string.Empty;
+                return true;
+            }
+            value = string.Empty;
+            return false;
         }
 
         /// <summary>

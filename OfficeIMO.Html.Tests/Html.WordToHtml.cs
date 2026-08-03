@@ -1041,7 +1041,7 @@ namespace OfficeIMO.Tests {
 
             WordDropDownList imported = Assert.Single(roundTrip.DropDownLists);
             Assert.Equal(new[] { "Visible label" }, imported.Items.ToArray());
-            Assert.Equal("Visible label", imported.SelectedValue);
+            Assert.Equal("internal-id", imported.SelectedValue);
             ListItem importedItem = imported._sdtRun.SdtProperties!
                 .GetFirstChild<SdtContentDropDownList>()!
                 .Elements<ListItem>()

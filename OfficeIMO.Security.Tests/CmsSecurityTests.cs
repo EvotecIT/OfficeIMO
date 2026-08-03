@@ -126,6 +126,47 @@ public sealed class CmsSecurityTests {
         Assert.DoesNotContain(result.Findings, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
     }
 
+    [Theory]
+    [InlineData("1.3.6.1.5.5.7.3.3")]
+    [InlineData("1.3.6.1.5.5.7.3.36")]
+    [InlineData("1.3.6.1.4.1.311.10.3.12")]
+    public void EmailSigningValidationRejectsNonEmailSigningCertificates(string enhancedKeyUsageOid) {
+        using X509Certificate2 certificate = CreateRsaCertificate(
+            "OfficeIMO Non-Email Signer",
+            new Oid(enhancedKeyUsageOid));
+        var options = new CertificateValidationOptions {
+            ChainEvaluator = static (_, _) => true,
+            RevocationMode = X509RevocationMode.NoCheck
+        };
+
+        CertificateTrustValidationResult result = CertificateValidator.Validate(
+            certificate,
+            options: options,
+            purpose: CertificateValidationPurpose.EmailSigning);
+
+        Assert.Equal(SecurityValidationStatus.Invalid, result.Validation.ChainStatus);
+        Assert.Contains(result.Findings, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
+    }
+
+    [Fact]
+    public void EmailSigningValidationAcceptsAnyExtendedKeyUsageCertificates() {
+        using X509Certificate2 certificate = CreateRsaCertificate(
+            "OfficeIMO Any Extended Key Usage",
+            new Oid("2.5.29.37.0"));
+        var options = new CertificateValidationOptions {
+            ChainEvaluator = static (_, _) => true,
+            RevocationMode = X509RevocationMode.NoCheck
+        };
+
+        CertificateTrustValidationResult result = CertificateValidator.Validate(
+            certificate,
+            options: options,
+            purpose: CertificateValidationPurpose.EmailSigning);
+
+        Assert.Equal(SecurityValidationStatus.Valid, result.Validation.ChainStatus);
+        Assert.DoesNotContain(result.Findings, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
+    }
+
     [Fact]
     public void CertificateUsageValidationRemainsActiveWhenPlatformChainBuildingIsDisabled() {
         using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO Non-Timestamp Authority");

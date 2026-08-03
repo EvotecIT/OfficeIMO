@@ -82,10 +82,10 @@ internal sealed class TnefStreamingParser {
 
     private void Externalize(Stream skeleton, int attachmentIndex, long dataStart, uint length,
         long checksumOffset) {
-        if (length > _options.MaxAttachmentBytes) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentBytes), length,
-                _options.MaxAttachmentBytes);
-        }
+        // Charge every payload before it is copied. A TNEF attachment can contain
+        // repeated AttachData attributes, even though only the final one is
+        // projected onto the attachment model.
+        EnsureAttachmentLimits(length);
         string? path = _options.IncludeAttachmentContent ? _workspace.CreateContentPath() : null;
         ushort checksum = 0;
         try {
@@ -147,7 +147,6 @@ internal sealed class TnefStreamingParser {
             if (mapiContent != null) {
                 continue;
             }
-            EnsureAttachmentLimits(external.Length);
             attachment.Content = null;
             attachment.ContentSource = external.Source;
             attachment.Length = external.Length;

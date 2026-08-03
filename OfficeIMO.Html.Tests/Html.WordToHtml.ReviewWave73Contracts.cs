@@ -56,7 +56,50 @@ namespace OfficeIMO.Tests {
                 .Elements<ListItem>()
                 .ToArray();
             Assert.Equal(new[] { "Red", "X" }, importedItems.Select(item => item.Value?.Value).ToArray());
-            Assert.Equal("Red", imported.SelectedValue);
+            Assert.Equal("X", imported.SelectedValue);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_DropDownRoundTripsSelectedInternalValueWithDuplicateLabels() {
+            const string html = "<select><option value='id-a'>Same label</option>"
+                + "<option value='id-b' selected>Same label</option></select>";
+            using WordDocument document =
+                OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+                    .ToWordDocument();
+            WordDropDownList dropDown = Assert.Single(document.DropDownLists);
+
+            string exported = document.ToHtml();
+
+            Assert.Equal("id-b", dropDown.SelectedValue);
+            Assert.Contains("value=\"id-b\" selected", exported,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(1, exported.Split(new[] { " selected" },
+                StringSplitOptions.None).Length - 1);
+            using WordDocument roundTrip =
+                OfficeIMO.Html.HtmlConversionDocument.Parse(exported)
+                    .ToWordDocument();
+            Assert.Equal("id-b", Assert.Single(roundTrip.DropDownLists)
+                .SelectedValue);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_DropDownPreservesSelectedEmptyInternalValueWithDuplicateLabels() {
+            const string html = "<select><option value='' selected>Same label</option>"
+                + "<option value='id-b'>Same label</option></select>";
+            using WordDocument document =
+                OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+                    .ToWordDocument();
+            WordDropDownList dropDown = Assert.Single(document.DropDownLists);
+
+            string exported = document.ToHtml();
+
+            Assert.Equal(string.Empty, dropDown.SelectedValue);
+            Assert.Contains("value=\"\" selected", exported,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("value=\"id-b\" selected", exported,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(1, exported.Split(new[] { " selected" },
+                StringSplitOptions.None).Length - 1);
         }
     }
 }

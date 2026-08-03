@@ -500,6 +500,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ModernCommentMutation_RejectsOversizedAndNewlineAmplifiedTextBeforeAllocation() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var author = new PowerPointCommentAuthor("Alice Reviewer", "AR");
+            string tooLong = new string('x', 32001);
+            string tooManyParagraphs = string.Join("\n",
+                Enumerable.Repeat("x", 1025));
+
+            Assert.Throws<ArgumentException>(() =>
+                presentation.AddModernComment(slide, author, tooLong));
+            Assert.Throws<ArgumentException>(() =>
+                presentation.AddModernComment(slide, author, tooManyParagraphs));
+
+            Assert.Empty(presentation.GetModernComments(slide));
+        }
+
+        [Fact]
         public void ModernCommentMutation_RejectsInvalidStatusBeforeAuthorCreation() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

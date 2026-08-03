@@ -27,6 +27,16 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
         public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            if (!ReferenceEquals(sourceSheet.Document, this)) {
+                throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorksheetFrom to copy between workbooks.", nameof(sourceSheet));
+            }
+            var limits = new ExcelWorksheetCopyOptions();
+            var inCellImageContext = new InCellImageCopyContext(
+                limits.MaxInCellImages,
+                limits.MaxInCellImageBytes,
+                limits.MaxTotalInCellImageBytes);
+            sourceSheet.PreflightInCellImages(inCellImageContext);
             return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
         }
 
@@ -79,8 +89,17 @@ namespace OfficeIMO.Excel {
             options ??= new ExcelWorksheetCopyOptions();
             if (options.MaxDefinedNames <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNames));
             if (options.MaxDefinedNameCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNameCharacters));
+            if (options.MaxInCellImages <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImages));
+            if (options.MaxInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImageBytes));
+            if (options.MaxTotalInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalInCellImageBytes));
             if (ReferenceEquals(sourceDocument, this) && options.CopyMode != ExcelWorksheetCopyMode.Values) {
-                return CopyWorksheet(sourceSheetName, newSheetName, validationMode);
+                ExcelSheet sourceSheet = GetSheet(sourceSheetName);
+                var inCellImageContext = new InCellImageCopyContext(
+                    options.MaxInCellImages,
+                    options.MaxInCellImageBytes,
+                    options.MaxTotalInCellImageBytes);
+                sourceSheet.PreflightInCellImages(inCellImageContext);
+                return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
             }
 
             return options.CopyMode == ExcelWorksheetCopyMode.Values

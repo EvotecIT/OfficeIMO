@@ -10,6 +10,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private readonly HashSet<uint> _authoredQueryConnectionIds = new HashSet<uint>();
+        private readonly HashSet<QueryTablePart> _authoredQueryTableParts = new HashSet<QueryTablePart>();
 
         /// <summary>Creates a native query-backed worksheet table without executing its command.</summary>
         public ExcelQueryBackedTableInfo AddQueryBackedTable(ExcelQueryBackedTableOptions options) {
@@ -29,6 +30,7 @@ namespace OfficeIMO.Excel {
             string range = A1.CellReference(row, column) + ":" + A1.CellReference(row, column + columns.Length - 1);
             string? tableName = null;
             uint connectionId = 0U;
+            QueryTablePart? authoredQueryPart = null;
             sheet.ApplyTransactionalMutation(_ => {
                 if (HasQueryBackedTableNameConflict(connectionName, requestedTableName)) {
                     throw new InvalidOperationException("Query connection and table names must be unique.");
@@ -57,6 +59,7 @@ namespace OfficeIMO.Excel {
                 TableDefinitionPart tablePart = sheet.WorksheetPart.TableDefinitionParts.Single(part =>
                     string.Equals(part.Table?.Name?.Value ?? part.Table?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase));
                 QueryTablePart queryPart = tablePart.AddNewPart<QueryTablePart>();
+                authoredQueryPart = queryPart;
                 queryPart.QueryTable = CreateNativeQueryTable(
                     tableName!,
                     connectionId,
@@ -67,6 +70,7 @@ namespace OfficeIMO.Excel {
             }, new ExcelMutationPlanOptions(), CancellationToken.None);
             Locking.ExecuteWrite(EnsureLock(), () => {
                 _authoredQueryConnectionIds.Add(connectionId);
+                _authoredQueryTableParts.Add(authoredQueryPart!);
                 MarkMetadataPartChanged();
             });
 
@@ -126,7 +130,7 @@ namespace OfficeIMO.Excel {
                             sheet.Name,
                             tableName,
                             table.Reference?.Value ?? string.Empty,
-                            imported: !_authoredQueryConnectionIds.Contains(connectionId)));
+                            imported: !_authoredQueryTableParts.Contains(queryPart)));
                     }
                 }
                 return results.OrderBy(item => item.WorksheetName, StringComparer.OrdinalIgnoreCase)

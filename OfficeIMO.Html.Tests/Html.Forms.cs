@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
 
             WordDropDownList dropDown = Assert.Single(doc.DropDownLists);
             Assert.Equal(new[] { "Visible label", "Other label" }, dropDown.Items.ToArray());
-            Assert.Equal("Visible label", dropDown.SelectedValue);
+            Assert.Equal("internal-id", dropDown.SelectedValue);
             ListItem[] items = dropDown._sdtRun.SdtProperties!
                 .GetFirstChild<SdtContentDropDownList>()!
                 .Elements<ListItem>()
