@@ -61,7 +61,7 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeDiagramDrawingRenderer_HierarchyDoesNotInventEdges() {
+    public void OfficeDiagramDrawingRenderer_HierarchyConnectsRootToEveryChild() {
         var snapshot = new OfficeDiagramSnapshot("Organization",
             OfficeDiagramKind.Hierarchy,
             new[] { "Executive", "A", "B", "C", "D", "E", "F" },
@@ -72,7 +72,9 @@ public partial class DrawingTests {
         OfficeDrawingShape[] connectors = drawing.Shapes
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
             .ToArray();
-        Assert.Empty(connectors);
+        Assert.Equal(snapshot.Nodes.Count - 1, connectors.Length);
+        Assert.All(connectors, connector =>
+            Assert.Null(connector.Shape.StrokeEndMarker));
     }
 
     [Fact]
