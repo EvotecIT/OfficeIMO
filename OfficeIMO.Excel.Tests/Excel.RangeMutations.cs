@@ -165,7 +165,9 @@ namespace OfficeIMO.Tests {
             Assert.True(copy.HasTwoCellAnchor);
             Assert.Equal(6, copy.ToRowIndex);
             Assert.Equal(6, copy.ToColumnIndex);
-            Assert.Equal("Logo", copy.Name);
+            Assert.Equal("Logo Copy", copy.Name);
+            Assert.Equal(1, sheet.GetImage("Logo")!.RowIndex);
+            Assert.NotNull(sheet.GetImage("Logo Copy"));
             Assert.Equal("Brand", copy.Title);
             Assert.Equal("Accessible logo", copy.Description);
             Assert.False(copy.IsAspectRatioLocked);
