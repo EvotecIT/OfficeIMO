@@ -6,6 +6,8 @@ using OfficeIMO.Word;
 using Xunit;
 using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -74,6 +76,59 @@ namespace OfficeIMO.Tests {
             Assert.Equal(224D, persisted.WidthPoints, 6);
             Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2010)
                 .Validate(reloaded._wordprocessingDocument));
+        }
+
+        [Fact]
+        public void DrawingShapes_AllocateIdsAboveExistingPackageIdsAfterReload() {
+            string filePath = System.IO.Path.Combine(_directoryWithFiles, "ShapeGroup.DocumentScopedIds.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordShape existing = WordShape.AddDrawingShape(document.AddParagraph(), ShapeType.Rectangle, 40, 20);
+                existing._drawing!.Inline!.DocProperties!.Id = 100U;
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                document.AddParagraph().AddShapeGroup(new[] {
+                    new WordShapeGroupItem(ShapeType.Rectangle, 0, 0, 20, 20),
+                    new WordShapeGroupItem(ShapeType.Ellipse, 30, 0, 20, 20),
+                });
+                WordShape.AddDrawingShape(document.AddParagraph(), ShapeType.Diamond, 30, 30);
+                WordShape.AddDrawingShapeAnchored(document.AddParagraph(), ShapeType.Chevron, 30, 20, 10, 10);
+                WordChart chart = document.AddChart("ID allocation");
+                chart.AddCategories(new List<string> { "A" });
+                chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.Drawing.OfficeColor.Blue);
+                document.AddSmartArt(SmartArtType.BasicProcess);
+                document.AddParagraph().AddImage(
+                    System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"),
+                    20,
+                    20);
+                document.AddParagraph().AddImage(
+                    System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"),
+                    20,
+                    20);
+                document.AddTextBox("Allocated text box");
+                document.AddHeadersAndFooters();
+                RequireSectionHeader(document, 0, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default)
+                    .AddPageNumber(WordPageNumberStyle.VerticalOutline2);
+
+                var mainPart = document._wordprocessingDocument.MainDocumentPart!;
+                IEnumerable<OpenXmlElement> roots = new[] { (OpenXmlElement)mainPart.Document! }
+                    .Concat(mainPart.HeaderParts.Select(part => (OpenXmlElement)part.Header!))
+                    .Concat(mainPart.FooterParts.Select(part => (OpenXmlElement)part.Footer!));
+                uint[] ids = roots.SelectMany(root => root.Descendants<DW.DocProperties>()).Select(properties => properties.Id!.Value)
+                    .Concat(roots.SelectMany(root => root.Descendants<PIC.NonVisualDrawingProperties>()).Select(properties => properties.Id!.Value))
+                    .Concat(roots.SelectMany(root => root.Descendants<Wpg.NonVisualDrawingProperties>()).Select(properties => properties.Id!.Value))
+                    .Concat(roots.SelectMany(root => root.Descendants<Wps.NonVisualDrawingProperties>()).Select(properties => properties.Id!.Value))
+                    .ToArray();
+                Assert.Equal(ids.Length, ids.Distinct().Count());
+                Assert.All(ids.Where(id => id != 100U), id => Assert.True(id > 100U));
+                var validationErrors = new OpenXmlValidator(FileFormatVersions.Office2010)
+                    .Validate(document._wordprocessingDocument)
+                    .Where(error => error.Id != "Sch_AttributeValueDataTypeDetailed" ||
+                                    error.Description?.Contains("attribute 'title' has invalid value ''", StringComparison.Ordinal) != true)
+                    .ToList();
+                Assert.Empty(validationErrors);
+            }
         }
     }
 }

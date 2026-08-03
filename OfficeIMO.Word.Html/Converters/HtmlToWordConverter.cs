@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.Html {
         private readonly Dictionary<IElement, double> _computedFontSizePixels = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _computedBoxStyles = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _inlineStyles = new();
+        private readonly Dictionary<IElement, HashSet<string>> _injectedInheritedCssProperties = new();
         private readonly Dictionary<IElement, string?> _ancestorBlockBackgrounds = new();
         private readonly Dictionary<TableCell, int?> _tableCellContentWidths = new();
         internal int InlineStyleParseCount { get; private set; }

@@ -316,9 +316,13 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (accumulated.Count > 0) {
+                IReadOnlyDictionary<string, string> diagnosticDeclarations = own
+                    .Where(pair => !_injectedInheritedCssProperties.TryGetValue(element, out HashSet<string>? injected) ||
+                                   !injected.Contains(pair.Key))
+                    .ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase);
                 ReportUnsupportedCssDiagnostics(
                     element,
-                    accumulated.ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase));
+                    diagnosticDeclarations);
                 var sb = new StringBuilder();
                 foreach (var kvp in OrderCssDeclarationsForReplay(accumulated, cascadeOrigins)) {
                     sb.Append(kvp.Key).Append(':').Append(kvp.Value.Value).Append(';');

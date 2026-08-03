@@ -72,6 +72,20 @@ namespace OfficeIMO.Tests {
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Grouped content");
         }
 
+        [Fact]
+        public void Html_FigureWhoseSingleDomChildExpandsToMultipleWordBlocksReportsFlattening() {
+            const string html = "<figure><ol><li>A</li><li>B</li></ol><figcaption>List caption</figcaption></figure>";
+
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+            using var document = conversion.Value;
+            string roundTrip = document.ToHtml();
+            var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
+
+            Assert.Single(conversion.Report.Diagnostics, item => item.Code == "HtmlFigureStructureFlattened");
+            Assert.Empty(parsed.QuerySelectorAll("figure"));
+            Assert.Equal(new[] { "A", "B" }, parsed.QuerySelectorAll("ol > li").Select(item => item.TextContent));
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]

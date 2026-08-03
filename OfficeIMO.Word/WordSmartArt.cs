@@ -4,7 +4,6 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
-using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Word {
@@ -12,13 +11,6 @@ namespace OfficeIMO.Word {
     /// Represents a SmartArt diagram in a <see cref="WordDocument"/>.
     /// </summary>
     public partial class WordSmartArt : WordElement {
-        private static int _docPrIdSeed = 1;
-
-        private static UInt32Value GenerateDocPrId() {
-            int id = Interlocked.Increment(ref _docPrIdSeed);
-            return (UInt32Value)(uint)id;
-        }
-
         internal WordDrawing _drawing = null!;
         private readonly WordDocument _document;
         private readonly WordParagraph _paragraph;
@@ -66,7 +58,7 @@ namespace OfficeIMO.Word {
             var inline = new Inline(
                 new Extent { Cx = 5486400, Cy = 3200400 },
                 eff,
-                new DocProperties { Id = GenerateDocPrId(), Name = "Diagram 1" },
+                new DocProperties { Id = WordDrawingIdAllocator.Reserve(_document), Name = "Diagram 1" },
                 new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks { NoChangeAspect = true }),
                 graphic) {

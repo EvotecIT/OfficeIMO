@@ -62,9 +62,14 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrWhiteSpace(accessibleName)) {
                 wordTable.Title = accessibleName.Trim();
             }
-            string? accessibleDescription = tableElem.GetAttribute("aria-description")
-                ?? tableElem.GetAttribute("summary")
-                ?? tableElem.GetAttribute("title");
+            string? titleAttribute = tableElem.GetAttribute("title");
+            bool titleWasUsedAsName = !string.IsNullOrWhiteSpace(titleAttribute) &&
+                                      string.Equals(accessibleName.Trim(), titleAttribute!.Trim(), StringComparison.Ordinal);
+            string? accessibleDescription = new[] {
+                tableElem.GetAttribute("aria-description"),
+                tableElem.GetAttribute("summary"),
+                titleWasUsedAsName ? null : titleAttribute,
+            }.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
             if (!string.IsNullOrWhiteSpace(accessibleDescription)) {
                 wordTable.Description = accessibleDescription!.Trim();
             }

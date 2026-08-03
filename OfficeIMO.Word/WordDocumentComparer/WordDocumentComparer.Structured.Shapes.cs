@@ -245,8 +245,15 @@ namespace OfficeIMO.Word {
                    (layout?.HorizontalOffsetPoints?.ToString("R", CultureInfo.InvariantCulture) ?? string.Empty) + ";" +
                    (layout?.VerticalRelativeFrom ?? string.Empty) + ";" +
                    (layout?.VerticalOffsetPoints?.ToString("R", CultureInfo.InvariantCulture) ?? string.Empty) + ";" +
+                   (layout?.HorizontalAlignment ?? string.Empty) + ";" +
+                   (layout?.VerticalAlignment ?? string.Empty) + ";" +
                    (layout?.UsesSimplePosition.ToString() ?? string.Empty) + ";" +
-                   (layout?.Wrap.ToString() ?? string.Empty) + generated;
+                   (layout?.Wrap.ToString() ?? string.Empty) + ";" +
+                   (layout?.BehindDocument.ToString() ?? string.Empty) + ";" +
+                   (layout?.LayoutInCell.ToString() ?? string.Empty) + ";" +
+                   (layout?.AllowOverlap.ToString() ?? string.Empty) + ";" +
+                   (layout?.RelativeHeight.ToString(CultureInfo.InvariantCulture) ?? string.Empty) + ";" +
+                   (layout?.IsGroup.ToString() ?? string.Empty) + generated;
         }
 
         private static void RemoveGeneratedShapeAttributes(OpenXmlElement root) {

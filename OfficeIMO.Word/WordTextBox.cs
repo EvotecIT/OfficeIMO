@@ -676,12 +676,12 @@ namespace OfficeIMO.Word {
             if (wrapTextImage == WrapTextImage.InLineWithText) {
                 // inline
                 drawing1 = new DocumentFormat.OpenXml.Wordprocessing.Drawing {
-                    Inline = GenerateInline(text)
+                    Inline = GenerateInline(wordDocument, text)
                 };
             } else {
                 // anchor
                 drawing1 = new DocumentFormat.OpenXml.Wordprocessing.Drawing {
-                    Anchor = GenerateAnchor(text, wrapTextImage)
+                    Anchor = GenerateAnchor(wordDocument, text, wrapTextImage)
                 };
             }
             alternateContentChoice1.Append(drawing1);
@@ -692,12 +692,12 @@ namespace OfficeIMO.Word {
             wordParagraph._run?.Append(alternateContent1);
         }
 
-        private Inline GenerateInline(string text) {
+        private Inline GenerateInline(WordDocument wordDocument, string text) {
             Inline inline1 = new Inline() { DistanceFromTop = (UInt32Value)0U, DistanceFromBottom = (UInt32Value)0U, DistanceFromLeft = (UInt32Value)0U, DistanceFromRight = (UInt32Value)0U, AnchorId = "29D0141D", EditId = "5A52866D" };
 
             Extent extent1 = GenerateExtent();
             EffectExtent effectExtent1 = GenerateEffectExtent();
-            DocProperties docProperties1 = GenerateDocProperties();
+            DocProperties docProperties1 = GenerateDocProperties(wordDocument);
             NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = GenerateNonVisualGraphicFrameDrawingProperties();
             Graphic graphic1 = GenerateGraphic(text);
 
@@ -721,8 +721,8 @@ namespace OfficeIMO.Word {
             return effectExtent1;
         }
 
-        private DocProperties GenerateDocProperties() {
-            DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)307U, Name = "Text Box 2" };
+        private static DocProperties GenerateDocProperties(WordDocument wordDocument) {
+            DocProperties docProperties1 = new DocProperties() { Id = WordDrawingIdAllocator.Reserve(wordDocument), Name = "Text Box 2" };
             return docProperties1;
         }
 
@@ -775,7 +775,7 @@ namespace OfficeIMO.Word {
             return nonVisualGraphicFrameDrawingProperties1;
         }
 
-        private Anchor GenerateAnchor(string text, WrapTextImage wrapTextImage) {
+        private Anchor GenerateAnchor(WordDocument wordDocument, string text, WrapTextImage wrapTextImage) {
             Anchor anchor1 = new Anchor() { DistanceFromTop = (UInt32Value)91440U, DistanceFromBottom = (UInt32Value)91440U, DistanceFromLeft = (UInt32Value)114300U, DistanceFromRight = (UInt32Value)114300U, SimplePos = false, RelativeHeight = (UInt32Value)251659264U, BehindDoc = false, Locked = false, LayoutInCell = true, AllowOverlap = true, EditId = "39C62DE8", AnchorId = "3E379294" };
             anchor1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
             anchor1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
@@ -796,7 +796,7 @@ namespace OfficeIMO.Word {
             // same content as per inline
             Extent extent1 = GenerateExtent();
             EffectExtent effectExtent1 = GenerateEffectExtent();
-            DocProperties docProperties1 = GenerateDocProperties();
+            DocProperties docProperties1 = GenerateDocProperties(wordDocument);
             NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = GenerateNonVisualGraphicFrameDrawingProperties();
             Graphic graphic1 = GenerateGraphic(text);
 

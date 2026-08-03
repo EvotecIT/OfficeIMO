@@ -867,7 +867,7 @@ namespace OfficeIMO.Word {
             return decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
         }
 
-        private static bool ContainsNestedTable(TableCell cell) => cell.Elements<Table>().Any();
+        private static bool ContainsNestedTable(TableCell cell) => cell.Descendants<Table>().Any();
 
         private static bool TryParseTableAddress(string text, out TableAddress address) {
             address = default;

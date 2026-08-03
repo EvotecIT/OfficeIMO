@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
 using System;
 using System.IO;
@@ -98,5 +99,40 @@ public partial class Html {
         Assert.Equal("とうきょう", ruby.RubyContent!.InnerText);
         var diagnostic = Assert.Single(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlRubyPairingApproximation");
         Assert.Equal(OfficeIMO.Html.HtmlConversionLossKind.Approximation, diagnostic.LossKind);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_PreservesIndependentBaseAndAnnotationFormatting() {
+        const string html = "<p><ruby><rb><strong style=\"color:#123456;background-color:#abcdef\">東</strong><mark>京</mark></rb><rt><em style=\"font-size:8pt;background-color:#fedcba\">とう</em>きょう</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+        Run[] baseRuns = ruby.RubyBase!.Elements<Run>().ToArray();
+        Run[] annotationRuns = ruby.RubyContent!.Elements<Run>().ToArray();
+
+        Assert.Equal(2, baseRuns.Length);
+        Assert.NotNull(baseRuns[0].RunProperties!.Bold);
+        Assert.Equal("123456", baseRuns[0].RunProperties.Color!.Val!.Value);
+        Assert.Equal("ABCDEF", baseRuns[0].RunProperties.Shading!.Fill!.Value);
+        Assert.Equal(HtmlSemanticStyleIds.MarkedText, baseRuns[1].RunProperties!.RunStyle!.Val!.Value);
+        Assert.Equal(HighlightColorValues.Yellow, baseRuns[1].RunProperties.Highlight!.Val!.Value);
+        Assert.Equal(2, annotationRuns.Length);
+        Assert.NotNull(annotationRuns[0].RunProperties!.Italic);
+        Assert.Equal("16", annotationRuns[0].RunProperties.FontSize!.Val!.Value);
+        Assert.Equal("FEDCBA", annotationRuns[0].RunProperties.Shading!.Fill!.Value);
+
+        string roundTrip = document.ToHtml(new WordToHtmlOptions {
+            IncludeRunColorStyles = true,
+            IncludeFontStyles = true,
+        });
+        var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
+        var rubyElement = Assert.Single(parsed.QuerySelectorAll("ruby"));
+        Assert.Equal("東", Assert.Single(rubyElement.QuerySelectorAll("rb strong")).TextContent);
+        Assert.Contains("color:#123456", Assert.Single(rubyElement.QuerySelectorAll("rb span[style]")).GetAttribute("style"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("background-color:#abcdef", Assert.Single(rubyElement.QuerySelectorAll("rb span[style]")).GetAttribute("style"), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("京", Assert.Single(rubyElement.QuerySelectorAll("rb mark")).TextContent);
+        Assert.Equal("とう", Assert.Single(rubyElement.QuerySelectorAll("rt em")).TextContent);
+        Assert.Contains("font-size:8pt", Assert.Single(rubyElement.QuerySelectorAll("rt span[style]")).GetAttribute("style"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("background-color:#fedcba", Assert.Single(rubyElement.QuerySelectorAll("rt span[style]")).GetAttribute("style"), StringComparison.OrdinalIgnoreCase);
     }
 }

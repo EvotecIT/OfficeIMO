@@ -17,26 +17,6 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordChart : WordElement {
         private static int _axisIdSeed = 148921728;
-        private static int _docPrIdSeed = 1;
-
-        internal static void InitializeDocPrIdSeed(WordprocessingDocument document) {
-            uint max = (uint)_docPrIdSeed;
-            var mainPart = document.MainDocumentPart;
-            if (mainPart?.Document != null) {
-                foreach (var prop in mainPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
-                    if (prop.Id != null && prop.Id > max) {
-                        max = prop.Id;
-                    }
-                }
-            }
-            _docPrIdSeed = (int)max;
-        }
-
-        private static UInt32Value GenerateDocPrId() {
-            int id = System.Threading.Interlocked.Increment(ref _docPrIdSeed);
-            return (UInt32Value)(uint)id;
-        }
-
         internal static void InitializeAxisIdSeed(WordprocessingDocument document) {
             uint max = (uint)_axisIdSeed;
             foreach (var part in document.MainDocumentPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) {
@@ -476,7 +456,7 @@ namespace OfficeIMO.Word {
             inline1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
             DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = (long)width * EnglishMetricUnitsPerInch / PixelsPerInch, Cy = (long)height * EnglishMetricUnitsPerInch / PixelsPerInch };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent effectExtent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 19050L, BottomEdge = 19050L };
-            DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = GenerateDocPrId(), Name = "chart" };
+            DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = WordDrawingIdAllocator.Reserve(_document), Name = "chart" };
 
             DocumentFormat.OpenXml.Drawing.Graphic graphic1 = new DocumentFormat.OpenXml.Drawing.Graphic();
             graphic1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");

@@ -328,7 +328,7 @@ namespace OfficeIMO.Word.Html {
                         target.Add(CreateOutputElement(htmlDoc, "br"));
                         appendedBreak = true;
                     }
-                    if (TryCreateRubyNode(htmlDoc, run, out var rubyNode)) {
+                    if (TryCreateRubyNode(htmlDoc, run, options, out var rubyNode)) {
                         target.Add(rubyNode);
                         return true;
                     }
@@ -961,7 +961,8 @@ namespace OfficeIMO.Word.Html {
 
                         IElement? cellDefinitionList = null;
                         var cellElements = new List<WordElement>();
-                        foreach (WordElement wordElement in cell.Elements) {
+                        IEnumerable<WordElement> projectedCellElements = cell.Elements.SelectMany(ExpandTableCellBlockContent);
+                        foreach (WordElement wordElement in projectedCellElements) {
                             if (wordElement is WordParagraph candidate &&
                                 cellElements.Count > 0 &&
                                 cellElements[cellElements.Count - 1] is WordParagraph existing &&

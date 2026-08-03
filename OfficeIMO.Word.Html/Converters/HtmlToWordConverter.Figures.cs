@@ -15,6 +15,8 @@ namespace OfficeIMO.Word.Html {
             WordHeaderFooter? headerFooter,
             WordList? headingList) {
             WordParagraph? figureParagraph = currentParagraph;
+            int paragraphStartIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
+            int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
             var materialChildren = element.ChildNodes
                 .Where(child => child is IElement || !string.IsNullOrWhiteSpace(child.TextContent))
                 .ToList();
@@ -25,23 +27,11 @@ namespace OfficeIMO.Word.Html {
             bool singleContentIsImage = contentBlocks == 1 && materialChildren.Any(child =>
                 child is IElement childElement &&
                 string.Equals(childElement.TagName, "img", StringComparison.OrdinalIgnoreCase));
-            string? captionMarker = null;
-            if (captionIndex >= 0 && contentBlocks == 1 && !singleContentIsImage) {
-                _figureSequence++;
-                captionMarker = (captionIndex == 0 ? "officeimoFigureBefore" : "officeimoFigureAfter") +
-                    _figureSequence.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            } else if (captionIndex >= 0 && contentBlocks > 1) {
-                AddDiagnostic(
-                    options,
-                    "HtmlFigureStructureFlattened",
-                    "A figure with multiple content blocks was imported without a reciprocal figure grouping marker.",
-                    "figure",
-                    lossKind: HtmlConversionLossKind.Approximation);
-            }
+            WordParagraph? captionParagraph = null;
 
             foreach (var child in element.ChildNodes) {
                 if (child is IElement childElement && string.Equals(childElement.TagName, "figcaption", StringComparison.OrdinalIgnoreCase)) {
-                    ProcessFigureCaptionElement(childElement, doc, section, options, listStack, formatting, cell, headerFooter, headingList, captionMarker);
+                    captionParagraph = ProcessFigureCaptionElement(childElement, doc, section, options, listStack, formatting, cell, headerFooter, headingList);
                     continue;
                 }
 
@@ -54,9 +44,41 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
             }
+
+            if (captionParagraph != null && !singleContentIsImage) {
+                List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+                List<WordParagraph> generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, paragraphStartIndex);
+                generatedParagraphs.RemoveAll(paragraph =>
+                    ReferenceEquals(paragraph._paragraph, captionParagraph._paragraph) ||
+                    IsGeneratedNestedTableTrailingAnchor(paragraph, generatedTables));
+                if (currentParagraph != null && contentBlocks > 0 &&
+                    !generatedParagraphs.Any(paragraph => ReferenceEquals(paragraph._paragraph, currentParagraph._paragraph)) &&
+                    GetParagraphsInScope(section, cell, headerFooter)
+                        .Any(paragraph => ReferenceEquals(paragraph._paragraph, currentParagraph._paragraph))) {
+                    generatedParagraphs.Add(currentParagraph);
+                }
+
+                int materializedBlocks = generatedParagraphs
+                    .Select(paragraph => paragraph._paragraph)
+                    .Distinct()
+                    .Count() + generatedTables.Select(table => table._table).Distinct().Count();
+                if (materializedBlocks == 1) {
+                    _figureSequence++;
+                    string captionMarker = (captionIndex == 0 ? "officeimoFigureBefore" : "officeimoFigureAfter") +
+                        _figureSequence.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    WordBookmark.AddBookmark(captionParagraph, captionMarker);
+                } else {
+                    AddDiagnostic(
+                        options,
+                        "HtmlFigureStructureFlattened",
+                        "Figure content did not materialize as exactly one reciprocal Word block, so no grouping marker was emitted.",
+                        "figure",
+                        lossKind: HtmlConversionLossKind.Approximation);
+                }
+            }
         }
 
-        private void ProcessFigureCaptionElement(
+        private WordParagraph ProcessFigureCaptionElement(
             IElement caption,
             WordDocument doc,
             WordSection section,
@@ -65,20 +87,17 @@ namespace OfficeIMO.Word.Html {
             TextFormatting formatting,
             WordTableCell? cell,
             WordHeaderFooter? headerFooter,
-            WordList? headingList,
-            string? figureMarker) {
+            WordList? headingList) {
             ApplyCssToElement(caption);
             var paragraph = AddParagraphInScope(section, cell, headerFooter);
             paragraph.SetStyleId("Caption");
             ApplyParagraphStyleFromCss(paragraph, caption);
             ApplyClassStyle(caption, paragraph, options);
             AddBookmarkIfPresent(caption, paragraph);
-            if (!string.IsNullOrEmpty(figureMarker)) {
-                WordBookmark.AddBookmark(paragraph, figureMarker!);
-            }
             foreach (var captionChild in caption.ChildNodes) {
                 ProcessNode(captionChild, doc, section, options, paragraph, listStack, formatting, cell, headerFooter, headingList);
             }
+            return paragraph;
         }
     }
 }

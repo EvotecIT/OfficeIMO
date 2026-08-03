@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -83,6 +84,12 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "Compare.ShapeGroup.GeneratedIds.Target.docx");
             CreateIdenticalShapeGroupDocument(sourcePath);
             CreateIdenticalShapeGroupDocument(targetPath);
+            using (WordDocument target = WordDocument.Load(targetPath)) {
+                target._wordprocessingDocument.MainDocumentPart!.Document
+                    .Descendants<DocumentFormat.OpenXml.Office2010.Word.DrawingGroup.NonVisualDrawingProperties>()
+                    .Single().Id = 700U;
+                target.Save();
+            }
 
             WordComparisonResult suppressed = WordDocumentComparer.CompareStructure(
                 sourcePath,
@@ -97,6 +104,35 @@ namespace OfficeIMO.Tests {
             Assert.Contains(included.Findings, finding =>
                 finding.Scope == WordComparisonScope.Shape &&
                 finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
+        public void CompareStructure_ReportsPersistedAnchorPolicyOnlyChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "Compare.Shape.AnchorPolicy.Source.docx");
+            string targetPath = Path.Combine(_directoryWithFiles, "Compare.Shape.AnchorPolicy.Target.docx");
+            using (WordDocument source = WordDocument.Create(sourcePath)) {
+                WordShape.AddDrawingShapeAnchored(source.AddParagraph(), ShapeType.Rectangle, 100, 50, 12, 24);
+                source.Save();
+            }
+            using (WordDocument target = WordDocument.Create(targetPath)) {
+                WordShape shape = WordShape.AddDrawingShapeAnchored(target.AddParagraph(), ShapeType.Rectangle, 100, 50, 12, 24);
+                DW.Anchor anchor = shape._drawing!.Anchor!;
+                anchor.RelativeHeight = 77U;
+                anchor.BehindDoc = true;
+                anchor.LayoutInCell = false;
+                anchor.AllowOverlap = false;
+                target.Save();
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(
+                sourcePath,
+                targetPath,
+                new WordComparisonOptions { CompareGeneratedIds = false });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Shape &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.Message == "DrawingML shape placement or frame layout changed.");
         }
 
         private static void CreateShapeComparisonPair(string sourcePath, string targetPath) {

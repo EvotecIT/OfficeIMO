@@ -27,14 +27,14 @@ namespace OfficeIMO.Word.Html {
                 return FormatNumber(twips / 20.0) + "pt";
             }
 
-            string? GetHighlightKey(HighlightColorValues value) {
+            private static string? GetHighlightKey(HighlightColorValues value) {
                 if (value is IEnumValue enumValue && !string.IsNullOrWhiteSpace(enumValue.Value)) {
                     return enumValue.Value;
                 }
                 return value.ToString();
             }
 
-            string? GetHighlightCss(HighlightColorValues? highlight) {
+            private static string? GetHighlightCss(HighlightColorValues? highlight) {
                 if (highlight == null) {
                     return null;
                 }

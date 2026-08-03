@@ -231,13 +231,15 @@ namespace OfficeIMO.Word {
             double emuHeight = imageLocation.Height * EnglishMetricUnitsPerInch / PixelsPerInch;
 
             var drawing = new WordDrawing();
-            UInt32Value docPropertiesId = GetNextDocPropertiesId(document);
+            uint firstDrawingId = WordDrawingIdAllocator.Reserve(document, 2U);
+            UInt32Value docPropertiesId = firstDrawingId;
+            uint picturePropertiesId = firstDrawingId + 1U;
 
             if (wrapImage == WrapTextImage.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, docPropertiesId, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                var inline = GetInline(emuWidth, emuHeight, docPropertiesId, picturePropertiesId, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
                 drawing.Append(inline);
             } else {
-                var graphic = GetGraphic(emuWidth, emuHeight, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                var graphic = GetGraphic(emuWidth, emuHeight, picturePropertiesId, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
                 var anchor = GetAnchor(emuWidth, emuHeight, docPropertiesId, graphic, imageLocation.ImageName, description, wrapImage);
                 drawing.Append(anchor);
             }
@@ -359,51 +361,18 @@ namespace OfficeIMO.Word {
             double emuHeight = height * EnglishMetricUnitsPerInch / PixelsPerInch;
 
             var drawing = new WordDrawing();
-            UInt32Value docPropertiesId = GetNextDocPropertiesId(document);
+            uint firstDrawingId = WordDrawingIdAllocator.Reserve(document, 2U);
+            UInt32Value docPropertiesId = firstDrawingId;
+            uint picturePropertiesId = firstDrawingId + 1U;
             if (wrapImage == WrapTextImage.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, docPropertiesId, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
+                var inline = GetInline(emuWidth, emuHeight, docPropertiesId, picturePropertiesId, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
                 drawing.Append(inline);
             } else {
-                var graphic = GetGraphic(emuWidth, emuHeight, System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
+                var graphic = GetGraphic(emuWidth, emuHeight, picturePropertiesId, System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
                 var anchor = GetAnchor(emuWidth, emuHeight, docPropertiesId, graphic, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), description, wrapImage);
                 drawing.Append(anchor);
             }
             _Image = drawing;
-        }
-
-        private static UInt32Value GetNextDocPropertiesId(WordDocument document) {
-            uint max = 0U;
-            var mainPart = document._wordprocessingDocument.MainDocumentPart;
-
-            UpdateMaxDocPropertiesId(mainPart?.Document, ref max);
-
-            if (mainPart != null) {
-                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    UpdateMaxDocPropertiesId(headerPart.Header, ref max);
-                }
-
-                foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    UpdateMaxDocPropertiesId(footerPart.Footer, ref max);
-                }
-
-                UpdateMaxDocPropertiesId(mainPart.FootnotesPart?.Footnotes, ref max);
-                UpdateMaxDocPropertiesId(mainPart.EndnotesPart?.Endnotes, ref max);
-                UpdateMaxDocPropertiesId(mainPart.WordprocessingCommentsPart?.Comments, ref max);
-            }
-
-            return (UInt32Value)(max + 1U);
-        }
-
-        private static void UpdateMaxDocPropertiesId(OpenXmlElement? root, ref uint max) {
-            if (root == null) {
-                return;
-            }
-
-            foreach (DocProperties properties in root.Descendants<DocProperties>()) {
-                if (properties.Id != null && properties.Id.Value > max) {
-                    max = properties.Id.Value;
-                }
-            }
         }
 
         private OpenXmlPart GetContainingPart() {

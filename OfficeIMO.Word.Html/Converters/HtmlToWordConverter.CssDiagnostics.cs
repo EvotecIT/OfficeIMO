@@ -129,7 +129,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 var elementName = element.TagName.ToLowerInvariant();
-                if (!IsSupportedCssDiagnosticProperty(elementName, propertyName)) {
+                if (!IsSupportedCssDiagnosticProperty(element, elementName, propertyName)) {
                     AddUnsupportedCssDiagnostic(
                         "UnsupportedCssDeclaration",
                         "CSS declaration is not currently mapped to Word output.",
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool IsSupportedCssDiagnosticProperty(string elementName, string propertyName) {
+        private static bool IsSupportedCssDiagnosticProperty(IElement element, string elementName, string propertyName) {
             if (_blockSpacingCssDiagnosticProperties.Contains(propertyName)) {
                 return IsBlockSpacingElement(elementName) ||
                        elementName.Equals("body", StringComparison.OrdinalIgnoreCase) &&
@@ -166,9 +166,38 @@ namespace OfficeIMO.Word.Html {
                 return IsMappedBorderElement(elementName);
             }
 
+            switch (propertyName.ToLowerInvariant()) {
+                case "float":
+                    return elementName == "img" || IsBlockSpacingElement(elementName);
+                case "width":
+                    return elementName is "img" or "table" or "td" or "th" or "col" ||
+                           IsExportedSectionDimension(element, "data-page-width-twips");
+                case "height":
+                    return elementName == "img" ||
+                           IsExportedSectionDimension(element, "data-page-height-twips");
+                case "list-style":
+                case "list-style-type":
+                    return elementName is "ol" or "ul" or "li";
+                case "break-before":
+                case "break-after":
+                case "page-break-before":
+                case "page-break-after":
+                case "text-indent":
+                    return IsBlockSpacingElement(elementName);
+                case "line-height":
+                    return elementName == "body" || IsBlockSpacingElement(elementName);
+                case "text-align":
+                    return elementName == "body" || IsBlockSpacingElement(elementName) || IsTableCellElement(elementName);
+            }
+
             return _supportedCssDiagnosticProperties.Contains(propertyName) ||
                    (IsBlockFrameElement(elementName) && TryGetBlockBorderLonghand(propertyName, out _, out _));
         }
+
+        private static bool IsExportedSectionDimension(IElement element, string metadataAttribute) =>
+            element.TagName.Equals("section", StringComparison.OrdinalIgnoreCase) &&
+            IsExportedWordSectionElement(element) &&
+            !string.IsNullOrWhiteSpace(element.GetAttribute(metadataAttribute));
 
         private static bool IsMappedBorderElement(string elementName) =>
             IsBlockFrameElement(elementName) ||

@@ -5,6 +5,38 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
+        private static IEnumerable<WordElement> ExpandTableCellBlockContent(WordElement element) {
+            if (element is not WordStructuredDocumentTag contentControl ||
+                contentControl.SdtBlock?.SdtContentBlock == null) {
+                yield return element;
+                yield break;
+            }
+
+            foreach (WordElement child in ExpandTableCellBlockContent(
+                         contentControl.Document,
+                         contentControl.SdtBlock.SdtContentBlock)) {
+                yield return child;
+            }
+        }
+
+        private static IEnumerable<WordElement> ExpandTableCellBlockContent(
+            WordDocument document,
+            OpenXmlCompositeElement container) {
+            foreach (OpenXmlElement child in container.ChildElements) {
+                if (child is Paragraph paragraph) {
+                    foreach (WordParagraph converted in WordSection.ConvertParagraphToWordParagraphs(document, paragraph)) {
+                        yield return converted;
+                    }
+                } else if (child is Table table) {
+                    yield return new WordTable(document, table);
+                } else if (child is SdtBlock nestedControl && nestedControl.SdtContentBlock != null) {
+                    foreach (WordElement nested in ExpandTableCellBlockContent(document, nestedControl.SdtContentBlock)) {
+                        yield return nested;
+                    }
+                }
+            }
+        }
+
 
             string? GetWidthCss(TableWidthUnitValues? type, int? width) {
                 if (type == null || width == null) {

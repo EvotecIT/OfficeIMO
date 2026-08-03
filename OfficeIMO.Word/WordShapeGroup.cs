@@ -90,6 +90,7 @@ namespace OfficeIMO.Word {
 
             long groupCx = 0;
             long groupCy = 0;
+            uint firstDrawingId = WordDrawingIdAllocator.Reserve(paragraph._document!, 2U);
             var children = new List<Wps.WordprocessingShape>(materialized.Count);
             foreach (WordShapeGroupItem item in materialized) {
                 WordShape.ValidateDimensions(item.WidthPt, item.HeightPt);
@@ -113,7 +114,7 @@ namespace OfficeIMO.Word {
                 new A.ChildOffset { X = 0L, Y = 0L },
                 new A.ChildExtents { Cx = groupCx, Cy = groupCy });
             var group = new Wpg.WordprocessingGroup(
-                new Wpg.NonVisualDrawingProperties { Id = WordShape.NextDocPrId(), Name = "Shape Group" },
+                new Wpg.NonVisualDrawingProperties { Id = firstDrawingId, Name = "Shape Group" },
                 new Wpg.NonVisualGroupDrawingShapeProperties(new A.GroupShapeLocks()),
                 new Wpg.GroupShapeProperties(transformGroup));
             group.Append(children);
@@ -128,8 +129,9 @@ namespace OfficeIMO.Word {
                     groupCy,
                     WordShape.ToEmuChecked(leftPt!.Value, nameof(leftPt)),
                     WordShape.ToEmuChecked(topPt!.Value, nameof(topPt)),
-                    graphic)
-                : BuildInline(groupCx, groupCy, graphic);
+                    graphic,
+                    firstDrawingId + 1U)
+                : BuildInline(groupCx, groupCy, graphic, firstDrawingId + 1U);
 
             var drawing = new WordDrawing(frame);
             Run run = paragraph.VerifyRun();
@@ -137,7 +139,7 @@ namespace OfficeIMO.Word {
             return new WordShapeGroup(paragraph._document!, paragraph, run, drawing);
         }
 
-        private static DW.Inline BuildInline(long cx, long cy, A.Graphic graphic) {
+        private static DW.Inline BuildInline(long cx, long cy, A.Graphic graphic, uint docPropertiesId) {
             var inline = new DW.Inline {
                 DistanceFromTop = 0U,
                 DistanceFromBottom = 0U,
@@ -146,7 +148,7 @@ namespace OfficeIMO.Word {
             };
             inline.Append(new DW.Extent { Cx = cx, Cy = cy });
             inline.Append(new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
-            inline.Append(new DW.DocProperties { Id = WordShape.NextDocPrId(), Name = "Shape Group" });
+            inline.Append(new DW.DocProperties { Id = docPropertiesId, Name = "Shape Group" });
             inline.Append(new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }));
             inline.Append(graphic);
             return inline;

@@ -42,6 +42,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_MapsContentControlWrappedNestedTableFormulaGeometry() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 2);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "10";
+            table.Rows[0].Cells[0]._tableCell.Append(
+                new SdtBlock(
+                    new SdtProperties(new SdtAlias { Val = "Nested table wrapper" }),
+                    new SdtContentBlock(
+                        new Table(
+                            new TableRow(
+                                new TableCell(
+                                    new Paragraph(new Run(new Text("99")))))))));
+            table.Rows[0].Cells[1].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(LEFT) ", "preserved"));
+
+            WordFieldUpdateResult result = Assert.Single(document.UpdateFieldsAndGetReport().Results);
+
+            Assert.Equal(WordFieldUpdateStatus.Unsupported, result.Status);
+            Assert.Equal("FieldComplexTableProfileUnsupported", result.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, result.EvaluationBasis);
+            Assert.Contains("nested table", result.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("preserved", Assert.Single(document.InspectFields()).ResultText);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_MapsRelatedPartPageLayoutRequirement() {
             using WordDocument document = WordDocument.Create();
             document.AddHeadersAndFooters();

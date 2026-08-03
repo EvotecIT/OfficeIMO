@@ -16,6 +16,20 @@ namespace OfficeIMO.Tests {
                 WordChart chart = document.AddChart("Original");
                 chart.AddCategories(new List<string> { "A", "B", "C" });
                 chart.AddBar("Before", new List<int> { 1, 2, 3 }, OfficeIMO.Drawing.OfficeColor.Blue);
+                C.Values values = document._wordprocessingDocument.MainDocumentPart!.ChartParts.Single()
+                    .ChartSpace.GetFirstChild<C.Chart>()!.PlotArea!.GetFirstChild<C.BarChart>()!
+                    .GetFirstChild<C.BarChartSeries>()!.GetFirstChild<C.Values>()!;
+                C.NumberLiteral originalLiteral = values.GetFirstChild<C.NumberLiteral>()!;
+                var cache = new C.NumberingCache(
+                    new C.FormatCode { Text = "$#,##0.00" },
+                    (C.PointCount)originalLiteral.PointCount!.CloneNode(true));
+                foreach (C.NumericPoint point in originalLiteral.Elements<C.NumericPoint>()) {
+                    cache.Append((C.NumericPoint)point.CloneNode(true));
+                }
+                values.RemoveAllChildren();
+                values.Append(new C.NumberReference(
+                    new C.Formula { Text = "Sheet1!$B$2:$B$4" },
+                    cache));
                 document.Save();
             }
 
@@ -51,7 +65,8 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<C.BarChartSeries>()!;
             Assert.NotNull(xmlSeries.GetFirstChild<C.CategoryAxisData>()!.GetFirstChild<C.StringLiteral>());
             Assert.Null(xmlSeries.GetFirstChild<C.CategoryAxisData>()!.GetFirstChild<C.StringReference>());
-            Assert.NotNull(xmlSeries.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberLiteral>());
+            C.NumberLiteral persistedLiteral = Assert.IsType<C.NumberLiteral>(xmlSeries.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberLiteral>());
+            Assert.Equal("$#,##0.00", persistedLiteral.FormatCode!.Text);
             Assert.Null(xmlSeries.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>());
             Assert.Empty(new OpenXmlValidator().Validate(reloaded._wordprocessingDocument));
         }

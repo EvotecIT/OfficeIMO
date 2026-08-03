@@ -51,8 +51,9 @@ namespace OfficeIMO.Word {
             valueContainer ??= series.GetFirstChild<C.YValues>();
             if (valueContainer == null) return false;
 
+            string formatCode = GetNumberFormatCode(valueContainer);
             valueContainer.RemoveAllChildren();
-            valueContainer.Append(BuildNumberLiteral(materialized));
+            valueContainer.Append(BuildNumberLiteral(materialized, formatCode));
             return true;
         }
 
@@ -93,9 +94,14 @@ namespace OfficeIMO.Word {
             C.PieChartSeries or
             C.ScatterChartSeries;
 
-        private static C.NumberLiteral BuildNumberLiteral(IReadOnlyList<double> values) {
+        private static string GetNumberFormatCode(OpenXmlCompositeElement valueContainer) =>
+            valueContainer.GetFirstChild<C.NumberReference>()?.NumberingCache?.FormatCode?.Text ??
+            valueContainer.GetFirstChild<C.NumberLiteral>()?.FormatCode?.Text ??
+            "General";
+
+        private static C.NumberLiteral BuildNumberLiteral(IReadOnlyList<double> values, string formatCode) {
             var literal = new C.NumberLiteral(
-                new C.FormatCode { Text = "General" },
+                new C.FormatCode { Text = formatCode },
                 new C.PointCount { Val = (uint)values.Count });
             for (int index = 0; index < values.Count; index++) {
                 literal.Append(new C.NumericPoint(

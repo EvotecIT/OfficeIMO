@@ -110,13 +110,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void HtmlToWord_UnsupportedWidthAndHeightValues_AddDiagnostics() {
+        public void HtmlToWord_WidthAndHeightOnUnmappedParagraphAddDeclarationDiagnostics() {
             var options = new HtmlToWordOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<p style=\"width:calc(100% - 1em);height:calc(10px + 1px)\">Text</p>").ToWordDocumentResult(options);
             using var document = conversion.Value;
 
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "UnsupportedCssValue").ToList();
+            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "UnsupportedCssDeclaration").ToList();
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:width", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:height", StringComparison.OrdinalIgnoreCase));
         }
@@ -218,6 +218,37 @@ namespace OfficeIMO.Tests {
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "span:border-collapse", StringComparison.OrdinalIgnoreCase));
             Assert.DoesNotContain(diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border", StringComparison.OrdinalIgnoreCase));
             Assert.DoesNotContain(diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border-collapse", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void HtmlToWord_InheritedBlockAlignmentIsNotRejectedOnInlineDescendants() {
+            const string html = "<style>div { text-align:center }</style><div><span>Centered</span></div>";
+            var conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            });
+            using var document = conversion.Value;
+
+            Assert.Equal("Centered", Assert.Single(document.Paragraphs).Text);
+            var unsupported = conversion.Report.Diagnostics
+                .Where(diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            Assert.True(unsupported.Count == 0, string.Join(Environment.NewLine, unsupported.Select(diagnostic => $"{diagnostic.Code}:{diagnostic.Source}:{diagnostic.Detail}")));
+        }
+
+        [Fact]
+        public void HtmlToWord_ContextSpecificImageCssIsReportedWhenAppliedToSpan() {
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(
+                    "<span style=\"float:left;width:20px;height:10px\">Text</span>")
+                .ToWordDocumentResult(new HtmlToWordOptions());
+            using var document = conversion.Value;
+
+            var diagnostics = conversion.Report.Diagnostics
+                .Where(diagnostic => diagnostic.Code == "UnsupportedCssDeclaration")
+                .Select(diagnostic => diagnostic.Source)
+                .ToList();
+            Assert.Contains("span:float", diagnostics, StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("span:width", diagnostics, StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("span:height", diagnostics, StringComparer.OrdinalIgnoreCase);
         }
 
         [Fact]

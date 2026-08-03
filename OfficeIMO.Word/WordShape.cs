@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
-using System.Threading;
 using A = DocumentFormat.OpenXml.Drawing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
@@ -15,11 +14,6 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordShape : WordElement {
         private const int EmusPerPoint = 12700; // 1 pt = 12700 EMUs
-        private static int _docPrIdSeed = 1;
-        internal static UInt32Value NextDocPrId() {
-            int id = Interlocked.Increment(ref _docPrIdSeed);
-            return (UInt32Value)(uint)id;
-        }
         /// <summary>Parent document.</summary>
         internal WordDocument _document = null!;
         /// <summary>Parent paragraph.</summary>
@@ -140,7 +134,7 @@ namespace OfficeIMO.Word {
             return wsp;
         }
 
-        internal static DW.Anchor BuildAnchor(long cx, long cy, long offX, long offY, A.Graphic graphic) {
+        internal static DW.Anchor BuildAnchor(long cx, long cy, long offX, long offY, A.Graphic graphic, uint docPropertiesId) {
             var anchor = new DW.Anchor() {
                 DistanceFromTop = 0U,
                 DistanceFromBottom = 0U,
@@ -163,7 +157,7 @@ namespace OfficeIMO.Word {
             anchor.Append(new DW.Extent() { Cx = cx, Cy = cy });
             anchor.Append(new DW.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
             anchor.Append(new DW.WrapSquare() { WrapText = DW.WrapTextValues.BothSides });
-            anchor.Append(new DW.DocProperties() { Id = NextDocPrId(), Name = "Shape" });
+            anchor.Append(new DW.DocProperties() { Id = docPropertiesId, Name = "Shape" });
             anchor.Append(new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks() { NoChangeAspect = true }));
             anchor.Append(graphic);
             return anchor;
@@ -347,7 +341,7 @@ namespace OfficeIMO.Word {
 
             inline.Append(new DW.Extent() { Cx = cx, Cy = cy });
             inline.Append(new DW.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
-            inline.Append(new DW.DocProperties() { Id = NextDocPrId(), Name = "Shape" });
+            inline.Append(new DW.DocProperties() { Id = WordDrawingIdAllocator.Reserve(paragraph._document!), Name = "Shape" });
             inline.Append(new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks() { NoChangeAspect = true }));
 
             var graphic = new A.Graphic();
@@ -419,7 +413,7 @@ namespace OfficeIMO.Word {
 
             var wsp = BuildWpsShape(cx, cy, shapeType);
             var graphic = new A.Graphic(new A.GraphicData(wsp) { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" });
-            var anchor = BuildAnchor(cx, cy, offX, offY, graphic);
+            var anchor = BuildAnchor(cx, cy, offX, offY, graphic, WordDrawingIdAllocator.Reserve(paragraph._document!));
             var WordDrawing = new WordDrawing(anchor);
             Run run = paragraph.VerifyRun();
             run.Append(WordDrawing);

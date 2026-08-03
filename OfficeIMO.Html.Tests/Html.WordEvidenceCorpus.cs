@@ -37,11 +37,15 @@ public partial class Html {
             ExportHeadersAndFooters = true,
             IncludeSectionMetadata = true
         });
-        int rubyEast = roundTrip.IndexOf("<rb>東</rb><rt>とう</rt>", StringComparison.OrdinalIgnoreCase);
-        int rubyCapital = roundTrip.IndexOf("<rb>京</rb><rt>きょう</rt>", StringComparison.OrdinalIgnoreCase);
+        int rubyEast = roundTrip.IndexOf("東", StringComparison.Ordinal);
+        int rubyEastReading = roundTrip.IndexOf("とう", StringComparison.Ordinal);
+        int rubyCapital = roundTrip.IndexOf("京", StringComparison.Ordinal);
+        int rubyCapitalReading = roundTrip.IndexOf("きょう", StringComparison.Ordinal);
         int nested = roundTrip.IndexOf("Nested", StringComparison.Ordinal);
         int following = roundTrip.IndexOf("Comment and section carrier", StringComparison.Ordinal);
-        Assert.True(rubyEast >= 0 && rubyCapital > rubyEast, roundTrip);
+        Assert.True(
+            rubyEast >= 0 && rubyEastReading > rubyEast && rubyCapital > rubyEastReading && rubyCapitalReading > rubyCapital,
+            roundTrip);
         Assert.True(nested >= 0 && following > nested, roundTrip);
         Assert.Contains("aria-label=\"Regional results\"", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("aria-description=\"A nested table and list corpus\"", roundTrip, StringComparison.OrdinalIgnoreCase);
