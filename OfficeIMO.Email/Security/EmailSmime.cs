@@ -8,12 +8,15 @@ public static class EmailSmime {
     /// <summary>Verifies clear-signed or opaque-signed S/MIME content retained by the email reader.</summary>
     public static EmailSmimeVerificationResult Verify(
         EmailDocument document,
+        IOfficeSecurityProvider securityProvider,
         CmsVerificationOptions? options = null,
         EmailReaderOptions? contentReaderOptions = null) {
 #if NETSTANDARD2_0 || NET472
         if (document == null) throw new ArgumentNullException(nameof(document));
+        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
 #else
         ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(securityProvider);
 #endif
         options ??= new CmsVerificationOptions();
         var diagnostics = new List<EmailDiagnostic>();
@@ -47,8 +50,11 @@ public static class EmailSmime {
         }
 
         CmsVerificationResult cryptography = payload!.DetachedContent == null
-            ? CmsSignedDataVerifier.Verify(payload.EncodedCms, options)
-            : VerifyDetached(payload, options, diagnostics);
+            ? securityProvider.VerifyCms(
+                payload.EncodedCms,
+                options,
+                CertificateValidationPurpose.EmailSigning)
+            : VerifyDetached(securityProvider, payload, options, diagnostics);
         byte[]? signedMimeEntity = payload.DetachedContent ?? cryptography.EncapsulatedContent;
         EmailDocument? signedContent = TryParseContent(
             signedMimeEntity,
@@ -64,11 +70,16 @@ public static class EmailSmime {
     }
 
     private static CmsVerificationResult VerifyDetached(
+        IOfficeSecurityProvider securityProvider,
         MimeSmimeExtractor.ExtractedSmimePayload payload,
         CmsVerificationOptions options,
         List<EmailDiagnostic> diagnostics) {
         byte[] original = payload.DetachedContent!;
-        CmsVerificationResult exact = CmsSignedDataVerifier.VerifyDetached(payload.EncodedCms, original, options);
+        CmsVerificationResult exact = securityProvider.VerifyCmsDetached(
+            payload.EncodedCms,
+            original,
+            options,
+            CertificateValidationPurpose.EmailSigning);
         if (exact.IsCryptographicallyValid ||
             !MimeSmimeExtractor.TryCanonicalizeLineEndings(
                 original,
@@ -77,10 +88,11 @@ public static class EmailSmime {
             return exact;
         }
 
-        CmsVerificationResult normalized = CmsSignedDataVerifier.VerifyDetached(
+        CmsVerificationResult normalized = securityProvider.VerifyCmsDetached(
             payload.EncodedCms,
             canonical,
-            options);
+            options,
+            CertificateValidationPurpose.EmailSigning);
         if (!normalized.IsCryptographicallyValid) return exact;
         diagnostics.Add(new EmailDiagnostic(
             "EMAIL_SMIME_CANONICAL_LINE_ENDINGS_APPLIED",
@@ -94,14 +106,17 @@ public static class EmailSmime {
     public static EmailSmimeDecryptionResult Decrypt(
         EmailDocument document,
         X509Certificate2 recipientCertificate,
+        IOfficeSecurityProvider securityProvider,
         CmsEnvelopeOptions? options = null,
         EmailReaderOptions? contentReaderOptions = null) {
 #if NETSTANDARD2_0 || NET472
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (recipientCertificate == null) throw new ArgumentNullException(nameof(recipientCertificate));
+        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
 #else
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(recipientCertificate);
+        ArgumentNullException.ThrowIfNull(securityProvider);
 #endif
         options ??= new CmsEnvelopeOptions();
         var diagnostics = new List<EmailDiagnostic>();
@@ -128,7 +143,7 @@ public static class EmailSmime {
             return new EmailSmimeDecryptionResult(document.Protection.Kind, null, null, null, diagnostics);
         }
 
-        CmsDecryptionResult cryptography = CmsEnvelopedDataService.Decrypt(
+        CmsDecryptionResult cryptography = securityProvider.DecryptCms(
             payload!.EncodedCms,
             recipientCertificate,
             options);

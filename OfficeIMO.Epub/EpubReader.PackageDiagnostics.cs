@@ -4,6 +4,40 @@ internal static partial class EpubReader {
     private const string IdpfFontObfuscationAlgorithm = "http://www.idpf.org/2008/embedding";
     private const string AdobeFontObfuscationAlgorithm = "http://ns.adobe.com/pdf/enc#RC";
 
+    private static EpubSignatureInfo ReadSignatures(
+        IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
+        EpubReadOptions options,
+        EpubDiagnosticCollector diagnostics) {
+        const string signaturePath = "META-INF/signatures.xml";
+        if (!entryIndex.TryGetValue(signaturePath, out ZipArchiveEntry? entry)) {
+            return EpubSignatureInfo.NotPresent;
+        }
+        if (entry.Length > options.MaxPackageMetadataBytes) {
+            diagnostics.Warning(
+                "epub.signatures.metadata-size-limit",
+                $"EPUB signatures.xml exceeds MaxPackageMetadataBytes ({options.MaxPackageMetadataBytes}).",
+                signaturePath);
+            return new EpubSignatureInfo(true, false, 0);
+        }
+
+        string content = ReadEntryText(entry, options.MaxPackageMetadataBytes);
+        if (!TryParseXml(content, out XDocument? document) || document?.Root == null) {
+            diagnostics.Warning(
+                "epub.signatures.invalid-xml",
+                "EPUB signatures.xml could not be parsed as XML.",
+                signaturePath);
+            return new EpubSignatureInfo(true, false, 0);
+        }
+
+        XName signatureName = XName.Get("Signature", "http://www.w3.org/2000/09/xmldsig#");
+        int signatureCount = document.Root.DescendantsAndSelf().Count(element => element.Name == signatureName);
+        diagnostics.Info(
+            "epub.signatures.present",
+            $"EPUB signatures.xml declares {signatureCount} XML signature element(s); cryptographic validation is not performed by the reader.",
+            signaturePath);
+        return new EpubSignatureInfo(true, true, signatureCount);
+    }
+
     private static IReadOnlyList<EpubEncryptionInfo> ReadEncryption(
         IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
         EpubReadOptions options,

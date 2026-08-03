@@ -42,7 +42,9 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
 | HTML and MHTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, web-archive projection, media filtering, layout scene, Office/RTF mappings, and PDF/PNG/JPEG/TIFF/SVG/WebP output |
-| Security, PDF, Email, email stores, and address books | [Bouncy Castle](https://www.bouncycastle.org/csharp/) through `OfficeIMO.Security`; Email also uses `System.Text.Encoding.CodePages` | CMS/S/MIME/RFC 3161/X.509 orchestration, PDF parsing/writing/signature mapping, EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, limits, and diagnostics |
+| PDF | No third-party PDF or cryptographic dependency | PDF parsing/writing/rendering, password security, signature structure, preservation policy, limits, and diagnostics |
+| Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
+| Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
 | Visio | `System.IO.Packaging` | VSDX model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
@@ -208,17 +210,32 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
-_Dependency footprint:_ `OfficeIMO.Drawing` plus the shared `OfficeIMO.Security` CMS/X.509 engine. No third-party PDF parser, writer, or renderer.
+_Dependency footprint:_ `OfficeIMO.Drawing`; no third-party PDF parser, writer, renderer, or cryptographic dependency. Install `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
 
 #### [OfficeIMO.Security](OfficeIMO.Security/README.md)
 
 - [x] Detached and encapsulated CMS signing and verification with bounded parsing and structured findings
 - [x] RSA and ECDSA verification, platform X.509 chain/revocation policy, and RFC 3161 timestamp validation
 - [x] CMS EnvelopedData encryption/decryption for S/MIME recipients
+- [x] Bounded XML Digital Signature creation, verification, and canonicalization for format-owned signing workflows
 - [x] Platform-RSA signing without exporting private keys, including CNG/HSM-compatible key handles
-- [x] One vendor-neutral owner shared by the thin PDF and Email security adapters
+- [x] One strongly typed provider explicitly supplied to the thin Word, PDF, and Email security adapters
 
-_Dependency footprint:_ one external package, `BouncyCastle.Cryptography`; no dependency on PDF, Email, Drawing, or image libraries.
+_Dependency footprint:_ `OfficeIMO.Drawing` contracts plus `BouncyCastle.Cryptography` and `System.Security.Cryptography.Xml`; no dependency on Word, PDF, Email, or another format package. Format packages do not depend on Security.
+
+| Format package | Security support without the provider | Optional provider-backed operations |
+| --- | --- | --- |
+| `OfficeIMO.Word` | OPC/VBA signature discovery, evidence reporting, and fail-safe mutation policy | OPC XML signature creation/validation and VBA CMS/trust/timestamp validation |
+| `OfficeIMO.Pdf` | Signature dictionaries, byte ranges, external-signer hooks, preservation and mutation policy | Built-in CMS signing, X.509 validation, and RFC 3161 processing |
+| `OfficeIMO.Email` | MIME parsing and S/MIME carrier discovery | CMS signature verification and EnvelopedData decryption |
+| `OfficeIMO.Excel` | Open XML signature inspection and fail-safe mutation policy | Not implemented yet |
+| `OfficeIMO.PowerPoint` | Open XML and legacy signature inspection plus fail-safe mutation policy | Not implemented yet |
+| `OfficeIMO.Visio` | Open XML signature inspection plus fail-safe mutation policy | Not implemented yet |
+| `OfficeIMO.OpenDocument` | ODF signature discovery plus fail-safe mutation policy | Not implemented yet |
+| `OfficeIMO.Epub` | Bounded `META-INF/signatures.xml` discovery and diagnostics | Not implemented yet |
+
+Install `OfficeIMO.Security` only in applications that use a provider-backed operation. Its cryptographic dependencies
+therefore do not change the restore graph, trimming roots, or NativeAOT surface of ordinary format consumers.
 
 #### [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md)
 
@@ -331,7 +348,7 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] Seeded CRC, record-framing, and full-schema validation with progress, cancellation, and explicit limits
 - [x] Shared `EmailAddress`, `OutlookContact`, `MapiProperty`, and diagnostics models instead of duplicate directory primitives
 
-_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing, RTF, and Security. Security contributes one `BouncyCastle.Cryptography` dependency; there is no Outlook installation, native library, or third-party message/store/OAB parser.
+_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing and RTF. `OfficeIMO.Security` is optional for S/MIME verification/decryption and is never pulled transitively; there is no Outlook installation, native library, or third-party message/store/OAB parser.
 
 #### [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md)
 

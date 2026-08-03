@@ -460,7 +460,10 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`OfficeSvgSizeUnit.Point`", migration, StringComparison.Ordinal);
         Assert.Contains("compiled `OfficeIMO.Shared` implementation package no longer exists", migration, StringComparison.Ordinal);
         Assert.Contains("`OfficeIMO.SharedSource` is source-only", migration, StringComparison.Ordinal);
-        Assert.Contains("`OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; neutral CMS", migration, StringComparison.Ordinal);
+        Assert.Contains("dependency-free security provider contracts belong to `OfficeIMO.Drawing`", migration, StringComparison.Ordinal);
+        Assert.Contains("optional concrete CMS, XML DSig, X.509, and RFC 3161 provider belongs to `OfficeIMO.Security`", migration, StringComparison.Ordinal);
+        Assert.Contains("### Optional security provider", migration, StringComparison.Ordinal);
+        Assert.Contains("`EmailSmime.Verify(document, security, options)`", migration, StringComparison.Ordinal);
         Assert.Contains("### HTML, Reader, and theme ownership", migration, StringComparison.Ordinal);
         Assert.Contains("`HtmlConversionDocument.Parse(...)`", migration, StringComparison.Ordinal);
         Assert.Contains("immutable `OfficeDocumentReader`", migration, StringComparison.Ordinal);

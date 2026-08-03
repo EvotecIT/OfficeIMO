@@ -13,6 +13,13 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 dotnet add package OfficeIMO.Word
 ```
 
+Document authoring, reading, signature inspection, and safe signed-package handling do not require the security
+package. Install it only when the application creates or cryptographically validates OPC or VBA signatures:
+
+```powershell
+dotnet add package OfficeIMO.Security
+```
+
 ## Quick start
 
 ```csharp
@@ -43,7 +50,7 @@ document.Save();
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
 - Applies optional shared package-security policy before parsing Open XML or compound DOC files, and preflights read, edit, template, render, and save capabilities.
 - Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
-- Creates and validates cross-platform OPC XML package signatures with caller-controlled certificate-chain, revocation, timestamp-authority, and resource policy. VBA macro-project signing is a separate Windows-native Office SIP capability with cross-platform signature inspection.
+- Creates and validates cross-platform OPC XML package signatures through an explicitly supplied `IOfficeSecurityProvider`. VBA macro-project signing is a separate Windows-native Office SIP capability; structural signature inspection remains cross-platform and provider-free.
 - Exports estimated document page ranges as dependency-free PNG or SVG previews through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
@@ -150,15 +157,20 @@ The report distinguishes merged fields, missing values, and unsupported formatti
 ### OPC package signatures
 
 ```csharp
-WordDocument.SignPackage("report.docx", "CERTIFICATE-THUMBPRINT");
+using OfficeIMO.Security;
+
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
+WordDocument.SignPackage("report.docx", security, "CERTIFICATE-THUMBPRINT");
 
 using WordDocument signed = WordDocument.Load("report.docx");
 WordSignatureValidationReport validation = signed.ValidateSignatures(
+    security,
     new WordSignatureValidationOptions());
 ```
 
 OPC package signing does not sign VBA code. `WordSigningCapabilities.Package` and
-`WordSigningCapabilities.MacroProject` report the two surfaces independently.
+`WordSigningCapabilities.MacroProject` report the two surfaces independently. `InspectSignatures()` remains available
+without `OfficeIMO.Security`; it reports package structure but does not claim digest, signature, or certificate trust.
 
 ### VBA macro-project signatures
 
@@ -181,6 +193,9 @@ after final validation. When both signature kinds are needed, sign the VBA
 project first and the OPC package last:
 
 ```csharp
+using OfficeIMO.Security;
+
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
 var options = new WordMacroProjectSigningOptions {
     OfficeSipsDirectory = @"C:\Tools\OfficeSips",
     SignToolPath = @"C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe",
@@ -189,12 +204,13 @@ var options = new WordMacroProjectSigningOptions {
 
 WordMacroProjectSigningResult signing = WordDocument.SignMacroProject(
     "automation.docm",
+    security,
     "CERTIFICATE-STORE-SHA1-THUMBPRINT",
     options);
 
 var validationOptions = new WordMacroProjectSignatureValidationOptions();
 WordMacroProjectSignatureValidationResult validation =
-    WordDocument.ValidateMacroProjectSignature("automation.docm", validationOptions);
+    WordDocument.ValidateMacroProjectSignature("automation.docm", security, validationOptions);
 ```
 
 The certificate is selected by a strict SHA-1 thumbprint from the configured
@@ -382,5 +398,6 @@ Runnable samples live under [OfficeIMO.Examples/Word](../OfficeIMO.Examples/Word
 
 - **External:** Open XML SDK for `.docx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The fluent model, native OMML adapter, legacy `.doc` reader/writer, lifecycle, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
+- **Optional security:** install `OfficeIMO.Security` and pass `OfficeSecurityProvider.Default` only for OPC/VBA signing or cryptographic validation. It is not a transitive Word dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

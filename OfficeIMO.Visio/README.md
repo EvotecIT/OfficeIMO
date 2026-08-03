@@ -74,6 +74,13 @@ Loaded `.vsdx` editing covers common pages, shapes, connectors, text, styles, Sh
 
 Current editing limits include advanced nested and container behavior, deeper swimlane metadata and automatic assignment, richer threaded comment and author workflows, advanced resize-to-content, and broader whole-diagram relayout and polish. Data graphics, legends, general ShapeSheet formulas, and many less-common ShapeSheet sections are preserved where possible but are not fully exposed as typed APIs. Track open work in the repository [roadmap](../Docs/ROADMAP.md).
 
+### Signed diagrams
+
+`InspectSignatures()` detects Open XML signature-origin relationships and XML signature parts. Saving a
+loaded signed diagram is blocked by default because rebuilding the package would invalidate that evidence. Set
+`SignatureMutationPolicy = VisioSignatureMutationPolicy.RemoveInvalidatedSignatures` only when removing the stale
+signature carrier is the intended result. Signature creation and cryptographic validation are not yet implemented.
+
 ## Examples
 
 The quick start shows the fluent page API. These examples show the higher-level builders and editing surfaces that belong in `OfficeIMO.Visio`.
@@ -260,5 +267,6 @@ IReadOnlyList<OfficeImageExportResult> pages = document
 
 - **External:** `System.IO.Packaging`; Microsoft BCL compatibility packages are used on older targets.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The VSDX model, builders, editing, topology, validation, and PNG/JPEG/TIFF/SVG/WebP renderers are first-party.
+- **Security:** Open XML signature carriers are inspected and signed-diagram mutations fail safely without a cryptographic dependency. `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

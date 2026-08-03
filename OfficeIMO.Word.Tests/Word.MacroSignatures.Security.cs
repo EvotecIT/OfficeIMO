@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 invalidate(options.CmsVerification);
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
-                    WordDocument.InspectMacroProjectSignatures(filePath, options));
+                    WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options));
             }
         }
 
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 invalidate(options.PackageSecurity);
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
-                    WordDocument.InspectMacroProjectSignatures(filePath, options));
+                    WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options));
             }
         }
 
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
             var options = CreateMacroSignatureInspectionOptions();
             options.CmsVerification.MaxTimestampTokens = 2;
 
-            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, options);
+            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options);
 
             Assert.Equal(3, info.Signatures.Count);
             Assert.Contains(info.Signatures.Single(signature =>
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                 finding => finding.Code == "CmsTimestampCountLimitExceeded");
 
             options.CmsVerification.MaxTimestampTokens = 3;
-            WordMacroProjectSignatureInfo permissive = WordDocument.InspectMacroProjectSignatures(filePath, options);
+            WordMacroProjectSignatureInfo permissive = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options);
             Assert.DoesNotContain(permissive.Signatures.SelectMany(signature => signature.Findings),
                 finding => finding.Code == "CmsTimestampCountLimitExceeded");
         }
@@ -81,14 +81,14 @@ namespace OfficeIMO.Tests {
             options.CmsVerification.MaxTimestampTokenBytes = 16;
             options.CmsVerification.MaxTotalTimestampBytes = 3;
 
-            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, options);
+            WordMacroProjectSignatureInfo info = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options);
 
             Assert.Contains(info.Signatures.Single(signature =>
                     signature.Profile == WordMacroProjectSignatureProfile.Agile).Findings,
                 finding => finding.Code == "CmsTimestampTotalSizeLimitExceeded");
 
             options.CmsVerification.MaxTotalTimestampBytes = 4;
-            WordMacroProjectSignatureInfo permissive = WordDocument.InspectMacroProjectSignatures(filePath, options);
+            WordMacroProjectSignatureInfo permissive = WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options);
             Assert.DoesNotContain(permissive.Signatures.SelectMany(signature => signature.Findings),
                 finding => finding.Code == "CmsTimestampTotalSizeLimitExceeded");
         }
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
             AddTimestampedMacroSignatureProfile(filePath, WordMacroProjectSignatureProfile.V3, certificate);
             var options = CreateMacroSignatureInspectionOptions();
             options.CmsVerification.MaxTimestampTokens = 1;
-            var budget = new WordMacroProjectSignatureInspector.InspectionBudget(options);
+            var budget = new WordMacroProjectSignatureInspector.InspectionBudget(options, SecurityProvider);
 
             WordMacroProjectSignatureInfo first = WordMacroProjectSignatureInspector.Inspect(
                 filePath, options, budget, WordMacroProjectSignatureProfile.V3);
@@ -125,8 +125,7 @@ namespace OfficeIMO.Tests {
             options.Inspection.CmsVerification.MaxTimestampTokens = 3;
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.DoesNotContain(result.Findings,
                 finding => finding.Code == "CmsTimestampCountLimitExceeded");
@@ -154,7 +153,7 @@ namespace OfficeIMO.Tests {
             options.CmsVerification.MaxSigners = 2;
 
             WordMacroProjectSignaturePartInfo signature = Assert.Single(
-                WordDocument.InspectMacroProjectSignatures(filePath, options).Signatures);
+                WordDocument.InspectMacroProjectSignatures(filePath, SecurityProvider, options).Signatures);
 
             Assert.True(signature.CmsParsed);
             Assert.Equal(WordSignatureValidationState.Failed, signature.CryptographicStatus);
@@ -176,8 +175,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.True(platform.ReplacedStagingPath);
             Assert.False(result.Succeeded);
@@ -196,8 +194,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.False(result.MacroProjectPreserved);
@@ -215,8 +212,7 @@ namespace OfficeIMO.Tests {
                 new RecordingMacroToolRunner(_ => Success()),
                 new TestMacroSigningPlatform(isWindows: true));
 
-            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(
-                filePath, options, dependencies);
+            WordMacroProjectSignatureValidationResult result = WordMacroProjectSignatureService.Validate(filePath, SecurityProvider, options, dependencies);
 
             Assert.False(result.IsValidUnderPolicy);
             Assert.Equal(

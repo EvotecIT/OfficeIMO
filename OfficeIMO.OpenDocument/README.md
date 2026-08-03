@@ -114,5 +114,6 @@ The package targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on 
 
 - **External:** None; no OpenDocument SDK and no LibreOffice process.
 - **OfficeIMO:** `OfficeIMO.Drawing`. ODT/ODS/ODP parsing, models, preservation, inspection, and writing are first-party.
+- **Security:** ODF signature carriers are detected and changed signed packages fail safely without a cryptographic dependency. Signature creation and cryptographic validation are not yet implemented; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

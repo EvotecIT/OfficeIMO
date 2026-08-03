@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Shared CMS, S/MIME, RFC 3161, and X.509 security engine for OfficeIMO packages.</Description>
+    <Description>Optional CMS, S/MIME, RFC 3161, X.509, and XML Digital Signature provider for OfficeIMO packages.</Description>
     <AssemblyName>OfficeIMO.Security</AssemblyName>
     <AssemblyTitle>OfficeIMO.Security</AssemblyTitle>
     <VersionPrefix>3.1.0</VersionPrefix>
@@ -10,7 +10,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Security</PackageId>
-    <PackageTags>security;cms;smime;pkcs7;rfc3161;x509;bouncycastle;officeimo</PackageTags>
+    <PackageTags>security;cms;smime;pkcs7;rfc3161;x509;xmldsig;bouncycastle;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -26,11 +26,15 @@
 
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" Version="[2.6.2,3.0.0)" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Security.Tests" />
-    <InternalsVisibleTo Include="OfficeIMO.Word" />
   </ItemGroup>
 
   <ItemGroup>

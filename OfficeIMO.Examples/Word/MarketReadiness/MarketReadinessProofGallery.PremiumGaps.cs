@@ -205,7 +205,7 @@ namespace OfficeIMO.Examples.Word {
 
             WordSignatureValidationReport validationReport;
             using (WordDocument document = WordDocument.Load(signaturePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
-                validationReport = document.ValidateSignatures();
+                validationReport = document.ValidateSignatures(OfficeIMO.Security.OfficeSecurityProvider.Default);
             }
 
             string savePolicyMessage;

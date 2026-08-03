@@ -30,8 +30,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMacroProjectSigningOptions { OfficeSipsDirectory = toolsDirectory };
             TrustMacroTestCertificate(options.Inspection.CmsVerification.CertificateValidation);
 
-            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(
-                filePath, certificate.Thumbprint!, options, dependencies);
+            WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.False(result.Succeeded);
             Assert.True(result.MacroProjectPreserved);

@@ -97,6 +97,7 @@ internal static partial class EpubReader {
         Dictionary<string, ZipArchiveEntry> entryIndex = BuildEntryIndex(archive, effective, diagnostics);
         EpubPackage? package = TryReadPackage(entryIndex, effective, diagnostics, out IReadOnlyList<EpubRootfile> rootfiles);
         IReadOnlyList<EpubEncryptionInfo> encryption = ReadEncryption(entryIndex, effective, diagnostics);
+        EpubSignatureInfo signatures = ReadSignatures(entryIndex, effective, diagnostics);
         Dictionary<string, EpubEncryptionInfo> encryptionByPath = encryption
             .GroupBy(static item => item.Path, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
@@ -211,6 +212,7 @@ internal static partial class EpubReader {
             Chapters = chapters.ToArray(),
             Resources = resources.ToArray(),
             Encryption = encryption.ToArray(),
+            Signatures = signatures,
             Diagnostics = diagnostics.Items,
             Warnings = diagnostics.WarningMessages
         };

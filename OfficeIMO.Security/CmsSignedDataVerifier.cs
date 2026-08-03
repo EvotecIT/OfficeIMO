@@ -54,6 +54,35 @@ public static class CmsSignedDataVerifier {
             CertificateUsagePurpose.CmsSigner);
     }
 
+    internal static CmsVerificationResult VerifyDetached(
+        byte[] encodedCms,
+        byte[] detachedContent,
+        CmsVerificationOptions options,
+        CertificateValidationPurpose signerCertificatePurpose) {
+#if NETSTANDARD2_0 || NET472
+        if (detachedContent == null) throw new ArgumentNullException(nameof(detachedContent));
+#else
+        ArgumentNullException.ThrowIfNull(detachedContent);
+#endif
+        return VerifyCore(encodedCms, detachedContent, detachedContentSupplied: true, options, timestampBudget: null,
+            MapCertificatePurpose(signerCertificatePurpose));
+    }
+
+    internal static CmsVerificationResult VerifyDetached(
+        byte[] encodedCms,
+        byte[] detachedContent,
+        CmsVerificationOptions options,
+        TimestampVerificationBudget timestampBudget,
+        CertificateValidationPurpose signerCertificatePurpose) {
+#if NETSTANDARD2_0 || NET472
+        if (detachedContent == null) throw new ArgumentNullException(nameof(detachedContent));
+#else
+        ArgumentNullException.ThrowIfNull(detachedContent);
+#endif
+        return VerifyCore(encodedCms, detachedContent, detachedContentSupplied: true, options, timestampBudget,
+            MapCertificatePurpose(signerCertificatePurpose));
+    }
+
     private static CmsVerificationResult VerifyCore(
         byte[] encodedCms,
         byte[]? detachedContent,
@@ -270,10 +299,11 @@ public static class CmsSignedDataVerifier {
             findings);
     }
 
-    private static CertificateUsagePurpose MapCertificatePurpose(CertificateValidationPurpose purpose) =>
-        purpose == CertificateValidationPurpose.TimestampAuthority
-            ? CertificateUsagePurpose.TimestampAuthority
-            : CertificateUsagePurpose.DocumentSigner;
+    private static CertificateUsagePurpose MapCertificatePurpose(CertificateValidationPurpose purpose) => purpose switch {
+        CertificateValidationPurpose.TimestampAuthority => CertificateUsagePurpose.TimestampAuthority,
+        CertificateValidationPurpose.EmailSigning => CertificateUsagePurpose.CmsSigner,
+        _ => CertificateUsagePurpose.DocumentSigner
+    };
 
     internal static CertificateValidationOptions ResolveSignerCertificateValidation(
         CertificateValidationOptions source,

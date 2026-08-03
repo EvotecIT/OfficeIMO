@@ -5,10 +5,19 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Maps shared CMS, RFC 3161, and X.509 validation into PDF signature reports.</summary>
 public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptographyProvider {
+    private readonly IOfficeSecurityProvider _securityProvider;
     private readonly CmsVerificationOptions _options;
 
     /// <summary>Creates a PDF adapter over the shared OfficeIMO security policy.</summary>
-    public PdfCmsSignatureCryptographyProvider(CmsVerificationOptions? options = null) {
+    public PdfCmsSignatureCryptographyProvider(
+        IOfficeSecurityProvider securityProvider,
+        CmsVerificationOptions? options = null) {
+#if NETSTANDARD2_0 || NET472
+        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+#else
+        ArgumentNullException.ThrowIfNull(securityProvider);
+#endif
+        _securityProvider = securityProvider;
         _options = options ?? new CmsVerificationOptions();
     }
 
@@ -24,7 +33,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
 #endif
         byte[] encoded;
         try {
-            encoded = SecurityEncoding.NormalizeSingleAsn1Object(
+            encoded = _securityProvider.NormalizeAsn1Object(
                 input.SignatureContents,
                 allowTrailingZeroPadding: true,
                 _options.MaxEncodedBytes);
@@ -42,8 +51,8 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         byte[] encoded) {
         bool encapsulatedSha1 = string.Equals(input.Signature.SubFilter, "adbe.pkcs7.sha1", StringComparison.Ordinal);
         CmsVerificationResult security = encapsulatedSha1
-            ? CmsSignedDataVerifier.Verify(encoded, _options)
-            : CmsSignedDataVerifier.VerifyDetached(encoded, input.SignedContent, _options);
+            ? _securityProvider.VerifyCms(encoded, _options)
+            : _securityProvider.VerifyCmsDetached(encoded, input.SignedContent, _options);
         var findings = MapFindings(security.Findings, security.Signers);
 
         if (!security.Parsed || security.Signers.Count == 0) {
@@ -128,7 +137,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
                 });
         }
 
-        Rfc3161TimestampVerificationResult timestamp = Rfc3161TimestampVerifier.Verify(
+        Rfc3161TimestampVerificationResult timestamp = _securityProvider.VerifyTimestamp(
             encoded,
             signedContent,
             _options.CertificateValidation,

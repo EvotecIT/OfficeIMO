@@ -122,6 +122,7 @@ namespace OfficeIMO.Visio {
             using var buffer = new MemoryStream(bytes, writable: false);
             using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read);
             VisioDocument document = LoadCore(package, filePath);
+            document._loadedSignatureInfo = InspectPackageSignatures(package);
             document._sourceStream = sourceStream;
             return document;
         }

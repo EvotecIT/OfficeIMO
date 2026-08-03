@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace OfficeIMO.Security;
 
 /// <summary>Content-encryption algorithms offered by the neutral CMS envelope service.</summary>
@@ -25,7 +27,8 @@ public sealed class CmsEnvelopeOptions {
 
 /// <summary>Result of attempting to decrypt CMS EnvelopedData for one certificate.</summary>
 public sealed class CmsDecryptionResult {
-    internal CmsDecryptionResult(
+    /// <summary>Creates CMS decryption evidence for a provider implementation.</summary>
+    public CmsDecryptionResult(
         bool parsed,
         bool decrypted,
         byte[]? content,

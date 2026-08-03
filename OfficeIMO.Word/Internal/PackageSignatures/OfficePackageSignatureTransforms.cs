@@ -1,9 +1,10 @@
 #nullable enable
 using System.IO.Compression;
 using System.Security.Cryptography;
-using System.Security.Cryptography.Xml;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using OfficeIMO.Security;
 
 namespace OfficeIMO.Word {
     /// <summary>Reports that bounded OPC archive inspection stopped at a caller-owned resource limit.</summary>
@@ -14,22 +15,25 @@ namespace OfficeIMO.Word {
     /// <summary>Bounded OPC archive reader and transform-aware signature digest engine.</summary>
     internal sealed class OfficePackageSignatureArchive : IDisposable {
         internal const string RelationshipTransformAlgorithm = "http://schemas.openxmlformats.org/package/2006/RelationshipTransform";
-        internal const string CanonicalXmlAlgorithm = SignedXml.XmlDsigC14NTransformUrl;
-        internal const string CanonicalXmlWithCommentsAlgorithm = SignedXml.XmlDsigC14NWithCommentsTransformUrl;
+        internal const string CanonicalXmlAlgorithm = XmlDigitalSignatureAlgorithms.CanonicalXml;
+        internal const string CanonicalXmlWithCommentsAlgorithm = XmlDigitalSignatureAlgorithms.CanonicalXmlWithComments;
         internal const string RelationshipsContentType = "application/vnd.openxmlformats-package.relationships+xml";
 
         private readonly MemoryStream _stream;
         private readonly ZipArchive _archive;
         private readonly Dictionary<string, ZipArchiveEntry> _entries;
         private readonly Dictionary<string, string> _contentTypes;
+        private readonly IOfficeSecurityProvider? _securityProvider;
 
         internal OfficePackageSignatureArchive(
             byte[] packageBytes,
             int maxParts = 10000,
-            long maxPartBytes = 64L * 1024 * 1024) {
+            long maxPartBytes = 64L * 1024 * 1024,
+            IOfficeSecurityProvider? securityProvider = null) {
             if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
             if (maxParts <= 0) throw new ArgumentOutOfRangeException(nameof(maxParts));
             if (maxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxPartBytes));
+            _securityProvider = securityProvider;
 
             _stream = new MemoryStream(packageBytes, writable: false);
             _archive = new ZipArchive(_stream, ZipArchiveMode.Read, leaveOpen: false);
@@ -87,7 +91,7 @@ namespace OfficeIMO.Word {
         }
 
         internal OfficePackageDigestResult VerifyReference(XElement reference, long maxPartBytes) {
-            XNamespace ds = SignedXml.XmlDsigNamespaceUrl;
+            XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
             string? uri = ((string?)reference.Attribute("URI"))?.Trim();
             string? targetPartUri = NormalizeReferencePartUri(uri);
             if (targetPartUri == null) {
@@ -160,7 +164,7 @@ namespace OfficeIMO.Word {
         }
 
         internal string ComputeDigestValue(XElement reference, long maxPartBytes) {
-            XNamespace ds = SignedXml.XmlDsigNamespaceUrl;
+            XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
             string? digestMethod = (string?)reference.Element(ds + "DigestMethod")?.Attribute("Algorithm");
             if (string.IsNullOrWhiteSpace(digestMethod)) {
                 throw new InvalidOperationException("The OPC signature Reference is missing DigestMethod.");
@@ -231,19 +235,38 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        internal static byte[] Canonicalize(XmlDocument document, bool includeComments = false) {
-            Transform transform = includeComments
-                ? new XmlDsigC14NWithCommentsTransform()
-                : new XmlDsigC14NTransform();
-            transform.LoadInput(document);
-            using Stream output = (Stream)transform.GetOutput(typeof(Stream));
-            using var memory = new MemoryStream();
-            output.CopyTo(memory);
-            return memory.ToArray();
+        internal byte[] Canonicalize(XmlDocument document, bool includeComments = false, long maxOutputBytes = 64L * 1024L * 1024L) {
+            if (_securityProvider == null) {
+                throw new NotSupportedException(
+                    "XML canonicalization requires an explicitly supplied OfficeIMO security provider.");
+            }
+            return _securityProvider.CanonicalizeXml(
+                SerializeXmlForCanonicalization(document, maxOutputBytes),
+                includeComments ? CanonicalXmlWithCommentsAlgorithm : CanonicalXmlAlgorithm,
+                maxOutputBytes: maxOutputBytes);
+        }
+
+        private static byte[] SerializeXmlForCanonicalization(XmlDocument document, long maxBytes) {
+            using var stream = new MemoryStream();
+            using (XmlWriter writer = XmlWriter.Create(stream, new XmlWriterSettings {
+                Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                Indent = false,
+                OmitXmlDeclaration = true,
+                CloseOutput = false
+            })) {
+                foreach (XmlNode node in document.ChildNodes) {
+                    if (node is not XmlDeclaration) node.WriteTo(writer);
+                }
+            }
+            if (stream.Length > maxBytes) {
+                throw new OfficePackageSignatureResourceLimitException(
+                    "XML canonicalization input exceeds the " + maxBytes + " byte output-work limit.");
+            }
+            return stream.ToArray();
         }
 
         private byte[] ApplyTransforms(string targetPartUri, XElement reference, long maxPartBytes) {
-            XNamespace ds = SignedXml.XmlDsigNamespaceUrl;
+            XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
             List<XElement> transforms = reference
                 .Element(ds + "Transforms")?
                 .Elements(ds + "Transform")
@@ -270,7 +293,8 @@ namespace OfficeIMO.Word {
                     }
                     currentBytes = Canonicalize(
                         currentXml,
-                        algorithm.Equals(CanonicalXmlWithCommentsAlgorithm, StringComparison.Ordinal));
+                        algorithm.Equals(CanonicalXmlWithCommentsAlgorithm, StringComparison.Ordinal),
+                        maxPartBytes);
                     currentXml = null;
                     continue;
                 }
@@ -385,7 +409,7 @@ namespace OfficeIMO.Word {
 
         private static Func<HashAlgorithm>? CreateHashAlgorithm(string digestMethod) {
             switch (digestMethod.Trim()) {
-                case SignedXml.XmlDsigSHA1Url:
+                case "http://www.w3.org/2000/09/xmldsig#sha1":
                     return SHA1.Create;
                 case "http://www.w3.org/2001/04/xmlenc#sha256":
                 case "http://www.w3.org/2001/04/xmldsig-more#sha256":

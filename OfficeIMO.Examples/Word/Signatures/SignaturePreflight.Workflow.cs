@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Security;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -19,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
 
             WordSignatureValidationReport validationReport;
             using (WordDocument document = WordDocument.Load(documentPath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
-                validationReport = document.ValidateSignatures();
+                validationReport = document.ValidateSignatures(OfficeSecurityProvider.Default);
             }
 
             string savePolicyMessage;

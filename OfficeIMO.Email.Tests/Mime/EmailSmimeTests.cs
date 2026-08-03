@@ -19,10 +19,16 @@ public sealed class EmailSmimeTests {
         byte[] message = CreateClearSignedMessage(signedEntity, signature);
         using EmailReadResult read = new EmailDocumentReader().Read(message);
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, TrustSelfSigned());
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            TrustSelfSigned());
 
         Assert.Equal(EmailProtectionKind.SmimeClearSigned, result.ProtectionKind);
         Assert.True(result.IsCryptographicallyValid);
+        Assert.Equal(
+            SecurityValidationStatus.Valid,
+            Assert.Single(result.Cryptography!.Signers).CertificateValidation.ChainStatus);
         Assert.Equal(signedEntity, result.SignedMimeEntity);
         Assert.Equal("Hello from clear-signed S/MIME", result.SignedContent?.Body.Text);
     }
@@ -36,7 +42,10 @@ public sealed class EmailSmimeTests {
         using EmailReadResult read = new EmailDocumentReader().Read(
             CreateClearSignedMessage(tamperedEntity, signature));
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, TrustSelfSigned());
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            TrustSelfSigned());
 
         Assert.False(result.IsCryptographicallyValid);
         Assert.Equal(SecurityValidationStatus.Invalid, result.Cryptography?.Signers[0].DigestStatus);
@@ -55,7 +64,10 @@ public sealed class EmailSmimeTests {
                 .Replace("\r\n", "\n"));
         using EmailReadResult read = new EmailDocumentReader().Read(normalizedByTransport);
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, TrustSelfSigned());
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            TrustSelfSigned());
 
         Assert.True(result.IsCryptographicallyValid);
         Assert.NotNull(result.SignedMimeEntity);
@@ -82,7 +94,10 @@ public sealed class EmailSmimeTests {
         CmsVerificationOptions options = TrustSelfSigned();
         options.MaxContentBytes = normalizedEntity.LongLength;
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, options);
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            options);
 
         Assert.False(result.IsCryptographicallyValid);
         Assert.DoesNotContain(result.Diagnostics, diagnostic =>
@@ -114,7 +129,10 @@ public sealed class EmailSmimeTests {
         using EmailReadResult read = new EmailDocumentReader().Read(
             new EmailDocumentWriter().ToBytes(source, format));
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, TrustSelfSigned());
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            TrustSelfSigned());
 
         Assert.Equal(EmailProtectionKind.SmimeClearSigned, result.ProtectionKind);
         Assert.True(result.IsCryptographicallyValid);
@@ -129,7 +147,10 @@ public sealed class EmailSmimeTests {
         byte[] cms = CmsSignedDataSigner.SignEncapsulated(content, certificate);
         using EmailReadResult read = new EmailDocumentReader().Read(CreateOpaqueMessage(cms, "signed-data"));
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, TrustSelfSigned());
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            TrustSelfSigned());
 
         Assert.Equal(EmailProtectionKind.SmimeOpaque, result.ProtectionKind);
         Assert.True(result.IsCryptographicallyValid);
@@ -145,7 +166,10 @@ public sealed class EmailSmimeTests {
         byte[] cms = CmsEnvelopedDataService.Encrypt(content, new[] { recipient });
         using EmailReadResult read = new EmailDocumentReader().Read(CreateOpaqueMessage(cms, "enveloped-data"));
 
-        EmailSmimeDecryptionResult result = EmailSmime.Decrypt(read.Document, recipient);
+        EmailSmimeDecryptionResult result = EmailSmime.Decrypt(
+            read.Document,
+            recipient,
+            OfficeSecurityProvider.Default);
 
         Assert.True(result.Decrypted);
         Assert.Equal(content, result.DecryptedMimeEntity);
@@ -161,7 +185,10 @@ public sealed class EmailSmimeTests {
             new[] { recipient });
         using EmailReadResult read = new EmailDocumentReader().Read(CreateOpaqueMessage(cms, "enveloped-data"));
 
-        EmailSmimeDecryptionResult result = EmailSmime.Decrypt(read.Document, other);
+        EmailSmimeDecryptionResult result = EmailSmime.Decrypt(
+            read.Document,
+            other,
+            OfficeSecurityProvider.Default);
 
         Assert.False(result.Decrypted);
         Assert.Contains(result.Cryptography!.Findings, finding => finding.Code == "EnvelopeRecipientNotFound");
