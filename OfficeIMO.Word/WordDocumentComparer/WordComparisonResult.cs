@@ -130,12 +130,35 @@ namespace OfficeIMO.Word {
         public string Message { get; }
     }
 
+    /// <summary>Stable disclosure for a document shape whose semantics are only partially modeled by structured comparison or redline generation.</summary>
+    public sealed class WordComparisonLimitation {
+        internal WordComparisonLimitation(string code, string message, bool sourceContainsShape, bool targetContainsShape) {
+            Code = code;
+            Message = message;
+            SourceContainsShape = sourceContainsShape;
+            TargetContainsShape = targetContainsShape;
+        }
+
+        /// <summary>Gets the stable machine-readable limitation code.</summary>
+        public string Code { get; }
+
+        /// <summary>Gets the actionable explanation of the supported boundary.</summary>
+        public string Message { get; }
+
+        /// <summary>Gets whether the source document contains the affected shape.</summary>
+        public bool SourceContainsShape { get; }
+
+        /// <summary>Gets whether the target document contains the affected shape.</summary>
+        public bool TargetContainsShape { get; }
+    }
+
     /// <summary>
     /// Machine-readable comparison result produced by <see cref="WordDocumentComparer.CompareStructure(string, string)"/>.
     /// </summary>
     public sealed partial class WordComparisonResult {
         private readonly List<WordComparisonFinding> _findings = new();
         private readonly Dictionary<WordComparisonFinding, int> _documentOrders = new();
+        private readonly List<WordComparisonLimitation> _limitations = new();
 
         internal WordComparisonResult(string sourcePath, string targetPath) {
             SourcePath = sourcePath ?? string.Empty;
@@ -154,9 +177,20 @@ namespace OfficeIMO.Word {
         /// <summary>Gets whether any differences were detected.</summary>
         public bool HasChanges => _findings.Count > 0;
 
+        /// <summary>Gets stable disclosures for encountered shapes that are not compared with complete Word layout semantics.</summary>
+        public IReadOnlyList<WordComparisonLimitation> Limitations => _limitations;
+
+        /// <summary>Gets whether comparison encountered at least one explicitly disclosed semantic boundary.</summary>
+        public bool HasLimitations => _limitations.Count > 0;
+
         internal void Add(WordComparisonFinding finding, int documentOrder = int.MaxValue) {
             _findings.Add(finding);
             _documentOrders[finding] = documentOrder;
+        }
+
+        internal void AddLimitation(WordComparisonLimitation limitation) {
+            if (_limitations.Any(existing => string.Equals(existing.Code, limitation.Code, StringComparison.Ordinal))) return;
+            _limitations.Add(limitation);
         }
 
         internal void RemoveWhere(Predicate<WordComparisonFinding> predicate) {

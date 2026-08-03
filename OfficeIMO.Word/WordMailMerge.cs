@@ -37,6 +37,18 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Replaces MERGEFIELD values and returns per-occurrence missing-value and formatting diagnostics.</summary>
+        public static WordMailMergeExecutionReport ExecuteWithReport(WordDocument document, IDictionary<string, string> values, bool removeFields = true) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (values == null) throw new ArgumentNullException(nameof(values));
+
+            var results = new List<WordMailMergeFieldResult>();
+            foreach (var root in EnumerateTemplateRoots(document)) {
+                ReplaceMergeFields(root, values, removeFields, results);
+            }
+            return new WordMailMergeExecutionReport(results);
+        }
+
         /// <summary>
         /// Creates one merged document per value set from a template file.
         /// </summary>
@@ -46,34 +58,65 @@ namespace OfficeIMO.Word {
         /// <param name="removeFields">Determines whether field codes are removed after replacement.</param>
         /// <returns>Output document paths in generation order.</returns>
         public static IReadOnlyList<string> ExecuteBatch(string templatePath, IEnumerable<IDictionary<string, string>> records, Func<int, IDictionary<string, string>, string> outputPathFactory, bool removeFields = true) {
-            if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
-            if (!File.Exists(templatePath)) throw new FileNotFoundException("Template document was not found.", templatePath);
-            if (records == null) throw new ArgumentNullException(nameof(records));
-            if (outputPathFactory == null) throw new ArgumentNullException(nameof(outputPathFactory));
-
-            var recordList = records.ToList();
-            var outputPaths = new List<string>(recordList.Count);
-            for (int index = 0; index < recordList.Count; index++) {
-                IDictionary<string, string> values = recordList[index] ?? throw new ArgumentException("Records cannot contain null value dictionaries.", nameof(records));
-                string outputPath = outputPathFactory(index, values);
-                if (string.IsNullOrWhiteSpace(outputPath)) {
-                    throw new InvalidOperationException($"Output path for record {index} cannot be empty.");
-                }
-
-                string? directory = Path.GetDirectoryName(outputPath);
-                if (!string.IsNullOrWhiteSpace(directory)) {
-                    Directory.CreateDirectory(directory!);
-                }
-
+            ValidateBatchArguments(templatePath, records, outputPathFactory);
+            var outputPaths = new List<string>();
+            int index = 0;
+            foreach (IDictionary<string, string>? record in records) {
+                IDictionary<string, string> values = record ?? throw new ArgumentException("Records cannot contain null value dictionaries.", nameof(records));
+                string outputPath = PrepareBatchOutputPath(index, values, outputPathFactory);
                 using (WordDocument document = WordDocument.Load(templatePath)) {
                     Execute(document, values, removeFields);
                     document.Save(outputPath);
                 }
-
                 outputPaths.Add(outputPath);
+                index++;
+            }
+            return outputPaths;
+        }
+
+        /// <summary>Creates one merged document per record and returns each output with its per-field execution report.</summary>
+        public static WordMailMergeBatchResult ExecuteBatchWithReport(string templatePath, IEnumerable<IDictionary<string, string>> records, Func<int, IDictionary<string, string>, string> outputPathFactory, bool removeFields = true) {
+            ValidateBatchArguments(templatePath, records, outputPathFactory);
+
+            var recordList = records.ToList();
+            var items = new List<WordMailMergeBatchItemResult>(recordList.Count);
+            for (int index = 0; index < recordList.Count; index++) {
+                IDictionary<string, string> values = recordList[index] ?? throw new ArgumentException("Records cannot contain null value dictionaries.", nameof(records));
+                string outputPath = PrepareBatchOutputPath(index, values, outputPathFactory);
+
+                WordMailMergeExecutionReport execution;
+                using (WordDocument document = WordDocument.Load(templatePath)) {
+                    execution = ExecuteWithReport(document, values, removeFields);
+                    document.Save(outputPath);
+                }
+
+                items.Add(new WordMailMergeBatchItemResult(index, outputPath, execution));
             }
 
-            return outputPaths;
+            return new WordMailMergeBatchResult(items);
+        }
+
+        private static void ValidateBatchArguments(
+            string templatePath,
+            IEnumerable<IDictionary<string, string>> records,
+            Func<int, IDictionary<string, string>, string> outputPathFactory) {
+            if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
+            if (!File.Exists(templatePath)) throw new FileNotFoundException("Template document was not found.", templatePath);
+            if (records == null) throw new ArgumentNullException(nameof(records));
+            if (outputPathFactory == null) throw new ArgumentNullException(nameof(outputPathFactory));
+        }
+
+        private static string PrepareBatchOutputPath(
+            int index,
+            IDictionary<string, string> values,
+            Func<int, IDictionary<string, string>, string> outputPathFactory) {
+            string outputPath = outputPathFactory(index, values);
+            if (string.IsNullOrWhiteSpace(outputPath)) {
+                throw new InvalidOperationException($"Output path for record {index} cannot be empty.");
+            }
+            string? directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory!);
+            return outputPath;
         }
 
         /// <summary>
@@ -237,6 +280,8 @@ namespace OfficeIMO.Word {
 
             foreach (var root in EnumerateTemplateRoots(document)) {
                 mergeFields.AddRange(EnumerateMergeFieldNames(root));
+                issues.AddRange(EnumerateMalformedMergeFieldIssues(root));
+                issues.AddRange(EnumerateUnsupportedMergeFieldFormattingIssues(root));
                 issues.AddRange(EnumerateUnsupportedMailMergeControlFieldIssues(root));
                 var conditionalInspection = InspectConditionalBlocks(root);
                 conditionalNames.AddRange(conditionalInspection.Names);

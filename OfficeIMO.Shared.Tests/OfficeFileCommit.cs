@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -122,6 +123,126 @@ namespace OfficeIMO.Shared.Tests {
                 Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(destination));
                 Assert.False(File.Exists(temporary));
                 Assert.Empty(Directory.GetFiles(root, "*.bak"));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void GuardedAtomicCommit_RestoresAChangedDestination() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporary = Path.Combine(root, "artifact.staged.bin");
+            byte[] expectedOriginal = { 1, 2, 3, 4 };
+            byte[] concurrentEdit = { 5, 6, 7, 8 };
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, concurrentEdit);
+            File.WriteAllBytes(temporary, new byte[] { 9, 8, 7 });
+
+            try {
+                bool committed = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+                    temporary,
+                    destination,
+                    displaced => File.ReadAllBytes(displaced).SequenceEqual(expectedOriginal));
+
+                Assert.False(committed);
+                Assert.Equal(concurrentEdit, File.ReadAllBytes(destination));
+                Assert.False(File.Exists(temporary));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void GuardedAtomicCommit_RestoresDestinationWhenInstalledStageDoesNotMatch() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporary = Path.Combine(root, "artifact.staged.bin");
+            byte[] expectedOriginal = { 1, 2, 3, 4 };
+            byte[] expectedStage = { 9, 8, 7 };
+            byte[] replacedStage = { 6, 6, 6 };
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, expectedOriginal);
+            File.WriteAllBytes(temporary, replacedStage);
+
+            try {
+                bool committed = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+                    temporary,
+                    destination,
+                    displaced => File.ReadAllBytes(displaced).SequenceEqual(expectedOriginal),
+                    installed => File.ReadAllBytes(installed).SequenceEqual(expectedStage));
+
+                Assert.False(committed);
+                Assert.Equal(expectedOriginal, File.ReadAllBytes(destination));
+                Assert.False(File.Exists(temporary));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void GuardedAtomicCommit_PreservesSaveThatRacesWithRollback() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporary = Path.Combine(root, "artifact.staged.bin");
+            byte[] expectedOriginal = { 1, 2, 3, 4 };
+            byte[] staged = { 9, 8, 7 };
+            byte[] newerSave = { 5, 6, 7, 8 };
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, expectedOriginal);
+            File.WriteAllBytes(temporary, staged);
+
+            try {
+                bool committed = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+                    temporary,
+                    destination,
+                    displaced => {
+                        Assert.Equal(expectedOriginal, File.ReadAllBytes(displaced));
+                        File.WriteAllBytes(destination, newerSave);
+                        return false;
+                    });
+
+                Assert.False(committed);
+                Assert.Equal(newerSave, File.ReadAllBytes(destination));
+                Assert.False(File.Exists(temporary));
+                Assert.Single(Directory.GetFiles(root));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void GuardedAtomicCommit_PreservesSaveDisplacedBySecondRollbackReplacement() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporary = Path.Combine(root, "artifact.staged.bin");
+            byte[] expectedOriginal = { 1, 2, 3, 4 };
+            byte[] staged = { 9, 8, 7 };
+            byte[] firstConcurrentSave = { 5, 6, 7, 8 };
+            byte[] secondConcurrentSave = { 4, 3, 2, 1 };
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, expectedOriginal);
+            File.WriteAllBytes(temporary, staged);
+
+            try {
+                IOException exception = Assert.Throws<IOException>(() =>
+                    OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchangedForTesting(
+                        temporary,
+                        destination,
+                        displaced => {
+                            Assert.Equal(expectedOriginal, File.ReadAllBytes(displaced));
+                            File.WriteAllBytes(destination, firstConcurrentSave);
+                            return false;
+                        },
+                        installedFileMatchesExpected: null,
+                        afterFirstRollbackReplacement: target => File.WriteAllBytes(target, secondConcurrentSave)));
+
+                Assert.Equal(firstConcurrentSave, File.ReadAllBytes(destination));
+                string preservedPath = Assert.Single(
+                    Directory.GetFiles(root),
+                    path => !string.Equals(path, destination, StringComparison.Ordinal));
+                Assert.Equal(secondConcurrentSave, File.ReadAllBytes(preservedPath));
+                Assert.Contains(preservedPath, exception.Message, StringComparison.Ordinal);
             } finally {
                 if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
             }

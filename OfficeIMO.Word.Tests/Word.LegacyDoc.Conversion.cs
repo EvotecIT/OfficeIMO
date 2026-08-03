@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
@@ -7,6 +8,122 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Fact]
+        public void LegacyDoc_WriteAssessment_UsesTheRealWriterWithoutCommittingAnArtifact() {
+            using (WordDocument supportedDocument = WordDocument.Create()) {
+                supportedDocument.AddParagraph("Assessment body");
+
+                LegacyDocWriteAssessment supported = supportedDocument.AssessLegacyDocWrite();
+
+                Assert.True(supported.IsSupported);
+                Assert.Equal("LegacyDocWriteSupported", supported.DiagnosticCode);
+                Assert.True(supported.EncodedByteCount > 0);
+                Assert.Same(supported, supported.EnsureSupported());
+            }
+
+            byte[] unsupportedBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Preserve-only body");
+            using WordDocument unsupportedDocument = WordDocument.Load(new MemoryStream(unsupportedBytes));
+
+            LegacyDocWriteAssessment unsupported = unsupportedDocument.AssessLegacyDocWrite();
+
+            Assert.False(unsupported.IsSupported);
+            Assert.Equal("LegacyDocWriteUnsupported", unsupported.DiagnosticCode);
+            Assert.Null(unsupported.EncodedByteCount);
+            Assert.Throws<NotSupportedException>(() => unsupported.EnsureSupported());
+        }
+
+        [Fact]
+        public void LegacyDoc_WriteAssessment_DoesNotNormalizeTheLiveDocument() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Assessment must not mutate this document");
+            Body body = document._wordprocessingDocument.MainDocumentPart!.Document.Body!;
+            SectionProperties sectionProperties = Assert.Single(body.Elements<SectionProperties>());
+            sectionProperties.Remove();
+            body.PrependChild(sectionProperties);
+            string bodyBeforeAssessment = body.OuterXml;
+
+            LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+
+            Assert.True(assessment.IsSupported);
+            Assert.Equal(bodyBeforeAssessment, body.OuterXml);
+        }
+
+        [Fact]
+        public void LegacyDoc_WriteAssessment_PreservesAutomaticTocRefreshState() {
+            using WordDocument document = WordDocument.Create();
+            document.AddTableOfContent();
+            var heading = document.AddParagraph("Assessment heading");
+            heading.Style = WordParagraphStyles.Heading1;
+            document.AutoUpdateToc = true;
+
+            LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+            NotSupportedException saveFailure = Assert.Throws<NotSupportedException>(() =>
+                document.ToBytes(WordFileFormat.Doc));
+
+            Assert.False(assessment.IsSupported);
+            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
+            Assert.Contains("TOCHeading", assessment.Message, StringComparison.Ordinal);
+            Assert.Equal(saveFailure.Message, assessment.Message);
+        }
+
+        [Fact]
+        public void LegacyDoc_WriteAssessment_AssessesReadOnlyDocumentsThroughAWritableClone() {
+            string path = Path.Combine(_directoryWithFiles, "LegacyDocReadOnlyAssessment.docx");
+            using (WordDocument created = WordDocument.Create(path)) {
+                created.AddParagraph("Read-only assessment body");
+                created.Save();
+            }
+
+            using WordDocument readOnly = WordDocument.Load(path, new WordLoadOptions {
+                AccessMode = DocumentAccessMode.ReadOnly
+            });
+
+            LegacyDocWriteAssessment assessment = readOnly.AssessLegacyDocWrite();
+
+            Assert.True(assessment.IsSupported);
+            Assert.Equal("LegacyDocWriteSupported", assessment.DiagnosticCode);
+            Assert.True(assessment.EncodedByteCount > 0);
+        }
+
+        [Fact]
+        public void LegacyDoc_WriteAssessment_ReportsSignedDocumentSavePolicyWithoutThrowing() {
+            string path = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            using (WordDocument created = WordDocument.Create(path)) {
+                created.AddParagraph("Signed assessment body");
+                created.Save();
+            }
+            AddDigitalSignatureMetadata(path, CreateSignatureXml());
+
+            using WordDocument signed = WordDocument.Load(path);
+            LegacyDocWriteAssessment assessment = signed.AssessLegacyDocWrite();
+
+            Assert.False(assessment.IsSupported);
+            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
+            Assert.Null(assessment.EncodedByteCount);
+            Assert.Contains("AllowSignatureInvalidation", assessment.Message, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LegacyDoc_WriteAssessment_ReportsMissingDocumentStructureWithoutThrowing(bool removeMainPart) {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Body removed through the public Open XML surface");
+            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+            if (removeMainPart) {
+                document._wordprocessingDocument.DeletePart(mainPart);
+            } else {
+                mainPart.Document!.Body!.Remove();
+            }
+
+            LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+
+            Assert.False(assessment.IsSupported);
+            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
+            Assert.Null(assessment.EncodedByteCount);
+            Assert.Contains("body is missing", assessment.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
         [Fact]
         public void LegacyDoc_Convert_DocxToDocAndBack_RoundTripsSupportedContent() {
             string docxPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");

@@ -608,9 +608,12 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("## Reader and document intelligence", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Email, stores, and cloud adapters", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Browser and agent surfaces", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
-        Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
-        Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("cross-platform package signing", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("VBA macro-project signing", roadmap, StringComparison.Ordinal);
+        Assert.Contains("advanced drawing, imported chart mutation, SmartArt editing", roadmap, StringComparison.Ordinal);
+        Assert.Contains("effective-formatting and true move semantics", roadmap, StringComparison.Ordinal);
+        Assert.Contains("aggregate budgets for supported non-image resources", roadmap, StringComparison.Ordinal);
         Assert.Contains("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
         Assert.Contains("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
         Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);

@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         /// <summary>All template binding operations requested by the supplied data can run without known template issues.</summary>
         BindTemplate,
 
-        /// <summary>MERGEFIELD values can be bound without missing supplied values.</summary>
+        /// <summary>MERGEFIELD values can be bound without missing values or malformed nested fields.</summary>
         BindMergeFields,
 
         /// <summary>Conditional block markers can be evaluated without missing values or marker structure issues.</summary>
@@ -88,7 +88,10 @@ namespace OfficeIMO.Word {
                 case WordTemplatePreflightCapability.BindTemplate:
                     return Issues.ToArray();
                 case WordTemplatePreflightCapability.BindMergeFields:
-                    return Issues.Where(issue => issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue).ToArray();
+                    return Issues.Where(issue =>
+                        issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue ||
+                        issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting ||
+                        issue.Kind == WordMailMergeTemplateIssueKind.MalformedMergeField).ToArray();
                 case WordTemplatePreflightCapability.BindConditionalBlocks:
                     return Issues.Where(IsConditionalIssue).ToArray();
                 case WordTemplatePreflightCapability.BindRepeatingBlocks:

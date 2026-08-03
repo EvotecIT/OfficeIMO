@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            element.SetAttribute("id", name);
+            SetOutputAttribute(element, "id", name, "Bookmark:id");
         }
 
         private bool TryGetHtmlBookmarkName(WordParagraph paragraph, out string name) {

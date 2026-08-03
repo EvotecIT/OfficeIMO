@@ -13,7 +13,8 @@ namespace OfficeIMO.Word {
             bool hasApplicationSignatureMetadata,
             IReadOnlyList<WordSignaturePartInfo> signatureParts,
             IReadOnlyList<string> unsupportedDetails,
-            IReadOnlyList<string> details) {
+            IReadOnlyList<string> details,
+            bool inspectionResourceLimitExceeded = false) {
             HasDigitalSignatureOriginPart = hasDigitalSignatureOriginPart;
             OriginPartUri = originPartUri;
             OriginRelationshipId = originRelationshipId;
@@ -21,6 +22,7 @@ namespace OfficeIMO.Word {
             SignatureParts = signatureParts;
             UnsupportedDetails = unsupportedDetails;
             Details = details;
+            InspectionResourceLimitExceeded = inspectionResourceLimitExceeded;
         }
 
         /// <summary>
@@ -63,6 +65,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<string> Details { get; }
 
+        /// <summary>Gets whether bounded inspection stopped before package-part traversal at a caller-owned resource limit.</summary>
+        internal bool InspectionResourceLimitExceeded { get; }
+
         /// <summary>
         /// Gets a count suitable for feature-report findings.
         /// </summary>
@@ -79,7 +84,8 @@ namespace OfficeIMO.Word {
                 packageInfo.HasApplicationSignatureMetadata,
                 packageInfo.SignatureParts.Select(WordSignaturePartInfo.FromPackagePart).ToArray(),
                 packageInfo.UnsupportedDetails,
-                packageInfo.Details);
+                packageInfo.Details,
+                packageInfo.InspectionResourceLimitExceeded);
         }
     }
 
@@ -213,7 +219,7 @@ namespace OfficeIMO.Word {
         /// <summary>Gets XML DSig transform algorithms declared on the reference.</summary>
         public IReadOnlyList<string> TransformAlgorithms { get; }
 
-        /// <summary>Gets bounded digest-verification status for simple package-part references.</summary>
+        /// <summary>Gets bounded digest-verification status after applying supported OPC transforms.</summary>
         public WordSignatureValidationState DigestVerificationStatus { get; }
 
         /// <summary>Gets a deterministic digest-verification detail or unsupported reason.</summary>
@@ -277,11 +283,34 @@ namespace OfficeIMO.Word {
         internal static WordSignatureInfo Inspect(
             WordprocessingDocument package,
             DigitalSignatureOriginPart? originPart,
-            bool hasApplicationSignatureMetadata) {
+            bool hasApplicationSignatureMetadata,
+            byte[]? packageBytes = null,
+            int maxPackageParts = 10000,
+            long maxPartBytes = 256L * 1024 * 1024,
+            int maxSignedReferences = 4096,
+            long maxTotalDigestBytes = 512L * 1024 * 1024,
+            long maxSignatureBytes = 16L * 1024 * 1024,
+            int maxCertificates = 64,
+            long maxCertificateBytes = 4L * 1024 * 1024,
+            long maxTotalCertificateBytes = 64L * 1024 * 1024,
+            bool verifyDigests = true) {
             if (package == null) throw new ArgumentNullException(nameof(package));
 
             return WordSignatureInfo.FromPackageInfo(
-                OfficePackageSignatureInspector.Inspect(package, originPart, hasApplicationSignatureMetadata));
+                OfficePackageSignatureInspector.Inspect(
+                    package,
+                    originPart,
+                    hasApplicationSignatureMetadata,
+                    packageBytes,
+                    maxPackageParts,
+                    maxPartBytes,
+                    maxSignedReferences,
+                    maxTotalDigestBytes,
+                    maxSignatureBytes,
+                    maxCertificates,
+                    maxCertificateBytes,
+                    maxTotalCertificateBytes,
+                    verifyDigests));
         }
     }
 }

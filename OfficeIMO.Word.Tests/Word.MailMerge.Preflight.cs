@@ -90,6 +90,202 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_PreflightRejectsFormattingOutsideExecutionProfile() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("placeholder"))) {
+                Instruction = " MERGEFIELD Name \\b \"Dear \" "
+            });
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Name" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Ada" });
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.False(preflight.Can(WordTemplatePreflightCapability.BindMergeFields));
+            Assert.Contains(preflight.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting &&
+                issue.Name == "Name" &&
+                issue.Message.Contains("\\b", StringComparison.Ordinal));
+            Assert.Equal(WordMailMergeFieldStatus.UnsupportedFormatting, Assert.Single(execution.Fields).Status);
+        }
+
+        [Fact]
+        public void Test_MailMerge_PreflightRejectsConflictingPictureSwitches() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("placeholder"))) {
+                Instruction = " MERGEFIELD Value \\# \"0.00\" \\@ \"yyyy\" "
+            });
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Value" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Value"] = "123.45" });
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Contains(preflight.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting &&
+                issue.Name == "Value" &&
+                issue.Message.Contains("cannot combine", StringComparison.Ordinal));
+            Assert.Equal(WordMailMergeFieldStatus.UnsupportedFormatting, Assert.Single(execution.Fields).Status);
+            Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SimpleField>());
+        }
+
+        [Fact]
+        public void Test_MailMerge_PreflightRejectsExplicitlyEmptyDatePicture() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("placeholder"))) {
+                Instruction = " MERGEFIELD EventTime \\@ \"\" "
+            });
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "EventTime" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["EventTime"] = "2026-08-01T10:00:00Z" });
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Contains(preflight.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting &&
+                issue.Name == "EventTime" &&
+                issue.Message.Contains("empty picture", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(WordMailMergeFieldStatus.UnsupportedFormatting, Assert.Single(execution.Fields).Status);
+            Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SimpleField>());
+        }
+
+        [Fact]
+        public void Test_MailMerge_PreflightRejectsUnsupportedNonzeroNumericPictureSection() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("placeholder"))) {
+                Instruction = " MERGEFIELD Value \\# \"0;*\" "
+            });
+
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Value" });
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Value"] = "-1" });
+
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Contains(preflight.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMergeFieldFormatting &&
+                issue.Name == "Value" &&
+                issue.Message.Contains("dangling fill", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(WordMailMergeFieldStatus.UnsupportedFormatting, Assert.Single(execution.Fields).Status);
+            Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SimpleField>());
+        }
+
+        [Fact]
+        public void Test_MailMerge_PreflightKeepsOuterFieldSeparateFromNestedTextBoxParagraph() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph outerParagraph = document.AddParagraph();
+            WordTextBox textBox = outerParagraph.AddTextBoxVml("nested placeholder");
+            Paragraph nestedParagraph = textBox.Content!.Descendants<Paragraph>().Single();
+            nestedParagraph.RemoveAllChildren();
+            nestedParagraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Inner ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("inner placeholder")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            Run textBoxRun = outerParagraph._paragraph.Elements<Run>().Single();
+            outerParagraph._paragraph.InsertBefore(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }), textBoxRun);
+            outerParagraph._paragraph.InsertBefore(new Run(new FieldCode(" MERGEFIELD Outer ")), textBoxRun);
+            outerParagraph._paragraph.InsertBefore(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }), textBoxRun);
+            outerParagraph._paragraph.InsertAfter(new Run(new FieldChar { FieldCharType = FieldCharValues.End }), textBoxRun);
+
+            WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(
+                document,
+                mergeFieldNames: new[] { "Inner" });
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "Inner" });
+
+            Assert.Equal(new[] { "Inner", "Outer" }, inspection.MergeFieldNames);
+            Assert.Contains(inspection.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue &&
+                issue.Name == "Outer");
+            Assert.Equal(2, preflight.MergeFieldCount);
+            Assert.False(preflight.CanBindTemplate);
+        }
+
+        [Fact]
+        public void Test_MailMerge_PreflightReadsComplexInstructionFromBeginRun() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(
+                new Run(
+                    new FieldChar { FieldCharType = FieldCharValues.Begin },
+                    new FieldCode(" MERGEFIELD SameRun ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("placeholder")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(
+                document,
+                mergeFieldNames: Array.Empty<string>());
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: Array.Empty<string>());
+            WordMailMergeExecutionReport execution = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string>());
+
+            Assert.Equal(new[] { "SameRun" }, inspection.MergeFieldNames);
+            Assert.Contains(inspection.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue &&
+                issue.Name == "SameRun");
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Equal(WordMailMergeFieldStatus.MissingValue, Assert.Single(execution.Fields).Status);
+        }
+
+        [Fact]
+        public void Test_MailMerge_PreflightKeepsOuterFieldsAroundNestedInlineContentControls() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" NEXTIF \"Status\" = \"Active\" ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                CreatePreflightInlineComplexField(" MERGEFIELD InnerControl "),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            document.AddParagraph()._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD Outer ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                CreatePreflightInlineComplexField(" MERGEFIELD InnerMerge "),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(
+                document,
+                mergeFieldNames: new[] { "InnerControl", "InnerMerge" });
+            WordTemplatePreflightReport preflight = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "InnerControl", "InnerMerge" });
+            WordTemplatePreflightReport fullySupplied = WordMailMerge.PreflightTemplate(
+                document,
+                mergeFieldNames: new[] { "InnerControl", "InnerMerge", "Outer" });
+
+            Assert.Equal(new[] { "InnerControl", "InnerMerge", "Outer" }, inspection.MergeFieldNames);
+            Assert.Contains(inspection.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.UnsupportedMailMergeControlField &&
+                issue.Name == "NEXTIF");
+            Assert.Contains(inspection.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MissingMergeFieldValue &&
+                issue.Name == "Outer");
+            Assert.False(preflight.CanBindTemplate);
+            Assert.Contains(fullySupplied.Issues, issue =>
+                issue.Kind == WordMailMergeTemplateIssueKind.MalformedMergeField);
+            Assert.False(fullySupplied.Can(WordTemplatePreflightCapability.BindMergeFields));
+            Assert.False(fullySupplied.CanBindTemplate);
+        }
+
+        [Fact]
         public void Test_MailMerge_PreflightTemplateSeesTableCellTemplateMarkersAfterSaveLoad() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergePreflightTableCellMarkers.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -287,6 +483,16 @@ namespace OfficeIMO.Tests {
             return new SimpleField(new Run(new Text("Placeholder"))) {
                 Instruction = " MERGEFIELD  \"" + name + "\" "
             };
+        }
+
+        private static SdtRun CreatePreflightInlineComplexField(string instruction) {
+            return new SdtRun(
+                new SdtContentRun(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(instruction)),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("nested placeholder")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
         }
 
         private static Paragraph CreatePreflightComplexFieldParagraph(string instruction, string result) {

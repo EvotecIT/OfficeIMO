@@ -13,16 +13,6 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Add shared conversion reports and strict no-loss policies wherever an adapter can simplify, omit, rasterize, or preserve unsupported content.
 - [ ] Keep public surfaces small: add reusable capability to the owning core package and keep CLI, PowerShell, website, MCP, Reader, and converter adapters thin.
 
-## Word
-
-- [ ] Complete XML-signature validation, including transform-aware OPC digests, certificate-chain trust, revocation, and timestamp-authority validation; add cross-platform package signing and keep macro-project signing as a separate explicit capability.
-- [ ] Broaden imported review and redline corpus coverage, including bounded nested tables, notes, headers, footers, text boxes, and content-control shapes.
-- [ ] Extend structured comparison and redline generation one explicit document shape at a time, with stable reports for unsupported effective-formatting and move semantics.
-- [ ] Complete field evaluation and refresh for the supported TOC, index, caption, list, and cross-reference profiles; keep locale-sensitive and layout-dependent limits explicit.
-- [ ] Extend template and mail-merge workflows where the [scenario matrix](officeimo.word-template-mail-merge-scenarios.md) remains partial.
-- [ ] Deepen Word/HTML fidelity, resource budgeting, bidirectional conversion diagnostics, and real-world corpus proof against the [support matrix](officeimo.word-html-support-matrix.md).
-- [ ] Improve legacy DOC semantic import and guarded round-trip coverage without implying unsupported native DOC authoring.
-
 ## Excel
 
 - [ ] Build one reusable reference syntax tree and rewriter for formulas, names, tables, charts, pivots, print definitions, and structural edits.
@@ -46,6 +36,14 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Complete advanced Visio resize-to-content and broader whole-diagram relayout and polish for dense imported diagrams.
 - [ ] Add typed Visio APIs for data graphics, legends, and additional high-value ShapeSheet sections and formulas while continuing to preserve unmodeled package content explicitly.
 - [ ] Prove Visio template, stencil, and macro-enabled package variants with representative load, reader, and conversion fixtures before advertising them beyond the current `.vsdx` boundary.
+
+## Word
+
+- [ ] Deepen advanced drawing, imported chart mutation, SmartArt editing, grouping, anchoring, and Word-exact layout evidence beyond the current bounded shapes.
+- [ ] Extend structured comparison and redline generation one documented shape at a time while keeping effective-formatting and true move semantics explicit until their stable contracts exist.
+- [ ] Complete the remaining locale-sensitive, layout-dependent, complex-table, nested-instruction, and native `LISTNUM` field profiles without approximating unsupported results silently.
+- [ ] Broaden Word/HTML reciprocal fidelity for ruby, forms, nested tables and list blocks, figures, comments, headers, footers, sections, properties, and accessibility metadata; finish mapped CSS-value diagnostics and aggregate budgets for supported non-image resources.
+- [ ] Expand producer-provenanced review, redline, template, mail-merge, legacy DOC, Word/HTML, rendering, and performance corpora while preserving guarded loss reports and avoiding unsupported native DOC authoring claims.
 
 ## PDF, HTML, and image rendering
 

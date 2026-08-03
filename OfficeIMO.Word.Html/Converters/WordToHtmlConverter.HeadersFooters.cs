@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using System.Threading;
@@ -24,13 +25,13 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (headers) {
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Default, "header", "default", sectionIndex, appendParagraph, appendTable, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.First, "header", "first", sectionIndex, appendParagraph, appendTable, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Even, "header", "even", sectionIndex, appendParagraph, appendTable, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Default, "header", "default", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.First, "header", "first", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Even, "header", "even", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
             } else {
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Default, "footer", "default", sectionIndex, appendParagraph, appendTable, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.First, "footer", "first", sectionIndex, appendParagraph, appendTable, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Even, "footer", "even", sectionIndex, appendParagraph, appendTable, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Default, "footer", "default", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.First, "footer", "first", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Even, "footer", "even", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
             }
         }
 
@@ -43,16 +44,26 @@ namespace OfficeIMO.Word.Html {
             int sectionIndex,
             AppendWordParagraphHtml appendParagraph,
             AppendWordTableHtml appendTable,
+            WordToHtmlOptions options,
             CancellationToken cancellationToken) {
             if (headerFooter == null || !HasRenderableHeaderFooterContent(headerFooter)) {
                 return;
             }
 
-            var element = htmlDoc.CreateElement(tagName);
+            OpenXmlElement? contentRoot = (OpenXmlElement?)headerFooter._header ?? headerFooter._footer;
+            if (contentRoot != null) {
+                ReserveOutputCharacters(
+                    htmlDoc,
+                    MeasureOutputContentCharacters(contentRoot),
+                    "Repeated Word header or footer content exceeds the configured HTML output-character limit before DOM construction.",
+                    "HeaderFooter:" + tagName + ":" + type + ":section-" + sectionIndex.ToString(CultureInfo.InvariantCulture));
+            }
+
+            var element = CreateOutputElement(htmlDoc, tagName);
             var kind = string.Equals(tagName, "header", StringComparison.OrdinalIgnoreCase) ? "header" : "footer";
-            element.SetAttribute("class", $"word-{kind} word-{kind}-{type}");
-            element.SetAttribute("data-section-index", sectionIndex.ToString(CultureInfo.InvariantCulture));
-            element.SetAttribute("data-type", type);
+            SetOutputAttribute(element, "class", $"word-{kind} word-{kind}-{type}", "HeaderFooter:class");
+            SetOutputAttribute(element, "data-section-index", sectionIndex.ToString(CultureInfo.InvariantCulture), "HeaderFooter:section-index");
+            SetOutputAttribute(element, "data-type", type, "HeaderFooter:type");
 
             foreach (var child in headerFooter.Elements) {
                 cancellationToken.ThrowIfCancellationRequested();

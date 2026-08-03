@@ -33,7 +33,9 @@ namespace OfficeIMO.Word {
             WordSignatureValidationState timestampStatus,
             WordSignatureValidationState signedPartCoverageStatus,
             WordSignatureValidationState signedPartDigestStatus,
-            IReadOnlyList<string> findings) {
+            IReadOnlyList<string> findings,
+            IReadOnlyList<WordSignaturePartValidationResult>? signatures = null,
+            IReadOnlyList<WordSignatureValidationFinding>? diagnostics = null) {
             SignatureInfo = signatureInfo ?? throw new ArgumentNullException(nameof(signatureInfo));
             PackageStructureStatus = packageStructureStatus;
             XmlSignatureStatus = xmlSignatureStatus;
@@ -44,6 +46,8 @@ namespace OfficeIMO.Word {
             SignedPartCoverageStatus = signedPartCoverageStatus;
             SignedPartDigestStatus = signedPartDigestStatus;
             Findings = findings ?? Array.Empty<string>();
+            Signatures = signatures ?? Array.Empty<WordSignaturePartValidationResult>();
+            Diagnostics = diagnostics ?? Array.Empty<WordSignatureValidationFinding>();
         }
 
         /// <summary>
@@ -67,22 +71,22 @@ namespace OfficeIMO.Word {
         public WordSignatureValidationState XmlSignatureStatus { get; }
 
         /// <summary>
-        /// Gets cryptographic signature status. OfficeIMO.Word currently does not perform cryptographic validation.
+        /// Gets XML DSig signature-value and signed-object validation status.
         /// </summary>
         public WordSignatureValidationState CryptographicStatus { get; }
 
         /// <summary>
-        /// Gets certificate-chain trust status. OfficeIMO.Word currently does not perform certificate-chain validation.
+        /// Gets signer certificate-chain trust status under caller policy.
         /// </summary>
         public WordSignatureValidationState CertificateChainStatus { get; }
 
         /// <summary>
-        /// Gets revocation status. OfficeIMO.Word currently does not perform revocation checks.
+        /// Gets signer certificate revocation status under caller policy.
         /// </summary>
         public WordSignatureValidationState RevocationStatus { get; }
 
         /// <summary>
-        /// Gets timestamp status. OfficeIMO.Word reports presence separately from timestamp validation, which is not performed.
+        /// Gets RFC 3161 timestamp-authority token validation status. Claimed signing times alone are not trusted timestamps.
         /// </summary>
         public WordSignatureValidationState TimestampStatus { get; }
 
@@ -92,7 +96,7 @@ namespace OfficeIMO.Word {
         public WordSignatureValidationState SignedPartCoverageStatus { get; }
 
         /// <summary>
-        /// Gets bounded signed package-part digest verification status for simple references without XML DSig transforms.
+        /// Gets bounded signed package-part digest verification status, including supported OPC relationship and canonicalization transforms.
         /// </summary>
         public WordSignatureValidationState SignedPartDigestStatus { get; }
 
@@ -100,6 +104,12 @@ namespace OfficeIMO.Word {
         /// Gets deterministic validation findings and unsupported validation details.
         /// </summary>
         public IReadOnlyList<string> Findings { get; }
+
+        /// <summary>Gets cryptographic and trust results for each XML signature part.</summary>
+        public IReadOnlyList<WordSignaturePartValidationResult> Signatures { get; }
+
+        /// <summary>Gets stable machine-readable validation diagnostics.</summary>
+        public IReadOnlyList<WordSignatureValidationFinding> Diagnostics { get; }
 
         /// <summary>
         /// Gets whether all checks OfficeIMO.Word currently performs passed.
@@ -109,6 +119,16 @@ namespace OfficeIMO.Word {
             XmlSignatureStatus == WordSignatureValidationState.Passed &&
             SignedPartCoverageStatus == WordSignatureValidationState.Passed &&
             SignedPartDigestStatus != WordSignatureValidationState.Failed;
+
+        /// <summary>
+        /// Gets whether package structure, transform-aware digests, signature math, and caller-selected trust policy passed.
+        /// A revocation or timestamp check that was not requested does not make the signature invalid.
+        /// </summary>
+        public bool IsValidUnderPolicy =>
+            IsStructurallyValid &&
+            SignedPartDigestStatus == WordSignatureValidationState.Passed &&
+            Signatures.Count > 0 &&
+            Signatures.All(signature => signature.IsValidUnderPolicy);
 
         /// <summary>
         /// Creates a validation report from signature inspection metadata without performing cryptographic trust checks.
@@ -168,11 +188,11 @@ namespace OfficeIMO.Word {
             }
 
             if (signatureInfo.HasSignatures) {
-                findings.Add("Cryptographic signature validation is not performed by OfficeIMO.Word.");
-                findings.Add("Certificate-chain trust validation is not performed by OfficeIMO.Word.");
-                findings.Add("Revocation validation is not performed by OfficeIMO.Word.");
+                findings.Add("Cryptographic signature validation is not part of this structural-only report.");
+                findings.Add("Certificate-chain trust validation is not part of this structural-only report.");
+                findings.Add("Revocation validation is not part of this structural-only report.");
                 if (HasTimestampMetadata(signatureInfo)) {
-                    findings.Add("Signature timestamp metadata was found, but timestamp validation is not performed by OfficeIMO.Word.");
+                    findings.Add("Signature time metadata was found; only RFC 3161 tokens can establish a trusted timestamp.");
                 } else {
                     findings.Add("No signature timestamp metadata was found.");
                 }
@@ -193,6 +213,74 @@ namespace OfficeIMO.Word {
                 signedPartCoverageStatus,
                 signedPartDigestStatus,
                 findings.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+        }
+
+        internal static WordSignatureValidationReport WithCryptographicValidation(
+            WordSignatureValidationReport structural,
+            IReadOnlyList<WordSignaturePartValidationResult> signatures) {
+            if (structural == null) throw new ArgumentNullException(nameof(structural));
+            if (signatures == null) throw new ArgumentNullException(nameof(signatures));
+
+            WordSignatureValidationFinding[] diagnostics = signatures
+                .SelectMany(signature => signature.Findings)
+                .ToArray();
+            string[] findings = structural.Findings
+                .Where(finding => !finding.Contains("not part of this structural-only report", StringComparison.OrdinalIgnoreCase) &&
+                                  !finding.Contains("only RFC 3161 tokens can establish", StringComparison.OrdinalIgnoreCase))
+                .Concat(diagnostics.Select(diagnostic => diagnostic.Message))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            return new WordSignatureValidationReport(
+                structural.SignatureInfo,
+                structural.PackageStructureStatus,
+                structural.XmlSignatureStatus,
+                Aggregate(signatures.Select(signature => signature.CryptographicStatus)),
+                Aggregate(signatures.Select(signature => signature.CertificateChainStatus)),
+                Aggregate(signatures.Select(signature => signature.RevocationStatus)),
+                Aggregate(signatures.Select(signature => signature.TimestampStatus)),
+                structural.SignedPartCoverageStatus,
+                structural.SignedPartDigestStatus,
+                findings,
+                signatures,
+                diagnostics);
+        }
+
+        internal static WordSignatureValidationReport WithValidationFailure(
+            WordSignatureValidationReport structural,
+            string code,
+            string message) {
+            var diagnostic = new WordSignatureValidationFinding(
+                code,
+                WordSignatureValidationState.Failed,
+                message);
+            return new WordSignatureValidationReport(
+                structural.SignatureInfo,
+                structural.PackageStructureStatus,
+                structural.XmlSignatureStatus,
+                WordSignatureValidationState.Failed,
+                WordSignatureValidationState.NotChecked,
+                WordSignatureValidationState.NotChecked,
+                WordSignatureValidationState.NotChecked,
+                structural.SignedPartCoverageStatus,
+                structural.SignedPartDigestStatus,
+                structural.Findings.Concat(new[] { message }).ToArray(),
+                diagnostics: new[] { diagnostic });
+        }
+
+        private static WordSignatureValidationState Aggregate(IEnumerable<WordSignatureValidationState> states) {
+            WordSignatureValidationState[] values = states.ToArray();
+            if (values.Length == 0) return WordSignatureValidationState.NotPresent;
+            if (values.Any(value => value == WordSignatureValidationState.Failed)) return WordSignatureValidationState.Failed;
+            if (values.Any(value => value == WordSignatureValidationState.Unsupported)) return WordSignatureValidationState.Unsupported;
+            if (values.Any(value => value == WordSignatureValidationState.NotChecked)) return WordSignatureValidationState.NotChecked;
+            if (values.All(value => value == WordSignatureValidationState.NotPresent)) return WordSignatureValidationState.NotPresent;
+            if (values.All(value => value is WordSignatureValidationState.Passed or WordSignatureValidationState.NotPresent)) {
+                return values.Any(value => value == WordSignatureValidationState.Passed)
+                    ? WordSignatureValidationState.Passed
+                    : WordSignatureValidationState.NotPresent;
+            }
+            return WordSignatureValidationState.NotChecked;
         }
 
         private static WordSignatureValidationState DetermineTimestampStatus(WordSignatureInfo signatureInfo) {
@@ -239,7 +327,8 @@ namespace OfficeIMO.Word {
             }
 
             if (references.Count != packageReferences.Count) {
-                findings.Add("Some XML signature Reference entries are not OPC package part references and were left for cryptographic validators.");
+                findings.Add("At least one signed Manifest Reference is not an OPC package-part reference, so complete package coverage cannot be established.");
+                return WordSignatureValidationState.Unsupported;
             }
 
             findings.Add("XML signature package-part references resolve to existing package parts.");
@@ -247,14 +336,21 @@ namespace OfficeIMO.Word {
         }
 
         private static WordSignatureValidationState DetermineSignedPartDigestStatus(WordSignatureInfo signatureInfo, List<string> findings) {
-            List<WordSignatureReferenceInfo> packageReferences = signatureInfo.SignatureParts
+            List<WordSignatureReferenceInfo> references = signatureInfo.SignatureParts
                 .SelectMany(part => part.SignedReferences)
+                .ToList();
+            List<WordSignatureReferenceInfo> packageReferences = references
                 .Where(reference => reference.IsPackagePartReference)
                 .ToList();
 
             if (packageReferences.Count == 0) {
                 findings.Add("No OPC package-part references were available for digest verification.");
                 return WordSignatureValidationState.NotPresent;
+            }
+
+            if (references.Count != packageReferences.Count) {
+                findings.Add("At least one signed Manifest Reference could not be validated as an OPC package part.");
+                return WordSignatureValidationState.Unsupported;
             }
 
             foreach (string detail in packageReferences
@@ -270,7 +366,7 @@ namespace OfficeIMO.Word {
             }
 
             if (packageReferences.Any(reference => reference.DigestVerificationStatus == WordSignatureValidationState.Unsupported)) {
-                findings.Add("At least one signed package-part digest was not checked because the reference requires unsupported transform-aware validation.");
+                findings.Add("At least one signed package-part digest was not checked because the reference uses an unsupported transform.");
                 return WordSignatureValidationState.Unsupported;
             }
 
@@ -279,7 +375,7 @@ namespace OfficeIMO.Word {
                 return WordSignatureValidationState.Unsupported;
             }
 
-            findings.Add("Signed package-part digests match for simple transform-free references.");
+            findings.Add("Signed package-part digests match after applying all declared supported transforms.");
             return WordSignatureValidationState.Passed;
         }
     }

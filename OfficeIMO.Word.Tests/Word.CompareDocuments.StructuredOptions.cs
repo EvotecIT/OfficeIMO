@@ -162,6 +162,209 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsStableEffectiveFormattingAndMoveLimitations() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_limitations_source.docx");
+            CreateImportedMoveAndFormattingRevisionDocument(sourcePath, "Limit source", "Reviewer");
+            SetFirstRunThemeColor(sourcePath, ThemeColorValues.Accent1);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_limitations_target.docx");
+            CreateImportedMoveAndFormattingRevisionDocument(targetPath, "Limit target", "Reviewer");
+            SetFirstRunThemeColor(targetPath, ThemeColorValues.Accent2);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.True(result.HasLimitations);
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "MoveSemantics.RevisionMetadataOnly" &&
+                limitation.Message.Contains("insert/delete", StringComparison.Ordinal));
+
+            using System.Text.Json.JsonDocument report = System.Text.Json.JsonDocument.Parse(result.ToJson());
+            Assert.True(report.RootElement.GetProperty("hasLimitations").GetBoolean());
+            Assert.Equal(result.Limitations.Count, report.RootElement.GetProperty("limitationCount").GetInt32());
+            Assert.Contains("## Limitations", result.ToMarkdown(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void CompareStructureOmitsMoveLimitationWhenRevisionComparisonIsDisabled() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_move_disabled_source.docx");
+            CreateImportedMoveAndFormattingRevisionDocument(sourcePath, "Move source", "Reviewer");
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_move_disabled_target.docx");
+            CreateImportedMoveAndFormattingRevisionDocument(targetPath, "Move target", "Reviewer");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareRevisions = false,
+                CompareEffectiveFormatting = false
+            });
+
+            Assert.DoesNotContain(result.Limitations, limitation => limitation.Code == "MoveSemantics.RevisionMetadataOnly");
+        }
+
+        [Fact]
+        public void CompareStructureReportsThemeLimitationFromUsedStyleDefinitions() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_style_theme_source.docx");
+            CreateDocumentWithInheritedComparisonStyle(sourcePath, paragraphSpacingAfter: "120", runColor: "1F4E79");
+            SetComparisonStyleThemeColor(sourcePath, ThemeColorValues.Accent1);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_style_theme_target.docx");
+            CreateDocumentWithInheritedComparisonStyle(targetPath, paragraphSpacingAfter: "120", runColor: "1F4E79");
+            SetComparisonStyleThemeColor(targetPath, ThemeColorValues.Accent2);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
+        public void CompareStructureReportsThemeLimitationFromDifferingDocumentDefaults() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_doc_defaults_theme_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Unstyled themed text");
+                document.Save();
+            }
+            SetDocDefaultsThemeFont(sourcePath, ThemeFontValues.MinorHighAnsi);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_doc_defaults_theme_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Unstyled themed text");
+                document.Save();
+            }
+            SetDocDefaultsThemeFont(targetPath, ThemeFontValues.MajorHighAnsi);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
+        public void CompareStructureReportsDocumentDefaultThemeUnderExplicitCharacterStyles() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_styled_doc_defaults_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Explicitly styled themed text");
+                document.Save();
+            }
+            SetFirstRunCharacterStyle(sourcePath, "DefaultParagraphFont");
+            SetDocDefaultsThemeFont(sourcePath, ThemeFontValues.MinorHighAnsi);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_styled_doc_defaults_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Explicitly styled themed text");
+                document.Save();
+            }
+            SetFirstRunCharacterStyle(targetPath, "DefaultParagraphFont");
+            SetDocDefaultsThemeFont(targetPath, ThemeFontValues.MajorHighAnsi);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
+        public void CompareStructureReportsThemeLimitationFromDefaultParagraphStyle() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_default_style_theme_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Unstyled default-themed text");
+                document.Save();
+            }
+            SetDefaultParagraphStyleThemeColor(sourcePath, ThemeColorValues.Accent1);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_default_style_theme_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Unstyled default-themed text");
+                document.Save();
+            }
+            SetDefaultParagraphStyleThemeColor(targetPath, ThemeColorValues.Accent2);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
+        public void CompareStructureReportsNumberingLimitationFromUsedParagraphStyle() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_style_numbering_source.docx");
+            CreateDocumentWithStyleInheritedNumbering(sourcePath);
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_style_numbering_target.docx");
+            CreateDocumentWithStyleInheritedNumbering(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.NumberingLevelStyles" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
+        public void CompareStructureReportsNumberingInheritedFromDefaultParagraphStyleWithEffects() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_default_effects_numbering_source.docx");
+            CreateDocumentWithDefaultEffectsNumbering(sourcePath);
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_default_effects_numbering_target.docx");
+            CreateDocumentWithDefaultEffectsNumbering(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.NumberingLevelStyles" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
+        public void CompareStructureReportsConditionalTableLimitOnlyForUsedConditionalStyleChain() {
+            string plainSourcePath = Path.Combine(_directoryWithFiles, "compare_structure_plain_table_style_source.docx");
+            CreateDocumentWithComparisonTableStyle(plainSourcePath, includeConditionalBaseStyle: false);
+            string plainTargetPath = Path.Combine(_directoryWithFiles, "compare_structure_plain_table_style_target.docx");
+            CreateDocumentWithComparisonTableStyle(plainTargetPath, includeConditionalBaseStyle: false);
+
+            WordComparisonResult plain = WordDocumentComparer.CompareStructure(plainSourcePath, plainTargetPath);
+
+            Assert.DoesNotContain(plain.Limitations, limitation => limitation.Code == "EffectiveFormatting.ConditionalTableStyles");
+
+            string conditionalSourcePath = Path.Combine(_directoryWithFiles, "compare_structure_conditional_table_style_source.docx");
+            CreateDocumentWithComparisonTableStyle(conditionalSourcePath, includeConditionalBaseStyle: true);
+            string conditionalTargetPath = Path.Combine(_directoryWithFiles, "compare_structure_conditional_table_style_target.docx");
+            CreateDocumentWithComparisonTableStyle(conditionalTargetPath, includeConditionalBaseStyle: true);
+
+            WordComparisonResult conditional = WordDocumentComparer.CompareStructure(conditionalSourcePath, conditionalTargetPath);
+
+            Assert.Contains(conditional.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ConditionalTableStyles" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
+        public void CompareStructureReportsConditionalTableLimitFromDefaultTableStyle() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_default_conditional_table_source.docx");
+            CreateDocumentWithDefaultConditionalTableStyle(sourcePath);
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_default_conditional_table_target.docx");
+            CreateDocumentWithDefaultConditionalTableStyle(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Limitations, limitation =>
+                limitation.Code == "EffectiveFormatting.ConditionalTableStyles" &&
+                limitation.SourceContainsShape &&
+                limitation.TargetContainsShape);
+        }
+
+        [Fact]
         public void CompareStructureOptionsCanDisableImageFindings() {
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -357,6 +560,167 @@ namespace OfficeIMO.Tests {
             InsertedRun inserted = mainPart.Document.Body!.Descendants<InsertedRun>().Single();
             inserted.Id = revisionId;
             inserted.Date = revisionDate;
+            mainPart.Document.Save();
+        }
+
+        private static void SetFirstRunThemeColor(string path, ThemeColorValues themeColor) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Run run = wordDocument.MainDocumentPart!.Document.Body!.Descendants<Run>().First();
+            run.RunProperties ??= new RunProperties();
+            run.RunProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color {
+                ThemeColor = themeColor
+            };
+            wordDocument.MainDocumentPart.Document.Save();
+        }
+
+        private static void SetFirstRunCharacterStyle(string path, string styleId) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Run run = wordDocument.MainDocumentPart!.Document.Body!.Descendants<Run>().First();
+            run.RunProperties ??= new RunProperties();
+            run.RunProperties.RunStyle = new RunStyle { Val = styleId };
+            wordDocument.MainDocumentPart.Document.Save();
+        }
+
+        private static void SetComparisonStyleThemeColor(string path, ThemeColorValues themeColor) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Style style = wordDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .Elements<Style>()
+                .Single(item => string.Equals(item.StyleId?.Value, "OfficeIMOEffectiveBase", StringComparison.Ordinal));
+            style.StyleRunProperties ??= new StyleRunProperties();
+            style.StyleRunProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color { ThemeColor = themeColor };
+            wordDocument.MainDocumentPart.StyleDefinitionsPart.Styles.Save();
+        }
+
+        private static void SetDocDefaultsThemeFont(string path, ThemeFontValues themeFont) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Styles styles = wordDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.DocDefaults ??= new DocDefaults();
+            RunPropertiesDefault runDefaults = styles.DocDefaults.RunPropertiesDefault
+                ?? styles.DocDefaults.AppendChild(new RunPropertiesDefault());
+            RunPropertiesBaseStyle runProperties = runDefaults.RunPropertiesBaseStyle
+                ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
+            runProperties.RunFonts = new RunFonts { AsciiTheme = themeFont, HighAnsiTheme = themeFont };
+            styles.Save();
+        }
+
+        private static void SetDefaultParagraphStyleThemeColor(string path, ThemeColorValues themeColor) {
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Styles styles = wordDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style style = styles.Elements<Style>().First(item =>
+                item.Type?.Value == StyleValues.Paragraph && item.Default?.Value == true);
+            style.StyleRunProperties ??= new StyleRunProperties();
+            style.StyleRunProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color { ThemeColor = themeColor };
+            styles.Save();
+        }
+
+        private static void CreateDocumentWithStyleInheritedNumbering(string path) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Style-numbered paragraph");
+                document.Save();
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Styles styles = mainPart.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "OfficeIMO Style Numbering" },
+                new StyleParagraphProperties(
+                    new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = 1 }))) {
+                Type = StyleValues.Paragraph,
+                StyleId = "OfficeIMOStyleNumbering",
+                CustomStyle = true
+            });
+            styles.Save();
+
+            Paragraph paragraph = mainPart.Document.Body!.Elements<Paragraph>().First();
+            paragraph.ParagraphProperties = new ParagraphProperties(
+                new ParagraphStyleId { Val = "OfficeIMOStyleNumbering" });
+            mainPart.Document.Save();
+        }
+
+        private static void CreateDocumentWithDefaultEffectsNumbering(string path) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Default style-numbered paragraph");
+                document.Save();
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Style regularDefault = mainPart.StyleDefinitionsPart!.Styles!.Elements<Style>().First(style =>
+                style.Type?.Value == StyleValues.Paragraph && style.Default?.Value == true);
+            string defaultStyleId = regularDefault.StyleId?.Value ?? "Normal";
+            StylesWithEffectsPart effectsPart = mainPart.StylesWithEffectsPart ?? mainPart.AddNewPart<StylesWithEffectsPart>();
+            effectsPart.Styles = new Styles(new Style(
+                new StyleParagraphProperties(
+                    new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = 1 }))) {
+                Type = StyleValues.Paragraph,
+                StyleId = defaultStyleId,
+                Default = true
+            });
+            effectsPart.Styles.Save();
+        }
+
+        private static void CreateDocumentWithComparisonTableStyle(string path, bool includeConditionalBaseStyle) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Styled cell";
+                document.Save();
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Styles styles = mainPart.StyleDefinitionsPart!.Styles!;
+            var baseStyle = new Style(new StyleName { Val = "OfficeIMO Table Base" }) {
+                Type = StyleValues.Table,
+                StyleId = "OfficeIMOTableBase",
+                CustomStyle = true
+            };
+            if (includeConditionalBaseStyle) {
+                baseStyle.Append(new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new Shading { Fill = "D9EAF7" })) {
+                    Type = TableStyleOverrideValues.FirstRow
+                });
+            }
+            styles.Append(baseStyle);
+            styles.Append(new Style(
+                new StyleName { Val = "OfficeIMO Table Derived" },
+                new BasedOn { Val = "OfficeIMOTableBase" }) {
+                Type = StyleValues.Table,
+                StyleId = "OfficeIMOTableDerived",
+                CustomStyle = true
+            });
+            styles.Save();
+
+            Table table = mainPart.Document.Body!.Elements<Table>().Single();
+            table.TableProperties ??= new TableProperties();
+            table.TableProperties.TableStyle = new TableStyle { Val = "OfficeIMOTableDerived" };
+            mainPart.Document.Save();
+        }
+
+        private static void CreateDocumentWithDefaultConditionalTableStyle(string path) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Default styled cell";
+                document.Save();
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Styles styles = mainPart.StyleDefinitionsPart!.Styles!;
+            Style defaultTableStyle = styles.Elements<Style>().First(style =>
+                style.Type?.Value == StyleValues.Table && style.Default?.Value == true);
+            defaultTableStyle.Append(new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Fill = "D9EAF7" })) {
+                Type = TableStyleOverrideValues.FirstRow
+            });
+            styles.Save();
+
+            Table table = mainPart.Document.Body!.Elements<Table>().Single();
+            table.TableProperties?.TableStyle?.Remove();
             mainPart.Document.Save();
         }
     }

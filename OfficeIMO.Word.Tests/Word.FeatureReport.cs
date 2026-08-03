@@ -51,11 +51,11 @@ namespace OfficeIMO.Tests {
                     && feature.Details.Any(detail => detail.Contains("afchunk", StringComparison.OrdinalIgnoreCase)));
                 Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "VBA macros"
                     && feature.Details.Any(detail => detail.Contains("vbaProject", StringComparison.OrdinalIgnoreCase)));
-                Assert.Contains(report.UnsupportedFeatures, feature => feature.Name == "Digital signatures"
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Digital signatures"
                     && feature.Details.Any(detail => detail.Contains("digital signature metadata", StringComparison.OrdinalIgnoreCase)));
 
                 Assert.True(report.HasAdvancedFeatures);
-                Assert.Throws<InvalidOperationException>(() => report.EnsureNoUnsupportedFeatures());
+                Assert.Same(report, report.EnsureNoUnsupportedFeatures());
                 Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("VBA macros"));
 
                 string markdown = report.ToMarkdown();

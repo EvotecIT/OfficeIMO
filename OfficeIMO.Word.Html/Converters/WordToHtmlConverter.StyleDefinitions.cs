@@ -90,21 +90,31 @@ namespace OfficeIMO.Word.Html {
                 return string.Join(" ", props.Select(kv => kv.Key + ':' + kv.Value + ';'));
             }
 
-            var styleElement = htmlDoc.CreateElement("style");
+            var styleElement = CreateOutputElement(htmlDoc, "style");
             var sb = new StringBuilder();
 
             foreach (var s in paragraphStyles) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var css = BuildCss(s);
-                sb.Append('.').Append(GetSafeStyleClassName(s)).Append(" { ").Append(css).Append(" }\n");
+                AppendCssRule(s, css);
             }
             foreach (var s in runStyles) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var css = BuildCss(s);
-                sb.Append('.').Append(GetSafeStyleClassName(s)).Append(" { ").Append(css).Append(" }\n");
+                AppendCssRule(s, css);
             }
             styleElement.TextContent = sb.ToString();
             head.AppendChild(styleElement);
+
+            void AppendCssRule(string styleId, string css) {
+                string rule = "." + GetSafeStyleClassName(styleId) + " { " + css + " }\n";
+                ReserveOutputCharacters(
+                    htmlDoc,
+                    rule.Length,
+                    "Generated style CSS exceeds the configured output-character limit before DOM construction.",
+                    "GeneratedStyleCss");
+                sb.Append(rule);
+            }
         }
 
         private static bool IsSixDigitHexColor(string value) {

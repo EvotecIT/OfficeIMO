@@ -1,15 +1,17 @@
 using AngleSharp.Dom;
+using DocumentFormat.OpenXml;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         IElement CreateCheckBoxInput(IDocument htmlDoc, WordCheckBox checkBox) {
-            var input = htmlDoc.CreateElement("input");
-            input.SetAttribute("type", "checkbox");
-            input.SetAttribute("disabled", string.Empty);
+            ReleaseReplacedContentControlContent(htmlDoc, checkBox._sdtRun);
+            var input = CreateOutputElement(htmlDoc, "input");
+            SetOutputAttribute(input, "type", "checkbox", "CheckBox:type");
+            SetOutputAttribute(input, "disabled", string.Empty, "CheckBox:disabled");
 
             if (checkBox.IsChecked) {
-                input.SetAttribute("checked", string.Empty);
+                SetOutputAttribute(input, "checked", string.Empty, "CheckBox:checked");
             }
 
             ApplyContentControlMetadata(input, checkBox.Alias, checkBox.Tag);
@@ -18,17 +20,36 @@ namespace OfficeIMO.Word.Html {
         }
 
         IElement CreateDropDownListSelect(IDocument htmlDoc, WordDropDownList dropDownList) {
-            var select = htmlDoc.CreateElement("select");
-            select.SetAttribute("disabled", string.Empty);
+            ReleaseReplacedContentControlContent(htmlDoc, dropDownList._sdtRun);
+            var select = CreateOutputElement(htmlDoc, "select");
+            SetOutputAttribute(select, "disabled", string.Empty, "DropDown:disabled");
             ApplyContentControlMetadata(select, dropDownList.Alias, dropDownList.Tag);
 
-            foreach (var item in dropDownList.Items) {
-                var option = htmlDoc.CreateElement("option");
-                option.SetAttribute("value", item);
-                option.TextContent = item;
+            IReadOnlyList<(string Value, string DisplayText)> items = dropDownList.ExportItems;
+            int selectedIndex = -1;
+            for (int index = 0; index < items.Count; index++) {
+                if (string.Equals(items[index].DisplayText, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
+                    selectedIndex = index;
+                    break;
+                }
+            }
+            if (selectedIndex < 0) {
+                for (int index = 0; index < items.Count; index++) {
+                    if (string.Equals(items[index].Value, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
+                        selectedIndex = index;
+                        break;
+                    }
+                }
+            }
 
-                if (string.Equals(item, dropDownList.SelectedValue, StringComparison.OrdinalIgnoreCase)) {
-                    option.SetAttribute("selected", string.Empty);
+            for (int index = 0; index < items.Count; index++) {
+                (string Value, string DisplayText) item = items[index];
+                var option = CreateOutputElement(htmlDoc, "option");
+                SetOutputAttribute(htmlDoc, option, "value", item.Value, "DropDownOption:value");
+                SetOutputText(htmlDoc, option, item.DisplayText, "DropDownOption:display-text");
+
+                if (index == selectedIndex) {
+                    SetOutputAttribute(option, "selected", string.Empty, "DropDownOption:selected");
                 }
 
                 select.AppendChild(option);
@@ -38,23 +59,51 @@ namespace OfficeIMO.Word.Html {
         }
 
         IEnumerable<INode> CreateComboBoxNodes(IDocument htmlDoc, WordComboBox comboBox, int formListIndex) {
+            ReleaseReplacedContentControlContent(htmlDoc, comboBox._sdtRun);
             string listId = "word-combo-" + formListIndex.ToString(CultureInfo.InvariantCulture);
+            IReadOnlyList<(string Value, string DisplayText)> items = comboBox.ExportItems;
+            string? selectedValue = comboBox.SelectedValue;
+            (string Value, string DisplayText) selectedItem = items
+                .FirstOrDefault(item =>
+                    string.Equals(item.Value, selectedValue, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(item.DisplayText, selectedValue, StringComparison.OrdinalIgnoreCase));
+            string? selectedDisplayText = selectedItem.DisplayText;
+            string? selectedInternalValue = selectedItem.Value;
 
-            var input = htmlDoc.CreateElement("input");
-            input.SetAttribute("type", "text");
-            input.SetAttribute("disabled", string.Empty);
-            input.SetAttribute("list", listId);
-            if (!string.IsNullOrEmpty(comboBox.SelectedValue)) {
-                input.SetAttribute("value", comboBox.SelectedValue!);
+            var input = CreateOutputElement(htmlDoc, "input");
+            SetOutputAttribute(input, "type", "text", "ComboBox:type");
+            SetOutputAttribute(input, "disabled", string.Empty, "ComboBox:disabled");
+            SetOutputAttribute(input, "list", listId, "ComboBox:list");
+            if (!string.IsNullOrEmpty(selectedValue)) {
+                SetOutputAttribute(
+                    htmlDoc,
+                    input,
+                    "value",
+                    string.IsNullOrEmpty(selectedDisplayText) ? selectedValue! : selectedDisplayText!,
+                    "ComboBox:selected-display");
+                if (!string.IsNullOrEmpty(selectedDisplayText) &&
+                    !string.IsNullOrEmpty(selectedInternalValue) &&
+                    !string.Equals(selectedInternalValue, selectedDisplayText, StringComparison.Ordinal)) {
+                    SetOutputAttribute(
+                        htmlDoc,
+                        input,
+                        "data-word-value",
+                        selectedInternalValue!,
+                        "ComboBox:selected-internal-value");
+                }
             }
             ApplyContentControlMetadata(input, comboBox.Alias, comboBox.Tag);
             yield return input;
 
-            var dataList = htmlDoc.CreateElement("datalist");
-            dataList.SetAttribute("id", listId);
-            foreach (var item in comboBox.Items) {
-                var option = htmlDoc.CreateElement("option");
-                option.SetAttribute("value", item);
+            var dataList = CreateOutputElement(htmlDoc, "datalist");
+            SetOutputAttribute(dataList, "id", listId, "ComboBoxList:id");
+            foreach (var item in items) {
+                var option = CreateOutputElement(htmlDoc, "option");
+                SetOutputAttribute(htmlDoc, option, "value", item.DisplayText, "ComboBoxOption:value");
+                SetOutputAttribute(htmlDoc, option, "label", item.DisplayText, "ComboBoxOption:label");
+                if (!string.Equals(item.Value, item.DisplayText, StringComparison.Ordinal)) {
+                    SetOutputAttribute(htmlDoc, option, "data-word-value", item.Value, "ComboBoxOption:internal-value");
+                }
                 dataList.AppendChild(option);
             }
 
@@ -62,33 +111,42 @@ namespace OfficeIMO.Word.Html {
         }
 
         IElement CreateDatePickerInput(IDocument htmlDoc, WordDatePicker datePicker) {
-            var input = htmlDoc.CreateElement("input");
-            input.SetAttribute("type", "date");
-            input.SetAttribute("disabled", string.Empty);
+            ReleaseReplacedContentControlContent(htmlDoc, datePicker._sdtRun);
+            var input = CreateOutputElement(htmlDoc, "input");
+            SetOutputAttribute(input, "type", "date", "DatePicker:type");
+            SetOutputAttribute(input, "disabled", string.Empty, "DatePicker:disabled");
             if (datePicker.Date.HasValue) {
-                input.SetAttribute("value", datePicker.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                SetOutputAttribute(input, "value", datePicker.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "DatePicker:value");
             }
             ApplyContentControlMetadata(input, datePicker.Alias, datePicker.Tag);
             return input;
         }
 
         IElement CreateStructuredDocumentTagInput(IDocument htmlDoc, WordStructuredDocumentTag structuredDocumentTag) {
+            ReleaseReplacedContentControlContent(htmlDoc, structuredDocumentTag.SdtElement);
             if (HasLineBreaks(structuredDocumentTag.Text)) {
-                var textArea = htmlDoc.CreateElement("textarea");
-                textArea.SetAttribute("disabled", string.Empty);
-                textArea.TextContent = structuredDocumentTag.Text ?? string.Empty;
+                var textArea = CreateOutputElement(htmlDoc, "textarea");
+                SetOutputAttribute(textArea, "disabled", string.Empty, "ContentControl:disabled");
+                SetOutputText(htmlDoc, textArea, structuredDocumentTag.Text ?? string.Empty, "ContentControl:text");
                 ApplyContentControlMetadata(textArea, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
                 return textArea;
             }
 
-            var input = htmlDoc.CreateElement("input");
-            input.SetAttribute("type", "text");
-            input.SetAttribute("disabled", string.Empty);
+            var input = CreateOutputElement(htmlDoc, "input");
+            SetOutputAttribute(input, "type", "text", "ContentControl:type");
+            SetOutputAttribute(input, "disabled", string.Empty, "ContentControl:disabled");
             if (!string.IsNullOrEmpty(structuredDocumentTag.Text)) {
-                input.SetAttribute("value", structuredDocumentTag.Text!);
+                SetOutputAttribute(input, "value", structuredDocumentTag.Text!, "ContentControl:value");
             }
             ApplyContentControlMetadata(input, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
             return input;
+        }
+
+        static void ReleaseReplacedContentControlContent(
+            IDocument htmlDoc,
+            OpenXmlElement? sourceControl) {
+            if (sourceControl == null) return;
+            ReleaseOutputCharacters(htmlDoc, MeasureOutputContentCharacters(sourceControl));
         }
 
         static bool HasLineBreaks(string? text) =>
@@ -96,11 +154,11 @@ namespace OfficeIMO.Word.Html {
 
         static void ApplyContentControlMetadata(IElement element, string? alias, string? tag) {
             if (!string.IsNullOrEmpty(alias)) {
-                element.SetAttribute("aria-label", alias!);
+                SetOutputAttribute(element, "aria-label", alias!, "ContentControl:aria-label");
             }
 
             if (!string.IsNullOrEmpty(tag)) {
-                element.SetAttribute("data-tag", tag!);
+                SetOutputAttribute(element, "data-tag", tag!, "ContentControl:data-tag");
             }
         }
     }

@@ -86,7 +86,7 @@ env:
     10.0.103
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
-  VERAPDF_CLI_IMAGE: ghcr.io/verapdf/cli:v1.31.110@sha256:694daa4d35ce22400011442e647f7d118ad10743a32795621a3a3e0fd08fe9b0
+  VERAPDF_CLI_IMAGE: ghcr.io/verapdf/cli:v1.31.119@sha256:be3c64c9e924247cd91df3f7723d131f144ef3614cbfd6c881b09e9fbb2afcbe
   MUSTANG_VERSION: 2.24.0
   MUSTANG_CLI_URL: https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.24.0/Mustang-CLI-2.24.0.jar
   MUSTANG_CLI_SHA256: e4904ffa0afdce3f5836dceb927c440a05ed5d60386fdd37e17a4b2f7652edbf
@@ -134,7 +134,7 @@ jobs:
           #!/usr/bin/env bash
           set -euo pipefail
 
-          image="${VERAPDF_CLI_IMAGE:-ghcr.io/verapdf/cli:v1.31.110@sha256:694daa4d35ce22400011442e647f7d118ad10743a32795621a3a3e0fd08fe9b0}"
+          image="${VERAPDF_CLI_IMAGE:?VERAPDF_CLI_IMAGE is required}"
           mount_args=()
           mapped_args=()
           mount_index=0
@@ -332,7 +332,7 @@ jobs:
         if: always()
         with:
           name: officeimo-pdf-compliance-proof
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
           path: |
             ${{ env.PROOF_PATH }}/index.md

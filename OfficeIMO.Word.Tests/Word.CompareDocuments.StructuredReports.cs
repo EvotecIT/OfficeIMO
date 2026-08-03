@@ -68,13 +68,16 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.False(result.HasChanges);
+            Assert.True(result.HasLimitations);
+            Assert.Contains(result.Limitations, limitation => limitation.Code == "EffectiveFormatting.ThemeResolution");
             using JsonDocument parsed = JsonDocument.Parse(result.ToJson());
             Assert.False(parsed.RootElement.GetProperty("hasChanges").GetBoolean());
+            Assert.True(parsed.RootElement.GetProperty("hasLimitations").GetBoolean());
             Assert.Equal(0, parsed.RootElement.GetProperty("findingCount").GetInt32());
             Assert.Equal(JsonValueKind.Object, parsed.RootElement.GetProperty("summary").GetProperty("byScope").ValueKind);
 
             Assert.Contains("_None._", result.ToMarkdown(), StringComparison.Ordinal);
-            Assert.Equal("No structural differences detected.", result.ToTextSummary());
+            Assert.Equal("No structural differences detected. 1 comparison limitation(s) reported.", result.ToTextSummary());
         }
 
         [Fact]

@@ -53,6 +53,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_ProcessesTextBoxComplexFieldOnlyInItsOwningParagraph() {
+            using var document = WordDocument.Create();
+            WordTextBox textBox = document.AddTextBox("placeholder");
+            Paragraph textBoxParagraph = textBox.Content!.Descendants<Paragraph>().Single();
+            textBoxParagraph.RemoveAllChildren();
+            textBoxParagraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" MERGEFIELD  \"Name\" ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("placeholder")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+            WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+                document,
+                new Dictionary<string, string> { ["Name"] = "Alice" },
+                removeFields: false);
+
+            WordMailMergeFieldResult field = Assert.Single(report.Fields);
+            Assert.Equal(WordMailMergeFieldStatus.Merged, field.Status);
+            Assert.Contains("Alice", textBoxParagraph.InnerText, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_MailMerge_ReplacementsPreserveFieldResultFormatting() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeFormatting.docx");
 
@@ -151,6 +174,30 @@ namespace OfficeIMO.Tests {
             using (WordDocument template = WordDocument.Load(templatePath)) {
                 Assert.Equal(2, template.Fields.Count(field => field.FieldType == WordFieldType.MergeField));
             }
+        }
+
+        [Fact]
+        public void Test_MailMerge_ExecuteBatchStreamsRecordsAfterEachOutputIsSaved() {
+            string templatePath = Path.Combine(_directoryWithFiles, "MailMergeStreamingBatchTemplate.docx");
+            string outputDirectory = Path.Combine(_directoryWithFiles, "MailMergeStreamingBatch");
+            string firstOutput = Path.Combine(outputDirectory, "0.docx");
+            using (WordDocument document = WordDocument.Create(templatePath)) {
+                document.AddParagraph().AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Name\"" });
+                document.Save();
+            }
+
+            IEnumerable<IDictionary<string, string>> Records() {
+                yield return new Dictionary<string, string> { ["Name"] = "First" };
+                Assert.True(File.Exists(firstOutput), "The first output must be saved before the next record is requested.");
+                yield return new Dictionary<string, string> { ["Name"] = "Second" };
+            }
+
+            IReadOnlyList<string> outputs = WordMailMerge.ExecuteBatch(
+                templatePath,
+                Records(),
+                (index, _) => Path.Combine(outputDirectory, index + ".docx"));
+
+            Assert.Equal(2, outputs.Count);
         }
 
         [Fact]

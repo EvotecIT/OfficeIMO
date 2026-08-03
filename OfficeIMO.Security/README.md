@@ -31,6 +31,40 @@ Signing uses the platform `RSA` handle and does not export the private key. Veri
 signers, keeps mathematical signature, message digest, certificate trust, revocation, and timestamp outcomes
 separate, and never enables network revocation implicitly.
 
+## Certificate trust validation
+
+Use `CertificateValidator.Validate` when an application needs the same certificate-chain, revocation, and usage-policy
+result without first parsing CMS. Supply issuer certificates carried by the document or protocol through
+`additionalCertificates`; they are added as chain-building candidates, not treated as trusted merely because they were
+provided.
+
+```csharp
+using System.Security.Cryptography.X509Certificates;
+using OfficeIMO.Security;
+
+var options = new CertificateValidationOptions {
+    RevocationMode = X509RevocationMode.NoCheck,
+    DisableCertificateDownloads = true
+};
+
+CertificateTrustValidationResult trust = CertificateValidator.Validate(
+    signingCertificate,
+    additionalCertificates: new[] { intermediateCertificate },
+    options: options,
+    purpose: CertificateValidationPurpose.DocumentSigning);
+
+Console.WriteLine($"Chain: {trust.Validation.ChainStatus}");
+Console.WriteLine($"Revocation: {trust.Validation.RevocationStatus}");
+foreach (SecurityFinding finding in trust.Findings) {
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
+}
+```
+
+The secure default disables certificate downloads and uses `X509RevocationMode.NoCheck`. Set an explicit
+`VerificationTime`, revocation mode, download policy, or `ChainEvaluator` when the application owns a different trust
+policy. Use `CertificateValidationPurpose.TimestampAuthority` for TSA certificates; usage and enhanced-key-usage checks
+remain active even when platform chain building is disabled.
+
 ## EnvelopedData
 
 ```csharp

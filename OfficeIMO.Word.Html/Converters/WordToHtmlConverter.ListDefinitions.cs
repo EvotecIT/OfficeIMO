@@ -33,12 +33,12 @@ namespace OfficeIMO.Word.Html {
             var className = BuildListDefinitionClass(listInfo, effectiveStyle);
 
             AppendClass(listElement, className);
-            listElement.SetAttribute("data-word-list-level", listInfo.Level.ToString(CultureInfo.InvariantCulture));
+            SetOutputAttribute(listElement, "data-word-list-level", listInfo.Level.ToString(CultureInfo.InvariantCulture), "ListDefinition:level");
             if (listInfo.LeftIndentTwips.HasValue) {
-                listElement.SetAttribute("data-left-indent-twips", listInfo.LeftIndentTwips.Value.ToString(CultureInfo.InvariantCulture));
+                SetOutputAttribute(listElement, "data-left-indent-twips", listInfo.LeftIndentTwips.Value.ToString(CultureInfo.InvariantCulture), "ListDefinition:left-indent");
             }
             if (listInfo.HangingIndentTwips.HasValue) {
-                listElement.SetAttribute("data-hanging-indent-twips", listInfo.HangingIndentTwips.Value.ToString(CultureInfo.InvariantCulture));
+                SetOutputAttribute(listElement, "data-hanging-indent-twips", listInfo.HangingIndentTwips.Value.ToString(CultureInfo.InvariantCulture), "ListDefinition:hanging-indent");
             }
 
             listDefinitions.Add(new HtmlListDefinition(
@@ -58,17 +58,25 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var styleElement = htmlDoc.CreateElement("style");
-            styleElement.SetAttribute("data-word-list-definitions", "true");
+            var styleElement = CreateOutputElement(htmlDoc, "style");
+            SetOutputAttribute(styleElement, "data-word-list-definitions", "true", "ListDefinitions:marker");
             var sb = new StringBuilder();
             foreach (var definition in listDefinitions.OrderBy(definition => definition.ClassName, StringComparer.Ordinal)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                sb.Append('.').Append(definition.ClassName).Append(" { ");
-                sb.Append("list-style-type:").Append(definition.ListStyleType).Append(';');
+                var rule = new StringBuilder();
+                rule.Append('.').Append(definition.ClassName).Append(" { ");
+                rule.Append("list-style-type:").Append(definition.ListStyleType).Append(';');
                 if (definition.LeftIndentTwips.HasValue && definition.LeftIndentTwips.Value > 0) {
-                    sb.Append("padding-left:").Append(FormatListTwips(definition.LeftIndentTwips.Value)).Append(';');
+                    rule.Append("padding-left:").Append(FormatListTwips(definition.LeftIndentTwips.Value)).Append(';');
                 }
-                sb.Append(" }\n");
+                rule.Append(" }\n");
+                string ruleText = rule.ToString();
+                ReserveOutputCharacters(
+                    htmlDoc,
+                    GetHtmlEncodedLength(ruleText, attributeValue: false),
+                    "Generated list-definition CSS exceeds the configured output-character limit before DOM construction.",
+                    "GeneratedListDefinitionCss");
+                sb.Append(ruleText);
             }
             styleElement.TextContent = sb.ToString();
             head.AppendChild(styleElement);
@@ -109,9 +117,9 @@ namespace OfficeIMO.Word.Html {
         private static void AppendClass(IElement element, string className) {
             var existing = element.GetAttribute("class");
             if (string.IsNullOrWhiteSpace(existing)) {
-                element.SetAttribute("class", className);
+                SetOutputAttribute(element, "class", className, "ListDefinition:class");
             } else if (!existing!.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries).Contains(className, StringComparer.Ordinal)) {
-                element.SetAttribute("class", existing + " " + className);
+                SetOutputAttribute(element, "class", existing + " " + className, "ListDefinition:class");
             }
         }
     }

@@ -26,7 +26,9 @@ namespace OfficeIMO.Word {
             WordFieldType? fieldType,
             WordFieldUpdateStatus status,
             string? resultText,
-            string message) {
+            string message,
+            bool isLocked,
+            WordFieldEvaluationReason reason) {
             Index = index;
             Representation = representation;
             LocationKind = locationKind;
@@ -36,6 +38,8 @@ namespace OfficeIMO.Word {
             Status = status;
             ResultText = resultText;
             Message = message;
+            EvaluationBasis = WordFieldEvaluationContracts.GetBasis(fieldType, status, isLocked, reason);
+            DiagnosticCode = WordFieldEvaluationContracts.GetDiagnosticCode(fieldType, status, isLocked, reason);
         }
 
         /// <summary>Gets the deterministic index of the field in document scan order.</summary>
@@ -64,6 +68,12 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets a short diagnostic message for the outcome.</summary>
         public string Message { get; }
+
+        /// <summary>Gets the stable machine-readable outcome code.</summary>
+        public string DiagnosticCode { get; }
+
+        /// <summary>Gets the evidence basis used to produce or defer this result.</summary>
+        public WordFieldEvaluationBasis EvaluationBasis { get; }
     }
 
     /// <summary>

@@ -106,11 +106,16 @@ namespace OfficeIMO.Word {
             return normalized.ToString("G29", CultureInfo.InvariantCulture);
         }
 
-        private static bool TryFormatFormulaValue(decimal value, string? numericPicture, out string formattedValue, out string? diagnostic) {
+        internal static bool TryFormatFormulaValue(decimal value, string? numericPicture, out string formattedValue, out string? diagnostic) {
             diagnostic = null;
             if (string.IsNullOrWhiteSpace(numericPicture)) {
                 formattedValue = FormatFormulaValue(value);
                 return true;
+            }
+
+            if (!TryValidateNumericPictureProfile(numericPicture, out diagnostic)) {
+                formattedValue = string.Empty;
+                return false;
             }
 
             string format = TrimFormulaFormatQuotes(numericPicture ?? string.Empty);
