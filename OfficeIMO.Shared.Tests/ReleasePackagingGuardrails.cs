@@ -604,12 +604,16 @@ public sealed class ReleasePackagingGuardrails {
         string roadmap = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "ROADMAP.md"));
         Assert.Contains("# OfficeIMO roadmap", roadmap, StringComparison.Ordinal);
         Assert.Contains("It contains open work only", roadmap, StringComparison.Ordinal);
+        Assert.Contains("architectural rules", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## Security and protected content", roadmap, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Visio`", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Reuse Word's bounded VBA signature core", roadmap, StringComparison.Ordinal);
+        Assert.Contains("`OfficeIMO.OpenDocument` and `OfficeIMO.Epub`", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Complete the remaining conditional-formatting rule and extension surface", roadmap, StringComparison.Ordinal);
         Assert.Contains("## PDF, HTML, and image rendering", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Markdown and text formats", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Reader and document intelligence", roadmap, StringComparison.Ordinal);
-        Assert.Contains("## Email, stores, and cloud adapters", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Browser and agent surfaces", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("cross-platform package signing", roadmap, StringComparison.Ordinal);
@@ -624,10 +628,23 @@ public sealed class ReleasePackagingGuardrails {
         Assert.DoesNotContain("Complete the remaining conditional-formatting rule and extension surface", roadmap, StringComparison.Ordinal);
         Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
         Assert.Contains("generic-attribute ownership across the remaining supported block and inline families", roadmap, StringComparison.Ordinal);
-        Assert.Contains("precise source locations partial until lossless trivia", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Complete trivia and delimiter coverage", roadmap, StringComparison.Ordinal);
         Assert.Contains("RTF producer corpus beyond current Word, Outlook, and LibreOffice evidence", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Publish the browser conversion playground", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Add Visio and portable-document adapters", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Keep `OfficeIMO.Reader.Core` dependency-light", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unicode font-packaging diagnostics", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Keep shared visual QA", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Email, stores, and cloud adapters", roadmap, StringComparison.Ordinal);
+
+        string[] roadmapItems = roadmap
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+            .Where(static line => line.StartsWith("- [ ] ", StringComparison.Ordinal))
+            .ToArray();
+        Assert.NotEmpty(roadmapItems);
+        Assert.DoesNotContain(roadmapItems, static item =>
+            item.StartsWith("- [ ] Keep ", StringComparison.Ordinal) ||
+            item.StartsWith("- [ ] Decide ", StringComparison.Ordinal));
 
         string emailSupportMatrix = File.ReadAllText(Path.Combine(
             repositoryRoot,
