@@ -1100,6 +1100,33 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelCellBorderSnapshot {
         /// <summary>
+        /// Creates border metadata that can be used when authoring a conditional-formatting differential style.
+        /// </summary>
+        /// <param name="left">Left border side.</param>
+        /// <param name="right">Right border side.</param>
+        /// <param name="top">Top border side.</param>
+        /// <param name="bottom">Bottom border side.</param>
+        /// <param name="diagonal">Diagonal border side.</param>
+        /// <param name="diagonalUp">Whether the diagonal runs from bottom-left to top-right.</param>
+        /// <param name="diagonalDown">Whether the diagonal runs from top-left to bottom-right.</param>
+        public ExcelCellBorderSnapshot(
+            ExcelBorderSideSnapshot? left = null,
+            ExcelBorderSideSnapshot? right = null,
+            ExcelBorderSideSnapshot? top = null,
+            ExcelBorderSideSnapshot? bottom = null,
+            ExcelBorderSideSnapshot? diagonal = null,
+            bool diagonalUp = false,
+            bool diagonalDown = false) {
+            Left = left;
+            Right = right;
+            Top = top;
+            Bottom = bottom;
+            Diagonal = diagonal;
+            DiagonalUp = diagonalUp;
+            DiagonalDown = diagonalDown;
+        }
+
+        /// <summary>
         /// Left border side.
         /// </summary>
         public ExcelBorderSideSnapshot? Left { get; internal set; }
@@ -1139,6 +1166,18 @@ namespace OfficeIMO.Excel {
     /// Immutable single-border-side metadata resolved from an OpenXML border definition.
     /// </summary>
     public sealed class ExcelBorderSideSnapshot {
+        internal ExcelBorderSideSnapshot() { }
+
+        /// <summary>
+        /// Creates border-side metadata that can be used when authoring a conditional-formatting differential style.
+        /// </summary>
+        /// <param name="style">SpreadsheetML border style name.</param>
+        /// <param name="colorArgb">Optional border color in ARGB hexadecimal form.</param>
+        public ExcelBorderSideSnapshot(string style, string? colorArgb = null) {
+            Style = style;
+            ColorArgb = colorArgb;
+        }
+
         /// <summary>
         /// Border style name as stored in the workbook.
         /// </summary>

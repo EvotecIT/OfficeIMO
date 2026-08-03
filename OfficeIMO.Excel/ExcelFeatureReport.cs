@@ -410,7 +410,8 @@ namespace OfficeIMO.Excel {
                 int sheetPivotCount = worksheetPart.PivotTableParts.Count();
                 pivotCount += sheetPivotCount;
                 dataValidationCount += worksheet?.Descendants<DocumentFormat.OpenXml.Spreadsheet.DataValidation>().Count() ?? 0;
-                conditionalFormattingCount += worksheet?.Elements<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting>().Count() ?? 0;
+                conditionalFormattingCount += worksheet?.Descendants<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormattingRule>().Count() ?? 0;
+                conditionalFormattingCount += worksheet?.Descendants<DocumentFormat.OpenXml.Office2010.Excel.ConditionalFormattingRule>().Count() ?? 0;
                 IReadOnlyList<ExcelWorksheetSparklineInfo> sheetSparklines = ExcelWorksheetSparklineResolver.FindSparklines(worksheetPart);
                 int sheetSparklineCount = sheetSparklines.Count;
                 sparklineCount += sheetSparklineCount;
@@ -510,8 +511,8 @@ namespace OfficeIMO.Excel {
                 "Tables can be authored and inspected, including AutoFilter metadata.");
             Add(features, "Data", "Data validations", ExcelFeatureSupportLevel.Editable, dataValidationCount, null,
                 "List, numeric, date, time, text-length, custom formula, prompt, and error metadata are editable.");
-            Add(features, "Formatting", "Conditional formatting", ExcelFeatureSupportLevel.PartiallyEditable, conditionalFormattingCount, null,
-                "Common rule types are editable; full Excel conditional-formatting parity remains a roadmap item.");
+            Add(features, "Formatting", "Conditional formatting", ExcelFeatureSupportLevel.Editable, conditionalFormattingCount, null,
+                "Standard and Office extension rules share one inspect, add, update, clone, reorder, remove, clear, and structural-remapping lifecycle; imported unknown markup is preserved, and PDF projection emits explicit approximation or omission diagnostics.");
             Add(features, "Visualization", "Charts", ExcelFeatureSupportLevel.PartiallyEditable, chartCount, null,
                 "Common chart authoring and updates are supported, including stacked/100% stacked column/bar/line/area variants, 3-D area/line/column/bar/pie, pie-of-pie/bar-of-pie, radar, stock, surface charts, and native ChartEx funnel, waterfall, box-and-whisker, treemap, and sunburst layouts; imported mutation remains bounded.");
             Add(features, "Visualization", "PDF-unsupported charts", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedChartCount, null,

@@ -179,6 +179,13 @@ namespace OfficeIMO.Excel {
             List<OfficeImageExportDiagnostic> diagnostics) {
             foreach (ExcelConditionalFormattingInfo rule in rules) {
                 string source = sheet.Name + "!" + rule.Range;
+                if (rule.Source == ExcelConditionalFormattingSource.Office2010Extension) {
+                    diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
+                        OfficeImageExportDiagnosticSeverity.Info,
+                        ExcelImageExportDiagnosticCodes.ConditionalExtensionApproximation,
+                        "Office extension conditional formatting is projected through the dependency-free renderer; Excel-specific extension details such as advanced data-bar geometry, custom icons, and inline extension styling may be approximated.",
+                        source));
+                }
                 if (string.Equals(rule.Type, "IconSet", StringComparison.OrdinalIgnoreCase)) {
                     if (CanRenderIconSet(rule)) {
                         diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(

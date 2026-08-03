@@ -95,10 +95,75 @@ namespace OfficeIMO.Excel {
                     string references = target?.Text ?? string.Empty;
                     if (!TryRemoveReferenceOverlap(references, bounds, out List<string> remaining)) continue;
                     if (remaining.Count == 0) formatting.Remove();
-                    else target!.Text = string.Join(" ", remaining);
+                    else {
+                        string replacement = string.Join(" ", remaining);
+                        target!.Text = replacement;
+                        RemapConditionalFormattingAnchorFormulas(formatting, references, replacement);
+                    }
                 }
                 if (!formattings.Elements<X14.ConditionalFormatting>().Any()) formattings.Remove();
             }
+        }
+
+        private void RemapConditionalFormattingAnchorFormulas(
+            OpenXmlElement owner,
+            string oldReferences,
+            string newReferences) {
+            if (!TryGetConditionalFormattingAnchor(oldReferences, out int oldRow, out int oldColumn) ||
+                !TryGetConditionalFormattingAnchor(newReferences, out int newRow, out int newColumn) ||
+                oldRow == newRow && oldColumn == newColumn) return;
+
+            foreach (Formula formula in owner.Descendants<Formula>()) {
+                if (!string.IsNullOrEmpty(formula.Text)) {
+                    formula.Text = TranslateCopiedFormula(
+                        formula.Text!,
+                        oldRow,
+                        oldColumn,
+                        newRow,
+                        newColumn,
+                        transpose: false);
+                }
+            }
+            foreach (Xm.Formula formula in owner.Descendants<Xm.Formula>()) {
+                if (!string.IsNullOrEmpty(formula.Text)) {
+                    formula.Text = TranslateCopiedFormula(
+                        formula.Text!,
+                        oldRow,
+                        oldColumn,
+                        newRow,
+                        newColumn,
+                        transpose: false);
+                }
+            }
+            foreach (ConditionalFormatValueObject threshold in owner
+                .Descendants<ConditionalFormatValueObject>()
+                .Where(item => string.Equals(item.Type?.InnerText, "formula", StringComparison.OrdinalIgnoreCase))) {
+                if (threshold.Val?.Value is string formula && formula.Length > 0) {
+                    threshold.Val = TranslateCopiedFormula(
+                        formula,
+                        oldRow,
+                        oldColumn,
+                        newRow,
+                        newColumn,
+                        transpose: false);
+                }
+            }
+        }
+
+        private static bool TryGetConditionalFormattingAnchor(
+            string references,
+            out int row,
+            out int column) {
+            foreach (ReferenceListPart part in SplitReferenceList(references)) {
+                if (TryParseReference(part, out var bounds)) {
+                    row = bounds.r1;
+                    column = bounds.c1;
+                    return true;
+                }
+            }
+            row = 0;
+            column = 0;
+            return false;
         }
 
         private void CleanupEmptyMetadataExtensions() {
@@ -107,6 +172,17 @@ namespace OfficeIMO.Excel {
             }
             foreach (ExtensionList extensions in WorksheetRoot.Elements<ExtensionList>().ToList()) {
                 if (!extensions.Elements<Extension>().Any()) extensions.Remove();
+            }
+            foreach (WorksheetExtension extension in WorksheetRoot.Descendants<WorksheetExtension>()
+                .Where(extension => string.Equals(
+                    extension.Uri?.Value,
+                    Office2010ConditionalFormattingExtensionUri,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList()) {
+                if (!extension.ChildElements.Any()) extension.Remove();
+            }
+            foreach (WorksheetExtensionList extensions in WorksheetRoot.Elements<WorksheetExtensionList>().ToList()) {
+                if (!extensions.Elements<WorksheetExtension>().Any()) extensions.Remove();
             }
         }
     }

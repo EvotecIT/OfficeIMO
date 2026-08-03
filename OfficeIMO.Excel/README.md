@@ -490,8 +490,45 @@ sheet.UpdateComments(new ExcelCommentFilter { TextContains = "total" }, "Total r
 sheet.AddConditionalColorScale("C2:C100", "#FFF0F0", "#70AD47");
 sheet.Range("D2:D100").ConditionalFormat.DataBar("#5B9BD5");
 
+// The same lifecycle covers imported classic and Office extension rules.
+var rules = sheet.GetConditionalFormattingRules("C2:D100");
+var copied = sheet.CloneConditionalFormattingRule(rules[0], "E2:E100");
+copied.Priority = 1;
+sheet.UpdateConditionalFormattingRule(copied);
+
 document.Save();
 ```
+
+For extension-only visuals, use the same format-neutral model rather than a
+second Open XML-specific API:
+
+```csharp
+sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+    Source = ExcelConditionalFormattingSource.Office2010Extension,
+    Range = "F2:F100",
+    Type = "DataBar",
+    DataBarColor = "FF4472C4",
+    DataBarBorderColor = "FF203864",
+    DataBarNegativeColor = "FFC00000",
+    DataBarAxisColor = "FF000000",
+    DataBarBorder = true,
+    DataBarGradient = false,
+    DataBarThresholds = new[] {
+        new ExcelConditionalFormatThreshold { Type = "AutoMin" },
+        new ExcelConditionalFormatThreshold { Type = "AutoMax" }
+    }
+});
+```
+
+`GetConditionalFormattingRules`, `AddConditionalFormattingRule`,
+`UpdateConditionalFormattingRule`, `CloneConditionalFormattingRule`,
+`ReorderConditionalFormattingRules`, `RemoveConditionalFormattingRule`, and
+`ClearConditionalFormatting` manage standard and Office extension rules through
+one API. Common edits do not reserialize unchanged formulas or visuals, so
+unrecognized imported attributes and extension children are retained. Excel
+image/PDF projection emits stable diagnostics when extension semantics are
+approximated or omitted; native XLS export rejects extension-only rules rather
+than silently discarding them.
 
 ### Tune larger exports
 

@@ -602,8 +602,7 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("# OfficeIMO roadmap", roadmap, StringComparison.Ordinal);
         Assert.Contains("It contains open work only", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Word", roadmap, StringComparison.Ordinal);
-        Assert.Contains("## Excel", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Complete the remaining conditional-formatting rule and extension surface", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Complete the remaining conditional-formatting rule and extension surface", roadmap, StringComparison.Ordinal);
         Assert.Contains("## PDF, HTML, and image rendering", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Markdown and text formats", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Reader and document intelligence", roadmap, StringComparison.Ordinal);
