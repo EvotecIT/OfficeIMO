@@ -177,6 +177,11 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlElement? themeFill = themeOutline?.ChildElements
                 .FirstOrDefault(child => child is A.NoFill
                     or A.SolidFill or A.GradientFill or A.PatternFill);
+            if (opacity != null && themeFill != null
+                && HasTransformedPlaceholderColor(themeFill)) {
+                throw new NotSupportedException(
+                    "Outline transparency cannot be changed while the inherited theme line applies transparency transforms to phClr. Materialize a local fixed-color outline first.");
+            }
             bool hasFixedThemeFill = opacity != null && themeFill != null
                 && ContainsFixedThemeColor(themeFill);
             if (outline == null && opacity == null) {

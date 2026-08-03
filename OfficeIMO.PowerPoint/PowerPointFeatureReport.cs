@@ -1261,8 +1261,18 @@ namespace OfficeIMO.PowerPoint {
                             referencedModernAuthorIds)) {
                         return false;
                     }
-                    foreach (P188.CommentReply reply in comment
-                                 .Descendants<P188.CommentReply>()) {
+                    P188.CommentReplyList[] replyLists = comment
+                        .Elements<P188.CommentReplyList>().ToArray();
+                    if (replyLists.Length > 1) return false;
+                    P188.CommentReplyList? replyList = replyLists
+                        .SingleOrDefault();
+                    P188.CommentReply[] replies = comment
+                        .Descendants<P188.CommentReply>().ToArray();
+                    if (replies.Any(reply =>
+                            !ReferenceEquals(reply.Parent, replyList))) {
+                        return false;
+                    }
+                    foreach (P188.CommentReply reply in replies) {
                         if (!HasEditableModernCommentFields(reply,
                                 modernAuthorIds, modernCommentIds,
                                 referencedModernAuthorIds)) {

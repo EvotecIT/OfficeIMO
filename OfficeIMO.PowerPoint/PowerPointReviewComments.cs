@@ -339,6 +339,16 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Removes the comment and all of its replies.</summary>
         public void Remove() {
             P188.Comment attached = RequireAttached();
+            bool isLastComment = _part.CommentList == null
+                || !_part.CommentList.Elements<P188.Comment>()
+                    .Any(comment => !ReferenceEquals(comment, attached));
+            if (isLastComment && _part.CommentList != null
+                && (_part.CommentList.ExtendedAttributes.Any()
+                    || _part.CommentList.ChildElements.Any(child =>
+                        child is not P188.Comment))) {
+                throw new NotSupportedException(
+                    "The last modern comment cannot be removed while its comment part contains producer metadata that must be preserved.");
+            }
             string?[] authorIds = attached.Descendants<P188.CommentReply>()
                 .Select(reply => reply.AuthorId?.Value)
                 .Concat(new[] { attached.AuthorId?.Value })

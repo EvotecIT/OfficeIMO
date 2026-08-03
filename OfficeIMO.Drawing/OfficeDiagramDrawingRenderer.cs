@@ -225,17 +225,26 @@ public static class OfficeDiagramDrawingRenderer {
         OfficeDiagramKind kind = snapshot.Kind;
         OfficeColor connectorColor = snapshot.Style?.ConnectorColor
             ?? OfficeColor.FromRgb(100, 116, 139);
+        if (kind == OfficeDiagramKind.Hierarchy) {
+            for (int index = 1; index < nodes.Count; index++) {
+                AddConnector(drawing, nodes[0], nodes[index],
+                    ellipticalNodes: false, connectorColor: connectorColor,
+                    includeArrowHead: false);
+            }
+            return;
+        }
         if (kind != OfficeDiagramKind.Cycle) return;
         int connectorCount = nodes.Count;
         for (int index = 0; index < connectorCount; index++) {
             AddConnector(drawing, nodes[index],
                 nodes[(index + 1) % nodes.Count],
-                true, connectorColor);
+                true, connectorColor, includeArrowHead: true);
         }
     }
 
     private static void AddConnector(OfficeDrawing drawing, NodeBox source,
-        NodeBox target, bool ellipticalNodes, OfficeColor connectorColor) {
+        NodeBox target, bool ellipticalNodes, OfficeColor connectorColor,
+        bool includeArrowHead) {
         double deltaX = target.CenterX - source.CenterX;
         double deltaY = target.CenterY - source.CenterY;
         if (Math.Abs(deltaX) < 0.000001D
@@ -251,8 +260,10 @@ public static class OfficeDiagramDrawingRenderer {
         OfficeShape line = OfficeShape.Line(x1, y1, x2, y2);
         line.StrokeColor = connectorColor;
         line.StrokeWidth = 1.5D;
-        line.StrokeEndMarker = new OfficeLineMarker(
-            OfficeLineMarkerKind.Triangle, 5D, 5D);
+        if (includeArrowHead) {
+            line.StrokeEndMarker = new OfficeLineMarker(
+                OfficeLineMarkerKind.Triangle, 5D, 5D);
+        }
         drawing.AddShape(line, Math.Min(x1, x2), Math.Min(y1, y2));
     }
 

@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
+using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using Xunit;
@@ -1957,6 +1958,35 @@ namespace OfficeIMO.Tests {
                 .PresentationPart!.SlideParts.Single().SlideCommentsPart!;
             commentsPart.CommentList!.Append(new OpenXmlUnknownElement(
                 "vendor", "producerData", "urn:officeimo:test:comments"));
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesAmbiguousModernReplyLists() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, new PowerPointCommentAuthor("Reviewer", "R"),
+                "Review");
+            comment.AddReply(new PowerPointCommentAuthor("Responder", "A"),
+                "Reply");
+            PowerPointCommentPart part = Assert.Single(slide.SlidePart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointCommentPart>());
+            P188.Comment nativeComment = Assert.Single(part.CommentList!
+                .Elements<P188.Comment>());
+            P188.CommentReplyList replyList = Assert.Single(nativeComment
+                .Elements<P188.CommentReplyList>());
+            nativeComment.Append(replyList.CloneNode(true));
 
             PowerPointFeatureReport report = presentation.InspectFeatures();
             PowerPointFeatureFinding comments = Assert.Single(

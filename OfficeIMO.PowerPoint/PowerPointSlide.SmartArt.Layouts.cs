@@ -180,6 +180,7 @@ namespace OfficeIMO.PowerPoint {
                     axis: "ch ch", pointType: "node node",
                     start: new[] { 1, index },
                     count: new[] { 1U, 1U }));
+                root.Append(CreateHierarchyConnectorIterator(index));
             }
             return root;
         }
@@ -422,6 +423,44 @@ namespace OfficeIMO.PowerPoint {
                 },
                 new Dgm.Constraint {
                     Type = Dgm.ConstraintValues.ConnectionDistance
+                }));
+            connector.Append(new Dgm.RuleList());
+            iterator.Append(connector);
+            return iterator;
+        }
+
+        private static Dgm.ForEach CreateHierarchyConnectorIterator(
+            int childIndex) {
+            Dgm.ForEach iterator = new() {
+                Name = $"hierarchyTransition{childIndex}",
+                Axis = AxisList("ch ch self"),
+                PointType = PointTypeList("node node parTrans"),
+                Start = IntList(1, childIndex, 1),
+                Count = UIntList(1U, 1U, 1U)
+            };
+            Dgm.LayoutNode connector = new() {
+                Name = $"hierarchyConnector{childIndex}"
+            };
+            connector.Append(CreateAlgorithm(Dgm.AlgorithmValues.Connector,
+                (Dgm.ParameterIdValues.ConnectorDimension, "1D"),
+                (Dgm.ParameterIdValues.EndStyle, "noArr"),
+                (Dgm.ParameterIdValues.ConnectionRoute, "bend"),
+                (Dgm.ParameterIdValues.BendPoint, "end"),
+                (Dgm.ParameterIdValues.BeginningPoints, "bCtr"),
+                (Dgm.ParameterIdValues.EndPoints, "tCtr"),
+                (Dgm.ParameterIdValues.SourceNode, "hierarchyRootNode"),
+                (Dgm.ParameterIdValues.DestinationNode,
+                    $"hierarchyChild{childIndex}")));
+            connector.Append(CreateLayoutShape("conn"));
+            connector.Append(new Dgm.PresentationOf {
+                Axis = AxisList("self")
+            });
+            connector.Append(new Dgm.Constraints(
+                new Dgm.Constraint {
+                    Type = Dgm.ConstraintValues.BeginningPadding
+                },
+                new Dgm.Constraint {
+                    Type = Dgm.ConstraintValues.EndPadding
                 }));
             connector.Append(new Dgm.RuleList());
             iterator.Append(connector);

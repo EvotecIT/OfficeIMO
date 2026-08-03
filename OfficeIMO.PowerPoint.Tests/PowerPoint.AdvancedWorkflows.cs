@@ -226,6 +226,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BasicHierarchyAuthorsEveryParentTransition() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddSmartArt(PowerPointSmartArtType.BasicHierarchy,
+                new[] { "Executive", "Platform", "Delivery", "Operations" });
+
+            Dgm.LayoutDefinition layout = Assert.Single(slide.SlidePart
+                .DiagramLayoutDefinitionParts).LayoutDefinition!;
+            Dgm.ForEach[] transitions = layout.Descendants<Dgm.ForEach>()
+                .Where(iterator => iterator.Name?.Value?.StartsWith(
+                    "hierarchyTransition", StringComparison.Ordinal) == true)
+                .ToArray();
+            Assert.Equal(3, transitions.Length);
+            Assert.All(transitions, transition => {
+                Assert.Equal("ch ch self", transition.Axis?.InnerText);
+                Assert.Equal("node node parTrans",
+                    transition.PointType?.InnerText);
+                Dgm.LayoutNode connector = Assert.Single(
+                    transition.Elements<Dgm.LayoutNode>());
+                Assert.Equal(Dgm.AlgorithmValues.Connector,
+                    connector.GetFirstChild<Dgm.Algorithm>()!.Type!.Value);
+                Assert.Equal("conn",
+                    connector.GetFirstChild<Dgm.Shape>()!.Type!.Value);
+            });
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            Assert.Equal(3, snapshot.Drawing.Shapes.Count(shape =>
+                shape.Shape.Kind == OfficeShapeKind.Line));
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void AddSmartArtRejectsUndefinedLayoutKind() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
@@ -536,11 +569,14 @@ namespace OfficeIMO.Tests {
                     constraint.ReferenceType?.Value));
 
             if (type == PowerPointSmartArtType.BasicHierarchy) {
-                Assert.Equal(5, layout.Descendants<Dgm.LayoutNode>().Count(node =>
-                    node.Name?.Value?.StartsWith("hierarchy",
+                Assert.Equal(4, layout.Descendants<Dgm.LayoutNode>().Count(node =>
+                    node.Name?.Value == "hierarchyRootNode"
+                    || node.Name?.Value?.StartsWith("hierarchyChild",
                         StringComparison.Ordinal) == true));
                 Assert.Equal(4, layout.Descendants<Dgm.Shape>().Count(shape =>
                     shape.Type?.Value == "roundRect"));
+                Assert.Equal(3, layout.Descendants<Dgm.Shape>().Count(shape =>
+                    shape.Type?.Value == "conn"));
             } else if (type == PowerPointSmartArtType.BasicList) {
                 Dgm.Parameter aspectRatio = Assert.Single(
                     algorithm.Elements<Dgm.Parameter>(), parameter =>
@@ -614,7 +650,13 @@ namespace OfficeIMO.Tests {
             Dgm.LayoutDefinition layout = Assert.Single(reopened.Slides[0].SlidePart
                 .DiagramLayoutDefinitionParts).LayoutDefinition!;
             Assert.Equal(nodeTexts.Length, layout.Descendants<Dgm.Shape>().Count(shape =>
-                !string.IsNullOrWhiteSpace(shape.Type?.Value)));
+                !string.IsNullOrWhiteSpace(shape.Type?.Value)
+                && shape.Type?.Value != "conn"));
+            if (type == PowerPointSmartArtType.BasicHierarchy) {
+                Assert.Equal(nodeTexts.Length - 1,
+                    layout.Descendants<Dgm.Shape>().Count(shape =>
+                        shape.Type?.Value == "conn"));
+            }
             Assert.Empty(reopened.ValidateDocument());
         }
 

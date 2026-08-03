@@ -114,6 +114,11 @@ namespace OfficeIMO.PowerPoint {
                         "Fill transparency cannot be changed while the shape inherits a picture fill. Materialize a local picture fill with a valid image relationship first.");
                 }
                 if (opacity != null && themeFill != null
+                    && HasTransformedPlaceholderColor(themeFill)) {
+                    throw new NotSupportedException(
+                        "Fill transparency cannot be changed while the inherited theme fill applies transparency transforms to phClr. Materialize a local fixed-color fill first.");
+                }
+                if (opacity != null && themeFill != null
                     && ContainsFixedThemeColor(themeFill)) {
                     OpenXmlElement materialized = themeFill.CloneNode(true);
                     RemoveFillChoiceChildren(props);
@@ -300,6 +305,16 @@ namespace OfficeIMO.PowerPoint {
             && GetFillColorChoices(composite).Any(color =>
                 color is not A.SchemeColor scheme
                 || scheme.Val?.Value != A.SchemeColorValues.PhColor);
+
+        private static bool HasTransformedPlaceholderColor(
+            OpenXmlElement fill) =>
+            fill is OpenXmlCompositeElement composite
+            && GetFillColorChoices(composite).Any(color =>
+                color is A.SchemeColor scheme
+                && scheme.Val?.Value == A.SchemeColorValues.PhColor
+                && scheme.ChildElements.Any(child =>
+                    child.LocalName.StartsWith("alpha",
+                        StringComparison.Ordinal)));
 
         /// <summary>
         ///     Gets or sets rotation in degrees.

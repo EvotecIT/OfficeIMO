@@ -549,6 +549,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointShape_FillTransparencyRejectsTransformedPlaceholderThemeFill() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SetThemeColorForAllMasters(
+                PowerPointThemeColor.Accent2, "123456");
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                20, 20, 120, 80);
+            Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
+            A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.ThemePart!.Theme!.ThemeElements!
+                .FormatScheme!.FillStyleList!;
+            fillStyles.ReplaceChild(new A.SolidFill(
+                    new A.SchemeColor(new A.Alpha { Val = 50000 }) {
+                        Val = A.SchemeColorValues.PhColor
+                    }),
+                fillStyles.ChildElements[0]);
+            var referenceColor = new A.SchemeColor {
+                Val = A.SchemeColorValues.Accent2
+            };
+            openXmlShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.FillReference(referenceColor) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+
+            string propertiesBefore = openXmlShape.ShapeProperties.OuterXml;
+            string styleBefore = openXmlShape.ShapeStyle.OuterXml;
+
+            Assert.Throws<NotSupportedException>(() =>
+                shape.FillTransparency = 40);
+
+            Assert.Equal(propertiesBefore,
+                openXmlShape.ShapeProperties.OuterXml);
+            Assert.Equal(styleBefore, openXmlShape.ShapeStyle.OuterXml);
+        }
+
+        [Fact]
         public void PowerPointShape_FillTransparencyRejectsInheritedPictureFillWithoutMutation() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
@@ -633,6 +678,48 @@ namespace OfficeIMO.Tests {
             Assert.Null(referenceColor.GetFirstChild<A.Alpha>());
             Assert.Equal(40, shape.OutlineTransparency);
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void PowerPointShape_OutlineTransparencyRejectsTransformedPlaceholderThemeLine() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                20, 20, 120, 80);
+            Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
+            openXmlShape.ShapeProperties!.RemoveAllChildren<A.Outline>();
+            A.LineStyleList lineStyles = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.ThemePart!.Theme!.ThemeElements!
+                .FormatScheme!.LineStyleList!;
+            lineStyles.ReplaceChild(new A.Outline(
+                    new A.SolidFill(new A.SchemeColor(
+                        new A.AlphaModulation { Val = 50000 }) {
+                        Val = A.SchemeColorValues.PhColor
+                    })),
+                lineStyles.ChildElements[0]);
+            openXmlShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent2
+                }) { Index = 1U },
+                new A.FillReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+            string propertiesBefore = openXmlShape.ShapeProperties.OuterXml;
+            string styleBefore = openXmlShape.ShapeStyle.OuterXml;
+
+            Assert.Throws<NotSupportedException>(() =>
+                shape.OutlineTransparency = 40);
+
+            Assert.Equal(propertiesBefore,
+                openXmlShape.ShapeProperties.OuterXml);
+            Assert.Equal(styleBefore, openXmlShape.ShapeStyle.OuterXml);
         }
 
         [Fact]

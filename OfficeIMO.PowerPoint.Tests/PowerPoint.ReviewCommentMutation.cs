@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
@@ -603,6 +604,32 @@ namespace OfficeIMO.Tests {
                 pair => pair.OpenXmlPart is PowerPointAuthorsPart);
             Assert.Empty(presentation.GetModernComments(slide));
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ModernCommentMutation_PreservesProducerMetadataWhenRemovingLastComment() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, new PowerPointCommentAuthor("Reviewer", "R"),
+                "Review");
+            PowerPointCommentPart part = Assert.Single(slide.SlidePart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointCommentPart>());
+            part.CommentList!.Append(new OpenXmlUnknownElement(
+                "vendor", "producerData",
+                "urn:officeimo:test:comments"));
+            string original = part.CommentList.OuterXml;
+
+            Assert.Throws<NotSupportedException>(() => comment.Remove());
+
+            Assert.Equal(original, part.CommentList.OuterXml);
+            Assert.Contains(slide.SlidePart.Parts,
+                pair => ReferenceEquals(pair.OpenXmlPart, part));
+            Assert.Single(presentation.GetModernComments(slide));
+            Assert.Equal(new[] { "Reviewer" },
+                GetModernAuthorNames(presentation));
         }
 
         [Fact]
