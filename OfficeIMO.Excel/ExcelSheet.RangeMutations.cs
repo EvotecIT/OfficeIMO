@@ -416,6 +416,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ExcelImage copy;
+                string copyName = AllocateCopiedDrawingName(image.Name);
                 if (image.HasTwoCellAnchor && image.ToRowIndex.HasValue && image.ToColumnIndex.HasValue) {
                     int toRow = transpose
                         ? targetRow + image.ToColumnIndex.Value - image.ColumnIndex
@@ -432,7 +433,7 @@ namespace OfficeIMO.Excel {
                         image.ContentType,
                         transpose ? image.OffsetYPixels : image.OffsetXPixels,
                         transpose ? image.OffsetXPixels : image.OffsetYPixels,
-                        name: image.Name,
+                        name: copyName,
                         altText: image.Description,
                         title: image.Title,
                         lockAspectRatio: image.IsAspectRatioLocked,
@@ -456,7 +457,7 @@ namespace OfficeIMO.Excel {
                         transpose ? image.WidthPixels : image.HeightPixels,
                         transpose ? image.OffsetYPixels : image.OffsetXPixels,
                         transpose ? image.OffsetXPixels : image.OffsetYPixels,
-                        image.Name,
+                        copyName,
                         image.Description,
                         image.IsAspectRatioLocked);
                     copy.Title = image.Title;
@@ -467,6 +468,21 @@ namespace OfficeIMO.Excel {
             }
             _excelDocument.CleanupCalculationArtifacts(save: false, ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
             ResetMutationCaches();
+        }
+
+        private string AllocateCopiedDrawingName(string sourceName) {
+            var used = new HashSet<string>(
+                _worksheetPart.DrawingsPart?.WorksheetDrawing?
+                    .Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.NonVisualDrawingProperties>()
+                    .Select(properties => properties.Name?.Value)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Select(name => name!)
+                    ?? Enumerable.Empty<string>(),
+                StringComparer.OrdinalIgnoreCase);
+            string root = string.IsNullOrWhiteSpace(sourceName) ? "Picture" : sourceName.Trim();
+            string candidate = root + " Copy";
+            for (int suffix = 2; used.Contains(candidate); suffix++) candidate = root + " Copy " + suffix;
+            return candidate;
         }
 
         private string TranslateCopiedFormula(string formula, int sourceRow, int sourceColumn, int targetRow, int targetColumn, bool transpose) {

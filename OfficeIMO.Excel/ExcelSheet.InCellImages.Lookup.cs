@@ -86,8 +86,11 @@ namespace OfficeIMO.Excel {
                 slot = default;
                 if (metadataIndex == 0U || metadataIndex > int.MaxValue) return false;
                 MetadataBlock? metadataBlock = _metadataBlocks.ElementAtOrDefault((int)metadataIndex - 1);
-                MetadataRecord? record = metadataBlock?.Elements<MetadataRecord>().FirstOrDefault();
-                if (record == null || !IsRichValueMetadataType(_metadata, record.TypeIndex?.Value ?? 0U)) return false;
+                MetadataRecord? record = metadataBlock?.Elements<MetadataRecord>()
+                    .FirstOrDefault(candidate => IsRichValueMetadataType(
+                        _metadata,
+                        candidate.TypeIndex?.Value ?? 0U));
+                if (record == null) return false;
                 uint futureIndex = record.Val?.Value ?? uint.MaxValue;
                 if (futureIndex > int.MaxValue) return false;
                 FutureMetadataBlock? futureBlock = _futureBlocks.ElementAtOrDefault((int)futureIndex);

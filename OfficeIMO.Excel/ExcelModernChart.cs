@@ -39,7 +39,10 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Non-visual drawing name.</summary>
         public string Name {
-            get => _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty;
+            get => Locking.ExecuteRead(_sheet.Document.EnsureLock(), () => {
+                EnsureAttached();
+                return _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty;
+            });
             set {
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentNullException(nameof(value));
                 ExcelSheet.ValidateModernChartText(value, nameof(value));
@@ -62,20 +65,22 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Detected native ChartEx layout.</summary>
         public ExcelModernChartType ChartType {
-            get {
+            get => Locking.ExecuteRead(_sheet.Document.EnsureLock(), () => {
+                EnsureAttached();
                 string? relationshipId = GetChartRelationshipId(_frame);
                 ExtendedChartPart? part = relationshipId == null ? null : TryGetChartPart(relationshipId);
                 return ExcelSheet.ParseModernChartType(part?.ChartSpace?.Descendants<Cx.Series>()
                     .FirstOrDefault()?.GetAttribute("layoutId", string.Empty).Value);
-            }
+            });
         }
 
         /// <summary>Known authored data range, when this wrapper created the chart.</summary>
         public ExcelChartDataRange? DataRange { get; private set; }
 
         /// <summary>Current title text, when present.</summary>
-        public string? Title => GetChartPart().ChartSpace?.Descendants<Cx.ChartTitle>()
-            .FirstOrDefault()?.Descendants<Cx.VXsdstring>().FirstOrDefault()?.Text;
+        public string? Title => Locking.ExecuteRead(_sheet.Document.EnsureLock(), () =>
+            GetChartPart().ChartSpace?.Descendants<Cx.ChartTitle>()
+                .FirstOrDefault()?.Descendants<Cx.VXsdstring>().FirstOrDefault()?.Text);
 
         /// <summary>Sets the chart title while preserving unrelated imported ChartEx markup.</summary>
         public ExcelModernChart SetTitle(string? title) {

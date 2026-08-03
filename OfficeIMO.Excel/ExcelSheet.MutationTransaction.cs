@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 EnsureWorksheetCapturedByMutationPlanIsActive();
                 var snapshot = PackageMutationSnapshot.Capture(_excelDocument.WorkbookPartRoot, options.MaximumSnapshotCharacters);
+                ExcelDocument.FormulaMutationState formulaMutationState = _excelDocument.CaptureFormulaMutationState();
                 try {
                     int affectedCells = operation(cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
@@ -44,8 +45,12 @@ namespace OfficeIMO.Excel {
                         affectedCells,
                         diagnostics);
                 } catch {
-                    snapshot.Restore();
-                    ResetMutationCaches();
+                    try {
+                        snapshot.Restore();
+                    } finally {
+                        _excelDocument.RestoreFormulaMutationState(formulaMutationState);
+                        ResetMutationCaches();
+                    }
                     throw;
                 }
             });

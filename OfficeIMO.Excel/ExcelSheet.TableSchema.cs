@@ -271,6 +271,28 @@ namespace OfficeIMO.Excel {
                 TargetRow: targetFirstRow + item.Row - sourceFirstRow,
                 TargetColumn: targetBounds.c1 + item.Column - currentBounds.c1,
                 Cell: (Cell)item.Cell.CloneNode(true))).ToList();
+            var totalsSource = ExcelReference.Parse(
+                A1.CellReference(sourceFirstRow, currentBounds.c1) + ":" +
+                A1.CellReference(currentBounds.r2, survivingLastColumn));
+            int destinationLastRow = targetFirstRow + totalsRows - 1;
+            RemoveRangeMoveDestinationComments(
+                totalsSource,
+                targetFirstRow,
+                targetBounds.c1,
+                destinationLastRow,
+                targetBounds.c1 + survivingLastColumn - currentBounds.c1);
+            RemoveRangeMoveDestinationHyperlinks(
+                totalsSource,
+                targetFirstRow,
+                targetBounds.c1,
+                destinationLastRow,
+                targetBounds.c1 + survivingLastColumn - currentBounds.c1);
+            _excelDocument.RewriteMovedRangeReferences(
+                this,
+                totalsSource,
+                targetFirstRow,
+                targetBounds.c1,
+                transpose: false);
             foreach (var source in sourceCells) source.Cell.Remove();
             foreach (var item in relocated) {
                 item.Cell.CellReference = A1.CellReference(item.TargetRow, item.TargetColumn);
