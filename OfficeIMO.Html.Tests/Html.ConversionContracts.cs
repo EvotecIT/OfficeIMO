@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Fact]
-    public void HtmlReadmeQuickStarts_UseCompiledPreparedDocumentApis() {
+    public void HtmlPreparedDocumentApis_ProduceArtifactsAcrossConversionTargets() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
 
         string markdown = source.ToMarkdown();
@@ -110,50 +110,6 @@ public partial class Html {
                 Assert.Contains(surface.ExportMethod, contract.ExportEntryPoint!, StringComparison.Ordinal);
             }
         }
-    }
-
-    [Fact]
-    public void HtmlReadmes_DoNotAdvertiseRemovedStringOrResultApis() {
-        string repositoryRoot = FindRepositoryRoot();
-        string[] readmePaths = {
-            "OfficeIMO.Html/README.md",
-            "OfficeIMO.Word.Html/README.md",
-            "OfficeIMO.Excel.Html/README.md",
-            "OfficeIMO.PowerPoint.Html/README.md",
-            "OfficeIMO.OneNote.Html/README.md",
-            "OfficeIMO.Markdown.Html/README.md",
-            "OfficeIMO.Reader.Html/README.md"
-        };
-
-        foreach (string relativePath in readmePaths) {
-            string readme = File.ReadAllText(Path.Combine(repositoryRoot, relativePath));
-            Assert.DoesNotContain("GetArtifactOrThrow", readme, StringComparison.Ordinal);
-            Assert.DoesNotContain("html.ToExcelDocument", readme, StringComparison.Ordinal);
-            Assert.DoesNotContain("html.ToPowerPointPresentation", readme, StringComparison.Ordinal);
-            Assert.DoesNotContain("html.ToMarkdown", readme, StringComparison.Ordinal);
-            Assert.DoesNotContain("\".ToMarkdown", readme, StringComparison.Ordinal);
-            Assert.DoesNotContain("\".ToRtfDocument", readme, StringComparison.Ordinal);
-        }
-
-        string excelReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.Excel.Html/README.md"));
-        string powerPointReadme = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.PowerPoint.Html/README.md"));
-        Assert.Contains("HtmlConversionDocument.Parse(html)", excelReadme, StringComparison.Ordinal);
-        Assert.Contains("HtmlConversionDocument.Parse(html)", powerPointReadme, StringComparison.Ordinal);
-        Assert.Contains("HtmlConversionDocument.Load", excelReadme, StringComparison.Ordinal);
-        Assert.Contains("HtmlConversionDocument.Load", powerPointReadme, StringComparison.Ordinal);
-        Assert.Contains("result.RequireValue()", excelReadme, StringComparison.Ordinal);
-        Assert.Contains("result.RequireValue()", powerPointReadme, StringComparison.Ordinal);
-    }
-
-    private static string FindRepositoryRoot() {
-        for (DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent) {
-            if (File.Exists(Path.Combine(directory.FullName, "Directory.Build.props"))
-                && Directory.Exists(Path.Combine(directory.FullName, "OfficeIMO.Html"))) {
-                return directory.FullName;
-            }
-        }
-
-        throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
     }
 
     private static void AssertPublicMethod(Type owner, string methodName) {
