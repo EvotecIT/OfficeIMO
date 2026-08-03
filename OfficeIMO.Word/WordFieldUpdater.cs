@@ -111,7 +111,9 @@ namespace OfficeIMO.Word {
             WordFieldType? fieldType,
             WordFieldUpdateStatus status,
             string message) {
-            if (candidate.NestingLevel > 0 && status is WordFieldUpdateStatus.Unsupported or WordFieldUpdateStatus.ParseError) {
+            if (candidate.NestingLevel > 0 &&
+                fieldType == WordFieldType.ListNum &&
+                message.IndexOf("Nested LISTNUM", StringComparison.OrdinalIgnoreCase) >= 0) {
                 return WordFieldEvaluationReason.NestedInstruction;
             }
 

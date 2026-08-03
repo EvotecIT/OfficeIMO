@@ -100,28 +100,33 @@ namespace OfficeIMO.Word.Html {
             string fallbackText,
             TextFormatting formatting,
             HtmlToWordOptions options) {
+            var state = new RubyTextEmissionState();
             if (element == null) {
-                yield return CreateRubyRun(fallbackText, formatting, options);
+                Run? fallback = CreateRubyTextRun(fallbackText, formatting, options, state);
+                if (fallback != null) yield return fallback;
                 yield break;
             }
 
             TextFormatting rootFormatting = formatting;
             ApplySpanStyles(element, ref rootFormatting);
-            bool emitted = false;
-            foreach (Run run in CreateRubyRuns(element.ChildNodes, rootFormatting, options)) {
-                emitted = true;
-                yield return run;
+            List<Run> runs = CreateRubyRuns(element.ChildNodes, rootFormatting, options, state).ToList();
+            state.TrimTrailingCollapsibleWhitespace(runs);
+            if (runs.Count == 0) {
+                Run? fallback = CreateRubyTextRun(fallbackText, rootFormatting, options, state);
+                if (fallback != null) runs.Add(fallback);
             }
-            if (!emitted) yield return CreateRubyRun(fallbackText, rootFormatting, options);
+            foreach (Run run in runs) yield return run;
         }
 
         private static IEnumerable<Run> CreateRubyRuns(
             IEnumerable<INode> nodes,
             TextFormatting formatting,
-            HtmlToWordOptions options) {
+            HtmlToWordOptions options,
+            RubyTextEmissionState state) {
             foreach (INode node in nodes) {
                 if (node is IText textNode) {
-                    if (textNode.Data.Length > 0) yield return CreateRubyRun(textNode.Data, formatting, options);
+                    Run? run = CreateRubyTextRun(textNode.Data, formatting, options, state);
+                    if (run != null) yield return run;
                     continue;
                 }
                 if (node is not IElement childElement || childElement.TagName.Equals("rp", StringComparison.OrdinalIgnoreCase)) {
@@ -131,10 +136,81 @@ namespace OfficeIMO.Word.Html {
                 TextFormatting childFormatting = formatting;
                 ApplyRubySemanticFormatting(childElement.TagName, ref childFormatting);
                 ApplySpanStyles(childElement, ref childFormatting);
-                foreach (Run childRun in CreateRubyRuns(childElement.ChildNodes, childFormatting, options)) {
+                foreach (Run childRun in CreateRubyRuns(childElement.ChildNodes, childFormatting, options, state)) {
                     yield return childRun;
                 }
             }
+        }
+
+        private static Run? CreateRubyTextRun(
+            string text,
+            TextFormatting formatting,
+            HtmlToWordOptions options,
+            RubyTextEmissionState state) {
+            if (text.Length == 0) return null;
+
+            WhiteSpaceMode mode = formatting.WhiteSpace ?? WhiteSpaceMode.Normal;
+            bool collapsible = mode is WhiteSpaceMode.Normal or WhiteSpaceMode.NoWrap;
+            string prepared = ApplyWhiteSpace(text, mode);
+            if (collapsible) {
+                char space = mode == WhiteSpaceMode.NoWrap ? '\u00A0' : ' ';
+                if (!state.HasOutput || state.PreviousEndedWithCollapsibleWhitespace) {
+                    prepared = prepared.TrimStart(space);
+                }
+            }
+            prepared = ApplyRubyTextTransform(prepared, formatting.Transform, state);
+            if (prepared.Length == 0) return null;
+
+            Run run = CreateRubyRun(prepared, formatting, options);
+            state.HasOutput = true;
+            state.PreviousEndedWithCollapsibleWhitespace = collapsible &&
+                (prepared[prepared.Length - 1] == ' ' || prepared[prepared.Length - 1] == '\u00A0');
+            state.LastCollapsibleText = state.PreviousEndedWithCollapsibleWhitespace
+                ? run.GetFirstChild<Text>()
+                : null;
+            return run;
+        }
+
+        private static string ApplyRubyTextTransform(
+            string text,
+            TextTransform transform,
+            RubyTextEmissionState state) {
+            string transformed;
+            if (transform == TextTransform.Capitalize && state.PreviousEndedInsideWord) {
+                string continuedWord = "a" + text;
+                transformed = CultureInfo.CurrentCulture.TextInfo
+                    .ToTitleCase(continuedWord.ToLowerInvariant())
+                    .Substring(1);
+            } else {
+                transformed = ApplyTextTransform(text, transform);
+            }
+
+            state.PreviousEndedInsideWord = EndsInsideRubyWord(text);
+            return transformed;
+        }
+
+        private static bool EndsInsideRubyWord(string text) {
+            for (int index = text.Length - 1; index >= 0;) {
+                if (char.IsLowSurrogate(text[index]) && index > 0 && char.IsHighSurrogate(text[index - 1])) {
+                    index--;
+                }
+                UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(text, index);
+                if (category is UnicodeCategory.NonSpacingMark or
+                    UnicodeCategory.SpacingCombiningMark or
+                    UnicodeCategory.EnclosingMark) {
+                    index--;
+                    continue;
+                }
+                return category is UnicodeCategory.UppercaseLetter or
+                    UnicodeCategory.LowercaseLetter or
+                    UnicodeCategory.TitlecaseLetter or
+                    UnicodeCategory.ModifierLetter or
+                    UnicodeCategory.OtherLetter or
+                    UnicodeCategory.DecimalDigitNumber or
+                    UnicodeCategory.LetterNumber or
+                    UnicodeCategory.OtherNumber;
+            }
+            return false;
         }
 
         private static void ApplyRubySemanticFormatting(string tagName, ref TextFormatting formatting) {
@@ -214,6 +290,25 @@ namespace OfficeIMO.Word.Html {
             internal IElement? AnnotationElement { get; }
             internal string BaseText { get; }
             internal string RubyText { get; }
+        }
+
+        private sealed class RubyTextEmissionState {
+            internal bool HasOutput { get; set; }
+            internal bool PreviousEndedWithCollapsibleWhitespace { get; set; }
+            internal bool PreviousEndedInsideWord { get; set; }
+            internal Text? LastCollapsibleText { get; set; }
+
+            internal void TrimTrailingCollapsibleWhitespace(List<Run> runs) {
+                if (LastCollapsibleText == null) return;
+
+                LastCollapsibleText.Text = LastCollapsibleText.Text.TrimEnd(' ', '\u00A0');
+                if (LastCollapsibleText.Text.Length == 0) {
+                    Run? emptyRun = runs.FirstOrDefault(run => ReferenceEquals(run.GetFirstChild<Text>(), LastCollapsibleText));
+                    if (emptyRun != null) runs.Remove(emptyRun);
+                }
+                PreviousEndedWithCollapsibleWhitespace = false;
+                LastCollapsibleText = null;
+            }
         }
     }
 }

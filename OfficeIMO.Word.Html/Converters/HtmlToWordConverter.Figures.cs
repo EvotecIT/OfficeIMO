@@ -64,8 +64,9 @@ namespace OfficeIMO.Word.Html {
                     .Count() + generatedTables.Select(table => table._table).Distinct().Count();
                 if (materializedBlocks == 1) {
                     _figureSequence++;
-                    string captionMarker = (captionIndex == 0 ? "officeimoFigureBefore" : "officeimoFigureAfter") +
-                        _figureSequence.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string captionMarker = HtmlWordRoundTripMarkers.CreateFigureCaptionBookmark(
+                        captionIndex == 0,
+                        _figureSequence);
                     WordBookmark.AddBookmark(captionParagraph, captionMarker);
                 } else {
                     AddDiagnostic(

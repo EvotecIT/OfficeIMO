@@ -89,6 +89,33 @@ public partial class Html {
     }
 
     [Fact]
+    public void WordToHtml_CustomXmlWrappedNestedTablePreservesBlockOrder() {
+        using WordDocument document = WordDocument.Create();
+        WordTable outer = document.AddTable(1, 1);
+        WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
+        nested.Rows[0].Cells[0].Paragraphs[0].Text = "Custom XML nested";
+        nested._table.Remove();
+        outer.Rows[0].Cells[0]._tableCell.Append(
+            new DocumentFormat.OpenXml.Wordprocessing.CustomXmlBlock(
+                new DocumentFormat.OpenXml.Wordprocessing.Paragraph(
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(
+                        new DocumentFormat.OpenXml.Wordprocessing.Text("Before custom XML"))),
+                nested._table,
+                new DocumentFormat.OpenXml.Wordprocessing.Paragraph(
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(
+                        new DocumentFormat.OpenXml.Wordprocessing.Text("After custom XML")))));
+
+        string html = document.ToHtml();
+        int beforeIndex = html.IndexOf("Before custom XML", StringComparison.Ordinal);
+        int nestedIndex = html.IndexOf("Custom XML nested", StringComparison.Ordinal);
+        int afterIndex = html.IndexOf("After custom XML", StringComparison.Ordinal);
+
+        Assert.True(beforeIndex >= 0 && nestedIndex > beforeIndex && afterIndex > nestedIndex, html);
+        var parsed = HtmlDocumentParser.ParseDocument(html);
+        Assert.Single(parsed.QuerySelectorAll("table table"));
+    }
+
+    [Fact]
     public void WordToHtml_NestedTableInsideListItem_PreservesBlockOrder() {
         const string html = "<table><tr><td><ol><li>Before<table><tr><td>Nested</td></tr></table></li><li>After</li></ol></td></tr></table>";
 
@@ -106,5 +133,39 @@ public partial class Html {
         Assert.Equal(2, items.Length);
         Assert.NotNull(items[0].QuerySelector("table"));
         Assert.Equal("After", items[1].TextContent);
+    }
+
+    [Fact]
+    public void WordToHtml_SiblingTableAfterClosedListRemainsOutsideListItem() {
+        const string html = "<table><tr><td><ol><li>List item</li></ol><table><tr><td>Sibling table</td></tr></table></td></tr></table>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
+
+        Assert.Empty(parsed.QuerySelectorAll("li table"));
+        Assert.Single(parsed.QuerySelectorAll("td > table"));
+    }
+
+    [Fact]
+    public void WordToHtml_NestedTableAsLastListItemChildUsesExactRoundTripMarker() {
+        const string html = "<table><tr><td><ol><li>List item<table><tr><td>Nested table</td></tr></table></li></ol></td></tr></table>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
+
+        Assert.Single(parsed.QuerySelectorAll("li > table"));
+    }
+
+    [Fact]
+    public void WordToHtml_OuterListTableMarkerDoesNotLeakToDescendantSiblingTable() {
+        const string html = "<table><tr><td><ol><li>Outer<table><tr><td><ol><li>Inner</li></ol><table><tr><td>Inner sibling table</td></tr></table></td></tr></table></li></ol></td></tr></table>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
+
+        var listTables = parsed.QuerySelectorAll("li > table");
+        Assert.Single(listTables);
+        Assert.Contains("Inner sibling table", listTables[0].TextContent, StringComparison.Ordinal);
+        Assert.Empty(parsed.QuerySelectorAll("li li > table"));
     }
 }

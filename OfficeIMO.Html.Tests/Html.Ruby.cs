@@ -88,6 +88,60 @@ public partial class Html {
     }
 
     [Fact]
+    public void Test_Html_Ruby_AppliesTextTransformToBaseAndAnnotationText() {
+        const string html = "<p><ruby><rb style=\"text-transform:uppercase\">ab<span>cd</span></rb><rt style=\"text-transform:capitalize\">alpha beta</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal("ABCD", ruby.RubyBase!.InnerText);
+        Assert.Equal("Alpha Beta", ruby.RubyContent!.InnerText);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_CapitalizeSpansInlineFormattingBoundaries() {
+        const string html = "<p><ruby><rb style=\"text-transform:capitalize\">foo<strong>bar</strong> baz</rb><rt>x</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal("Foobar Baz", ruby.RubyBase!.InnerText);
+        Assert.Equal(new[] { "Foo", "bar", " Baz" }, ruby.RubyBase.Elements<Run>().Select(run => run.InnerText));
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_CapitalizeKeepsCombiningMarkWordAcrossFormattingBoundary() {
+        const string html = "<p><ruby><rb style=\"text-transform:capitalize\">e\u0301<strong>clair</strong></rb><rt>x</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal("E\u0301clair", ruby.RubyBase!.InnerText);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_CollapsesDefaultWhitespaceAtSegmentBoundaries() {
+        const string html = "<p><ruby><rb>\n  A   B \n</rb><rt>\n alpha   beta \n</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal("A B", ruby.RubyBase!.InnerText);
+        Assert.Equal("alpha beta", ruby.RubyContent!.InnerText);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_PreservesWhitespaceWhenExplicitlyRequested() {
+        const string html = "<p><ruby><rb style=\"white-space:pre\"> A   B </rb><rt style=\"white-space:pre\"> x   y </rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal(" A   B ", ruby.RubyBase!.InnerText.Replace('\u00A0', ' '));
+        Assert.Equal(" x   y ", ruby.RubyContent!.InnerText.Replace('\u00A0', ' '));
+    }
+
+    [Fact]
     public void Test_Html_Ruby_ReportsAmbiguousSegmentPairing() {
         const string html = "<p><ruby><rb>東</rb><rb>京</rb><rt>とうきょう</rt></ruby></p>";
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using WP14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
@@ -176,6 +177,8 @@ namespace OfficeIMO.Word {
             if (drawing.Anchor?.Extent != null) {
                 drawing.Anchor.Extent.Cx = widthEmu;
                 if (heightEmu.HasValue) drawing.Anchor.Extent.Cy = heightEmu.Value;
+                drawing.Anchor.GetFirstChild<WP14.RelativeWidth>()?.Remove();
+                if (heightEmu.HasValue) drawing.Anchor.GetFirstChild<WP14.RelativeHeight>()?.Remove();
             }
         }
 

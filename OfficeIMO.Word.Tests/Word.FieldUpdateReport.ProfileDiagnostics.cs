@@ -66,6 +66,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesNestedFieldSpecificDiagnostic() {
+            using WordDocument document = WordDocument.Create();
+            SimpleField nested = BuildSimpleField(" = 12.5 \\# \"0.00 €\" ", "nested-preserved");
+            var outer = new SimpleField(
+                new Run(new Text("outer prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
+                nested,
+                new Run(new Text(" outer suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })) {
+                Instruction = " QUOTE \"outer\" "
+            };
+            document.AddParagraph()._paragraph.Append(outer);
+
+            WordFieldUpdateResult nestedResult = Assert.Single(
+                document.UpdateFieldsAndGetReport().Results,
+                result => result.InstructionText.Contains("12.5", StringComparison.Ordinal));
+
+            Assert.Equal(WordFieldUpdateStatus.Unsupported, nestedResult.Status);
+            Assert.Equal("FieldLocaleProfileUnsupported", nestedResult.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, nestedResult.EvaluationBasis);
+            Assert.Null(nestedResult.ResultText);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_MapsRelatedPartPageLayoutRequirement() {
             using WordDocument document = WordDocument.Create();
             document.AddHeadersAndFooters();

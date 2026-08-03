@@ -6,6 +6,7 @@ using OfficeIMO.Word;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using WP14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -79,6 +80,15 @@ namespace OfficeIMO.Tests {
                 chart.AddCategories(new List<string> { "A", "B" });
                 chart.AddBar("Series", new List<int> { 1, 2 }, OfficeIMO.Drawing.OfficeColor.Green);
                 ConvertChartToPageAnchor(chart, 36, 72);
+                DW.Anchor anchor = chart.Drawing!.Anchor!;
+                anchor.Append(new WP14.RelativeWidth(
+                    new WP14.PercentageWidth("50000")) {
+                    ObjectId = WP14.SizeRelativeHorizontallyValues.Page
+                });
+                anchor.Append(new WP14.RelativeHeight(
+                    new WP14.PercentageHeight("50000")) {
+                    RelativeFrom = WP14.SizeRelativeVerticallyValues.Page
+                });
 
                 Assert.True(chart.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout));
                 Assert.Equal(WordDrawingPlacementKind.Anchored, layout.Placement);
@@ -88,6 +98,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(72D, layout.VerticalOffsetPoints!.Value, 6);
                 Assert.Equal(WordDrawingWrapKind.Square, layout.Wrap);
                 chart.SetSize(400, 200);
+                Assert.Null(anchor.GetFirstChild<WP14.RelativeWidth>());
+                Assert.Null(anchor.GetFirstChild<WP14.RelativeHeight>());
                 document.Save();
             }
 

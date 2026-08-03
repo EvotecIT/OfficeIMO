@@ -59,6 +59,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToHtml_UserBookmarkThatOnlySharesLegacyFigurePrefixDoesNotCreateFigure() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Ordinary content");
+            WordParagraph caption = document.AddParagraph("Ordinary caption").SetStyleId("Caption");
+            WordBookmark.AddBookmark(caption, "officeimoFigureAfterNotes");
+
+            var parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
+
+            Assert.Empty(parsed.QuerySelectorAll("figure"));
+            Assert.Contains(parsed.QuerySelectorAll("p"), paragraph => paragraph.TextContent == "Ordinary content");
+        }
+
+        [Fact]
         public void Html_FigureWithMultipleContentBlocksReportsFlattening() {
             const string html = "<figure><p>First</p><p>Second</p><figcaption>Grouped content</figcaption></figure>";
 

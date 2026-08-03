@@ -814,9 +814,8 @@ namespace OfficeIMO.Word.Html {
                 string.Equals(para.StyleId, "Caption", StringComparison.OrdinalIgnoreCase);
 
             bool HasFigureCaptionMarker(WordParagraph para, bool before) {
-                string prefix = before ? "officeimoFigureBefore" : "officeimoFigureAfter";
                 return para._paragraph.Descendants<BookmarkStart>()
-                    .Any(bookmark => bookmark.Name?.Value?.StartsWith(prefix, StringComparison.Ordinal) == true);
+                    .Any(bookmark => HtmlWordRoundTripMarkers.IsFigureCaptionBookmark(bookmark.Name?.Value, before));
             }
 
             void AppendFigureCaption(IElement figure, WordParagraph captionParagraph) {
@@ -961,7 +960,7 @@ namespace OfficeIMO.Word.Html {
 
                         IElement? cellDefinitionList = null;
                         var cellElements = new List<WordElement>();
-                        IEnumerable<WordElement> projectedCellElements = cell.Elements.SelectMany(ExpandTableCellBlockContent);
+                        IEnumerable<WordElement> projectedCellElements = ExpandTableCellBlockContent(cell);
                         foreach (WordElement wordElement in projectedCellElements) {
                             if (wordElement is WordParagraph candidate &&
                                 cellElements.Count > 0 &&
@@ -983,7 +982,11 @@ namespace OfficeIMO.Word.Html {
                         for (int elementIndex = 0; elementIndex < cellElements.Count; elementIndex++) {
                             if (cellElements[elementIndex] is WordTable nestedTable) {
                                 cancellationToken.ThrowIfCancellationRequested();
-                                IElement nestedParent = cellItemStack.Count > 0 ? cellItemStack.Peek() : cellElement;
+                                bool belongsToListItem = IsMarkedListItemTable(nestedTable) ||
+                                    IsFollowedByContinuingListParagraph(cellElements, elementIndex);
+                                IElement nestedParent = cellItemStack.Count > 0 && belongsToListItem
+                                    ? cellItemStack.Peek()
+                                    : cellElement;
                                 AppendTable(nestedParent, nestedTable, nestingDepth: nestingDepth + 1);
                                 continue;
                             }

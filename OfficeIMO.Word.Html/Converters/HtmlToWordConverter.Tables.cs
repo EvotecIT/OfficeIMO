@@ -58,6 +58,9 @@ namespace OfficeIMO.Word.Html {
             } else {
                 wordTable = section.AddTable(rows, cols);
             }
+            if (tableElem.ParentElement?.TagName.Equals("li", StringComparison.OrdinalIgnoreCase) == true) {
+                WrapListItemTableForRoundTrip(wordTable);
+            }
             string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(tableElem, includeTextFallback: false);
             if (!string.IsNullOrWhiteSpace(accessibleName)) {
                 wordTable.Title = accessibleName.Trim();
@@ -211,6 +214,16 @@ namespace OfficeIMO.Word.Html {
             if (tableElem.Foot != null) {
                 foreach (var r in tableElem.Foot.Rows) yield return r;
             }
+        }
+
+        private static void WrapListItemTableForRoundTrip(WordTable table) {
+            var content = new SdtContentBlock();
+            var control = new SdtBlock(
+                new SdtProperties(new Tag { Val = HtmlWordRoundTripMarkers.ListItemTableTag }),
+                content);
+            table._table.InsertBeforeSelf(control);
+            table._table.Remove();
+            content.Append(table._table);
         }
 
         private int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows, HtmlToWordOptions options) {
