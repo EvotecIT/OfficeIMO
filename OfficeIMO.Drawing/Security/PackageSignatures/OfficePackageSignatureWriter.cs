@@ -1,6 +1,8 @@
 #nullable enable
-using DocumentFormat.OpenXml.ExtendedProperties;
-using DocumentFormat.OpenXml.Packaging;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using OfficeIMO.Drawing.Internal;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
@@ -10,26 +12,42 @@ using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Security;
 
-namespace OfficeIMO.Word {
+namespace OfficeIMO.Security {
     /// <summary>Options for signing an Open Packaging Convention package.</summary>
-    internal sealed class OfficePackageSigningOptions {
+    public sealed class OfficePackageSigningOptions {
         internal const string Sha256HashAlgorithm = "http://www.w3.org/2001/04/xmlenc#sha256";
 
+        /// <summary>Package-part URIs to sign, or <see langword="null"/> to sign every eligible package part.</summary>
         public IReadOnlyCollection<string>? PartUris { get; set; }
+        /// <summary>Whether to authenticate selected root-package relationships.</summary>
         public bool IncludePackageRelationships { get; set; } = true;
+        /// <summary>Whether to authenticate relationships owned by signed parts.</summary>
         public bool IncludePartRelationships { get; set; } = true;
+        /// <summary>XML DSig digest algorithm URI. The implementation accepts its bounded supported set only.</summary>
         public string HashAlgorithm { get; set; } = Sha256HashAlgorithm;
+        /// <summary>Optional XML signature identifier.</summary>
         public string? SignatureId { get; set; }
+        /// <summary>Optional signing time; UTC now is used when omitted.</summary>
         public DateTimeOffset? SigningTime { get; set; }
+        /// <summary>Additional certificates to embed after the signing certificate.</summary>
         public IReadOnlyCollection<X509Certificate2>? AdditionalCertificates { get; set; }
+        /// <summary>Maximum number of package parts accepted for signing.</summary>
         public int MaxPackageParts { get; set; } = 10000;
+        /// <summary>Maximum package size in bytes accepted for signing.</summary>
         public long MaxPackageBytes { get; set; } = 512L * 1024 * 1024;
+        /// <summary>Maximum uncompressed size in bytes of one signed part.</summary>
         public long MaxPartBytes { get; set; } = 256L * 1024 * 1024;
+        /// <summary>Maximum aggregate bytes read while calculating package digests.</summary>
         public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;
+        /// <summary>Maximum authenticated part references and relationship selectors.</summary>
         public int MaxSignedReferences { get; set; } = 4096;
+        /// <summary>Maximum generated XML signature size in bytes.</summary>
         public long MaxSignatureBytes { get; set; } = 16L * 1024 * 1024;
+        /// <summary>Maximum number of certificates embedded in the signature.</summary>
         public int MaxCertificates { get; set; } = 64;
+        /// <summary>Maximum encoded size in bytes of one certificate.</summary>
         public long MaxCertificateBytes { get; set; } = 4L * 1024 * 1024;
+        /// <summary>Maximum aggregate encoded certificate bytes.</summary>
         public long MaxTotalCertificateBytes { get; set; } = 64L * 1024 * 1024;
         internal Action<string>? BeforeValidation { get; set; }
         internal Func<string, string, int, string?>? ValidateBeforeCommit { get; set; }
@@ -37,7 +55,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Result of an attempted Open Packaging Convention package-signing operation.</summary>
-    internal sealed class OfficePackageSigningResult {
+    public sealed class OfficePackageSigningResult {
         internal OfficePackageSigningResult(
             string filePath,
             bool isSupported,
@@ -57,13 +75,21 @@ namespace OfficeIMO.Word {
             Details = details;
         }
 
+        /// <summary>Absolute path of the requested package.</summary>
         public string FilePath { get; }
+        /// <summary>Whether the current target framework supports package signing.</summary>
         public bool IsSupported { get; }
+        /// <summary>Whether the signature was created, read back, and atomically committed.</summary>
         public bool Succeeded { get; }
+        /// <summary>Number of package parts selected for signing.</summary>
         public int SignedPartCount { get; }
+        /// <summary>Number of relationship selectors included in the signature manifest.</summary>
         public int SignedRelationshipSelectorCount { get; }
+        /// <summary>Number of signature relationships attached to the reused signature origin after signing.</summary>
         public int SignatureCount { get; }
+        /// <summary>URI of the newly created signature part, when successful.</summary>
         public string? SignaturePartUri { get; }
+        /// <summary>Deterministic success evidence or failure details.</summary>
         public IReadOnlyList<string> Details { get; }
     }
 
@@ -73,6 +99,7 @@ namespace OfficeIMO.Word {
         private const string SignatureOriginRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
         private const string SignatureRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature";
         private const string SignatureCertificateRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/certificate";
+        private const string SignatureContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
         private const string ObjectReferenceType = "http://www.w3.org/2000/09/xmldsig#Object";
         private const string PackageObjectId = "idPackageObject";
         private const string SignatureTimePropertyId = "idSignatureTime";
@@ -109,21 +136,24 @@ namespace OfficeIMO.Word {
                 IReadOnlyList<X509Certificate2> signingCertificates = ValidateSigningCertificates(certificate, options);
 
                 stagingPath = OfficeFileCommit.CreateStagingPath(fullPath);
-                WordPackageSnapshot.CopyBounded(fullPath, stagingPath, options.MaxPackageBytes);
-                string sourcePackageHash = WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
+                OfficePackageFileSnapshot.CopyBounded(fullPath, stagingPath, options.MaxPackageBytes);
+                string sourcePackageHash = OfficePackageFileSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
                 EnsurePackagePartCountWithinLimit(stagingPath, options);
-                PrepareDigitalSignatureMetadata(stagingPath);
+                OfficePackageSignatureInfo existingSignatures = OfficePackageSignatureService.Inspect(
+                    stagingPath,
+                    new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
+                if (!existingSignatures.HasSignatures) PrepareDigitalSignatureMetadata(stagingPath);
                 byte[] packageBytes = File.ReadAllBytes(stagingPath);
                 SigningPayload payload = CreateSignature(packageBytes, signingCertificates, securityProvider, options);
                 SignaturePartWriteResult write = AddSignaturePart(stagingPath, payload.SignatureXml);
                 EnsureSignedPackageWithinLimits(stagingPath, options);
                 options.BeforeValidation?.Invoke(stagingPath);
-                string validationInputHash = WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
+                string validationInputHash = OfficePackageFileSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
                 string? validationFailure = options.ValidateBeforeCommit?.Invoke(
                     stagingPath,
                     write.SignaturePartUri,
                     write.SignatureCount);
-                string validatedPackageHash = WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
+                string validatedPackageHash = OfficePackageFileSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes);
                 if (!string.Equals(validationInputHash, validatedPackageHash, StringComparison.Ordinal)) {
                     return Failed(fullPath, "The staging package changed during validation readback; the original source was preserved.");
                 }
@@ -133,7 +163,7 @@ namespace OfficeIMO.Word {
                 options.BeforeCommit?.Invoke(stagingPath, fullPath);
                 if (!string.Equals(
                     validatedPackageHash,
-                    WordPackageSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes),
+                    OfficePackageFileSnapshot.ComputeSha256(stagingPath, options.MaxPackageBytes),
                     StringComparison.Ordinal)) {
                     return Failed(fullPath, "The validated staging package changed before atomic commit; the original source was preserved.");
                 }
@@ -142,11 +172,11 @@ namespace OfficeIMO.Word {
                     fullPath,
                     displacedPath => string.Equals(
                         sourcePackageHash,
-                        WordPackageSnapshot.ComputeSha256(displacedPath, options.MaxPackageBytes),
+                        OfficePackageFileSnapshot.ComputeSha256(displacedPath, options.MaxPackageBytes),
                         StringComparison.Ordinal),
                     installedPath => string.Equals(
                         validatedPackageHash,
-                        WordPackageSnapshot.ComputeSha256(installedPath, options.MaxPackageBytes),
+                        OfficePackageFileSnapshot.ComputeSha256(installedPath, options.MaxPackageBytes),
                         StringComparison.Ordinal))) {
                     return Failed(fullPath, "The source or validated staging package changed while its signature was being created; the current source was preserved.");
                 }
@@ -227,14 +257,19 @@ namespace OfficeIMO.Word {
             certificate.Thumbprint ?? Convert.ToBase64String(certificate.RawData);
 
         private static void PrepareDigitalSignatureMetadata(string packagePath) {
-            using WordprocessingDocument package = WordprocessingDocument.Open(packagePath, true);
-            if (package.DigitalSignatureOriginPart?.XmlSignatureParts.Any() == true) {
+            using var archive = ZipFile.Open(packagePath, ZipArchiveMode.Update);
+            ZipArchiveEntry? entry = archive.GetEntry("docProps/app.xml");
+            if (entry == null || entry.Length == 0) return;
+            XDocument document;
+            try {
+                document = ReadXmlEntry(entry);
+            } catch (XmlException) {
                 return;
             }
-            ExtendedFilePropertiesPart appPart = package.ExtendedFilePropertiesPart ?? package.AddExtendedFilePropertiesPart();
-            appPart.Properties ??= new Properties();
-            appPart.Properties.DigitalSignature ??= new DigitalSignature();
-            appPart.Properties.Save();
+            XElement? root = document.Root;
+            if (root == null || root.Elements().Any(element => element.Name.LocalName == "DigitalSignature")) return;
+            root.Add(new XElement(root.Name.Namespace + "DigitalSignature"));
+            WriteXmlEntry(archive, "docProps/app.xml", document);
         }
 
         [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Package signing selects a closed RSA and canonicalization algorithm set in code; it does not resolve algorithm implementations from caller-supplied XML.")]
@@ -349,68 +384,115 @@ namespace OfficeIMO.Word {
         }
 
         private static SignaturePartWriteResult AddSignaturePart(string packagePath, byte[] signatureXml) {
-            string generatedUri;
-            int signatureCount;
-            using (WordprocessingDocument package = WordprocessingDocument.Open(packagePath, true)) {
-                DigitalSignatureOriginPart origin = package.DigitalSignatureOriginPart ?? package.AddDigitalSignatureOriginPart();
-                XmlSignaturePart signaturePart = origin.AddNewPart<XmlSignaturePart>();
-                using (var stream = new MemoryStream(signatureXml, writable: false)) signaturePart.FeedData(stream);
-                generatedUri = signaturePart.Uri.ToString();
-                signatureCount = origin.XmlSignatureParts.Count();
-            }
-
-            string normalizedUri = NormalizeSignaturePartUri(packagePath, generatedUri);
-            return new SignaturePartWriteResult(normalizedUri, signatureCount);
-        }
-
-        private static string NormalizeSignaturePartUri(string packagePath, string generatedUri) {
-            const string redundantPrefix = "/_xmlsignatures/_xmlsignatures/";
-            if (!generatedUri.StartsWith(redundantPrefix, StringComparison.OrdinalIgnoreCase)) return generatedUri;
-
             using var archive = ZipFile.Open(packagePath, ZipArchiveMode.Update);
-            string sourceName = generatedUri.TrimStart('/');
-            ZipArchiveEntry source = archive.GetEntry(sourceName)
-                ?? throw new InvalidDataException("Generated OPC signature part was not found at " + generatedUri + ".");
-            string fileName = Path.GetFileName(sourceName);
-            string targetName = "_xmlsignatures/" + fileName;
-            for (int suffix = 1; archive.GetEntry(targetName) != null; suffix++) {
-                targetName = "_xmlsignatures/sig" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".xml";
+            XNamespace relationships = "http://schemas.openxmlformats.org/package/2006/relationships";
+            XDocument rootRelationships = ReadOrCreateRelationships(archive.GetEntry("_rels/.rels"), relationships);
+            XElement root = rootRelationships.Root!;
+            XElement? originRelationship = root.Elements(relationships + "Relationship").FirstOrDefault(element =>
+                string.Equals((string?)element.Attribute("Type"), SignatureOriginRelationship, StringComparison.Ordinal) &&
+                !string.Equals((string?)element.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase));
+            string? existingOriginTarget = (string?)originRelationship?.Attribute("Target");
+            string originName = string.IsNullOrWhiteSpace(existingOriginTarget)
+                ? "_xmlsignatures/origin.sigs"
+                : OfficePackageSignatureArchive.NormalizePartUri(existingOriginTarget!).TrimStart('/');
+            if (archive.GetEntry(originName) == null) {
+                originName = "_xmlsignatures/origin.sigs";
+                originRelationship = null;
             }
+            string originRelationshipsName = RelationshipPartName(originName);
+            int signatureIndex = 1;
+            string signatureName;
+            do {
+                signatureName = "_xmlsignatures/sig" + signatureIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".xml";
+                signatureIndex++;
+            } while (archive.GetEntry(signatureName) != null);
 
-            byte[] bytes;
-            using (Stream input = source.Open()) {
-                using var buffer = new MemoryStream();
-                input.CopyTo(buffer);
-                bytes = buffer.ToArray();
+            ZipArchiveEntry signatureEntry = archive.CreateEntry(signatureName, CompressionLevel.Optimal);
+            using (Stream output = signatureEntry.Open()) output.Write(signatureXml, 0, signatureXml.Length);
+            if (archive.GetEntry(originName) == null) archive.CreateEntry(originName, CompressionLevel.NoCompression);
+
+            if (originRelationship == null) {
+                root.Add(new XElement(relationships + "Relationship",
+                    new XAttribute("Id", NextRelationshipId(root, relationships)),
+                    new XAttribute("Type", SignatureOriginRelationship),
+                    new XAttribute("Target", originName)));
             }
-            source.Delete();
-            ZipArchiveEntry target = archive.CreateEntry(targetName, CompressionLevel.Optimal);
-            using (Stream output = target.Open()) output.Write(bytes, 0, bytes.Length);
+            WriteXmlEntry(archive, "_rels/.rels", rootRelationships);
 
-            RewriteXmlEntry(archive, "_xmlsignatures/_rels/origin.sigs.rels", document => {
-                XNamespace relationships = "http://schemas.openxmlformats.org/package/2006/relationships";
-                XElement relationship = document.Descendants(relationships + "Relationship")
-                    .Single(element => string.Equals((string?)element.Attribute("Target"), generatedUri, StringComparison.OrdinalIgnoreCase));
-                relationship.SetAttributeValue("Target", "/" + targetName);
-            });
-            RewriteXmlEntry(archive, "[Content_Types].xml", document => {
-                XNamespace contentTypes = "http://schemas.openxmlformats.org/package/2006/content-types";
-                XElement contentType = document.Descendants(contentTypes + "Override")
-                    .Single(element => string.Equals((string?)element.Attribute("PartName"), generatedUri, StringComparison.OrdinalIgnoreCase));
-                contentType.SetAttributeValue("PartName", "/" + targetName);
-            });
-            return "/" + targetName;
+            XDocument originRelationships = ReadOrCreateRelationships(archive.GetEntry(originRelationshipsName), relationships);
+            XElement originRoot = originRelationships.Root!;
+            originRoot.Add(new XElement(relationships + "Relationship",
+                new XAttribute("Id", NextRelationshipId(originRoot, relationships)),
+                new XAttribute("Type", SignatureRelationship),
+                new XAttribute("Target", RelativePartTarget(originName, signatureName))));
+            WriteXmlEntry(archive, originRelationshipsName, originRelationships);
+
+            ZipArchiveEntry typesEntry = archive.GetEntry("[Content_Types].xml")
+                ?? throw new InvalidDataException("The OPC package is missing [Content_Types].xml.");
+            XDocument contentTypesDocument = ReadXmlEntry(typesEntry);
+            XNamespace contentTypes = "http://schemas.openxmlformats.org/package/2006/content-types";
+            XElement typesRoot = contentTypesDocument.Root
+                ?? throw new InvalidDataException("The OPC content-types document has no root element.");
+            EnsureOverride(typesRoot, contentTypes, "/" + originName,
+                "application/vnd.openxmlformats-package.digital-signature-origin");
+            EnsureOverride(typesRoot, contentTypes, "/" + signatureName,
+                SignatureContentType);
+            WriteXmlEntry(archive, "[Content_Types].xml", contentTypesDocument);
+
+            int signatureCount = originRoot.Elements(relationships + "Relationship").Count(element =>
+                string.Equals((string?)element.Attribute("Type"), SignatureRelationship, StringComparison.Ordinal) &&
+                !string.Equals((string?)element.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase));
+            return new SignaturePartWriteResult("/" + signatureName, signatureCount);
         }
 
-        private static void RewriteXmlEntry(ZipArchive archive, string entryName, Action<XDocument> update) {
-            ZipArchiveEntry entry = archive.GetEntry(entryName)
-                ?? throw new InvalidDataException("Required OPC metadata entry was not found: " + entryName + ".");
-            XDocument document;
-            using (Stream input = entry.Open()) {
-                using XmlReader reader = XmlReader.Create(input, SafeXmlReaderSettings());
-                document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        private static string RelationshipPartName(string partName) {
+            int slash = partName.LastIndexOf('/');
+            string directory = slash < 0 ? string.Empty : partName.Substring(0, slash + 1);
+            string fileName = slash < 0 ? partName : partName.Substring(slash + 1);
+            return directory + "_rels/" + fileName + ".rels";
+        }
+
+        private static string RelativePartTarget(string sourcePartName, string targetPartName) {
+            var source = new Uri("http://officeimo.package/" + sourcePartName, UriKind.Absolute);
+            var target = new Uri("http://officeimo.package/" + targetPartName, UriKind.Absolute);
+            return Uri.UnescapeDataString(source.MakeRelativeUri(target).ToString());
+        }
+
+        private static void EnsureOverride(XElement root, XNamespace contentTypes, string partName, string contentType) {
+            XElement? existing = root.Elements(contentTypes + "Override").FirstOrDefault(element =>
+                string.Equals((string?)element.Attribute("PartName"), partName, StringComparison.OrdinalIgnoreCase));
+            if (existing == null) {
+                root.Add(new XElement(contentTypes + "Override",
+                    new XAttribute("PartName", partName), new XAttribute("ContentType", contentType)));
+            } else {
+                existing.SetAttributeValue("ContentType", contentType);
             }
-            entry.Delete();
+        }
+
+        private static XDocument ReadOrCreateRelationships(ZipArchiveEntry? entry, XNamespace relationships) =>
+            entry == null
+                ? new XDocument(new XElement(relationships + "Relationships"))
+                : ReadXmlEntry(entry);
+
+        private static string NextRelationshipId(XElement root, XNamespace relationships) {
+            var ids = new HashSet<string>(root.Elements(relationships + "Relationship")
+                .Select(element => (string?)element.Attribute("Id"))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id!), StringComparer.Ordinal);
+            for (int index = 1; ; index++) {
+                string candidate = "rId" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (!ids.Contains(candidate)) return candidate;
+            }
+        }
+
+        private static XDocument ReadXmlEntry(ZipArchiveEntry entry) {
+            using Stream input = entry.Open();
+            using XmlReader reader = XmlReader.Create(input, SafeXmlReaderSettings());
+            return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        }
+
+        private static void WriteXmlEntry(ZipArchive archive, string entryName, XDocument document) {
+            archive.GetEntry(entryName)?.Delete();
             ZipArchiveEntry replacement = archive.CreateEntry(entryName, CompressionLevel.Optimal);
             using Stream output = replacement.Open();
             using XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
@@ -418,7 +500,6 @@ namespace OfficeIMO.Word {
                 Indent = false,
                 OmitXmlDeclaration = false
             });
-            update(document);
             document.Save(writer);
         }
 

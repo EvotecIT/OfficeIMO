@@ -173,11 +173,14 @@ if (payloads.Count > 0) {
 
 Word and Excel can inspect, extract, replace, and remove embedded package/OLE/
 ActiveX payloads by package-local id. They can attach, inspect, extract, and
-remove VBA projects. Word can also inspect VBA signature parts cross-platform
-and can validate macro-project content binding directly through Microsoft's
-registered Office SIP on Windows. Creation is a separate Windows workflow using
-OfficeSips tooling and SignTool; it must precede OPC package signing when both
-signature kinds are required. Excel does not expose a VBA signing workflow.
+remove VBA projects. Word and Excel also share managed, bounded VBA signature
+inspection, creation, and content-binding validation for legacy, agile, and V3
+profiles. The workflow is cross-platform and uses an explicit
+`IOfficeSecurityProvider` for CMS. A registered Microsoft Office SIP is only an
+optional Windows differential oracle for legacy and V3; agile evidence uses the
+managed transcript and frozen producer-corpus hashes because the SIP's public
+indirect-data API does not expose an unambiguous agile-only digest. VBA signing must precede OPC package
+signing when both signature kinds are required.
 OfficeIMO does not execute VBA or edit VBA source modules.
 
 ## Extend formula calculation deliberately

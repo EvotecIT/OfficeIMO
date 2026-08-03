@@ -665,11 +665,11 @@ namespace OfficeIMO.Word {
             if (signatureArchive != null) {
                 OfficePackageDigestResult transformed = signatureArchive.VerifyReference(reference, maxPartBytes);
                 switch (transformed.Status) {
-                    case OfficePackageSignatureDigestVerificationStatus.Passed:
+                    case OfficePackageSignatureValidationState.Passed:
                         return DigestVerificationResult.Passed(transformed.Detail);
-                    case OfficePackageSignatureDigestVerificationStatus.Failed:
+                    case OfficePackageSignatureValidationState.Failed:
                         return DigestVerificationResult.Failed(transformed.Detail);
-                    case OfficePackageSignatureDigestVerificationStatus.Unsupported:
+                    case OfficePackageSignatureValidationState.Unsupported:
                         return DigestVerificationResult.Unsupported(transformed.Detail);
                     default:
                         return DigestVerificationResult.NotChecked(transformed.Detail);

@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
 
             OfficePackageDigestResult result = archive.VerifyReference(reference, 16 * 1024 * 1024);
 
-            Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Failed, result.Status);
+            Assert.Equal(OfficeIMO.Security.OfficePackageSignatureValidationState.Failed, result.Status);
             Assert.Contains("not bound to an OPC content type", result.Detail, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
                 relationshipReference,
                 maxPartBytes: 16 * 1024 * 1024);
 
-            Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Failed, digest.Status);
+            Assert.Equal(OfficeIMO.Security.OfficePackageSignatureValidationState.Failed, digest.Status);
 
             using WordDocument tampered = WordDocument.Load(filePath, new WordLoadOptions {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly

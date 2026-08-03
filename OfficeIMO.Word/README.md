@@ -50,7 +50,7 @@ document.Save();
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
 - Applies optional shared package-security policy before parsing Open XML or compound DOC files, and preflights read, edit, template, render, and save capabilities.
 - Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
-- Creates and validates cross-platform OPC XML package signatures through an explicitly supplied `IOfficeSecurityProvider`. VBA macro-project signing is a separate Windows-native Office SIP capability; structural signature inspection remains cross-platform and provider-free.
+- Creates and validates cross-platform OPC XML package signatures and managed VBA legacy, agile, and V3 signatures through an explicitly supplied `IOfficeSecurityProvider`; structural inspection remains provider-free.
 - Exports estimated document page ranges as dependency-free PNG or SVG previews through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
@@ -172,7 +172,11 @@ WordSignatureValidationReport validation = signed.ValidateSignatures(
 
 OPC package signing does not sign VBA code. `WordSigningCapabilities.Package` and
 `WordSigningCapabilities.MacroProject` report the two surfaces independently. `InspectSignatures()` remains available
-without `OfficeIMO.Security`; it reports package structure but does not claim digest, signature, or certificate trust.
+without `OfficeIMO.Security`; it projects the shared bounded OPC inspector and does not claim digest, signature, or
+certificate trust. The cross-host `InspectPackageSignatures(...)`, `ValidatePackageSignatures(...)`,
+`SignPackageSignature(...)`, and `TrySignPackageSignature(...)` APIs expose the same result types used by Excel,
+PowerPoint, and Visio. The established `ValidateSignatures(...)` API additionally retains Word-specific timestamp and
+diagnostic evidence.
 
 ### VBA macro-project signatures
 
@@ -184,46 +188,40 @@ WordMacroProjectSignatureInfo signatures =
     WordDocument.InspectMacroProjectSignatures("automation.docm");
 ```
 
-Creating signatures requires Windows, SignTool, and Microsoft's registered
-Office SIP. Proving the macro-project content binding requires Windows and the
-registered Office SIP, but does not use SignTool's machine trust decision.
-The signing workflow blocks existing OPC package signatures by default, clears
-existing VBA signatures, creates and verifies the legacy, agile, and V3 profiles
-in Microsoft's required order, proves that `vbaProject.bin` and the source
-package did not change concurrently, and atomically replaces the package only
-after final validation. When both signature kinds are needed, sign the VBA
-project first and the OPC package last:
+Managed VBA signing and content-binding validation work on every supported
+platform. The workflow blocks existing OPC package signatures by default,
+clears existing VBA signatures, creates and verifies the legacy, agile, and V3
+profiles, proves that `vbaProject.bin` and the source package did not change
+concurrently, and atomically replaces the package only after final validation.
+When both signature kinds are needed, sign the VBA project first and the OPC
+package last:
 
 ```csharp
 using OfficeIMO.Security;
 
 IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
-var options = new WordMacroProjectSigningOptions {
-    OfficeSipsDirectory = @"C:\Tools\OfficeSips",
-    SignToolPath = @"C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe",
-    TimestampAuthorityUrl = new Uri("https://timestamp.example.com")
-};
+var options = new OfficeVbaSigningOptions();
+options.CmsVerification.CertificateValidation.RevocationMode =
+    X509RevocationMode.Online;
 
-WordMacroProjectSigningResult signing = WordDocument.SignMacroProject(
+OfficeVbaSigningResult signing = WordDocument.SignVbaProject(
     "automation.docm",
     security,
-    "CERTIFICATE-STORE-SHA1-THUMBPRINT",
+    signingCertificate,
     options);
 
-var validationOptions = new WordMacroProjectSignatureValidationOptions();
-WordMacroProjectSignatureValidationResult validation =
-    WordDocument.ValidateMacroProjectSignature("automation.docm", security, validationOptions);
+OfficeVbaSignatureValidationResult validation =
+    WordDocument.ValidateVbaSignatures("automation.docm", security, options);
 ```
 
-The certificate is selected by a strict SHA-1 thumbprint from the configured
-Windows certificate store; private-key files, passwords, and arbitrary SignTool
-arguments are not accepted. Requiring a timestamp during signing also requires
-an explicit timestamp-authority URL. Validation combines direct Office SIP
-content-binding proof with CMS signature, caller-controlled certificate-chain,
-revocation, and RFC 3161 timestamp policy. A trusted timestamp is used as the
-signer's certificate-validation time unless the caller supplies an explicit
-verification time. Microsoft Office itself is not required. OfficeIMO does not
-execute VBA or edit VBA source modules.
+The caller supplies the certificate and `IOfficeSecurityProvider`; OfficeIMO
+does not discover or persist private keys. Validation combines managed MS-OVBA
+content binding with CMS signature, caller-controlled certificate-chain,
+revocation, and RFC 3161 timestamp policy. Set
+`ValidateWithWindowsSipWhenAvailable` only when a registered Microsoft Office
+SIP should provide an additional differential check. Microsoft Office, SignTool,
+and `offclearsig.exe` are not runtime dependencies. OfficeIMO does not execute
+VBA or edit VBA source modules.
 
 ### Content controls
 

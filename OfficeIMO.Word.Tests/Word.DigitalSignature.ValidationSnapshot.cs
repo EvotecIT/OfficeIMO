@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
 
             OfficePackageDigestResult result = archive.VerifyReference(reference, maxPartBytes: 16);
 
-            Assert.Equal(OfficePackageSignatureDigestVerificationStatus.Unsupported, result.Status);
+            Assert.Equal(OfficeIMO.Security.OfficePackageSignatureValidationState.Unsupported, result.Status);
             Assert.Contains("byte limit", result.Detail, System.StringComparison.OrdinalIgnoreCase);
         }
 

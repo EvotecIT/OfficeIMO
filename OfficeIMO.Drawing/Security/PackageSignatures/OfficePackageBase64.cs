@@ -1,4 +1,6 @@
-namespace OfficeIMO.Word {
+using System;
+
+namespace OfficeIMO.Security {
     /// <summary>Provides allocation-light encoded-length guards for bounded OPC signature base64 values.</summary>
     internal static class OfficePackageBase64 {
         /// <summary>

@@ -149,7 +149,9 @@ encrypted.SaveEncrypted("protected-copy.ppt", "new-password",
 
 `InspectSignatures()` detects Open XML and legacy binary signature metadata. The safe default blocks a
 mutating save of signed content; callers must explicitly choose whether invalidated signature markup should
-be removed or preserved.
+be removed or preserved. `SignPackageSignature(...)` and `ValidatePackageSignatures(...)` use an explicitly
+supplied `IOfficeSecurityProvider` for OPC creation and cryptographic validation without adding a transitive
+`OfficeIMO.Security` dependency.
 
 ## What it does
 
@@ -437,6 +439,8 @@ presentation.AddCustomShow("Executive review", new[] { titleSlide, summarySlide 
 
 `GetVbaProjectBytes()`, `SetVbaProject(...)`, and `RemoveVbaProject()` treat a VBA project as validated, bounded compound-storage content. They do not interpret or generate VBA source. Save macro content only to matching macro-enabled package formats such as `.pptm`, `.potm`, or `.ppsm`.
 
+`InspectVbaSignatures(...)` reports legacy, agile, and V3 profile evidence for `.pptm`, `.potm`, `.ppsm`, and `.ppam`. `ValidateVbaSignatures(...)` adds managed content binding plus provider-backed CMS, certificate, revocation, and timestamp evidence. `SignVbaProject(...)` clears and recreates the three Microsoft profiles atomically on every supported platform. A registered Microsoft Office SIP is an optional Windows differential check. Apply VBA signatures before an OPC package signature.
+
 ### SmartArt and visual proof
 
 Use the bounded semantic SmartArt workflows when native editable diagram data is more useful than flattened artwork:
@@ -601,6 +605,6 @@ PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns
 
 - **External:** Open XML SDK for `.pptx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The presentation model, composition system, inspection, encryption workflow, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
-- **Security:** Open XML and legacy signature carriers are inspected and signed-presentation mutations fail safely without a cryptographic dependency. Signature creation and cryptographic validation are not yet implemented; `OfficeIMO.Security` is not pulled transitively.
+- **Security:** Open XML, legacy binary, and VBA signature carriers are inspected and signed-presentation mutations fail safely without a cryptographic dependency. OPC and VBA creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

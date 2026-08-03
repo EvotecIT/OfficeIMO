@@ -449,6 +449,21 @@ if (!report.Can(ExcelPreflightCapability.ExportPdfReport)) {
 
 Use workflow preflight when an application needs to decide whether a workbook is safe for readback, cell-value edits, structure-changing edits, cached-formula reads, OfficeIMO formula calculation, template binding, or first-party PDF report export. Preserve-only features such as macros, unsupported imported interaction markup, threaded comments, external links, custom XML, OLE objects, and form controls are reported with package details instead of being silently ignored.
 
+### Package and VBA signatures
+
+`InspectSignatures()` and `InspectPackageSignatures(...)` remain provider-free. Pass an optional security provider only when creating a package signature or validating its cryptography, package digests, certificate chain, and revocation. OPC timestamp elements are reported as structural evidence; this shared result surface does not claim timestamp-token validation:
+
+```csharp
+using OfficeIMO.Security;
+
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
+ExcelDocument.SignPackageSignature("report.xlsx", security, signingCertificate);
+OfficePackageSignatureValidationReport validation =
+    ExcelDocument.ValidatePackageSignatures("report.xlsx", security);
+```
+
+`InspectVbaSignatures(...)`, `ValidateVbaSignatures(...)`, and `SignVbaProject(...)` use the managed bounded VBA core shared with Word and PowerPoint. It creates and validates legacy, agile, and V3 carriers in `.xlsm`, `.xltm`, `.xlam`, and `.xlsb` on every supported platform through an explicit `IOfficeSecurityProvider`. A registered Microsoft Office SIP is an optional Windows differential check, not a signing dependency. Sign the VBA project before applying an OPC package signature.
+
 ### DataTable and JSON exchange
 
 ```csharp
@@ -647,6 +662,6 @@ Excel layout, print-title, page-setup, and header/footer composition stays in `O
 
 - **External:** Open XML SDK for `.xlsx` package mechanics. Microsoft BCL/JSON compatibility packages are used on older targets.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The workbook API, BIFF8 `.xls` reader/writer, large-data paths, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
-- **Security:** Open XML signature carriers are inspected and signed-package mutations fail safely without a cryptographic dependency. Signature creation and cryptographic validation are not yet implemented; `OfficeIMO.Security` is not pulled transitively.
+- **Security:** Open XML and VBA signature carriers are inspected and signed-package mutations fail safely without a cryptographic dependency. Package and VBA signature creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

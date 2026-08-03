@@ -1,5 +1,6 @@
 #nullable enable
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;

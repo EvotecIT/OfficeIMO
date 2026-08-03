@@ -48,6 +48,19 @@ if (book.HasSignatures) {
 The parser reads `META-INF/signatures.xml` under the normal bounded package limits and reports malformed signature
 metadata. It does not claim cryptographic validation and does not require `OfficeIMO.Security`.
 
+To create or validate the bounded OfficeIMO XML package-manifest signature profile, pass an optional provider explicitly:
+
+```csharp
+using OfficeIMO.Security;
+
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
+EpubDocument.SignPackage("book.epub", security, signingCertificate);
+OfficeXmlPackageSignatureValidationReport validation =
+    EpubDocument.ValidatePackageSignatures("book.epub", security);
+```
+
+The signed manifest covers every non-carrier ZIP entry. Validation rejects missing, changed, duplicate, and unsigned entries. General producer-specific EPUB signatures and DRM/resource decryption remain outside this API.
+
 ### Inspect bounded manifest resources
 
 ```csharp
@@ -167,6 +180,6 @@ foreach (string warning in book.Warnings) {
 
 - **External:** None; no third-party EPUB engine.
 - **OfficeIMO:** `OfficeIMO.Drawing`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party.
-- **Security:** `META-INF/signatures.xml` discovery is structural and provider-free. Signature creation and cryptographic validation are not currently implemented.
+- **Security:** `META-INF/signatures.xml` discovery is structural and provider-free. Creation and validation of the bounded OfficeIMO XML package-manifest profile accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

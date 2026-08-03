@@ -209,7 +209,7 @@ if (font != null) {
 ## What it provides
 
 - `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions` for one lifecycle vocabulary across document packages.
-- Dependency-free `IOfficeSecurityProvider`, CMS/X.509/XML-signature requests, options, findings, and results under the `OfficeIMO.Security` namespace. The optional `OfficeIMO.Security` package supplies the concrete cryptographic provider.
+- Dependency-free `IOfficeSecurityProvider`, CMS/X.509/XML-signature requests, options, findings, and results under the `OfficeIMO.Security` namespace. The same layer owns bounded OPC, VBA, and ODF/EPUB XML package-signature structure and atomic commit policy. The optional `OfficeIMO.Security` package supplies the concrete cryptographic provider.
 - `OfficeColor` immutable RGBA values with named colors and hex parsing.
 - `OfficeColorSpaceConverter` for dependency-free CMYK, CIE Lab/XYZ, calibrated gray, and calibrated RGB conversion to sRGB.
 - `OfficeImageReader` and `OfficeImageInfo` for dependency-free image inspection where supported.

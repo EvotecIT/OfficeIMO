@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 /// <summary>
 /// Represents extracted EPUB content.
 /// </summary>
-public sealed class EpubDocument {
+public sealed partial class EpubDocument {
     /// <summary>Loads an EPUB document from a file.</summary>
     public static EpubDocument Load(string path, EpubReadOptions? options = null) => EpubReader.Read(path, options);
 

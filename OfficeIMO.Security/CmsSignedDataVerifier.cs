@@ -339,22 +339,35 @@ public static class CmsSignedDataVerifier {
             return null;
         }
         try {
+            Asn1Encodable dataValue;
             Asn1Encodable digestValue;
             using (var input = new Asn1InputStream(content)) {
                 Asn1Object? first = input.ReadObject();
                 Asn1Object? second = input.ReadObject();
                 Asn1Object? trailing = input.ReadObject();
                 if (first is Asn1Sequence wrapped && second == null && wrapped.Count == 2) {
+                    dataValue = wrapped[0];
                     digestValue = wrapped[1];
                 } else if (first is Asn1Sequence && second != null && trailing == null) {
+                    dataValue = first;
                     digestValue = second;
                 } else {
                     throw new InvalidDataException("SPC indirect data must contain exactly two values.");
                 }
             }
+            Asn1Sequence data = Asn1Sequence.GetInstance(dataValue);
+            if (data.Count == 0) throw new InvalidDataException("SPC indirect data has no subject type.");
+            string subjectType = DerObjectIdentifier.GetInstance(data[0]).Id;
             Org.BouncyCastle.Asn1.X509.DigestInfo digestInfo =
                 Org.BouncyCastle.Asn1.X509.DigestInfo.GetInstance(digestValue);
             byte[] digest = digestInfo.Digest.GetOctets();
+            if (string.Equals(subjectType, "1.3.6.1.4.1.311.2.1.31", StringComparison.Ordinal)) {
+                ValidateVbaV2Descriptor(data);
+                if (!OfficeVbaSignatureEncoding.TryExtractV2SourceHash(digest,
+                        digestInfo.DigestAlgorithm.Algorithm.Id, out _, out digest, out string v2Detail)) {
+                    throw new InvalidDataException(v2Detail);
+                }
+            }
             if (digest.Length == 0 || digest.Length > 1024) {
                 throw new InvalidDataException("The signed subject digest length is invalid.");
             }
@@ -367,6 +380,24 @@ public static class CmsSignedDataVerifier {
             return null;
         }
     }
+
+    private static void ValidateVbaV2Descriptor(Asn1Sequence data) {
+        if (data.Count != 2) {
+            throw new InvalidDataException("The VBA V2 indirect-data descriptor is missing or duplicated.");
+        }
+        Asn1TaggedObject tagged = Asn1TaggedObject.GetInstance(data[1]);
+        if (tagged.TagNo != 0 || !tagged.IsExplicit()) {
+            throw new InvalidDataException("The VBA V2 indirect-data descriptor tag is invalid.");
+        }
+        byte[] descriptor = Asn1OctetString.GetInstance(tagged.GetExplicitBaseObject()).GetOctets();
+        if (descriptor.Length != 12 || ReadInt32LittleEndian(descriptor, 0) != 12 ||
+            ReadInt32LittleEndian(descriptor, 4) != 1 || ReadInt32LittleEndian(descriptor, 8) != 1) {
+            throw new InvalidDataException("The VBA V2 signature-format descriptor is invalid.");
+        }
+    }
+
+    private static int ReadInt32LittleEndian(byte[] bytes, int offset) =>
+        bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24;
 
     private static SecurityValidationStatus ValidateDigest(
         SignerInformation signer,

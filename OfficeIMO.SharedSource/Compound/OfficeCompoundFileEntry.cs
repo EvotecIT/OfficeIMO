@@ -11,7 +11,7 @@ namespace OfficeIMO.Drawing.Internal {
     internal sealed class OfficeCompoundFileEntry {
         internal OfficeCompoundFileEntry(string name, string path, byte objectType, long size,
             bool isFallback = false, Guid classId = default, uint stateBits = 0,
-            ulong creationTime = 0, ulong modifiedTime = 0) {
+            ulong creationTime = 0, ulong modifiedTime = 0, int directoryOrder = int.MaxValue) {
             Name = name;
             Path = path;
             ObjectType = objectType;
@@ -21,6 +21,7 @@ namespace OfficeIMO.Drawing.Internal {
             StateBits = stateBits;
             CreationTime = creationTime;
             ModifiedTime = modifiedTime;
+            DirectoryOrder = directoryOrder;
         }
 
         internal string Name { get; }
@@ -38,6 +39,9 @@ namespace OfficeIMO.Drawing.Internal {
         internal ulong CreationTime { get; }
 
         internal ulong ModifiedTime { get; }
+
+        /// <summary>Depth-first directory traversal order from the source compound file.</summary>
+        internal int DirectoryOrder { get; }
 
         /// <summary>True when the entry is a synthetic unqualified lookup for an otherwise unreachable directory item.</summary>
         internal bool IsFallback { get; }

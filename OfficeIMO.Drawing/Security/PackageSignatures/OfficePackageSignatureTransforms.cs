@@ -1,4 +1,8 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -6,7 +10,7 @@ using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Security;
 
-namespace OfficeIMO.Word {
+namespace OfficeIMO.Security {
     /// <summary>Reports that bounded OPC archive inspection stopped at a caller-owned resource limit.</summary>
     internal sealed class OfficePackageSignatureResourceLimitException : IOException {
         internal OfficePackageSignatureResourceLimitException(string message) : base(message) { }
@@ -448,25 +452,25 @@ namespace OfficeIMO.Word {
 
     internal readonly struct OfficePackageDigestResult {
         private OfficePackageDigestResult(
-            OfficePackageSignatureDigestVerificationStatus status,
+            OfficePackageSignatureValidationState status,
             string detail) {
             Status = status;
             Detail = detail;
         }
 
-        internal OfficePackageSignatureDigestVerificationStatus Status { get; }
+        internal OfficePackageSignatureValidationState Status { get; }
         internal string Detail { get; }
 
         internal static OfficePackageDigestResult Passed(string detail) =>
-            new(OfficePackageSignatureDigestVerificationStatus.Passed, detail);
+            new(OfficePackageSignatureValidationState.Passed, detail);
 
         internal static OfficePackageDigestResult Failed(string detail) =>
-            new(OfficePackageSignatureDigestVerificationStatus.Failed, detail);
+            new(OfficePackageSignatureValidationState.Failed, detail);
 
         internal static OfficePackageDigestResult Unsupported(string detail) =>
-            new(OfficePackageSignatureDigestVerificationStatus.Unsupported, detail);
+            new(OfficePackageSignatureValidationState.Unsupported, detail);
 
         internal static OfficePackageDigestResult NotChecked(string detail) =>
-            new(OfficePackageSignatureDigestVerificationStatus.NotChecked, detail);
+            new(OfficePackageSignatureValidationState.NotChecked, detail);
     }
 }

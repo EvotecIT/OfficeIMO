@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Security;
 
 namespace OfficeIMO.Excel {
     /// <summary>Describes digital-signature package metadata found in an Excel workbook.</summary>
@@ -42,11 +43,18 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>Inspects package-level digital-signature metadata without validating cryptographic trust.</summary>
         public ExcelSignatureInfo InspectSignatures() {
-            DigitalSignatureOriginPart? originPart = _spreadSheetDocument.DigitalSignatureOriginPart;
+            using var snapshot = new MemoryStream();
+            using (_spreadSheetDocument.Clone(snapshot)) { }
+            OfficePackageSignatureInfo shared = OfficePackageSignatureService.Inspect(
+                snapshot.ToArray(),
+                new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
+            DigitalSignatureOriginPart? liveOrigin = _spreadSheetDocument.DigitalSignatureOriginPart;
+            int liveSignaturePartCount = liveOrigin?.XmlSignatureParts.Count() ?? 0;
             return new ExcelSignatureInfo(
-                originPart != null,
-                originPart?.XmlSignatureParts.Count() ?? 0,
-                _spreadSheetDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null);
+                shared.HasDigitalSignatureOriginPart || liveOrigin != null,
+                Math.Max(shared.SignatureParts.Count, liveSignaturePartCount),
+                shared.HasApplicationSignatureMetadata
+                    || _spreadSheetDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null);
         }
 
         private void ApplySignatureMutationPolicy(ExcelSaveOptions? options) {
