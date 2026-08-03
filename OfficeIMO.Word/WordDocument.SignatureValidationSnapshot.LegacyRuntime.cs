@@ -319,11 +319,17 @@ namespace OfficeIMO.Word {
                         "The current package part " + partUri + " exceeds the " +
                         maxPartBytes + " byte validation limit.");
                 }
-                if (currentRead != encodedRead || !currentBuffer.AsSpan(0, currentRead).SequenceEqual(
-                    encodedBuffer.AsSpan(0, encodedRead))) {
+                if (currentRead != encodedRead || !BuffersEqual(currentBuffer, encodedBuffer, currentRead)) {
                     equal = false;
                 }
             }
+        }
+
+        private static bool BuffersEqual(byte[] left, byte[] right, int count) {
+            for (int index = 0; index < count; index++) {
+                if (left[index] != right[index]) return false;
+            }
+            return true;
         }
     }
 }

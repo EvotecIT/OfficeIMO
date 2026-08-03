@@ -94,7 +94,6 @@ jobs:
           $projects = @(
             'OfficeIMO.Drawing/OfficeIMO.Drawing.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
-            'OfficeIMO.Security/OfficeIMO.Security.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
             'OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj',
             'OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj',
@@ -119,7 +118,6 @@ jobs:
           $readerImageVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Image'
           $drawingVersion = Get-PackedPackageVersion 'OfficeIMO.Drawing'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
-          $securityVersion = Get-PackedPackageVersion 'OfficeIMO.Security'
           $smokeProperties = @(
             '--property:EnableOfficeIMOEmailPackageSmoke=true',
             "--property:OfficeIMOEmailPackageVersion=$emailVersion",
@@ -147,7 +145,6 @@ jobs:
           foreach ($packageId in @(
             'OfficeIMO.Drawing',
             'OfficeIMO.Rtf',
-            'OfficeIMO.Security',
             'OfficeIMO.Email',
             'OfficeIMO.Reader.Core',
             'OfficeIMO.Reader.Email',
@@ -161,6 +158,9 @@ jobs:
           [void] $nugetConfig.configuration.AppendChild($sourceMapping)
           $nugetConfig.Save($configPath)
           dotnet restore Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj @smokeProperties --configfile "$configPath" --no-http-cache
+          if (Test-Path (Join-Path $env:NUGET_PACKAGES 'officeimo.security')) {
+            throw 'The ordinary OfficeIMO.Email package consumer restored optional OfficeIMO.Security.'
+          }
           $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')
           foreach ($package in @(
             @{ Id = 'officeimo.email'; Version = $emailVersion },
@@ -168,8 +168,7 @@ jobs:
             @{ Id = 'officeimo.reader.email'; Version = $readerEmailVersion },
             @{ Id = 'officeimo.reader.image'; Version = $readerImageVersion },
             @{ Id = 'officeimo.drawing'; Version = $drawingVersion },
-            @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
-            @{ Id = 'officeimo.security'; Version = $securityVersion }
+            @{ Id = 'officeimo.rtf'; Version = $rtfVersion }
           )) {
             $metadataPath = Join-Path $env:NUGET_PACKAGES "$($package.Id)/$($package.Version)/.nupkg.metadata"
             $metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json
@@ -225,7 +224,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Drawing/OfficeIMO.Drawing.csproj',
-            'OfficeIMO.Security/OfficeIMO.Security.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
@@ -254,7 +252,6 @@ jobs:
           }
           $packageIds = @(
             'OfficeIMO.Drawing',
-            'OfficeIMO.Security',
             'OfficeIMO.Markdown',
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
@@ -308,6 +305,9 @@ jobs:
           [void] $nugetConfig.configuration.AppendChild($sourceMapping)
           $nugetConfig.Save($configPath)
           dotnet restore Build/PackageSmoke/OfficeIMO.OneNote/OfficeIMO.OneNote.PackageSmoke.csproj @smokeProperties --configfile "$configPath" --no-http-cache
+          if (Test-Path (Join-Path $env:NUGET_PACKAGES 'officeimo.security')) {
+            throw 'The ordinary OfficeIMO.OneNote package consumer restored optional OfficeIMO.Security.'
+          }
           $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')
           foreach ($packageId in $packageIds) {
             $packageVersion = $packageVersions[$packageId]

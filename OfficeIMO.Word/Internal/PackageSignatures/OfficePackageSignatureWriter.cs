@@ -532,7 +532,7 @@ namespace OfficeIMO.Word {
 
         private static bool IsRelationshipPart(string uri) =>
             uri.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) &&
-            (uri.Contains("/_rels/", StringComparison.OrdinalIgnoreCase) || uri.Equals("/_rels/.rels", StringComparison.OrdinalIgnoreCase));
+            (uri.IndexOf("/_rels/", StringComparison.OrdinalIgnoreCase) >= 0 || uri.Equals("/_rels/.rels", StringComparison.OrdinalIgnoreCase));
 
         private static bool IsSignaturePart(string uri) =>
             uri.StartsWith("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) ||
