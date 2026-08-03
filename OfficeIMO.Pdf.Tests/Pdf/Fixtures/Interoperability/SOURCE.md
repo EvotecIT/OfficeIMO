@@ -14,7 +14,9 @@ The fixtures come from two public corpora listed by the PDF Association's
   fonts, PDF/A, links, attachments, recoverable corruption, and image failures.
 - veraPDF `veraPDF-corpus`, commit
   `49de56cd987929932c9e4fbbbe67d052bf44ef83`, licensed CC BY 4.0. The selected
-  atomic PDF/A-1a cases exercise valid ToUnicode character maps.
+  atomic PDF/A cases exercise valid ToUnicode maps, ICCBased and Indexed
+  content colors, DeviceN tint transforms, optional-content groups, and the
+  zero-area annotation appearance exemption.
 
 The suite treats all fixtures as untrusted input, reads them with bounded
 OfficeIMO limits, and never executes embedded content. Additions must remain

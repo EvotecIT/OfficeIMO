@@ -125,7 +125,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source,
         string axis) {
         string normalized = token.Trim().ToLowerInvariant();
-        if (normalized == "auto" || normalized == "min-content" || normalized == "max-content") return GridTrack.Auto(normalized);
+        if (normalized == "auto") return GridTrack.Auto(normalized);
+        if (normalized == "min-content" || normalized == "max-content") {
+            ReportUnsupportedGridValue(source, axis + "=" + normalized + " (intrinsic keyword)");
+            return GridTrack.Auto(normalized);
+        }
         if (normalized.EndsWith("fr", StringComparison.Ordinal)
             && double.TryParse(normalized.Substring(0, normalized.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double fraction)
             && fraction > 0D
@@ -186,14 +190,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static List<double> ResolveGridTrackSizes(IReadOnlyList<GridTrack> tracks, double availableSize, double gap) {
+    private List<double> ResolveGridTrackSizes(
+        IReadOnlyList<GridTrack> tracks,
+        IReadOnlyList<GridItem> items,
+        double availableSize,
+        double gap) {
         var sizes = tracks.Select(track => Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
+        foreach (GridItem item in items.OrderBy(item => item.ColumnSpan)) {
+            double required = ResolveColumnFlexCrossBasis(item.Item, availableSize);
+            double current = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + gap * Math.Max(0, item.ColumnSpan - 1);
+            double deficit = Math.Max(0D, required - current);
+            if (deficit <= 0D) continue;
+            List<int> intrinsicTracks = Enumerable.Range(item.Column, item.ColumnSpan)
+                .Where(index => tracks[index].Kind == GridTrackKind.Auto)
+                .ToList();
+            if (intrinsicTracks.Count == 0) continue;
+            double addition = deficit / intrinsicTracks.Count;
+            foreach (int index in intrinsicTracks) sizes[index] += addition;
+        }
         double trackSpace = Math.Max(0D, availableSize - gap * Math.Max(0, tracks.Count - 1));
         double used = sizes.Sum();
         double remaining = Math.Max(0D, trackSpace - used);
         double fractionTotal = tracks.Where(track => track.Kind == GridTrackKind.Fraction).Sum(track => track.Value);
         if (fractionTotal > 0D) {
             DistributeGridFractions(tracks, sizes, trackSpace);
+            ReportFractionalMinimumFallbacks(tracks, items, sizes, gap, availableSize);
         } else {
             int autoCount = tracks.Count(track => track.Kind == GridTrackKind.Auto);
             if (autoCount > 0) {
@@ -203,6 +224,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return sizes;
+    }
+
+    private void ReportFractionalMinimumFallbacks(
+        IReadOnlyList<GridTrack> tracks,
+        IReadOnlyList<GridItem> items,
+        IReadOnlyList<double> sizes,
+        double gap,
+        double availableSize) {
+        foreach (GridItem item in items) {
+            bool spansFraction = Enumerable.Range(item.Column, item.ColumnSpan)
+                .Any(index => tracks[index].Kind == GridTrackKind.Fraction);
+            if (!spansFraction) continue;
+            double required = ResolveColumnFlexCrossBasis(item.Item, availableSize);
+            double allocated = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + gap * Math.Max(0, item.ColumnSpan - 1);
+            if (required <= allocated + 0.0001D) continue;
+            string source = item.Item.Element == null
+                ? item.Item.TagName
+                : HtmlRenderStyleResolver.DescribeSource(item.Item.Element);
+            ReportUnsupportedGridValue(source, "fractional automatic minimum exceeds allocated track share");
+        }
     }
 
     private static void DistributeGridFractions(IReadOnlyList<GridTrack> tracks, IList<double> sizes, double trackSpace) {

@@ -114,7 +114,7 @@ internal static class PdfIndexedImageNormalizer {
         return true;
     }
 
-    private static bool TryReadIndexedLookupBytes(
+    internal static bool TryReadIndexedLookupBytes(
         PdfObject? lookupObject,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] lookupBytes) {

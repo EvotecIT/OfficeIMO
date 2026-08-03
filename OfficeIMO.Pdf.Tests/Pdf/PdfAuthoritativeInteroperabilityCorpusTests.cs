@@ -22,7 +22,7 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
         var sourceIds = sources.Select(source => RequireString(source, "id")).ToHashSet(StringComparer.Ordinal);
 
         JsonElement[] cases = root.GetProperty("cases").EnumerateArray().ToArray();
-        Assert.Equal(9, cases.Length);
+        Assert.Equal(14, cases.Length);
         Assert.Equal(cases.Length, cases.Select(item => RequireString(item, "id")).Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(cases, item => RequireString(item, "source") == "openpreserve-format-corpus");
         Assert.Contains(cases, item => RequireString(item, "source") == "verapdf-corpus");
@@ -89,9 +89,22 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
                 ReadStringArray(item, "expectedRepairCodes"),
                 document.RepairReport.Diagnostics.Select(diagnostic => diagnostic.Code).ToArray());
             Assert.Equal(item.GetProperty("expectedRenderSucceeded").GetBoolean(), render.Succeeded);
-            Assert.Equal(
-                ReadStringArray(item, "expectedRenderDiagnosticCodes"),
-                render.CapabilityDiagnostics.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal).ToArray());
+            Assert.True(
+                ReadStringArray(item, "expectedRenderDiagnosticCodes").SequenceEqual(
+                    render.CapabilityDiagnostics.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal),
+                    StringComparer.Ordinal),
+                id + " produced unexpected render diagnostics: " + string.Join(", ", render.CapabilityDiagnostics.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal)));
+            PdfPageRenderResult repeatedRender = Assert.Single(PdfPageImageRenderer.RenderPages(bytes, options: new PdfPageRenderOptions {
+                Format = PdfPageRenderFormat.Svg,
+                ContinueOnError = true,
+                MaxPages = 4
+            }));
+            Assert.Equal(render.Bytes, repeatedRender.Bytes);
+            if (item.TryGetProperty("minimumOptionalContentGroups", out JsonElement minimumGroups)) {
+                Assert.True(
+                    info.OptionalContentGroupCount >= minimumGroups.GetInt32(),
+                    id + " lost expected optional-content groups.");
+            }
             var expectedMutationMode = (PdfMutationExecutionMode)Enum.Parse(
                 typeof(PdfMutationExecutionMode),
                 RequireString(item, "expectedMutationMode"));

@@ -589,10 +589,8 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        PdfPageColorSpace colorSpace = PdfPageColorSpaceKind.DeviceGray;
-        if (dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
-            TryReadColorSpaceResource(colorSpaceObject, out colorSpace);
-        }
+        if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
+            !TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) return false;
 
         PdfObject? functionObject = dictionary.Items.TryGetValue("Function", out PdfObject? authoredFunction) ? authoredFunction : null;
         if (!TryReadShadingStops(functionObject, colorSpace, out IReadOnlyList<OfficeGradientStop> stops)) {
@@ -615,17 +613,16 @@ public sealed partial class PdfReadPage {
     private bool TryReadShadingStops(PdfObject? functionObject, PdfPageColorSpace colorSpace, out IReadOnlyList<OfficeGradientStop> stops) {
         stops = Array.Empty<OfficeGradientStop>();
         PdfObject? resolved = ResolveObject(functionObject);
-        if (resolved is PdfArray functionArray && functionArray.Items.Count > 0) {
+        if (resolved is PdfArray functionArray) {
+            if (functionArray.Items.Count != 1) return false;
             resolved = ResolveObject(functionArray.Items[0]);
         }
         if (resolved is not PdfDictionary function) return false;
 
         int? functionType = TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null);
         if (functionType == 2) {
-            stops = new[] {
-                new OfficeGradientStop(0D, ReadFunctionColor(function, "C0", colorSpace, false)),
-                new OfficeGradientStop(1D, ReadFunctionColor(function, "C1", colorSpace, true))
-            };
+            if (!TryReadType2FunctionColors(function, colorSpace, reversed: false, out OfficeColor start, out OfficeColor end)) return false;
+            stops = new[] { new OfficeGradientStop(0D, start), new OfficeGradientStop(1D, end) };
             return true;
         }
         if (functionType != 3 || !function.Items.TryGetValue("Functions", out PdfObject? functionsObject)) return false;
@@ -639,12 +636,17 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
             ? ReadNumberArray(domainObject)
             : Array.Empty<double>();
-        double domainStart = domain.Count >= 2 ? domain[0] : 0D;
-        double domainEnd = domain.Count >= 2 ? domain[1] : 1D;
-        if (domainEnd <= domainStart) return false;
+        if (!HasValidFunctionIntervals(domain, 1)) return false;
+        double domainStart = domain[0];
+        double domainEnd = domain[1];
         IReadOnlyList<double> encode = function.Items.TryGetValue("Encode", out PdfObject? encodeObject)
             ? ReadNumberArray(encodeObject)
             : Array.Empty<double>();
+        if (!HasFiniteFunctionPairs(encode, functions.Items.Count)) return false;
+        if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
+            !HasValidFunctionIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
+        if (bounds.Any(value => !IsFinite(value) || value <= domainStart || value >= domainEnd)) return false;
+        for (int index = 1; index < bounds.Count; index++) if (bounds[index] <= bounds[index - 1]) return false;
 
         var result = new List<OfficeGradientStop>(functions.Items.Count + 1);
         PdfDictionary? first = ResolveFunctionDictionary(functions.Items[0]);
@@ -671,10 +673,42 @@ public sealed partial class PdfReadPage {
         start = OfficeColor.Black;
         end = OfficeColor.Black;
         if (function == null || TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? type) ? type : null) != 2) return false;
-        OfficeColor c0 = ReadFunctionColor(function, "C0", colorSpace, false);
-        OfficeColor c1 = ReadFunctionColor(function, "C1", colorSpace, true);
-        start = reversed ? c1 : c0;
-        end = reversed ? c0 : c1;
+        IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
+            ? ReadNumberArray(domainObject)
+            : Array.Empty<double>();
+        if (!HasValidFunctionIntervals(domain, 1) ||
+            !function.Items.TryGetValue("N", out PdfObject? exponentObject) ||
+            ResolveObject(exponentObject) is not PdfNumber exponent ||
+            !IsFinite(exponent.Value) || exponent.Value <= 0D) return false;
+        IReadOnlyList<double> c0 = function.Items.TryGetValue("C0", out PdfObject? c0Object)
+            ? ReadNumberArray(c0Object)
+            : new[] { 0D };
+        IReadOnlyList<double> c1 = function.Items.TryGetValue("C1", out PdfObject? c1Object)
+            ? ReadNumberArray(c1Object)
+            : new[] { 1D };
+        if (c0.Count != colorSpace.ComponentCount || c1.Count != colorSpace.ComponentCount ||
+            !colorSpace.TryConvertColor(c0, out OfficeColor c0Color) ||
+            !colorSpace.TryConvertColor(c1, out OfficeColor c1Color)) return false;
+        if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
+            !HasValidFunctionIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
+        start = reversed ? c1Color : c0Color;
+        end = reversed ? c0Color : c1Color;
+        return true;
+    }
+
+    private static bool HasValidFunctionIntervals(IReadOnlyList<double> values, int count) {
+        if (values.Count != count * 2) return false;
+        for (int index = 0; index < count; index++) {
+            double minimum = values[index * 2];
+            double maximum = values[index * 2 + 1];
+            if (!IsFinite(minimum) || !IsFinite(maximum) || maximum <= minimum) return false;
+        }
+        return true;
+    }
+
+    private static bool HasFiniteFunctionPairs(IReadOnlyList<double> values, int count) {
+        if (values.Count != count * 2) return false;
+        for (int index = 0; index < values.Count; index++) if (!IsFinite(values[index])) return false;
         return true;
     }
 
@@ -691,52 +725,6 @@ public sealed partial class PdfReadPage {
 
         return resolved is PdfDictionary dictionary ? dictionary : null;
     }
-
-    private OfficeColor ReadFunctionColor(PdfDictionary function, string key, PdfPageColorSpace colorSpace, bool endColor) {
-        IReadOnlyList<double> components = function.Items.TryGetValue(key, out PdfObject? value)
-            ? ReadNumberArray(value)
-            : Array.Empty<double>();
-        return ReadColorComponents(components, colorSpace, endColor);
-    }
-
-    private static OfficeColor ReadColorComponents(IReadOnlyList<double> components, PdfPageColorSpace colorSpace, bool endColor) {
-        switch (colorSpace.Kind) {
-            case PdfPageColorSpaceKind.DeviceRgb:
-                return OfficeColor.FromRgb(
-                    ToColorByte(ComponentAt(components, 0, endColor ? 1D : 0D)),
-                    ToColorByte(ComponentAt(components, 1, endColor ? 1D : 0D)),
-                    ToColorByte(ComponentAt(components, 2, endColor ? 1D : 0D)));
-            case PdfPageColorSpaceKind.DeviceCmyk:
-                double cmykFallback = endColor ? 1D : 0D;
-                double cyan = ComponentAt(components, 0, cmykFallback);
-                double magenta = ComponentAt(components, 1, cmykFallback);
-                double yellow = ComponentAt(components, 2, cmykFallback);
-                double black = ComponentAt(components, 3, cmykFallback);
-                return OfficeColorSpaceConverter.FromCmyk(cyan, magenta, yellow, black);
-            case PdfPageColorSpaceKind.CalGray:
-                return PdfPageColorConverter.FromCalGray(ComponentAt(components, 0, endColor ? 1D : 0D));
-            case PdfPageColorSpaceKind.CalRgb:
-                return PdfPageColorConverter.FromCalRgb(
-                    ComponentAt(components, 0, endColor ? 1D : 0D),
-                    ComponentAt(components, 1, endColor ? 1D : 0D),
-                    ComponentAt(components, 2, endColor ? 1D : 0D),
-                    colorSpace);
-            case PdfPageColorSpaceKind.Lab:
-                return PdfPageColorConverter.FromLab(
-                    ComponentAtRaw(components, 0, endColor ? 100D : 0D),
-                    ComponentAtRaw(components, 1, 0D),
-                    ComponentAtRaw(components, 2, 0D));
-            default:
-                byte gray = ToColorByte(ComponentAt(components, 0, endColor ? 1D : 0D));
-                return OfficeColor.FromRgb(gray, gray, gray);
-        }
-    }
-
-    private static double ComponentAt(IReadOnlyList<double> components, int index, double fallback) =>
-        index < components.Count ? Clamp01(components[index]) : fallback;
-
-    private static double ComponentAtRaw(IReadOnlyList<double> components, int index, double fallback) =>
-        index < components.Count ? components[index] : fallback;
 
     private static byte ToColorByte(double value) =>
         (byte)Math.Round(Clamp01(value) * 255D);
@@ -829,40 +817,7 @@ public sealed partial class PdfReadPage {
     }
 
     private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) {
-        PdfObject? resolved = ResolveObject(value);
-        if (resolved is PdfName directName) {
-            return TryReadStandardColorSpaceName(directName.Name, out colorSpace);
-        }
-
-        if (resolved is PdfArray array && array.Items.Count > 0 &&
-            ResolveObject(array.Items[0]) is PdfName arrayName) {
-            if (arrayName.Name == "ICCBased" && array.Items.Count > 1) {
-                PdfDictionary? profile = ResolveObject(array.Items[1]) switch {
-                    PdfStream stream => stream.Dictionary,
-                    PdfDictionary dictionary => dictionary,
-                    _ => null
-                };
-                int? components = profile == null
-                    ? null
-                    : TryReadInteger(profile.Items.TryGetValue("N", out PdfObject? count) ? count : null);
-                colorSpace = components switch {
-                    1 => PdfPageColorSpaceKind.DeviceGray,
-                    3 => PdfPageColorSpaceKind.DeviceRgb,
-                    4 => PdfPageColorSpaceKind.DeviceCmyk,
-                    _ => PdfPageColorSpaceKind.DeviceGray
-                };
-                return components is 1 or 3 or 4;
-            }
-            if (arrayName.Name == "CalRGB" && array.Items.Count > 1 &&
-                ResolveDictionary(array.Items[1]) is PdfDictionary calibration &&
-                TryReadCalRgbColorSpace(calibration, out colorSpace)) {
-                return true;
-            }
-            return TryReadStandardColorSpaceName(arrayName.Name, out colorSpace);
-        }
-
-        colorSpace = PdfPageColorSpaceKind.DeviceGray;
-        return false;
+        return TryReadExtendedColorSpaceResource(value, 0, out colorSpace);
     }
 
     private bool TryReadCalRgbColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {

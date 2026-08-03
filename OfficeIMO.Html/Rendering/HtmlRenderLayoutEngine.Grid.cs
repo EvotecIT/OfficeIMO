@@ -37,7 +37,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         rowCount = Math.Max(rowCount, Math.Max(1, areaRowCount));
         EnsureGridTrackCount(columnTracks, columnCount, style.GridAutoColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
         double columnGap = columnCount > 1 ? style.ColumnGap : 0D;
-        List<double> columnSizes = ResolveGridTrackSizes(columnTracks, contentWidth, columnGap);
+        List<double> columnSizes = ResolveGridTrackSizes(columnTracks, items, contentWidth, columnGap);
         GridAxisLayout columns = ResolveGridAxisLayout(columnTracks, columnSizes, contentWidth, columnGap, style.JustifyContent, source, "justify-content");
 
         foreach (GridItem item in items) {
