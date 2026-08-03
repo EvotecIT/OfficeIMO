@@ -187,9 +187,6 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.True(workstreams.GetArrayLength() >= 5, "Image export evidence should cover the main document and QA owners.");
 
         var ids = new HashSet<string>(StringComparer.Ordinal);
-        string roadmap = File.ReadAllText(GetRepositoryPath("Docs/ROADMAP.md"));
-        Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
-
         foreach (JsonElement workstream in workstreams.EnumerateArray()) {
             string id = workstream.GetProperty("id").GetString() ?? string.Empty;
             string owner = workstream.GetProperty("owner").GetString() ?? string.Empty;
@@ -205,7 +202,6 @@ public sealed class PackageDependencyGuardrailTests {
             Assert.False(string.IsNullOrWhiteSpace(boundary), "Workstream '" + id + "' needs a current boundary.");
             Assert.False(workstream.TryGetProperty("status", out _), "Planning status belongs in Docs/ROADMAP.md, not the capability manifest.");
             Assert.False(workstream.TryGetProperty("nextSlices", out _), "Open slices belong in Docs/ROADMAP.md, not the capability manifest.");
-            Assert.Contains("`" + owner + "`", roadmap, StringComparison.Ordinal);
         }
     }
 

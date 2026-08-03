@@ -19,7 +19,14 @@
 - Keep dated reports only when the date is part of reproducible evidence, such as a benchmark run.
 - Update generated documents through their source catalogs, manifests, tests, or generators.
 - Before removing a stale review or planning document, move current behavior to its public owner and open work to `Docs/ROADMAP.md`.
-- Keep user-facing install commands on the latest version actually published to NuGet. The current published version is guarded by `CurrentPublishedPackageVersion` in `OfficeIMO.Shared.Tests/ReleasePackagingGuardrails.cs`; update that value and the install docs together after publication.
+- Keep user-facing install commands on the latest version actually published to NuGet. Validate install examples through a representative restore/build consumer or release tool rather than unit-test substring assertions over documentation prose.
+
+## Testing evidence
+
+- Do not use product unit tests to pin human-authored README, roadmap, migration, compatibility, planning, or agent prose.
+- Test Markdown when it is a supported input/output format. Compare generated documents with their executable generator or machine-readable source of truth.
+- Exercise documentation examples through real compile, restore, or run consumers where practical.
+- When low-value prose-only, implementation-only, duplicate, or obsolete tests are encountered in a touched area, remove them instead of preserving or replacing them for test-count optics.
 
 ## Benchmark boundaries
 

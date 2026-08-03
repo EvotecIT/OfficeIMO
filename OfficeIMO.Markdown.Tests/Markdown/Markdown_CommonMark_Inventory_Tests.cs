@@ -18,7 +18,6 @@ public sealed class Markdown_CommonMark_Inventory_Tests {
 
         Assert.True(File.Exists(reportPath), "CommonMark inventory report is missing: " + reportPath);
         Assert.Equal(NormalizeLineEndings(File.ReadAllText(reportPath)), NormalizeLineEndings(markdown));
-        AssertDocsTrackInventoryCounts(report);
     }
 
     private static string GetTestProjectPath(params string[] segments) {
@@ -42,16 +41,4 @@ public sealed class Markdown_CommonMark_Inventory_Tests {
     private static string NormalizeLineEndings(string value) =>
         value.Replace("\r\n", "\n").Replace("\r", "\n");
 
-    private static void AssertDocsTrackInventoryCounts(CommonMarkInventoryReport report) {
-        string inventoryText = $"{report.PassingPinned + report.PassingUnpinned} of {report.Total} official CommonMark `0.31.2` examples";
-        string failureText = $"{report.Failing} failures";
-
-        string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs", "officeimo.markdown.compatibility-matrix.md"));
-        Assert.Contains(inventoryText, compatibilityMatrix, StringComparison.Ordinal);
-        Assert.Contains(failureText, compatibilityMatrix, StringComparison.Ordinal);
-
-        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown", "COMPATIBILITY.md"));
-        Assert.Contains($"{report.PassingPinned} CommonMark 0.31.2 examples are pinned as smoke fixtures", packageCompatibility, StringComparison.Ordinal);
-        Assert.Contains($"{report.PassingPinned + report.PassingUnpinned} of {report.Total} examples matching", packageCompatibility, StringComparison.Ordinal);
-    }
 }
