@@ -585,7 +585,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (content[0] != '[') {
-                if (content.IndexOf('[') >= 0 || content.IndexOf(']') >= 0) {
+                if (ContainsUnescapedStructuredReferenceBracket(content)) {
                     return false;
                 }
 
@@ -673,7 +673,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (value[0] != '[') {
-                if (value.IndexOf('[') >= 0 || value.IndexOf(']') >= 0) {
+                if (ContainsUnescapedStructuredReferenceBracket(value)) {
                     return false;
                 }
 
@@ -717,13 +717,13 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                int end = value.IndexOf(']', index + 1);
+                int end = FindUnescapedStructuredReferenceBracket(value, index + 1, ']');
                 if (end < 0) {
                     return false;
                 }
 
                 string section = value.Substring(index + 1, end - index - 1).Trim();
-                if (section.Length == 0 || section.IndexOf('[') >= 0 || section.IndexOf(']') >= 0) {
+                if (section.Length == 0 || ContainsUnescapedStructuredReferenceBracket(section)) {
                     return false;
                 }
 
@@ -745,6 +745,20 @@ namespace OfficeIMO.Excel {
             }
 
             return sections.Count > 0 && separators.Count == sections.Count - 1;
+        }
+
+        private static bool ContainsUnescapedStructuredReferenceBracket(string value) {
+            return FindUnescapedStructuredReferenceBracket(value, 0, '[') >= 0
+                || FindUnescapedStructuredReferenceBracket(value, 0, ']') >= 0;
+        }
+
+        private static int FindUnescapedStructuredReferenceBracket(string value, int start, char bracket) {
+            for (int index = start; index < value.Length; index++) {
+                if (value[index] == bracket && !IsEscapedStructuredReferenceBracket(value, index)) {
+                    return index;
+                }
+            }
+            return -1;
         }
 
         private static bool TryResolveTableReferenceRange(
@@ -869,9 +883,10 @@ namespace OfficeIMO.Excel {
         }
 
         private static int ResolveTableColumnOffset(Table table, string columnName) {
+            string decodedColumnName = ExcelFormulaSyntaxTree.DecodeStructuredColumnName(columnName);
             int index = 0;
             foreach (var tableColumn in table.TableColumns?.Elements<TableColumn>() ?? Enumerable.Empty<TableColumn>()) {
-                if (string.Equals(tableColumn.Name?.Value, columnName, StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(tableColumn.Name?.Value, decodedColumnName, StringComparison.OrdinalIgnoreCase)) {
                     return index;
                 }
 

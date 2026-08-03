@@ -523,7 +523,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool InvalidateChartFormulaCache(OpenXmlLeafTextElement formula) {
+        /// <summary>Removes cached chart data owned by a rewritten formula.</summary>
+        internal static bool InvalidateChartFormulaCache(OpenXmlLeafTextElement formula) {
             OpenXmlElement? reference = formula.Parent;
             if (reference == null) {
                 return false;

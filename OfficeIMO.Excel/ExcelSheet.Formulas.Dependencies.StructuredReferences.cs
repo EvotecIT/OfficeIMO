@@ -157,9 +157,11 @@ namespace OfficeIMO.Excel {
         private static bool TryFindStructuredReferenceEnd(string formula, int start, out int end) {
             int depth = 0;
             for (int index = start; index < formula.Length; index++) {
-                if (formula[index] == '[') {
+                if (formula[index] == '['
+                    && !IsEscapedStructuredReferenceBracket(formula, index)) {
                     depth++;
-                } else if (formula[index] == ']') {
+                } else if (formula[index] == ']'
+                    && !IsEscapedStructuredReferenceBracket(formula, index)) {
                     depth--;
                     if (depth == 0) {
                         end = index + 1;

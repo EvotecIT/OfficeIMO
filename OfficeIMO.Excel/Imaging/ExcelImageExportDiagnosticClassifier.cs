@@ -34,6 +34,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation:
                 case ExcelImageExportDiagnosticCodes.FillPatternApproximation:
                 case ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation:
+                case ExcelImageExportDiagnosticCodes.ConditionalExtensionApproximation:
                 case ExcelImageExportDiagnosticCodes.ConditionalFormulaThresholdApproximation:
                 case ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation:
                 case ExcelImageExportDiagnosticCodes.ThreadedCommentBodyApproximation:

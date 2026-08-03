@@ -185,6 +185,9 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
+                    if (prepared.Length > 0) {
+                        _excelDocument.MarkFormulaInputMutation();
+                    }
                     ClearHeaderCache();
                 },
                 ct: ct

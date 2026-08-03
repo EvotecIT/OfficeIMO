@@ -135,19 +135,22 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 
 - [x] Create, load, edit, inspect, and save `.xlsx` workbooks
 - [x] Read, write, and convert the supported first-party BIFF8 `.xls` subset with loss preflight
-- [x] Worksheets, cells, ranges, merges, tables, totals, filters, freeze panes, hyperlinks, and local/workbook named ranges
+- [x] Worksheets, cells, range algebra, merges, mutable table schemas, complete filter state, freeze panes, hyperlinks, local/workbook names, and named styles
 - [x] Object, dictionary, `DataTable`, `DataSet`, row, stream, and typed-model import/export with editable-row workflows
 - [x] Streaming reads, direct package writers, parallel compute/apply phases, progress, cancellation, and large-workbook controls
 - [x] Fonts, fills, borders, alignment, number formats, rich text, themes, row/column sizing, and reusable report styling
-- [x] Data validation, conditional formatting, icon sets, data bars, color scales, ignored-error metadata preservation, and sparklines
-- [x] Formula authoring, dependency graphs, unsupported-formula diagnostics, and a bounded calculation engine for reporting functions
-- [x] Charts across common 2-D/3-D, pie, radar, stock, surface, combo, secondary-axis, trendline, and dashboard scenarios
-- [x] Pivot tables with row/column/page/data fields, layouts, styles, filters, grouping metadata, calculated fields, and readback
+- [x] Transactional row/column/cell shifts plus copy/move/transpose with dry-runs, rollback budgets, reference remapping, and package diagnostics
+- [x] Data validation, conditional formatting, icon sets, data bars, color scales, allowed-edit range management, ignored-error metadata preservation, and sparkline lifecycles
+- [x] Shared A1/R1C1 formula/reference syntax, formula-aware search and state diagnostics, dependency graphs, and a bounded calculation engine for reporting functions
+- [x] Charts across common 2-D/3-D, pie, radar, stock, surface, combo, secondary-axis, trendline, dashboard, and native ChartEx scenarios
+- [x] Pivot tables with fields, layouts, styles, filters, grouping, calculated fields, shared caches, and native slicer/timeline views
+- [x] Native query-backed tables with caller-hosted execution, explicit security policy, bounded transactional refresh, cancellation, and structural remapping
 - [x] Templates with marker binding, repeated rows, repeated sheets, optional regions, formatters, image binding, and preflight diagnostics
 - [x] Legacy comments plus threaded-comment/person metadata inspection and preservation
 - [x] Worksheet/workbook protection, encrypted OOXML packages, document properties, and compatibility validation
 - [x] Print areas, page breaks, page setup, and first/odd/even headers and footers with supported images
-- [x] Feature inspection and preservation reporting for macros, external links, custom XML, embedded packages, signatures, controls, slicers, timelines, and query metadata
+- [x] Native in-cell images plus feature inspection and relationship-preserving round trips for macros, external links, custom XML, embedded packages, signatures, controls, and unowned imported parts
+- [x] Explicit file-backed editing with size/part budgets and deterministic cancellation, without changing established direct-write, streaming-read, or unchanged-package fast paths
 - [x] Workbook, worksheet, and range export to PNG, JPEG, TIFF, lossless WebP, and SVG; adapters add PDF, HTML, ODS, and Google Sheets
 - [x] Reproducible read, write, edit, package-size, and feature-rich cross-library benchmark suites with output validation and platform provenance
 

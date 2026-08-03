@@ -5,6 +5,7 @@ using System.Xml.Linq;
 namespace OfficeIMO.Excel.Utilities {
     internal static class ExcelPackageUtilities {
         private const string ContentTypesEntry = "[Content_Types].xml";
+        internal const long MaximumContentTypesEntryBytes = 16L * 1024L * 1024L;
         private const string WorkbookOverridePart = "/xl/workbook.xml";
         private const string WorkbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml";
         private const string MacroEnabledWorkbookContentType = "application/vnd.ms-excel.sheet.macroEnabled.main+xml";
@@ -40,11 +41,7 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            string xml;
-            using (var entryStream = entry.Open())
-            using (var reader = new StreamReader(entryStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: false)) {
-                xml = reader.ReadToEnd();
-            }
+            string xml = ReadContentTypesXml(entry);
 
             if (string.IsNullOrWhiteSpace(xml)) {
                 return false;
@@ -146,11 +143,7 @@ namespace OfficeIMO.Excel.Utilities {
                     return true;
                 }
 
-                string xml;
-                using (var entryStream = entry.Open())
-                using (var reader = new StreamReader(entryStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: false)) {
-                    xml = reader.ReadToEnd();
-                }
+                string xml = ReadContentTypesXml(entry);
 
                 if (string.IsNullOrWhiteSpace(xml)) {
                     return true;
@@ -203,8 +196,37 @@ namespace OfficeIMO.Excel.Utilities {
                     || !workbookOverrideIsCorrect
                     || !appPropsOverrideIsCorrect
                     || !corePropsOverrideIsCorrect;
+            } catch (InvalidDataException) {
+                throw;
             } catch {
                 return true;
+            }
+        }
+
+        private static string ReadContentTypesXml(ZipArchiveEntry entry) {
+            long declaredLength = entry.Length;
+            if (declaredLength > MaximumContentTypesEntryBytes) {
+                throw new InvalidDataException(
+                    $"The package content-types part exceeds the supported {MaximumContentTypesEntryBytes}-byte limit.");
+            }
+
+            using Stream entryStream = entry.Open();
+            using var reader = new StreamReader(
+                entryStream,
+                Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true,
+                bufferSize: 4096,
+                leaveOpen: false);
+            var text = new StringBuilder((int)Math.Min(declaredLength, 8192L));
+            var buffer = new char[4096];
+            while (true) {
+                int read = reader.Read(buffer, 0, buffer.Length);
+                if (read == 0) return text.ToString();
+                if (text.Length > MaximumContentTypesEntryBytes - read) {
+                    throw new InvalidDataException(
+                        $"The package content-types part exceeds the supported {MaximumContentTypesEntryBytes}-byte limit.");
+                }
+                text.Append(buffer, 0, read);
             }
         }
 

@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            ExcelSheet? sourceSheet = Sheets.FirstOrDefault(sheet =>
+            ExcelSheet? sourceSheet = GetPivotInteractionSheetsForCurrentLock().FirstOrDefault(sheet =>
                 string.Equals(sheet.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
             if (sourceSheet == null) {
                 return null;
@@ -176,6 +176,13 @@ namespace OfficeIMO.Excel {
             }
 
             return foundDate;
+        }
+
+        private IReadOnlyList<ExcelSheet> GetPivotInteractionSheetsForCurrentLock() {
+            var workbookLock = EnsureLock();
+            return Locking.IsNoLock || workbookLock.IsWriteLockHeld || workbookLock.IsReadLockHeld
+                ? GetSheetsForLockedOperation()
+                : Sheets;
         }
 
         private IReadOnlyList<ExcelPivotInteractionCacheInfo> GetWorkbookPivotInteractionCaches(ExcelPivotInteractionCacheKind kind) {

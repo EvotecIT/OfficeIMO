@@ -1,6 +1,53 @@
 using System.Text;
 
 namespace OfficeIMO.Excel {
+    /// <summary>Observable lifecycle states for a formula cell.</summary>
+    [Flags]
+    public enum ExcelFormulaState {
+        /// <summary>No formula state.</summary>
+        None = 0,
+
+        /// <summary>The package contains authored formula text.</summary>
+        Authored = 1,
+
+        /// <summary>The package contains a cached result.</summary>
+        Cached = 2,
+
+        /// <summary>The formula is supported, cached, and not marked dirty.</summary>
+        Evaluated = 4,
+
+        /// <summary>The formula requests recalculation.</summary>
+        Dirty = 8,
+
+        /// <summary>Evaluation is deferred because the cache is absent, dirty, or unsupported.</summary>
+        Deferred = 16,
+
+        /// <summary>The OfficeIMO evaluator cannot calculate the authored expression.</summary>
+        Unsupported = 32
+    }
+
+    /// <summary>Array and dynamic-array metadata associated with a formula owner cell.</summary>
+    public sealed class ExcelFormulaArrayInfo {
+        internal ExcelFormulaArrayInfo(string range, bool isDynamic, bool isCollapsed, uint? metadataIndex) {
+            Range = range;
+            IsDynamic = isDynamic;
+            IsCollapsed = isCollapsed;
+            MetadataIndex = metadataIndex;
+        }
+
+        /// <summary>Authored spill or array range.</summary>
+        public string Range { get; }
+
+        /// <summary>Whether Office dynamic-array metadata is associated with the formula.</summary>
+        public bool IsDynamic { get; }
+
+        /// <summary>Whether the dynamic-array metadata marks the result collapsed.</summary>
+        public bool IsCollapsed { get; }
+
+        /// <summary>Workbook cell-metadata index, when present.</summary>
+        public uint? MetadataIndex { get; }
+    }
+
     /// <summary>
     /// Workbook or worksheet formula inspection result.
     /// </summary>
@@ -593,7 +640,8 @@ namespace OfficeIMO.Excel {
             bool isSupportedByOfficeIMO,
             string? unsupportedReason,
             IReadOnlyList<string>? dependencies = null,
-            IReadOnlyList<string>? dependencyIssues = null) {
+            IReadOnlyList<string>? dependencyIssues = null,
+            ExcelFormulaArrayInfo? array = null) {
             SheetName = sheetName;
             CellReference = cellReference;
             Formula = formula;
@@ -601,8 +649,16 @@ namespace OfficeIMO.Excel {
             IsDirty = isDirty;
             IsSupportedByOfficeIMO = isSupportedByOfficeIMO;
             UnsupportedReason = unsupportedReason;
-            Dependencies = dependencies ?? Array.Empty<string>();
-            DependencyIssues = dependencyIssues ?? Array.Empty<string>();
+            Dependencies = dependencies ?? System.Array.Empty<string>();
+            DependencyIssues = dependencyIssues ?? System.Array.Empty<string>();
+            Array = array;
+            ExcelFormulaState state = ExcelFormulaState.Authored;
+            if (cachedValue != null) state |= ExcelFormulaState.Cached;
+            if (isDirty) state |= ExcelFormulaState.Dirty;
+            if (!isSupportedByOfficeIMO) state |= ExcelFormulaState.Unsupported;
+            if (isSupportedByOfficeIMO && cachedValue != null && !isDirty) state |= ExcelFormulaState.Evaluated;
+            if (cachedValue == null || isDirty || !isSupportedByOfficeIMO) state |= ExcelFormulaState.Deferred;
+            State = state;
         }
 
         /// <summary>Worksheet name.</summary>
@@ -637,6 +693,18 @@ namespace OfficeIMO.Excel {
 
         /// <summary>True when dependency diagnostics found one or more issues.</summary>
         public bool HasDependencyIssues => DependencyIssues.Count > 0;
+
+        /// <summary>Explicit authored/cache/evaluation lifecycle state flags.</summary>
+        public ExcelFormulaState State { get; }
+
+        /// <summary>Array or dynamic-array metadata, when the cell owns an array formula.</summary>
+        public ExcelFormulaArrayInfo? Array { get; }
+
+        /// <summary>True when the cell owns Office dynamic-array metadata.</summary>
+        public bool IsDynamicArray => Array?.IsDynamic == true;
+
+        /// <summary>Reference-aware syntax tree for the authored formula.</summary>
+        public ExcelFormulaSyntaxTree SyntaxTree => ExcelFormulaSyntaxTree.Parse(Formula);
     }
 
     /// <summary>

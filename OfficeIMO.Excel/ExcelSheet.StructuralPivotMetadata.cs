@@ -100,7 +100,7 @@ namespace OfficeIMO.Excel {
                 .Any(name => string.Equals(name.Name?.Value, sourceName, StringComparison.OrdinalIgnoreCase)) == true;
         }
 
-        private static void InvalidatePivotCacheAfterStructuralEdit(
+        internal static void InvalidatePivotCacheAfterStructuralEdit(
             PivotTableCacheDefinitionPart cachePart,
             uint? recordCount) {
             PivotCacheDefinition? definition = cachePart.PivotCacheDefinition;
@@ -112,6 +112,8 @@ namespace OfficeIMO.Excel {
             definition.SaveData = false;
             if (recordCount.HasValue) {
                 definition.RecordCount = recordCount.Value;
+            } else {
+                definition.RecordCount = 0U;
             }
 
             PivotTableCacheRecordsPart? recordsPart = cachePart.PivotTableCacheRecordsPart;

@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -52,36 +53,38 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>Plans and transactionally inserts rows with bounded rollback and post-edit diagnostics.</summary>
+        public ExcelMutationResult InsertRowsTransactional(
+            int firstRow,
+            int count = 1,
+            ExcelMutationPlanOptions? options = null,
+            System.Threading.CancellationToken cancellationToken = default) =>
+            PlanInsertRows(firstRow, count, options).ApplyWithDiagnostics(cancellationToken);
+
+        /// <summary>Plans and transactionally deletes rows with bounded rollback and post-edit diagnostics.</summary>
+        public ExcelMutationResult DeleteRowsTransactional(
+            int firstRow,
+            int count = 1,
+            ExcelMutationPlanOptions? options = null,
+            System.Threading.CancellationToken cancellationToken = default) =>
+            PlanDeleteRows(firstRow, count, options).ApplyWithDiagnostics(cancellationToken);
+
         internal void ApplyStructuralRowMutationPlan(
             ExcelRowMutationKind kind,
             int firstRow,
-            int count) {
+            int count,
+            CancellationToken cancellationToken = default) {
             ValidateStructuralRowArguments(firstRow, count);
             void ApplyCore() {
-                WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
-                if (!workbookPart.Parts.Any(pair =>
-                        ReferenceEquals(pair.OpenXmlPart, _worksheetPart))) {
-                    throw new InvalidOperationException(
-                        "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
-                }
-                string relationshipId = workbookPart.GetIdOfPart(_worksheetPart);
-                bool relationshipIsActive = WorkbookRoot.Sheets?
-                    .Elements<Sheet>()
-                    .Any(sheet => string.Equals(
-                        sheet.Id?.Value,
-                        relationshipId,
-                        StringComparison.Ordinal)) == true;
-                if (!relationshipIsActive) {
-                    throw new InvalidOperationException(
-                        "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
-                }
-
+                cancellationToken.ThrowIfCancellationRequested();
                 MaterializeDeferredDataSetImportIfNeeded();
+                cancellationToken.ThrowIfCancellationRequested();
                 if (kind == ExcelRowMutationKind.Insert) {
-                    ShiftRowsDown(firstRow, count);
+                    ShiftRowsDown(firstRow, count, cancellationToken);
                 } else {
-                    RemoveRowsAndShiftUp(firstRow, count);
+                    RemoveRowsAndShiftUp(firstRow, count, cancellationToken);
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 WorksheetRoot.Save();
                 MarkRequiresSavePreparation();
             }
@@ -105,12 +108,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ShiftRowsDown(int firstRow, int count) {
+        private void ShiftRowsDown(int firstRow, int count, CancellationToken cancellationToken = default) {
             if (count <= 0) {
                 return;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             PreflightRowInsertion(firstRow, count);
+            cancellationToken.ThrowIfCancellationRequested();
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
 
@@ -120,9 +125,11 @@ namespace OfficeIMO.Excel {
                     .Where(item => item.RowIndex?.Value >= (uint)firstRow)
                     .OrderByDescending(item => item.RowIndex?.Value ?? 0U)
                     .ToList()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int newRowIndex = checked((int)(row.RowIndex!.Value + (uint)count));
                     row.RowIndex = (uint)newRowIndex;
                     foreach (Cell cell in row.Elements<Cell>()) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
                             continue;
                         }
@@ -135,27 +142,38 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             RewriteWorksheetFormulaReferences(firstRow, count);
-            RemapShiftedRowMetadata(firstRow, count);
+            cancellationToken.ThrowIfCancellationRequested();
+            RemapShiftedRowMetadata(firstRow, count, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             ShiftMergeCellsRows(firstRow, count);
+            cancellationToken.ThrowIfCancellationRequested();
             InvalidateStructuralFormulaResults();
             ResetStructuralMutationCaches();
         }
 
-        private void RemoveRowsAndShiftUp(int firstRow, int count) {
+        private void RemoveRowsAndShiftUp(int firstRow, int count, CancellationToken cancellationToken = default) {
             if (count <= 0) {
                 return;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             int lastRemovedRow = firstRow + count - 1;
             PreflightRowDeletion(firstRow, count);
+            cancellationToken.ThrowIfCancellationRequested();
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
                 NormalizeImplicitRowIndices(sheetData);
                 foreach (Row row in sheetData.Elements<Row>().ToList()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int rowIndex = checked((int)row.RowIndex!.Value);
                     if (rowIndex >= firstRow && rowIndex <= lastRemovedRow) {
+                        foreach (Cell cell in row.Elements<Cell>().ToList()) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            RemoveCellWithValueMetadataCleanup(cell);
+                        }
                         row.Remove();
                         continue;
                     }
@@ -164,6 +182,7 @@ namespace OfficeIMO.Excel {
                         int newRowIndex = rowIndex - count;
                         row.RowIndex = (uint)newRowIndex;
                         foreach (Cell cell in row.Elements<Cell>()) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
                                 continue;
                             }
@@ -177,16 +196,20 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             RewriteDeletedWorksheetFormulaReferences(firstRow, lastRemovedRow, -count);
-            RemapDeletedRowMetadata(firstRow, lastRemovedRow, -count);
+            cancellationToken.ThrowIfCancellationRequested();
+            RemapDeletedRowMetadata(firstRow, lastRemovedRow, -count, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             ShiftMergeCellsRows(firstRow, -count, lastRemovedRow);
+            cancellationToken.ThrowIfCancellationRequested();
             InvalidateStructuralFormulaResults();
             ResetStructuralMutationCaches();
         }
 
         private void PreflightRowInsertion(int firstRow, int count) {
-            ValidateStructuralRowReferenceMode();
-            ValidateStructuralRowControlSafety();
+            ValidatePackageMutationReferenceSafety("Structural row edits");
+            ValidateStructuralVmlControlSafety();
             ValidateRowInsertionAgainstArrayFormulas(firstRow);
             ValidateRowInsertionAgainstPivotOutputs(firstRow);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
@@ -200,8 +223,8 @@ namespace OfficeIMO.Excel {
 
         private void PreflightRowDeletion(int firstRow, int count) {
             int lastRemovedRow = firstRow + count - 1;
-            ValidateStructuralRowReferenceMode();
-            ValidateStructuralRowControlSafety();
+            ValidatePackageMutationReferenceSafety("Structural row edits");
+            ValidateStructuralVmlControlSafety();
             ValidateRowDeletionAgainstOwnedRanges(firstRow, lastRemovedRow);
             ValidateWorkbookSharedFormulasForStructuralEdit();
         }
@@ -407,13 +430,6 @@ namespace OfficeIMO.Excel {
             return rewritten.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private void ValidateStructuralRowReferenceMode() {
-            if (WorkbookRoot.GetFirstChild<CalculationProperties>()?.ReferenceMode?.Value == ReferenceModeValues.R1C1) {
-                throw new InvalidOperationException(
-                    "Structural row edits are not supported while the workbook uses R1C1 reference mode. Switch to A1 reference mode first.");
-            }
-        }
-
         private static uint GetMaximumEffectiveRowIndex(SheetData? sheetData, int firstRow) {
             uint maximum = 0U;
             uint previous = 0U;
@@ -588,7 +604,7 @@ namespace OfficeIMO.Excel {
                     ValidateReferenceListDoesNotOverflow(filter.Ref?.Value, firstRow, count);
                 }
             }
-            foreach (QueryTablePart part in _worksheetPart.QueryTableParts) {
+            foreach (QueryTablePart part in ExcelPackageQueryTableParts.Enumerate(_worksheetPart)) {
                 if (part.QueryTable != null) {
                     ValidateReferenceAttributesDoNotOverflow(part.QueryTable, firstRow, count);
                 }
@@ -676,89 +692,39 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidateConnectionParameterCapacity(int firstRow, int count) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) {
-                return;
-            }
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
-                    ValidateReferenceListDoesNotOverflow(parameter.Cell?.Value, firstRow, count);
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots()) {
+                foreach (Connection connection in root.Connections.Elements<Connection>()) {
+                    foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                        if (parameter.Cell?.Value is string text
+                            && ExcelReference.TryParse(text, out ExcelReference? reference)
+                            && ConnectionParameterTargetsCurrentSheet(connection, reference!, connectionIds)) {
+                            ValidateReferenceListDoesNotOverflow(text, firstRow, count);
+                        }
+                    }
                 }
             }
         }
 
         private void ValidateConnectionParameterDeletion(int firstDeletedRow, int lastDeletedRow) {
-            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
-            if (connections == null) {
-                return;
-            }
-
             HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
-            foreach (Connection connection in connections.Elements<Connection>()
-                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
-                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
-                    if (parameter.Cell?.Value is not string reference
-                        || !TryParseReference(reference, out var bounds)
-                        || bounds.r1 < firstDeletedRow
-                        || bounds.r1 > lastDeletedRow) {
-                        continue;
-                    }
+            foreach (WorkbookConnectionRoot root in LoadWorkbookConnectionRoots()) {
+                foreach (Connection connection in root.Connections.Elements<Connection>()) {
+                    foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                        if (parameter.Cell?.Value is not string reference
+                            || !ExcelReference.TryParse(reference, out ExcelReference? parsed)
+                            || !ConnectionParameterTargetsCurrentSheet(connection, parsed!, connectionIds)
+                            || !TryParseReference(reference, out var bounds)
+                            || bounds.r1 < firstDeletedRow
+                            || bounds.r1 > lastDeletedRow) {
+                            continue;
+                        }
 
-                    throw new InvalidOperationException(
-                        $"Cannot delete cell-backed connection parameter reference '{reference}'. Update or remove the parameter first.");
-                }
-            }
-        }
-
-        private void ValidateStructuralRowControlSafety() {
-            IEnumerable<VmlDrawingPart> workbookVmlParts =
-                WorkbookPartRoot.WorksheetParts.SelectMany(part => part.VmlDrawingParts)
-                    .Concat(WorkbookPartRoot.DialogsheetParts.SelectMany(part => part.VmlDrawingParts))
-                    .Concat(WorkbookPartRoot.ChartsheetParts.SelectMany(part => part.VmlDrawingParts))
-                    .Distinct();
-            if (WorkbookPartRoot.WorksheetParts.Any(worksheetPart =>
-                    worksheetPart.Worksheet?.Descendants<Controls>().Any() == true
-                    || worksheetPart.ControlPropertiesParts.Any())
-                || ContainsUnsupportedVmlFormControl(workbookVmlParts)) {
-                throw new InvalidOperationException(
-                    "Cannot edit rows in a workbook containing form controls because their anchors and cross-sheet links cannot yet be remapped safely.");
-            }
-            if (WorksheetRoot.Descendants<OleObjects>().Any()
-                || _worksheetPart.EmbeddedObjectParts.Any()) {
-                throw new InvalidOperationException(
-                    "Cannot edit rows on a worksheet containing embedded OLE objects because their VML anchors cannot yet be remapped safely.");
-            }
-            if (_worksheetPart.SingleCellTablePart != null) {
-                throw new InvalidOperationException(
-                    "Cannot edit rows on a worksheet containing single-cell XML mappings because their mapped references cannot yet be remapped safely.");
-            }
-            if (WorkbookPartRoot.MacroSheetParts.Any()
-                || WorkbookPartRoot.InternationalMacroSheetParts.Any()) {
-                throw new InvalidOperationException(
-                    "Cannot edit rows in a workbook containing Excel 4.0 macro sheets because their formulas cannot yet be remapped safely.");
-            }
-            if (WorkbookPartRoot.WorkbookRevisionHeaderPart != null) {
-                throw new InvalidOperationException(
-                    "Cannot edit rows while legacy workbook revision tracking is present because revision-log references cannot yet be remapped safely.");
-            }
-        }
-
-        private bool ContainsUnsupportedVmlFormControl(IEnumerable<VmlDrawingPart> vmlParts) {
-            XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
-            foreach (VmlDrawingPart vmlPart in vmlParts) {
-                XDocument document = LoadOrCreateVmlDocument(vmlPart);
-                foreach (XElement clientData in document.Descendants(excelNamespace + "ClientData")) {
-                    string? objectType = clientData.Attribute("ObjectType")?.Value;
-                    if (!string.Equals(objectType, "Note", StringComparison.OrdinalIgnoreCase)) {
-                        return true;
+                        throw new InvalidOperationException(
+                            $"Cannot delete cell-backed connection parameter reference '{reference}'. Update or remove the parameter first.");
                     }
                 }
             }
-
-            return false;
         }
 
         private void ValidateCommentVmlAnchorCapacity(int firstRow, int count) {
@@ -781,7 +747,7 @@ namespace OfficeIMO.Excel {
                     if (placement == VmlAnchorPlacement.OneCell) {
                         int oneBasedFromRow = values[2] + 1;
                         if (oneBasedFromRow >= firstRow
-                            && (long)values[6] + count > A1.MaxRows) {
+                            && (long)values[6] + count >= A1.MaxRows) {
                             throw new InvalidOperationException(
                                 "Inserting rows would move a comment note anchor beyond Excel's row limit.");
                         }
@@ -797,7 +763,7 @@ namespace OfficeIMO.Excel {
                             count,
                             lastDeletedRow: null,
                             out var remappedRows)
-                        && remappedRows == null) {
+                        && (remappedRows == null || remappedRows.Value.r2 >= A1.MaxRows)) {
                         throw new InvalidOperationException(
                             "Inserting rows would move a comment note anchor beyond Excel's row limit.");
                     }

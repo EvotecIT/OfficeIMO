@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordTable outer = document.AddTable(1, 1);
             WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
-            nested.Rows[0].Cells[0].Paragraphs[0].Text = new string('y', 2000000);
+            nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested content";
 
             await AssertVisualSnapshotCancelsDuringWork(
                 document,
@@ -166,10 +166,7 @@ namespace OfficeIMO.Tests {
         private static async Task AssertVisualSnapshotCancelsDuringWork(
             WordDocument document,
             WordImageCancellationCheckpoint targetCheckpoint) {
-            TimeSpan setupTimeout = TimeSpan.FromSeconds(15);
-            TimeSpan cancellationTimeout = TimeSpan.FromSeconds(5);
             using var cancellation = new System.Threading.CancellationTokenSource();
-            using var renderStarted = new System.Threading.ManualResetEventSlim();
             using var checkpointReached = new System.Threading.ManualResetEventSlim();
             using var releaseCheckpoint = new System.Threading.ManualResetEventSlim();
             var options = new WordImageExportOptions {
@@ -178,26 +175,25 @@ namespace OfficeIMO.Tests {
                         return;
                     }
                     checkpointReached.Set();
-                    if (!releaseCheckpoint.Wait(setupTimeout)) {
+                    if (!releaseCheckpoint.Wait(TimeSpan.FromSeconds(5))) {
                         throw new TimeoutException("Cancellation checkpoint was not released.");
                     }
                 }
             };
-            Task render = Task.Run(() => {
-                renderStarted.Set();
-                document.CreateVisualSnapshots(
+            Task render = Task.Factory.StartNew(
+                () => document.CreateVisualSnapshots(
                     options,
-                    cancellation.Token);
-            });
+                    cancellation.Token),
+                System.Threading.CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
 
-            bool started = renderStarted.Wait(setupTimeout);
-            bool reached = started && checkpointReached.Wait(setupTimeout);
+            bool reached = checkpointReached.Wait(TimeSpan.FromSeconds(5));
             cancellation.Cancel();
             releaseCheckpoint.Set();
 
-            Task completed = await Task.WhenAny(render, Task.Delay(cancellationTimeout));
-            Assert.True(started, "The visual snapshot worker did not start within the setup allowance.");
-            Assert.True(reached, $"The {targetCheckpoint} checkpoint was not reached within the setup allowance.");
+            Task completed = await Task.WhenAny(render, Task.Delay(TimeSpan.FromSeconds(5)));
+            Assert.True(reached);
             Assert.Same(render, completed);
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await render);
         }
