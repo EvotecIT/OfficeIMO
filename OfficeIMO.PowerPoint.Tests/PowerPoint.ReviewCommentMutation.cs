@@ -156,6 +156,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ClassicCommentMutation_PreservesEmptyImportedInitials() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointClassicComment comment = presentation.AddClassicComment(
+                presentation.AddSlide(),
+                new PowerPointCommentAuthor("Imported", "I"), "Review");
+            P.CommentAuthor stored = GetClassicAuthor(presentation, "Imported");
+            stored.Initials = string.Empty;
+            uint id = stored.Id!.Value;
+            uint index = comment.Index;
+
+            PowerPointCommentAuthor imported = comment.Author;
+            Assert.Equal("I", imported.Initials);
+
+            comment.SetAuthor(imported);
+
+            P.CommentAuthor retained = Assert.Single(presentation
+                .OpenXmlDocument.PresentationPart!.CommentAuthorsPart!
+                .CommentAuthorList!.Elements<P.CommentAuthor>());
+            Assert.Equal(id, retained.Id!.Value);
+            Assert.Equal(string.Empty, retained.Initials!.Value);
+            Assert.Equal(index, comment.Index);
+        }
+
+        [Fact]
         public void ClassicCommentMutation_ReusesFreeAuthorIdWhenMaximumIsOccupied() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();

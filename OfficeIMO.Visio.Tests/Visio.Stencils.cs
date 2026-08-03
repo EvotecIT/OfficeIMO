@@ -1387,6 +1387,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilProvenanceResolvesUnixSymbolicLinkAliases() {
+#if NET6_0_OR_GREATER
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+            string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string source = Path.Combine(directory, "source.vssx");
+            string alias = Path.Combine(directory, "alias.vssx");
+            try {
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(source, "stencil provenance");
+                File.CreateSymbolicLink(alias, source);
+
+                Assert.True(VisioStencilMetadata.SourcePackagePathsMatch(
+                    source, alias));
+            } finally {
+                if (Directory.Exists(directory)) {
+                    Directory.Delete(directory, recursive: true);
+                }
+            }
+#endif
+        }
+
+        [Fact]
         public void ImportStencilMastersRejectsOversizedEmbeddedMasterRelationship() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             byte[] oversizedMedia = new byte[checked((int)VisioAssets.MaxMasterRelationshipBytes + 1)];

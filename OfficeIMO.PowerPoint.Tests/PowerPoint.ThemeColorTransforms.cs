@@ -51,4 +51,20 @@ public partial class PowerPoint {
         Assert.Equal(OfficeColor.FromRgb(188, 137, 0),
             OfficeOpenXmlThemeColorResolver.ResolveColor(color, null));
     }
+
+    [Fact]
+    public void ThemeColorResolver_ResolvesHslThemeSchemeEntries() {
+        var scheme = new ColorScheme(
+            new Accent1Color(new HslColor {
+                HueValue = 0,
+                SatValue = 100000,
+                LumValue = 50000
+            })) { Name = "HSL theme" };
+        var fill = new SolidFill(new SchemeColor {
+            Val = SchemeColorValues.Accent1
+        });
+
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0),
+            OfficeOpenXmlThemeColorResolver.ResolveColor(fill, scheme));
+    }
 }

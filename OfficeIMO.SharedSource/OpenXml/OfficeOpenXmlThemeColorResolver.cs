@@ -212,8 +212,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
             return null;
         }
 
-        return ParseRgb(colorElement.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value)
-            ?? ParseRgb(colorElement.GetFirstChild<A.SystemColor>()?.LastColor?.Value);
+        return ResolveColorElement(FindColorElement(colorElement),
+            colorScheme: null, placeholderColor: null);
     }
 
     private static OfficeColor? ParseRgb(string? value) =>

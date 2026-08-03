@@ -19,7 +19,8 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointCommentAuthor(string name, string? initials,
             string? userId, string? providerId,
-            bool synthesizeMissingInitials) {
+            bool synthesizeMissingInitials,
+            bool preserveClassicInitials = false) {
             if (name != null) {
                 PowerPointXmlValueValidator.ValidateCharacters(name,
                     nameof(name), "Author name");
@@ -51,6 +52,9 @@ namespace OfficeIMO.PowerPoint {
                 ? null : providerId!.Trim();
             Name = normalizedName;
             Initials = normalizedInitials;
+            ClassicInitials = preserveClassicInitials
+                ? initials?.Trim()
+                : normalizedInitials;
             ModernInitials = synthesizeMissingInitials
                 ? normalizedInitials : suppliedInitials;
             UserId = normalizedUserId;
@@ -61,6 +65,7 @@ namespace OfficeIMO.PowerPoint {
         public string Name { get; }
         /// <summary>Short initials displayed by classic review surfaces.</summary>
         public string Initials { get; }
+        internal string? ClassicInitials { get; }
         internal string? ModernInitials { get; }
         /// <summary>Optional modern author identity.</summary>
         public string? UserId { get; }
@@ -72,6 +77,12 @@ namespace OfficeIMO.PowerPoint {
             string? providerId) => new PowerPointCommentAuthor(name,
                 initials, userId, providerId,
                 synthesizeMissingInitials: false);
+
+        internal static PowerPointCommentAuthor FromImportedClassic(
+            string name, string? initials) => new PowerPointCommentAuthor(name,
+                initials, userId: null, providerId: null,
+                synthesizeMissingInitials: true,
+                preserveClassicInitials: true);
 
         private static string CreateInitials(string name) {
             string[] words = name.Split(new[] { ' ', '\t' },
@@ -551,13 +562,13 @@ namespace OfficeIMO.PowerPoint {
             P.CommentAuthor? existing = part.CommentAuthorList.Elements<P.CommentAuthor>()
                 .FirstOrDefault(candidate => string.Equals(candidate.Name?.Value, author.Name,
                     StringComparison.Ordinal) && string.Equals(candidate.Initials?.Value,
-                    author.Initials, StringComparison.Ordinal));
+                    author.ClassicInitials, StringComparison.Ordinal));
             if (existing != null) return existing;
             uint id = AllocateClassicAuthorId(part.CommentAuthorList);
             var created = new P.CommentAuthor {
                 Id = id,
                 Name = author.Name,
-                Initials = author.Initials,
+                Initials = author.ClassicInitials,
                 LastIndex = 0U,
                 ColorIndex = id
             };
@@ -592,8 +603,8 @@ namespace OfficeIMO.PowerPoint {
                 .FirstOrDefault(candidate => candidate.Id?.Value == authorId);
             return author == null
                 ? new PowerPointCommentAuthor("Unknown")
-                : new PowerPointCommentAuthor(author.Name?.Value ?? "Unknown",
-                    author.Initials?.Value);
+                : PowerPointCommentAuthor.FromImportedClassic(
+                    author.Name?.Value ?? "Unknown", author.Initials?.Value);
         }
 
         internal void RemoveClassicCommentAuthorIfUnused(uint? authorId) {
@@ -860,13 +871,14 @@ namespace OfficeIMO.PowerPoint {
         private static void ValidateClassicCommentAuthor(
             PowerPointCommentAuthor author) {
             ValidateCommentAuthorIdentity(author);
-            if (author.Name.Length > 52 || author.Initials.Length > 52) {
+            if (author.Name.Length > 52
+                || (author.ClassicInitials?.Length ?? 0) > 52) {
                 throw new ArgumentException(
                     "Classic comment author names and initials cannot exceed 52 characters.",
                     nameof(author));
             }
             if (author.Name.IndexOf('\0') >= 0
-                || author.Initials.IndexOf('\0') >= 0) {
+                || (author.ClassicInitials?.IndexOf('\0') ?? -1) >= 0) {
                 throw new ArgumentException(
                     "Classic comment author names and initials cannot contain a NUL character.",
                     nameof(author));

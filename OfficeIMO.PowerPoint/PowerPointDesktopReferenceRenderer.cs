@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using A = DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -218,19 +219,34 @@ namespace OfficeIMO.PowerPoint {
             }
             OfficeImageExportResult rendered = slide.ExportImage(
                 OfficeImageExportFormat.Png);
-            if (rendered.Diagnostics.Any(diagnostic =>
-                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape
-                    && diagnostic.LossKind == OfficeImageExportLossKind.Omission
-                    && diagnostic.Message.IndexOf("PowerPoint chart",
-                        StringComparison.OrdinalIgnoreCase) >= 0)
-                && slide.Charts.Any(chart => IsPotentiallyVisibleOnSlide(
-                    slide, chart))) {
+            if (HasVisibleOmittedContent(slide, rendered.Diagnostics)) {
                 return true;
             }
             return OfficePngReader.TryDecode(rendered.Bytes,
                        out OfficeRasterImage? image)
                    && image != null
                    && HasMeaningfulNonWhiteContent(image);
+        }
+
+        private static bool HasVisibleOmittedContent(PowerPointSlide slide,
+            IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) {
+            bool HasOmissionContaining(string text) => diagnostics.Any(
+                diagnostic => diagnostic.Code
+                        == PowerPointImageExportDiagnosticCodes.UnsupportedShape
+                    && diagnostic.LossKind == OfficeImageExportLossKind.Omission
+                    && diagnostic.Message.IndexOf(text,
+                        StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (HasOmissionContaining("PowerPoint chart")
+                && slide.Charts.Any(chart => IsPotentiallyVisibleOnSlide(
+                    slide, chart))) {
+                return true;
+            }
+
+            return HasOmissionContaining("custom geometry")
+                && slide.Shapes.Any(shape =>
+                    IsPotentiallyVisibleOnSlide(slide, shape)
+                    && shape.Element.Descendants<A.CustomGeometry>().Any());
         }
 
         private static bool IsPotentiallyVisibleOnSlide(PowerPointSlide slide,

@@ -112,9 +112,34 @@ namespace OfficeIMO.Visio {
             }
             string firstCanonical = ResolveExistingPathCasing(firstPath);
             string secondCanonical = ResolveExistingPathCasing(secondPath);
+            firstCanonical = ResolveSymbolicLinkPath(firstCanonical);
+            secondCanonical = ResolveSymbolicLinkPath(secondCanonical);
             return string.Equals(firstCanonical, secondCanonical,
                 StringComparison.Ordinal);
         }
+
+        private static string ResolveSymbolicLinkPath(string path) {
+            IntPtr resolved = IntPtr.Zero;
+            try {
+                resolved = RealPath(path, IntPtr.Zero);
+                return resolved == IntPtr.Zero
+                    ? path
+                    : Marshal.PtrToStringAnsi(resolved) ?? path;
+            } catch (DllNotFoundException) {
+                return path;
+            } catch (EntryPointNotFoundException) {
+                return path;
+            } finally {
+                if (resolved != IntPtr.Zero) Free(resolved);
+            }
+        }
+
+        [DllImport("libc", EntryPoint = "realpath", CharSet = CharSet.Ansi,
+            SetLastError = true)]
+        private static extern IntPtr RealPath(string path, IntPtr resolvedPath);
+
+        [DllImport("libc", EntryPoint = "free")]
+        private static extern void Free(IntPtr pointer);
 
         private static string ResolveExistingPathCasing(string path) {
             string fullPath = Path.GetFullPath(path);

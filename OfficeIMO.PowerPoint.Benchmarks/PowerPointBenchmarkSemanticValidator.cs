@@ -205,7 +205,17 @@ internal static class PowerPointBenchmarkSemanticValidator {
             throw new InvalidOperationException(
                 $"{operation} slide {index + 1} chart unexpectedly has a title.");
         }
-        C.BarChartSeries[] series = chart.Descendants<C.BarChartSeries>()
+        C.BarChart barChart = chart.GetFirstChild<C.PlotArea>()?
+            .Elements<C.BarChart>().SingleOrDefault()
+            ?? throw new InvalidOperationException(
+                $"{operation} slide {index + 1} chart is not a bar chart.");
+        if (barChart.BarDirection?.Val?.Value != C.BarDirectionValues.Bar
+            || barChart.BarGrouping?.Val?.Value
+                != C.BarGroupingValues.Clustered) {
+            throw new InvalidOperationException(
+                $"{operation} slide {index + 1} chart is not a horizontal clustered bar chart.");
+        }
+        C.BarChartSeries[] series = barChart.Elements<C.BarChartSeries>()
             .ToArray();
         if (series.Length != 2) {
             throw new InvalidOperationException(

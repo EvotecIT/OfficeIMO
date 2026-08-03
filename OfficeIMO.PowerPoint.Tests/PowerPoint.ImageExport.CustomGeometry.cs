@@ -1141,6 +1141,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_RejectsMultiPathCustomGeometryWithShapeEffects() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(640, 360);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape freeform = slide.AddShapePoints(
                 A.ShapeTypeValues.Rectangle, 20, 20, 120, 80);
@@ -1168,6 +1169,12 @@ namespace OfficeIMO.Tests {
                     StringComparison.OrdinalIgnoreCase)
                 && diagnostic.Message.Contains("shadow or glow",
                     StringComparison.OrdinalIgnoreCase));
+            Assert.True(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
+
+            freeform.LeftPoints = 700;
+            Assert.False(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
         }
 
         private static A.CustomGeometry CreateDiamondCustomGeometry() {
