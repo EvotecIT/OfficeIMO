@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
                 </main>
               </body>
             </html>
-            """.Replace("RASTER_DATA", rasterData, StringComparison.Ordinal);
+            """.Replace("RASTER_DATA", rasterData);
 
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         byte[] pdf = source.ToPdf(new HtmlPdfSaveOptions());
@@ -78,7 +78,7 @@ public sealed partial class HtmlRenderingTests {
               <img role="presentation" src="data:image/png;base64,RASTER">
               <p>Visible content</p>
             </body></html>
-            """.Replace("RASTER", raster, StringComparison.Ordinal);
+            """.Replace("RASTER", raster);
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
         HtmlPdfAccessibilityValidationResult result = HtmlPdfAccessibilityValidator.Validate(source, source.ToPdf(new HtmlPdfSaveOptions()));
