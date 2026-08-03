@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
             options.Inspection.PackageSecurity.MaxPackageBytes = packageLength - 1;
 
             WordMacroProjectSignatureValidationResult result =
-                WordDocument.ValidateMacroProjectSignature(filePath, options);
+                WordDocument.ValidateMacroProjectSignature(filePath, SecurityProvider, options);
 
             Assert.False(result.IsValidUnderPolicy);
             Assert.Contains(result.Findings, finding => finding.Code == "PackageByteLimitExceeded");

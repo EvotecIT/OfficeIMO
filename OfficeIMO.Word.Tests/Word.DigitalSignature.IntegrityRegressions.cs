@@ -4,11 +4,30 @@ using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Fact]
+        public void Test_DigitalSignature_CanonicalizationIgnoresConflictingXmlEncodingDeclaration() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureUtf16Canonicalization.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("UTF-16 canonicalization bridge");
+                document.Save();
+            }
+            var xml = new XmlDocument { PreserveWhitespace = true };
+            xml.LoadXml("<?xml version=\"1.0\" encoding=\"utf-16\"?><Root><Value>OfficeIMO</Value></Root>");
+            using var archive = new OfficePackageSignatureArchive(
+                File.ReadAllBytes(filePath),
+                securityProvider: SecurityProvider);
+
+            byte[] canonical = archive.Canonicalize(xml);
+
+            Assert.Equal("<Root><Value>OfficeIMO</Value></Root>", Encoding.UTF8.GetString(canonical));
+        }
+
         [Fact]
         public void Test_DigitalSignature_PackageReferenceRequiresContentTypeBinding() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureMissingContentType.docx");
@@ -50,7 +69,7 @@ namespace OfficeIMO.Tests {
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
                 AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
             });
-            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 ValidateCryptographicSignature = false
             });
 
@@ -78,7 +97,11 @@ namespace OfficeIMO.Tests {
                 BeforeCommit = (staging, _) => File.WriteAllBytes(staging, new byte[] { 0x01, 0x02, 0x03 })
             };
 
-            OfficePackageSigningResult result = OfficePackageSignatureWriter.Sign(filePath, certificate, options);
+            OfficePackageSigningResult result = OfficePackageSignatureWriter.Sign(
+                filePath,
+                certificate,
+                SecurityProvider,
+                options);
 
             Assert.False(result.Succeeded);
             Assert.Contains(result.Details, detail =>
@@ -102,7 +125,7 @@ namespace OfficeIMO.Tests {
                 BeforeValidation = stagingPath => TamperDocumentText(stagingPath, "Tampered staged content")
             };
 
-            WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, certificate, options);
+            WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, SecurityProvider, certificate, options);
 
             Assert.False(result.Succeeded);
             Assert.NotNull(result.CreatedSignatureValidation);
@@ -116,7 +139,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(preserved.DigitalSignatureOriginPart);
 
             WordPackageSigningException exception = Assert.Throws<WordPackageSigningException>(() =>
-                WordDocument.SignPackage(filePath, certificate, options));
+                WordDocument.SignPackage(filePath, SecurityProvider, certificate, options));
             Assert.False(exception.Result.Succeeded);
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
         }
@@ -140,8 +163,7 @@ namespace OfficeIMO.Tests {
             byte[] originalBytes = File.ReadAllBytes(filePath);
 
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult bounded = WordDocument.TrySignPackage(
-                filePath,
+            WordPackageSigningResult bounded = WordDocument.TrySignPackage(filePath, SecurityProvider,
                 certificate,
                 new WordPackageSigningOptions { MaxSignedReferences = 32 });
 
@@ -150,8 +172,7 @@ namespace OfficeIMO.Tests {
                 detail.Contains("relationship selectors", System.StringComparison.OrdinalIgnoreCase));
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
 
-            WordPackageSigningResult permissive = WordDocument.TrySignPackage(
-                filePath,
+            WordPackageSigningResult permissive = WordDocument.TrySignPackage(filePath, SecurityProvider,
                 certificate,
                 new WordPackageSigningOptions { MaxSignedReferences = 512 });
 
@@ -175,7 +196,7 @@ namespace OfficeIMO.Tests {
             }
 
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult signed = WordDocument.SignPackage(filePath, certificate);
+            WordPackageSigningResult signed = WordDocument.SignPackage(filePath, SecurityProvider, certificate);
 
             Assert.True(signed.Succeeded, string.Join(System.Environment.NewLine, signed.Details));
             XElement relationshipReference;
@@ -192,7 +213,9 @@ namespace OfficeIMO.Tests {
             }
 
             RetargetRelationship(filePath, "word/_rels/document.xml.rels", relationshipId);
-            using var tamperedArchive = new OfficePackageSignatureArchive(File.ReadAllBytes(filePath));
+            using var tamperedArchive = new OfficePackageSignatureArchive(
+                File.ReadAllBytes(filePath),
+                securityProvider: SecurityProvider);
             OfficePackageDigestResult digest = tamperedArchive.VerifyReference(
                 relationshipReference,
                 maxPartBytes: 16 * 1024 * 1024);
@@ -204,7 +227,7 @@ namespace OfficeIMO.Tests {
             });
             var validationOptions = new WordSignatureValidationOptions();
             validationOptions.CertificateValidation.ChainEvaluator = static (_, _) => true;
-            WordSignatureValidationReport validation = tampered.ValidateSignatures(validationOptions);
+            WordSignatureValidationReport validation = tampered.ValidateSignatures(SecurityProvider, validationOptions);
             Assert.False(validation.IsValidUnderPolicy);
             Assert.Equal(
                 WordSignatureValidationState.Failed,

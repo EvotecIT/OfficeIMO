@@ -34,12 +34,17 @@ public sealed class ExternalOutlookSmimeCorpusTests {
 
         foreach (string extension in new[] { ".eml", ".msg" }) {
             using EmailReadResult signed = Read(received, "Message from smime1 to smime2 (signed)" + extension);
-            EmailSmimeVerificationResult signedResult = EmailSmime.Verify(signed.Document);
+            EmailSmimeVerificationResult signedResult = EmailSmime.Verify(
+                signed.Document,
+                OfficeSecurityProvider.Default);
             Assert.True(signedResult.IsCryptographicallyValid, Describe(signedResult.Cryptography));
             Assert.Single(signedResult.Cryptography!.Signers);
 
             using EmailReadResult encrypted = Read(received, "Message from smime1 to smime2 (encrypted)" + extension);
-            EmailSmimeDecryptionResult encryptedResult = EmailSmime.Decrypt(encrypted.Document, recipient);
+            EmailSmimeDecryptionResult encryptedResult = EmailSmime.Decrypt(
+                encrypted.Document,
+                recipient,
+                OfficeSecurityProvider.Default);
             Assert.True(encryptedResult.Decrypted, Describe(encryptedResult.Cryptography));
             Assert.NotNull(encryptedResult.DecryptedContent);
             Assert.False(encryptedResult.DecryptedContent!.Protection.IsProtected);
@@ -47,10 +52,15 @@ public sealed class ExternalOutlookSmimeCorpusTests {
             using EmailReadResult nested = Read(
                 received,
                 "Message from smime1 to smime2 (signed and encrypted)" + extension);
-            EmailSmimeDecryptionResult nestedDecryption = EmailSmime.Decrypt(nested.Document, recipient);
+            EmailSmimeDecryptionResult nestedDecryption = EmailSmime.Decrypt(
+                nested.Document,
+                recipient,
+                OfficeSecurityProvider.Default);
             Assert.True(nestedDecryption.Decrypted, Describe(nestedDecryption.Cryptography));
             Assert.NotNull(nestedDecryption.DecryptedContent);
-            EmailSmimeVerificationResult nestedSignature = EmailSmime.Verify(nestedDecryption.DecryptedContent!);
+            EmailSmimeVerificationResult nestedSignature = EmailSmime.Verify(
+                nestedDecryption.DecryptedContent!,
+                OfficeSecurityProvider.Default);
             Assert.True(nestedSignature.IsCryptographicallyValid, Describe(nestedSignature.Cryptography));
             Assert.Single(nestedSignature.Cryptography!.Signers);
         }

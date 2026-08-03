@@ -117,6 +117,7 @@ Manifest assets keep their package identity and payload while inheriting useful 
 - Local footnotes become typed Markdown footnotes. Cross-document note targets remain resolved EPUB links.
 - Fixed-layout publications are identified and diagnosed; this reader extracts their content and resources but does not emulate a reading-system viewport.
 - Unsupported encryption is reported as a security diagnostic and is not decrypted.
+- EPUB signature carriers are reported from the bounded native parser; the reader does not claim cryptographic validation.
 
 ## Targets and license
 

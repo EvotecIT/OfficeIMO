@@ -25,10 +25,11 @@ if ([string]::IsNullOrWhiteSpace($RuntimeIdentifier)) {
 }
 
 $scenarios = @(
-    [ordered]@{ id = 'production-libraries'; title = 'Production library coverage: 89 fully rooted plus bounded Google adapter'; project = 'OfficeIMO.All.AotSmoke/OfficeIMO.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
+    [ordered]@{ id = 'production-libraries'; title = 'Ordinary production library coverage: 88 fully rooted plus bounded Google adapter'; project = 'OfficeIMO.All.AotSmoke/OfficeIMO.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'word'; title = 'Word create, save, and reload'; project = 'OfficeIMO.Word.AotSmoke/OfficeIMO.Word.AotSmoke.csproj' },
     [ordered]@{ id = 'excel'; title = 'Excel typed table create, save, and reload'; project = 'OfficeIMO.Excel.AotSmoke/OfficeIMO.Excel.AotSmoke.csproj' },
     [ordered]@{ id = 'powerpoint'; title = 'PowerPoint chart create, duplicate, save, and reload'; project = 'OfficeIMO.PowerPoint.AotSmoke/OfficeIMO.PowerPoint.AotSmoke.csproj' },
+    [ordered]@{ id = 'security'; title = 'Optional security provider CMS and XML DSig signing and verification'; project = 'OfficeIMO.Security.AotSmoke/OfficeIMO.Security.AotSmoke.csproj' },
     [ordered]@{ id = 'markdown'; title = 'Markdown fluent composition and rendering'; project = 'OfficeIMO.Markdown.AotSmoke/OfficeIMO.Markdown.AotSmoke.csproj' },
     [ordered]@{ id = 'csv'; title = 'CSV parse and schema inspection'; project = 'OfficeIMO.CSV.AotSmoke/OfficeIMO.CSV.AotSmoke.csproj' },
     [ordered]@{ id = 'reader-csv'; title = 'Reader CSV normalized extraction'; project = 'OfficeIMO.Reader.Csv.AotSmoke/OfficeIMO.Reader.Csv.AotSmoke.csproj' },

@@ -2,31 +2,6 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace OfficeIMO.Security;
 
-/// <summary>Certificate usage profile applied during public trust validation.</summary>
-public enum CertificateValidationPurpose {
-    /// <summary>A certificate used to sign a document, package, message, or other durable artifact.</summary>
-    DocumentSigning,
-
-    /// <summary>A certificate used by an RFC 3161 timestamp authority.</summary>
-    TimestampAuthority
-}
-
-/// <summary>Platform certificate-chain, revocation, usage, and caller trust-policy result.</summary>
-public sealed class CertificateTrustValidationResult {
-    internal CertificateTrustValidationResult(
-        CertificateValidationResult validation,
-        IReadOnlyList<SecurityFinding> findings) {
-        Validation = validation;
-        Findings = findings;
-    }
-
-    /// <summary>Gets the chain and revocation outcome.</summary>
-    public CertificateValidationResult Validation { get; }
-
-    /// <summary>Gets stable certificate-profile and trust findings.</summary>
-    public IReadOnlyList<SecurityFinding> Findings { get; }
-}
-
 /// <summary>Validates an X.509 certificate through the shared OfficeIMO trust-policy engine.</summary>
 public static class CertificateValidator {
     /// <summary>
@@ -47,15 +22,18 @@ public static class CertificateValidator {
         ArgumentNullException.ThrowIfNull(certificate);
 #endif
         var findings = new List<SecurityFinding>();
+        CertificateUsagePurpose usagePurpose = purpose switch {
+            CertificateValidationPurpose.TimestampAuthority => CertificateUsagePurpose.TimestampAuthority,
+            CertificateValidationPurpose.EmailSigning => CertificateUsagePurpose.CmsSigner,
+            _ => CertificateUsagePurpose.DocumentSigner
+        };
         CertificateValidationResult validation = CertificateChainValidator.Validate(
             certificate,
             additionalCertificates ?? Array.Empty<X509Certificate2>(),
             options ?? new CertificateValidationOptions(),
             findings,
             purpose == CertificateValidationPurpose.TimestampAuthority ? "TSA" : "Signer",
-            purpose == CertificateValidationPurpose.TimestampAuthority
-                ? CertificateUsagePurpose.TimestampAuthority
-                : CertificateUsagePurpose.DocumentSigner);
+            usagePurpose);
         return new CertificateTrustValidationResult(validation, findings.ToArray());
     }
 }

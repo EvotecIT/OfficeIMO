@@ -30,6 +30,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="destination">Target stream.</param>
         private void SaveInternalCore(Stream destination) {
+            ApplySignatureMutationPolicy();
             bool includeTheme = PackageTheme != null;
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
             bool includeComments = pagesToSave.Any(page => page.Comments.Count > 0);

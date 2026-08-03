@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            Assert.True(WordDocument.SignPackage(filePath, certificate).Succeeded);
+            Assert.True(WordDocument.SignPackage(filePath, SecurityProvider, certificate).Succeeded);
 
             using WordDocument loaded = WordDocument.Load(filePath);
             DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraphRoot = loaded._wordprocessingDocument
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             var options = new WordSignatureValidationOptions();
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
 
-            WordSignatureValidationReport unchanged = loaded.ValidateSignatures(options);
+            WordSignatureValidationReport unchanged = loaded.ValidateSignatures(SecurityProvider, options);
             Assert.True(
                 unchanged.SignedPartDigestStatus == WordSignatureValidationState.Passed,
                 string.Join(System.Environment.NewLine, unchanged.Findings));
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                 loaded._wordprocessingDocument.MainDocumentPart!.AddVideoReferenceRelationship(mediaDataPart);
             }
 
-            WordSignatureValidationReport validation = loaded.ValidateSignatures(new WordSignatureValidationOptions {
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 MaxPartBytes = 1024 * 1024,
                 MaxTotalDigestBytes = 128
             });
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
                     "_rels/" + partEntryName.Substring(separator + 1) + ".rels";
             }
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            Assert.True(WordDocument.SignPackage(filePath, certificate).Succeeded);
+            Assert.True(WordDocument.SignPackage(filePath, SecurityProvider, certificate).Succeeded);
 
             using WordDocument loaded = WordDocument.Load(filePath);
             MainDocumentPart mainPart = loaded._wordprocessingDocument.MainDocumentPart!;
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, certificate);
+            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, SecurityProvider, certificate);
             Assert.True(signing.Succeeded, string.Join(System.Environment.NewLine, signing.Details));
             return filePath;
         }
@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
                 imagePart.FeedData(content);
             }
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, certificate);
+            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, SecurityProvider, certificate);
             Assert.True(signing.Succeeded, string.Join(System.Environment.NewLine, signing.Details));
             return filePath;
         }
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
                 package.MainDocumentPart!.AddVideoReferenceRelationship(mediaDataPart);
             }
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
-            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, certificate);
+            WordPackageSigningResult signing = WordDocument.SignPackage(filePath, SecurityProvider, certificate);
             Assert.True(signing.Succeeded, string.Join(System.Environment.NewLine, signing.Details));
             return filePath;
         }
@@ -262,7 +262,7 @@ namespace OfficeIMO.Tests {
         private static void AssertLivePackageSignatureInvalid(WordDocument document) {
             var options = new WordSignatureValidationOptions();
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
-            WordSignatureValidationReport validation = document.ValidateSignatures(options);
+            WordSignatureValidationReport validation = document.ValidateSignatures(SecurityProvider, options);
 
             Assert.NotEqual(WordSignatureValidationState.Passed, validation.SignedPartDigestStatus);
             Assert.False(validation.IsValidUnderPolicy);

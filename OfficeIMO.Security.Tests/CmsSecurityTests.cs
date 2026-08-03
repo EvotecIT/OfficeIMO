@@ -108,6 +108,25 @@ public sealed class CmsSecurityTests {
     }
 
     [Fact]
+    public void EmailSigningValidationAcceptsEmailProtectionCertificates() {
+        using X509Certificate2 certificate = CreateRsaCertificate(
+            "OfficeIMO Email Protection",
+            new Oid("1.3.6.1.5.5.7.3.4"));
+        var options = new CertificateValidationOptions {
+            ChainEvaluator = static (_, _) => true,
+            RevocationMode = X509RevocationMode.NoCheck
+        };
+
+        CertificateTrustValidationResult result = CertificateValidator.Validate(
+            certificate,
+            options: options,
+            purpose: CertificateValidationPurpose.EmailSigning);
+
+        Assert.Equal(SecurityValidationStatus.Valid, result.Validation.ChainStatus);
+        Assert.DoesNotContain(result.Findings, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
+    }
+
+    [Fact]
     public void CertificateUsageValidationRemainsActiveWhenPlatformChainBuildingIsDisabled() {
         using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO Non-Timestamp Authority");
         using X509Certificate2 timestampAuthority = CreateTimestampCertificate();

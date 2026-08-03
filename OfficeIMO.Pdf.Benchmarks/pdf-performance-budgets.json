@@ -36,6 +36,6 @@
       "maxPeakManagedHeapBytes": 536870912
     }
   },
-  "minimumCachedSpeedup": 1.2,
+  "minimumCachedSpeedup": 1.1,
   "minimumCachedAllocationReduction": 1.2
 }

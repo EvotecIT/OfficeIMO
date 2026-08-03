@@ -15,7 +15,10 @@ public sealed class EmailSmimeLimitTests {
         using EmailReadResult read = new EmailDocumentReader().Read(message);
         var options = new CmsVerificationOptions { MaxEncodedBytes = 8 };
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, options);
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            options);
 
         Assert.Equal(clearSigned
             ? EmailProtectionKind.SmimeClearSigned
@@ -32,7 +35,10 @@ public sealed class EmailSmimeLimitTests {
         using EmailReadResult read = new EmailDocumentReader().Read(message);
         var options = new CmsVerificationOptions { MaxEncodedBytes = 8 };
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, options);
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            options);
 
         Assert.Null(result.Cryptography);
         Assert.Contains(result.Diagnostics, diagnostic =>
@@ -51,7 +57,10 @@ public sealed class EmailSmimeLimitTests {
             MaxContentBytes = 8
         };
 
-        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, options);
+        EmailSmimeVerificationResult result = EmailSmime.Verify(
+            read.Document,
+            OfficeSecurityProvider.Default,
+            options);
 
         Assert.Null(result.Cryptography);
         Assert.Contains(result.Diagnostics, diagnostic =>

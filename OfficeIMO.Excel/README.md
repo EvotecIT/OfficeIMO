@@ -647,5 +647,6 @@ Excel layout, print-title, page-setup, and header/footer composition stays in `O
 
 - **External:** Open XML SDK for `.xlsx` package mechanics. Microsoft BCL/JSON compatibility packages are used on older targets.
 - **OfficeIMO:** `OfficeIMO.Drawing`. The workbook API, BIFF8 `.xls` reader/writer, large-data paths, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
+- **Security:** Open XML signature carriers are inspected and signed-package mutations fail safely without a cryptographic dependency. Signature creation and cryptographic validation are not yet implemented; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

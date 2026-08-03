@@ -925,21 +925,54 @@ public sealed class PackageDependencyGuardrailTests {
     public void Security_IsTheNeutralSingleCmsOwner() {
         string projectPath = GetRepositoryPath("OfficeIMO.Security/OfficeIMO.Security.csproj");
 
-        Assert.Empty(GetProjectReferences(projectPath));
-        Assert.Equal(["BouncyCastle.Cryptography"], GetPackageReferences(projectPath));
+        Assert.Equal(
+            ["../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj"],
+            GetProjectReferences(projectPath));
+        Assert.Equal(
+            ["BouncyCastle.Cryptography", "System.Security.Cryptography.Xml"],
+            GetPackageReferences(projectPath));
         Assert.False(File.Exists(GetRepositoryPath(
             "OfficeIMO.Pdf.Cryptography.Pkcs/OfficeIMO.Pdf.Cryptography.Pkcs.csproj")));
     }
 
     [Fact]
-    public void PdfAndEmail_ConsumeSecurityDirectlyWithoutACompatibilityLayer() {
+    public void DocumentPackages_ExposeSecurityOnlyThroughExplicitProviderOptIn() {
+        foreach (string project in new[] { "OfficeIMO.Word", "OfficeIMO.Pdf", "OfficeIMO.Email" }) {
+            string projectPath = GetRepositoryPath($"{project}/{project}.csproj");
+            Assert.DoesNotContain(
+                "../OfficeIMO.Security/OfficeIMO.Security.csproj",
+                GetProjectReferences(projectPath),
+                StringComparer.Ordinal);
+            Assert.DoesNotContain(
+                "BouncyCastle.Cryptography",
+                GetPackageReferences(projectPath),
+                StringComparer.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                "System.Security.Cryptography.Xml",
+                GetPackageReferences(projectPath),
+                StringComparer.OrdinalIgnoreCase);
+        }
+
         Assert.Contains(
             "../OfficeIMO.Security/OfficeIMO.Security.csproj",
-            GetProjectReferences(GetRepositoryPath("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj")),
+            GetProjectReferences(GetRepositoryPath("OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj")),
             StringComparer.Ordinal);
         Assert.Contains(
             "../OfficeIMO.Security/OfficeIMO.Security.csproj",
-            GetProjectReferences(GetRepositoryPath("OfficeIMO.Email/OfficeIMO.Email.csproj")),
+            GetProjectReferences(GetRepositoryPath("OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj")),
+            StringComparer.Ordinal);
+        Assert.Contains(
+            "../OfficeIMO.Security/OfficeIMO.Security.csproj",
+            GetProjectReferences(GetRepositoryPath("OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj")),
+            StringComparer.Ordinal);
+
+        Assert.DoesNotContain(
+            "../OfficeIMO.Security/OfficeIMO.Security.csproj",
+            GetProjectReferences(GetRepositoryPath("OfficeIMO.All.AotSmoke/OfficeIMO.All.AotSmoke.csproj")),
+            StringComparer.Ordinal);
+        Assert.Contains(
+            "../OfficeIMO.Security/OfficeIMO.Security.csproj",
+            GetProjectReferences(GetRepositoryPath("OfficeIMO.Security.AotSmoke/OfficeIMO.Security.AotSmoke.csproj")),
             StringComparer.Ordinal);
     }
 

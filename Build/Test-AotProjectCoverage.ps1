@@ -23,6 +23,14 @@ $rootedLibraries = @($libraryHost.Project.ItemGroup.TrimmerRootAssembly |
     ForEach-Object { [string] $_.Include } |
     Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
     Sort-Object -Unique)
+$securityHostPath = Join-Path $RepositoryRoot 'OfficeIMO.Security.AotSmoke\OfficeIMO.Security.AotSmoke.csproj'
+[xml] $securityHost = Get-Content -LiteralPath $securityHostPath -Raw
+$dedicatedRootedLibraries = @($securityHost.Project.ItemGroup.ProjectReference |
+    ForEach-Object { [string] $_.Include } |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+    ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Replace('\', '/')) } |
+    Sort-Object -Unique)
+$fullyRootedLibraries = @($rootedLibraries + $dedicatedRootedLibraries | Sort-Object -Unique)
 $boundedLibraries = @($referencedLibraries | Where-Object { $_ -notin $rootedLibraries })
 
 $nativeTools = @(
@@ -38,8 +46,11 @@ $managedOnly = @(
     }
 )
 
-if ($rootedLibraries.Count -ne 89) {
-    throw "Expected 89 fully rooted production libraries, found $($rootedLibraries.Count)."
+if ($dedicatedRootedLibraries.Count -ne 1 -or $dedicatedRootedLibraries[0] -ne 'OfficeIMO.Security') {
+    throw "The optional security NativeAOT host must root exactly OfficeIMO.Security; found $($dedicatedRootedLibraries -join ', ')."
+}
+if ($fullyRootedLibraries.Count -ne 89) {
+    throw "Expected 89 fully rooted production libraries across the ordinary and optional-security hosts, found $($fullyRootedLibraries.Count)."
 }
 if ($boundedLibraries.Count -ne 1 -or $boundedLibraries[0] -ne 'OfficeIMO.GoogleWorkspace.Auth.GoogleApis') {
     throw "The bounded NativeAOT library set changed: $($boundedLibraries -join ', ')."
@@ -48,7 +59,7 @@ if ($boundedLibraries.Count -ne 1 -or $boundedLibraries[0] -ne 'OfficeIMO.Google
 $catalog = Get-Content -LiteralPath $CatalogPath -Raw | ConvertFrom-Json
 $productionNames = @($catalog.components.name | Sort-Object -Unique)
 $classifiedNames = @(
-    $rootedLibraries
+    $fullyRootedLibraries
     $boundedLibraries
     $nativeTools.name
     $managedOnly.name
@@ -70,6 +81,10 @@ $components = foreach ($component in @($catalog.components | Sort-Object name)) 
         $classification = 'native-full-surface'
         $nativeValidated = $true
         $evidence = 'The complete assembly is rooted in the cross-platform NativeAOT host, compiled into native code, and the host starts successfully.'
+    } elseif ($name -in $dedicatedRootedLibraries) {
+        $classification = 'native-full-surface'
+        $nativeValidated = $true
+        $evidence = 'The optional security provider is rooted in its dedicated NativeAOT host, then executes CMS and XML DSig signing and verification without changing the ordinary format-consumer graph.'
     } elseif ($name -eq 'OfficeIMO.GoogleWorkspace.Auth.GoogleApis') {
         $classification = 'native-bounded-workflow'
         $nativeValidated = $true
@@ -99,7 +114,7 @@ $matrix = [ordered]@{
     summary = [ordered]@{
         productionProjectCount = $productionNames.Count
         nativeAotValidatedProjectCount = @($components | Where-Object nativeAotValidated).Count
-        fullyRootedLibraryCount = $rootedLibraries.Count
+        fullyRootedLibraryCount = $fullyRootedLibraries.Count
         boundedWorkflowLibraryCount = $boundedLibraries.Count
         nativeExecutableCount = $nativeTools.Count
         managedWindowsProjectCount = $managedOnly.Count

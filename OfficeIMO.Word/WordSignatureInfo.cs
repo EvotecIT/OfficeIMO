@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Security;
 using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word {
@@ -293,7 +294,8 @@ namespace OfficeIMO.Word {
             int maxCertificates = 64,
             long maxCertificateBytes = 4L * 1024 * 1024,
             long maxTotalCertificateBytes = 64L * 1024 * 1024,
-            bool verifyDigests = true) {
+            bool verifyDigests = true,
+            IOfficeSecurityProvider? securityProvider = null) {
             if (package == null) throw new ArgumentNullException(nameof(package));
 
             return WordSignatureInfo.FromPackageInfo(
@@ -310,7 +312,8 @@ namespace OfficeIMO.Word {
                     maxCertificates,
                     maxCertificateBytes,
                     maxTotalCertificateBytes,
-                    verifyDigests));
+                    verifyDigests,
+                    securityProvider));
         }
     }
 }

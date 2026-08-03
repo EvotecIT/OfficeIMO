@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Pdf)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 
-`OfficeIMO.Pdf` is the first-party PDF package for OfficeIMO. It creates, reads, inspects, edits, merges, splits, stamps, exports, signs, and validates PDFs. PDF mechanics and rendering remain first-party; CMS, RFC 3161, and X.509 operations route through the neutral `OfficeIMO.Security` package.
+`OfficeIMO.Pdf` is the first-party PDF package for OfficeIMO. It creates, reads, inspects, edits, merges, splits, stamps, exports, signs, and validates PDFs. PDF mechanics, password security, signature structure, and rendering remain first-party. Certificate-based CMS, RFC 3161, and X.509 operations use an explicitly supplied provider from the optional `OfficeIMO.Security` package.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -11,6 +11,13 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 
 ```powershell
 dotnet add package OfficeIMO.Pdf
+```
+
+Install the security provider only when the application creates or cryptographically validates certificate-based PDF
+signatures:
+
+```powershell
+dotnet add package OfficeIMO.Security
 ```
 
 ## Quick start
@@ -30,7 +37,7 @@ PdfDocument.Create(new PdfOptions {
         .Text(", links, tables, images, and document operations."))
     .Table(new[] {
         new[] { "Area", "Status" },
-        new[] { "Security engine", "OfficeIMO.Security" },
+        new[] { "Optional signature provider", "OfficeIMO.Security" },
         new[] { "License", "MIT" }
     })
     .Save("hello.pdf");
@@ -419,6 +426,33 @@ recovery. The document must still decrypt with the supplied password; an
 unknown or incorrect password remains an error. Full rewrites of signed PDFs
 remain blocked because they would invalidate existing signatures.
 
+### Certificate-based PDF signatures
+
+PDF signature discovery, byte-range inspection, mutation blocking, and caller-defined external signing do not require
+`OfficeIMO.Security`. For the built-in CMS adapter, install the optional package and pass its provider explicitly:
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Security;
+
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
+using var signer = new PdfCmsExternalSigner(security, signingCertificate);
+
+PdfExternalSignatureCompletion signed = PdfIncrementalUpdater.SignExternal(
+    File.ReadAllBytes("contract.pdf"),
+    signer,
+    new PdfExternalSignatureOptions { FieldName = "Approval" });
+
+var cryptography = new PdfCmsSignatureCryptographyProvider(
+    security,
+    new CmsVerificationOptions());
+PdfSignatureValidationReport report = signed.ToDocument().ValidateSignatures(cryptography);
+```
+
+The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional
+provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or
+`IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`.
+
 ### Stamp and watermark an existing PDF
 
 ```csharp
@@ -679,7 +713,7 @@ The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-s
 
 ## Related packages and docs
 
-- `OfficeIMO.Pdf` provides first-party PDF parsing, layout, writing, and rendering. CMS, DER, and X.509 services come from `OfficeIMO.Security`.
+- `OfficeIMO.Pdf` provides first-party PDF parsing, layout, writing, rendering, password security, and signature structure. Optional CMS, DER, and X.509 services come from an explicitly supplied `OfficeIMO.Security` provider.
 - Source-format adapters map their document models onto the shared PDF engine.
 - See the [PDF current-state guide](../Docs/officeimo.pdf.current-state.md) for the detailed capability inventory and known limits.
 
@@ -711,7 +745,7 @@ into a cross-version comparison.
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, shared Security-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. Type 3 glyph programs, unsupported content-paint color spaces, difficult producer-specific preservation, broader transparency/pattern edge cases, and genuinely forward-only layout remain deeper current-state areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. Type 3 glyph programs, unsupported content-paint color spaces, difficult producer-specific preservation, broader transparency/pattern edge cases, and genuinely forward-only layout remain deeper current-state areas.
 
 For the current capability inventory, ownership boundaries, premium conversion
 contract, and remaining general engine work, read
@@ -725,7 +759,8 @@ contract, and remaining general engine work, read
 
 ## Dependency footprint
 
-- **External:** `BouncyCastle.Cryptography`, owned and hidden behind `OfficeIMO.Security`; no third-party PDF parser, writer, or renderer.
-- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Security`. PDF parsing, writing, logical recovery, manipulation, forms, diagnostics, and preservation analysis are first-party.
+- **External:** no third-party PDF parser, writer, renderer, or cryptographic package in the base PDF package.
+- **OfficeIMO:** `OfficeIMO.Drawing`. PDF parsing, writing, password security, signature structure, logical recovery, manipulation, forms, diagnostics, and preservation analysis are first-party.
+- **Optional security:** install `OfficeIMO.Security` for the built-in CMS/X.509/RFC 3161 adapters. It is not a transitive PDF dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

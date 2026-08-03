@@ -21,8 +21,7 @@ public sealed class EmailPackagingContractTests {
         Assert.Equal(
             new[] {
                 "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
-                "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
-                "../OfficeIMO.Security/OfficeIMO.Security.csproj"
+                "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
             },
             projectReferences);
         string[] linkedSources = project.Descendants(ns + "Compile")
@@ -44,7 +43,7 @@ public sealed class EmailPackagingContractTests {
         Assert.DoesNotContain(references, name => string.Equals(name, "Microsoft.Maui.Graphics", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Drawing", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Security", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, name => string.Equals(name, "OfficeIMO.Security", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "System.Text.Encoding.CodePages", StringComparison.OrdinalIgnoreCase));
     }
 

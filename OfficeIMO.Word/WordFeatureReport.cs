@@ -434,7 +434,7 @@ namespace OfficeIMO.Word {
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
-            WordSignatureValidationReport signatureValidation = ValidateSignatures();
+            WordSignatureInfo signatureInfo = InspectSignatures();
 
             Add(features, "Compatibility", "Alternative format imports", WordFeatureSupportLevel.PartiallyEditable, altChunkDetails.Count, null,
                 "Alternative-format imports can be authored, extracted, and removed through embedded document APIs; imported content remains package-backed until Word processes it.",
@@ -475,9 +475,9 @@ namespace OfficeIMO.Word {
             Add(features, "Compatibility", "Custom XML parts", WordFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
                 customXmlDetails);
-            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.PartiallyEditable, signatureValidation.SignatureInfo.FindingCount, null,
-                "OPC package signatures can be inspected, validated, and created cross-platform; mutating a signed document still requires an explicit signature-invalidation policy. VBA macro-project signing is a separate Windows Office SIP capability with cross-platform signature-part inspection.",
-                signatureValidation.SignatureInfo.Details.Concat(signatureValidation.Findings).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.PartiallyEditable, signatureInfo.FindingCount, null,
+                "OPC package signatures can be inspected without cryptographic dependencies and validated or created through an explicit OfficeIMO.Security provider; mutating a signed document still requires an explicit signature-invalidation policy. VBA macro-project signing is a separate Windows Office SIP capability with cross-platform signature-part inspection.",
+                signatureInfo.Details.Concat(signatureInfo.UnsupportedDetails).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
 
             return new WordFeatureReport(features);
         }

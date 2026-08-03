@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -70,7 +73,8 @@ public sealed class CertificateValidationOptions {
 
 /// <summary>Certificate chain and revocation outcome.</summary>
 public sealed class CertificateValidationResult {
-    internal CertificateValidationResult(
+    /// <summary>Creates certificate-chain and revocation evidence for a provider implementation.</summary>
+    public CertificateValidationResult(
         SecurityValidationStatus chainStatus,
         SecurityValidationStatus revocationStatus,
         IReadOnlyList<string> chainStatuses) {
@@ -129,7 +133,8 @@ public sealed class CmsSigningOptions {
 
 /// <summary>One signer from a CMS SignedData object.</summary>
 public sealed class CmsSignerVerificationResult {
-    internal CmsSignerVerificationResult(
+    /// <summary>Creates one CMS signer result for a provider implementation.</summary>
+    public CmsSignerVerificationResult(
         int signerIndex,
         SecurityValidationStatus signatureStatus,
         SecurityValidationStatus digestStatus,
@@ -202,7 +207,8 @@ public sealed class CmsSignerVerificationResult {
 public sealed class AuthenticodeIndirectDataInfo {
     private readonly byte[] _digest;
 
-    internal AuthenticodeIndirectDataInfo(string digestAlgorithmOid, byte[] digest) {
+    /// <summary>Creates Authenticode indirect-data digest evidence.</summary>
+    public AuthenticodeIndirectDataInfo(string digestAlgorithmOid, byte[] digest) {
         DigestAlgorithmOid = digestAlgorithmOid;
         _digest = (byte[])digest.Clone();
     }
@@ -216,7 +222,8 @@ public sealed class AuthenticodeIndirectDataInfo {
 
 /// <summary>Neutral CMS SignedData verification result.</summary>
 public sealed class CmsVerificationResult {
-    internal CmsVerificationResult(
+    /// <summary>Creates CMS verification evidence for a provider implementation.</summary>
+    public CmsVerificationResult(
         bool parsed,
         bool isDetached,
         string? contentTypeOid,
@@ -255,7 +262,8 @@ public sealed class CmsVerificationResult {
 
 /// <summary>RFC 3161 timestamp-token verification result.</summary>
 public sealed class Rfc3161TimestampVerificationResult {
-    internal Rfc3161TimestampVerificationResult(
+    /// <summary>Creates RFC 3161 verification evidence for a provider implementation.</summary>
+    public Rfc3161TimestampVerificationResult(
         SecurityValidationStatus status,
         DateTimeOffset? timestamp,
         string? policyOid,
