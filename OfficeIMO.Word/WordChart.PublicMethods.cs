@@ -11,15 +11,23 @@ namespace OfficeIMO.Word {
         /// Sets the chart frame size. Values are in pixels.
         /// </summary>
         public WordChart SetSize(int widthPx, int? heightPx = null) {
-            var inline = _drawing?.Inline;
-            if (inline?.Extent != null) {
-                inline.Extent.Cx = (long)widthPx * EnglishMetricUnitsPerInch / PixelsPerInch;
-                if (heightPx.HasValue) {
-                    inline.Extent.Cy = (long)heightPx.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-                }
+            if (widthPx <= 0) throw new ArgumentOutOfRangeException(nameof(widthPx), "Chart width must be positive.");
+            if (heightPx <= 0) throw new ArgumentOutOfRangeException(nameof(heightPx), "Chart height must be positive.");
+            if (_drawing != null) {
+                long widthEmu = checked((long)widthPx * EnglishMetricUnitsPerInch / PixelsPerInch);
+                long? heightEmu = heightPx.HasValue
+                    ? checked((long)heightPx.Value * EnglishMetricUnitsPerInch / PixelsPerInch)
+                    : null;
+                WordDrawingLayoutReader.SetExtent(_drawing, widthEmu, heightEmu);
             }
             return this;
         }
+
+        /// <summary>Reads persisted inline or anchored package geometry for this chart.</summary>
+        /// <param name="snapshot">The package-geometry snapshot when the chart has a supported drawing frame.</param>
+        /// <returns><see langword="true"/> when persisted layout evidence was available.</returns>
+        public bool TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot snapshot) =>
+            WordDrawingLayoutReader.TryRead(_drawing, out snapshot);
 
 
         /// <summary>

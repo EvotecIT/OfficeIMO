@@ -52,6 +52,7 @@ namespace OfficeIMO.Word.Html {
         private readonly Dictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
         private int _suppressAutoLinksDepth;
+        private int _figureSequence;
         private bool _pendingTopBookmark;
         private static readonly HttpClient _sharedHttpClient = new();
         private HttpClient _httpClient = _sharedHttpClient;
@@ -204,6 +205,7 @@ namespace OfficeIMO.Word.Html {
             _cssClassStyles.Clear();
             _stylesheetCache.Clear();
             _pendingTopBookmark = false;
+            _figureSequence = 0;
             _imageBytesUsed = 0;
             _remoteImageBytesFetched = 0;
             _cssBytesUsed = 0;

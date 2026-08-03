@@ -80,11 +80,15 @@ namespace OfficeIMO.Word {
             WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
 
             if (parsed.Diagnostics.Count > 0 || parsed.FieldType == null) {
+                WordFieldUpdateStatus parseStatus = parsed.FieldType == null
+                    ? WordFieldUpdateStatus.ParseError
+                    : WordFieldUpdateStatus.Unsupported;
                 return candidate.ToResult(
                     parsed.FieldType,
-                    parsed.FieldType == null ? WordFieldUpdateStatus.ParseError : WordFieldUpdateStatus.Unsupported,
+                    parseStatus,
                     null,
-                    parsed.Diagnostics.Count == 0 ? "Field instruction could not be parsed." : string.Join(" ", parsed.Diagnostics));
+                    parsed.Diagnostics.Count == 0 ? "Field instruction could not be parsed." : string.Join(" ", parsed.Diagnostics),
+                    GetFailedEvaluationReason(candidate, parsed.FieldType, parseStatus, parsed.Diagnostics.Count == 0 ? string.Empty : string.Join(" ", parsed.Diagnostics)));
             }
 
             if (candidate.IsLocked) {
@@ -92,7 +96,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!TryEvaluate(document, candidate, parsed, totalPages, state, updateDateTime, out string? value, out WordFieldUpdateStatus status, out string message)) {
-                return candidate.ToResult(parsed.FieldType, status, null, message);
+                return candidate.ToResult(parsed.FieldType, status, null, message, GetFailedEvaluationReason(candidate, parsed.FieldType, status, message));
             }
 
             SetResultText(candidate, value!);
@@ -100,6 +104,37 @@ namespace OfficeIMO.Word {
                 ? dateTimeEvaluationReason
                 : WordFieldEvaluationReason.Default;
             return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Updated, value, message, reason);
+        }
+
+        private static WordFieldEvaluationReason GetFailedEvaluationReason(
+            MutableFieldCandidate candidate,
+            WordFieldType? fieldType,
+            WordFieldUpdateStatus status,
+            string message) {
+            if (candidate.NestingLevel > 0 && status is WordFieldUpdateStatus.Unsupported or WordFieldUpdateStatus.ParseError) {
+                return WordFieldEvaluationReason.NestedInstruction;
+            }
+
+            if (fieldType == WordFieldType.ListNum) {
+                return WordFieldEvaluationReason.ListNumberingProfileUnsupported;
+            }
+
+            if (message.IndexOf("nested table", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("complex table geometry", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return WordFieldEvaluationReason.ComplexTableProfileUnsupported;
+            }
+
+            if (message.IndexOf("locale-specific", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("locale-dependent", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return WordFieldEvaluationReason.LocaleProfileUnsupported;
+            }
+
+            if (message.IndexOf("layout", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) {
+                return WordFieldEvaluationReason.ExternalLayoutRequired;
+            }
+
+            return WordFieldEvaluationReason.Default;
         }
 
         private static bool TryEvaluate(
@@ -159,6 +194,8 @@ namespace OfficeIMO.Word {
                     return TryEvaluateFormula(candidate, parsed, out value, out status, out message);
                 case WordFieldType.Seq:
                     return TryEvaluateSequence(document, candidate, parsed, state, out value, out status, out message);
+                case WordFieldType.ListNum:
+                    return TryEvaluateListNum(document, candidate, parsed, state, out value, out status, out message);
                 case WordFieldType.Page:
                     return TryEvaluatePage(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.NumChars:
@@ -1306,6 +1343,8 @@ namespace OfficeIMO.Word {
             internal Dictionary<string, int> Sequences { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             internal Dictionary<string, string> SequenceHeadingResetKeys { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+            internal Dictionary<string, ListNumSequenceState> ListNumSequences { get; } = new(StringComparer.OrdinalIgnoreCase);
         }
     }
 }

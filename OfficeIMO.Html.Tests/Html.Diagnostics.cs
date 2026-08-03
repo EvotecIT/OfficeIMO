@@ -204,6 +204,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_MappedCssPropertyOnUnmappedElement_AddsDeclarationDiagnostic() {
+            var options = new HtmlToWordOptions();
+
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(
+                "<span style=\"border:1px solid red;border-collapse:collapse\">Text</span>" +
+                "<table style=\"border:1px solid black;border-collapse:collapse\"><tr><td>Cell</td></tr></table>")
+                .ToWordDocumentResult(options);
+            using var document = conversion.Value;
+
+            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "UnsupportedCssDeclaration").ToList();
+            Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "span:border", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "span:border-collapse", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border-collapse", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void HtmlToWord_BorderLonghandDiagnostics_ReportDroppedProperties() {
             var options = new HtmlToWordOptions {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error

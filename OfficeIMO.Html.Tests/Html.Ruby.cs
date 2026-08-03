@@ -67,4 +67,36 @@ public partial class Html {
         Assert.Contains("<rb>東</rb>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<rt>とう</rt>", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Test_Html_Ruby_PreservesExplicitSegmentPairs() {
+        const string html = "<p><ruby><rb>東</rb><rt>とう</rt><rb>京</rb><rt>きょう</rt></ruby></p>";
+
+        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+        using var document = conversion.Value;
+
+        var rubies = document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>().ToList();
+        Assert.Equal(2, rubies.Count);
+        Assert.Equal(new[] { "東", "京" }, rubies.Select(ruby => ruby.RubyBase!.InnerText));
+        Assert.Equal(new[] { "とう", "きょう" }, rubies.Select(ruby => ruby.RubyContent!.InnerText));
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlRubyPairingApproximation");
+
+        string roundTrip = document.ToHtml();
+        Assert.Contains("<rb>東</rb><rt>とう</rt>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<rb>京</rb><rt>きょう</rt>", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_ReportsAmbiguousSegmentPairing() {
+        const string html = "<p><ruby><rb>東</rb><rb>京</rb><rt>とうきょう</rt></ruby></p>";
+
+        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+        using var document = conversion.Value;
+
+        var ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+        Assert.Equal("東京", ruby.RubyBase!.InnerText);
+        Assert.Equal("とうきょう", ruby.RubyContent!.InnerText);
+        var diagnostic = Assert.Single(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlRubyPairingApproximation");
+        Assert.Equal(OfficeIMO.Html.HtmlConversionLossKind.Approximation, diagnostic.LossKind);
+    }
 }

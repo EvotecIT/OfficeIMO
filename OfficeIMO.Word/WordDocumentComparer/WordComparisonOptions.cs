@@ -131,6 +131,12 @@ namespace OfficeIMO.Word {
         public bool CompareImages { get; set; } = true;
 
         /// <summary>
+        /// Compares bounded Wordprocessing DrawingML preset shapes and native shape groups.
+        /// Charts, SmartArt, pictures, and arbitrary DrawingML extensions remain separate contracts.
+        /// </summary>
+        public bool CompareShapes { get; set; } = true;
+
+        /// <summary>
         /// Compares document block order when the same comparable blocks appear in a different order.
         /// </summary>
         public bool CompareBlockOrder { get; set; } = true;

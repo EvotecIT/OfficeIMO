@@ -156,10 +156,23 @@ namespace OfficeIMO.Word.Html {
                        _tableSpacingCssDiagnosticProperties.Contains(propertyName);
             }
 
+            if (propertyName.Equals("border-collapse", StringComparison.OrdinalIgnoreCase) ||
+                propertyName.Equals("border-spacing", StringComparison.OrdinalIgnoreCase)) {
+                return elementName.Equals("table", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (propertyName.Equals("border", StringComparison.OrdinalIgnoreCase) ||
+                IsSupportedBorderSideShorthand(propertyName)) {
+                return IsMappedBorderElement(elementName);
+            }
+
             return _supportedCssDiagnosticProperties.Contains(propertyName) ||
-                   IsSupportedBorderSideShorthand(propertyName) ||
                    (IsBlockFrameElement(elementName) && TryGetBlockBorderLonghand(propertyName, out _, out _));
         }
+
+        private static bool IsMappedBorderElement(string elementName) =>
+            IsBlockFrameElement(elementName) ||
+            elementName is "table" or "tr" or "td" or "th";
 
         private void AddUnsupportedCssDiagnostic(string code, string message, string source, string? detail = null) {
             if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Ignore) {

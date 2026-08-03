@@ -56,6 +56,8 @@ document.Save();
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
 - Uses `OfficeIMO.Drawing` for shared colors, image metadata, page rendering, and the reusable math expression tree.
 
+Advanced drawing, structured comparison, field evaluation, and evidence boundaries are documented in [Word advanced editing and evidence contracts](../Docs/officeimo.word-advanced-contracts.md). The contracts distinguish persisted drawing geometry from desktop Word layout, detected relocation from native move revisions, and supported legacy DOC writing from arbitrary DOC authoring.
+
 For untrusted files, capability preflight, binary DOC/XLS/XLSB loss policies,
 macro and embedded-payload handling, and the executable compatibility corpus,
 see the [Word and Excel interoperability guide](../Docs/officeimo.word-excel-interoperability.md).

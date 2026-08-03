@@ -458,6 +458,11 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                if (char.GetUnicodeCategory(current) == UnicodeCategory.CurrencySymbol) {
+                    diagnostic = $"Formula numeric picture switch contains locale-specific currency symbol '{current}' without an explicit deterministic locale profile.";
+                    return false;
+                }
+
                 diagnostic = $"Formula numeric picture switch contains unsupported formatting character '{current}'.";
                 return false;
             }
@@ -490,20 +495,11 @@ namespace OfficeIMO.Word {
                 }
 
                 if (current == '*') {
-                    if (i == format.Length - 1) {
-                        normalizedFormat = string.Empty;
-                        diagnostic = "Formula numeric picture switch contains an unsupported dangling fill formatting token.";
-                        return false;
-                    }
-
-                    char fillCharacter = format[++i];
-                    if (char.IsControl(fillCharacter)) {
-                        normalizedFormat = string.Empty;
-                        diagnostic = "Formula numeric picture switch contains an unsupported control character fill token.";
-                        return false;
-                    }
-
-                    continue;
+                    normalizedFormat = string.Empty;
+                    diagnostic = i == format.Length - 1
+                        ? "Formula numeric picture switch contains an unsupported layout-dependent dangling fill formatting token."
+                        : "Formula numeric picture switch contains layout-dependent fill formatting syntax that requires Word layout.";
+                    return false;
                 }
 
                 builder.Append(current);
@@ -707,6 +703,11 @@ namespace OfficeIMO.Word {
 
             var resolvedValues = new List<decimal>();
             foreach (TableCell sourceCell in sourceCells) {
+                if (ContainsNestedTable(sourceCell)) {
+                    diagnostic = $"Formula table reference {referenceName.ToUpperInvariant()} encountered nested table content; that complex table geometry was preserved without approximation.";
+                    return false;
+                }
+
                 if (TryReadTableCellNumber(sourceCell, out decimal number, out bool hasText)) {
                     resolvedValues.Add(number);
                 } else if (hasText) {
@@ -765,6 +766,11 @@ namespace OfficeIMO.Word {
                     TableCellGridPlacement? placement = placements.FirstOrDefault(item => item.ContainsColumn(columnIndex));
                     if (placement == null || !resolvedCells.Add(placement.Cell) || IsVerticalMergeContinuation(placement.Cell)) {
                         continue;
+                    }
+
+                    if (ContainsNestedTable(placement.Cell)) {
+                        diagnostic = $"Formula table cell reference {startAddress}:{endAddress} encountered nested table content; that complex table geometry was preserved without approximation.";
+                        return false;
                     }
 
                     if (TryReadTableCellNumber(placement.Cell, out decimal number, out bool hasText)) {
@@ -860,6 +866,8 @@ namespace OfficeIMO.Word {
 
             return decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
         }
+
+        private static bool ContainsNestedTable(TableCell cell) => cell.Elements<Table>().Any();
 
         private static bool TryParseTableAddress(string text, out TableAddress address) {
             address = default;

@@ -21,6 +21,7 @@ The package README is the primary usage guide for its public API. These reposito
 ### Office formats and interoperability
 
 - [Word and Excel interoperability](officeimo.word-excel-interoperability.md)
+- [Word advanced editing and evidence contracts](officeimo.word-advanced-contracts.md)
 - [Word template and mail-merge scenarios](officeimo.word-template-mail-merge-scenarios.md)
 - [Word and HTML support](officeimo.word-html-support-matrix.md)
 - [Legacy Word DOC compatibility](officeimo.word.legacy-doc-compatibility.md)

@@ -1,18 +1,34 @@
 using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static bool TryProcessRubyElement(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
-            if (!TryExtractRubyText(element, out var baseText, out var rubyText)) {
+        private bool TryProcessRubyElement(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+            if (!TryExtractRubyPairs(element, out var pairs, out bool approximated)) {
                 return false;
             }
 
             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
-            currentParagraph._paragraph.AppendChild(new Run(new Ruby(
+            foreach (var pair in pairs) {
+                currentParagraph._paragraph.AppendChild(CreateRubyContainer(pair.BaseText, pair.RubyText, formatting, options));
+            }
+            if (approximated) {
+                AddDiagnostic(
+                    options,
+                    "HtmlRubyPairingApproximation",
+                    "Ruby base and annotation segments could not be paired one-to-one and were combined into one Word ruby run.",
+                    "ruby",
+                    lossKind: HtmlConversionLossKind.Approximation);
+            }
+            return true;
+        }
+
+        private static Run CreateRubyContainer(string baseText, string rubyText, TextFormatting formatting, HtmlToWordOptions options) =>
+            new(new Ruby(
                 new RubyProperties(
                     new RubyAlign { Val = RubyAlignValues.Center },
                     new PhoneticGuideTextFontSize { Val = "10" },
@@ -20,11 +36,28 @@ namespace OfficeIMO.Word.Html {
                     new PhoneticGuideBaseTextSize { Val = "20" },
                     new LanguageId { Val = string.IsNullOrWhiteSpace(formatting.Language) ? "en-US" : formatting.Language! }),
                 new RubyContent(CreateRubyRun(rubyText, formatting, options)),
-                new RubyBase(CreateRubyRun(baseText, formatting, options)))));
-            return true;
-        }
+                new RubyBase(CreateRubyRun(baseText, formatting, options))));
 
-        private static bool TryExtractRubyText(IElement element, out string baseText, out string rubyText) {
+        private static bool TryExtractRubyPairs(IElement element, out List<(string BaseText, string RubyText)> pairs, out bool approximated) {
+            pairs = new List<(string BaseText, string RubyText)>();
+            approximated = false;
+            var explicitBases = element.Children
+                .Where(child => child.TagName.Equals("rb", StringComparison.OrdinalIgnoreCase))
+                .Select(child => NormalizeRubyText(child.TextContent))
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+            var explicitAnnotations = element.Children
+                .Where(child => child.TagName.Equals("rt", StringComparison.OrdinalIgnoreCase))
+                .Select(child => NormalizeRubyText(child.TextContent))
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+            if (explicitBases.Count > 0 && explicitBases.Count == explicitAnnotations.Count) {
+                for (int index = 0; index < explicitBases.Count; index++) {
+                    pairs.Add((explicitBases[index], explicitAnnotations[index]));
+                }
+                return true;
+            }
+
             var baseBuilder = new StringBuilder();
             var rubyBuilder = new StringBuilder();
 
@@ -45,9 +78,16 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            baseText = NormalizeRubyText(baseBuilder.ToString());
-            rubyText = NormalizeRubyText(rubyBuilder.ToString());
-            return !string.IsNullOrWhiteSpace(baseText) && !string.IsNullOrWhiteSpace(rubyText);
+            string baseText = NormalizeRubyText(baseBuilder.ToString());
+            string rubyText = NormalizeRubyText(rubyBuilder.ToString());
+            if (string.IsNullOrWhiteSpace(baseText) || string.IsNullOrWhiteSpace(rubyText)) {
+                return false;
+            }
+
+            pairs.Add((baseText, rubyText));
+            approximated = explicitBases.Count > 1 || explicitAnnotations.Count > 1 ||
+                           explicitBases.Count != explicitAnnotations.Count;
+            return true;
         }
 
         private static string NormalizeRubyText(string text) =>

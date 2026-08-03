@@ -54,7 +54,10 @@ namespace OfficeIMO.Word {
         TableCell,
 
         /// <summary>An embedded image payload.</summary>
-        Image
+        Image,
+
+        /// <summary>A bounded Wordprocessing DrawingML preset shape or shape group.</summary>
+        Shape
     }
 
     /// <summary>

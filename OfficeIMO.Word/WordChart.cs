@@ -60,6 +60,7 @@ namespace OfficeIMO.Word {
             _document = document;
             _drawing = drawing;
             _paragraph = paragraph;
+            _chart = _chartPart?.ChartSpace?.GetFirstChild<Chart>();
         }
 
         /// <summary>

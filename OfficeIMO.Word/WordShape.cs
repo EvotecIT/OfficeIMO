@@ -13,10 +13,10 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents simple shapes inside a paragraph.
     /// </summary>
-    public class WordShape : WordElement {
+    public partial class WordShape : WordElement {
         private const int EmusPerPoint = 12700; // 1 pt = 12700 EMUs
         private static int _docPrIdSeed = 1;
-        private static UInt32Value NextDocPrId() {
+        internal static UInt32Value NextDocPrId() {
             int id = Interlocked.Increment(ref _docPrIdSeed);
             return (UInt32Value)(uint)id;
         }
@@ -79,7 +79,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static long ToEmuChecked(double points, string paramName) {
+        internal static long ToEmuChecked(double points, string paramName) {
             // reject NaN/Infinity and absurd negatives early
             if (double.IsNaN(points) || double.IsInfinity(points))
                 throw new ArgumentOutOfRangeException(paramName, "Value must be a finite number.");
@@ -90,12 +90,12 @@ namespace OfficeIMO.Word {
             return (long)Math.Round(emu);
         }
 
-        private static void ValidateDimensions(double widthPt, double heightPt) {
+        internal static void ValidateDimensions(double widthPt, double heightPt) {
             if (widthPt <= 0) throw new ArgumentOutOfRangeException(nameof(widthPt), "Width must be positive.");
             if (heightPt <= 0) throw new ArgumentOutOfRangeException(nameof(heightPt), "Height must be positive.");
         }
 
-        private static void ValidatePosition(double leftPt, double topPt) {
+        internal static void ValidatePosition(double leftPt, double topPt) {
             if (leftPt < 0) throw new ArgumentOutOfRangeException(nameof(leftPt), "Left offset cannot be negative.");
             if (topPt < 0) throw new ArgumentOutOfRangeException(nameof(topPt), "Top offset cannot be negative.");
         }
@@ -105,7 +105,7 @@ namespace OfficeIMO.Word {
             return color!.StartsWith("#", StringComparison.Ordinal) ? color : "#" + color;
         }
 
-        private static Wps.WordprocessingShape BuildWpsShape(long cx, long cy, ShapeType shapeType) {
+        internal static Wps.WordprocessingShape BuildWpsShape(long cx, long cy, ShapeType shapeType) {
             var wsp = new Wps.WordprocessingShape();
             wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
 
@@ -140,7 +140,7 @@ namespace OfficeIMO.Word {
             return wsp;
         }
 
-        private static DW.Anchor BuildAnchor(long cx, long cy, long offX, long offY, A.Graphic graphic) {
+        internal static DW.Anchor BuildAnchor(long cx, long cy, long offX, long offY, A.Graphic graphic) {
             var anchor = new DW.Anchor() {
                 DistanceFromTop = 0U,
                 DistanceFromBottom = 0U,

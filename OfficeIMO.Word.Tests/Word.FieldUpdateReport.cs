@@ -36,8 +36,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordFieldEvaluationBasis.ExplicitBreakEstimate, page.EvaluationBasis);
 
             WordFieldUpdateResult list = Assert.Single(report.Results, result => result.FieldType == WordFieldType.ListNum);
-            Assert.Equal("FieldEvaluationUnsupported", list.DiagnosticCode);
-            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, list.EvaluationBasis);
+            Assert.Equal("FieldUpdatedInvariant", list.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.InvariantDocumentModel, list.EvaluationBasis);
+            Assert.Equal("1)", list.ResultText);
         }
 
         [Fact]
@@ -2179,21 +2180,25 @@ namespace OfficeIMO.Tests {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
                 Assert.Equal(13, report.TotalCount);
-                Assert.Equal(12, report.UpdatedCount);
-                Assert.Equal(1, report.UnsupportedCount);
+                Assert.Equal(11, report.UpdatedCount);
+                Assert.Equal(2, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
 
-                Assert.Equal(new[] { "3.50", "3.50", "1,234.50", "25.0%", "5.00 USD", "5.00", "(5.00)", "Zero", "150.0 high", "50.0 low", "5.00 USD", "5.00" }, report.Results
+                Assert.Equal(new[] { "3.50", "3.50", "1,234.50", "25.0%", "5.00 USD", "5.00", "(5.00)", "Zero", "150.0 high", "50.0 low", "5.00 USD" }, report.Results
                     .Where(result => result.FieldType == WordFieldType.Formula && result.Status == WordFieldUpdateStatus.Updated)
                     .Select(result => result.ResultText)
                     .ToArray());
 
-                WordFieldUpdateResult unsupported = Assert.Single(report.Results, result =>
+                WordFieldUpdateResult[] unsupported = report.Results.Where(result =>
                     result.FieldType == WordFieldType.Formula &&
-                    result.Status == WordFieldUpdateStatus.Unsupported);
-                Assert.Contains("numeric picture", unsupported.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("unsupported", unsupported.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("fill", unsupported.Message, StringComparison.OrdinalIgnoreCase);
+                    result.Status == WordFieldUpdateStatus.Unsupported).ToArray();
+                Assert.Equal(2, unsupported.Length);
+                Assert.All(unsupported, result => {
+                    Assert.Contains("numeric picture", result.Message, StringComparison.OrdinalIgnoreCase);
+                    Assert.Contains("fill", result.Message, StringComparison.OrdinalIgnoreCase);
+                    Assert.Equal("FieldExternalLayoutRequired", result.DiagnosticCode);
+                    Assert.Equal(WordFieldEvaluationBasis.ExternalLayoutRequired, result.EvaluationBasis);
+                });
 
                 document.Save();
             }
@@ -2203,7 +2208,7 @@ namespace OfficeIMO.Tests {
                     .Where(field => field.FieldType == WordFieldType.Formula)
                     .ToArray();
 
-                Assert.Equal(new[] { "3.50", "3.50", "1,234.50", "25.0%", "5.00 USD", "5.00", "(5.00)", "Zero", "150.0 high", "50.0 low", "5.00 USD", "5.00", "stale-dangling-fill" }, fields.Select(field => field.ResultText).ToArray());
+                Assert.Equal(new[] { "3.50", "3.50", "1,234.50", "25.0%", "5.00 USD", "5.00", "(5.00)", "Zero", "150.0 high", "50.0 low", "5.00 USD", "stale-fill", "stale-dangling-fill" }, fields.Select(field => field.ResultText).ToArray());
             }
         }
 

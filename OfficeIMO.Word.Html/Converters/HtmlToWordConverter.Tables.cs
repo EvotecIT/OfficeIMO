@@ -2,6 +2,7 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using SixColor = OfficeIMO.Drawing.OfficeColor;
 using System.Globalization;
 
@@ -56,6 +57,16 @@ namespace OfficeIMO.Word.Html {
                 wordTable = headerFooter.AddTable(rows, cols);
             } else {
                 wordTable = section.AddTable(rows, cols);
+            }
+            string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(tableElem, includeTextFallback: false);
+            if (!string.IsNullOrWhiteSpace(accessibleName)) {
+                wordTable.Title = accessibleName.Trim();
+            }
+            string? accessibleDescription = tableElem.GetAttribute("aria-description")
+                ?? tableElem.GetAttribute("summary")
+                ?? tableElem.GetAttribute("title");
+            if (!string.IsNullOrWhiteSpace(accessibleDescription)) {
+                wordTable.Description = accessibleDescription!.Trim();
             }
             ApplyTableStyles(wordTable, tableElem);
             ApplyColumnGroup(wordTable, tableElem, cols);
