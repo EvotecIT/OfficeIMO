@@ -497,56 +497,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void RefreshClonedDrawingIds(WordprocessingDocument targetDocument, Run clonedRun) {
-            uint nextId = GetNextDrawingDocPropertiesId(targetDocument);
-            foreach (DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties properties in clonedRun.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
-                properties.Id = nextId;
-                nextId++;
-            }
-
-            foreach (DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties properties in clonedRun.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties>()) {
-                properties.Id = nextId;
-                nextId++;
-            }
-        }
-
-        private static uint GetNextDrawingDocPropertiesId(WordprocessingDocument document) {
-            uint max = 0U;
-            MainDocumentPart? mainPart = document.MainDocumentPart;
-            UpdateMaxDrawingDocPropertiesId(mainPart?.Document, ref max);
-
-            if (mainPart != null) {
-                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    UpdateMaxDrawingDocPropertiesId(headerPart.Header, ref max);
-                }
-
-                foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    UpdateMaxDrawingDocPropertiesId(footerPart.Footer, ref max);
-                }
-
-                UpdateMaxDrawingDocPropertiesId(mainPart.FootnotesPart?.Footnotes, ref max);
-                UpdateMaxDrawingDocPropertiesId(mainPart.EndnotesPart?.Endnotes, ref max);
-                UpdateMaxDrawingDocPropertiesId(mainPart.WordprocessingCommentsPart?.Comments, ref max);
-            }
-
-            return max + 1U;
-        }
-
-        private static void UpdateMaxDrawingDocPropertiesId(OpenXmlElement? root, ref uint max) {
-            if (root == null) {
-                return;
-            }
-
-            foreach (DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties properties in root.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
-                if (properties.Id != null && properties.Id.Value > max) {
-                    max = properties.Id.Value;
-                }
-            }
-
-            foreach (DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties properties in root.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties>()) {
-                if (properties.Id != null && properties.Id.Value > max) {
-                    max = properties.Id.Value;
-                }
-            }
+            WordDrawingIdAllocator.Reassign(targetDocument, clonedRun);
         }
 
         private static void RefreshClonedVmlIds(WordprocessingDocument targetDocument, Run clonedRun) {

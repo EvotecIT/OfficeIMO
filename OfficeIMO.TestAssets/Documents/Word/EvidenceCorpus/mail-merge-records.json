@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "producer": "OfficeIMO deterministic mail-merge corpus",
+  "records": [
+    {
+      "CustomerName": "Northwind",
+      "Region": "North",
+      "Approved": true,
+      "Items": [
+        { "Description": "Review", "Amount": 42.50 },
+        { "Description": "Delivery", "Amount": 17.25 }
+      ]
+    },
+    {
+      "CustomerName": "Contoso",
+      "Region": "West",
+      "Approved": false,
+      "Items": []
+    }
+  ]
+}

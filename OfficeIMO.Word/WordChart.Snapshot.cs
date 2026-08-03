@@ -576,17 +576,21 @@ namespace OfficeIMO.Word {
         }
 
         private string ReadDrawingName() {
-            return _drawing?.Inline?.DocProperties?.Name?.Value ?? string.Empty;
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+                ? layout.Name
+                : string.Empty;
         }
 
         private double GetWidthPoints() {
-            long emu = _drawing?.Inline?.Extent?.Cx?.Value ?? 0L;
-            return emu > 0 ? EmuToPoints(emu) : 450D;
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+                ? layout.WidthPoints
+                : 450D;
         }
 
         private double GetHeightPoints() {
-            long emu = _drawing?.Inline?.Extent?.Cy?.Value ?? 0L;
-            return emu > 0 ? EmuToPoints(emu) : 300D;
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+                ? layout.HeightPoints
+                : 300D;
         }
 
         private static double EmuToPoints(long emu) {

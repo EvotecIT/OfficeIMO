@@ -39,7 +39,7 @@ namespace OfficeIMO.Word.Html {
             foreach (var child in element.ChildNodes) {
                 if (!string.IsNullOrWhiteSpace(style) && child is IElement childElement) {
                     ResolveComputedFontSizePixels(childElement);
-                    var merged = MergeStyles(style, childElement.GetAttribute("style"));
+                    var merged = MergeStyles(style, childElement);
                     if (!string.IsNullOrEmpty(merged)) {
                         childElement.SetAttribute("style", merged);
                     }

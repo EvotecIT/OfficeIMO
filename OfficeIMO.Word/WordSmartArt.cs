@@ -4,7 +4,6 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
-using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Word {
@@ -12,13 +11,6 @@ namespace OfficeIMO.Word {
     /// Represents a SmartArt diagram in a <see cref="WordDocument"/>.
     /// </summary>
     public partial class WordSmartArt : WordElement {
-        private static int _docPrIdSeed = 1;
-
-        private static UInt32Value GenerateDocPrId() {
-            int id = Interlocked.Increment(ref _docPrIdSeed);
-            return (UInt32Value)(uint)id;
-        }
-
         internal WordDrawing _drawing = null!;
         private readonly WordDocument _document;
         private readonly WordParagraph _paragraph;
@@ -66,7 +58,7 @@ namespace OfficeIMO.Word {
             var inline = new Inline(
                 new Extent { Cx = 5486400, Cy = 3200400 },
                 eff,
-                new DocProperties { Id = GenerateDocPrId(), Name = "Diagram 1" },
+                new DocProperties { Id = WordDrawingIdAllocator.Reserve(_document), Name = "Diagram 1" },
                 new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks { NoChangeAspect = true }),
                 graphic) {
@@ -237,7 +229,7 @@ namespace OfficeIMO.Word {
                 new XAttribute("modelId", newId),
                 new XAttribute("type", "node"),
                 new XElement(dgm + "prSet",
-                    new XAttribute("placeholder", 1),
+                    new XAttribute("phldr", 1),
                     new XAttribute("phldrT", "[Text]")),
                 new XElement(dgm + "spPr"),
                 txBody);
@@ -296,7 +288,7 @@ namespace OfficeIMO.Word {
                 new XAttribute("modelId", newId),
                 new XAttribute("type", "node"),
                 new XElement(dgm + "prSet",
-                    new XAttribute("placeholder", 1),
+                    new XAttribute("phldr", 1),
                     new XAttribute("phldrT", "[Text]")),
                 new XElement(dgm + "spPr"),
                 txBody);
@@ -320,21 +312,20 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void ClearNodes() {
             if (!CanModifyNodes) throw new NotSupportedException("Clearing nodes is supported only for algorithmic layouts (BasicProcess, Cycle).");
-            var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
-            var dgm = ns.dgm; var a = ns.a;
-            var pts = xdoc.Descendants(dgm + "pt").ToList();
-            // Consider both 't' and legacy 'txBody' spellings; include explicit type="node"
-            var nodePts = pts.Where(p => {
-                var typ = (string?)p.Attribute("type");
-                return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
-            }).ToList();
+            var (xdoc, ns, _, dataPart) = LoadNodeParagraphsWithPart();
+            var dgm = ns.dgm;
+            List<XElement> nodePts = GetEditableNodePoints(xdoc, dgm);
+            var removedIds = new HashSet<string>(nodePts
+                .Select(point => (string?)point.Attribute("modelId"))
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Select(id => id!), StringComparer.Ordinal);
             foreach (var pt in nodePts) pt.Remove();
-            XElement? docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
-            var docId = (string?)docPt?.Attribute("modelId");
             XElement? cxnLst = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault();
-            if (docId != null && cxnLst != null) {
-                var cxn = cxnLst!;
-                var toRemove = cxn.Elements(dgm + "cxn").Where(x => (string?)x.Attribute("srcId") == docId).ToList();
+            if (cxnLst != null) {
+                var toRemove = cxnLst.Elements(dgm + "cxn")
+                    .Where(connection => removedIds.Contains((string?)connection.Attribute("srcId") ?? string.Empty) ||
+                                         removedIds.Contains((string?)connection.Attribute("destId") ?? string.Empty))
+                    .ToList();
                 foreach (var c in toRemove) c.Remove();
             }
             SaveDiagramData(dataPart, xdoc);
@@ -347,11 +338,9 @@ namespace OfficeIMO.Word {
             if (!CanModifyNodes) throw new NotSupportedException("Removing nodes is supported only for algorithmic layouts (BasicProcess, Cycle).");
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
-            var dgm = ns.dgm; var a = ns.a;
+            var dgm = ns.dgm;
 
-            // Re-identify node pts to make sure we remove the correct one (same filter as LoadNodeParagraphs)
-            var pts = xdoc.Descendants(dgm + "pt");
-            var nodePts = pts.Where(p => { var typ = (string?)p.Attribute("type"); return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null); }).ToList();
+            List<XElement> nodePts = GetOrderedEditableNodePoints(xdoc, dgm);
             var targetPt = nodePts[index];
             var targetId = (string)targetPt.Attribute("modelId")!;
 
@@ -359,7 +348,10 @@ namespace OfficeIMO.Word {
             XElement? cxnLst = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault();
             if (cxnLst != null) {
                 var cxn = cxnLst!;
-                var toRemove = cxn.Elements(dgm + "cxn").Where(x => (string?)x.Attribute("destId") == targetId).ToList();
+                var toRemove = cxn.Elements(dgm + "cxn")
+                    .Where(x => (string?)x.Attribute("destId") == targetId ||
+                                (string?)x.Attribute("srcId") == targetId)
+                    .ToList();
                 foreach (var c in toRemove) c.Remove();
                 // Resequence srcOrd for remaining doc->child connections
                 XElement? docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
@@ -379,6 +371,42 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Reorders one node inside a supported algorithmic layout by changing its document-child order.
+        /// This is a structural SmartArt ordering edit, not a rendered-coordinate move.
+        /// </summary>
+        public void MoveNode(int fromIndex, int toIndex) {
+            if (!CanModifyNodes) throw new NotSupportedException("Reordering nodes is supported only for algorithmic layouts (BasicProcess, Cycle).");
+            var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
+            if (fromIndex < 0 || fromIndex >= paras.Count) throw new ArgumentOutOfRangeException(nameof(fromIndex));
+            if (toIndex < 0 || toIndex >= paras.Count) throw new ArgumentOutOfRangeException(nameof(toIndex));
+            if (fromIndex == toIndex) return;
+
+            XNamespace dgm = ns.dgm;
+            List<XElement> nodes = GetOrderedEditableNodePoints(xdoc, dgm);
+            XElement moved = nodes[fromIndex];
+            nodes.RemoveAt(fromIndex);
+            nodes.Insert(toIndex, moved);
+            string docId = (string?)xdoc.Descendants(dgm + "pt")
+                .FirstOrDefault(point => (string?)point.Attribute("type") == "doc")?
+                .Attribute("modelId") ?? throw new InvalidOperationException("Cannot locate document point in SmartArt data model.");
+            XElement connections = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault()
+                ?? throw new InvalidOperationException("SmartArt data model missing cxnLst.");
+            Dictionary<string, XElement> byDestination = connections.Elements(dgm + "cxn")
+                .Where(connection => (string?)connection.Attribute("srcId") == docId)
+                .Where(connection => connection.Attribute("destId") != null)
+                .ToDictionary(connection => (string)connection.Attribute("destId")!, StringComparer.Ordinal);
+            for (int index = 0; index < nodes.Count; index++) {
+                string id = (string?)nodes[index].Attribute("modelId")
+                    ?? throw new InvalidOperationException("SmartArt node is missing modelId.");
+                if (!byDestination.TryGetValue(id, out XElement? connection)) {
+                    throw new InvalidOperationException("SmartArt node does not have a document-child connection.");
+                }
+                connection.SetAttributeValue("srcOrd", index);
+            }
+            SaveDiagramData(dataPart, xdoc);
+        }
+
+        /// <summary>
         /// Indicates whether this SmartArt type supports adding/removing/reordering nodes.
         /// </summary>
         public bool CanModifyNodes => _type == SmartArtType.BasicProcess || _type == SmartArtType.Cycle;
@@ -391,13 +419,7 @@ namespace OfficeIMO.Word {
             var dgm = (XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/diagram";
             var a = (XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/main";
 
-            // Points with no @type and with a dgm:t (or dgm:txBody) are treated as editable nodes.
-            var pts = xdoc.Descendants(dgm + "pt");
-            var nodePts = pts.Where(p => {
-                var typ = (string?)p.Attribute("type");
-                return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
-            });
-            var paras = nodePts
+            var paras = GetOrderedEditableNodePoints(xdoc, dgm)
                 .Select(p => (p.Element(dgm + "t") ?? p.Element(dgm + "txBody"))?.Element(a + "p"))
                 .Where(p => p != null)
                 .Select(p => p!)
@@ -411,17 +433,41 @@ namespace OfficeIMO.Word {
             var dgm = (XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/diagram";
             var a = (XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/main";
 
-            var pts = xdoc.Descendants(dgm + "pt");
-            var nodePts = pts.Where(p => {
-                var typ = (string?)p.Attribute("type");
-                return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
-            });
-            var paras = nodePts
+            var paras = GetOrderedEditableNodePoints(xdoc, dgm)
                 .Select(p => (p.Element(dgm + "t") ?? p.Element(dgm + "txBody"))?.Element(a + "p"))
                 .Where(p => p != null)
                 .Select(p => p!)
                 .ToList();
             return (xdoc, (dgm, a), paras, dataPart);
+        }
+
+        private static List<XElement> GetEditableNodePoints(XDocument xdoc, XNamespace dgm) => xdoc
+            .Descendants(dgm + "pt")
+            .Where(point => {
+                string? type = (string?)point.Attribute("type");
+                return (type == null || type == "node") &&
+                       (point.Element(dgm + "t") != null || point.Element(dgm + "txBody") != null);
+            })
+            .ToList();
+
+        private static List<XElement> GetOrderedEditableNodePoints(XDocument xdoc, XNamespace dgm) {
+            List<XElement> nodes = GetEditableNodePoints(xdoc, dgm);
+            string? docId = (string?)xdoc.Descendants(dgm + "pt")
+                .FirstOrDefault(point => (string?)point.Attribute("type") == "doc")?
+                .Attribute("modelId");
+            if (string.IsNullOrEmpty(docId)) return nodes;
+
+            Dictionary<string, XElement> byId = nodes
+                .Where(node => node.Attribute("modelId") != null)
+                .ToDictionary(node => (string)node.Attribute("modelId")!, StringComparer.Ordinal);
+            List<XElement> ordered = xdoc.Descendants(dgm + "cxn")
+                .Where(connection => (string?)connection.Attribute("srcId") == docId)
+                .OrderBy(connection => (int?)connection.Attribute("srcOrd") ?? int.MaxValue)
+                .Select(connection => (string?)connection.Attribute("destId"))
+                .Where(id => id != null && byId.ContainsKey(id))
+                .Select(id => byId[id!])
+                .ToList();
+            return ordered.Count == nodes.Count ? ordered : nodes;
         }
 
         private void ReplaceParagraphText(XElement p, XNamespace a, string text) {

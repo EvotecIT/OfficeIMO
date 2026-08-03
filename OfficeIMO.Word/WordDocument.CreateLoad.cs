@@ -391,7 +391,6 @@ namespace OfficeIMO.Word {
                     EnsureCustomStyleNames(wordDocument);
                 }
                 WordChart.InitializeAxisIdSeed(wordDocument);
-                WordChart.InitializeDocPrIdSeed(wordDocument);
 
                 // initialize abstract number id for lists to make sure those are unique
                 WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -511,7 +510,6 @@ namespace OfficeIMO.Word {
                 EnsureCustomStyleNames(wordDocument);
             }
             WordChart.InitializeAxisIdSeed(wordDocument);
-            WordChart.InitializeDocPrIdSeed(wordDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
             return word;
         }
@@ -603,7 +601,6 @@ namespace OfficeIMO.Word {
                 }
 
                 WordChart.InitializeAxisIdSeed(wordDocument);
-                WordChart.InitializeDocPrIdSeed(wordDocument);
                 WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
                 return document;
             } catch {

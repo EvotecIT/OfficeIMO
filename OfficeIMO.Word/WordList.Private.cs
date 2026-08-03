@@ -228,7 +228,7 @@ public partial class WordList : WordElement {
             Val = _abstractId
         };
         NumberingInstance numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
-        numbering.Append(numberingInstance, abstractNum);
+        numbering.Append(abstractNum, numberingInstance);
     }
 
     private WordList Clone(OpenXmlElement referenceParagraph, bool after) {

@@ -20,6 +20,14 @@ namespace OfficeIMO.Word {
             options ??= new WordComparisonRedlineOptions();
             ValidateRedlineOutputPath(sourcePath, targetPath, outputPath);
             WordComparisonResult result = CompareStructure(sourcePath, targetPath, options.ComparisonOptions);
+            if (options.Mode == WordComparisonRedlineMode.InPlaceTarget &&
+                result.Findings.Any(finding => finding.Scope == WordComparisonScope.Shape)) {
+                result.AddLimitation(new WordComparisonLimitation(
+                    "Redline.Shape.InPlaceTextFallback",
+                    "DrawingML shape findings are represented by tracked textual evidence in in-place redlines; native drawing move or replacement revision markup is not synthesized.",
+                    result.Findings.Any(finding => finding.Scope == WordComparisonScope.Shape && finding.ChangeKind != WordComparisonChangeKind.Inserted),
+                    result.Findings.Any(finding => finding.Scope == WordComparisonScope.Shape && finding.ChangeKind != WordComparisonChangeKind.Deleted)));
+            }
 
             EnsureOutputDirectory(outputPath);
 
@@ -841,14 +849,16 @@ namespace OfficeIMO.Word {
                 or WordComparisonScope.Bookmark
                 or WordComparisonScope.Hyperlink
                 or WordComparisonScope.List
-                or WordComparisonScope.Image;
+                or WordComparisonScope.Image
+                or WordComparisonScope.Shape;
         }
 
         private static bool IsInPlaceFallbackFeatureFinding(WordComparisonFinding finding) {
             return finding.Scope is WordComparisonScope.Field
                 or WordComparisonScope.Bookmark
                 or WordComparisonScope.Hyperlink
-                or WordComparisonScope.List;
+                or WordComparisonScope.List
+                or WordComparisonScope.Shape;
         }
 
         private static bool IsReviewFinding(WordComparisonFinding finding) {

@@ -312,6 +312,9 @@ namespace OfficeIMO.Tests {
 
             var body = package.MainDocumentPart!.Document.Body!;
             var sequence = body.ChildElements
+                .SelectMany(element => element is SdtBlock marker
+                    ? marker.Descendants<Table>().Cast<DocumentFormat.OpenXml.OpenXmlElement>()
+                    : new[] { element })
                 .Where(element => element is Paragraph || element is Table)
                 .Select(element => element is Table
                     ? "table:" + string.Join("|", element.Descendants<Text>().Select(text => text.Text))

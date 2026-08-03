@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "producer": "OfficeIMO.Word.Benchmarks deterministic generator",
+  "seed": 31,
+  "itemCounts": [100, 1000],
+  "workflows": [
+    "field-update",
+    "mail-merge",
+    "word-to-html",
+    "package-load",
+    "structured-comparison",
+    "macro-signature-inspection"
+  ],
+  "interpretation": "Machine-specific performance evidence, not a semantic compatibility guarantee."
+}

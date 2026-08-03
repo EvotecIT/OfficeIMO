@@ -73,17 +73,18 @@ namespace OfficeIMO.Word {
                 imagePart.FeedData(ms);
             }
             string relationshipId = mainPart.GetIdOfPart(imagePart);
+            uint firstDrawingId = WordDrawingIdAllocator.Reserve(mainPart, 2U);
 
             var inline = new DW.Inline(
                 new DW.Extent { Cx = cx, Cy = cy },
                 new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L },
-                new DW.DocProperties { Id = 1U, Name = "Picture" },
+                new DW.DocProperties { Id = firstDrawingId, Name = "Picture" },
                 new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
                 new A.Graphic(
                     new A.GraphicData(
                         new PIC.Picture(
                             new PIC.NonVisualPictureProperties(
-                                new PIC.NonVisualDrawingProperties { Id = 0U, Name = "Image" },
+                                new PIC.NonVisualDrawingProperties { Id = firstDrawingId + 1U, Name = "Image" },
                                 new PIC.NonVisualPictureDrawingProperties()),
                             new PIC.BlipFill(
                                 new A.Blip { Embed = relationshipId },

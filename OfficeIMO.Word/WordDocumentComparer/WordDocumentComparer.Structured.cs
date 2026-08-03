@@ -127,6 +127,10 @@ namespace OfficeIMO.Word {
                 AnalyzeImages(source, target, result);
             }
 
+            if (options.CompareShapes) {
+                AnalyzeShapes(source, target, result, options);
+            }
+
             if (options.CompareBlockOrder) {
                 AnalyzeBlockOrder(source, target, result, options);
             }

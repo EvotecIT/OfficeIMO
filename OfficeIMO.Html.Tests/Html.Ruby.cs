@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
 using System;
 using System.IO;
@@ -66,5 +67,126 @@ public partial class Html {
         Assert.Contains("<ruby>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<rb>東</rb>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<rt>とう</rt>", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_PreservesExplicitSegmentPairs() {
+        const string html = "<p><ruby><rb>東</rb><rt>とう</rt><rb>京</rb><rt>きょう</rt></ruby></p>";
+
+        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+        using var document = conversion.Value;
+
+        var rubies = document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>().ToList();
+        Assert.Equal(2, rubies.Count);
+        Assert.Equal(new[] { "東", "京" }, rubies.Select(ruby => ruby.RubyBase!.InnerText));
+        Assert.Equal(new[] { "とう", "きょう" }, rubies.Select(ruby => ruby.RubyContent!.InnerText));
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlRubyPairingApproximation");
+
+        string roundTrip = document.ToHtml();
+        Assert.Contains("<rb>東</rb><rt>とう</rt>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<rb>京</rb><rt>きょう</rt>", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_AppliesTextTransformToBaseAndAnnotationText() {
+        const string html = "<p><ruby><rb style=\"text-transform:uppercase\">ab<span>cd</span></rb><rt style=\"text-transform:capitalize\">alpha beta</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal("ABCD", ruby.RubyBase!.InnerText);
+        Assert.Equal("Alpha Beta", ruby.RubyContent!.InnerText);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_CapitalizeSpansInlineFormattingBoundaries() {
+        const string html = "<p><ruby><rb style=\"text-transform:capitalize\">foo<strong>bar</strong> baz</rb><rt>x</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal("Foobar Baz", ruby.RubyBase!.InnerText);
+        Assert.Equal(new[] { "Foo", "bar", " Baz" }, ruby.RubyBase.Elements<Run>().Select(run => run.InnerText));
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_CapitalizeKeepsCombiningMarkWordAcrossFormattingBoundary() {
+        const string html = "<p><ruby><rb style=\"text-transform:capitalize\">e\u0301<strong>clair</strong></rb><rt>x</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal("E\u0301clair", ruby.RubyBase!.InnerText);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_CollapsesDefaultWhitespaceAtSegmentBoundaries() {
+        const string html = "<p><ruby><rb>\n  A   B \n</rb><rt>\n alpha   beta \n</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal("A B", ruby.RubyBase!.InnerText);
+        Assert.Equal("alpha beta", ruby.RubyContent!.InnerText);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_PreservesWhitespaceWhenExplicitlyRequested() {
+        const string html = "<p><ruby><rb style=\"white-space:pre\"> A   B </rb><rt style=\"white-space:pre\"> x   y </rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+
+        Assert.Equal(" A   B ", ruby.RubyBase!.InnerText.Replace('\u00A0', ' '));
+        Assert.Equal(" x   y ", ruby.RubyContent!.InnerText.Replace('\u00A0', ' '));
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_ReportsAmbiguousSegmentPairing() {
+        const string html = "<p><ruby><rb>東</rb><rb>京</rb><rt>とうきょう</rt></ruby></p>";
+
+        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+        using var document = conversion.Value;
+
+        var ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+        Assert.Equal("東京", ruby.RubyBase!.InnerText);
+        Assert.Equal("とうきょう", ruby.RubyContent!.InnerText);
+        var diagnostic = Assert.Single(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlRubyPairingApproximation");
+        Assert.Equal(OfficeIMO.Html.HtmlConversionLossKind.Approximation, diagnostic.LossKind);
+    }
+
+    [Fact]
+    public void Test_Html_Ruby_PreservesIndependentBaseAndAnnotationFormatting() {
+        const string html = "<p><ruby><rb><strong style=\"color:#123456;background-color:#abcdef\">東</strong><mark>京</mark></rb><rt><em style=\"font-size:8pt;background-color:#fedcba\">とう</em>きょう</rt></ruby></p>";
+
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
+        Run[] baseRuns = ruby.RubyBase!.Elements<Run>().ToArray();
+        Run[] annotationRuns = ruby.RubyContent!.Elements<Run>().ToArray();
+
+        Assert.Equal(2, baseRuns.Length);
+        Assert.NotNull(baseRuns[0].RunProperties!.Bold);
+        Assert.Equal("123456", baseRuns[0].RunProperties.Color!.Val!.Value);
+        Assert.Equal("ABCDEF", baseRuns[0].RunProperties.Shading!.Fill!.Value);
+        Assert.Equal(HtmlSemanticStyleIds.MarkedText, baseRuns[1].RunProperties!.RunStyle!.Val!.Value);
+        Assert.Equal(HighlightColorValues.Yellow, baseRuns[1].RunProperties.Highlight!.Val!.Value);
+        Assert.Equal(2, annotationRuns.Length);
+        Assert.NotNull(annotationRuns[0].RunProperties!.Italic);
+        Assert.Equal("16", annotationRuns[0].RunProperties.FontSize!.Val!.Value);
+        Assert.Equal("FEDCBA", annotationRuns[0].RunProperties.Shading!.Fill!.Value);
+
+        string roundTrip = document.ToHtml(new WordToHtmlOptions {
+            IncludeRunColorStyles = true,
+            IncludeFontStyles = true,
+        });
+        var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
+        var rubyElement = Assert.Single(parsed.QuerySelectorAll("ruby"));
+        Assert.Equal("東", Assert.Single(rubyElement.QuerySelectorAll("rb strong")).TextContent);
+        Assert.Contains("color:#123456", Assert.Single(rubyElement.QuerySelectorAll("rb span[style]")).GetAttribute("style"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("background-color:#abcdef", Assert.Single(rubyElement.QuerySelectorAll("rb span[style]")).GetAttribute("style"), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("京", Assert.Single(rubyElement.QuerySelectorAll("rb mark")).TextContent);
+        Assert.Equal("とう", Assert.Single(rubyElement.QuerySelectorAll("rt em")).TextContent);
+        Assert.Contains("font-size:8pt", Assert.Single(rubyElement.QuerySelectorAll("rt span[style]")).GetAttribute("style"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("background-color:#fedcba", Assert.Single(rubyElement.QuerySelectorAll("rt span[style]")).GetAttribute("style"), StringComparison.OrdinalIgnoreCase);
     }
 }

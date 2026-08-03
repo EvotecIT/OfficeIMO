@@ -10873,7 +10873,7 @@
             <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
               <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
                 <pic:nvPicPr>
-                  <pic:cNvPr id="0" name="Kulek.jpg" descr="Header image" title="Header logo" />
+                  <pic:cNvPr id="2" name="Kulek.jpg" descr="Header image" title="Header logo" />
                   <pic:cNvPicPr />
                 </pic:nvPicPr>
                 <pic:blipFill>

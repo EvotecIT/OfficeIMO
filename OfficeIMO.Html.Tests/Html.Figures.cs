@@ -1,5 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using OfficeIMO.Html;
 using System;
 using System.IO;
 using Xunit;
@@ -55,6 +56,84 @@ namespace OfficeIMO.Tests {
             string html = doc.ToHtml();
             Assert.Contains("<figure>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<figcaption>Logo caption</figcaption>", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void WordToHtml_UserBookmarkThatOnlySharesLegacyFigurePrefixDoesNotCreateFigure() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Ordinary content");
+            WordParagraph caption = document.AddParagraph("Ordinary caption").SetStyleId("Caption");
+            WordBookmark.AddBookmark(caption, "officeimoFigureAfterNotes");
+
+            var parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
+
+            Assert.Empty(parsed.QuerySelectorAll("figure"));
+            Assert.Contains(parsed.QuerySelectorAll("p"), paragraph => paragraph.TextContent == "Ordinary content");
+        }
+
+        [Fact]
+        public void Html_FigureWithMultipleContentBlocksReportsFlattening() {
+            const string html = "<figure><p>First</p><p>Second</p><figcaption>Grouped content</figcaption></figure>";
+
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+            using var document = conversion.Value;
+
+            var diagnostic = Assert.Single(conversion.Report.Diagnostics, item => item.Code == "HtmlFigureStructureFlattened");
+            Assert.Equal(HtmlConversionLossKind.Approximation, diagnostic.LossKind);
+            Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "First");
+            Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Second");
+            Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Grouped content");
+        }
+
+        [Fact]
+        public void Html_FigureWhoseSingleDomChildExpandsToMultipleWordBlocksReportsFlattening() {
+            const string html = "<figure><ol><li>A</li><li>B</li></ol><figcaption>List caption</figcaption></figure>";
+
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+            using var document = conversion.Value;
+            string roundTrip = document.ToHtml();
+            var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
+
+            Assert.Single(conversion.Report.Diagnostics, item => item.Code == "HtmlFigureStructureFlattened");
+            Assert.Empty(parsed.QuerySelectorAll("figure"));
+            Assert.Equal(new[] { "A", "B" }, parsed.QuerySelectorAll("ol > li").Select(item => item.TextContent));
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Html_NonImageFigureCaption_RoundTripsWithExactParentageAndCardinality(bool captionFirst) {
+            string html = captionFirst
+                ? "<figure><figcaption>Figure caption</figcaption><p>Figure body</p></figure>"
+                : "<figure><p>Figure body</p><figcaption>Figure caption</figcaption></figure>";
+
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            string roundTrip = document.ToHtml();
+            var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
+            var figure = Assert.Single(parsed.QuerySelectorAll("figure"));
+
+            Assert.Equal(2, figure.Children.Length);
+            Assert.Equal(captionFirst ? "figcaption" : "p", figure.Children[0].LocalName);
+            Assert.Equal(captionFirst ? "p" : "figcaption", figure.Children[1].LocalName);
+            Assert.Equal("Figure caption", Assert.Single(figure.QuerySelectorAll(":scope > figcaption")).TextContent);
+            Assert.Equal("Figure body", Assert.Single(figure.QuerySelectorAll(":scope > p")).TextContent);
+            Assert.DoesNotContain(parsed.Body!.Children, element => element.LocalName == "p");
+        }
+
+        [Fact]
+        public void Html_TableFigureWithLeadingCaption_RoundTripsAsOneFigure() {
+            const string html = "<figure><figcaption>Table caption</figcaption><table><tr><td>Cell</td></tr></table></figure>";
+
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            string roundTrip = document.ToHtml();
+            var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
+            var figure = Assert.Single(parsed.QuerySelectorAll("figure"));
+
+            Assert.Equal(2, figure.Children.Length);
+            Assert.Equal("figcaption", figure.Children[0].LocalName);
+            Assert.Equal("table", figure.Children[1].LocalName);
+            Assert.Equal("Table caption", Assert.Single(figure.QuerySelectorAll(":scope > figcaption")).TextContent);
+            Assert.Equal("Cell", Assert.Single(figure.QuerySelectorAll(":scope > table td")).TextContent);
         }
     }
 }

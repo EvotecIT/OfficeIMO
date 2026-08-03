@@ -4,6 +4,8 @@ This is the repository's single product backlog. It contains open work only. Imp
 
 An item belongs here when it has a clear product outcome and an owning package. Implementation checkpoints, completed task lists, release-wait notes, architectural rules, and competitor parity tables do not belong here.
 
+Deliberately bounded compatibility contracts are not backlog by themselves. A preserved or rejected profile with a documented diagnostic becomes roadmap work only when the repository adopts a concrete supported shape and evidence plan for it.
+
 ## Release-wide quality
 
 - [ ] Extend the generated Office compatibility catalog beyond the current Word, Excel, and PowerPoint legacy-format families into a package-neutral operation model for create, read, edit, preserve, inspect, convert, export, reject, and unsupported behavior.
@@ -29,14 +31,6 @@ An item belongs here when it has a clear product outcome and an owning package. 
 - [ ] Complete advanced Visio resize-to-content and broader whole-diagram relayout and polish for dense imported diagrams.
 - [ ] Add typed Visio APIs for data graphics, legends, and additional high-value ShapeSheet sections and formulas while continuing to preserve unmodeled package content explicitly.
 - [ ] Prove Visio template, stencil, and macro-enabled package variants with representative load, reader, and conversion fixtures before advertising them beyond the current `.vsdx` boundary.
-
-## Word
-
-- [ ] Deepen advanced drawing, imported chart mutation, SmartArt editing, grouping, anchoring, and Word-exact layout evidence beyond the current bounded shapes.
-- [ ] Extend structured comparison and redline generation one documented shape at a time while keeping effective-formatting and true move semantics explicit until their stable contracts exist.
-- [ ] Complete the remaining locale-sensitive, layout-dependent, complex-table, nested-instruction, and native `LISTNUM` field profiles without approximating unsupported results silently.
-- [ ] Broaden Word/HTML reciprocal fidelity for ruby, forms, nested tables and list blocks, figures, comments, headers, footers, sections, properties, and accessibility metadata; finish mapped CSS-value diagnostics and aggregate budgets for supported non-image resources.
-- [ ] Expand producer-provenanced review, redline, template, mail-merge, legacy DOC, Word/HTML, rendering, and performance corpora while preserving guarded loss reports and avoiding unsupported native DOC authoring claims.
 
 ## PDF, HTML, and image rendering
 

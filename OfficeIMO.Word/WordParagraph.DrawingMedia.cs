@@ -18,6 +18,7 @@ using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 using V = DocumentFormat.OpenXml.Vml;
 using W15 = DocumentFormat.OpenXml.Office2013.Word;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -86,17 +87,9 @@ namespace OfficeIMO.Word {
         public WordChart? Chart {
             get {
                 if (_run is not null) {
-                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
-                    if (drawing is not null) {
-                        if (drawing.Inline is not null) {
-                            if (drawing.Inline.Graphic is not null) {
-                                if (drawing.Inline.Graphic.GraphicData is not null) {
-                                    var chart = drawing.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().FirstOrDefault();
-                                    if (chart is not null) {
-                                        return new WordChart(_document, this, drawing);
-                                    }
-                                }
-                            }
+                    foreach (WordDrawing drawing in _run.ChildElements.OfType<WordDrawing>()) {
+                        if (drawing.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any()) {
+                            return new WordChart(_document, this, drawing);
                         }
                     }
                 }
@@ -231,8 +224,9 @@ namespace OfficeIMO.Word {
                     if (drawing is not null) {
                         bool hasPicture = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any();
                         bool hasTextBox = drawing.Descendants<Wps.TextBoxInfo2>().Any();
+                        bool hasShapeGroup = drawing.Descendants<Wpg.WordprocessingGroup>().Any();
                         bool hasShape = drawing.Descendants<Wps.WordprocessingShape>().Any();
-                        if (!hasPicture && !hasTextBox && hasShape) {
+                        if (!hasPicture && !hasTextBox && !hasShapeGroup && hasShape) {
                             return new WordShape(_document, _paragraph, _run, drawing);
                         }
                     }

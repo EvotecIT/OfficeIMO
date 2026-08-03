@@ -43,7 +43,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                var chartRef = _drawing.Inline?.Graphic?.GraphicData?.GetFirstChild<ChartReference>();
+                var chartRef = _drawing.Descendants<ChartReference>().FirstOrDefault();
                 string? id = chartRef?.Id?.Value;
                 if (string.IsNullOrWhiteSpace(id)) {
                     return null;

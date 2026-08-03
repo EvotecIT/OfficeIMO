@@ -69,7 +69,7 @@ namespace OfficeIMO.Word {
             AddExternalImage(document, paragraph, externalUri, width, height, shape.Value, compressionQuality.Value, description, wrapImage, allowFileUri);
         }
 
-        private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
+        private Graphic GetGraphic(double emuWidth, double emuHeight, uint picturePropertiesId, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
             var shapeProperties = new ShapeProperties();
             var transform2D = new Transform2D();
             var newOffset = new Offset() { X = 0L, Y = 0L };
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
             var graphicData = new GraphicData() { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" };
 
             var nvDrawingProps = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties() {
-                Id = (UInt32Value)0U,
+                Id = picturePropertiesId,
                 Name = fileName,
                 Description = description
             };
@@ -227,7 +227,7 @@ namespace OfficeIMO.Word {
             return graphic;
         }
 
-        private Inline GetInline(double emuWidth, double emuHeight, UInt32Value docPropertiesId, string imageName, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
+        private Inline GetInline(double emuWidth, double emuHeight, UInt32Value docPropertiesId, uint picturePropertiesId, string imageName, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
             var inline = new Inline() {
                 DistanceFromTop = (UInt32Value)0U,
                 DistanceFromBottom = (UInt32Value)0U,
@@ -246,7 +246,7 @@ namespace OfficeIMO.Word {
             });
             inline.Append(new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks() { NoChangeAspect = true }));
-            inline.Append(GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description, external));
+            inline.Append(GetGraphic(emuWidth, emuHeight, picturePropertiesId, fileName, relationshipId, shape, compressionQuality, description, external));
 
             return inline;
         }

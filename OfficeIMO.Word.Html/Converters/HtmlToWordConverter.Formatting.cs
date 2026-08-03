@@ -52,6 +52,7 @@ namespace OfficeIMO.Word.Html {
             internal string? BackgroundColorHex { get; set; }
             internal string? BackgroundBackdropColorHex { get; set; }
             internal bool PreserveHighlightOverBackground { get; set; }
+            internal bool Marked { get; set; }
             internal CapsStyle? Caps { get; set; }
             internal int? LetterSpacing { get; set; }
             internal TextTransform Transform { get; set; }
@@ -748,18 +749,28 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static string MergeStyles(string? parentStyle, string? childStyle) {
+        private string MergeStyles(string? parentStyle, IElement childElement) {
             var parser = new CssParser();
             var parent = parser.ParseDeclaration(parentStyle ?? string.Empty);
-            var child = parser.ParseDeclaration(childStyle ?? string.Empty);
+            var child = parser.ParseDeclaration(childElement.GetAttribute("style") ?? string.Empty);
+            Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)> direct =
+                CollectCssDeclarations(childElement, inheritedOnly: false);
+            if (_injectedInheritedCssProperties.TryGetValue(childElement, out HashSet<string>? existingInjected)) {
+                foreach (string propertyName in existingInjected) direct.Remove(propertyName);
+            }
             foreach (var prop in parent) {
                 if (IsPageBreakProperty(prop.Name) ||
                     IsContainerBoxProperty(prop.Name) ||
                     prop.Name.Equals("direction", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
-                if (string.IsNullOrEmpty(child.GetPropertyValue(prop.Name))) {
+                if (!direct.ContainsKey(prop.Name) && string.IsNullOrEmpty(child.GetPropertyValue(prop.Name))) {
                     child.SetProperty(prop.Name, prop.Value);
+                    if (!_injectedInheritedCssProperties.TryGetValue(childElement, out HashSet<string>? injected)) {
+                        injected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        _injectedInheritedCssProperties[childElement] = injected;
+                    }
+                    injected.Add(prop.Name);
                 }
             }
             return child.CssText;

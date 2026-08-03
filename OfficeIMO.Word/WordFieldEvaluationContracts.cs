@@ -2,6 +2,11 @@ namespace OfficeIMO.Word {
     internal enum WordFieldEvaluationReason {
         Default,
         ContainingResultReplaced,
+        ExternalLayoutRequired,
+        LocaleProfileUnsupported,
+        ComplexTableProfileUnsupported,
+        NestedInstruction,
+        ListNumberingProfileUnsupported,
         CallerProvidedDateTime,
         RuntimeClock
     }
@@ -38,6 +43,10 @@ namespace OfficeIMO.Word {
                 return WordFieldEvaluationBasis.NotEvaluated;
             }
 
+            if (reason == WordFieldEvaluationReason.ExternalLayoutRequired) {
+                return WordFieldEvaluationBasis.ExternalLayoutRequired;
+            }
+
             if (status == WordFieldUpdateStatus.Updated && reason == WordFieldEvaluationReason.RuntimeClock) {
                 return WordFieldEvaluationBasis.RuntimeClock;
             }
@@ -69,10 +78,15 @@ namespace OfficeIMO.Word {
             bool isLocked,
             WordFieldEvaluationReason reason) {
             if (status == WordFieldUpdateStatus.ParseError) return "FieldInstructionInvalid";
-            if (status == WordFieldUpdateStatus.Unsupported) return "FieldEvaluationUnsupported";
             if (reason == WordFieldEvaluationReason.ContainingResultReplaced) return "FieldContainingResultReplaced";
             if (isLocked) return "FieldLocked";
             if (status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) return "FieldRefreshDelegated";
+            if (reason == WordFieldEvaluationReason.ExternalLayoutRequired) return "FieldExternalLayoutRequired";
+            if (reason == WordFieldEvaluationReason.LocaleProfileUnsupported) return "FieldLocaleProfileUnsupported";
+            if (reason == WordFieldEvaluationReason.ComplexTableProfileUnsupported) return "FieldComplexTableProfileUnsupported";
+            if (reason == WordFieldEvaluationReason.NestedInstruction) return "FieldNestedInstructionUnsupported";
+            if (reason == WordFieldEvaluationReason.ListNumberingProfileUnsupported) return "FieldListNumberingProfileUnsupported";
+            if (status == WordFieldUpdateStatus.Unsupported) return "FieldEvaluationUnsupported";
             if (status == WordFieldUpdateStatus.Skipped) return "FieldSourceUnavailable";
             if (reason == WordFieldEvaluationReason.RuntimeClock) return "FieldUpdatedFromRuntimeClock";
             if (reason == WordFieldEvaluationReason.CallerProvidedDateTime) return "FieldUpdatedFromCallerDateTime";

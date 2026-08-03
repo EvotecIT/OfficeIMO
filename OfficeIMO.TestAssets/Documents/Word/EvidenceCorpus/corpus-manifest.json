@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "provenance": "Word/EvidenceCorpus/README.md",
+  "artifacts": [
+    {
+      "id": "review-word-comments-revisions",
+      "families": ["review"],
+      "path": "Word/PremiumGaps/ReviewRedline/word-authored-comments-revisions.docx",
+      "sha256": "a38c7eda0945ae399452a43aeb9f7a391a1a0f41351868e65776ce83b577594d",
+      "producer": "Microsoft Word desktop",
+      "oracles": ["package", "semantic", "microsoft-word"],
+      "lossPolicy": "guarded",
+      "sourceTest": "CompareStructureReportsWordComAuthoredReviewFixture",
+      "contract": "Imported comments and tracked revisions remain producer-backed review evidence."
+    },
+    {
+      "id": "redline-word-moves-formatting",
+      "families": ["redline"],
+      "path": "Word/PremiumGaps/ReviewRedline/word-authored-move-formatting-revisions.docx",
+      "sha256": "ea95eb9ac034bdfd931a0657e7ba6c81f73b6e198bf396cac22b0ef8639ac54c",
+      "producer": "Microsoft Word desktop",
+      "oracles": ["package", "semantic", "microsoft-word"],
+      "lossPolicy": "guarded",
+      "sourceTest": "CompareStructureReportsWordComAuthoredMoveAndFormattingRevisionFixture",
+      "contract": "Native move and formatting revisions are inspected as imported evidence; OfficeIMO does not synthesize true moves."
+    },
+    {
+      "id": "template-word-multisection",
+      "families": ["template", "mail-merge"],
+      "path": "Word/PremiumGaps/TemplateMailMerge/word-authored-multi-section-template.docx",
+      "sha256": "a75202c81fe9eb5de181d1ea593bceaef50953b10ff84604c48a22d8d279a198",
+      "producer": "Microsoft Word desktop",
+      "oracles": ["package", "semantic", "microsoft-word"],
+      "lossPolicy": "guarded",
+      "sourceTest": "Test_MailMerge_WordAuthoredMultiSectionTemplateCanBePreflightedAndBound",
+      "contract": "Word-authored sections and merge fields are preflighted before binding."
+    },
+    {
+      "id": "template-word-content-controls",
+      "families": ["template", "mail-merge"],
+      "path": "Word/PremiumGaps/TemplateMailMerge/word-authored-content-control-form.docx",
+      "sha256": "556d97dc2b0fa4c621e66377c1701a8f562aacf5bb72fcec53242b913b8f9244",
+      "producer": "Microsoft Word desktop",
+      "oracles": ["package", "semantic", "microsoft-word"],
+      "lossPolicy": "guarded",
+      "sourceTest": "Test_ContentControlForm_WordAuthoredFixtureCanValidateFillAndExtractValues",
+      "contract": "Word-authored content controls are validated, filled, and extracted through the typed workflow."
+    },
+    {
+      "id": "mail-merge-records",
+      "families": ["mail-merge"],
+      "path": "Word/EvidenceCorpus/mail-merge-records.json",
+      "sha256": "3d2225744fae00cb0fc49d7aa7d768f432263ce92b8514629534649cb944dcaf",
+      "hashMode": "canonical-text",
+      "producer": "OfficeIMO deterministic mail-merge corpus",
+      "oracles": ["semantic", "diagnostic"],
+      "lossPolicy": "strict-report",
+      "sourceTest": "Test_MailMerge_ExecutionReportFormatsSupportedPicturesAndReportsMissingValues",
+      "contract": "Deterministic nested and empty record shapes exercise merge reporting without hidden defaults."
+    },
+    {
+      "id": "legacy-doc-word-com",
+      "families": ["legacy-doc"],
+      "path": "LegacyDocCorpus/ComSimpleParagraphs.doc",
+      "sha256": "8308e70b4ad26b55ddebb32cc6ce41d17e489b678e1839f68b246b6080adf425",
+      "approvedReport": "LegacyDocCorpus/ComSimpleParagraphs.import-report.md",
+      "producer": "Microsoft Word COM",
+      "oracles": ["package", "semantic", "diagnostic", "microsoft-word"],
+      "lossPolicy": "guarded",
+      "sourceTest": "OfficeInteroperability_CorpusManifest_TracksAndLoadsWordArtifacts",
+      "contract": "The supported legacy DOC subset imports with an approved report; arbitrary native DOC authoring is not claimed."
+    },
+    {
+      "id": "word-html-reciprocal",
+      "families": ["word-html"],
+      "path": "Word/EvidenceCorpus/word-html-reciprocal.html",
+      "sha256": "47cb5f603addecf9865e21ee1b5317ef9316007f9ef602d4c0e5870697f6cf2c",
+      "hashMode": "canonical-text",
+      "producer": "OfficeIMO reciprocal HTML corpus",
+      "oracles": ["semantic", "diagnostic", "openxml-validation"],
+      "lossPolicy": "strict-report",
+      "sourceTest": "HtmlToWord_WordEvidenceCorpus_RoundTripsSupportedStructures",
+      "contract": "Ruby pairs, forms, nested tables and lists, figures, sections, headers, footers, and accessibility metadata are exercised together."
+    },
+    {
+      "id": "rendering-word-layout",
+      "families": ["rendering"],
+      "path": "Word/PremiumGaps/FieldEvaluation/word-generated-toc-table-text-box.docx",
+      "sha256": "7868c012af4b97b7f8f87c62c72b020c39ebab010247d6a13b40529a05d2bfda",
+      "producer": "Microsoft Word desktop",
+      "oracles": ["package", "semantic", "microsoft-word"],
+      "lossPolicy": "guarded",
+      "sourceTest": "UpdateFieldsReportsImportedWordGeneratedTocInsideTableTextBox",
+      "contract": "Layout-dependent table and text-box field evidence stays producer-authored and opt-in Word layout checks remain separate."
+    },
+    {
+      "id": "rendering-anchored-group-word-oracle",
+      "families": ["rendering"],
+      "generator": "OfficeIMO.Word anchored WPG shape-group generator",
+      "producer": "OfficeIMO.Word",
+      "oracles": ["package", "openxml-validation", "microsoft-word-layout"],
+      "lossPolicy": "bounded-contract",
+      "sourceTest": "DrawingLayout_AnchoredGroupMatchesDesktopWordGeometryWhenRequested",
+      "contract": "Desktop Word reports the expected position and size for the bounded anchored group; this does not generalize to arbitrary Word layout."
+    },
+    {
+      "id": "performance-word-workflows",
+      "families": ["performance"],
+      "path": "Word/EvidenceCorpus/performance-profile.json",
+      "sha256": "481ef63e4bac51a24c116e29d704c8dceed89f65fb971f7781fc336ce83c5de2",
+      "hashMode": "canonical-text",
+      "generator": "OfficeIMO.Word.Benchmarks WordWorkflowBenchmarks",
+      "producer": "OfficeIMO.Word.Benchmarks deterministic generator",
+      "oracles": ["semantic", "benchmark"],
+      "lossPolicy": "validated-setup",
+      "sourceTest": "WordWorkflowBenchmarks.ValidateWorkflowResults",
+      "contract": "The 100- and 1000-item benchmark cases validate semantics before reporting machine-specific timings."
+    }
+  ]
+}

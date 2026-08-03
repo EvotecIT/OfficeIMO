@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.Html {
         private readonly Dictionary<IElement, double> _computedFontSizePixels = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _computedBoxStyles = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _inlineStyles = new();
+        private readonly Dictionary<IElement, HashSet<string>> _injectedInheritedCssProperties = new();
         private readonly Dictionary<IElement, string?> _ancestorBlockBackgrounds = new();
         private readonly Dictionary<TableCell, int?> _tableCellContentWidths = new();
         internal int InlineStyleParseCount { get; private set; }
@@ -52,6 +53,7 @@ namespace OfficeIMO.Word.Html {
         private readonly Dictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
         private int _suppressAutoLinksDepth;
+        private int _figureSequence;
         private bool _pendingTopBookmark;
         private static readonly HttpClient _sharedHttpClient = new();
         private HttpClient _httpClient = _sharedHttpClient;
@@ -204,6 +206,7 @@ namespace OfficeIMO.Word.Html {
             _cssClassStyles.Clear();
             _stylesheetCache.Clear();
             _pendingTopBookmark = false;
+            _figureSequence = 0;
             _imageBytesUsed = 0;
             _remoteImageBytesFetched = 0;
             _cssBytesUsed = 0;

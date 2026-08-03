@@ -5,6 +5,58 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
+        private static IEnumerable<WordElement> ExpandTableCellBlockContent(WordTableCell cell) =>
+            ExpandTableCellBlockContent(cell.Document, cell._tableCell);
+
+        private static IEnumerable<WordElement> ExpandTableCellBlockContent(
+            WordDocument document,
+            OpenXmlCompositeElement container) {
+            foreach (OpenXmlElement child in container.ChildElements) {
+                if (child is Paragraph paragraph) {
+                    foreach (WordParagraph converted in WordSection.ConvertParagraphToWordParagraphs(document, paragraph)) {
+                        yield return converted;
+                    }
+                } else if (child is Table table) {
+                    yield return new WordTable(document, table);
+                } else if (child is OpenXmlCompositeElement blockWrapper && child is not TableCellProperties) {
+                    foreach (WordElement nested in ExpandTableCellBlockContent(document, blockWrapper)) {
+                        yield return nested;
+                    }
+                }
+            }
+        }
+
+        private static bool IsMarkedListItemTable(WordTable table) {
+            if (table._table.Parent is not SdtContentBlock content ||
+                content.Parent is not SdtBlock control) {
+                return false;
+            }
+            return string.Equals(
+                control.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value,
+                HtmlWordRoundTripMarkers.ListItemTableTag,
+                StringComparison.Ordinal);
+        }
+
+        private static bool IsFollowedByContinuingListParagraph(
+            IReadOnlyList<WordElement> elements,
+            int tableIndex) {
+            int? precedingNumberId = null;
+            for (int index = tableIndex - 1; index >= 0; index--) {
+                if (elements[index] is WordParagraph paragraph && DocumentTraversal.GetListInfo(paragraph) != null) {
+                    precedingNumberId = paragraph._listNumberId;
+                    break;
+                }
+            }
+            if (!precedingNumberId.HasValue) return false;
+
+            for (int index = tableIndex + 1; index < elements.Count; index++) {
+                if (elements[index] is not WordParagraph paragraph || paragraph.IsEmpty) continue;
+                return DocumentTraversal.GetListInfo(paragraph) != null &&
+                       paragraph._listNumberId == precedingNumberId;
+            }
+            return false;
+        }
+
 
             string? GetWidthCss(TableWidthUnitValues? type, int? width) {
                 if (type == null || width == null) {
