@@ -21,9 +21,7 @@ namespace OfficeIMO.Tests {
         public void Test_DigitalSignature_PackageAndMacroProjectCapabilitiesAreExplicitlySeparate() {
             Assert.True(WordSigningCapabilities.Package.IsSupported);
             Assert.Equal(WordSigningCapabilityKind.OpcPackage, WordSigningCapabilities.Package.Kind);
-            Assert.Equal(
-                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows),
-                WordSigningCapabilities.MacroProject.IsSupported);
+            Assert.True(WordSigningCapabilities.MacroProject.IsSupported);
             Assert.Equal(WordSigningCapabilityKind.VbaMacroProject, WordSigningCapabilities.MacroProject.Kind);
         }
 
@@ -1122,7 +1120,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(signatures.Details, detail => detail.Contains("origin.sigs", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(signatures.Details, detail => detail.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains("validated", signatures.Note, System.StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("macro-project signing", signatures.Note, System.StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("VBA macro-project signatures", signatures.Note, System.StringComparison.OrdinalIgnoreCase);
             }
         }
 
