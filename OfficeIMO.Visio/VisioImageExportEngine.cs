@@ -18,6 +18,19 @@ internal static class VisioImageExportEngine {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate();
+        return OfficeImageExportExecutionScope.Run(
+            options,
+            cancellationToken,
+            token => RenderCore(page, format, options, name, source, token));
+    }
+
+    private static OfficeImageExportResult RenderCore(
+        VisioPage page,
+        OfficeImageExportFormat format,
+        VisioImageExportOptions options,
+        string? name,
+        string? source,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
         double pixelsPerInch = ResolvePixelsPerInch(options.Scale);

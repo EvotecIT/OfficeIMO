@@ -27,7 +27,8 @@ namespace OfficeIMO.Word {
             bool hasApplicationSignatureMetadata,
             IReadOnlyList<OfficePackageSignaturePartInfo> signatureParts,
             IReadOnlyList<string> unsupportedDetails,
-            IReadOnlyList<string> details) {
+            IReadOnlyList<string> details,
+            bool inspectionResourceLimitExceeded = false) {
             HasDigitalSignatureOriginPart = hasDigitalSignatureOriginPart;
             OriginPartUri = originPartUri;
             OriginRelationshipId = originRelationshipId;
@@ -35,6 +36,7 @@ namespace OfficeIMO.Word {
             SignatureParts = signatureParts;
             UnsupportedDetails = unsupportedDetails;
             Details = details;
+            InspectionResourceLimitExceeded = inspectionResourceLimitExceeded;
         }
 
         /// <summary>Gets whether any package signature metadata was found.</summary>
@@ -60,6 +62,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets human-readable package details suitable for feature reports.</summary>
         public IReadOnlyList<string> Details { get; }
+
+        /// <summary>Gets whether inspection stopped before package-part traversal at a caller-owned resource limit.</summary>
+        internal bool InspectionResourceLimitExceeded { get; }
     }
 
     /// <summary>
@@ -177,7 +182,7 @@ namespace OfficeIMO.Word {
         /// <summary>Gets XML DSig transform algorithms declared on the reference.</summary>
         public IReadOnlyList<string> TransformAlgorithms { get; }
 
-        /// <summary>Gets bounded digest-verification status for simple package-part references.</summary>
+        /// <summary>Gets bounded digest-verification status after applying supported OPC transforms.</summary>
         public OfficePackageSignatureDigestVerificationStatus DigestVerificationStatus { get; }
 
         /// <summary>Gets a deterministic digest-verification detail or unsupported reason.</summary>
@@ -207,66 +212,135 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Inspects Open Packaging Convention signature metadata without performing cryptographic validation.
     /// </summary>
-    internal static class OfficePackageSignatureInspector {
+    internal static partial class OfficePackageSignatureInspector {
         internal static OfficePackageSignatureInfo Inspect(
             OpenXmlPackage package,
             DigitalSignatureOriginPart? originPart,
-            bool hasApplicationSignatureMetadata) {
+            bool hasApplicationSignatureMetadata,
+            byte[]? packageBytes = null,
+            int maxPackageParts = 10000,
+            long maxPartBytes = 256L * 1024 * 1024,
+            int maxSignedReferences = 4096,
+            long maxTotalDigestBytes = 512L * 1024 * 1024,
+            long maxSignatureBytes = 16L * 1024 * 1024,
+            int maxCertificates = 64,
+            long maxCertificateBytes = 4L * 1024 * 1024,
+            long maxTotalCertificateBytes = 64L * 1024 * 1024,
+            bool verifyDigests = true) {
             if (package == null) throw new ArgumentNullException(nameof(package));
+            if (maxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificates));
+            if (maxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificateBytes));
+            if (maxTotalCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalCertificateBytes));
+            if (maxSignedReferences <= 0) throw new ArgumentOutOfRangeException(nameof(maxSignedReferences));
+            if (maxTotalDigestBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalDigestBytes));
 
             var signatureParts = new List<OfficePackageSignaturePartInfo>();
             var unsupportedDetails = new List<string>();
             var details = new List<string>();
+            var certificateByteBudget = new OfficePackageCertificateByteBudget(maxTotalCertificateBytes);
             string? originRelationshipId = null;
 
-            if (originPart != null) {
-                originRelationshipId = FindRelationshipId(package.Parts, originPart);
-                string originDetail = "Digital signature origin part: " + originPart.Uri;
-                if (!string.IsNullOrWhiteSpace(originRelationshipId)) {
-                    originDetail += " (" + originRelationshipId + ")";
+            OfficePackageSignatureArchive? signatureArchive = null;
+            string? digestInspectionUnavailableDetail = null;
+            if (packageBytes != null) {
+                try {
+                    signatureArchive = new OfficePackageSignatureArchive(packageBytes, maxPackageParts, maxPartBytes);
+                } catch (OfficePackageSignatureResourceLimitException ex) {
+                    digestInspectionUnavailableDetail = "Digest inspection was not performed because the bounded OPC archive could not be opened: " + ex.Message;
+                    unsupportedDetails.Add(digestInspectionUnavailableDetail);
+                    details.Add("Digital-signature inspection stopped before Open XML package-part traversal because the bounded OPC archive could not be opened.");
+                    return new OfficePackageSignatureInfo(
+                        originPart != null,
+                        originPart?.Uri.ToString(),
+                        originRelationshipId: null,
+                        hasApplicationSignatureMetadata,
+                        Array.Empty<OfficePackageSignaturePartInfo>(),
+                        unsupportedDetails,
+                        details,
+                        inspectionResourceLimitExceeded: true);
+                } catch (Exception ex) when (ex is IOException || ex is InvalidDataException) {
+                    digestInspectionUnavailableDetail = "Digest inspection was not performed because the bounded OPC archive could not be opened: " + ex.Message;
+                    unsupportedDetails.Add(digestInspectionUnavailableDetail);
+                }
+            }
+
+            try {
+                if (originPart != null) {
+                    originRelationshipId = FindRelationshipId(package.Parts, originPart);
+                    string originDetail = "Digital signature origin part: " + originPart.Uri;
+                    if (!string.IsNullOrWhiteSpace(originRelationshipId)) {
+                        originDetail += " (" + originRelationshipId + ")";
+                    }
+
+                    details.Add(originDetail + ".");
+
+                    Dictionary<string, OpenXmlPart> packageParts = GetPackageParts(package);
+                    HashSet<string> packagePartUris = GetPackagePartUris(packageParts);
+                    if (signatureArchive != null) packagePartUris.UnionWith(signatureArchive.PartUris);
+                    foreach (XmlSignaturePart signaturePart in originPart.XmlSignatureParts) {
+                        var digestWorkBudget = new OfficePackageDigestWorkBudget(maxTotalDigestBytes);
+                        OfficePackageSignaturePartInfo partInfo = InspectSignaturePart(
+                            originPart,
+                            signaturePart,
+                            packagePartUris,
+                            packageParts,
+                            signatureArchive,
+                            digestInspectionUnavailableDetail,
+                            maxPartBytes,
+                            maxSignedReferences,
+                            digestWorkBudget,
+                            maxSignatureBytes,
+                            maxCertificates,
+                            maxCertificateBytes,
+                            certificateByteBudget,
+                            verifyDigests);
+                        signatureParts.Add(partInfo);
+                        details.Add(DescribeSignaturePart(partInfo));
+                        AddParseDetails(details, "Signature method", partInfo.SignatureMethodAlgorithm);
+                        AddParseDetails(details, "Digest methods", partInfo.DigestMethodAlgorithms);
+                        AddReferenceDetails(details, partInfo.SignedReferences);
+                        AddTimestampDetails(details, partInfo.Timestamps);
+                        AddParseDetails(details, "X509 subjects", partInfo.X509SubjectNames);
+                        unsupportedDetails.AddRange(partInfo.UnsupportedDetails);
+                    }
                 }
 
-                details.Add(originDetail + ".");
-
-                Dictionary<string, OpenXmlPart> packageParts = GetPackageParts(package);
-                HashSet<string> packagePartUris = GetPackagePartUris(packageParts);
-                foreach (XmlSignaturePart signaturePart in originPart.XmlSignatureParts) {
-                    OfficePackageSignaturePartInfo partInfo = InspectSignaturePart(originPart, signaturePart, packagePartUris, packageParts);
-                    signatureParts.Add(partInfo);
-                    details.Add(DescribeSignaturePart(partInfo));
-                    AddParseDetails(details, "Signature method", partInfo.SignatureMethodAlgorithm);
-                    AddParseDetails(details, "Digest methods", partInfo.DigestMethodAlgorithms);
-                    AddReferenceDetails(details, partInfo.SignedReferences);
-                    AddTimestampDetails(details, partInfo.Timestamps);
-                    AddParseDetails(details, "X509 subjects", partInfo.X509SubjectNames);
-                    unsupportedDetails.AddRange(partInfo.UnsupportedDetails);
+                if (hasApplicationSignatureMetadata) {
+                    details.Add("Extended application properties contain digital signature metadata.");
                 }
-            }
 
-            if (hasApplicationSignatureMetadata) {
-                details.Add("Extended application properties contain digital signature metadata.");
-            }
+                if (originPart != null || hasApplicationSignatureMetadata || signatureParts.Count > 0) {
+                    details.Add("Signature metadata was inspected independently of caller trust policy.");
+                }
 
-            if (originPart != null || hasApplicationSignatureMetadata || signatureParts.Count > 0) {
-                unsupportedDetails.Add("Package signing and cryptographic signature validation are not implemented by this metadata-only package inspection.");
-                details.Add("Signature validation status: not validated by OfficeIMO.");
+                return new OfficePackageSignatureInfo(
+                    originPart != null,
+                    originPart?.Uri.ToString(),
+                    originRelationshipId,
+                    hasApplicationSignatureMetadata,
+                    signatureParts,
+                    unsupportedDetails.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+                    details.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+            } finally {
+                signatureArchive?.Dispose();
             }
-
-            return new OfficePackageSignatureInfo(
-                originPart != null,
-                originPart?.Uri.ToString(),
-                originRelationshipId,
-                hasApplicationSignatureMetadata,
-                signatureParts,
-                unsupportedDetails.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
-                details.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
         }
 
         private static OfficePackageSignaturePartInfo InspectSignaturePart(
             DigitalSignatureOriginPart originPart,
             XmlSignaturePart signaturePart,
             HashSet<string> packagePartUris,
-            IReadOnlyDictionary<string, OpenXmlPart> packageParts) {
+            IReadOnlyDictionary<string, OpenXmlPart> packageParts,
+            OfficePackageSignatureArchive? signatureArchive,
+            string? digestInspectionUnavailableDetail,
+            long maxPartBytes,
+            int maxSignedReferences,
+            OfficePackageDigestWorkBudget digestWorkBudget,
+            long maxSignatureBytes,
+            int maxCertificates,
+            long maxCertificateBytes,
+            OfficePackageCertificateByteBudget certificateByteBudget,
+            bool verifyDigests) {
             var unsupportedDetails = new List<string>();
             string? relationshipId = FindRelationshipId(originPart.Parts, signaturePart);
             long? length = null;
@@ -281,9 +355,17 @@ namespace OfficeIMO.Word {
                 using Stream stream = signaturePart.GetStream(FileMode.Open, FileAccess.Read);
                 if (stream.CanSeek) {
                     length = stream.Length;
+                    if (length.Value > maxSignatureBytes) {
+                        throw new InvalidDataException("The XML signature part exceeds the " + maxSignatureBytes + " byte inspection limit.");
+                    }
                 }
 
-                XDocument xml = XDocument.Load(stream);
+                using var reader = System.Xml.XmlReader.Create(stream, new System.Xml.XmlReaderSettings {
+                    DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                    XmlResolver = null,
+                    MaxCharactersInDocument = maxSignatureBytes
+                });
+                XDocument xml = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
                 XNamespace ds = "http://www.w3.org/2000/09/xmldsig#";
                 signatureMethod = xml.Descendants(ds + "SignatureMethod")
                     .Select(element => (string?)element.Attribute("Algorithm"))
@@ -294,21 +376,42 @@ namespace OfficeIMO.Word {
                     .Select(value => value!)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
-                signedReferences.AddRange(xml.Descendants(ds + "Reference")
-                    .Select(reference => InspectSignedReference(reference, ds, packagePartUris, packageParts)));
+                IReadOnlyList<XElement> referencesToInspect = GetAuthenticatedReferences(
+                    xml,
+                    ds,
+                    unsupportedDetails,
+                    maxSignedReferences,
+                    out int authenticatedReferenceCount);
+                ValidateDigestWorkBudget(
+                    referencesToInspect,
+                    authenticatedReferenceCount,
+                    signatureArchive,
+                    maxSignedReferences,
+                    digestWorkBudget);
+                signedReferences.AddRange(referencesToInspect
+                    .Select(reference => InspectSignedReference(reference, ds, packagePartUris, packageParts, signatureArchive, digestInspectionUnavailableDetail, maxPartBytes, verifyDigests)));
                 timestamps.AddRange(ReadSignatureTimestamps(xml));
                 unsupportedDetails.AddRange(signedReferences
                     .Where(reference => reference.DigestVerificationStatus == OfficePackageSignatureDigestVerificationStatus.Unsupported)
                     .Select(reference => reference.DigestVerificationDetail)
                     .Where(detail => !string.IsNullOrWhiteSpace(detail))
                     .Select(detail => detail!));
-                subjectNames.AddRange(xml.Descendants(ds + "X509SubjectName")
+                IReadOnlyList<XElement> x509DataElements = GetSignerX509DataElements(xml, ds);
+                subjectNames.AddRange(x509DataElements.SelectMany(element => element.Elements(ds + "X509SubjectName"))
                     .Select(element => element.Value.Trim())
                     .Where(value => value.Length > 0)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
-                subjectNames.AddRange(ReadEmbeddedCertificateSubjects(xml, ds, signaturePart.Uri.ToString(), unsupportedDetails));
-                subjectNames.AddRange(ReadRelatedCertificateSubjects(signaturePart, unsupportedDetails));
+                IReadOnlyList<XElement> embeddedCertificates = x509DataElements
+                    .SelectMany(element => element.Elements(ds + "X509Certificate"))
+                    .ToArray();
+                int embeddedCertificateCount = embeddedCertificates.Count;
+                int relatedCertificateCount = signaturePart.Parts.Count(relationship => IsSignatureCertificatePart(relationship.OpenXmlPart));
+                if (embeddedCertificateCount + relatedCertificateCount > maxCertificates) {
+                    throw new InvalidDataException("The XML signature exceeds the " + maxCertificates + " certificate limit.");
+                }
+                subjectNames.AddRange(ReadEmbeddedCertificateSubjects(embeddedCertificates, signaturePart.Uri.ToString(), maxCertificateBytes, certificateByteBudget, unsupportedDetails));
+                subjectNames.AddRange(ReadRelatedCertificateSubjects(signaturePart, maxCertificateBytes, certificateByteBudget, unsupportedDetails));
                 timestamps = timestamps
                     .OrderBy(timestamp => timestamp.Kind, StringComparer.OrdinalIgnoreCase)
                     .ThenBy(timestamp => timestamp.Value, StringComparer.OrdinalIgnoreCase)
@@ -317,7 +420,7 @@ namespace OfficeIMO.Word {
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
                     .ToList();
-            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Xml.XmlException || ex is InvalidOperationException) {
+            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Xml.XmlException || ex is InvalidOperationException || ex is InvalidDataException) {
                 parseError = ex.Message;
                 unsupportedDetails.Add("Unable to parse XML signature part " + signaturePart.Uri + ": " + ex.Message);
             }
@@ -334,6 +437,101 @@ namespace OfficeIMO.Word {
                 subjectNames.ToArray(),
                 parseError,
                 unsupportedDetails.ToArray());
+        }
+
+        private static IReadOnlyList<XElement> GetAuthenticatedReferences(
+            XDocument xml,
+            XNamespace ds,
+            List<string> unsupportedDetails,
+            int maxSignedReferences,
+            out int authenticatedReferenceCount) {
+            XElement? signedInfo = xml.Root?.Element(ds + "SignedInfo");
+            List<XElement> signedInfoReferences = signedInfo?.Elements(ds + "Reference").ToList()
+                ?? new List<XElement>();
+            authenticatedReferenceCount = signedInfoReferences.Count;
+            if (authenticatedReferenceCount > maxSignedReferences) {
+                throw new InvalidDataException("The XML signature contains more than " + maxSignedReferences + " authenticated references.");
+            }
+
+            var authenticatedManifests = new HashSet<XElement>();
+            XElement[] allManifests = xml.Descendants(ds + "Manifest").ToArray();
+            Dictionary<string, XElement?> elementsById = BuildUniqueElementIdIndex(xml);
+
+            foreach (XElement signedReference in signedInfoReferences) {
+                string uri = ((string?)signedReference.Attribute("URI"))?.Trim() ?? string.Empty;
+                if (uri.Length == 0) {
+                    continue;
+                }
+                if (!uri.StartsWith("#", StringComparison.Ordinal) || uri.Length == 1) continue;
+
+                string id = uri.Substring(1);
+                if (!elementsById.TryGetValue(id, out XElement? target) || target == null) continue;
+                XElement[] targetManifests = target
+                    .DescendantsAndSelf()
+                    .Where(element => element.Name == ds + "Manifest")
+                    .ToArray();
+                if (targetManifests.Length == 0) continue;
+                if (!FragmentReferencePreservesCompleteSubtree(signedReference, target, ds)) {
+                    unsupportedDetails.Add("Ignored package references from an XML DSig Manifest because its SignedInfo fragment reference uses a transform that does not preserve the complete target subtree.");
+                    continue;
+                }
+                foreach (XElement manifest in targetManifests) {
+                    if (!authenticatedManifests.Add(manifest)) continue;
+                    authenticatedReferenceCount = checked(authenticatedReferenceCount + manifest.Elements(ds + "Reference").Count());
+                    if (authenticatedReferenceCount > maxSignedReferences) {
+                        throw new InvalidDataException("The XML signature contains more than " + maxSignedReferences + " authenticated references.");
+                    }
+                }
+            }
+
+            if (allManifests.Any(manifest => !authenticatedManifests.Contains(manifest))) {
+                unsupportedDetails.Add("Ignored package references from an XML DSig Manifest that is not authenticated by SignedInfo.");
+            }
+
+            List<XElement> result = signedInfoReferences
+                .Where(reference => NormalizePackagePartReference((string?)reference.Attribute("URI")) != null)
+                .Concat(authenticatedManifests.SelectMany(manifest => manifest.Elements(ds + "Reference")))
+                .Distinct()
+                .ToList();
+            return result.Count > 0 ? result : signedInfoReferences;
+        }
+
+        private static Dictionary<string, XElement?> BuildUniqueElementIdIndex(XDocument xml) {
+            var elementsById = new Dictionary<string, XElement?>(StringComparer.Ordinal);
+            if (xml.Root == null) return elementsById;
+
+            foreach (XElement element in xml.Root.DescendantsAndSelf()) {
+                foreach (XAttribute attribute in element.Attributes().Where(attribute =>
+                             attribute.Name.Namespace == XNamespace.None &&
+                             (attribute.Name.LocalName == "Id" || attribute.Name.LocalName == "ID" || attribute.Name.LocalName == "id"))) {
+                    string id = attribute.Value;
+                    if (!elementsById.TryGetValue(id, out XElement? existing)) {
+                        elementsById[id] = element;
+                    } else if (!ReferenceEquals(existing, element)) {
+                        elementsById[id] = null;
+                    }
+                }
+            }
+            return elementsById;
+        }
+
+        private static bool FragmentReferencePreservesCompleteSubtree(
+            XElement reference,
+            XElement target,
+            XNamespace ds) {
+            XElement? transforms = reference.Element(ds + "Transforms");
+            if (transforms == null) return true;
+
+            return transforms.Elements(ds + "Transform").All(transform => {
+                string? algorithm = ((string?)transform.Attribute("Algorithm"))?.Trim();
+                if (algorithm == "http://www.w3.org/2000/09/xmldsig#enveloped-signature") {
+                    return !target.DescendantsAndSelf(ds + "Signature").Any();
+                }
+                return algorithm == "http://www.w3.org/TR/2001/REC-xml-c14n-20010315" ||
+                       algorithm == "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments" ||
+                       algorithm == "http://www.w3.org/2001/10/xml-exc-c14n#" ||
+                       algorithm == "http://www.w3.org/2001/10/xml-exc-c14n#WithComments";
+            });
         }
 
         private static IReadOnlyList<OfficePackageSignatureTimestampInfo> ReadSignatureTimestamps(XDocument xml) {
@@ -380,89 +578,15 @@ namespace OfficeIMO.Word {
             return value!.Trim();
         }
 
-        private static IEnumerable<string> ReadEmbeddedCertificateSubjects(
-            XDocument xml,
-            XNamespace ds,
-            string signaturePartUri,
-            List<string> unsupportedDetails) {
-            foreach (XElement element in xml.Descendants(ds + "X509Certificate")) {
-                string certificateText = element.Value.Trim();
-                if (certificateText.Length == 0) {
-                    continue;
-                }
-
-                byte[] rawCertificate;
-                try {
-                    rawCertificate = Convert.FromBase64String(certificateText);
-                } catch (FormatException ex) {
-                    unsupportedDetails.Add("Unable to parse X509Certificate in XML signature part " + signaturePartUri + ": " + ex.Message);
-                    continue;
-                }
-
-                string? subject = ReadCertificateSubject(rawCertificate, "embedded X509Certificate in XML signature part " + signaturePartUri, unsupportedDetails);
-                if (!string.IsNullOrWhiteSpace(subject)) {
-                    yield return subject!;
-                }
-            }
-        }
-
-        private static IEnumerable<string> ReadRelatedCertificateSubjects(XmlSignaturePart signaturePart, List<string> unsupportedDetails) {
-            foreach (IdPartPair relationship in signaturePart.Parts) {
-                OpenXmlPart relatedPart = relationship.OpenXmlPart;
-                if (!IsSignatureCertificatePart(relatedPart)) {
-                    continue;
-                }
-
-                byte[] rawCertificate;
-                try {
-                    using Stream stream = relatedPart.GetStream(FileMode.Open, FileAccess.Read);
-                    using var memoryStream = new MemoryStream();
-                    stream.CopyTo(memoryStream);
-                    rawCertificate = memoryStream.ToArray();
-                } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException) {
-                    unsupportedDetails.Add("Unable to read signature certificate part " + relatedPart.Uri + ": " + ex.Message);
-                    continue;
-                }
-
-                string? subject = ReadCertificateSubject(rawCertificate, "signature certificate part " + relatedPart.Uri, unsupportedDetails);
-                if (!string.IsNullOrWhiteSpace(subject)) {
-                    yield return subject!;
-                }
-            }
-        }
-
-        private static bool IsSignatureCertificatePart(OpenXmlPart part) {
-            return part.RelationshipType.EndsWith("/digital-signature/certificate", StringComparison.OrdinalIgnoreCase) ||
-                   part.Uri.ToString().EndsWith(".cer", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static string? ReadCertificateSubject(byte[] rawCertificate, string source, List<string> unsupportedDetails) {
-            try {
-                using X509Certificate2 certificate = LoadCertificate(rawCertificate);
-                string subjectName = certificate.SubjectName.Name ?? certificate.Subject;
-                if (!string.IsNullOrWhiteSpace(subjectName)) {
-                    return subjectName.Trim();
-                }
-            } catch (CryptographicException ex) {
-                unsupportedDetails.Add("Unable to parse X509 certificate from " + source + ": " + ex.Message);
-            }
-
-            return null;
-        }
-
-        private static X509Certificate2 LoadCertificate(byte[] rawCertificate) {
-#if NET9_0_OR_GREATER
-            return X509CertificateLoader.LoadCertificate(rawCertificate);
-#else
-            return new X509Certificate2(rawCertificate);
-#endif
-        }
-
         private static OfficePackageSignatureReferenceInfo InspectSignedReference(
             XElement reference,
             XNamespace ds,
             HashSet<string> packagePartUris,
-            IReadOnlyDictionary<string, OpenXmlPart> packageParts) {
+            IReadOnlyDictionary<string, OpenXmlPart> packageParts,
+            OfficePackageSignatureArchive? signatureArchive,
+            string? digestInspectionUnavailableDetail,
+            long maxPartBytes,
+            bool verifyDigest) {
             string? uri = ((string?)reference.Attribute("URI"))?.Trim();
             string? digestMethod = reference.Element(ds + "DigestMethod")?.Attribute("Algorithm")?.Value;
             string? digestValue = reference.Element(ds + "DigestValue")?.Value.Trim();
@@ -480,7 +604,12 @@ namespace OfficeIMO.Word {
                 digestMethod,
                 digestValue,
                 transformAlgorithms,
-                packageParts);
+                packageParts,
+                reference,
+                signatureArchive,
+                digestInspectionUnavailableDetail,
+                maxPartBytes,
+                verifyDigest);
 
             return new OfficePackageSignatureReferenceInfo(
                 uri,
@@ -500,7 +629,12 @@ namespace OfficeIMO.Word {
             string? digestMethod,
             string? digestValue,
             IReadOnlyList<string> transformAlgorithms,
-            IReadOnlyDictionary<string, OpenXmlPart> packageParts) {
+            IReadOnlyDictionary<string, OpenXmlPart> packageParts,
+            XElement reference,
+            OfficePackageSignatureArchive? signatureArchive,
+            string? digestInspectionUnavailableDetail,
+            long maxPartBytes,
+            bool verifyDigest) {
             if (string.IsNullOrWhiteSpace(targetPartUri) || targetPartExists != true) {
                 return DigestVerificationResult.NotChecked(null);
             }
@@ -509,9 +643,32 @@ namespace OfficeIMO.Word {
                 return DigestVerificationResult.NotChecked(null);
             }
 
+            if (!verifyDigest) {
+                return DigestVerificationResult.NotChecked(
+                    "Digest verification was deferred because this call inspects signature metadata only.");
+            }
+
             string normalizedTargetPartUri = targetPartUri!;
             string normalizedDigestMethod = digestMethod!;
             string normalizedDigestValue = digestValue!;
+
+            if (!string.IsNullOrWhiteSpace(digestInspectionUnavailableDetail)) {
+                return DigestVerificationResult.Unsupported(digestInspectionUnavailableDetail!);
+            }
+
+            if (signatureArchive != null) {
+                OfficePackageDigestResult transformed = signatureArchive.VerifyReference(reference, maxPartBytes);
+                switch (transformed.Status) {
+                    case OfficePackageSignatureDigestVerificationStatus.Passed:
+                        return DigestVerificationResult.Passed(transformed.Detail);
+                    case OfficePackageSignatureDigestVerificationStatus.Failed:
+                        return DigestVerificationResult.Failed(transformed.Detail);
+                    case OfficePackageSignatureDigestVerificationStatus.Unsupported:
+                        return DigestVerificationResult.Unsupported(transformed.Detail);
+                    default:
+                        return DigestVerificationResult.NotChecked(transformed.Detail);
+                }
+            }
 
             if (transformAlgorithms.Count > 0) {
                 return DigestVerificationResult.Unsupported("Digest verification for " + normalizedTargetPartUri + " was not checked because the reference declares XML DSig transforms.");
@@ -536,6 +693,9 @@ namespace OfficeIMO.Word {
             byte[] actualDigest;
             try {
                 using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                if (stream.CanSeek && stream.Length > maxPartBytes) {
+                    return DigestVerificationResult.Unsupported("Digest verification for " + normalizedTargetPartUri + " was not checked because the package part exceeds the " + maxPartBytes + " byte limit.");
+                }
                 using HashAlgorithm hashAlgorithm = hashFactory();
                 actualDigest = hashAlgorithm.ComputeHash(stream);
             } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException || ex is CryptographicException) {
@@ -586,7 +746,7 @@ namespace OfficeIMO.Word {
 
             int fragmentIndex = trimmed.IndexOf('#');
             if (fragmentIndex >= 0) {
-                trimmed = trimmed.Substring(0, fragmentIndex);
+                return null;
             }
 
             int queryIndex = trimmed.IndexOf('?');

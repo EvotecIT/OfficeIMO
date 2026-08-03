@@ -59,6 +59,15 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public string? StencilSourcePackagePath { get; internal set; }
 
+        /// <summary>Gets whether OfficeIMO has typed support for the source stencil, when known.</summary>
+        public bool? StencilIsSupported { get; internal set; }
+
+        /// <summary>Gets the caller-supplied source stencil license or notice, when known.</summary>
+        public string? StencilSourceLicense { get; internal set; }
+
+        /// <summary>Gets the caller-supplied source stencil attribution, when known.</summary>
+        public string? StencilSourceAttribution { get; internal set; }
+
         /// <summary>
         /// Gets searchable stencil keywords associated with this master.
         /// </summary>

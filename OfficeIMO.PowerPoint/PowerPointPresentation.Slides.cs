@@ -112,6 +112,10 @@ namespace OfficeIMO.PowerPoint {
 
             SlideId slideId = slideIdList.Elements<SlideId>().ElementAt(index);
             string? relIdValue = PowerPointUtils.GetRelationshipIdValue(slideId);
+            PowerPointSlide removedSlide = _slides[index];
+            GetCommentAuthorIdsForSlideRemoval(removedSlide,
+                out uint[] removedClassicAuthorIds,
+                out string[] removedModernAuthorIds);
 
             _slides.RemoveAt(index);
             slideId.Remove();
@@ -155,14 +159,14 @@ namespace OfficeIMO.PowerPoint {
                     _document!, referencedMedia);
             }
 
+            ReconcileCommentAuthorsAfterSlideRemoval(
+                removedClassicAuthorIds, removedModernAuthorIds);
+
             SyncSectionsWithSlides();
             PresentationRoot.Save();
         }
 
         private void RemoveCustomShowLinks(uint customShowId) {
-            string prefix = "ppaction://customshow?id="
-                + customShowId.ToString(
-                    System.Globalization.CultureInfo.InvariantCulture);
             var visited = new HashSet<OpenXmlPart>();
             var pending = new Stack<OpenXmlPart>();
             pending.Push(_presentationPart);
@@ -175,8 +179,9 @@ namespace OfficeIMO.PowerPoint {
                 OpenXmlPartRootElement? root = part.RootElement;
                 if (root == null) continue;
                 A.HyperlinkType[] links = root.Descendants<A.HyperlinkType>()
-                    .Where(link => IsCustomShowAction(
-                        link.Action?.Value, prefix))
+                    .Where(link => TryParseCustomShowAction(
+                            link.Action?.Value, out uint targetId, out _)
+                        && targetId == customShowId)
                     .ToArray();
                 if (links.Length == 0) continue;
                 string[] soundRelationshipIds = links
@@ -186,20 +191,23 @@ namespace OfficeIMO.PowerPoint {
                     .Cast<string>()
                     .Distinct(StringComparer.Ordinal)
                     .ToArray();
+                string[] actionRelationshipIds = links
+                    .Select(link => link.Id?.Value)
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Cast<string>()
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray();
                 foreach (A.HyperlinkType link in links) link.Remove();
                 root.Save();
+                foreach (string relationshipId in actionRelationshipIds) {
+                    RemoveActionRelationshipIfUnused(part, relationshipId);
+                }
                 foreach (string relationshipId in soundRelationshipIds) {
                     PowerPointEmbeddedSound.RemoveIfUnused(part,
                         relationshipId);
                 }
             }
         }
-
-        private static bool IsCustomShowAction(string? action,
-            string expectedPrefix) => action != null
-            && action.StartsWith(expectedPrefix, StringComparison.Ordinal)
-            && (action.Length == expectedPrefix.Length
-                || action[expectedPrefix.Length] == '&');
 
         private void RemoveInboundSlideLinks(SlidePart targetSlidePart) {
             var visited = new HashSet<OpenXmlPart>();
@@ -412,7 +420,6 @@ namespace OfficeIMO.PowerPoint {
                 var mediaPartMap = new Dictionary<DataPart, MediaDataPart>();
                 for (int offset = 0; offset < importSources.Count; offset++) {
                     PowerPointSlide sourceSlide = importSources[offset];
-                    sourceSlide.Save();
                     Slide sourceRoot = sourceSlide.SlidePart.Slide
                         ?? throw new InvalidOperationException(
                             "Source slide is missing its slide definition.");
@@ -531,7 +538,6 @@ namespace OfficeIMO.PowerPoint {
         private static void ValidateSlideImportSources(
             IEnumerable<PowerPointSlide> importSources) {
             foreach (PowerPointSlide sourceSlide in importSources) {
-                sourceSlide.Save();
                 _ = sourceSlide.SlidePart.Slide
                     ?? throw new InvalidOperationException(
                         "Source slide is missing its slide definition.");

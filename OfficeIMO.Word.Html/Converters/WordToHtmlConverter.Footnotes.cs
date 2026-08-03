@@ -30,11 +30,12 @@ namespace OfficeIMO.Word.Html {
                         footnoteMap[id] = number;
                         footnotes.Add((number, note));
                     }
-                    var sup = htmlDoc.CreateElement("sup");
-                    var a = htmlDoc.CreateElement("a");
-                    a.SetAttribute("href", $"#fn{number}");
-                    a.SetAttribute("id", $"fnref{number}");
-                    a.TextContent = number.ToString();
+                    var sup = CreateOutputElement(htmlDoc, "sup");
+                    var a = CreateOutputElement(htmlDoc, "a");
+                    string numberText = number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    SetOutputAttribute(htmlDoc, a, "href", "#fn" + numberText, "FootnoteReference:href");
+                    SetOutputAttribute(htmlDoc, a, "id", "fnref" + numberText, "FootnoteReference:id");
+                    SetOutputText(htmlDoc, a, numberText, "FootnoteReference:text");
                     sup.AppendChild(a);
                     nodes.Add(sup);
                 }
@@ -55,11 +56,12 @@ namespace OfficeIMO.Word.Html {
                         endnoteMap[id] = number;
                         endnotes.Add((number, note));
                     }
-                    var sup = htmlDoc.CreateElement("sup");
-                    var a = htmlDoc.CreateElement("a");
-                    a.SetAttribute("href", $"#en{number}");
-                    a.SetAttribute("id", $"enref{number}");
-                    a.TextContent = number.ToString();
+                    var sup = CreateOutputElement(htmlDoc, "sup");
+                    var a = CreateOutputElement(htmlDoc, "a");
+                    string numberText = number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    SetOutputAttribute(htmlDoc, a, "href", "#en" + numberText, "EndnoteReference:href");
+                    SetOutputAttribute(htmlDoc, a, "id", "enref" + numberText, "EndnoteReference:id");
+                    SetOutputText(htmlDoc, a, numberText, "EndnoteReference:text");
                     sup.AppendChild(a);
                     nodes.Add(sup);
                 }
@@ -127,8 +129,8 @@ namespace OfficeIMO.Word.Html {
             }
 
             string text = string.Join(string.Empty, noteParagraphs ?? Enumerable.Empty<string?>());
-            var abbr = htmlDoc.CreateElement("abbr");
-            abbr.SetAttribute("title", text);
+            var abbr = CreateOutputElement(htmlDoc, "abbr");
+            SetOutputAttribute(htmlDoc, abbr, "title", text, "NoteAbbreviation:title");
             var lastNode = nodes[nodes.Count - 1];
             abbr.AppendChild(lastNode);
             nodes[nodes.Count - 1] = abbr;
@@ -145,15 +147,15 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var footSection = htmlDoc.CreateElement("section");
-            footSection.SetAttribute("class", "footnotes");
-            var hr = htmlDoc.CreateElement("hr");
+            var footSection = CreateOutputElement(htmlDoc, "section");
+            SetOutputAttribute(htmlDoc, footSection, "class", "footnotes", "Footnotes:class");
+            var hr = CreateOutputElement(htmlDoc, "hr");
             footSection.AppendChild(hr);
-            var ol = htmlDoc.CreateElement("ol");
+            var ol = CreateOutputElement(htmlDoc, "ol");
             foreach (var (number, note) in footnotes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var li = htmlDoc.CreateElement("li");
-                li.SetAttribute("id", $"fn{number}");
+                var li = CreateOutputElement(htmlDoc, "li");
+                SetOutputAttribute(htmlDoc, li, "id", "fn" + number.ToString(System.Globalization.CultureInfo.InvariantCulture), "Footnote:id");
                 AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1).Select(r => r.Text));
                 ol.AppendChild(li);
             }
@@ -171,15 +173,15 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var endSection = htmlDoc.CreateElement("section");
-            endSection.SetAttribute("class", "endnotes");
-            var hr = htmlDoc.CreateElement("hr");
+            var endSection = CreateOutputElement(htmlDoc, "section");
+            SetOutputAttribute(htmlDoc, endSection, "class", "endnotes", "Endnotes:class");
+            var hr = CreateOutputElement(htmlDoc, "hr");
             endSection.AppendChild(hr);
-            var ol = htmlDoc.CreateElement("ol");
+            var ol = CreateOutputElement(htmlDoc, "ol");
             foreach (var (number, note) in endnotes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var li = htmlDoc.CreateElement("li");
-                li.SetAttribute("id", $"en{number}");
+                var li = CreateOutputElement(htmlDoc, "li");
+                SetOutputAttribute(htmlDoc, li, "id", "en" + number.ToString(System.Globalization.CultureInfo.InvariantCulture), "Endnote:id");
                 AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1).Select(r => r.Text));
                 ol.AppendChild(li);
             }
@@ -194,8 +196,8 @@ namespace OfficeIMO.Word.Html {
             }
 
             foreach (var text in paragraphs) {
-                var p = htmlDoc.CreateElement("p");
-                p.TextContent = text ?? string.Empty;
+                var p = CreateOutputElement(htmlDoc, "p");
+                SetOutputText(htmlDoc, p, text ?? string.Empty, "NoteParagraph:text");
                 li.AppendChild(p);
             }
         }

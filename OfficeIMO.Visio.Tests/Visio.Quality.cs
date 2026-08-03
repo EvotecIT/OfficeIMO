@@ -192,6 +192,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void VisualQualityAnalyzerSkipsUnmaterializedCurvedRoutes() {
+            VisioDocument document = VisioDocument.Create(
+                Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("CurvedRoute", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape obstacle = page.AddRectangle(3, 2, 0.8, 0.8, "Obstacle");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector curved = page.AddConnector(source, target,
+                ConnectorKind.Curved, VisioSide.Right, VisioSide.Left);
+            VisioShape labelSource = page.AddRectangle(1, 0.6, 0.8, 0.5,
+                "Label source");
+            VisioShape labelTarget = page.AddRectangle(5, 0.6, 0.8, 0.5,
+                "Label target");
+            VisioConnector labeled = page.AddConnector(labelSource,
+                    labelTarget, ConnectorKind.Straight, VisioSide.Right,
+                    VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
+            labeled.Label = "Preserved curve";
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues =
+                page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                    CheckShapeOverlaps = false,
+                    CheckConnectorLabelShapeOverlaps = false
+                });
+
+            Assert.Empty(curved.Waypoints);
+            Assert.DoesNotContain(issues, issue =>
+                issue.Kind == "ConnectorCrossesShape"
+                && issue.ShapeId == obstacle.Id
+                && issue.ConnectorId == curved.Id);
+            Assert.DoesNotContain(issues, issue =>
+                issue.Kind == "ConnectorLabelCrossesConnector"
+                && issue.ConnectorId == labeled.Id
+                && issue.OtherConnectorId == curved.Id);
+        }
+
+        [Fact]
         public void VisualQualityAnalyzerReportsConnectorLabelOverlappingUserTextBoxes() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("UserTextLabel", 7, 5);

@@ -1,11 +1,16 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
+using System.Buffers.Binary;
+using System.Text;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
         private void StoreCellFast(XlsbRecordSlice record) {
-            var cursor = record.CreateCursor();
-            int column = cursor.ReadInt32();
-            uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
+            byte[] bytes = record.Bytes;
+            int position = record.PayloadOffset;
+            int column = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(position, sizeof(int)));
+            uint styleIndex = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(position + sizeof(int), sizeof(uint)))
+                & 0x00FFFFFFU;
+            position += sizeof(int) + sizeof(uint);
 
             int ordinal = column - _firstColumn;
             if (ordinal < 0 || ordinal >= FieldCount) {
@@ -18,52 +23,73 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     _kinds[ordinal] = XlsbTabularValueKind.Empty;
                     break;
                 case BrtCellRk:
-                    StoreNumber(ordinal, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), styleIndex);
+                    StoreNumber(
+                        ordinal,
+                        BiffRkNumberReader.ReadRkNumber(
+                            BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(position, sizeof(uint)))),
+                        styleIndex);
                     break;
                 case BrtCellError:
                     _kinds[ordinal] = XlsbTabularValueKind.Error;
-                    _strings[ordinal] = BiffErrorValue.ToText(cursor.ReadByte());
+                    _strings[ordinal] = BiffErrorValue.ToText(bytes[position]);
                     break;
                 case BrtCellBool:
                     _kinds[ordinal] = XlsbTabularValueKind.Boolean;
-                    _booleans[ordinal] = cursor.ReadByte() != 0;
+                    _booleans[ordinal] = bytes[position] != 0;
                     break;
                 case BrtCellReal:
-                    StoreNumber(ordinal, cursor.ReadDouble(), styleIndex);
+                    StoreNumber(
+                        ordinal,
+                        BitConverter.Int64BitsToDouble(
+                            BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(position, sizeof(long)))),
+                        styleIndex);
                     break;
                 case BrtCellSt:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
+                    _strings[ordinal] = ReadValidatedWideString(bytes, position);
                     break;
                 case BrtCellIsst: {
-                    uint sharedStringIndex = cursor.ReadUInt32();
+                    uint sharedStringIndex = BinaryPrimitives.ReadUInt32LittleEndian(
+                        bytes.AsSpan(position, sizeof(uint)));
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
                     _strings[ordinal] = _sharedStrings[checked((int)sharedStringIndex)];
                     break;
                 }
                 case BrtCellRString:
-                    cursor.ReadByte();
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
+                    _strings[ordinal] = ReadValidatedWideString(bytes, position + 1);
                     break;
                 case BrtFmlaString:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
+                    _strings[ordinal] = ReadValidatedWideString(bytes, position);
                     break;
                 case BrtFmlaNum:
-                    StoreNumber(ordinal, cursor.ReadDouble(), styleIndex);
+                    StoreNumber(
+                        ordinal,
+                        BitConverter.Int64BitsToDouble(
+                            BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(position, sizeof(long)))),
+                        styleIndex);
                     break;
                 case BrtFmlaBool:
                     _kinds[ordinal] = XlsbTabularValueKind.Boolean;
-                    _booleans[ordinal] = cursor.ReadByte() != 0;
+                    _booleans[ordinal] = bytes[position] != 0;
                     break;
                 case BrtFmlaError:
                     _kinds[ordinal] = XlsbTabularValueKind.Error;
-                    _strings[ordinal] = BiffErrorValue.ToText(cursor.ReadByte());
+                    _strings[ordinal] = BiffErrorValue.ToText(bytes[position]);
                     break;
                 default:
                     throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
             }
+        }
+
+        private static string ReadValidatedWideString(byte[] bytes, int position) {
+            int characterCount = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(
+                bytes.AsSpan(position, sizeof(uint))));
+            return Encoding.Unicode.GetString(
+                bytes,
+                position + sizeof(uint),
+                checked(characterCount * sizeof(char)));
         }
 
         private void StoreNumber(int ordinal, double number, uint styleIndex) {

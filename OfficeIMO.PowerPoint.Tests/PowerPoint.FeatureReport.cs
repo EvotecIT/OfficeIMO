@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,11 +9,172 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
+using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class PowerPointFeatureReportTests {
+        [Fact]
+        public void PowerPointFeatureReport_PreservesCustomShowWithDanglingAction() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddCustomShow("Valid", new[] { slide });
+            Shape shape = Assert.IsType<Shape>(
+                slide.AddRectangle(0, 0, 914400, 914400).Element);
+            shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(new A.HyperlinkOnClick {
+                    Id = string.Empty,
+                    Action = "ppaction://customshow?id=999"
+                });
+
+            PowerPointFeatureFinding customShows = Assert.Single(
+                presentation.InspectFeatures().FindFeatures("Custom shows"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                customShows.SupportLevel);
+            Assert.Contains(customShows.Details, detail =>
+                detail.Contains("missing identifier 999",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesExtendedCustomShowHyperlink() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Valid", new[] { slide });
+            Shape shape = Assert.IsType<Shape>(
+                slide.AddRectangle(0, 0, 914400, 914400).Element);
+            var hyperlink = new A.HyperlinkOnClick {
+                Id = "rIdUnexpected",
+                Action = "ppaction://customshow?id=" + show.Id,
+                Tooltip = "Unexpected tip"
+            };
+            hyperlink.Append(new OpenXmlUnknownElement("a14", "extLst",
+                "http://schemas.microsoft.com/office/drawing/2010/main"));
+            shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(hyperlink);
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding customShows = Assert.Single(
+                report.FindFeatures("Custom shows"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                customShows.SupportLevel);
+            Assert.Contains(customShows.Details, detail =>
+                detail.Contains("unsupported custom-show hyperlink",
+                    StringComparison.OrdinalIgnoreCase));
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+            Assert.False(presentation.AnalyzeLegacyPptWrite().CanWrite);
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesCustomShowWithDanglingSound() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Valid", new[] { slide });
+            Shape shape = Assert.IsType<Shape>(
+                slide.AddRectangle(0, 0, 914400, 914400).Element);
+            var hyperlink = new A.HyperlinkOnClick {
+                Action = "ppaction://customshow?id=" + show.Id
+            };
+            hyperlink.Append(new A.HyperlinkSound {
+                Embed = "rIdMissingAudio",
+                Name = "Missing audio"
+            });
+            shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(hyperlink);
+
+            PowerPointFeatureFinding customShows = Assert.Single(
+                presentation.InspectFeatures().FindFeatures("Custom shows"));
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                customShows.SupportLevel);
+            Assert.Contains(customShows.Details, detail =>
+                detail.Contains("audio relationship",
+                    StringComparison.OrdinalIgnoreCase));
+            Assert.False(presentation.AnalyzeLegacyPptWrite().CanWrite);
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_CustomShowSoundUsesCumulativeInteractionBudget() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointCustomShow show = presentation.AddCustomShow(
+                "Valid", new[] { slide });
+            byte[] firstWave = CreateFeatureReportWavePayload(0x81);
+            byte[] secondWave = CreateFeatureReportWavePayload(0x91);
+            MediaDataPart firstMedia = presentation.OpenXmlDocument
+                .CreateMediaDataPart("audio/wav", ".wav");
+            using (var input = new MemoryStream(firstWave, writable: false)) {
+                firstMedia.FeedData(input);
+            }
+            MediaDataPart secondMedia = presentation.OpenXmlDocument
+                .CreateMediaDataPart("audio/wav", ".wav");
+            using (var input = new MemoryStream(secondWave, writable: false)) {
+                secondMedia.FeedData(input);
+            }
+            AudioReferenceRelationship firstRelationship = slide.SlidePart
+                .AddAudioReferenceRelationship(firstMedia);
+            AudioReferenceRelationship secondRelationship = slide.SlidePart
+                .AddAudioReferenceRelationship(secondMedia);
+
+            Shape firstShape = Assert.IsType<Shape>(slide.AddRectangle(
+                0, 0, 914400, 914400).Element);
+            firstShape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(new A.HyperlinkOnClick(
+                    new A.HyperlinkSound {
+                        Embed = firstRelationship.Id,
+                        Name = "Earlier sound"
+                    }) { Action = "ppaction://hlinkshowjump?jump=nextslide" });
+            Shape customShowShape = Assert.IsType<Shape>(slide.AddRectangle(
+                914400, 0, 914400, 914400).Element);
+            customShowShape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+                .Append(new A.HyperlinkOnClick(
+                    new A.HyperlinkSound {
+                        Embed = secondRelationship.Id,
+                        Name = "Custom-show sound"
+                    }) { Action = "ppaction://customshow?id=" + show.Id });
+
+            var catalog = new LegacyPptWriter.LegacyPptWriterSoundCatalog();
+            typeof(LegacyPptWriter.LegacyPptWriterSoundCatalog)
+                .GetField("_totalSoundBytes",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(catalog, LegacyPptWriter.MaximumTotalSoundBytes
+                    - firstWave.Length);
+
+            IReadOnlyList<string> details = presentation
+                .DescribeUnsafeCustomShowStructure(catalog);
+
+            Assert.Contains(details, detail => detail.Contains(
+                "aggregate bytes", StringComparison.OrdinalIgnoreCase));
+            Assert.Single(catalog.Sounds);
+            Assert.Equal("Earlier sound", catalog.Sounds[0].Name);
+        }
+
+        private static byte[] CreateFeatureReportWavePayload(byte marker) =>
+            new byte[] {
+                (byte)'R', (byte)'I', (byte)'F', (byte)'F',
+                40, 0, 0, 0,
+                (byte)'W', (byte)'A', (byte)'V', (byte)'E',
+                (byte)'f', (byte)'m', (byte)'t', (byte)' ',
+                16, 0, 0, 0,
+                1, 0, 1, 0,
+                0x40, 0x1F, 0, 0,
+                0x40, 0x1F, 0, 0,
+                1, 0, 8, 0,
+                (byte)'d', (byte)'a', (byte)'t', (byte)'a',
+                4, 0, 0, 0,
+                marker, 0x90, 0x70, 0x80
+            };
+
         [Fact]
         public void PowerPointFeatureReport_DetectsEditableAndPartiallyEditableFeatures() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
@@ -1420,7 +1582,9 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
-                    Assert.Empty(report.FindFeatures("VBA macros"));
+                    PowerPointFeatureFinding macros = Assert.Single(report.FindFeatures("VBA macros"));
+                    Assert.Equal(PowerPointFeatureSupportLevel.Editable, macros.SupportLevel);
+                    Assert.Equal(0, macros.Count);
                     Assert.Same(report, report.EnsureNoAdvancedFeatures());
                 }
             } finally {
@@ -1736,7 +1900,9 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
-                    Assert.Empty(report.FindFeatures("Comments"));
+                    PowerPointFeatureFinding comments = Assert.Single(report.FindFeatures("Comments"));
+                    Assert.Equal(PowerPointFeatureSupportLevel.Editable, comments.SupportLevel);
+                    Assert.Equal(0, comments.Count);
                     Assert.Same(report, report.EnsureNoAdvancedFeatures());
                 }
             } finally {
@@ -1744,6 +1910,228 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesUnrecognizedCommentMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Comment metadata boundary");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    AddExtendedPart(document.PresentationPart!,
+                        "http://schemas.microsoft.com/office/2017/10/relationships/person",
+                        "application/vnd.openxmlformats-officedocument.presentationml.person+xml",
+                        "<person xmlns=\"urn:officeimo:test\" />");
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(
+                           filePath, new PowerPointLoadOptions {
+                               AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                           })) {
+                    PowerPointFeatureFinding comments = Assert.Single(
+                        presentation.InspectFeatures().FindFeatures("Comments"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                        comments.SupportLevel);
+                    Assert.Equal(1, comments.Count);
+                    Assert.Contains(comments.Details, detail =>
+                        detail.Contains("person", StringComparison.OrdinalIgnoreCase));
+                }
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesExtensionsInsideRecognizedCommentParts() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            SlideCommentsPart commentsPart = presentation.OpenXmlDocument
+                .PresentationPart!.SlideParts.Single().SlideCommentsPart!;
+            commentsPart.CommentList!.Append(new OpenXmlUnknownElement(
+                "vendor", "producerData", "urn:officeimo:test:comments"));
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesAmbiguousModernReplyLists() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointModernComment comment = presentation.AddModernComment(
+                slide, new PowerPointCommentAuthor("Reviewer", "R"),
+                "Review");
+            comment.AddReply(new PowerPointCommentAuthor("Responder", "A"),
+                "Reply");
+            PowerPointCommentPart part = Assert.Single(slide.SlidePart.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<PowerPointCommentPart>());
+            P188.Comment nativeComment = Assert.Single(part.CommentList!
+                .Elements<P188.Comment>());
+            P188.CommentReplyList replyList = Assert.Single(nativeComment
+                .Elements<P188.CommentReplyList>());
+            nativeComment.Append(replyList.CloneNode(true));
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesExtendedAttributesInsideRecognizedCommentParts() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            SlideCommentsPart commentsPart = presentation.OpenXmlDocument
+                .PresentationPart!.SlideParts.Single().SlideCommentsPart!;
+            commentsPart.CommentList!.SetAttribute(new OpenXmlAttribute(
+                "vendor", "producerData", "urn:officeimo:test:comments", "1"));
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesAmbiguousClassicCommentGraphs() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            CommentAuthorsPart authorsPart = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!;
+            authorsPart.CommentAuthorList!.Append(
+                authorsPart.CommentAuthorList.Elements<CommentAuthor>()
+                    .Single().CloneNode(true));
+
+            PowerPointFeatureFinding comments = Assert.Single(
+                presentation.InspectFeatures().FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesClassicCommentsWithNoncanonicalAuthorColor() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            CommentAuthor author = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!.CommentAuthorList!
+                .Elements<CommentAuthor>().Single();
+            author.ColorIndex = author.Id!.Value + 1U;
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesClassicCommentsWithStaleLastIndex() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            CommentAuthor author = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!.CommentAuthorList!
+                .Elements<CommentAuthor>().Single();
+            author.LastIndex = author.LastIndex!.Value + 5U;
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesClassicCommentsOutsideBinaryIndexRange() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            Comment comment = presentation.OpenXmlDocument.PresentationPart!
+                .SlideParts.Single().SlideCommentsPart!.CommentList!
+                .Elements<Comment>().Single();
+            CommentAuthor author = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!.CommentAuthorList!
+                .Elements<CommentAuthor>().Single();
+            comment.Index = uint.MaxValue;
+            author.LastIndex = uint.MaxValue;
+
+            PowerPointFeatureReport report = presentation.InspectFeatures();
+            PowerPointFeatureFinding comments = Assert.Single(
+                report.FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
+            Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureNoAdvancedFeatures());
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_PreservesCommentGraphsWithUnusedAuthors() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            presentation.AddClassicComment(slide,
+                new PowerPointCommentAuthor("Reviewer", "R"), "Review");
+            CommentAuthorsPart authorsPart = presentation.OpenXmlDocument
+                .PresentationPart!.CommentAuthorsPart!;
+            authorsPart.CommentAuthorList!.Append(new CommentAuthor {
+                Id = 99U,
+                Name = "Unused",
+                Initials = "U",
+                LastIndex = 0U,
+                ColorIndex = 1U
+            });
+
+            PowerPointFeatureFinding comments = Assert.Single(
+                presentation.InspectFeatures().FindFeatures("Comments"));
+
+            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                comments.SupportLevel);
         }
 
         [Fact]

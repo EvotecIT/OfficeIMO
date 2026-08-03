@@ -1,7 +1,9 @@
 using System;
 using System.IO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using Xunit;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests {
     public class VisioDesktopValidation {
@@ -54,6 +56,7 @@ namespace OfficeIMO.Tests {
             options.SaveCopyPath = roundTripPath;
             options.ExportDirectory = directory;
             options.ExportFileNamePrefix = "proof";
+            options.ExportFormats.Add(VisioDesktopExportFormat.Pdf);
 
             VisioDesktopValidationResult result = VisioDesktopBaselineValidator.Validate(filePath, options);
 
@@ -66,9 +69,12 @@ namespace OfficeIMO.Tests {
             Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Issues));
             Assert.Contains(roundTripPath, result.OutputFiles);
             string svgPath = Path.Combine(directory, "proof-page1.svg");
+            string pdfPath = Path.Combine(directory, "proof-page1.pdf");
             Assert.Contains(svgPath, result.OutputFiles);
+            Assert.Contains(pdfPath, result.OutputFiles);
             Assert.True(new FileInfo(roundTripPath).Length > 0);
             Assert.True(new FileInfo(svgPath).Length > 0);
+            Assert.True(new FileInfo(pdfPath).Length > 0);
             Assert.Empty(VisioValidator.Validate(roundTripPath));
         }
 
@@ -77,6 +83,103 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             Assert.Throws<FileNotFoundException>(() => VisioDesktopBaselineValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void DesktopValidatorRejectsStructurallyInvalidReferenceOutputs() {
+            string directory = Path.Combine(Path.GetTempPath(),
+                "OfficeIMO-VisioDesktopOutputValidation-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try {
+                string png = Path.Combine(directory, "valid.png");
+                File.WriteAllBytes(png, VisualBaselineTestSupport.CreateRgbPng(
+                    1, 1, new byte[] { 12, 34, 56 }));
+                Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    png, out string validIssue), validIssue);
+
+                string blankPng = Path.Combine(directory, "blank.png");
+                File.WriteAllBytes(blankPng,
+                    VisualBaselineTestSupport.CreateRgbPng(2, 2,
+                        Enumerable.Repeat((byte)255, 12).ToArray()));
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    blankPng, out string blankPngIssue));
+                Assert.Contains("visible non-background content", blankPngIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string invalidPng = Path.Combine(directory, "invalid.png");
+                File.WriteAllText(invalidPng, "not a PNG");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    invalidPng, out string invalidIssue));
+                Assert.Contains("PNG", invalidIssue, StringComparison.Ordinal);
+
+                string invalidSvg = Path.Combine(directory, "invalid.svg");
+                File.WriteAllText(invalidSvg, "<html />");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    invalidSvg, out string svgIssue));
+                Assert.Contains("SVG root", svgIssue, StringComparison.Ordinal);
+
+                string emptySvg = Path.Combine(directory, "empty.svg");
+                File.WriteAllText(emptySvg,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\" />");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    emptySvg, out string emptySvgIssue));
+                Assert.Contains("visible graphical content", emptySvgIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string unpaintedSvg = Path.Combine(directory, "unpainted.svg");
+                File.WriteAllText(unpaintedSvg,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" fill=\"none\" /></svg>");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    unpaintedSvg, out string unpaintedSvgIssue));
+                Assert.Contains("visible graphical content", unpaintedSvgIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string whiteSvg = Path.Combine(directory, "white.svg");
+                File.WriteAllText(whiteSvg,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" fill=\"white\" /></svg>");
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    whiteSvg, out string whiteSvgIssue));
+                Assert.Contains("visible graphical content", whiteSvgIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string validSvg = Path.Combine(directory, "valid.svg");
+                File.WriteAllText(validSvg,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" fill=\"#123456\" /></svg>");
+                Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    validSvg, out string validSvgIssue), validSvgIssue);
+
+                string validPdf = Path.Combine(directory, "valid.pdf");
+                byte[] pdf = PdfCore.PdfDocument.Create()
+                    .Paragraph(paragraph => paragraph.Text("Desktop proof"))
+                    .ToBytes();
+                File.WriteAllBytes(validPdf, pdf);
+                Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    validPdf, out string validPdfIssue, expectedPdfPageCount: 1),
+                    validPdfIssue);
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    validPdf, out string pageCountIssue, expectedPdfPageCount: 2));
+                Assert.Contains("expected 2", pageCountIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string blankPdf = Path.Combine(directory, "blank.pdf");
+                File.WriteAllBytes(blankPdf, PdfCore.PdfDocument.Create()
+                    .Paragraph(paragraph => paragraph
+                        .Color(PdfCore.PdfColor.White)
+                        .Text("Invisible"))
+                    .ToBytes());
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    blankPdf, out string blankPdfIssue));
+                Assert.Contains("visible non-background content", blankPdfIssue,
+                    StringComparison.OrdinalIgnoreCase);
+
+                string invalidPdf = Path.Combine(directory, "invalid.pdf");
+                File.WriteAllBytes(invalidPdf, pdf.Take(pdf.Length / 2).ToArray());
+                Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
+                    invalidPdf, out string invalidPdfIssue));
+                Assert.NotEmpty(invalidPdfIssue);
+            } finally {
+                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            }
         }
 
         private static bool IsDesktopValidationRequested() =>

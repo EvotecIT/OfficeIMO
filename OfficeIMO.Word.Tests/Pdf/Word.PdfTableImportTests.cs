@@ -26,6 +26,9 @@ public partial class Word {
             }, style: new PdfCore.PdfTableStyle {
                 ColumnWidthPoints = new List<double?> { 70, 170, 60 },
                 HeaderRowCount = 1,
+                HeaderFill = null,
+                RowStripeFill = null,
+                FooterFill = null,
                 CellPaddingX = 6,
                 CellPaddingY = 4
             })

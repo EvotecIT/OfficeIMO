@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -105,6 +106,24 @@ public class PdfPageImageRendererBatchTests {
                     MaxTotalOutputBytes = 1
                 }));
         Assert.Equal(PdfReadLimitKind.RenderBytes, aggregate.Kind);
+    }
+
+    [Fact]
+    public void RenderPages_AppliesOneDeadlineToDocumentOpenAndEverySelectionOverload() {
+        byte[] pdf = BuildTwoPagePdf();
+        var timeout = TimeSpan.FromTicks(1);
+        var options = new PdfPageRenderOptions {
+            Format = PdfPageRenderFormat.Svg,
+            RenderTimeout = timeout
+        };
+
+        OfficeImageExportTimeoutException rangeTimeout = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            PdfPageImageRenderer.RenderPages(pdf, "2,1", options));
+        OfficeImageExportTimeoutException selectorTimeout = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            PdfDocument.Open(pdf).Read.RenderPages(PdfPageSelector.Parse("last..1"), options));
+
+        Assert.Equal(timeout, rangeTimeout.Timeout);
+        Assert.Equal(timeout, selectorTimeout.Timeout);
     }
 
     private static byte[] BuildTwoPagePdf() => PdfDocument.Create()

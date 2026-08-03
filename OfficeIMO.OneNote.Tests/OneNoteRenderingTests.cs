@@ -5,6 +5,22 @@ namespace OfficeIMO.OneNote.Tests;
 
 public sealed class OneNoteRenderingTests {
     [Fact]
+    public void DirectImageExportEnforcesRenderTimeout() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 2D,
+            Height = 2D
+        };
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = false,
+            RenderTimeout = TimeSpan.FromTicks(1)
+        };
+
+        Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            page.ExportImage(OfficeImageExportFormat.Svg, options));
+    }
+
+    [Fact]
     public void PageRendererProjectsRichTextImageInkMathTableAndAttachments() {
         OneNotePage page = CreateVisualPage();
 

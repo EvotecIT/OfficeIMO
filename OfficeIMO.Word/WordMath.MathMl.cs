@@ -3,18 +3,39 @@ using System.Text;
 using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word {
+    internal sealed class WordMathMlOutputLimitExceededException : InvalidOperationException {
+        internal WordMathMlOutputLimitExceededException(long actual, long limit)
+            : base("MathML output exceeds the configured " + limit + " character limit.") {
+            Actual = actual;
+            Limit = limit;
+        }
+
+        internal long Actual { get; }
+        internal long Limit { get; }
+    }
+
     internal static partial class WordMath {
-        internal static string ToMathMl(OpenXmlElement element) {
-            var builder = new StringBuilder();
+        internal static string ToMathMl(OpenXmlElement element) => ToMathMl(element, long.MaxValue);
+
+        internal static string ToMathMl(OpenXmlElement element, long maxCharacters) {
+            var builder = new BoundedStringBuilder(maxCharacters);
             builder.Append("<math xmlns=\"http://www.w3.org/1998/Math/MathML\">");
             AppendMathMl(builder, element);
             builder.Append("</math>");
             return builder.ToString();
         }
-        private static void AppendMathMl(StringBuilder builder, OpenXmlElement element) {
+        internal static string ToMathMlText(string? text, long maxCharacters) {
+            var builder = new BoundedStringBuilder(maxCharacters);
+            builder.Append("<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mtext>");
+            AppendEscapedXml(builder, text);
+            builder.Append("</mtext></math>");
+            return builder.ToString();
+        }
+
+        private static void AppendMathMl(BoundedStringBuilder builder, OpenXmlElement element) {
             if (element is M.Text text) {
                 builder.Append("<mtext>");
-                builder.Append(EscapeXml(text.Text));
+                AppendEscapedXml(builder, text.Text);
                 builder.Append("</mtext>");
                 return;
             }
@@ -59,7 +80,7 @@ namespace OfficeIMO.Word {
                     return;
                 case "func":
                     builder.Append("<mrow><mi>");
-                    builder.Append(EscapeXml(ReadChildText(element, "fName")));
+                    AppendEscapedXml(builder, ReadChildText(element, "fName"));
                     builder.Append("</mi><mo>(</mo>");
                     AppendMathMlChild(builder, element, "e");
                     builder.Append("<mo>)</mo></mrow>");
@@ -113,14 +134,14 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AppendMathMlTwoChildElement(StringBuilder builder, string tag, OpenXmlElement element, string first, string second) {
+        private static void AppendMathMlTwoChildElement(BoundedStringBuilder builder, string tag, OpenXmlElement element, string first, string second) {
             builder.Append('<').Append(tag).Append('>');
             AppendMathMlChild(builder, element, first);
             AppendMathMlChild(builder, element, second);
             builder.Append("</").Append(tag).Append('>');
         }
 
-        private static void AppendFractionMathMl(StringBuilder builder, OpenXmlElement element) {
+        private static void AppendFractionMathMl(BoundedStringBuilder builder, OpenXmlElement element) {
             switch (ReadFractionType(element)) {
                 case MathFractionType.Linear:
                     builder.Append("<mrow>");
@@ -147,7 +168,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AppendMathMlThreeChildElement(StringBuilder builder, string tag, OpenXmlElement element, string first, string second, string third) {
+        private static void AppendMathMlThreeChildElement(BoundedStringBuilder builder, string tag, OpenXmlElement element, string first, string second, string third) {
             builder.Append('<').Append(tag).Append('>');
             AppendMathMlChild(builder, element, first);
             AppendMathMlChild(builder, element, second);
@@ -155,18 +176,18 @@ namespace OfficeIMO.Word {
             builder.Append("</").Append(tag).Append('>');
         }
 
-        private static void AppendMathMlChild(StringBuilder builder, OpenXmlElement element, string localName) {
+        private static void AppendMathMlChild(BoundedStringBuilder builder, OpenXmlElement element, string localName) {
             OpenXmlElement? child = FindFirstChild(element, localName);
             if (child != null) AppendMathMl(builder, child);
         }
 
-        private static void AppendMathMlChildOrNone(StringBuilder builder, OpenXmlElement element, string localName) {
+        private static void AppendMathMlChildOrNone(BoundedStringBuilder builder, OpenXmlElement element, string localName) {
             OpenXmlElement? child = FindFirstChild(element, localName);
             if (child == null || GetText(child).Length == 0) builder.Append("<none/>");
             else AppendMathMl(builder, child);
         }
 
-        private static void AppendNaryMathMl(StringBuilder builder, OpenXmlElement element) {
+        private static void AppendNaryMathMl(BoundedStringBuilder builder, OpenXmlElement element) {
             builder.Append("<mrow><munderover>");
             AppendMathMlOperator(builder, ReadNaryOperatorText(element) switch {
                 "sum" => "∑",
@@ -181,7 +202,7 @@ namespace OfficeIMO.Word {
             builder.Append("</mrow>");
         }
 
-        private static void AppendDelimiterMathMl(StringBuilder builder, OpenXmlElement element) {
+        private static void AppendDelimiterMathMl(BoundedStringBuilder builder, OpenXmlElement element) {
             MathCharacter begin = ReadCharacter(element, "begChr");
             MathCharacter end = ReadCharacter(element, "endChr");
             builder.Append("<mrow>");
@@ -199,7 +220,7 @@ namespace OfficeIMO.Word {
             builder.Append("</mrow>");
         }
 
-        private static void AppendMatrixMathMl(StringBuilder builder, OpenXmlElement element) {
+        private static void AppendMatrixMathMl(BoundedStringBuilder builder, OpenXmlElement element) {
             builder.Append("<mtable>");
             foreach (OpenXmlElement row in FindChildren(element, "mr")) {
                 builder.Append("<mtr>");
@@ -213,18 +234,69 @@ namespace OfficeIMO.Word {
             builder.Append("</mtable>");
         }
 
-        private static void AppendMathMlOperator(StringBuilder builder, string value, bool fence = false) {
+        private static void AppendMathMlOperator(BoundedStringBuilder builder, string value, bool fence = false) {
             builder.Append(fence ? "<mo fence=\"true\">" : "<mo>");
-            builder.Append(EscapeXml(value));
+            AppendEscapedXml(builder, value);
             builder.Append("</mo>");
         }
 
-        private static string EscapeXml(string? value) => (value ?? string.Empty)
-            .Replace("&", "&amp;")
-            .Replace("<", "&lt;")
-            .Replace(">", "&gt;")
-            .Replace("\"", "&quot;")
-            .Replace("'", "&apos;");
+        private static void AppendEscapedXml(BoundedStringBuilder builder, string? value) {
+            if (string.IsNullOrEmpty(value)) return;
+            foreach (char character in value!) {
+                switch (character) {
+                    case '&':
+                        builder.Append("&amp;");
+                        break;
+                    case '<':
+                        builder.Append("&lt;");
+                        break;
+                    case '>':
+                        builder.Append("&gt;");
+                        break;
+                    case '"':
+                        builder.Append("&quot;");
+                        break;
+                    case '\'':
+                        builder.Append("&apos;");
+                        break;
+                    default:
+                        builder.Append(character);
+                        break;
+                }
+            }
+        }
+
+        private sealed class BoundedStringBuilder {
+            private readonly StringBuilder _builder = new StringBuilder();
+            private readonly long _maxCharacters;
+
+            internal BoundedStringBuilder(long maxCharacters) {
+                if (maxCharacters < 0) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
+                _maxCharacters = maxCharacters;
+            }
+
+            internal BoundedStringBuilder Append(string? value) {
+                if (string.IsNullOrEmpty(value)) return this;
+                EnsureCapacity(value!.Length);
+                _builder.Append(value);
+                return this;
+            }
+
+            internal BoundedStringBuilder Append(char value) {
+                EnsureCapacity(1);
+                _builder.Append(value);
+                return this;
+            }
+
+            public override string ToString() => _builder.ToString();
+
+            private void EnsureCapacity(int characters) {
+                long projected = (long)_builder.Length + characters;
+                if (projected > _maxCharacters) {
+                    throw new WordMathMlOutputLimitExceededException(projected, _maxCharacters);
+                }
+            }
+        }
 
     }
 }

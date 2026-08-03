@@ -2158,6 +2158,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_HonorsContourDirectionWithNonZeroRule() {
+            IReadOnlyList<OfficePoint> outer = new[] {
+                new OfficePoint(2, 2),
+                new OfficePoint(19, 2),
+                new OfficePoint(19, 19),
+                new OfficePoint(2, 19)
+            };
+            IReadOnlyList<OfficePoint> inner = new[] {
+                new OfficePoint(7, 7),
+                new OfficePoint(14, 7),
+                new OfficePoint(14, 14),
+                new OfficePoint(7, 14)
+            };
+
+            OfficeRasterImage sameDirection = new OfficeRasterImage(22, 22, OfficeColor.Transparent);
+            new OfficeRasterCanvas(sameDirection).FillPolygonsNonZero(
+                new[] { outer, inner }, OfficeColor.Black);
+
+            OfficeRasterImage oppositeDirection = new OfficeRasterImage(22, 22, OfficeColor.Transparent);
+            new OfficeRasterCanvas(oppositeDirection).FillPolygonsNonZero(
+                new[] { outer, inner.Reverse().ToArray() }, OfficeColor.Black);
+
+            Assert.True(sameDirection.GetPixel(10, 10).A > 0);
+            Assert.Equal(0, oppositeDirection.GetPixel(10, 10).A);
+            Assert.True(oppositeDirection.GetPixel(4, 4).A > 0);
+        }
+
+        [Fact]
+        public void OfficeRasterCanvas_FillsContoursAcrossBoundedCoverageTiles() {
+            const int width = 20_000;
+            OfficeRasterImage image = new OfficeRasterImage(width, 3,
+                OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            IReadOnlyList<OfficePoint> contour = new[] {
+                new OfficePoint(1, 0),
+                new OfficePoint(width - 2, 0),
+                new OfficePoint(width - 2, 2),
+                new OfficePoint(1, 2)
+            };
+
+            canvas.FillPolygonsNonZero(new[] { contour }, OfficeColor.Black);
+
+            Assert.True(image.GetPixel(10, 1).A > 0);
+            Assert.True(image.GetPixel(8_191, 1).A > 0);
+            Assert.True(image.GetPixel(8_192, 1).A > 0);
+            Assert.True(image.GetPixel(16_383, 1).A > 0);
+            Assert.True(image.GetPixel(16_384, 1).A > 0);
+            Assert.True(image.GetPixel(width - 10, 1).A > 0);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_ScalesImagesWithInterpolation() {
             OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
             source.SetPixel(0, 0, OfficeColor.Red);

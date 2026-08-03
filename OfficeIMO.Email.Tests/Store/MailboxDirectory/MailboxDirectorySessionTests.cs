@@ -8,6 +8,33 @@ namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class MailboxDirectorySessionTests {
     [Fact]
+    public void ContentFingerprintUsesStructuredFileBoundaries() {
+        string firstRoot = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-fingerprint-a-" + Guid.NewGuid().ToString("N"));
+        string secondRoot = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-fingerprint-b-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(firstRoot);
+            Directory.CreateDirectory(secondRoot);
+            File.WriteAllBytes(Path.Combine(firstRoot, "a.eml"),
+                new byte[] { (byte)'X', 0, (byte)'b', (byte)'.', (byte)'e', (byte)'m', (byte)'l', 0, (byte)'Y' });
+            File.WriteAllBytes(Path.Combine(secondRoot, "a.eml"), new byte[] { (byte)'X' });
+            File.WriteAllBytes(Path.Combine(secondRoot, "b.eml"), new byte[] { (byte)'Y' });
+            var options = new EmailStoreReaderOptions();
+            using var first = new MailboxDirectoryStoreSessionBackend(
+                firstRoot, options, CancellationToken.None);
+            using var second = new MailboxDirectoryStoreSessionBackend(
+                secondRoot, options, CancellationToken.None);
+
+            Assert.NotEqual(first.GetContentFingerprint(CancellationToken.None),
+                second.GetContentFingerprint(CancellationToken.None));
+        } finally {
+            if (Directory.Exists(firstRoot)) Directory.Delete(firstRoot, recursive: true);
+            if (Directory.Exists(secondRoot)) Directory.Delete(secondRoot, recursive: true);
+        }
+    }
+
+    [Fact]
     public void TrailingSeparatorNormalizationPreservesFilesystemRoots() {
         string root = Path.GetPathRoot(Path.GetFullPath(Path.GetTempPath()))!;
         string nested = Path.Combine(root, "mailbox") + Path.DirectorySeparatorChar;
@@ -123,7 +150,16 @@ public sealed class MailboxDirectorySessionTests {
             File.Delete(path);
             Assert.Equal(0, CreateNamedPipe(path, 0x180));
 
-            Task<Exception> read = Task.Run(() => Record.Exception(() => session.ReadItem(reference)));
+            using var readStarted = new ManualResetEventSlim();
+            Task<Exception> read = Task.Factory.StartNew(
+                () => {
+                    readStarted.Set();
+                    return Record.Exception(() => session.ReadItem(reference));
+                },
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            Assert.True(readStarted.Wait(TimeSpan.FromSeconds(2)), "The dedicated reader did not start.");
             bool completedWithoutWriter = ReferenceEquals(
                 await Task.WhenAny(read, Task.Delay(TimeSpan.FromMilliseconds(500))),
                 read);

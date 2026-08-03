@@ -229,22 +229,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             byte flags = 0;
             if (typedHyperlink.HighlightClick?.Value == true) flags |= 0x01;
             if (typedHyperlink.EndSound?.Value == true) flags |= 0x02;
-            uint soundIdReference = 0;
-            LegacyPptWriterSound? sound = null;
-            if (soundElements.Length == 1
-                && !catalog.Sounds.TryGetOrAdd(slidePart, soundElements[0],
-                    out sound, out reason)) {
-                return false;
-            } else if (soundElements.Length == 1) {
-                soundIdReference = sound!.Id;
-            }
 
-            if (TryParseCustomShowAction(action, out uint customShowId,
-                    out bool returnsToSlide)) {
-                if (!string.IsNullOrEmpty(relationshipId) || screenTip != null
+            if (PowerPointCustomShowAction.IsCustomShowAction(action)) {
+                if (!TryValidateCustomShowHyperlink(slidePart,
+                        typedHyperlink, catalog.Sounds,
+                        out uint customShowId, out bool returnsToSlide,
+                        out LegacyPptWriterSound? customShowSound, out reason)
                     || !TryResolveCustomShowName(slidePart, customShowId,
                         out string? customShowName)) {
-                    reason = "Custom-show actions require a valid show id and cannot combine a relationship or screen tip.";
+                    reason ??= "Custom-show actions require a valid show id.";
                     return false;
                 }
                 if (returnsToSlide) flags |= 0x04;
@@ -252,9 +245,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     LegacyPptInteractionAction.CustomShow,
                     LegacyPptInteractionJump.None, LegacyPptHyperlinkType.Nil,
                     hyperlinkIdReference: 0, name: customShowName,
-                    soundIdReference: soundIdReference, flags: flags);
+                    soundIdReference: customShowSound?.Id ?? 0U, flags: flags);
                 return true;
             }
+
+            if (!TryRegisterHyperlinkSound(slidePart, typedHyperlink,
+                    catalog.Sounds, out LegacyPptWriterSound? sound,
+                    out reason)) {
+                return false;
+            }
+            uint soundIdReference = sound?.Id ?? 0U;
 
             const string MacroPrefix = "ppaction://macro?name=";
             if (action != null && action.StartsWith(MacroPrefix,
@@ -389,24 +389,41 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return false;
         }
 
-        private static bool TryParseCustomShowAction(string? action,
-            out uint customShowId, out bool returnsToSlide) {
-            const string Prefix = "ppaction://customshow?id=";
-            const string ReturnSuffix = "&return=true";
-            customShowId = 0;
-            returnsToSlide = false;
-            if (action == null || !action.StartsWith(Prefix,
-                    StringComparison.OrdinalIgnoreCase)) return false;
-            string value = action.Substring(Prefix.Length);
-            if (value.EndsWith(ReturnSuffix, StringComparison.OrdinalIgnoreCase)) {
-                returnsToSlide = true;
-                value = value.Substring(0, value.Length - ReturnSuffix.Length);
+        internal static bool TryValidateCustomShowHyperlink(
+            SlidePart ownerPart, A.HyperlinkType hyperlink,
+            LegacyPptWriterSoundCatalog soundCatalog,
+            out uint customShowId, out bool returnsToSlide,
+            out LegacyPptWriterSound? sound, out string? reason) {
+            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
+            if (soundCatalog == null) throw new ArgumentNullException(nameof(soundCatalog));
+            sound = null;
+            if (!PowerPointCustomShowAction.TryValidateSupportedHyperlink(
+                    hyperlink, out customShowId, out returnsToSlide,
+                    out reason)) {
+                return false;
             }
-            return value.Length > 0 && value.IndexOf('&') < 0
-                && uint.TryParse(value,
-                    System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out customShowId);
+            return TryRegisterHyperlinkSound(ownerPart, hyperlink,
+                soundCatalog, out sound, out reason);
+        }
+
+        internal static bool TryRegisterHyperlinkSound(
+            SlidePart ownerPart, A.HyperlinkType hyperlink,
+            LegacyPptWriterSoundCatalog soundCatalog,
+            out LegacyPptWriterSound? sound, out string? reason) {
+            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
+            if (hyperlink == null) throw new ArgumentNullException(nameof(hyperlink));
+            if (soundCatalog == null) throw new ArgumentNullException(nameof(soundCatalog));
+            sound = null;
+            reason = null;
+            A.HyperlinkSound[] sounds = hyperlink.Elements<A.HyperlinkSound>()
+                .ToArray();
+            if (sounds.Length == 0) return true;
+            if (sounds.Length > 1) {
+                reason = "A DrawingML interaction cannot contain multiple action sounds.";
+                return false;
+            }
+            return soundCatalog.TryGetOrAdd(ownerPart, sounds[0],
+                out sound, out reason);
         }
 
         private static bool TryResolveCustomShowName(SlidePart slidePart,

@@ -24,10 +24,15 @@ namespace OfficeIMO.Word {
                 result);
         }
 
-        private static void AnalyzeLists(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeLists(
+            WordDocument source,
+            WordDocument target,
+            WordComparisonResult result,
+            WordComparisonOptions options,
+            ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
             AddFeatureRangeFindings(
-                GetListSnapshots(source, options),
-                GetListSnapshots(target, options),
+                GetListSnapshots(source, options, numberingStyleCatalogs),
+                GetListSnapshots(target, options, numberingStyleCatalogs),
                 WordComparisonScope.List,
                 "list",
                 "List item",
@@ -144,7 +149,10 @@ namespace OfficeIMO.Word {
             return snapshots;
         }
 
-        private static List<ListSnapshot> GetListSnapshots(WordDocument document, WordComparisonOptions options) {
+        private static List<ListSnapshot> GetListSnapshots(
+            WordDocument document,
+            WordComparisonOptions options,
+            ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
             if (mainPart == null) {
                 return new List<ListSnapshot>();
@@ -152,13 +160,14 @@ namespace OfficeIMO.Word {
 
             var snapshots = new List<ListSnapshot>();
             Numbering? numberingDefinitions = mainPart.NumberingDefinitionsPart?.Numbering;
+            ParagraphNumberingStyleCatalog styleCatalog = numberingStyleCatalogs.GetOrCreate(mainPart);
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(root.Root, GetFeatureOrderBase(root.LocationKind))) {
                     if (ordered.Element is not Paragraph paragraph) {
                         continue;
                     }
 
-                    NumberingProperties? numbering = ResolveParagraphNumberingProperties(paragraph, mainPart);
+                    NumberingProperties? numbering = ResolveParagraphNumberingProperties(paragraph, styleCatalog);
                     if (numbering == null) {
                         continue;
                     }
@@ -255,42 +264,6 @@ namespace OfficeIMO.Word {
 
             previousParagraph = paragraph;
             previousCell = cell;
-        }
-
-        private static NumberingProperties? ResolveParagraphNumberingProperties(Paragraph paragraph, MainDocumentPart mainPart) {
-            NumberingProperties? directNumbering = paragraph.ParagraphProperties?.NumberingProperties;
-            if (directNumbering != null) {
-                return directNumbering;
-            }
-
-            string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                return null;
-            }
-
-            Styles? styles = mainPart.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
-                return null;
-            }
-
-            var visited = new HashSet<string>(StringComparer.Ordinal);
-            while (!string.IsNullOrWhiteSpace(styleId)) {
-                string currentStyleId = styleId!;
-                if (!visited.Add(currentStyleId)) {
-                    break;
-                }
-
-                Style? style = styles.Elements<Style>()
-                    .FirstOrDefault(item => string.Equals(item.StyleId?.Value, currentStyleId, StringComparison.Ordinal));
-                NumberingProperties? numbering = style?.StyleParagraphProperties?.NumberingProperties;
-                if (numbering != null) {
-                    return numbering;
-                }
-
-                styleId = style?.BasedOn?.Val?.Value;
-            }
-
-            return null;
         }
 
         private static string GetBookmarkLocationSignature(BookmarkStart bookmarkStart, WordComparisonOptions options) {

@@ -184,7 +184,7 @@ namespace OfficeIMO.Word {
                 string.Equals(fieldSwitch.Trim(), "\\w", StringComparison.OrdinalIgnoreCase));
         }
 
-        private static bool TryApplyReferenceTextFormat(
+        internal static bool TryApplyReferenceTextFormat(
             IReadOnlyList<WordFieldFormat> formatSwitches,
             string source,
             out string value,

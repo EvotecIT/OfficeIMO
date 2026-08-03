@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -249,6 +250,152 @@ namespace OfficeIMO.Drawing.Internal {
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
             CommitTemporaryFileCore(temporaryPath, targetPath, conflictPolicy,
                 allowNonAtomicReplacementFallback: false);
+        }
+
+        /// <summary>
+        /// Atomically installs a completed staging file only when the displaced destination still
+        /// matches the caller's expected snapshot and, when requested, the installed file matches
+        /// the validated staging snapshot. A mismatch restores the displaced destination.
+        /// </summary>
+        public static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchanged(
+            string temporaryPath,
+            string targetPath,
+            Func<string, bool> destinationMatchesExpected,
+            Func<string, bool>? installedFileMatchesExpected = null) =>
+            TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
+                temporaryPath,
+                targetPath,
+                destinationMatchesExpected,
+                installedFileMatchesExpected,
+                afterFirstRollbackReplacement: null);
+
+        internal static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedForTesting(
+            string temporaryPath,
+            string targetPath,
+            Func<string, bool> destinationMatchesExpected,
+            Func<string, bool>? installedFileMatchesExpected,
+            Action<string> afterFirstRollbackReplacement) =>
+            TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
+                temporaryPath,
+                targetPath,
+                destinationMatchesExpected,
+                installedFileMatchesExpected,
+                afterFirstRollbackReplacement);
+
+        private static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
+            string temporaryPath,
+            string targetPath,
+            Func<string, bool> destinationMatchesExpected,
+            Func<string, bool>? installedFileMatchesExpected,
+            Action<string>? afterFirstRollbackReplacement) {
+            if (string.IsNullOrWhiteSpace(temporaryPath)) {
+                throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
+            }
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(destinationMatchesExpected);
+#else
+            if (destinationMatchesExpected == null) throw new ArgumentNullException(nameof(destinationMatchesExpected));
+#endif
+
+            string fullTargetPath = GetFullTargetPath(targetPath);
+            EnsureDestinationWritable(fullTargetPath);
+            string backupPath = CreateTemporaryPath(fullTargetPath);
+            string displacedPath = CreateTemporaryPath(fullTargetPath);
+            bool targetContainsTemporary = false;
+            bool preserveBackupPath = false;
+            bool preserveDisplacedPath = false;
+            string installedTemporaryIdentity = ComputeFileIdentity(temporaryPath);
+            try {
+#if NET6_0_OR_GREATER
+                if (!OperatingSystem.IsWindows()) {
+                    File.SetUnixFileMode(temporaryPath, File.GetUnixFileMode(fullTargetPath));
+                }
+#endif
+                ExecuteWithRetry(() => File.Replace(temporaryPath, fullTargetPath, backupPath));
+                targetContainsTemporary = true;
+                if (destinationMatchesExpected(backupPath) &&
+                    (installedFileMatchesExpected == null || installedFileMatchesExpected(fullTargetPath))) {
+                    DeleteIfExists(backupPath);
+                    targetContainsTemporary = false;
+                    return true;
+                }
+
+                RestoreDisplacedDestinationWithoutLosingConcurrentSave(
+                    fullTargetPath,
+                    backupPath,
+                    displacedPath,
+                    installedTemporaryIdentity,
+                    ref targetContainsTemporary,
+                    ref preserveBackupPath,
+                    afterFirstRollbackReplacement,
+                    ref preserveDisplacedPath);
+                return false;
+            } catch (Exception commitException) {
+                if (targetContainsTemporary && File.Exists(backupPath) && File.Exists(fullTargetPath)) {
+                    try {
+                        RestoreDisplacedDestinationWithoutLosingConcurrentSave(
+                            fullTargetPath,
+                            backupPath,
+                            displacedPath,
+                            installedTemporaryIdentity,
+                            ref targetContainsTemporary,
+                            ref preserveBackupPath,
+                            afterFirstRollbackReplacement,
+                            ref preserveDisplacedPath);
+                    } catch (Exception rollbackException) {
+                        throw new IOException(
+                            "The guarded atomic commit failed and the displaced destination could not be restored. " +
+                            "Its recoverable files remain at '" + backupPath + "' and '" + displacedPath + "'.",
+                            new AggregateException(commitException, rollbackException));
+                    }
+                }
+                throw;
+            } finally {
+                if (!targetContainsTemporary && !preserveBackupPath) DeleteIfExists(backupPath);
+                if (!preserveDisplacedPath) DeleteIfExists(displacedPath);
+            }
+        }
+
+        private static void RestoreDisplacedDestinationWithoutLosingConcurrentSave(
+            string targetPath,
+            string backupPath,
+            string displacedPath,
+            string installedTemporaryIdentity,
+            ref bool targetContainsTemporary,
+            ref bool preserveBackupPath,
+            Action<string>? afterFirstRollbackReplacement,
+            ref bool preserveDisplacedPath) {
+            string restoredDestinationIdentity = ComputeFileIdentity(backupPath);
+            ExecuteWithRetry(() => File.Replace(backupPath, targetPath, displacedPath));
+            targetContainsTemporary = false;
+            afterFirstRollbackReplacement?.Invoke(targetPath);
+            if (installedTemporaryIdentity.Length == 0 ||
+                string.Equals(installedTemporaryIdentity, ComputeFileIdentity(displacedPath), StringComparison.Ordinal)) {
+                DeleteIfExists(displacedPath);
+                return;
+            }
+
+            // A different writer replaced or rewrote the target while the caller was checking the
+            // displaced destination. Put that newer save back instead of silently overwriting it.
+            preserveDisplacedPath = true;
+            ExecuteWithRetry(() => File.Replace(displacedPath, targetPath, backupPath));
+            preserveDisplacedPath = false;
+            preserveBackupPath = true;
+            if (string.Equals(restoredDestinationIdentity, ComputeFileIdentity(backupPath), StringComparison.Ordinal)) {
+                preserveBackupPath = false;
+                DeleteIfExists(backupPath);
+                return;
+            }
+
+            throw new IOException(
+                "A newer concurrent save was displaced during guarded rollback and remains recoverable at '" +
+                backupPath + "'.");
+        }
+
+        private static string ComputeFileIdentity(string path) {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+            using SHA256 sha256 = SHA256.Create();
+            return Convert.ToBase64String(sha256.ComputeHash(stream));
         }
 
         private static void CommitTemporaryFileCore(

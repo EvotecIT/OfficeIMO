@@ -9,6 +9,7 @@ public sealed class EmailLimitExceededException : IOException {
         LimitName = limitName;
         ActualValue = actualValue;
         MaximumValue = maximumValue;
+        Diagnostic = EmailDiagnostic.FromLimit(this, "email-read", "artifact");
     }
 
     /// <summary>Name of the exceeded reader option.</summary>
@@ -19,4 +20,7 @@ public sealed class EmailLimitExceededException : IOException {
 
     /// <summary>Configured maximum value.</summary>
     public long MaximumValue { get; }
+
+    /// <summary>Stable, actionable, non-sensitive diagnostic for this failure.</summary>
+    public EmailDiagnostic Diagnostic { get; }
 }

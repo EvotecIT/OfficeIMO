@@ -7,7 +7,9 @@ public enum PdfPowerPointImportMode {
     /// <summary>Creates one high-fidelity rendered image slide per PDF page.</summary>
     VisualPages,
     /// <summary>Reconstructs detected tables as editable PowerPoint tables.</summary>
-    EditableTables
+    EditableTables,
+    /// <summary>Keeps a rendered visual page and overlays detected tables as editable PowerPoint tables.</summary>
+    HybridVisualAndEditableTables
 }
 
 /// <summary>
@@ -38,6 +40,11 @@ public sealed class PdfPowerPointImportOptions {
     /// <summary>Creates the editable-table reconstruction profile.</summary>
     public static PdfPowerPointImportOptions CreateEditableTables() => new PdfPowerPointImportOptions {
         Mode = PdfPowerPointImportMode.EditableTables
+    };
+
+    /// <summary>Creates the hybrid visual-page plus editable-table overlay profile.</summary>
+    public static PdfPowerPointImportOptions CreateHybrid() => new PdfPowerPointImportOptions {
+        Mode = PdfPowerPointImportMode.HybridVisualAndEditableTables
     };
 
     /// <summary>

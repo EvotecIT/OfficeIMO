@@ -36,6 +36,7 @@ namespace OfficeIMO.Word {
             Entries = entries.ToArray();
             SkippedCaptionCount = skippedCaptionCount;
             PageNumberMode = pageNumberMode;
+            PageNumberBasis = WordPageNumberBasis.ExplicitBreakEstimate;
         }
 
         /// <summary>Gets the SEQ identifier used to collect captions.</summary>
@@ -49,6 +50,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets a short description of how page numbers were calculated.</summary>
         public string PageNumberMode { get; }
+
+        /// <summary>Gets the stable page-number evidence basis.</summary>
+        public WordPageNumberBasis PageNumberBasis { get; }
 
         /// <summary>Gets the number of generated entries.</summary>
         public int EntryCount => Entries.Count;

@@ -547,10 +547,12 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Inspection.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Selective.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Stream.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundWriterLayout.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",
-                "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs"
+                "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs",
+                "OfficeIMO.SharedSource/Processes/OfficeWindowsSuspendedProcess.cs"
             },
             files);
     }

@@ -222,28 +222,32 @@ public sealed class EmailDocumentReader {
         }
     }
 
-    private EmailReadResult Parse(byte[] data, CancellationToken cancellationToken, string? sourceName = null) {
+    private EmailReadResult Parse(byte[] data, CancellationToken cancellationToken, string? sourceName = null,
+        EmailProcessingBudget? sharedBudget = null, bool countInput = true) {
         cancellationToken.ThrowIfCancellationRequested();
+        EmailProcessingBudget budget = sharedBudget ?? new EmailProcessingBudget(_options);
+        if (countInput) budget.CountInput(data.LongLength);
         List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
         EmailDocument document;
         if (StartsWith(data, CompoundSignature)) {
-            if (!MsgReader.TryRead(data, _options, diagnostics, cancellationToken, out document)) {
+            if (!MsgReader.TryRead(data, _options, diagnostics, cancellationToken, out document, budget)) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
                     "The compound artifact is not an Outlook MSG item.", EmailDiagnosticSeverity.Error));
             }
             cancellationToken.ThrowIfCancellationRequested();
             ApplySourceFormat(document, sourceName);
             if (_options.PreserveRawSource || document.Protection.IsProtected) PreserveRawSource(document, data);
-            return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
+            return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength,
+                processingBudget: budget.Snapshot());
         }
 
         EmailFileFormat format = DetectFormat(data);
         switch (format) {
             case EmailFileFormat.Eml:
-                document = MimeParser.Parse(data, _options, diagnostics, cancellationToken);
+                document = MimeParser.Parse(data, _options, diagnostics, cancellationToken, budget);
                 break;
             case EmailFileFormat.Tnef:
-                document = TnefReader.Read(data, _options, diagnostics, cancellationToken);
+                document = TnefReader.Read(data, _options, diagnostics, cancellationToken, budget);
                 break;
             case EmailFileFormat.Unknown:
                 diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
@@ -265,7 +269,8 @@ public sealed class EmailDocumentReader {
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (_options.PreserveRawSource || document.Protection.IsProtected) PreserveRawSource(document, data);
-        return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
+        return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength,
+            processingBudget: budget.Snapshot());
     }
 
     private EmailReadResult ParseStreaming(Stream stream, string? sourceName, EmailReadWorkspace workspace,
@@ -273,6 +278,8 @@ public sealed class EmailDocumentReader {
         cancellationToken.ThrowIfCancellationRequested();
         if (!stream.CanSeek) throw new ArgumentException("Streaming parsing requires a seekable staged source.", nameof(stream));
         long length = stream.Length - stream.Position;
+        var budget = new EmailProcessingBudget(_options);
+        budget.CountInput(length);
         if (length > _options.MaxInputBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), length,
                 _options.MaxInputBytes);
@@ -297,7 +304,8 @@ public sealed class EmailDocumentReader {
                         Format = EmailFileFormat.Unknown,
                         OutlookItemKind = OutlookItemKind.Unknown
                     };
-                    return new EmailReadResult(unknown, diagnostics.AsReadOnly(), length, workspace);
+                    return new EmailReadResult(unknown, diagnostics.AsReadOnly(), length, workspace,
+                        budget.Snapshot());
                 }
             } catch (OfficeCompoundStreamLimitExceededException exception) {
                 throw new EmailLimitExceededException(exception.LimitName, exception.ActualValue,
@@ -306,7 +314,7 @@ public sealed class EmailDocumentReader {
 
             IReadOnlyDictionary<string, IEmailContentSource> sources = workspace.GetSources();
             if (!MsgReader.TryRead(compound, _options, diagnostics, cancellationToken, sources,
-                    out EmailDocument document)) {
+                    out EmailDocument document, budget)) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
                     "The compound artifact is not an Outlook MSG item.", EmailDiagnosticSeverity.Error));
             }
@@ -316,18 +324,18 @@ public sealed class EmailDocumentReader {
                     "The streaming reader retains payloads as reopenable sources and does not duplicate the complete raw artifact in memory.",
                     EmailDiagnosticSeverity.Warning));
             }
-            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace);
+            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace, budget.Snapshot());
         }
         if (signatureRead >= TnefSignature.Length && StartsWith(signature, TnefSignature)) {
             var diagnostics = new List<EmailDiagnostic>();
             EmailDocument document = TnefStreamingParser.Parse(stream, _options, diagnostics,
-                cancellationToken, workspace);
+                cancellationToken, workspace, budget);
             if (_options.PreserveRawSource || document.Protection.IsProtected) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_STREAMING_RAW_SOURCE_NOT_RETAINED",
                     "The streaming reader retains payloads as reopenable sources and does not duplicate the complete raw artifact in memory.",
                     EmailDiagnosticSeverity.Warning));
             }
-            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace);
+            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace, budget.Snapshot());
         }
 
         int prefixLength = checked((int)Math.Min(length, 64L * 1024L));
@@ -343,19 +351,20 @@ public sealed class EmailDocumentReader {
         if (LooksLikeMessage(prefix)) {
             var diagnostics = new List<EmailDiagnostic>();
             EmailDocument document = MimeStreamingParser.Parse(stream, _options, diagnostics,
-                cancellationToken, workspace);
+                cancellationToken, workspace, budget);
             if (_options.PreserveRawSource || document.Protection.IsProtected) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_STREAMING_RAW_SOURCE_NOT_RETAINED",
                     "The streaming reader retains payloads as reopenable sources and does not duplicate the complete raw artifact in memory.",
                     EmailDiagnosticSeverity.Warning));
             }
-            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace);
+            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace, budget.Snapshot());
         }
 
         // Retain the rich bounded parser for unrecognized and aggregate formats so diagnostics remain compatible.
         byte[] data = EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken);
-        EmailReadResult fallback = Parse(data, cancellationToken, sourceName);
-        return new EmailReadResult(fallback.Document, fallback.Diagnostics, fallback.BytesRead, workspace);
+        EmailReadResult fallback = Parse(data, cancellationToken, sourceName, budget, countInput: false);
+        return new EmailReadResult(fallback.Document, fallback.Diagnostics, fallback.BytesRead, workspace,
+            fallback.ProcessingBudget);
     }
 
     private static bool IsExternalMsgAttachment(string path, long length) =>

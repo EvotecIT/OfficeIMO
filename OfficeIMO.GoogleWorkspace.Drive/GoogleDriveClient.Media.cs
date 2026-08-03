@@ -1,6 +1,8 @@
 using OfficeIMO.GoogleWorkspace;
+using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace OfficeIMO.GoogleWorkspace.Drive {
@@ -50,7 +52,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create,
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
             options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
             return file;
         }
@@ -63,6 +67,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             if (content == null) throw new ArgumentNullException(nameof(content));
             ValidateUploadOptions(options);
             report ??= new TranslationReport();
+            string contentType = options.ContentType;
             string token = await AcquireTokenAsync(Options.WriteScopes, report, "Google Drive resumable upload", cancellationToken).ConfigureAwait(false);
             int chunkSize = NormalizeChunkSize(options.ResumableChunkSize);
             string metadataJson = SerializeUploadMetadata(options);
@@ -77,66 +82,81 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 report,
                 cancellationToken,
                 request => {
-                    request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", options.ContentType);
+                    request.Headers.TryAddWithoutValidation("X-Upload-Content-Type", contentType);
                     request.Headers.TryAddWithoutValidation("X-Upload-Content-Length", content.LongLength.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                }).ConfigureAwait(false);
-            string sessionUri = initiation.GetHeader("Location")
-                ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI.");
-
-            if (content.LongLength == 0) {
-                GoogleWorkspaceHttpResponse response = await QueryResumableStatusAsync(
-                    token,
-                    sessionUri,
-                    0,
-                    report,
-                    cancellationToken).ConfigureAwait(false);
-                if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
-                    options.Progress?.Report(new GoogleDriveTransferProgress(0, 0));
-                    return response.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
+                },
+                mutationKind: GoogleWorkspaceMutationKind.Action,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
+                    CreateResumableInitiationState(metadataJson, contentType, content.LongLength)),
+                requiredScopes: Options.WriteScopes).ConfigureAwait(false);
+            string sessionUri = GoogleDriveResumableSessionUri.Validate(initiation.GetHeader("Location")
+                ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI."));
+            GoogleWorkspaceHttpTransport.DeferredMutation create = BeginResumableFileCreate(token, sessionUri);
+            try {
+                if (content.LongLength == 0) {
+                    GoogleWorkspaceHttpResponse response = await QueryResumableStatusAsync(
+                        token, sessionUri, 0, report, cancellationToken).ConfigureAwait(false);
+                    if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
+                        create.CompleteSuccess();
+                        options.Progress?.Report(new GoogleDriveTransferProgress(0, 0));
+                        return response.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
+                    }
+                    throw new InvalidOperationException("Google Drive did not complete the zero-byte resumable upload.");
                 }
 
-                throw new InvalidOperationException("Google Drive did not complete the zero-byte resumable upload.");
-            }
+                long offset = 0;
+                int noProgressResponses = 0;
+                while (offset < content.LongLength) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int currentLength = (int)Math.Min(chunkSize, content.LongLength - offset);
+                    byte[] chunk = new byte[currentLength];
+                    Buffer.BlockCopy(content, (int)offset, chunk, 0, currentLength);
+                    long end = offset + currentLength - 1;
 
-            long offset = 0;
-            while (offset < content.LongLength) {
-                cancellationToken.ThrowIfCancellationRequested();
-                int currentLength = (int)Math.Min(chunkSize, content.LongLength - offset);
-                byte[] chunk = new byte[currentLength];
-                Buffer.BlockCopy(content, (int)offset, chunk, 0, currentLength);
-                long end = offset + currentLength - 1;
+                    GoogleWorkspaceHttpResponse response;
+                    try {
+                        response = await SendResumableChunkAsync(
+                            token, sessionUri, chunk, contentType, offset, end,
+                            content.LongLength, report, cancellationToken).ConfigureAwait(false);
+                    } catch (Exception exception) when (IsAmbiguousResumableChunkFailure(exception, cancellationToken)) {
+                        response = await QueryResumableStatusAsync(token, sessionUri, content.LongLength, report, cancellationToken).ConfigureAwait(false);
+                        if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
+                            create.CompleteSuccess();
+                            options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
+                            return response.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
+                        }
 
-                try {
-                    var response = await SendResumableChunkAsync(
-                        token,
-                        sessionUri,
-                        chunk,
-                        options.ContentType,
-                        offset,
-                        end,
-                        content.LongLength,
-                        report,
-                        cancellationToken).ConfigureAwait(false);
+                        long nextOffset = ResolveNextOffset(response, offset, content.LongLength);
+                        if (nextOffset <= offset) {
+                            if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress while reconciling the resumable upload.");
+                        } else {
+                            offset = nextOffset;
+                            noProgressResponses = 0;
+                        }
+                        options.Progress?.Report(new GoogleDriveTransferProgress(offset, content.LongLength));
+                        continue;
+                    }
+
                     if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
+                        create.CompleteSuccess();
                         options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
                         return response.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
                     }
 
-                    offset = ResolveNextOffset(response, offset);
-                    options.Progress?.Report(new GoogleDriveTransferProgress(offset, content.LongLength));
-                } catch (Exception exception) when (IsAmbiguousResumableChunkFailure(exception, cancellationToken)) {
-                    var status = await QueryResumableStatusAsync(token, sessionUri, content.LongLength, report, cancellationToken).ConfigureAwait(false);
-                    if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) {
-                        options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
-                        return status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
+                    long confirmedOffset = ResolveNextOffset(response, offset, content.LongLength);
+                    if (confirmedOffset <= offset) {
+                        if (++noProgressResponses > _session.Options.MaxRetryCount) throw new InvalidDataException("Google Drive repeatedly failed to confirm progress for the resumable upload chunk.");
+                    } else {
+                        offset = confirmedOffset;
+                        noProgressResponses = 0;
                     }
-
-                    offset = ResolveNextOffset(status, offset);
                     options.Progress?.Report(new GoogleDriveTransferProgress(offset, content.LongLength));
                 }
+                throw new InvalidOperationException("Google Drive resumable upload ended without final file metadata.");
+            } catch (Exception exception) {
+                create.CompleteFailure(exception);
+                throw;
             }
-
-            throw new InvalidOperationException("Google Drive resumable upload ended without final file metadata.");
         }
 
         private static bool IsAmbiguousResumableChunkFailure(Exception exception, CancellationToken cancellationToken) {
@@ -145,7 +165,10 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 return (int)apiException.ResponseStatusCode >= 500;
             }
 
-            return exception is HttpRequestException || exception is TaskCanceledException;
+            return exception is HttpRequestException
+                || exception is IOException
+                || exception is TimeoutException
+                || exception is TaskCanceledException;
         }
 
         public async Task<byte[]> DownloadAsync(
@@ -219,7 +242,12 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 report,
                 cancellationToken,
                 additionalSuccessStatusCodes: new[] { (HttpStatusCode)308 },
-                preserveRequestUri: true);
+                preserveRequestUri: true,
+                diagnosticTarget: ResumableSessionDiagnosticTarget(sessionUri),
+                mutationKind: GoogleWorkspaceMutationKind.Action,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
+                    $"content-range:bytes {start}-{end}/{total}"),
+                requiredScopes: Options.WriteScopes);
         }
 
         private Task<GoogleWorkspaceHttpResponse> QueryResumableStatusAsync(
@@ -228,7 +256,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             long total,
             TranslationReport report,
             CancellationToken cancellationToken) {
-            return Transport.SendRawAsync(
+            return Transport.SendRawSafeProbeAsync(
                 token,
                 HttpMethod.Put,
                 sessionUri,
@@ -237,13 +265,34 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     content.Headers.TryAddWithoutValidation("Content-Range", $"bytes */{total}");
                     return content;
                 },
-                GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
                 cancellationToken,
                 additionalSuccessStatusCodes: new[] { (HttpStatusCode)308 },
-                preserveRequestUri: true);
+                preserveRequestUri: true,
+                diagnosticTarget: ResumableSessionDiagnosticTarget(sessionUri));
         }
+
+        private static string ResumableSessionDiagnosticTarget(string sessionUri) {
+            using var hash = SHA256.Create();
+            string fingerprint = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(sessionUri)))
+                .Replace("-", string.Empty).ToLowerInvariant();
+            return "google-drive-resumable-upload-session:sha256:" + fingerprint;
+        }
+
+        private GoogleWorkspaceHttpTransport.DeferredMutation BeginResumableFileCreate(string token, string sessionUri) =>
+            Transport.BeginDeferredMutation(token, HttpMethod.Post,
+                ResumableSessionDiagnosticTarget(sessionUri) + ":file-create",
+                GoogleWorkspaceRequestSafety.NonIdempotent,
+                GoogleWorkspaceMutationKind.Create,
+                GoogleWorkspaceRevisionPrecondition.ResumableSessionState(
+                    "resumable-session:" + HashText(sessionUri)),
+                "Google Drive API",
+                Options.WriteScopes);
+
+        private static string CreateResumableInitiationState(string metadataJson, string contentType, long length) =>
+            "resumable-session-init:" + CreateUploadMetadataFingerprint(metadataJson, contentType) + ":" +
+            length.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         private static MultipartContent CreateMultipartContent(byte[] content, GoogleDriveUploadOptions options) {
             string boundary = "officeimo-" + Guid.NewGuid().ToString("N");
@@ -266,12 +315,19 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             }, GoogleDriveJsonSerializerContext.Default.GoogleDriveFilePayload);
         }
 
-        private static long ResolveNextOffset(GoogleWorkspaceHttpResponse response, long fallback) {
+        private static long ResolveNextOffset(GoogleWorkspaceHttpResponse response, long fallback, long total) {
             string? range = response.GetHeader("Range");
             if (string.IsNullOrWhiteSpace(range)) return fallback;
-            int dash = range!.LastIndexOf('-');
-            if (dash < 0 || !long.TryParse(range.Substring(dash + 1), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long end)) {
-                return fallback;
+            const string prefix = "bytes=0-";
+            string normalized = range!.Trim();
+            if (!normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                || !long.TryParse(normalized.Substring(prefix.Length),
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out long end)
+                || end < 0
+                || end >= total) {
+                throw new InvalidDataException("Google Drive returned an invalid resumable upload Range header.");
             }
 
             return end + 1;

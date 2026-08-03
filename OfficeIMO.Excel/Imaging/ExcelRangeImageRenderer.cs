@@ -41,6 +41,22 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat rasterPlanningFormat,
             out ExcelRasterRenderState rasterState,
             CancellationToken cancellationToken = default) {
+            ExcelRasterRenderState resolvedState = default;
+            OfficeImageExportResult result = OfficeImageExportExecutionScope.Run(
+                options,
+                cancellationToken,
+                token => RenderCore(snapshot, format, options, rasterPlanningFormat, out resolvedState, token));
+            rasterState = resolvedState;
+            return result;
+        }
+
+        private static OfficeImageExportResult RenderCore(
+            ExcelRangeVisualSnapshot snapshot,
+            OfficeImageExportFormat format,
+            ExcelImageExportOptions options,
+            OfficeImageExportFormat rasterPlanningFormat,
+            out ExcelRasterRenderState rasterState,
+            CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             if (format == OfficeImageExportFormat.Svg) {

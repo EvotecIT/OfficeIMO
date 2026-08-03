@@ -85,11 +85,11 @@ public class DrawingManagedTextShapingProviderTests {
         OfficeTextShapingResult? result = OfficeManagedTextShapingProvider.Instance.ShapeText(request);
 
         Assert.NotNull(result);
-        Assert.Equal(new[] { 5, 4, 0, 1, 2, 3 }, result!.Glyphs.Select(static glyph => glyph.TextIndex));
+        Assert.Equal(new[] { 5, 4, 3, 0, 1, 2 }, result!.Glyphs.Select(static glyph => glyph.TextIndex));
     }
 
     [Fact]
-    public void ManagedProvider_DeclinesExplicitBidiControlsItDoesNotImplement() {
+    public void ManagedProvider_MapsExplicitBidiOverridesThroughSharedResolver() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(0x61, 0x62, 0x63);
         var request = new OfficeTextShapingRequest(
             "\u202Eabc\u202C",
@@ -99,6 +99,9 @@ public class DrawingManagedTextShapingProviderTests {
             unitsPerEm: 1000,
             direction: OfficeTextDirection.RightToLeft);
 
-        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+        OfficeTextShapingResult? result = OfficeManagedTextShapingProvider.Instance.ShapeText(request);
+
+        Assert.NotNull(result);
+        Assert.Equal(new[] { 3, 2, 1 }, result!.Glyphs.Select(static glyph => glyph.TextIndex));
     }
 }

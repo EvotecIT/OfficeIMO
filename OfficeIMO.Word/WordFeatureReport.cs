@@ -470,13 +470,13 @@ namespace OfficeIMO.Word {
                 "ActiveX control package metadata is detected as preserve-only advanced document content.",
                 activeXControlDetails);
             Add(features, "Compatibility", "VBA macros", WordFeatureSupportLevel.PartiallyEditable, vbaDetails.Count, null,
-                "VBA projects can be attached, hash-checked, extracted with byte limits, enumerated, and removed; OfficeIMO does not edit VBA source or sign macro projects.",
+                "VBA projects can be attached, hash-checked, extracted with byte limits, enumerated, and removed; signature parts can be inspected cross-platform and signed or content-validated through the separate Windows Office SIP workflow. OfficeIMO does not execute VBA or edit VBA source.",
                 vbaDetails);
             Add(features, "Compatibility", "Custom XML parts", WordFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
                 customXmlDetails);
-            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.Unsupported, signatureValidation.SignatureInfo.FindingCount, null,
-                "Digital signature package metadata, XML signature structure, reference digest method/value metadata, and signed package-part references can be inspected; cryptographic validation, digest verification, certificate trust, revocation, timestamp, and package signing are not implemented.",
+            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.PartiallyEditable, signatureValidation.SignatureInfo.FindingCount, null,
+                "OPC package signatures can be inspected, validated, and created cross-platform; mutating a signed document still requires an explicit signature-invalidation policy. VBA macro-project signing is a separate Windows Office SIP capability with cross-platform signature-part inspection.",
                 signatureValidation.SignatureInfo.Details.Concat(signatureValidation.Findings).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
 
             return new WordFeatureReport(features);

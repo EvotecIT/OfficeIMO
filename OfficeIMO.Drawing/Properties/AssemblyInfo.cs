@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Markdown")]
 [assembly: InternalsVisibleTo("OfficeIMO.Markup.PowerPoint")]
 [assembly: InternalsVisibleTo("OfficeIMO.OpenDocument")]
+[assembly: InternalsVisibleTo("OfficeIMO.OneNote")]
 [assembly: InternalsVisibleTo("OfficeIMO.Pdf")]
 [assembly: InternalsVisibleTo("OfficeIMO.PowerPoint")]
 [assembly: InternalsVisibleTo("OfficeIMO.PowerPoint.Tests")]

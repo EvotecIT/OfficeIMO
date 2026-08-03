@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <EnableOfficeIMOGooglePackageSmoke Condition="'$(EnableOfficeIMOGooglePackageSmoke)' == ''">false</EnableOfficeIMOGooglePackageSmoke>
+    <OfficeIMOGooglePackageVersion Condition="'$(OfficeIMOGooglePackageVersion)' == ''">3.1.0</OfficeIMOGooglePackageVersion>
+    <IsPackable>false</IsPackable>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableOfficeIMOGooglePackageSmoke)' == 'true'">
+    <PackageReference Include="OfficeIMO.GoogleWorkspace" Version="[$(OfficeIMOGooglePackageVersion)]" />
+    <PackageReference Include="OfficeIMO.GoogleWorkspace.Drive" Version="[$(OfficeIMOGooglePackageVersion)]" />
+    <PackageReference Include="OfficeIMO.GoogleWorkspace.Sync" Version="[$(OfficeIMOGooglePackageVersion)]" />
+    <PackageReference Include="OfficeIMO.GoogleWorkspace.Auth.GoogleApis" Version="[$(OfficeIMOGooglePackageVersion)]" />
+  </ItemGroup>
+
+  <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
+          Condition="'$(EnableOfficeIMOGooglePackageSmoke)' != 'true'">
+    <Error Text="Set EnableOfficeIMOGooglePackageSmoke=true and restore from a feed containing the packed Google Workspace package family." />
+  </Target>
+</Project>

@@ -29,22 +29,24 @@ namespace OfficeIMO.Word {
         };
 
         /// <summary>True when core document content can be read despite non-content package metadata.</summary>
-        public bool CanReadDocumentContent => UnsupportedFeatures.All(IsReadSafeUnsupportedFeature);
+        public bool CanReadDocumentContent => UnsupportedFeatures.Count == 0;
 
         /// <summary>True when ordinary content edits have no known unsupported package blocker.</summary>
-        public bool CanEditDocumentContent => UnsupportedFeatures.Count == 0;
+        public bool CanEditDocumentContent => UnsupportedFeatures.Count == 0 && !HasDigitalSignatures;
 
         /// <summary>True when structure-changing edits have no preserve-only or unsupported blocker.</summary>
-        public bool CanEditDocumentStructure => !HasAdvancedFeatures;
+        public bool CanEditDocumentStructure => !HasAdvancedFeatures && !HasDigitalSignatures;
 
         /// <summary>True when template binding has no preserve-only or unsupported blocker.</summary>
-        public bool CanBindTemplate => !HasAdvancedFeatures;
+        public bool CanBindTemplate => !HasAdvancedFeatures && !HasDigitalSignatures;
 
         /// <summary>True when no discovered feature is known to require external materialization or exact unsupported layout.</summary>
         public bool CanRenderFixedLayout => GetFixedLayoutBlockers().Count == 0;
 
         /// <summary>True when saving is not known to invalidate an unsupported package contract.</summary>
-        public bool CanSavePackageRoundTrip => UnsupportedFeatures.Count == 0;
+        public bool CanSavePackageRoundTrip => UnsupportedFeatures.Count == 0 && !HasDigitalSignatures;
+
+        private bool HasDigitalSignatures => FindFeatures("Digital signatures").Count > 0;
 
         /// <summary>Returns whether the requested workflow capability can be attempted.</summary>
         public bool Can(WordPreflightCapability capability) {
@@ -94,13 +96,13 @@ namespace OfficeIMO.Word {
         internal IEnumerable<WordFeatureFinding> GetCapabilityFindings(WordPreflightCapability capability) {
             switch (capability) {
                 case WordPreflightCapability.ReadDocumentContent:
-                    return UnsupportedFeatures.Where(finding => !IsReadSafeUnsupportedFeature(finding));
+                    return UnsupportedFeatures;
                 case WordPreflightCapability.EditDocumentContent:
                 case WordPreflightCapability.SavePackageRoundTrip:
-                    return UnsupportedFeatures;
+                    return UnsupportedFeatures.Concat(FindFeatures("Digital signatures"));
                 case WordPreflightCapability.EditDocumentStructure:
                 case WordPreflightCapability.BindTemplate:
-                    return UnsupportedFeatures.Concat(PreservedFeatures);
+                    return UnsupportedFeatures.Concat(PreservedFeatures).Concat(FindFeatures("Digital signatures"));
                 case WordPreflightCapability.RenderFixedLayout:
                     return GetFixedLayoutBlockers();
                 default:
@@ -111,9 +113,6 @@ namespace OfficeIMO.Word {
 
         private IReadOnlyList<WordFeatureFinding> GetFixedLayoutBlockers() =>
             FindFeatures(FixedLayoutBlockerNames);
-
-        private static bool IsReadSafeUnsupportedFeature(WordFeatureFinding finding) =>
-            string.Equals(finding.Name, "Digital signatures", StringComparison.OrdinalIgnoreCase);
 
         private static string FormatCapabilityFinding(WordFeatureFinding finding) {
             string message = $"{finding.Name} ({finding.Count}, {finding.SupportLevel}): {finding.Note}";

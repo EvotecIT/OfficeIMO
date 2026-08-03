@@ -161,6 +161,8 @@ be removed or preserved.
 - Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
 - Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
 - Authors every `OfficeIMO.Drawing.OfficeChartKind` family from one shared chart contract, including categorical combo charts and secondary value axes.
+- Authors bounded semantic SmartArt, shared custom geometry, classic and modern threaded comments, custom shows, embedded OLE objects, and opaque VBA projects through the normal presentation model.
+- Preserves and reports broader animation timelines while exposing first-party shape, text, and chart animation workflows for supported effects.
 - Supports encrypted Open XML and RC4 CryptoAPI binary presentation save/load workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
 
@@ -420,13 +422,28 @@ Shapes expose `Title`, `Description`, `Decorative`, `ReadingOrder`, `MoveToReadi
 
 Saving a signed package is blocked by default because mutation invalidates existing signatures. Choose `RemoveInvalidatedSignatures` or `PreserveSignatureMarkup` explicitly only after inspecting `InspectSignatures()`.
 
+### Review threads, custom shows, and VBA projects
+
+Classic comments round-trip through supported PPTX and binary PPT workflows. Modern comments remain an Open XML feature and support replies, status changes, reassignment, and removal:
+
+```csharp
+var reviewer = new PowerPointCommentAuthor("A. Reviewer", "AR", "reviewer@example.test");
+PowerPointModernComment comment = presentation.AddModernComment(
+    slide, reviewer, "Verify the release numbers.");
+comment.AddReply(reviewer, "Verified against the source report.");
+
+presentation.AddCustomShow("Executive review", new[] { titleSlide, summarySlide });
+```
+
+`GetVbaProjectBytes()`, `SetVbaProject(...)`, and `RemoveVbaProject()` treat a VBA project as validated, bounded compound-storage content. They do not interpret or generate VBA source. Save macro content only to matching macro-enabled package formats such as `.pptm`, `.potm`, or `.ppsm`.
+
 ### SmartArt and visual proof
 
 Use the bounded semantic SmartArt workflows when native editable diagram data is more useful than flattened artwork:
 
 ```csharp
 PowerPointSmartArt process = slide.AddSmartArt(
-    PowerPointSmartArtType.BasicProcess,
+    PowerPointSmartArtType.BasicRelationship,
     new[] { "Discover", "Design", "Deliver" });
 
 PowerPointVisualProofReport proof = presentation.InspectVisuals();
@@ -435,6 +452,8 @@ proof.RecordArtifact("deck.pptx",
     File.ReadAllBytes("deck.pptx"));
 proof.SaveJson("deck.visual-proof.json");
 ```
+
+The bounded semantic layouts cover process, hierarchy, cycle, list, matrix, pyramid, and relationship diagrams. `AddCustomGeometry(...)` accepts shared `OfficeShape` path or polygon geometry and writes editable DrawingML `custGeom` content.
 
 The visual proof report records structural and extraction evidence, accessibility results, shared-snapshot diagnostics, PNG/SVG hashes, caller-supplied conversion artifacts, and perceptual-comparison results. PowerPoint Desktop reference rendering is available through `PowerPointDesktopReferenceRenderer.TryRender(...)` only when the caller explicitly enables it; normal generation and export never use Office automation.
 

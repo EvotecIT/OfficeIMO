@@ -141,7 +141,10 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptActiveXDetails = Array.Empty<string>();
             _legacyPptMediaDetails = Array.Empty<string>();
             ClearLegacyPptSecurityState();
-            SourceFormat = PowerPointFileFormat.Pptx;
+            SourceFormat = _document?.DocumentType
+                == PresentationDocumentType.MacroEnabledPresentation
+                    ? PowerPointFileFormat.Pptm
+                    : PowerPointFileFormat.Pptx;
         }
 
         internal bool CanPreserveOriginalLegacyPackage => _legacyPptPackage != null

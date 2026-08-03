@@ -21,11 +21,11 @@ The detailed legacy contract is documented in [DOC/DOCX compatibility](../Docs/o
 | Images, drawings, charts, shapes, and SmartArt | Partial | Common images, charts, shapes, and shared Drawing export are supported; advanced anchoring, imported chart mutation, SmartArt editing, grouping, and Word-exact layout remain bounded |
 | Templates and mail merge | Broad | Merge fields, conditionals, repeated rows/blocks/sections, content controls, Custom XML binding, validation, batch output, and formatting-preserving replacements are covered by the [scenario matrix](../Docs/officeimo.word-template-mail-merge-scenarios.md) |
 | Content controls and forms | Broad for common SDTs | Text, rich text, checkbox, date, dropdown, combo, picture, repeating-section, tag/alias lookup, fill, extraction, and preflight are supported; advanced mapping/binding shapes remain bounded |
-| Comments, revisions, and review reports | Broad | Classic comments/replies/resolution, imported review metadata, scoped accept/reject, visible markup, structured JSON/Markdown reports, and supported redline artifacts are available; complete Word-compatible review semantics are not claimed |
-| Document comparison | Broad structured comparison | Deterministic paragraph/run/table/image/field/content-control/bookmark/link/list/comment/revision findings and supported in-place or generated redline output are available; advanced nested move/layout/effective-formatting cases remain bounded |
-| Fields, TOC, indexes, and lists | Partial | Common parsing, inventory, selected evaluation/refresh, index/TOC/list generation, diagnostics, and switch preservation are available; locale/layout-dependent behavior remains explicit |
-| Macros and embedded payloads | Inspect/preserve/manage | VBA, package, OLE, and ActiveX payloads can be inventoried, hashed, extracted, attached/replaced/removed without execution; source-level VBA and full OLE/ActiveX editing are outside the contract |
-| Digital signatures | Partial | OPC signature inspection, bounded digest checks, structural validation, save invalidation policy, and a Windows .NET Framework package-signing adapter are available; cross-platform signing, complete transform/trust/revocation/timestamp validation, and macro signing are not claimed |
+| Comments, revisions, and review reports | Broad | Classic comments/replies/resolution, imported review metadata, scoped accept/reject, visible markup, structured JSON/Markdown reports, and supported redline artifacts are available. Sanitized Word-authored and imported-shape proof covers bounded body/nested-table, note, header, footer, text-box, and content-control locations; complete Word-compatible review semantics are not claimed |
+| Document comparison | Broad structured comparison | Deterministic paragraph/run/table/image/field/content-control/bookmark/link/list/comment/revision findings and supported in-place or generated redline output are available. Every report carries stable limitation codes for theme/conditional-style/numbering effective formatting and revision-metadata-only move semantics when those shapes are present |
+| Fields, TOC, indexes, and lists | Supported deterministic profiles | Parsing, inventory, selected evaluation, TOC/index/caption-list refresh, diagnostics, and switch preservation are available. Each update reports whether it used the invariant document model, an explicit-break page estimate, or requires an external layout engine |
+| Macros and embedded payloads | Inspect/preserve/manage | VBA, package, OLE, and ActiveX payloads can be inventoried, hashed, extracted, attached/replaced/removed without execution. VBA signature parts can be inspected cross-platform; source-level VBA and full OLE/ActiveX editing are outside the contract |
+| Digital signatures | OPC cross-platform; VBA signing Windows-native | Cross-platform OPC XML-signature creation supports relationship-transform and canonicalization-aware digests, signature math, signer-chain trust/revocation policy, RFC 3161 timestamp-authority validation, resource budgets, and save invalidation policy. VBA macro-project signatures remain a separate capability: signature metadata and CMS policy can be inspected cross-platform; content binding is validated directly with Microsoft's registered Office SIP on Windows; creation additionally requires OfficeSips tooling and SignTool |
 | Protection and encryption | Broad | Document protection, encrypted OOXML workflows, package security, and active/external-content policy are available with typed findings |
 | Feature inspection and preflight | Supported | `InspectFeatures()`, capability preflight, `Can`, `EnsureCan`, diagnostics, repair hints, and preservation reports route reads, edits, templates, rendering, and save workflows explicitly |
 
@@ -44,7 +44,35 @@ The detailed legacy contract is documented in [DOC/DOCX compatibility](../Docs/o
 | Table formulas | Plain numeric and percent-valued cells with `ABOVE`, `BELOW`, `LEFT`, and `RIGHT`, explicit A1 and `RnCn` cells, and rectangular ranges in regular tables; simple horizontal spans, vertical-merge continuations, and `gridBefore` offsets are normalized |
 | Nested complex fields | Deterministic nested result fields and deterministic nested formula inputs refresh within bounded containing-field shapes; fields whose containing result was replaced are skipped to avoid corrupting that result |
 
-TOC, caption-list, and index refresh have their own explicit methods and diagnostics. Locale-dependent layout, broader complex table geometry, unsaved `FILESIZE`, broader `QUOTE` container behavior, and unsupported nested instruction shapes remain preserved and diagnosed.
+TOC, caption-list, and index refresh have their own explicit methods and diagnostics. Their reports expose `WordPageNumberBasis.ExplicitBreakEstimate`; field updates expose `DiagnosticCode` and `EvaluationBasis`. Locale-dependent layout, broader complex table geometry, unsaved `FILESIZE`, broader `QUOTE` container behavior, native `LISTNUM`, and unsupported nested instruction shapes remain preserved and diagnosed rather than approximated silently.
+
+## Package signatures
+
+Use `WordDocument.SignPackage(...)` or its non-throwing `TrySignPackage(...)` form with an RSA certificate that has an accessible private key. Package-signature creation is RSA-only; certificates backed by ECDSA, DSA, or other private-key algorithms are reported as unsupported. `WordPackageSigningOptions` selects parts, relationship selectors, digest algorithm, embedded chain certificates, claimed signing time, and input budgets. Load the package and call `ValidateSignatures(WordSignatureValidationOptions)` to apply caller-selected certificate trust, revocation, timestamp-authority, and resource policy.
+
+`WordSigningCapabilities.Package` and `WordSigningCapabilities.MacroProject` deliberately report two different contracts. A valid OPC package signature does not sign VBA source, and preserving a signed VBA project does not create or renew its signature.
+
+For saved `.docm` and `.dotm` files,
+`WordDocument.InspectMacroProjectSignatures(...)` inventories bounded legacy,
+agile, and V3 signature parts on every supported platform. It parses CMS signer,
+chain, revocation, and RFC 3161 timestamp evidence without claiming that the
+signature binds to the current macro project.
+
+`WordDocument.SignMacroProject(...)` uses Microsoft's OfficeSips tools and
+SignTool on Windows. `WordDocument.ValidateMacroProjectSignature(...)` performs
+content binding directly through the registered Office SIP, independently of
+SignTool's machine trust decision. Signing blocks existing OPC signatures by
+default, clears existing VBA signatures, creates and verifies legacy, agile,
+and V3 profiles in sequence, requires the current V3 profile by default, proves
+that the encoded VBA project and original package are unchanged, and commits
+atomically. Sign the VBA project first and the OPC package last when both are
+required. Certificate selection is limited to a strict SHA-1
+thumbprint in the configured Windows certificate store. The API does not accept
+PFX passwords, arbitrary native-tool arguments, VBA source, or executable macro
+content. Caller certificate-chain, revocation, and timestamp policy controls
+validation; a trusted RFC 3161 timestamp supplies the default signer-validation
+time. Microsoft Office is not a runtime dependency; the Microsoft OfficeSips
+package and a Windows SDK SignTool installation are creation prerequisites.
 
 ## Conversion and rendering
 

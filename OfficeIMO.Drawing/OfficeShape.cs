@@ -205,7 +205,31 @@ public sealed class OfficeShape {
     public static OfficeShape Path(params OfficePathCommand[] commands) => Path((IEnumerable<OfficePathCommand>)commands);
 
     /// <summary>Creates a freeform path descriptor from commands in a local top-left coordinate space.</summary>
-    public static OfficeShape Path(IEnumerable<OfficePathCommand> commands) {
+    public static OfficeShape Path(IEnumerable<OfficePathCommand> commands) =>
+        CreatePath(commands, null, null);
+
+    /// <summary>Creates a freeform path descriptor while preserving a declared local coordinate canvas.</summary>
+    public static OfficeShape Path(double width, double height,
+        params OfficePathCommand[] commands) =>
+        Path(width, height, (IEnumerable<OfficePathCommand>)commands);
+
+    /// <summary>Creates a freeform path descriptor while preserving a declared local coordinate canvas.</summary>
+    public static OfficeShape Path(double width, double height,
+        IEnumerable<OfficePathCommand> commands) {
+        if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(width),
+                "Path canvas width must be a finite positive value.");
+        }
+        if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(height),
+                "Path canvas height must be a finite positive value.");
+        }
+
+        return CreatePath(commands, width, height);
+    }
+
+    private static OfficeShape CreatePath(IEnumerable<OfficePathCommand> commands,
+        double? canvasWidth, double? canvasHeight) {
         if (commands is null) {
             throw new ArgumentNullException(nameof(commands));
         }
@@ -255,22 +279,29 @@ public sealed class OfficeShape {
             throw new ArgumentException("Path shapes require at least one drawing command.", nameof(commands));
         }
 
-        double width = maxX - minX;
-        double height = maxY - minY;
-        if (width <= 0 || height <= 0) {
+        double occupiedWidth = maxX - minX;
+        double occupiedHeight = maxY - minY;
+        if ((!canvasWidth.HasValue || !canvasHeight.HasValue)
+            && (occupiedWidth <= 0 || occupiedHeight <= 0)) {
             throw new ArgumentException("Path commands must describe a non-empty two-dimensional area.", nameof(commands));
         }
 
-        var normalized = new List<OfficePathCommand>(source.Count);
-        for (int i = 0; i < source.Count; i++) {
-            normalized.Add(source[i].Translate(minX, minY));
+        IReadOnlyList<OfficePathCommand> resolvedCommands;
+        if (canvasWidth.HasValue && canvasHeight.HasValue) {
+            resolvedCommands = new ReadOnlyCollection<OfficePathCommand>(source);
+        } else {
+            var normalized = new List<OfficePathCommand>(source.Count);
+            for (int i = 0; i < source.Count; i++) {
+                normalized.Add(source[i].Translate(minX, minY));
+            }
+            resolvedCommands = new ReadOnlyCollection<OfficePathCommand>(normalized);
         }
 
         return new OfficeShape {
             Kind = OfficeShapeKind.Path,
-            Width = width,
-            Height = height,
-            PathCommands = new ReadOnlyCollection<OfficePathCommand>(normalized)
+            Width = canvasWidth ?? occupiedWidth,
+            Height = canvasHeight ?? occupiedHeight,
+            PathCommands = resolvedCommands
         };
     }
 

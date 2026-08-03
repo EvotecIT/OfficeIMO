@@ -9,12 +9,109 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class WordFieldUpdateReportTests {
+    public partial class WordFieldUpdateReportTests {
         private readonly string _directoryWithFiles;
 
         public WordFieldUpdateReportTests() {
             _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments2", Guid.NewGuid().ToString("N"));
             Word.Setup(_directoryWithFiles);
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsAndGetReport_ExposesStableDiagnosticCodesAndEvaluationBasis() {
+            using WordDocument document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Creator = "Ada";
+            document.AddParagraph("Author: ").AddField(WordFieldType.Author);
+            document.AddParagraph("Page: ").AddField(WordFieldType.Page);
+            document.AddParagraph("List: ").AddField(WordFieldType.ListNum);
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+            WordFieldUpdateResult author = Assert.Single(report.Results, result => result.FieldType == WordFieldType.Author);
+            Assert.Equal("FieldUpdatedInvariant", author.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.InvariantDocumentModel, author.EvaluationBasis);
+
+            WordFieldUpdateResult page = Assert.Single(report.Results, result => result.FieldType == WordFieldType.Page);
+            Assert.Equal("FieldUpdatedFromExplicitBreaks", page.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.ExplicitBreakEstimate, page.EvaluationBasis);
+
+            WordFieldUpdateResult list = Assert.Single(report.Results, result => result.FieldType == WordFieldType.ListNum);
+            Assert.Equal("FieldEvaluationUnsupported", list.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, list.EvaluationBasis);
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsAndGetReport_ClassifiesFailedLayoutFieldsAsNotEvaluated() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("stale"))) {
+                Instruction = " TOC ",
+                FieldLock = true
+            });
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("stale"))) {
+                Instruction = " INDEX ",
+                FieldLock = true
+            });
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+            Assert.All(report.Results, result => {
+                Assert.Equal(WordFieldUpdateStatus.Skipped, result.Status);
+                Assert.Equal("FieldLocked", result.DiagnosticCode);
+                Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, result.EvaluationBasis);
+            });
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsAndGetReport_ClassifiesDelegatedLayoutFieldsAsExternalLayoutRequired() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(BuildSimpleField(" TOC ", "stale-toc"));
+            document.AddParagraph()._paragraph.Append(BuildSimpleField(" INDEX ", "stale-index"));
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+            Assert.All(report.Results, result => {
+                Assert.Equal(WordFieldUpdateStatus.Skipped, result.Status);
+                Assert.Equal("FieldRefreshDelegated", result.DiagnosticCode);
+                Assert.Equal(WordFieldEvaluationBasis.ExternalLayoutRequired, result.EvaluationBasis);
+            });
+            Assert.True(document.Settings.UpdateFieldsOnOpen);
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesContainingReplacementReasonForNestedLayoutField() {
+            using WordDocument document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Creator = "Ada";
+            AddNestedComplexFields(
+                document.AddParagraph()._paragraph,
+                " AUTHOR ",
+                " TOC ",
+                "outer stale ",
+                "nested toc stale",
+                " outer tail",
+                innerLocked: true);
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+            WordFieldUpdateResult nestedToc = Assert.Single(report.Results, result => result.FieldType == WordFieldType.TOC);
+            Assert.Equal(WordFieldUpdateStatus.Skipped, nestedToc.Status);
+            Assert.Equal("FieldContainingResultReplaced", nestedToc.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, nestedToc.EvaluationBasis);
+            Assert.Contains("containing field", nestedToc.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesParseDiagnosticForLockedMalformedField() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("stale"))) {
+                Instruction = " SILLYFIELD value ",
+                FieldLock = true
+            });
+
+            WordFieldUpdateResult result = Assert.Single(document.UpdateFieldsAndGetReport().Results);
+
+            Assert.Equal(WordFieldUpdateStatus.ParseError, result.Status);
+            Assert.Equal("FieldInstructionInvalid", result.DiagnosticCode);
+            Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, result.EvaluationBasis);
         }
 
         [Fact]
@@ -2625,13 +2722,14 @@ namespace OfficeIMO.Tests {
             string innerInstruction,
             string outerPrefix,
             string innerResult,
-            string outerSuffix) {
+            string outerSuffix,
+            bool innerLocked = false) {
             paragraph.Append(
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                 new Run(new FieldCode { Text = outerInstruction, Space = SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text(outerPrefix) { Space = SpaceProcessingModeValues.Preserve }),
-                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin, FieldLock = innerLocked }),
                 new Run(new FieldCode { Text = innerInstruction, Space = SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text(innerResult) { Space = SpaceProcessingModeValues.Preserve }),

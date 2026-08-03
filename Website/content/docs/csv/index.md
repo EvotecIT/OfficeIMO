@@ -14,10 +14,8 @@ The `OfficeIMO.CSV` package provides a fluent, strongly typed CSV document model
 | `CsvRow` | Represents a single data row with typed column access. |
 | `CsvSchema` | Defines column names, types, and validation rules. |
 | `CsvValidator` | Validates rows against a schema. |
-| `CsvWriter` | Low-level writer for streaming CSV output. |
-| `CsvParser` | Low-level parser for streaming CSV input. |
-| `CsvMapper` | Maps CSV rows to/from strongly-typed objects. |
-| `CsvStreamingSource` | Lazy streaming source for large files. |
+| `CsvObjectWriter` | Writes objects, projected rows, and data readers without materializing a document. |
+| `CsvMapper<T>` | Defines explicit typed assignments for trimming and NativeAOT-sensitive code. |
 
 ## Creating a CSV Document
 
@@ -79,23 +77,19 @@ using System.Text;
 var csv = CsvDocument.Load("data.csv", new CsvLoadOptions {
     Delimiter = '\t',
     HasHeaderRow = true,
-    Encoding = Encoding.UTF8,
-    Mode = CsvLoadMode.InMemory
+    Encoding = Encoding.UTF8
 });
 ```
 
-### Streaming Mode
+### Forward-only reading
 
-For large files, use streaming mode to avoid loading everything into memory:
+For large files, use the standard data-reader entry point instead of loading a document:
 
 ```csharp
-var csv = CsvDocument.Load("large.csv", new CsvLoadOptions {
-    Mode = CsvLoadMode.Stream
-});
+using var reader = CsvDocument.OpenDataReader("large.csv");
 
-foreach (var row in csv.Rows) {
-    // Rows are read one at a time from disk
-    Console.WriteLine(row.Get<string>("Name"));
+while (reader.Read()) {
+    Console.WriteLine(reader.GetString(reader.GetOrdinal("Name")));
 }
 ```
 
@@ -132,11 +126,7 @@ public class Person {
 }
 
 var csv = CsvDocument.Load("people.csv");
-var people = csv.Map<Person>(map => map
-    .FromColumn<string>("Name", (person, value) => person.Name = value)
-    .FromColumn<int>("Age", (person, value) => person.Age = value)
-    .FromColumn<string>("City", (person, value) => person.City = value)
-).ToList();
+var people = csv.RowsAs<Person>().ToList();
 
 foreach (var person in people) {
     Console.WriteLine($"{person.Name} ({person.Age}) lives in {person.City}");

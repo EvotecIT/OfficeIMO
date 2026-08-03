@@ -310,6 +310,13 @@ namespace OfficeIMO.Visio.Diagrams {
             AddCallouts(page);
             AddTitle(page);
             EnsureSideCalloutsFitPage(page);
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                FitToContent = false,
+                ResizeShapesToText = false,
+                ResizeConnectorLabelsToText = true,
+                ResolveConnectorShapeIntersections = true,
+                ResolveConnectorLabelOverlaps = true
+            });
             _document.RequestRecalcOnOpen();
             return page;
         }

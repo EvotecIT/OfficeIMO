@@ -43,6 +43,7 @@ document.Save();
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
 - Applies optional shared package-security policy before parsing Open XML or compound DOC files, and preflights read, edit, template, render, and save capabilities.
 - Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
+- Creates and validates cross-platform OPC XML package signatures with caller-controlled certificate-chain, revocation, timestamp-authority, and resource policy. VBA macro-project signing is a separate Windows-native Office SIP capability with cross-platform signature inspection.
 - Exports estimated document page ranges as dependency-free PNG or SVG previews through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
@@ -131,6 +132,81 @@ var totalField = new WordFieldBuilder(WordFieldType.MergeField)
 merge.AddField(totalField);
 ```
 
+For a strict merge, use the structured result rather than assuming every field was bound:
+
+```csharp
+WordMailMergeExecutionReport report = WordMailMerge.ExecuteWithReport(
+    document,
+    new Dictionary<string, string> {
+        ["CustomerName"] = "Ada Lovelace",
+        ["OrderTotal"] = "1234.5"
+    });
+
+report.EnsureComplete();
+```
+
+The report distinguishes merged fields, missing values, and unsupported formatting. `ExecuteBatchWithReport(...)` retains the same evidence for every output record.
+
+### OPC package signatures
+
+```csharp
+WordDocument.SignPackage("report.docx", "CERTIFICATE-THUMBPRINT");
+
+using WordDocument signed = WordDocument.Load("report.docx");
+WordSignatureValidationReport validation = signed.ValidateSignatures(
+    new WordSignatureValidationOptions());
+```
+
+OPC package signing does not sign VBA code. `WordSigningCapabilities.Package` and
+`WordSigningCapabilities.MacroProject` report the two surfaces independently.
+
+### VBA macro-project signatures
+
+Signature parts in saved `.docm` and `.dotm` files can be inspected on every
+supported platform without executing VBA:
+
+```csharp
+WordMacroProjectSignatureInfo signatures =
+    WordDocument.InspectMacroProjectSignatures("automation.docm");
+```
+
+Creating signatures requires Windows, SignTool, and Microsoft's registered
+Office SIP. Proving the macro-project content binding requires Windows and the
+registered Office SIP, but does not use SignTool's machine trust decision.
+The signing workflow blocks existing OPC package signatures by default, clears
+existing VBA signatures, creates and verifies the legacy, agile, and V3 profiles
+in Microsoft's required order, proves that `vbaProject.bin` and the source
+package did not change concurrently, and atomically replaces the package only
+after final validation. When both signature kinds are needed, sign the VBA
+project first and the OPC package last:
+
+```csharp
+var options = new WordMacroProjectSigningOptions {
+    OfficeSipsDirectory = @"C:\Tools\OfficeSips",
+    SignToolPath = @"C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe",
+    TimestampAuthorityUrl = new Uri("https://timestamp.example.com")
+};
+
+WordMacroProjectSigningResult signing = WordDocument.SignMacroProject(
+    "automation.docm",
+    "CERTIFICATE-STORE-SHA1-THUMBPRINT",
+    options);
+
+var validationOptions = new WordMacroProjectSignatureValidationOptions();
+WordMacroProjectSignatureValidationResult validation =
+    WordDocument.ValidateMacroProjectSignature("automation.docm", validationOptions);
+```
+
+The certificate is selected by a strict SHA-1 thumbprint from the configured
+Windows certificate store; private-key files, passwords, and arbitrary SignTool
+arguments are not accepted. Requiring a timestamp during signing also requires
+an explicit timestamp-authority URL. Validation combines direct Office SIP
+content-binding proof with CMS signature, caller-controlled certificate-chain,
+revocation, and RFC 3161 timestamp policy. A trusted timestamp is used as the
+signer's certificate-validation time unless the caller supplies an explicit
+verification time. Microsoft Office itself is not required. OfficeIMO does not
+execute VBA or edit VBA source modules.
+
 ### Content controls
 
 ```csharp
@@ -152,6 +228,11 @@ using OfficeIMO.Word.LegacyDoc;
 
 using WordDocument document = WordDocument.Load("legacy-input.doc");
 document.Save("converted-output.docx");
+
+LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+if (assessment.IsSupported) {
+    document.Save("legacy-output.doc");
+}
 
 WordDocument.Convert("legacy-input.doc", "converted-output.docx");
 WordDocument.Convert("openxml-input.docx", "legacy-output.doc");

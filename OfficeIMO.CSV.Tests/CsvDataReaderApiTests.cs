@@ -36,6 +36,11 @@ public sealed class CsvDataReaderApiTests {
             && method.ReturnType == typeof(DbDataReader));
         Assert.DoesNotContain(methods, static method =>
             method.Name == "CreateDataReader" && method.IsStatic);
+        Assert.DoesNotContain(
+            typeof(CsvDocument).Assembly.GetExportedTypes(),
+            static type => type.Name == "CsvLoadMode");
+        Assert.Null(typeof(CsvLoadOptions).GetProperty("Mode", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Null(typeof(CsvDocument).GetProperty("Mode", BindingFlags.Public | BindingFlags.Instance));
     }
 
     [Fact]
@@ -236,6 +241,27 @@ public sealed class CsvDataReaderApiTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv.ToString()));
 
         using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+
+        Assert.True(stream.Position < stream.Length);
+        Assert.True(reader.Read());
+        Assert.Equal(0, reader.GetInt32(0));
+        Assert.Equal("Value0", reader.GetString(1));
+    }
+
+    [Fact]
+    public void OpenDataReader_SuppliedLoadOptionsCannotDisableStreaming() {
+        var csv = new StringBuilder("Id,Name\n");
+        for (int index = 0; index < 100_000; index++) {
+            csv.Append(index).Append(",Value").Append(index).Append('\n');
+        }
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv.ToString()));
+
+        using DbDataReader reader = CsvDocument.OpenDataReader(
+            stream,
+            new CsvLoadOptions {
+                Mode = CsvLoadMode.InMemory,
+                Culture = System.Globalization.CultureInfo.InvariantCulture
+            });
 
         Assert.True(stream.Position < stream.Length);
         Assert.True(reader.Read());

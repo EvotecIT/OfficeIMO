@@ -115,6 +115,8 @@ public sealed class PdfPowerPointTableImportEntry {
 
 /// <summary>Reports a PDF-to-PowerPoint conversion in visual-page or editable-table mode.</summary>
 public sealed class PdfPowerPointConversionReport {
+    private readonly bool _hasOmittedPageContent;
+
     internal PdfPowerPointConversionReport(
         IReadOnlyList<PdfPowerPointTableImportEntry> entries,
         OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope) {
@@ -122,12 +124,35 @@ public sealed class PdfPowerPointConversionReport {
         TableEntries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
         SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
         VisualPages = Array.Empty<PdfPowerPointVisualPageEntry>();
+        _hasOmittedPageContent = SourceScope.HasOmittedPageContent;
+        Warnings = CreateProjectionWarnings(SourceScope, failedVisualScope: null, hasFailedVisualPages: false);
     }
 
     internal PdfPowerPointConversionReport(IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
         Mode = PdfPowerPointImportMode.VisualPages;
         TableEntries = Array.Empty<PdfPowerPointTableImportEntry>();
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
+        _hasOmittedPageContent = false;
+        Warnings = Array.Empty<OfficeIMO.Pdf.PdfConversionWarning>();
+    }
+
+    internal PdfPowerPointConversionReport(
+        IReadOnlyList<PdfPowerPointTableImportEntry> entries,
+        IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages,
+        OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope,
+        OfficeIMO.Pdf.PdfTableExtractionScopeReport failedVisualScope) {
+        Mode = PdfPowerPointImportMode.HybridVisualAndEditableTables;
+        TableEntries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
+        VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
+        SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
+        if (failedVisualScope == null) throw new ArgumentNullException(nameof(failedVisualScope));
+        bool hasFailedVisualPages = VisualPages.Any(static page => !page.Succeeded);
+        _hasOmittedPageContent = hasFailedVisualPages &&
+            (failedVisualScope.HasOmittedPageContent || SourceScope.OptionalContentGroupCount > 0);
+        Warnings = CreateProjectionWarnings(
+            SourceScope,
+            failedVisualScope,
+            hasFailedVisualPages);
     }
 
     /// <summary>Gets the conversion strategy used for this operation.</summary>
@@ -142,8 +167,14 @@ public sealed class PdfPowerPointConversionReport {
     /// <summary>Gets source-page content that was outside this table-only import.</summary>
     public OfficeIMO.Pdf.PdfTableExtractionScopeReport? SourceScope { get; }
 
+    /// <summary>Gets typed warnings for source content that is not editable in the selected projection.</summary>
+    public IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> Warnings { get; }
+
     /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
-    public bool HasOmittedPageContent => SourceScope?.HasOmittedPageContent == true;
+    public bool HasOmittedPageContent => _hasOmittedPageContent;
+
+    /// <summary>Gets whether source content exists outside editable table overlays, even when retained in the hybrid visual layer.</summary>
+    public bool HasNonEditablePageContent => SourceScope?.HasOmittedPageContent == true;
 
     /// <summary>Gets whether table reconstruction truncated data or visual rendering reported a failure/simplification.</summary>
     public bool HasLoss =>
@@ -156,6 +187,131 @@ public sealed class PdfPowerPointConversionReport {
     /// <summary>Throws when the conversion reported possible content loss.</summary>
     public void RequireNoLoss() {
         if (HasLoss) throw new InvalidOperationException("PDF-to-PowerPoint conversion reported possible content loss.");
+    }
+
+    private static IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> CreateProjectionWarnings(
+        OfficeIMO.Pdf.PdfTableExtractionScopeReport scope,
+        OfficeIMO.Pdf.PdfTableExtractionScopeReport? failedVisualScope,
+        bool hasFailedVisualPages) {
+        var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning>();
+        bool hasVisualLayer = failedVisualScope != null;
+        AddProjectionWarning(warnings, "PdfTextNotEditable", "Text", scope.NonTableTextBlockCount,
+            failedVisualScope?.NonTableTextBlockCount ?? scope.NonTableTextBlockCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+            description: "non-table text blocks");
+        AddProjectionWarning(warnings, "PdfImagesNotEditable", "Images", scope.ImageCount,
+            failedVisualScope?.ImageCount ?? scope.ImageCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+            description: "images");
+        AddProjectionWarning(warnings, "PdfVectorsNotEditable", "Vectors", scope.VectorPrimitiveCount,
+            failedVisualScope?.VectorPrimitiveCount ?? scope.VectorPrimitiveCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+            description: "vector primitives");
+        AddProjectionWarning(warnings, "PdfNavigationNotEditable", "Navigation", scope.LinkCount + scope.PageActionCount,
+            (failedVisualScope?.LinkCount ?? scope.LinkCount) + (failedVisualScope?.PageActionCount ?? scope.PageActionCount),
+            hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+            description: "links and page actions");
+        AddProjectionWarning(warnings, "PdfFormsAndControlsNotEditable", "Forms", scope.FormWidgetCount,
+            failedVisualScope?.FormWidgetCount ?? scope.FormWidgetCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+            description: "forms and interactive controls");
+        AddProjectionWarning(warnings, "PdfAnnotationsNotEditable", "Annotations", scope.AnnotationCount,
+            failedVisualScope?.AnnotationCount ?? scope.AnnotationCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+            description: "annotations");
+        AddProjectionWarning(warnings, "PdfGroupsNotEditable", "Groups", scope.OptionalContentGroupCount,
+            failedCount: 0, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: false,
+            description: "optional-content groups");
+        AddProjectionWarning(warnings, "PdfAnimationsNotEditable", "Animations", scope.InteractiveMediaAnnotationCount,
+            failedVisualScope?.InteractiveMediaAnnotationCount ?? scope.InteractiveMediaAnnotationCount,
+            hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+            description: "interactive media and animations");
+        if (scope.AnalysisTruncated) {
+            ProjectionDisposition disposition = failedVisualScope == null
+                ? ProjectionDisposition.Omitted
+                : !hasFailedVisualPages || !failedVisualScope.AnalysisTruncated
+                    ? ProjectionDisposition.VisualOnly
+                    : ProjectionDisposition.Omitted;
+            warnings.Add(new OfficeIMO.Pdf.PdfConversionWarning(
+                "OfficeIMO.PowerPoint.Pdf",
+                "PdfProjectionAnalysisTruncated",
+                "Document",
+                disposition == ProjectionDisposition.VisualOnly
+                    ? "The bounded source-content analysis stopped before every text block could be classified; the unclassified content remains in the visual page layer."
+                    : "The bounded source-content analysis stopped on content that is not retained in a visual page layer.",
+                disposition == ProjectionDisposition.VisualOnly
+                    ? OfficeIMO.Pdf.PdfConversionWarningSeverity.Information
+                    : OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
+                details: new Dictionary<string, string> {
+                    ["Disposition"] = GetDispositionValue(disposition)
+                }));
+        }
+
+        return warnings.Count == 0
+            ? Array.Empty<OfficeIMO.Pdf.PdfConversionWarning>()
+            : Array.AsReadOnly(warnings.ToArray());
+    }
+
+    private static void AddProjectionWarning(
+        ICollection<OfficeIMO.Pdf.PdfConversionWarning> warnings,
+        string code,
+        string source,
+        int count,
+        int failedCount,
+        bool hasVisualLayer,
+        bool hasFailedVisualPages,
+        bool pageCorrelationAvailable,
+        string description) {
+        if (count <= 0) return;
+        ProjectionDisposition disposition = ResolveDisposition(
+            count,
+            failedCount,
+            hasVisualLayer,
+            hasFailedVisualPages,
+            pageCorrelationAvailable);
+        warnings.Add(new OfficeIMO.Pdf.PdfConversionWarning(
+            "OfficeIMO.PowerPoint.Pdf",
+            code,
+            source,
+            "PDF " + description + " are not reconstructed as editable PowerPoint objects; " + GetDispositionMessage(disposition) + ".",
+            disposition == ProjectionDisposition.VisualOnly
+                ? OfficeIMO.Pdf.PdfConversionWarningSeverity.Information
+                : OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
+            details: new Dictionary<string, string> {
+                ["Count"] = count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["Disposition"] = GetDispositionValue(disposition)
+            }));
+    }
+
+    private static ProjectionDisposition ResolveDisposition(
+        int count,
+        int failedCount,
+        bool hasVisualLayer,
+        bool hasFailedVisualPages,
+        bool pageCorrelationAvailable) {
+        if (!hasVisualLayer) return ProjectionDisposition.Omitted;
+        if (!hasFailedVisualPages) return ProjectionDisposition.VisualOnly;
+        if (!pageCorrelationAvailable) return ProjectionDisposition.Unknown;
+        if (failedCount <= 0) return ProjectionDisposition.VisualOnly;
+        return failedCount >= count
+            ? ProjectionDisposition.Omitted
+            : ProjectionDisposition.PartiallyOmitted;
+    }
+
+    private static string GetDispositionMessage(ProjectionDisposition disposition) => disposition switch {
+        ProjectionDisposition.VisualOnly => "they are retained in the visual page layer",
+        ProjectionDisposition.Omitted => "they are omitted because no visual page layer retains them",
+        ProjectionDisposition.PartiallyOmitted => "some are retained visually and some are omitted because their source pages did not render",
+        _ => "their visual retention cannot be correlated to individual source pages after a render failure"
+    };
+
+    private static string GetDispositionValue(ProjectionDisposition disposition) => disposition switch {
+        ProjectionDisposition.VisualOnly => "VisualOnly",
+        ProjectionDisposition.Omitted => "Omitted",
+        ProjectionDisposition.PartiallyOmitted => "PartiallyOmitted",
+        _ => "Unknown"
+    };
+
+    private enum ProjectionDisposition {
+        VisualOnly,
+        Omitted,
+        PartiallyOmitted,
+        Unknown
     }
 }
 
@@ -177,6 +333,9 @@ public sealed class PdfPowerPointConversionResult {
 
     /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
     public bool HasOmittedPageContent => Report.HasOmittedPageContent;
+
+    /// <summary>Gets typed warnings for content that was retained only visually or omitted by the selected projection.</summary>
+    public IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> Warnings => Report.Warnings;
 
     /// <summary>Returns the generated PowerPoint presentation.</summary>
     public PptCore.PowerPointPresentation RequireValue() => Value;

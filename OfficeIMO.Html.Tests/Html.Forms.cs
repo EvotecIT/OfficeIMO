@@ -100,6 +100,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_Select_PreservesDistinctOptionValueAndDisplayText() {
+            const string html = "<p>Status <select data-tag=\"status\"><option value=\"internal-id\" selected>Visible label</option><option value=\"other-id\">Other label</option></select></p>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            WordDropDownList dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(new[] { "Visible label", "Other label" }, dropDown.Items.ToArray());
+            Assert.Equal("Visible label", dropDown.SelectedValue);
+            ListItem[] items = dropDown._sdtRun.SdtProperties!
+                .GetFirstChild<SdtContentDropDownList>()!
+                .Elements<ListItem>()
+                .ToArray();
+            Assert.Equal(("internal-id", "Visible label"), (items[0].Value!.Value, items[0].DisplayText!.Value));
+            Assert.Equal(("other-id", "Other label"), (items[1].Value!.Value, items[1].DisplayText!.Value));
+        }
+
+        [Fact]
         public void HtmlToWord_Select_PreservesBlankOptions() {
             const string html = "<p>Status <select data-tag=\"status\"><option selected></option><option>Ready</option></select></p>";
 

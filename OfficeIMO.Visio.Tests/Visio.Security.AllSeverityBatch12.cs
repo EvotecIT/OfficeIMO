@@ -24,12 +24,34 @@ public sealed class VisioAllSeverityBatch12SecurityTests {
         using var asyncStream = new Batch12NonSeekableStream(package);
         await Assert.ThrowsAsync<InvalidDataException>(() =>
             VisioDocument.LoadAsync(
-                asyncStream, CancellationToken.None, restrictive));
+                asyncStream, restrictive, CancellationToken.None));
 
         using var validStream = new MemoryStream(package, writable: false);
         VisioDocument valid = VisioDocument.Load(validStream,
             new VisioLoadOptions { MaxInputBytes = package.Length });
         Assert.Single(valid.Pages);
+    }
+
+    [Fact]
+    public async Task PathLoadApisEnforceTheSameInputBudgetAsStreamLoads() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            "OfficeIMO.Visio.LoadBudget." + Guid.NewGuid().ToString("N") + ".vsdx");
+        try {
+            VisioDocument source = VisioDocument.Create(path);
+            source.AddPage("Page-1");
+            source.Save();
+            var restrictive = new VisioLoadOptions {
+                MaxInputBytes = new FileInfo(path).Length - 1L
+            };
+
+            Assert.Throws<InvalidDataException>(() =>
+                VisioDocument.Load(path, restrictive));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                VisioDocument.LoadAsync(path, restrictive, default));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]

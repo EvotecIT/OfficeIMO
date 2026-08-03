@@ -89,15 +89,15 @@ public sealed class ReleasePackagingGuardrails {
                 File.Exists(Path.Combine(repositoryRoot, match.Groups["path"].Value)),
                 "README project link is missing: " + match.Value));
         Assert.Equal(26, CountProjectHeadings(readme, "Native formats and shared foundations"));
-        Assert.Equal(31, CountProjectHeadings(readme, "Conversion and cloud bridges"));
+        Assert.Equal(32, CountProjectHeadings(readme, "Conversion and cloud bridges"));
         Assert.Equal(27, CountProjectHeadings(readme, "Unified Reader family"));
         Assert.Equal(10, CountProjectHeadings(readme, "Markdown rendering and OfficeIMO Markup"));
-        Assert.Equal(94, projectHeadings.Count);
+        Assert.Equal(95, projectHeadings.Count);
 
         Assert.Contains($"| Coordinated `3.1.x` source packages | {releasePackageCount} |", readme, StringComparison.Ordinal);
         Assert.Contains($"| Documented package, tool, and example projects below | {projectHeadings.Count} |", readme, StringComparison.Ordinal);
         Assert.Contains("| Native format, foundation, and shared-service packages | 26 |", readme, StringComparison.Ordinal);
-        Assert.Contains("| Conversion and cloud bridge packages | 31 |", readme, StringComparison.Ordinal);
+        Assert.Contains("| Conversion and cloud bridge packages | 32 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Unified Reader packages | 27 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Markdown renderer and OfficeIMO Markup surfaces | 10 |", readme, StringComparison.Ordinal);
         Assert.Contains("The current source line is `3.1.x`; the latest NuGet release is `3.0.3`", readme, StringComparison.Ordinal);
@@ -608,14 +608,17 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("## Reader and document intelligence", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Email, stores, and cloud adapters", roadmap, StringComparison.Ordinal);
         Assert.Contains("## Browser and agent surfaces", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
-        Assert.Contains("cross-platform package signing", roadmap, StringComparison.Ordinal);
-        Assert.Contains("macro-project signing", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Complete XML-signature validation", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("cross-platform package signing", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("VBA macro-project signing", roadmap, StringComparison.Ordinal);
+        Assert.Contains("advanced drawing, imported chart mutation, SmartArt editing", roadmap, StringComparison.Ordinal);
+        Assert.Contains("effective-formatting and true move semantics", roadmap, StringComparison.Ordinal);
+        Assert.Contains("aggregate budgets for supported non-image resources", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Excel", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Build one reusable reference syntax tree", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("allowed-edit ranges and ignored-error regions", roadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("relationship-backed drawings, workbook-level structures, charts, and template bindings", roadmap, StringComparison.Ordinal);
-        Assert.DoesNotContain("native slicer and timeline UI authoring", roadmap, StringComparison.Ordinal);
-        Assert.DoesNotContain("query-backed source execution and refresh", roadmap, StringComparison.Ordinal);
-        Assert.DoesNotContain("native ChartEx and imported modern-chart mutation", roadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Complete the remaining conditional-formatting rule and extension surface", roadmap, StringComparison.Ordinal);
         Assert.Contains("### Image-export evidence", roadmap, StringComparison.Ordinal);
         Assert.Contains("generic-attribute ownership across the remaining supported block and inline families", roadmap, StringComparison.Ordinal);
         Assert.Contains("precise source locations partial until lossless trivia", roadmap, StringComparison.Ordinal);

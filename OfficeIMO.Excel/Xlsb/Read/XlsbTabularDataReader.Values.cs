@@ -184,20 +184,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         public override IEnumerator GetEnumerator() => new DbEnumerator(this, closeReader: false);
 
         [UnconditionalSuppressMessage("Trimming", "IL2111", Justification = "The schema table stores Type values as data and does not reflect over Type.TypeInitializer or other Type members.")]
-        public override DataTable GetSchemaTable() {
-            var table = new DataTable("SchemaTable");
-            table.Columns.Add("ColumnName", typeof(string));
-            table.Columns.Add("ColumnOrdinal", typeof(int));
-            table.Columns.Add("DataType", typeof(Type));
-            for (int ordinal = 0; ordinal < FieldCount; ordinal++) {
-                DataRow row = table.NewRow();
-                row["ColumnName"] = GetName(ordinal);
-                row["ColumnOrdinal"] = ordinal;
-                row["DataType"] = GetFieldType(ordinal);
-                table.Rows.Add(row);
-            }
-
-            return table;
-        }
+        public override DataTable GetSchemaTable() =>
+            ExcelDataReaderSchemaTable.Create(FieldCount, GetName, GetFieldType);
     }
 }

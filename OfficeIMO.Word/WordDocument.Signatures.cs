@@ -1,60 +1,183 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
         /// <summary>
-        /// Inspects package-level digital-signature metadata without validating cryptographic trust.
+        /// Inspects package-level digital-signature metadata without copying the encoded package or validating digests and cryptographic trust.
+        /// Use <see cref="ValidateSignatures()"/> for transform-aware digest and trust validation.
         /// </summary>
         public WordSignatureInfo InspectSignatures() {
+            var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
             return WordSignatureInspector.Inspect(
                 _wordprocessingDocument,
-                _wordprocessingDocument.DigitalSignatureOriginPart,
-                ApplicationProperties.DigitalSignature != null);
+                originPart,
+                ApplicationProperties.DigitalSignature != null,
+                packageBytes: null,
+                verifyDigests: false);
         }
 
         /// <summary>
-        /// Validates signature package structure and reports unsupported cryptographic validation boundaries.
+        /// Validates package structure, transform-aware OPC digests, XML signature math, signer trust,
+        /// revocation under the default no-network policy, and embedded RFC 3161 timestamp tokens.
         /// </summary>
         public WordSignatureValidationReport ValidateSignatures() {
-            return WordSignatureValidationReport.From(InspectSignatures());
+            return ValidateSignatures(new WordSignatureValidationOptions());
         }
 
         /// <summary>
-        /// Signs a saved DOCX package using the platform package-signing adapter and throws when signing cannot be completed and structurally verified.
+        /// Validates package structure, transform-aware OPC digests, XML signature math, signer trust,
+        /// revocation, and embedded RFC 3161 timestamp tokens under caller policy.
+        /// </summary>
+        /// <param name="options">Trust, revocation, timestamp, and resource policy.</param>
+        public WordSignatureValidationReport ValidateSignatures(WordSignatureValidationOptions options) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            OfficePackageSignatureValidator.ValidateOptions(options);
+            var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
+            bool hasApplicationSignatureMetadata = ApplicationProperties.DigitalSignature != null;
+            if (originPart == null || !originPart.XmlSignatureParts.Any()) {
+                WordSignatureInfo unsignedInfo = WordSignatureInspector.Inspect(
+                    _wordprocessingDocument,
+                    originPart,
+                    hasApplicationSignatureMetadata,
+                    packageBytes: null,
+                    maxPackageParts: options.MaxPackageParts,
+                    maxPartBytes: options.MaxPartBytes,
+                    maxSignedReferences: options.MaxSignedReferences,
+                    maxTotalDigestBytes: options.MaxTotalDigestBytes,
+                    maxSignatureBytes: options.MaxSignatureBytes,
+                    maxCertificates: options.MaxCertificates,
+                    maxCertificateBytes: options.MaxCertificateBytes,
+                    maxTotalCertificateBytes: options.MaxTotalCertificateBytes,
+                    verifyDigests: false);
+                return WordSignatureValidationReport.From(unsignedInfo);
+            }
+            if (originPart != null && originPart.XmlSignatureParts.Skip(options.MaxSignatureParts).Any()) {
+                var boundedInfo = new WordSignatureInfo(
+                    hasDigitalSignatureOriginPart: true,
+                    originPart!.Uri.ToString(),
+                    originRelationshipId: null,
+                    hasApplicationSignatureMetadata,
+                    Array.Empty<WordSignaturePartInfo>(),
+                    Array.Empty<string>(),
+                    new[] { "Digital-signature inspection stopped before parsing because the signature-part count exceeded policy." });
+                return WordSignatureValidationReport.WithValidationFailure(
+                    WordSignatureValidationReport.From(boundedInfo),
+                    "SignatureResourceLimitExceeded",
+                    "The package contains more than " + options.MaxSignatureParts + " XML signature parts.");
+            }
+            byte[] packageBytes;
+            try {
+                packageBytes = CreateSignatureValidationSnapshot(options);
+            } catch (SignatureValidationSnapshotResourceException exception) {
+                var boundedInfo = new WordSignatureInfo(
+                    hasDigitalSignatureOriginPart: true,
+                    originPart!.Uri.ToString(),
+                    originRelationshipId: null,
+                    hasApplicationSignatureMetadata,
+                    Array.Empty<WordSignaturePartInfo>(),
+                    Array.Empty<string>(),
+                    new[] { exception.Message });
+                return WordSignatureValidationReport.WithValidationFailure(
+                    WordSignatureValidationReport.From(boundedInfo),
+                    "SignatureResourceLimitExceeded",
+                    exception.Message);
+            } catch (InvalidDataException exception) {
+                WordSignatureInfo boundedInfo = WordSignatureInspector.Inspect(
+                    _wordprocessingDocument,
+                    originPart,
+                    hasApplicationSignatureMetadata,
+                    packageBytes: null,
+                    maxPackageParts: options.MaxPackageParts,
+                    maxPartBytes: options.MaxPartBytes,
+                    maxSignedReferences: options.MaxSignedReferences,
+                    maxTotalDigestBytes: options.MaxTotalDigestBytes,
+                    maxSignatureBytes: options.MaxSignatureBytes,
+                    maxCertificates: options.MaxCertificates,
+                    maxCertificateBytes: options.MaxCertificateBytes,
+                    maxTotalCertificateBytes: options.MaxTotalCertificateBytes,
+                    verifyDigests: false);
+                return WordSignatureValidationReport.WithValidationFailure(
+                    WordSignatureValidationReport.From(boundedInfo),
+                    "PackageByteLimitExceeded",
+                    exception.Message);
+            }
+
+            using var validationStream = new MemoryStream(packageBytes, writable: false);
+            using WordprocessingDocument validationPackage = WordprocessingDocument.Open(validationStream, false);
+            DigitalSignatureOriginPart? validationOriginPart = validationPackage.DigitalSignatureOriginPart;
+            bool validationHasApplicationSignatureMetadata = validationPackage.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
+            WordSignatureInfo signatureInfo = WordSignatureInspector.Inspect(
+                validationPackage,
+                validationOriginPart,
+                validationHasApplicationSignatureMetadata,
+                packageBytes,
+                options.MaxPackageParts,
+                options.MaxPartBytes,
+                options.MaxSignedReferences,
+                options.MaxTotalDigestBytes,
+                options.MaxSignatureBytes,
+                options.MaxCertificates,
+                options.MaxCertificateBytes,
+                options.MaxTotalCertificateBytes);
+            WordSignatureValidationReport structural = WordSignatureValidationReport.From(signatureInfo);
+            if (signatureInfo.InspectionResourceLimitExceeded) {
+                return WordSignatureValidationReport.WithValidationFailure(
+                    structural,
+                    "SignatureResourceLimitExceeded",
+                    signatureInfo.UnsupportedDetails.FirstOrDefault() ??
+                    "Digital-signature inspection stopped at the configured package resource limit.");
+            }
+            if (!signatureInfo.HasSignatures || validationOriginPart == null) {
+                return structural;
+            }
+
+            try {
+                IReadOnlyList<WordSignaturePartValidationResult> signatures = OfficePackageSignatureValidator.Validate(
+                    validationOriginPart,
+                    packageBytes,
+                    signatureInfo,
+                    options);
+                return WordSignatureValidationReport.WithCryptographicValidation(structural, signatures);
+            } catch (InvalidDataException exception) {
+                return WordSignatureValidationReport.WithValidationFailure(
+                    structural,
+                    "SignatureResourceLimitExceeded",
+                    exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Signs a saved DOCX package using the cross-platform OPC XML-signature engine and throws when signing cannot be completed and cryptographically verified.
         /// </summary>
         /// <param name="filePath">Path to the DOCX package to sign.</param>
         /// <param name="certificate">Certificate with a private key used for signing.</param>
         /// <param name="options">Optional package-signing settings.</param>
-        /// <returns>A signing result with structural validation readback.</returns>
+        /// <returns>A signing result with structural, cryptographic, digest, and certificate-policy validation readback.</returns>
         public static WordPackageSigningResult SignPackage(string filePath, X509Certificate2 certificate, WordPackageSigningOptions? options = null) {
-            WordPackageSigningResult result = TrySignPackage(filePath, certificate, options);
-            if (!result.Succeeded || result.ValidationReport?.IsStructurallyValid != true) {
-                throw new WordPackageSigningException(result);
-            }
-
-            return result;
+            return RequireSuccessfulSigningReadback(TrySignPackage(filePath, certificate, options));
         }
 
         /// <summary>
-        /// Resolves a signing certificate by thumbprint from the certificate store, signs a saved DOCX package, and throws when signing cannot be completed and structurally verified.
+        /// Resolves a signing certificate by thumbprint from the certificate store, signs a saved DOCX package, and throws when signing cannot be completed and cryptographically verified.
         /// </summary>
         /// <param name="filePath">Path to the DOCX package to sign.</param>
         /// <param name="certificateThumbprint">Certificate thumbprint to locate.</param>
         /// <param name="certificateOptions">Optional certificate-store lookup settings.</param>
         /// <param name="signingOptions">Optional package-signing settings.</param>
-        /// <returns>A signing result with structural validation readback.</returns>
+        /// <returns>A signing result with structural, cryptographic, digest, and certificate-policy validation readback.</returns>
         public static WordPackageSigningResult SignPackage(
             string filePath,
             string certificateThumbprint,
             WordPackageCertificateStoreOptions? certificateOptions = null,
             WordPackageSigningOptions? signingOptions = null) {
-            WordPackageSigningResult result = TrySignPackage(filePath, certificateThumbprint, certificateOptions, signingOptions);
-            if (!result.Succeeded || result.ValidationReport?.IsStructurallyValid != true) {
-                throw new WordPackageSigningException(result);
-            }
+            return RequireSuccessfulSigningReadback(TrySignPackage(filePath, certificateThumbprint, certificateOptions, signingOptions));
+        }
 
+        private static WordPackageSigningResult RequireSuccessfulSigningReadback(WordPackageSigningResult result) {
+            if (!result.CreatedSignatureReadbackSucceeded) throw new WordPackageSigningException(result);
             return result;
         }
 
@@ -64,20 +187,61 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Path to the DOCX package to sign.</param>
         /// <param name="certificate">Certificate with a private key used for signing.</param>
         /// <param name="options">Optional package-signing settings.</param>
-        /// <returns>A signing result with details and structural validation readback when available.</returns>
+        /// <returns>A signing result with details and validation readback when available.</returns>
         public static WordPackageSigningResult TrySignPackage(string filePath, X509Certificate2 certificate, WordPackageSigningOptions? options = null) {
-            OfficePackageSigningResult packageResult = OfficePackageSignatureWriter.Sign(filePath, certificate, (options ?? new WordPackageSigningOptions()).ToPackageOptions());
+            WordPackageSigningOptions effectiveOptions = options ?? new WordPackageSigningOptions();
             WordSignatureValidationReport? validationReport = null;
+            string? createdSignaturePartUri = null;
+            OfficePackageSigningOptions packageOptions = effectiveOptions.ToPackageOptions();
+            packageOptions.ValidateBeforeCommit = (stagingPath, signaturePartUri, signatureCount) => {
+                createdSignaturePartUri = signaturePartUri;
+                using WordDocument document = Load(stagingPath, CreateSigningReadbackLoadOptions(effectiveOptions));
+                validationReport = document.ValidateSignatures(CreateSigningReadbackOptions(
+                    effectiveOptions,
+                    signatureCount));
+                WordSignaturePartValidationResult? createdSignature = validationReport.Signatures.FirstOrDefault(signature =>
+                    string.Equals(signature.SignaturePart.Uri, signaturePartUri, StringComparison.OrdinalIgnoreCase));
+                if (WordPackageSigningResult.IsCreatedSignatureValidationSuccessful(createdSignature)) return null;
 
-            if (packageResult.Succeeded) {
-                using WordDocument document = Load(filePath, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
-                });
-                validationReport = document.ValidateSignatures();
-            }
+                string detail = validationReport.Findings.FirstOrDefault()
+                    ?? "The created signature was missing or failed cryptographic or package-reference digest validation.";
+                return "The created package signature failed validation readback before atomic commit: " + detail;
+            };
+            OfficePackageSigningResult packageResult = OfficePackageSignatureWriter.Sign(
+                filePath,
+                certificate,
+                packageOptions);
 
-            return new WordPackageSigningResult(packageResult, validationReport);
+            return new WordPackageSigningResult(packageResult, validationReport, createdSignaturePartUri);
         }
+
+        internal static WordLoadOptions CreateSigningReadbackLoadOptions(
+            WordPackageSigningOptions signingOptions) => new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                MaxInputBytes = signingOptions.MaxPackageBytes
+            };
+
+        internal static WordSignatureValidationOptions CreateSigningReadbackOptions(
+            WordPackageSigningOptions signingOptions,
+            int signatureCount) {
+            return new WordSignatureValidationOptions {
+                MaxSignatureParts = Math.Max(32, signatureCount),
+                MaxPackageBytes = signingOptions.MaxPackageBytes,
+                MaxPackageParts = signingOptions.MaxPackageParts,
+                MaxPartBytes = signingOptions.MaxPartBytes,
+                MaxSignedReferences = signingOptions.MaxSignedReferences,
+                MaxTotalDigestBytes = signingOptions.MaxTotalDigestBytes,
+                MaxSignatureBytes = signingOptions.MaxSignatureBytes,
+                MaxCertificates = signingOptions.MaxCertificates,
+                MaxCertificateBytes = signingOptions.MaxCertificateBytes,
+                MaxTotalCertificateBytes = Math.Max(
+                    WordSignatureValidationOptions.DefaultMaxTotalCertificateBytes,
+                    MultiplyLimit(signingOptions.MaxTotalCertificateBytes, Math.Max(1, signatureCount)))
+            };
+        }
+
+        private static long MultiplyLimit(long value, int multiplier) =>
+            value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
 
         /// <summary>
         /// Attempts to resolve a signing certificate by thumbprint from the certificate store and sign a saved DOCX package.
@@ -86,7 +250,7 @@ namespace OfficeIMO.Word {
         /// <param name="certificateThumbprint">Certificate thumbprint to locate.</param>
         /// <param name="certificateOptions">Optional certificate-store lookup settings.</param>
         /// <param name="signingOptions">Optional package-signing settings.</param>
-        /// <returns>A signing result with details and structural validation readback when available.</returns>
+        /// <returns>A signing result with details and validation readback when available.</returns>
         public static WordPackageSigningResult TrySignPackage(
             string filePath,
             string certificateThumbprint,

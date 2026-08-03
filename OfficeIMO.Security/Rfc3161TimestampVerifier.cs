@@ -46,11 +46,14 @@ public static class Rfc3161TimestampVerifier {
             BcX509Certificate? tsaCertificate = token.GetCertificates()
                 .EnumerateMatches(token.SignerID)
                 .FirstOrDefault();
+            tsaCertificate ??= CmsSignedDataVerifier.FindExtraCertificate(
+                token.SignerID,
+                effectiveCertificateValidation.ExtraCertificates);
             if (tsaCertificate == null) {
                 findings.Add(new SecurityFinding(
                     SecurityFindingSeverity.Error,
                     "TimestampCertificateMissing",
-                    "The timestamp token does not contain its TSA signing certificate."));
+                    "No TSA signing certificate matching the timestamp signer identifier was supplied or embedded."));
                 return CreateResult(
                     imprintValid ? SecurityValidationStatus.Indeterminate : SecurityValidationStatus.Invalid,
                     info,
@@ -87,7 +90,8 @@ public static class Rfc3161TimestampVerifier {
                 SecurityValidationStatus status = ResolveTimestampStatus(
                     signatureValid,
                     imprintValid,
-                    chain.ChainStatus);
+                    chain.ChainStatus,
+                    chain.RevocationStatus);
                 return CreateResult(status, info, tsaCertificate.GetEncoded(), chain, findings);
             } finally {
                 foreach (X509Certificate2 certificate in platformEmbedded) certificate.Dispose();
@@ -133,14 +137,19 @@ public static class Rfc3161TimestampVerifier {
             SecurityValidationStatus.NotPerformed,
             Array.Empty<string>());
 
-    private static SecurityValidationStatus ResolveTimestampStatus(
+    internal static SecurityValidationStatus ResolveTimestampStatus(
         bool signatureValid,
         bool imprintValid,
-        SecurityValidationStatus certificateStatus) {
-        if (!signatureValid || !imprintValid || certificateStatus == SecurityValidationStatus.Invalid) {
+        SecurityValidationStatus certificateStatus,
+        SecurityValidationStatus revocationStatus) {
+        if (!signatureValid ||
+            !imprintValid ||
+            certificateStatus == SecurityValidationStatus.Invalid ||
+            revocationStatus == SecurityValidationStatus.Invalid) {
             return SecurityValidationStatus.Invalid;
         }
-        return certificateStatus == SecurityValidationStatus.Valid
+        return certificateStatus == SecurityValidationStatus.Valid &&
+               revocationStatus is SecurityValidationStatus.Valid or SecurityValidationStatus.NotPerformed
             ? SecurityValidationStatus.Valid
             : SecurityValidationStatus.Indeterminate;
     }
@@ -154,6 +163,7 @@ public static class Rfc3161TimestampVerifier {
             RevocationMode = source?.RevocationMode ?? X509RevocationMode.NoCheck,
             RevocationFlag = source?.RevocationFlag ?? X509RevocationFlag.ExcludeRoot,
             VerificationFlags = source?.VerificationFlags ?? X509VerificationFlags.NoFlag,
+            DisableCertificateDownloads = source?.DisableCertificateDownloads ?? true,
             VerificationTime = generationTime.Kind == DateTimeKind.Utc
                 ? generationTime
                 : DateTime.SpecifyKind(generationTime, DateTimeKind.Utc),

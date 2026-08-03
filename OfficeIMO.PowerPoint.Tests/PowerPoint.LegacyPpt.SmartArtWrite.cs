@@ -15,6 +15,14 @@ namespace OfficeIMO.Tests {
             OfficeDiagramKind.Hierarchy)]
         [InlineData(PowerPointSmartArtType.BasicCycle,
             OfficeDiagramKind.Cycle)]
+        [InlineData(PowerPointSmartArtType.BasicList,
+            OfficeDiagramKind.List)]
+        [InlineData(PowerPointSmartArtType.BasicMatrix,
+            OfficeDiagramKind.Matrix)]
+        [InlineData(PowerPointSmartArtType.BasicPyramid,
+            OfficeDiagramKind.Pyramid)]
+        [InlineData(PowerPointSmartArtType.BasicRelationship,
+            OfficeDiagramKind.Relationship)]
         public void NativeWriter_ExplicitlyConvertsSmartArtToStaticPngPicture(
             PowerPointSmartArtType sourceKind, OfficeDiagramKind expectedKind) {
             byte[] bytes;

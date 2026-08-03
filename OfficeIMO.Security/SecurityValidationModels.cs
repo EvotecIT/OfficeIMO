@@ -56,9 +56,11 @@ public sealed class CertificateValidationOptions {
     public X509RevocationFlag RevocationFlag { get; set; } = X509RevocationFlag.ExcludeRoot;
     /// <summary>Additional platform verification flags.</summary>
     public X509VerificationFlags VerificationFlags { get; set; } = X509VerificationFlags.NoFlag;
+    /// <summary>Whether platform chain building must avoid downloading missing issuer certificates. Defaults to true.</summary>
+    public bool DisableCertificateDownloads { get; set; } = true;
     /// <summary>Optional verification time. The current system time is used when omitted.</summary>
     public DateTime? VerificationTime { get; set; }
-    /// <summary>Maximum platform URL retrieval duration when revocation policy permits retrieval.</summary>
+    /// <summary>Maximum platform URL retrieval duration when certificate downloads or revocation policy permit retrieval.</summary>
     public TimeSpan UrlRetrievalTimeout { get; set; } = TimeSpan.FromSeconds(15);
     /// <summary>Additional intermediate, root, signer, TSA, or recipient certificates.</summary>
     public X509Certificate2Collection ExtraCertificates { get; } = new X509Certificate2Collection();
@@ -95,6 +97,12 @@ public sealed class CmsVerificationOptions {
     public int MaxSigners { get; set; } = 32;
     /// <summary>Maximum embedded certificate count. Defaults to 256.</summary>
     public int MaxCertificates { get; set; } = 256;
+    /// <summary>Maximum RFC 3161 timestamp-token count across all CMS signers. Defaults to 32.</summary>
+    public int MaxTimestampTokens { get; set; } = 32;
+    /// <summary>Maximum encoded bytes for one RFC 3161 timestamp token. Defaults to 16 MiB.</summary>
+    public long MaxTimestampTokenBytes { get; set; } = 16L * 1024 * 1024;
+    /// <summary>Maximum aggregate encoded timestamp-token bytes across all CMS signers. Defaults to 64 MiB.</summary>
+    public long MaxTotalTimestampBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Whether signature timestamp tokens should be verified. Defaults to true.</summary>
     public bool ValidateTimestamps { get; set; } = true;
     /// <summary>Certificate-chain policy shared by signers and timestamp authorities.</summary>
@@ -105,6 +113,10 @@ public sealed class CmsVerificationOptions {
 public sealed class CmsSigningOptions {
     /// <summary>Digest algorithm. SHA-256 is the default.</summary>
     public HashAlgorithmName DigestAlgorithm { get; set; } = HashAlgorithmName.SHA256;
+    /// <summary>
+    /// Optional ASN.1 object identifier for the signed content type. CMS data is used when omitted.
+    /// </summary>
+    public string? ContentTypeOid { get; set; }
     /// <summary>Whether to include the CMS signing-time attribute. Defaults to true.</summary>
     public bool IncludeSigningTime { get; set; } = true;
     /// <summary>Optional signing time. Current UTC time is used when omitted.</summary>
@@ -186,6 +198,22 @@ public sealed class CmsSignerVerificationResult {
     public IReadOnlyList<SecurityFinding> Findings { get; }
 }
 
+/// <summary>Digest embedded in an Authenticode SPC indirect-data content object.</summary>
+public sealed class AuthenticodeIndirectDataInfo {
+    private readonly byte[] _digest;
+
+    internal AuthenticodeIndirectDataInfo(string digestAlgorithmOid, byte[] digest) {
+        DigestAlgorithmOid = digestAlgorithmOid;
+        _digest = (byte[])digest.Clone();
+    }
+
+    /// <summary>Gets the digest-algorithm object identifier requested from the subject interface package.</summary>
+    public string DigestAlgorithmOid { get; }
+
+    /// <summary>Gets a clone of the signed subject digest.</summary>
+    public byte[] Digest => (byte[])_digest.Clone();
+}
+
 /// <summary>Neutral CMS SignedData verification result.</summary>
 public sealed class CmsVerificationResult {
     internal CmsVerificationResult(
@@ -193,12 +221,14 @@ public sealed class CmsVerificationResult {
         bool isDetached,
         string? contentTypeOid,
         byte[]? encapsulatedContent,
+        AuthenticodeIndirectDataInfo? authenticodeIndirectData,
         IReadOnlyList<CmsSignerVerificationResult> signers,
         IReadOnlyList<SecurityFinding> findings) {
         Parsed = parsed;
         IsDetached = isDetached;
         ContentTypeOid = contentTypeOid;
         EncapsulatedContent = encapsulatedContent;
+        AuthenticodeIndirectData = authenticodeIndirectData;
         Signers = signers;
         Findings = findings;
     }
@@ -211,6 +241,8 @@ public sealed class CmsVerificationResult {
     public string? ContentTypeOid { get; }
     /// <summary>Cloned encapsulated content, when present.</summary>
     public byte[]? EncapsulatedContent { get; }
+    /// <summary>Gets the signed Authenticode subject digest when the encapsulated content uses SPC indirect data.</summary>
+    public AuthenticodeIndirectDataInfo? AuthenticodeIndirectData { get; }
     /// <summary>Signer results in encoded order.</summary>
     public IReadOnlyList<CmsSignerVerificationResult> Signers { get; }
     /// <summary>Container-level findings.</summary>

@@ -11,6 +11,42 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Fact]
+    public void OpenDataReader_XlsxKeepsTheOpenedFileSnapshotAfterPathReplacement() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.OpenedSnapshot.{Guid.NewGuid():N}.xlsx");
+        string replacementPath = path + ".replacement";
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Original");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Original snapshot");
+                document.Save();
+            }
+            using (var document = ExcelDocument.Create(replacementPath)) {
+                ExcelSheet sheet = document.AddWorksheet("Replacement");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Replacement snapshot");
+                document.Save();
+            }
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            File.Delete(path);
+            File.Move(replacementPath, path);
+
+            Assert.Equal(
+                "Original",
+                Assert.IsType<ExcelWorkbookDataReader>(reader).CurrentSheetName);
+            Assert.True(reader.Read());
+            Assert.Equal("Original snapshot", reader.GetString(0));
+            Assert.False(reader.Read());
+        } finally {
+            File.Delete(path);
+            File.Delete(replacementPath);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_RejectsMalformedWorksheetXmlAfterSheetData() {
         string path = Path.Combine(
             Path.GetTempPath(),

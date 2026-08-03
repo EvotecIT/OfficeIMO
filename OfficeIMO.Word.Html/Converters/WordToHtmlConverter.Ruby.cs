@@ -21,12 +21,12 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            var rubyElement = htmlDoc.CreateElement("ruby");
-            var baseElement = htmlDoc.CreateElement("rb");
+            var rubyElement = CreateOutputElement(htmlDoc, "ruby");
+            var baseElement = CreateOutputElement(htmlDoc, "rb");
             baseElement.TextContent = baseText;
             rubyElement.AppendChild(baseElement);
 
-            var annotationElement = htmlDoc.CreateElement("rt");
+            var annotationElement = CreateOutputElement(htmlDoc, "rt");
             annotationElement.TextContent = rubyText;
             rubyElement.AppendChild(annotationElement);
 

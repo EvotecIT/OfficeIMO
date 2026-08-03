@@ -87,14 +87,17 @@ namespace OfficeIMO.Visio {
             }
 
             if (page.OwnerDocument != null &&
-                !string.IsNullOrWhiteSpace(stencil.SourcePackagePath) &&
-                (!page.OwnerDocument.TryGetMaster(stencil.MasterNameU, out VisioMaster? registeredMaster) ||
-                 registeredMaster?.IsPackageBacked != true ||
-                 !string.Equals(
-                     registeredMaster.StencilSourcePackagePath,
-                     VisioStencilMetadata.NormalizePath(stencil.SourcePackagePath),
-                     StringComparison.OrdinalIgnoreCase))) {
-                page.OwnerDocument.ImportStencilMasters(stencil.SourcePackagePath!, new[] { stencil.MasterNameU });
+                !string.IsNullOrWhiteSpace(stencil.SourcePackagePath)) {
+                if (page.OwnerDocument.TryGetMaster(stencil.MasterNameU,
+                        out VisioMaster? registeredMaster)
+                    && registeredMaster?.IsPackageBacked == true) {
+                    VisioStencilMetadata.EnsureSourcePackageMatches(
+                        registeredMaster, stencil.SourcePackagePath!);
+                } else {
+                    page.OwnerDocument.ImportStencilMasters(
+                        stencil.SourcePackagePath!,
+                        new[] { stencil.MasterNameU });
+                }
             }
 
             VisioShape updated = page.ReplaceMaster(shape, stencil.MasterNameU, resizeToMaster: false);

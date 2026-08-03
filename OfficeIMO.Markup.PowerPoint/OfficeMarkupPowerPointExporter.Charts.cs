@@ -60,30 +60,50 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             return;
         }
 
-        chart.SetCategoryAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
-        chart.SetValueAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
-        chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
-        chart.ClearCategoryAxisGridlines();
+        if (normalizedType == "scatter") {
+            chart.SetScatterXAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
+            chart.SetScatterYAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
+            chart.SetScatterYAxisGridlines(showMajor: true, showMinor: false,
+                lineColor: gridColor, lineWidthPoints: 0.5);
+            chart.ClearScatterXAxisGridlines();
+        } else {
+            chart.SetCategoryAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
+            chart.SetValueAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
+            chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
+            chart.ClearCategoryAxisGridlines();
+        }
         ApplyChartSemanticOptions(chart, source, normalizedType, font, textColor, gridColor);
     }
 
     private static void ApplyChartSemanticOptions(PowerPointChart chart, OfficeMarkupChartBlock source, string normalizedType, string font, string textColor, string gridColor) {
         if (GetAttribute(source.Attributes, "category-title", "categoryTitle", "x-title", "xTitle", "x-axis-title", "xAxisTitle") is { Length: > 0 } categoryTitle) {
-            chart.SetCategoryAxisTitle(categoryTitle);
-            chart.SetCategoryAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+            if (normalizedType == "scatter") {
+                chart.SetScatterXAxisTitle(categoryTitle);
+                chart.SetScatterXAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+            } else {
+                chart.SetCategoryAxisTitle(categoryTitle);
+                chart.SetCategoryAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+            }
         }
 
         if (GetAttribute(source.Attributes, "value-title", "valueTitle", "y-title", "yTitle", "y-axis-title", "yAxisTitle") is { Length: > 0 } valueTitle) {
-            chart.SetValueAxisTitle(valueTitle);
-            chart.SetValueAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+            if (normalizedType == "scatter") {
+                chart.SetScatterYAxisTitle(valueTitle);
+                chart.SetScatterYAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+            } else {
+                chart.SetValueAxisTitle(valueTitle);
+                chart.SetValueAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+            }
         }
 
         if (GetAttribute(source.Attributes, "category-format", "categoryFormat", "x-format", "xFormat", "category-number-format", "categoryNumberFormat") is { Length: > 0 } categoryFormat) {
-            chart.SetCategoryAxisNumberFormat(categoryFormat);
+            if (normalizedType == "scatter") chart.SetScatterXAxisNumberFormat(categoryFormat);
+            else chart.SetCategoryAxisNumberFormat(categoryFormat);
         }
 
         if (GetAttribute(source.Attributes, "value-format", "valueFormat", "y-format", "yFormat", "value-number-format", "valueNumberFormat") is { Length: > 0 } valueFormat) {
-            chart.SetValueAxisNumberFormat(valueFormat);
+            if (normalizedType == "scatter") chart.SetScatterYAxisNumberFormat(valueFormat);
+            else chart.SetValueAxisNumberFormat(valueFormat);
         }
 
         ApplyLegendOptions(chart, source);
@@ -147,17 +167,29 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         if (!string.IsNullOrWhiteSpace(valueGridlines)) {
             if (IsTruthy(valueGridlines!)) {
-                chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
+                if (normalizedType == "scatter") {
+                    chart.SetScatterYAxisGridlines(showMajor: true, showMinor: false,
+                        lineColor: gridColor, lineWidthPoints: 0.5);
+                } else {
+                    chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
+                }
             } else {
-                chart.ClearValueAxisGridlines();
+                if (normalizedType == "scatter") chart.ClearScatterYAxisGridlines();
+                else chart.ClearValueAxisGridlines();
             }
         }
 
         if (!string.IsNullOrWhiteSpace(categoryGridlines)) {
             if (IsTruthy(categoryGridlines!)) {
-                chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
+                if (normalizedType == "scatter") {
+                    chart.SetScatterXAxisGridlines(showMajor: true, showMinor: false,
+                        lineColor: gridColor, lineWidthPoints: 0.5);
+                } else {
+                    chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
+                }
             } else {
-                chart.ClearCategoryAxisGridlines();
+                if (normalizedType == "scatter") chart.ClearScatterXAxisGridlines();
+                else chart.ClearCategoryAxisGridlines();
             }
         }
     }

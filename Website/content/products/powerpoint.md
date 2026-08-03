@@ -28,7 +28,10 @@ OfficeIMO.PowerPoint lets you create and edit `.pptx`, `.ppt`, `.pot`, and `.pps
 - **Tables with merged cells** — rows, columns, horizontal and vertical merges, and per-cell styling
 - **Images** — insert from file path or stream in PNG, JPEG, GIF, BMP, TIFF, EMF, and WMF formats
 - **Shapes with fill, stroke & effects** — rectangles, circles, arrows, and callouts with fill, line, shadow, glow, and reflection settings
+- **SmartArt and custom geometry** — editable process, hierarchy, cycle, list, matrix, pyramid, relationship, path, and polygon content
 - **Editable shared charts with formatting** — all 17 `OfficeChartKind` families, including bubble charts, plus combo/secondary axes, data labels, legends, axis configuration, and accessibility summaries
+- **Review and presentation workflows** — classic comments, modern threaded comments and replies, custom shows, and supported shape/text/chart animations
+- **OLE and macro package workflows** — add or replace embedded OLE storage and bounded opaque VBA projects while keeping macro-enabled formats explicit
 - **Slide sections & transitions** — organize slides into sections and apply transition animations
 - **Themes & layouts** — apply built-in or custom themes and choose from standard slide layouts
 - **Designer decks** — generate distinct visual directions from a brand brief, score semantic deck plans, and keep output editable

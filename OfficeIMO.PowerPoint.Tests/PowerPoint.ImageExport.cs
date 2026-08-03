@@ -16,6 +16,17 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
+        public void PowerPointSlide_DirectImageExportEnforcesRenderTimeout() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var options = new PowerPointImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
+
+            Assert.Throws<OfficeImageExportTimeoutException>(() =>
+                slide.ExportImage(OfficeImageExportFormat.Svg, options));
+        }
+
+        [Fact]
         public void PowerPointSlide_ExportsSolidBackgroundToPngAndSvgThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -828,10 +839,10 @@ namespace OfficeIMO.Tests {
                 .Last();
             A.Outline outline = shape.ShapeProperties!.GetFirstChild<A.Outline>()!;
             outline.CapType = A.LineCapValues.Round;
-            outline.RemoveAllChildren<A.Bevel>();
+            outline.RemoveAllChildren<A.LineJoinBevel>();
             outline.RemoveAllChildren<A.Round>();
             outline.RemoveAllChildren<A.Miter>();
-            outline.Append(new A.Bevel());
+            outline.Append(new A.LineJoinBevel());
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);

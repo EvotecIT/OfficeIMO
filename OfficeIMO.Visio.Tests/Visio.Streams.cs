@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             cancellation.Cancel();
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                VisioDocument.LoadAsync(stream, cancellation.Token));
+                VisioDocument.LoadAsync(stream, cancellationToken: cancellation.Token));
 
             Assert.Equal(4, stream.Position);
         }

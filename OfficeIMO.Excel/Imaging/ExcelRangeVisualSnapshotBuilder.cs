@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using System.Globalization;
+using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Utilities;
 
@@ -22,7 +23,14 @@ namespace OfficeIMO.Excel {
 
     internal static class ExcelRangeVisualSnapshotBuilder {
         private const int MaxSparklineDataCells = 100_000;
-        internal static ExcelRangeVisualSnapshot Build(ExcelSheet sheet, string range, ExcelImageExportOptions options, IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null, ExcelSourceImageBudget? sourceImageBudget = null) {
+        internal static ExcelRangeVisualSnapshot Build(
+            ExcelSheet sheet,
+            string range,
+            ExcelImageExportOptions options,
+            IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null,
+            ExcelSourceImageBudget? sourceImageBudget = null,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (sheet == null) {
                 throw new ArgumentNullException(nameof(sheet));
             }
@@ -61,10 +69,12 @@ namespace OfficeIMO.Excel {
             List<ExcelMergedRangeSnapshot> merges = sheet.GetMergedRanges()
                 .Where(merge => Intersects(merge.StartRow, merge.StartColumn, merge.EndRow, merge.EndColumn, firstRow, firstColumn, lastRow, lastColumn))
                 .ToList();
+            cancellationToken.ThrowIfCancellationRequested();
 
             var columns = new List<ExcelVisualColumn>();
             double x = 0D;
             for (int column = firstColumn; column <= lastColumn; column++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ExcelColumnSnapshot? definition = columnDefinitions.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
                 if (definition?.Hidden == true && !options.IncludeHidden) {
                     continue;
@@ -78,6 +88,7 @@ namespace OfficeIMO.Excel {
             var rows = new List<ExcelVisualRow>();
             double y = 0D;
             for (int row = firstRow; row <= lastRow; row++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 rowDefinitions.TryGetValue(row, out ExcelRowSnapshot? definition);
                 if (IsHiddenRow(row, rowDefinitions, defaultRowsHidden) && !options.IncludeHidden) {
                     continue;
@@ -111,6 +122,7 @@ namespace OfficeIMO.Excel {
             long remainingVisibleMergeCellWork = options.MaximumRenderedCells;
             long remainingFullMergeCellWork = options.MaximumRenderedCells;
             foreach (ExcelMergedRangeSnapshot merge in merges) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int visibleStartRow = Math.Max(firstRow, merge.StartRow);
                 int visibleStartColumn = Math.Max(firstColumn, merge.StartColumn);
                 int visibleEndRow = Math.Min(lastRow, merge.EndRow);
@@ -149,6 +161,7 @@ namespace OfficeIMO.Excel {
                     .Sum(row => row.Height);
                 mergeOrigins[Key(merge.StartRow, merge.StartColumn)] = (mergeWidth, mergeHeight);
                 for (int row = visibleStartRow; row <= visibleEndRow; row++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     for (int column = visibleStartColumn; column <= visibleEndColumn; column++) {
                         if (row != merge.StartRow || column != merge.StartColumn) {
                             coveredByMerge.Add(Key(row, column));
@@ -167,6 +180,7 @@ namespace OfficeIMO.Excel {
                     columns.Max(column => column.Index))
                 : new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
             foreach (ExcelVisualRow row in rows) {
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (ExcelVisualColumn column in columns) {
                     string key = Key(row.Index, column.Index);
                     bool covered = coveredByMerge.Contains(key);
@@ -212,21 +226,28 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             AddIntersectingMergeOriginCells(sheet, options, firstRow, firstColumn, lastRow, lastColumn, merges, boundedMergeGeometry, fullMergeGeometry, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, hyperlinkMap, cells);
 
             ExcelConditionalVisualState conditionalVisuals = options.IncludeConditionalFormatting
                 ? ExcelConditionalVisualEvaluator.Evaluate(sheet, cells, range, options.ConditionalFormattingDate ?? DateTime.Today, diagnostics)
                 : ExcelConditionalVisualState.Empty;
+            cancellationToken.ThrowIfCancellationRequested();
             if (conditionalVisuals.CellFormats.Count > 0) {
                 cells = ApplyConditionalCellFormats(cells, conditionalVisuals.CellFormats);
             }
 
             List<ExcelVisualSparkline> sparklines = BuildSparklines(sheet, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, diagnostics);
+            cancellationToken.ThrowIfCancellationRequested();
             List<ExcelVisualDrawingObject> drawingObjects = BuildDrawingObjects(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
+            cancellationToken.ThrowIfCancellationRequested();
             List<ExcelVisualImage> images = BuildImages(sheet, options, sourceImageBudget, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
+            cancellationToken.ThrowIfCancellationRequested();
             List<ExcelVisualChart> charts = BuildCharts(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
+            cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<ExcelVisualBounds> commentBodyObstacles = BuildCommentBodyObstacles(drawingObjects, images, charts);
             CommentVisuals commentVisuals = BuildCommentVisuals(sheet, options, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, x, y, commentBodyObstacles, diagnostics);
+            cancellationToken.ThrowIfCancellationRequested();
             List<ExcelVisualDrawingLayer> drawingLayers = BuildDrawingLayers(drawingObjects, images, charts, commentVisuals.Bodies);
 
             return new ExcelRangeVisualSnapshot(

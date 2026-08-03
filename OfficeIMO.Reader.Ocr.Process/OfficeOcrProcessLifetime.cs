@@ -1,6 +1,7 @@
 using Microsoft.Win32.SafeHandles;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using OfficeIMO.Processes.Internal;
 
 namespace OfficeIMO.Reader.Ocr.Process;
 
@@ -52,7 +53,11 @@ internal sealed class OfficeOcrProcessLifetime : IDisposable {
 
     internal OfficeOcrStartedProcess Start(ProcessStartInfo startInfo) {
         if (_mode == LifetimeMode.WindowsJob) {
-            return OfficeOcrWindowsSuspendedProcess.Start(startInfo, this);
+            OfficeWindowsSuspendedProcessResult started = OfficeWindowsSuspendedProcess.Start(
+                startInfo,
+                PrepareWindowsJob,
+                AssignSuspendedWindowsProcess);
+            return new OfficeOcrStartedProcess(started.Process, started.StandardOutput, started.StandardError);
         }
 
         var process = new System.Diagnostics.Process { StartInfo = startInfo, EnableRaisingEvents = true };

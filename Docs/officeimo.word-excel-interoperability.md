@@ -173,8 +173,12 @@ if (payloads.Count > 0) {
 
 Word and Excel can inspect, extract, replace, and remove embedded package/OLE/
 ActiveX payloads by package-local id. They can attach, inspect, extract, and
-remove VBA projects. OfficeIMO does not execute VBA, edit VBA source modules, or
-sign VBA projects.
+remove VBA projects. Word can also inspect VBA signature parts cross-platform
+and can validate macro-project content binding directly through Microsoft's
+registered Office SIP on Windows. Creation is a separate Windows workflow using
+OfficeSips tooling and SignTool; it must precede OPC package signing when both
+signature kinds are required. Excel does not expose a VBA signing workflow.
+OfficeIMO does not execute VBA or edit VBA source modules.
 
 ## Extend formula calculation deliberately
 

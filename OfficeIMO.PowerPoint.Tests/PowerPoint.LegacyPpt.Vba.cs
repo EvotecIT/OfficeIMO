@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task LegacyVbaNoFormatStreamSavesRemainMacroFreePptx() {
+        public async Task LegacyVbaNoFormatStreamSavesInferMacroEnabledPptm() {
             byte[] projectBytes = CreateVbaTestProject("StreamModule",
                 "Sub StreamExport()\nEnd Sub");
             byte[] binary;
@@ -114,11 +114,11 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Load(input);
             using var syncDestination = new MemoryStream();
             imported.Save(syncDestination);
-            AssertMacroFreePackage(syncDestination);
+            AssertMacroEnabledPackage(syncDestination, projectBytes);
 
             using var asyncDestination = new MemoryStream();
             await imported.SaveAsync(asyncDestination);
-            AssertMacroFreePackage(asyncDestination);
+            AssertMacroEnabledPackage(asyncDestination, projectBytes);
 
             Assert.Equal(projectBytes, ReadVbaProject(imported));
         }
@@ -394,6 +394,29 @@ namespace OfficeIMO.Tests {
                 capability.Note);
         }
 
+        [Fact]
+        public void VbaValidationRejectsMalformedProjectRecordsAndModuleContainers() {
+            byte[] emptyProjectName = CreateVbaTestProject("Module1",
+                "Sub Main()\r\nEnd Sub\r\n", projectMetadata:
+                Encoding.ASCII.GetBytes(
+                    "ID=\"{00000000-0000-0000-0000-000000000000}\"\r\n"
+                    + "Name=\"\"\r\nModule=Module1\r\n"));
+            byte[] invalidProjectId = CreateVbaTestProject("Module1",
+                "Sub Main()\r\nEnd Sub\r\n", projectMetadata:
+                Encoding.ASCII.GetBytes(
+                    "ID=\"not-a-guid\"\r\nName=\"VBAProject\"\r\n"
+                    + "Module=Module1\r\n"));
+            byte[] corruptModule = CreateVbaTestProject("Module1",
+                "Sub Main()\r\nEnd Sub\r\n", corruptModuleContainer: true);
+
+            Assert.False(LegacyPptVbaProjectCodec.IsValidProject(
+                emptyProjectName, out _));
+            Assert.False(LegacyPptVbaProjectCodec.IsValidProject(
+                invalidProjectId, out _));
+            Assert.False(LegacyPptVbaProjectCodec.IsValidProject(
+                corruptModule, out _));
+        }
+
         private static void SetVbaProject(PowerPointPresentation presentation,
             byte[] bytes) {
             PresentationPart presentationPart = presentation.OpenXmlDocument
@@ -429,36 +452,160 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expectedProject, output.ToArray());
         }
 
-        private static void AssertMacroFreePackage(Stream stream) {
+        private static void AssertMacroEnabledPackage(Stream stream,
+            byte[] expectedProject) {
             stream.Position = 0;
             using PresentationDocument document =
                 PresentationDocument.Open(stream, false);
-            Assert.Equal(PresentationDocumentType.Presentation,
+            Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
                 document.DocumentType);
-            Assert.Null(document.PresentationPart!.VbaProjectPart);
+            VbaProjectPart part = Assert.IsType<VbaProjectPart>(document
+                .PresentationPart!.VbaProjectPart);
+            using Stream input = part.GetStream(FileMode.Open,
+                FileAccess.Read);
+            using var output = new MemoryStream();
+            input.CopyTo(output);
+            Assert.Equal(expectedProject, output.ToArray());
         }
 
         private static byte[] CreateVbaTestProject(string moduleName,
-            string moduleText) {
+            string moduleText, bool corruptDirectory = false,
+            bool corruptProjectHeader = false,
+            bool corruptDirectoryRecords = false,
+            bool omitModuleStream = false, uint moduleOffset = 0,
+            string? ansiModuleName = null,
+            bool omitProjectStream = false,
+            byte[]? projectMetadata = null,
+            bool corruptModuleContainer = false,
+            ushort moduleCount = 1) {
             using var output = new MemoryStream();
             using (RootStorage root = RootStorage.Create(output,
                        CfbVersion.V3, StorageModeFlags.LeaveOpen)) {
                 Storage vba = root.CreateStorage("VBA");
                 using (CfbStream directory = vba.CreateStream("dir")) {
-                    directory.Write(Array.Empty<byte>(), 0, 0);
+                    byte[] directoryBytes = corruptDirectory
+                        ? new byte[] { 0x01, 0x00, 0x00 }
+                        : CreateVbaDirectory(moduleName,
+                            corruptDirectoryRecords, moduleOffset,
+                            ansiModuleName, moduleCount);
+                    directory.Write(directoryBytes, 0, directoryBytes.Length);
                 }
                 using (CfbStream project = vba.CreateStream("_VBA_PROJECT")) {
-                    project.Write(Array.Empty<byte>(), 0, 0);
+                    byte[] projectBytes = corruptProjectHeader
+                        ? new byte[] { 0xCC, 0x60, 0xFF, 0xFF, 0x00, 0x01, 0x00 }
+                        : new byte[] { 0xCC, 0x61, 0xFF, 0xFF, 0x00, 0x01, 0x00 };
+                    project.Write(projectBytes, 0, projectBytes.Length);
                 }
-                using (CfbStream module = vba.CreateStream(moduleName)) {
-                    byte[] moduleBytes = Encoding.UTF8.GetBytes(moduleText);
+                if (!omitModuleStream) {
+                    using CfbStream module = vba.CreateStream(moduleName);
+                    byte[] sourceBytes = Encoding.UTF8.GetBytes(moduleText);
+                    byte[] storedSource = corruptModuleContainer
+                        ? sourceBytes
+                        : CompressVbaSource(sourceBytes);
+                    byte[] moduleBytes = new byte[checked((int)moduleOffset
+                        + storedSource.Length)];
+                    Buffer.BlockCopy(storedSource, 0, moduleBytes,
+                        checked((int)moduleOffset), storedSource.Length);
                     module.Write(moduleBytes, 0, moduleBytes.Length);
                 }
-                using (CfbStream project = root.CreateStream("PROJECT")) {
-                    project.Write(Array.Empty<byte>(), 0, 0);
+                if (!omitProjectStream) {
+                    using CfbStream project = root.CreateStream("PROJECT");
+                    byte[] metadata = projectMetadata ?? Encoding.ASCII.GetBytes(
+                        "ID=\"{00000000-0000-0000-0000-000000000000}\"\r\n"
+                        + "Name=\"VBAProject\"\r\n"
+                        + $"Module={ansiModuleName ?? moduleName}\r\n");
+                    project.Write(metadata, 0, metadata.Length);
                 }
             }
             return output.ToArray();
+        }
+
+        private static byte[] CompressVbaSource(byte[] source) {
+            using var output = new MemoryStream();
+            output.WriteByte(0x01);
+            int offset = 0;
+            while (offset < source.Length) {
+                int count = Math.Min(3600, source.Length - offset);
+                using var payload = new MemoryStream();
+                int end = offset + count;
+                while (offset < end) {
+                    payload.WriteByte(0);
+                    int literals = Math.Min(8, end - offset);
+                    payload.Write(source, offset, literals);
+                    offset += literals;
+                }
+                int chunkSize = checked((int)payload.Length + 2);
+                ushort header = checked((ushort)(0xB000 | (chunkSize - 3)));
+                output.WriteByte((byte)header);
+                output.WriteByte((byte)(header >> 8));
+                payload.Position = 0;
+                payload.CopyTo(output);
+            }
+            return output.ToArray();
+        }
+
+        private static byte[] CreateVbaDirectory(string projectName,
+            bool corruptRecords = false, uint moduleOffset = 0,
+            string? ansiModuleName = null, ushort moduleCount = 1) {
+            byte[] name = (ansiModuleName ?? projectName)
+                .Select(character => checked((byte)character))
+                .ToArray();
+            using var records = new MemoryStream();
+            using (var writer = new BinaryWriter(records, Encoding.UTF8,
+                       leaveOpen: true)) {
+                WriteVbaDirectoryRecord(writer, 0x0001, new byte[4]);
+                WriteVbaDirectoryRecord(writer, 0x0002,
+                    new byte[] { 0x09, 0x04, 0x00, 0x00 });
+                WriteVbaDirectoryRecord(writer, 0x0014,
+                    new byte[] { 0x09, 0x04, 0x00, 0x00 });
+                WriteVbaDirectoryRecord(writer, 0x0003,
+                    new byte[] { 0xE4, 0x04 });
+                WriteVbaDirectoryRecord(writer, 0x0004, name);
+                if (corruptRecords) {
+                    WriteVbaDirectoryRecord(writer, 0x7FFF,
+                        new byte[] { 0xCA, 0xFE });
+                }
+                WriteVbaDirectoryRecord(writer, 0x000F,
+                    new byte[] { (byte)moduleCount,
+                        (byte)(moduleCount >> 8) });
+                WriteVbaDirectoryRecord(writer, 0x0013,
+                    new byte[] { 0x00, 0x00 });
+                for (int index = 0; index < moduleCount; index++) {
+                    WriteVbaDirectoryRecord(writer, 0x0019, name);
+                    WriteVbaDirectoryRecord(writer, 0x0047,
+                        Encoding.Unicode.GetBytes(projectName));
+                    WriteVbaDirectoryRecord(writer, 0x001A, name);
+                    WriteVbaDirectoryRecord(writer, 0x0032,
+                        Encoding.Unicode.GetBytes(projectName));
+                    WriteVbaDirectoryRecord(writer, 0x001C,
+                        Array.Empty<byte>());
+                    WriteVbaDirectoryRecord(writer, 0x0048,
+                        Array.Empty<byte>());
+                    WriteVbaDirectoryRecord(writer, 0x0031, new[] {
+                        (byte)moduleOffset,
+                        (byte)(moduleOffset >> 8),
+                        (byte)(moduleOffset >> 16),
+                        (byte)(moduleOffset >> 24)
+                    });
+                    WriteVbaDirectoryRecord(writer, 0x001E, new byte[4]);
+                    WriteVbaDirectoryRecord(writer, 0x002C, new byte[2]);
+                    WriteVbaDirectoryRecord(writer, 0x0021,
+                        Array.Empty<byte>());
+                    WriteVbaDirectoryRecord(writer, 0x002B,
+                        Array.Empty<byte>());
+                }
+                writer.Write((ushort)0x0010);
+                writer.Write(0U);
+            }
+
+            return CompressVbaSource(records.ToArray());
+        }
+
+        private static void WriteVbaDirectoryRecord(BinaryWriter writer,
+            ushort id, byte[] value) {
+            writer.Write(id);
+            writer.Write(checked((uint)value.Length));
+            writer.Write(value);
         }
 
         private static byte[] ConvertVbaStorageToCompressed(byte[] sourceBytes) {

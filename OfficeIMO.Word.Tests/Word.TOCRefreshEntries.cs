@@ -25,6 +25,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, report.EntryCount);
                 Assert.Equal(1, report.SkippedHeadingCount);
+                Assert.Equal(WordPageNumberBasis.ExplicitBreakEstimate, report.PageNumberBasis);
                 Assert.Equal(new[] { "Overview", "Details" }, report.Entries.Select(entry => entry.Text).ToArray());
                 Assert.Equal(new[] { 1, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
                 Assert.All(report.Entries, entry => Assert.StartsWith("_OfficeIMO_Toc_", entry.BookmarkName));

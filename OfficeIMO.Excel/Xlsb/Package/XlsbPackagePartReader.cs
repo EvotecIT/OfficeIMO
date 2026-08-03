@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             return output;
         }
 
-        internal Stream ReadSeekablePart(
+        internal XlsbPooledPartStream ReadSeekablePart(
             string partName,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();

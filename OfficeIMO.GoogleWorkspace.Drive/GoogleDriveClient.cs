@@ -40,9 +40,15 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
 
         public GoogleDriveClient(GoogleWorkspaceSession session, GoogleDriveClientOptions? options = null) {
             _session = session ?? throw new ArgumentNullException(nameof(session));
-            _options = options ?? new GoogleDriveClientOptions();
-            if (_options.MaxDownloadBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum Google Drive download bytes must be positive.");
-            _transport = new GoogleWorkspaceHttpTransport(session.Options);
+            GoogleDriveClientOptions configured = options ?? new GoogleDriveClientOptions();
+            if (configured.MaxDownloadBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum Google Drive download bytes must be positive.");
+            _options = new GoogleDriveClientOptions {
+                ReadScopes = SnapshotScopes(configured.ReadScopes, nameof(GoogleDriveClientOptions.ReadScopes)),
+                WriteScopes = SnapshotScopes(configured.WriteScopes, nameof(GoogleDriveClientOptions.WriteScopes)),
+                SupportsAllDrives = configured.SupportsAllDrives,
+                MaxDownloadBytes = configured.MaxDownloadBytes,
+            };
+            _transport = new GoogleWorkspaceHttpTransport(session);
         }
 
         public static IReadOnlyList<string> GetRequiredScopes(GoogleDriveOperation operation) {
@@ -161,7 +167,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create,
+                requiredScopes: _options.WriteScopes).ConfigureAwait(false);
         }
 
         public async Task<GoogleDriveFile> CopyFileAsync(
@@ -187,7 +195,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                mutationKind: GoogleWorkspaceMutationKind.Create,
+                requiredScopes: _options.WriteScopes).ConfigureAwait(false);
         }
 
         public async Task<GoogleDriveFile> MoveFileAsync(
@@ -222,7 +232,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                requiredScopes: _options.WriteScopes).ConfigureAwait(false);
         }
 
         public async Task DeleteFileAsync(
@@ -324,7 +335,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 GoogleDriveJsonSerializerContext.Default.Object,
-                cancellationToken);
+                cancellationToken,
+                revisionPrecondition: GoogleWorkspaceRevisionPrecondition.Unavailable,
+                requiredScopes: _options.WriteScopes);
         }
 
         internal GoogleWorkspaceHttpTransport Transport => _transport;
@@ -335,6 +348,15 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
 
         private static void ValidateId(string value, string parameterName) {
             if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A Google Drive identifier is required.", parameterName);
+        }
+
+        private static IReadOnlyList<string> SnapshotScopes(
+            IReadOnlyList<string>? scopes,
+            string optionName) {
+            if (scopes == null || scopes.Count == 0 || scopes.Any(string.IsNullOrWhiteSpace)) {
+                throw new ArgumentException("Google Drive scopes must contain non-empty OAuth scope values.", optionName);
+            }
+            return Array.AsReadOnly(scopes.Distinct(StringComparer.Ordinal).ToArray());
         }
 
         private static void AddQuery(ICollection<string> query, string name, string? value) {

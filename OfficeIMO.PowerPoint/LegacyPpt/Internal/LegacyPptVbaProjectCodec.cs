@@ -18,13 +18,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (!readable || compound == null) {
                 return false;
             }
-            if (!compound.Streams.ContainsKey("VBA/dir")
-                || !compound.Streams.ContainsKey("VBA/_VBA_PROJECT")) {
-                reason = "The compound storage has no VBA/dir or VBA/_VBA_PROJECT stream.";
-                return false;
-            }
-            reason = null;
-            return true;
+            return LegacyPptVbaProjectValidator.TryValidate(compound.Streams,
+                out reason);
         }
     }
 }

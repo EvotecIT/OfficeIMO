@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -144,6 +145,244 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void OutlineTransparencyPreservesActiveNonSolidFillChoice() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape noFillShape = slide.AddRectanglePoints(
+                10, 10, 100, 60);
+            noFillShape.OutlineColor = "112233";
+            A.Outline noFillOutline = ((Shape)noFillShape.Element)
+                .ShapeProperties!.GetFirstChild<A.Outline>()!;
+            noFillOutline.RemoveAllChildren<A.SolidFill>();
+            noFillOutline.PrependChild(new A.NoFill());
+
+            noFillShape.OutlineTransparency = 40;
+
+            Assert.NotNull(noFillOutline.GetFirstChild<A.NoFill>());
+            Assert.Null(noFillOutline.GetFirstChild<A.SolidFill>());
+            Assert.Null(noFillShape.OutlineTransparency);
+
+            PowerPointAutoShape gradientShape = slide.AddRectanglePoints(
+                130, 10, 100, 60);
+            gradientShape.OutlineColor = "445566";
+            A.Outline gradientOutline = ((Shape)gradientShape.Element)
+                .ShapeProperties!.GetFirstChild<A.Outline>()!;
+            gradientOutline.RemoveAllChildren<A.SolidFill>();
+            var gradient = new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(
+                        new A.RgbColorModelHex { Val = "112233" }) {
+                        Position = 0
+                    },
+                    new A.GradientStop(
+                        new A.RgbColorModelHex { Val = "AABBCC" }) {
+                        Position = 100000
+                    }),
+                new A.LinearGradientFill { Angle = 0, Scaled = true });
+            gradientOutline.PrependChild(gradient);
+
+            gradientShape.OutlineTransparency = 60;
+
+            Assert.Null(gradientOutline.GetFirstChild<A.SolidFill>());
+            Assert.All(gradient.Descendants<A.GradientStop>(), stop =>
+                Assert.Equal(40000, stop.Descendants<A.Alpha>()
+                    .Single().Val!.Value));
+            Assert.Equal(60, gradientShape.OutlineTransparency);
+            gradientShape.OutlineTransparency = null;
+            Assert.DoesNotContain(gradient.Descendants<A.Alpha>(), _ => true);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ClearingOutlineTransparencyRemovesStyleReferenceAlpha() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointAutoShape shape = presentation.AddSlide()
+                .AddRectanglePoints(10, 10, 100, 60);
+            Shape nativeShape = (Shape)shape.Element;
+            nativeShape.ShapeProperties!.GetFirstChild<A.Outline>()?.Remove();
+            nativeShape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.FillReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+            A.LineReference reference = nativeShape.ShapeStyle.LineReference!;
+            OpenXmlCompositeElement color = Assert.IsAssignableFrom<
+                OpenXmlCompositeElement>(reference.ChildElements.Single());
+            color.Append(new A.Alpha { Val = 65000 });
+
+            Assert.Equal(35, shape.OutlineTransparency);
+            shape.OutlineTransparency = null;
+
+            Assert.Null(color.GetFirstChild<A.Alpha>());
+            Assert.Null(nativeShape.ShapeProperties
+                .GetFirstChild<A.Outline>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void FillTransparencyPreservesActiveNonSolidFillChoice() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape noFillShape = slide.AddRectanglePoints(
+                10, 10, 100, 60);
+            ShapeProperties noFillProperties = ((Shape)noFillShape.Element)
+                .ShapeProperties!;
+            noFillProperties.InsertAfter(new A.NoFill(),
+                noFillProperties.GetFirstChild<A.PresetGeometry>()!);
+
+            noFillShape.FillTransparency = 40;
+
+            Assert.NotNull(noFillProperties.GetFirstChild<A.NoFill>());
+            Assert.Null(noFillProperties.GetFirstChild<A.SolidFill>());
+            Assert.Null(noFillShape.FillTransparency);
+            noFillShape.FillColor = "445566";
+            Assert.Null(noFillProperties.GetFirstChild<A.NoFill>());
+            Assert.Equal("445566", noFillProperties
+                .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+
+            PowerPointAutoShape gradientShape = slide.AddRectanglePoints(
+                130, 10, 100, 60);
+            ShapeProperties gradientProperties = ((Shape)gradientShape.Element)
+                .ShapeProperties!;
+            var gradient = new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(
+                        new A.RgbColorModelHex { Val = "112233" }) {
+                        Position = 0
+                    },
+                    new A.GradientStop(
+                        new A.RgbColorModelHex { Val = "AABBCC" }) {
+                        Position = 100000
+                    }),
+                new A.LinearGradientFill { Angle = 0, Scaled = true });
+            gradientProperties.InsertAfter(gradient,
+                gradientProperties.GetFirstChild<A.PresetGeometry>()!);
+
+            gradientShape.FillTransparency = 60;
+
+            Assert.Null(gradientProperties.GetFirstChild<A.SolidFill>());
+            Assert.All(gradient.Descendants<A.GradientStop>(), stop =>
+                Assert.Equal(40000, stop.Descendants<A.Alpha>()
+                    .Single().Val!.Value));
+            Assert.Equal(60, gradientShape.FillTransparency);
+            gradientShape.FillTransparency = null;
+            Assert.DoesNotContain(gradient.Descendants<A.Alpha>(), _ => true);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void FillTransparencyMutatesPictureFillAlpha() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectanglePoints(
+                10, 10, 100, 60);
+            ImagePart imagePart = slide.SlidePart.AddImagePart(
+                DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+            using (var image = new MemoryStream(
+                       PdfPngTestImages.CreateRgbPng(37, 99, 235))) {
+                imagePart.FeedData(image);
+            }
+            string relationshipId = slide.SlidePart.GetIdOfPart(imagePart);
+            ShapeProperties properties = ((Shape)shape.Element)
+                .ShapeProperties!;
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.InsertAfter(new A.BlipFill(
+                    new A.Blip(
+                        new A.AlphaModulation { Val = 50000 },
+                        new A.AlphaOffset { Val = 10000 },
+                        new A.AlphaReplace { Alpha = 90000 }) {
+                        Embed = relationshipId
+                    },
+                    new A.Stretch(new A.FillRectangle())),
+                properties.GetFirstChild<A.PresetGeometry>()!);
+
+            shape.FillTransparency = 35;
+
+            A.Blip blip = properties.GetFirstChild<A.BlipFill>()!.Blip!;
+            Assert.Equal(65000, blip.GetFirstChild<A.AlphaModulationFixed>()!
+                .Amount!.Value);
+            Assert.DoesNotContain(blip.ChildElements,
+                child => child.LocalName != "alphaModFix"
+                    && child.LocalName.StartsWith("alpha",
+                        StringComparison.Ordinal));
+            Assert.Equal(35, shape.FillTransparency);
+            shape.FillTransparency = null;
+            Assert.Null(blip.GetFirstChild<A.AlphaModulationFixed>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void TransparencySettersReplaceCompetingColorAlphaTransforms() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointAutoShape shape = presentation.AddSlide()
+                .AddRectanglePoints(10, 10, 100, 60);
+            shape.FillColor = "112233";
+            shape.OutlineColor = "445566";
+            ShapeProperties properties = ((Shape)shape.Element)
+                .ShapeProperties!;
+            A.RgbColorModelHex fillColor = properties
+                .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!;
+            A.RgbColorModelHex outlineColor = properties
+                .GetFirstChild<A.Outline>()!
+                .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!;
+            fillColor.Append(new A.Alpha { Val = 90000 },
+                new A.AlphaModulation { Val = 50000 });
+            outlineColor.Append(new A.Alpha { Val = 90000 },
+                new A.AlphaModulation { Val = 50000 });
+
+            shape.FillTransparency = 20;
+            shape.OutlineTransparency = 30;
+
+            Assert.Equal(80000, Assert.Single(
+                fillColor.Elements<A.Alpha>()).Val!.Value);
+            Assert.Equal(70000, Assert.Single(
+                outlineColor.Elements<A.Alpha>()).Val!.Value);
+            Assert.DoesNotContain(fillColor.ChildElements,
+                child => child.LocalName != "alpha"
+                    && child.LocalName.StartsWith("alpha",
+                        StringComparison.Ordinal));
+            Assert.DoesNotContain(outlineColor.ChildElements,
+                child => child.LocalName != "alpha"
+                    && child.LocalName.StartsWith("alpha",
+                        StringComparison.Ordinal));
+            Assert.Equal(20, shape.FillTransparency);
+            Assert.Equal(30, shape.OutlineTransparency);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void FillTransparencyRejectsInheritedGroupFill() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointAutoShape shape = presentation.AddSlide()
+                .AddRectanglePoints(10, 10, 100, 60);
+            ShapeProperties properties = ((Shape)shape.Element)
+                .ShapeProperties!;
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.InsertAfter(new A.GroupFill(),
+                properties.GetFirstChild<A.PresetGeometry>()!);
+
+            Assert.Throws<NotSupportedException>(() =>
+                shape.FillTransparency = 35);
+
+            Assert.NotNull(properties.GetFirstChild<A.GroupFill>());
+            Assert.Null(properties.GetFirstChild<A.SolidFill>());
         }
 
         private static string CreateTempFilePath(string extension) {

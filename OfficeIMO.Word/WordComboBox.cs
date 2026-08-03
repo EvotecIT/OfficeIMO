@@ -33,6 +33,28 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal IReadOnlyList<(string Value, string DisplayText)> ExportItems {
+            get {
+                var combo = _sdtRun.SdtProperties?.Elements<SdtContentComboBox>().FirstOrDefault();
+                if (combo == null) return Array.Empty<(string Value, string DisplayText)>();
+                return WordContentControlListItems.GetExportItems(combo.Elements<ListItem>());
+            }
+        }
+
+        /// <summary>
+        /// Restores distinct HTML datalist values and display labels after the public combo-box
+        /// builder has created the Open XML control with its display-text list.
+        /// </summary>
+        internal void SetImportedItems(
+            IReadOnlyList<(string Value, string DisplayText)> items,
+            int selectedIndex) {
+            var combo = _sdtRun.SdtProperties?.Elements<SdtContentComboBox>().FirstOrDefault()
+                ?? throw new InvalidOperationException("Combo box properties are missing from the structured document tag.");
+            var selectedItem = WordContentControlListItems.SetImportedItems(
+                combo, _sdtRun, items, selectedIndex);
+            combo.LastValue = selectedItem.Value;
+        }
+
         /// <summary>
         /// Gets or sets the currently selected value displayed by the combo box.
         /// </summary>

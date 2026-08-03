@@ -20,7 +20,7 @@ document.Save("copy.doc", new WordSaveOptions {
 });
 
 byte[] docx = document.ToBytes();
-byte[] doc = document.ToDoc();
+byte[] doc = document.ToBytes(WordFileFormat.Doc);
 ```
 
 For an independent copy that does not change the current document association, use `SaveCopy`. For a writable stream, call `Save(stream, WordFileFormat.Docx)` or `Save(stream, WordFileFormat.Doc)`.
@@ -80,6 +80,19 @@ A readable feature is not automatically writable to DOC. DOCX can represent a br
 The native writer covers the tested binary subset, including paragraphs and runs, common formatting, styles, sections and page setup, supported headers and footers, simple tables and supported nesting, bookmarks, supported hyperlinks and static fields, footnotes and endnotes, and scalar document properties.
 
 The writer preflights the complete document before committing output. Unsupported destination features—such as comments, tracked revision markup, images, drawings, embedded objects, unsupported content-control shapes, or richer table/story structures—raise `NotSupportedException` and leave an existing destination intact.
+
+When an application needs a non-throwing gate before selecting a destination, run the real encoder without committing a file:
+
+```csharp
+LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
+if (assessment.IsSupported) {
+    document.Save("output.doc");
+} else {
+    Console.WriteLine($"{assessment.DiagnosticCode}: {assessment.Message}");
+}
+```
+
+`AssessLegacyDocWrite()` intentionally executes the same native encoder as `Save`/`ToBytes`, so its answer cannot drift from a second hand-maintained feature checklist. It allocates the candidate DOC bytes and reports their encoded size, but does not commit an artifact.
 
 This is practical feature parity, not a claim that arbitrary DOCX packages can be represented in the older DOC format.
 

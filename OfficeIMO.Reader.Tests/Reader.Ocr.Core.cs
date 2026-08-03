@@ -190,10 +190,10 @@ public sealed class ReaderOcrCoreTests {
     [Fact]
     public async Task ApplyOcrAsync_PreservesTimeoutsBeyondTheSignedWaitBoundary() {
         OfficeDocumentReadResult source = CreateDocument(1);
-        using var providerStarted = new ManualResetEventSlim(false);
+        var providerStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cancellation = new CancellationTokenSource();
         var engine = new DelegateOfficeOcrEngine("long-timeout-fixture", async (_, cancellationToken) => {
-            providerStarted.Set();
+            providerStarted.TrySetResult(null);
             await Task.Delay(Timeout.Infinite, cancellationToken);
             return new OfficeOcrEngineResult { Text = "late" };
         });
@@ -202,7 +202,8 @@ public sealed class ReaderOcrCoreTests {
             engine,
             new OfficeDocumentOcrExecutionOptions { CandidateTimeout = TimeSpan.FromDays(30) },
             cancellation.Token);
-        Assert.True(providerStarted.Wait(TimeSpan.FromSeconds(10)));
+        Task started = await Task.WhenAny(providerStarted.Task, Task.Delay(TimeSpan.FromSeconds(30)));
+        Assert.Same(providerStarted.Task, started);
 
         cancellation.Cancel();
 
@@ -301,17 +302,19 @@ public sealed class ReaderOcrCoreTests {
     public async Task ApplyOcrAsync_HoldsNonConcurrentEngineGateUntilTimedOutCallSettles() {
         var engine = new NonCooperativeSerialOcrEngine();
         var timeoutOptions = new OfficeDocumentOcrExecutionOptions {
-            CandidateTimeout = TimeSpan.FromMilliseconds(20),
+            CandidateTimeout = TimeSpan.FromSeconds(2),
             ContinueOnError = true
         };
 
         try {
-            OfficeDocumentOcrExecutionResult first = await CreateDocument(1).ApplyOcrAsync(engine, timeoutOptions);
-            Assert.Contains(first.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
+            Task<OfficeDocumentOcrExecutionResult> firstExecution =
+                CreateDocument(1).ApplyOcrAsync(engine, timeoutOptions);
             Task firstCallStarted = await Task.WhenAny(
                 engine.FirstCallStarted,
                 Task.Delay(TimeSpan.FromSeconds(10)));
             Assert.Same(engine.FirstCallStarted, firstCallStarted);
+            OfficeDocumentOcrExecutionResult first = await firstExecution;
+            Assert.Contains(first.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
 
             Task<OfficeDocumentOcrExecutionResult> second = CreateDocument(1).ApplyOcrAsync(
                 engine,
@@ -335,12 +338,17 @@ public sealed class ReaderOcrCoreTests {
         var engine = new NonCooperativeSerialOcrEngine();
 
         try {
-            OfficeDocumentOcrExecutionResult execution = await CreateDocument(2).ApplyOcrAsync(
+            Task<OfficeDocumentOcrExecutionResult> executionTask = CreateDocument(2).ApplyOcrAsync(
                 engine,
                 new OfficeDocumentOcrExecutionOptions {
-                    CandidateTimeout = TimeSpan.FromMilliseconds(20),
+                    CandidateTimeout = TimeSpan.FromSeconds(2),
                     ContinueOnError = true
                 });
+            Task firstCallStarted = await Task.WhenAny(
+                engine.FirstCallStarted,
+                Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.Same(engine.FirstCallStarted, firstCallStarted);
+            OfficeDocumentOcrExecutionResult execution = await executionTask;
 
             Assert.Equal(1, engine.CallCount);
             Assert.Equal(1, execution.Report.AttemptedCandidateCount);

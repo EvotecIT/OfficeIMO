@@ -114,7 +114,10 @@ namespace OfficeIMO.Visio.Stencils {
                     defaultUnit,
                     Path.GetFullPath(packagePath),
                     previewImage,
-                    sourceConnectionPoints);
+                    sourceConnectionPoints,
+                    supported,
+                    options.SourceLicense,
+                    options.SourceAttribution);
             }
 
             return builder.Build();
@@ -365,6 +368,8 @@ namespace OfficeIMO.Visio.Stencils {
                 IdPrefix = string.IsNullOrWhiteSpace(options.IdPrefix) ? fileName : options.IdPrefix + "." + fileName,
                 MasterNames = options.MasterNames,
                 IncludeUnsupportedMasters = options.IncludeUnsupportedMasters,
+                SourceLicense = options.SourceLicense,
+                SourceAttribution = options.SourceAttribution,
                 LearnMasterDimensions = options.LearnMasterDimensions,
                 ExtractPreviewImageMetadata = options.ExtractPreviewImageMetadata,
                 ExtractConnectionPointMetadata = options.ExtractConnectionPointMetadata,

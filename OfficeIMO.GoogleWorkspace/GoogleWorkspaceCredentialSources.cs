@@ -6,14 +6,25 @@ namespace OfficeIMO.GoogleWorkspace {
         private readonly string _accessToken;
         private readonly DateTimeOffset _expiresAt;
         private readonly IReadOnlyList<string>? _scopes;
+        private readonly string? _account;
 
+        /// <summary>Creates an unverified static token source. This exact overload is retained for binary compatibility.</summary>
         public StaticAccessTokenCredentialSource(
             string accessToken,
             DateTimeOffset? expiresAt = null,
-            IReadOnlyList<string>? scopes = null) {
+            IReadOnlyList<string>? scopes = null)
+            : this(accessToken, expiresAt, scopes, null) { }
+
+        /// <summary>Creates an unverified static token source with an informational account label.</summary>
+        public StaticAccessTokenCredentialSource(
+            string accessToken,
+            DateTimeOffset? expiresAt,
+            IReadOnlyList<string>? scopes,
+            string? account) {
             _accessToken = accessToken ?? throw new ArgumentNullException(nameof(accessToken));
             _expiresAt = expiresAt ?? DateTimeOffset.UtcNow.AddMinutes(30);
             _scopes = scopes;
+            _account = account;
         }
 
         public Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(
@@ -23,9 +34,7 @@ namespace OfficeIMO.GoogleWorkspace {
             IReadOnlyList<string> effectiveScopes = _scopes ?? scopes?.ToArray() ?? Array.Empty<string>();
 
             return Task.FromResult(new GoogleWorkspaceAccessToken(
-                _accessToken,
-                _expiresAt,
-                effectiveScopes));
+                _accessToken, _expiresAt, effectiveScopes, _account));
         }
     }
 

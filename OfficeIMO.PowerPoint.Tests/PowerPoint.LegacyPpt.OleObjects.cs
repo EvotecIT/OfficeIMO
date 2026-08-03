@@ -413,7 +413,7 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(oversizedLogical, writable: false),
                 "Package"));
 
-            Assert.Contains("Compound stream bytes exceed",
+            Assert.Contains("exceeds physical bounds",
                 addException.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(slide.OleObjects);
             using var original = new MemoryStream(valid, writable: false);
@@ -422,7 +422,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException updateException = Assert.Throws<
                 InvalidDataException>(() => ole.UpdateData(
                 new MemoryStream(oversizedLogical, writable: false)));
-            Assert.Contains("Compound stream bytes exceed",
+            Assert.Contains("exceeds physical bounds",
                 updateException.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(valid, ole.GetData());
         }
@@ -700,6 +700,32 @@ namespace OfficeIMO.Tests {
             Assert.Contains("compressed or uncompressed", capability.Note);
             Assert.Contains("preview images", capability.Note);
             Assert.Contains("loss-blocked", capability.Note);
+        }
+
+        [Fact]
+        public void DesktopReferenceLaneTreatsSkippedVisibleOleObjectAsExpectedContent() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(640, 360);
+            PowerPointSlide slide = presentation.AddSlide();
+            using var storage = new MemoryStream(
+                CreateOleTestStorage("Desktop reference OLE"),
+                writable: false);
+            PowerPointOleObject ole = slide.AddOleObject(storage, "Package");
+
+            OfficeImageExportResult rendered = slide.ExportImage(
+                OfficeImageExportFormat.Png);
+            Assert.Contains(rendered.Diagnostics, diagnostic =>
+                diagnostic.Code
+                    == PowerPointImageExportDiagnosticCodes.UnsupportedShape
+                && diagnostic.Message.Contains("OLE object",
+                    StringComparison.OrdinalIgnoreCase));
+            Assert.True(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
+
+            ole.LeftPoints = 700;
+            Assert.False(PowerPointDesktopReferenceRenderer
+                .HasExpectedVisibleContent(slide));
         }
 
         private static byte[] CreateOleTestStorage(string contents) {

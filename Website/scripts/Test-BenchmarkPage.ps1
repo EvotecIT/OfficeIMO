@@ -211,6 +211,7 @@ if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-be
 if ($pageHtml -notmatch 'data-library-comparison-benchmarks' -or
     $pageHtml -notmatch 'data-comparison-id="markpflug-65k-csv-decoded-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="csv-25k-datareader-write-net10\.0"' -or
+    $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xls-typed-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="xlsx-25k-datareader-write-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsx-typed-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsb-typed-net10\.0"' -or

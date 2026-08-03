@@ -160,6 +160,22 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional save settings.</param>
     public static void WriteDataReader(TextWriter writer, IDataReader reader, CsvSaveOptions? options = null)
     {
+        WriteDataReader(writer, reader, options, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Writes an <see cref="IDataReader"/> directly as CSV without materializing a <see cref="CsvDocument"/>.
+    /// </summary>
+    /// <param name="writer">Destination text writer.</param>
+    /// <param name="reader">Source data reader positioned before the first row.</param>
+    /// <param name="options">Optional save settings.</param>
+    /// <param name="cancellationToken">Token observed while projecting and writing rows.</param>
+    public static void WriteDataReader(
+        TextWriter writer,
+        IDataReader reader,
+        CsvSaveOptions? options,
+        CancellationToken cancellationToken)
+    {
         if (writer == null)
         {
             throw new ArgumentNullException(nameof(writer));
@@ -170,8 +186,115 @@ public sealed partial class CsvDocument
             throw new ArgumentNullException(nameof(reader));
         }
 
-        using var objectWriter = new CsvObjectWriter(writer, options ?? new CsvSaveOptions(), leaveOpen: true);
-        objectWriter.WriteDataReader(reader);
+        options ??= new CsvSaveOptions();
+        if (options.Append || options.NoClobber)
+        {
+            throw new ArgumentException("Append and NoClobber apply only to path writes.", nameof(options));
+        }
+
+        WriteDataReaderCore(writer, reader, options, cancellationToken);
+    }
+
+    private static void WriteDataReaderCore(
+        TextWriter writer,
+        IDataReader reader,
+        CsvSaveOptions options,
+        CancellationToken cancellationToken)
+    {
+        using var objectWriter = new CsvObjectWriter(writer, options, leaveOpen: true);
+        objectWriter.WriteDataReader(reader, cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes an open data reader to a CSV file.
+    /// </summary>
+    /// <param name="path">Destination CSV path.</param>
+    /// <param name="reader">Open data reader positioned before the first row.</param>
+    /// <param name="options">CSV serialization options.</param>
+    public static void WriteDataReader(string path, IDataReader reader, CsvSaveOptions? options = null)
+    {
+        WriteDataReader(path, reader, options, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Writes an open data reader to a CSV file.
+    /// </summary>
+    /// <param name="path">Destination CSV path.</param>
+    /// <param name="reader">Open data reader positioned before the first row.</param>
+    /// <param name="options">CSV serialization options.</param>
+    /// <param name="cancellationToken">Token observed while projecting and writing rows.</param>
+    public static void WriteDataReader(
+        string path,
+        IDataReader reader,
+        CsvSaveOptions? options,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("File path cannot be empty.", nameof(path));
+        }
+        if (reader == null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
+        options ??= new CsvSaveOptions();
+        cancellationToken.ThrowIfCancellationRequested();
+        WritePath(path, options, writer => WriteDataReaderCore(writer, reader, options, cancellationToken));
+    }
+
+    /// <summary>
+    /// Writes an open data reader to a CSV stream.
+    /// </summary>
+    /// <param name="destination">Writable destination stream.</param>
+    /// <param name="reader">Open data reader positioned before the first row.</param>
+    /// <param name="options">CSV serialization options.</param>
+    /// <param name="leaveOpen">Whether the destination stream remains open after writing.</param>
+    public static void WriteDataReader(
+        Stream destination,
+        IDataReader reader,
+        CsvSaveOptions? options = null,
+        bool leaveOpen = true)
+    {
+        WriteDataReader(destination, reader, options, leaveOpen, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Writes an open data reader to a CSV stream.
+    /// </summary>
+    /// <param name="destination">Writable destination stream.</param>
+    /// <param name="reader">Open data reader positioned before the first row.</param>
+    /// <param name="options">CSV serialization options.</param>
+    /// <param name="leaveOpen">Whether the destination stream remains open after writing.</param>
+    /// <param name="cancellationToken">Token observed while projecting and writing rows.</param>
+    public static void WriteDataReader(
+        Stream destination,
+        IDataReader reader,
+        CsvSaveOptions? options,
+        bool leaveOpen,
+        CancellationToken cancellationToken)
+    {
+        if (destination is null)
+        {
+            throw new ArgumentNullException(nameof(destination));
+        }
+
+        if (!destination.CanWrite)
+        {
+            throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+        }
+        if (reader == null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
+        options ??= new CsvSaveOptions();
+        if (options.Append || options.NoClobber)
+        {
+            throw new ArgumentException("Append and NoClobber apply only to path writes.", nameof(options));
+        }
+        using var writer = CsvFile.CreateTextWriter(destination, options, leaveOpen, FileBufferSize);
+        WriteDataReaderCore(writer, reader, options, cancellationToken);
     }
 
     /// <summary>
@@ -194,42 +317,7 @@ public sealed partial class CsvDocument
         }
 
         options ??= new CsvSaveOptions();
-        var fullPath = Path.GetFullPath(path);
-        if (options.NoClobber && File.Exists(fullPath))
-        {
-            throw new IOException($"The file '{fullPath}' already exists.");
-        }
-
-        OfficeFileCommit.EnsureTargetDirectory(fullPath);
-
-        if (options.Append)
-        {
-            using var appendWriter = CsvFile.CreateTextWriter(fullPath, options, append: true, bufferSize: FileBufferSize);
-            WriteObjects(appendWriter, items, options);
-            return;
-        }
-
-        var temporaryPath = OfficeFileCommit.CreateTemporaryPath(fullPath);
-
-        try
-        {
-            using (var writer = CsvFile.CreateTextWriterForCompressionPath(temporaryPath, fullPath, options, bufferSize: 256 * 1024))
-            {
-                WriteObjects(writer, items, options);
-            }
-
-            OfficeFileCommit.CommitTemporaryFile(
-                temporaryPath,
-                fullPath,
-                options.NoClobber
-                    ? OfficeFileCommit.ConflictPolicy.FailIfExists
-                    : OfficeFileCommit.ConflictPolicy.Replace);
-            temporaryPath = string.Empty;
-        }
-        finally
-        {
-            OfficeFileCommit.DeleteIfExists(temporaryPath);
-        }
+        WritePath(path, options, writer => WriteObjects(writer, items, options));
     }
 
     /// <summary>
@@ -258,11 +346,6 @@ public sealed partial class CsvDocument
     public IReadOnlyList<string>? DateTimeFormats => _dateTimeFormats;
 
     /// <summary>
-    /// Gets the load mode of the document.
-    /// </summary>
-    public CsvLoadMode Mode => _mode;
-
-    /// <summary>
     /// Saves the document to the specified path.
     /// </summary>
     public void Save(string path, CsvSaveOptions? options = null)
@@ -274,34 +357,46 @@ public sealed partial class CsvDocument
 
         options = ResolveSaveOptions(options);
 
-        var fullPath = Path.GetFullPath(path);
+        WritePath(path, options, writer => CsvWriter.Write(writer, this, options));
+    }
+
+    private static void WritePath(string path, CsvSaveOptions options, Action<TextWriter> write)
+    {
+        string fullPath = Path.GetFullPath(path);
         if (options.NoClobber && File.Exists(fullPath))
         {
             throw new IOException($"The file '{fullPath}' already exists.");
         }
 
-        if (options.Append)
+        CsvCompressionType compressionType = CsvFile.ResolveCompression(options.CompressionType, fullPath);
+        if (options.Append && compressionType != CsvCompressionType.None)
         {
-            CsvCompressionType compressionType = CsvFile.ResolveCompression(options.CompressionType, fullPath);
-            if (compressionType != CsvCompressionType.None)
-                throw new NotSupportedException("Appending to compressed CSV files is not supported.");
-            OfficeFileCommit.EnsureTargetDirectory(fullPath);
-            using var writer = CsvFile.CreateTextWriter(fullPath, options, append: true, bufferSize: FileBufferSize);
-            CsvWriter.Write(writer, this, options);
-            return;
+            throw new NotSupportedException("Appending to compressed CSV files is not supported.");
         }
 
         OfficeFileCommit.EnsureTargetDirectory(fullPath);
-        var temporaryPath = OfficeFileCommit.CreateTemporaryPath(fullPath);
+        if (options.Append)
+        {
+            using var appendWriter = CsvFile.CreateTextWriter(fullPath, options, append: true, bufferSize: FileBufferSize);
+            write(appendWriter);
+            return;
+        }
+
+        string temporaryPath = OfficeFileCommit.CreateTemporaryPath(fullPath);
         try
         {
             using (var writer = CsvFile.CreateTextWriterForCompressionPath(
                        temporaryPath, fullPath, options, FileBufferSize))
             {
-                CsvWriter.Write(writer, this, options);
+                write(writer);
             }
-            OfficeFileCommit.CommitTemporaryFile(temporaryPath, fullPath,
-                options.NoClobber ? OfficeFileCommit.ConflictPolicy.FailIfExists : OfficeFileCommit.ConflictPolicy.Replace);
+
+            OfficeFileCommit.CommitTemporaryFile(
+                temporaryPath,
+                fullPath,
+                options.NoClobber
+                    ? OfficeFileCommit.ConflictPolicy.FailIfExists
+                    : OfficeFileCommit.ConflictPolicy.Replace);
             temporaryPath = string.Empty;
         }
         finally
@@ -792,7 +887,7 @@ public sealed partial class CsvDocument
     {
         if (_mode == CsvLoadMode.Stream)
         {
-            throw new InvalidOperationException("Operation requires in-memory mode. Call Materialize() or load with CsvLoadMode.InMemory.");
+            throw new InvalidOperationException("Operation requires materialized rows. Call Materialize() first.");
         }
     }
 

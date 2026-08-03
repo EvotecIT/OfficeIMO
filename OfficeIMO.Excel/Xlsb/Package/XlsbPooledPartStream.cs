@@ -9,12 +9,19 @@ namespace OfficeIMO.Excel.Xlsb.Package {
     internal sealed class XlsbPooledPartStream : MemoryStream {
         private byte[]? _buffer;
         private readonly int _length;
+        private IDisposable? _secondaryOwner;
 
-        internal XlsbPooledPartStream(byte[] buffer, int length)
+        internal XlsbPooledPartStream(byte[] buffer, int length, IDisposable? secondaryOwner = null)
             : base(buffer, 0, length, writable: false, publiclyVisible: false) {
             _buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
             _length = length;
+            _secondaryOwner = secondaryOwner;
         }
+
+        internal byte[] Buffer => _buffer
+            ?? throw new ObjectDisposedException(nameof(XlsbPooledPartStream));
+
+        internal int DataLength => _length;
 
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
@@ -23,6 +30,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 Array.Clear(buffer, 0, _length);
                 ArrayPool<byte>.Shared.Return(buffer);
             }
+            Interlocked.Exchange(ref _secondaryOwner, null)?.Dispose();
         }
     }
 }
