@@ -116,6 +116,13 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
             presentation.AddDesignerSectionSlide("Delivery and evidence", "Accessible by default");
+            presentation.AddDesignerExecutiveSummarySlide("Executive summary", "Accessible metrics",
+                new PowerPointExecutiveSummaryContent(
+                    new[] { new PowerPointMetric("14", "proof slides"), new PowerPointMetric("0", "hidden rows") },
+                    Array.Empty<PowerPointCardContent>()),
+                options: new PowerPointExecutiveSummarySlideOptions {
+                    Variant = PowerPointExecutiveSummaryLayoutVariant.MetricLead
+                });
             presentation.AddDesignerProcessSlide("A controlled workflow", "Every step remains editable", new[] {
                 new PowerPointProcessStep("Inspect", "Read the source"),
                 new PowerPointProcessStep("Generate", "Create native content"),

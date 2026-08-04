@@ -115,22 +115,28 @@ namespace OfficeIMO.Examples.PowerPoint {
                 MinimumReadableFontSizePoints = 8,
                 DetectShapeCollisions = false
             };
-            PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
-            composition.SelectBestAlternative = false;
-            composition.AlternativeIndex = 0;
+            PowerPointDeckDesign design = brief.CreateDesign(0);
+            design.Theme.SecondaryTextColor = "4F5963";
+            design.Theme.MutedTextColor = "59636D";
+            PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromDesign(design);
             composition.Preflight = preflightOptions;
             PowerPointCompositionResult result = presentation.Compose(plan, composition);
             PowerPointDeckRhythmReport rhythm = result.Plan.InspectRhythm(result.Design);
             PowerPointDeckPreflightReport report = result.Preflight;
             report.SaveJson(reportPath);
             PowerPointAccessibilityReport accessibility = presentation.InspectAccessibility();
-            accessibility.EnsureCompliant().SaveJson(accessibilityPath);
+            accessibility.SaveJson(accessibilityPath);
+            accessibility.EnsureCompliant();
             presentation.Save();
 
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 string stem = "Slide " + (slideIndex + 1).ToString("00");
-                presentation.Slides[slideIndex].SaveAsPng(Path.Combine(outputFolder, stem + ".png"));
-                presentation.Slides[slideIndex].SaveAsSvg(Path.Combine(outputFolder, stem + ".svg"));
+                presentation.Slides[slideIndex]
+                    .ExportImage(OfficeImageExportFormat.Png)
+                    .Save(Path.Combine(outputFolder, stem + ".png"), OfficeImageExportFileConflictPolicy.Replace);
+                presentation.Slides[slideIndex]
+                    .ExportImage(OfficeImageExportFormat.Svg)
+                    .Save(Path.Combine(outputFolder, stem + ".svg"), OfficeImageExportFileConflictPolicy.Replace);
             }
             var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
             PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
