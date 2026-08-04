@@ -608,11 +608,32 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a new section to the document.
+        /// Adds a new section using the document default break behavior.
         /// </summary>
-        /// <param name="sectionMark">Section break type.</param>
         /// <returns>The created <see cref="WordSection"/>.</returns>
-        public WordSection AddSection(SectionMarkValues? sectionMark = null) {
+        public WordSection AddSection() {
+            return AddSectionCore(null);
+        }
+
+        /// <summary>
+        /// Adds a new section using the specified OfficeIMO break type.
+        /// </summary>
+        /// <param name="breakType">Section break type.</param>
+        /// <returns>The created <see cref="WordSection"/>.</returns>
+        public WordSection AddSection(WordSectionBreakType breakType) {
+            return AddSectionCore(breakType.ToOpenXml());
+        }
+
+        /// <summary>
+        /// Adds a new section using the Open XML section mark value.
+        /// </summary>
+        /// <param name="sectionMark">Open XML section break type.</param>
+        /// <returns>The created <see cref="WordSection"/>.</returns>
+        public WordSection AddSection(SectionMarkValues? sectionMark) {
+            return AddSectionCore(sectionMark);
+        }
+
+        private WordSection AddSectionCore(SectionMarkValues? sectionMark) {
             Paragraph paragraph = new Paragraph();
 
             ParagraphProperties paragraphProperties = new ParagraphProperties();

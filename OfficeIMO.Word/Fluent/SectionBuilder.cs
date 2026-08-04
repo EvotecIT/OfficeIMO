@@ -26,13 +26,22 @@ namespace OfficeIMO.Word.Fluent {
         /// Starts a new section on the next page.
         /// </summary>
         public SectionBuilder New() {
-            return New(SectionMarkValues.NextPage);
+            return New(WordSectionBreakType.NextPage);
         }
 
         /// <summary>
-        /// Starts a new section using the specified break type.
+        /// Starts a new section using the specified OfficeIMO break type.
         /// </summary>
         /// <param name="breakType">Section break type.</param>
+        public SectionBuilder New(WordSectionBreakType breakType) {
+            var section = _fluent.Document.AddSection(breakType);
+            return new SectionBuilder(_fluent, section);
+        }
+
+        /// <summary>
+        /// Starts a new section using the specified Open XML break type.
+        /// </summary>
+        /// <param name="breakType">Open XML section break type.</param>
         public SectionBuilder New(SectionMarkValues breakType) {
             var section = _fluent.Document.AddSection(breakType);
             return new SectionBuilder(_fluent, section);
