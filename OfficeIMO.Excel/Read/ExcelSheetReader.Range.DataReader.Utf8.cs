@@ -18,8 +18,8 @@ namespace OfficeIMO.Excel {
 
             private readonly ExcelSheetReader _owner;
             private readonly ExcelReadOptions _options;
-            private readonly int _firstColumn;
-            private readonly int _fieldCount;
+            private int _firstColumn;
+            private int _fieldCount;
             private readonly Utf8StringCacheEntry[] _stringCache;
             private byte[]? _buffer;
             private int[]? _rowIndexes;
@@ -49,15 +49,31 @@ namespace OfficeIMO.Excel {
             private ExcelUtf8RangeRowSource(
                 ExcelSheetReader owner,
                 byte[] buffer,
-                int length,
-                int firstRow,
-                int lastRow,
-                int firstColumn,
-                int fieldCount) {
+                int length) {
                 _owner = owner;
                 _options = owner._opt;
                 _buffer = buffer;
                 _length = length;
+                _stringCache = new Utf8StringCacheEntry[StringCacheSize];
+            }
+
+            private ExcelUtf8RangeRowSource(
+                ExcelSheetReader owner,
+                byte[] buffer,
+                int length,
+                int firstRow,
+                int lastRow,
+                int firstColumn,
+                int fieldCount)
+                : this(owner, buffer, length) {
+                InitializeRange(firstRow, lastRow, firstColumn, fieldCount);
+            }
+
+            private void InitializeRange(
+                int firstRow,
+                int lastRow,
+                int firstColumn,
+                int fieldCount) {
                 _firstColumn = firstColumn;
                 _fieldCount = fieldCount;
 
@@ -70,7 +86,72 @@ namespace OfficeIMO.Excel {
                 _formulaLengths = ArrayPool<int>.Shared.Rent(cellCapacity);
                 _styleIndexes = ArrayPool<int>.Shared.Rent(cellCapacity);
                 _cellKinds = ArrayPool<byte>.Shared.Rent(cellCapacity);
-                _stringCache = new Utf8StringCacheEntry[StringCacheSize];
+            }
+
+            internal static bool TryCreateForUsedRange(
+                ExcelSheetReader owner,
+                CancellationToken ct,
+                out ExcelUtf8RangeRowSource? source,
+                out int declaredFirstColumn) {
+                source = null;
+                declaredFirstColumn = 0;
+                if (owner._opt.CellValueConverter != null) {
+                    return false;
+                }
+
+                byte[]? buffer = null;
+                try {
+                    if (!TryRentWorksheetBuffer(owner, ct, out buffer, out int length)) {
+                        return false;
+                    }
+
+                    var candidate = new ExcelUtf8RangeRowSource(owner, buffer!, length);
+                    buffer = null;
+                    try {
+                        if (!candidate.TryGetDeclaredRange(
+                                ct,
+                                out int firstRow,
+                                out int firstColumn,
+                                out int lastRow,
+                                out int lastColumn)) {
+                            candidate.Dispose();
+                            return false;
+                        }
+
+                        int fieldCount = lastColumn - firstColumn + 1;
+                        long rowCount = (long)lastRow - firstRow + 1L;
+                        long cellCount = rowCount * fieldCount;
+                        if (fieldCount <= 0
+                            || fieldCount > owner._opt.MaxDataReaderColumns
+                            || cellCount > owner._opt.MaxDataReaderBufferedCells
+                            || cellCount > MaximumIndexedCells) {
+                            candidate.Dispose();
+                            return false;
+                        }
+
+                        candidate.InitializeRange(firstRow, lastRow, firstColumn, fieldCount);
+                        if (!candidate.TryIndexRows(firstRow, lastRow, ct)) {
+                            candidate.Dispose();
+                            return false;
+                        }
+
+                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated(ct)) {
+                            candidate.ValidateBufferedWorksheetXml(ct);
+                        }
+
+                        ct.ThrowIfCancellationRequested();
+                        declaredFirstColumn = firstColumn;
+                        source = candidate;
+                        return true;
+                    } catch {
+                        candidate.Dispose();
+                        throw;
+                    }
+                } finally {
+                    if (buffer != null) {
+                        ArrayPool<byte>.Shared.Return(buffer);
+                    }
+                }
             }
 
             internal static bool TryCreate(
@@ -89,17 +170,8 @@ namespace OfficeIMO.Excel {
 
                 byte[]? buffer = null;
                 try {
-                    int length;
-                    if (!owner.TryReadWorksheetPartBuffer(
-                            MaximumBufferSize,
-                            ct,
-                            out buffer,
-                            out length)) {
-                        using var stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
-                        RewindWorksheetStream(stream);
-                        if (!TryReadWorksheetBuffer(stream, ct, out buffer, out length)) {
-                            return false;
-                        }
+                    if (!TryRentWorksheetBuffer(owner, ct, out buffer, out int length)) {
+                        return false;
                     }
 
                     var candidate = new ExcelUtf8RangeRowSource(
@@ -112,12 +184,12 @@ namespace OfficeIMO.Excel {
                         fieldCount);
                     buffer = null;
                     try {
-                        if (!candidate.TryIndexRows(firstRow, lastRow)) {
+                        if (!candidate.TryIndexRows(firstRow, lastRow, ct)) {
                             candidate.Dispose();
                             return false;
                         }
 
-                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated()) {
+                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated(ct)) {
                             candidate.ValidateBufferedWorksheetXml(ct);
                         }
                     } catch {
@@ -125,6 +197,7 @@ namespace OfficeIMO.Excel {
                         throw;
                     }
 
+                    ct.ThrowIfCancellationRequested();
                     source = candidate;
                     return true;
                 } finally {
@@ -132,6 +205,24 @@ namespace OfficeIMO.Excel {
                         ArrayPool<byte>.Shared.Return(buffer);
                     }
                 }
+            }
+
+            private static bool TryRentWorksheetBuffer(
+                ExcelSheetReader owner,
+                CancellationToken ct,
+                out byte[]? buffer,
+                out int length) {
+                if (owner.TryReadWorksheetPartBuffer(
+                        MaximumBufferSize,
+                        ct,
+                        out buffer,
+                        out length)) {
+                    return true;
+                }
+
+                using var stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                return TryReadWorksheetBuffer(stream, ct, out buffer, out length);
             }
 
             internal bool SelectRow(int rowIndex) {
@@ -312,7 +403,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private bool TryIndexRows(int firstRow, int lastRow) {
+            private bool TryIndexRows(int firstRow, int lastRow, CancellationToken ct) {
+                ct.ThrowIfCancellationRequested();
                 if (!HasSupportedUtf8Encoding()) {
                     return false;
                 }
@@ -327,6 +419,7 @@ namespace OfficeIMO.Excel {
                 Utf8Tag sheetData = default;
                 bool foundSheetData = false;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
+                    ct.ThrowIfCancellationRequested();
                     if (!tag.IsEnd
                         && IsUnprefixedTag(tag)
                         && LocalNameEquals(tag, "worksheet")) {
@@ -358,6 +451,7 @@ namespace OfficeIMO.Excel {
                 int nextImplicitRow = 1;
                 int previousRow = 0;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
+                    ct.ThrowIfCancellationRequested();
                     if (tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "sheetData")) {
                         _sheetDataEndTagStart = tag.Start;
                         return !_parseFailed;
@@ -407,7 +501,7 @@ namespace OfficeIMO.Excel {
                         InitializeMetadataRow(rowOffset);
                     }
 
-                    if (!tag.IsEmpty && !TryIndexRow(ref position, rowIndex, rowOffset, includeRow)) {
+                    if (!tag.IsEmpty && !TryIndexRow(ref position, rowIndex, rowOffset, includeRow, ct)) {
                         return false;
                     }
 
@@ -425,10 +519,12 @@ namespace OfficeIMO.Excel {
                 ref int position,
                 int rowIndex,
                 int rowOffset,
-                bool rowWithinRange) {
+                bool rowWithinRange,
+                CancellationToken ct) {
                 int nextColumn = 1;
                 int previousColumn = 0;
                 while (position < _length) {
+                    ct.ThrowIfCancellationRequested();
                     int originalPosition = position;
                     int originalNextColumn = nextColumn;
                     bool compactTag = TryReadCompactCellStartTag(
