@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
+using P = DocumentFormat.OpenXml.Presentation;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
@@ -22,6 +23,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             "OfficeIMO-PowerPointAdvancedCorpus-" + Guid.NewGuid().ToString("N")
             + ".pptx");
         try {
+            AssertProducerTitlesAreFrontmost(FixturePath);
             using (PowerPointPresentation presentation =
                    PowerPointPresentation.Load(FixturePath)) {
                 AssertMicrosoftPowerPointProducer(presentation);
@@ -84,6 +86,8 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
                 presentation.Save(roundTrip);
             }
 
+            AssertProducerTitlesAreFrontmost(roundTrip);
+
             using PowerPointPresentation reopened =
                 PowerPointPresentation.Load(roundTrip);
             PowerPointChart reopenedChart = reopened.Slides
@@ -121,6 +125,31 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             Assert.Equal(900U, playback.TrimEndMilliseconds);
         } finally {
             if (File.Exists(roundTrip)) File.Delete(roundTrip);
+        }
+    }
+
+    private static void AssertProducerTitlesAreFrontmost(string path) {
+        using PresentationDocument document = PresentationDocument.Open(path,
+            isEditable: false);
+        PresentationPart presentationPart = document.PresentationPart
+            ?? throw new InvalidDataException(
+                "The PowerPoint package has no presentation part.");
+        P.SlideIdList slideIds = presentationPart.Presentation.SlideIdList
+            ?? throw new InvalidDataException(
+                "The PowerPoint package has no slide list.");
+        foreach (P.SlideId slideId in slideIds.Elements<P.SlideId>()) {
+            SlidePart slidePart = (SlidePart)presentationPart.GetPartById(
+                slideId.RelationshipId!);
+            P.ShapeTree shapeTree = slidePart.Slide.CommonSlideData?.ShapeTree
+                ?? throw new InvalidDataException(
+                    "A corpus slide has no shape tree.");
+            DocumentFormat.OpenXml.OpenXmlElement frontmost = shapeTree
+                .ChildElements.Last(element => element.LocalName is
+                    "sp" or "graphicFrame" or "pic" or "cxnSp" or
+                    "grpSp" or "contentPart");
+            P.Shape title = Assert.IsType<P.Shape>(frontmost);
+            Assert.StartsWith("Microsoft PowerPoint producer:",
+                title.InnerText, StringComparison.Ordinal);
         }
     }
 
@@ -452,7 +481,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
         Assert.Equal("Microsoft Office PowerPoint", application);
         Assert.StartsWith("16.", version, StringComparison.Ordinal);
         Assert.Equal(
-            "b5c2480605d376c3550941b7cc1e1601b54f881803c9655fa521211e6508e78c",
+            "a5a5bdc53910b5eb2c758e90b72f08b20a636d8f6a1dc3dae203c301be73688d",
             ComputeSha256(FixturePath));
     }
 
