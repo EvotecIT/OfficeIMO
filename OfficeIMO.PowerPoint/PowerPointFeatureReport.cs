@@ -13,7 +13,6 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 using P = DocumentFormat.OpenXml.Presentation;
 using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
-using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -1564,7 +1563,7 @@ namespace OfficeIMO.PowerPoint {
                     workbookStream,
                     false,
                     PowerPointChartWorkbookSecurity.CreateOpenSettings());
-                return IsSafeGeneratedChartWorkbook(workbook);
+                return PowerPointChartWorkbookEditor.IsSafelyEditable(workbook);
             } catch (FileFormatException) {
                 return false;
             } catch (OpenXmlPackageException) {
@@ -1575,54 +1574,6 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
         }
-
-        private static bool IsSafeGeneratedChartWorkbook(SpreadsheetDocument workbook) {
-            WorkbookPart? workbookPart = workbook.WorkbookPart;
-            if (workbook.DocumentType != SpreadsheetDocumentType.Workbook
-                || workbookPart?.Workbook == null
-                || workbookPart.VbaProjectPart != null
-                || workbook.Parts.Count() != 1
-                || workbook.Parts.Any(pair => pair.OpenXmlPart is not WorkbookPart)
-                || workbook.ExternalRelationships.Any()) {
-                return false;
-            }
-
-            WorksheetPart[] worksheets = workbookPart.GetPartsOfType<WorksheetPart>().ToArray();
-            SharedStringTablePart[] sharedStrings = workbookPart.GetPartsOfType<SharedStringTablePart>().ToArray();
-            if (worksheets.Length != 1
-                || sharedStrings.Length != 1
-                || workbookPart.Parts.Count() != 2
-                || workbookPart.Parts.Any(pair => pair.OpenXmlPart is not WorksheetPart && pair.OpenXmlPart is not SharedStringTablePart)
-                || HasUnsupportedChartWorkbookRelationships(workbookPart)) {
-                return false;
-            }
-
-            WorksheetPart worksheetPart = worksheets[0];
-            S.Worksheet? worksheet = worksheetPart.Worksheet;
-            if (worksheet == null
-                || worksheetPart.Parts.Any()
-                || sharedStrings[0].Parts.Any()
-                || HasUnsupportedChartWorkbookRelationships(worksheetPart)
-                || HasUnsupportedChartWorkbookRelationships(sharedStrings[0])
-                || worksheet.Descendants<S.CellFormula>().Any()
-                || worksheet.Descendants<S.Hyperlinks>().Any()
-                || worksheet.Descendants<S.OleObjects>().Any()
-                || worksheet.Descendants<S.Controls>().Any()) {
-                return false;
-            }
-
-            S.Sheets? sheets = workbookPart.Workbook.Sheets;
-            S.Sheet? sheet = sheets?.Elements<S.Sheet>().SingleOrDefault();
-            return sheet?.Id?.Value != null
-                && string.Equals(sheet.Id.Value, workbookPart.GetIdOfPart(worksheetPart), StringComparison.Ordinal)
-                && workbookPart.Workbook.DefinedNames == null
-                && workbookPart.Workbook.ExternalReferences == null;
-        }
-
-        private static bool HasUnsupportedChartWorkbookRelationships(OpenXmlPart part) =>
-            part.ExternalRelationships.Any()
-            || part.HyperlinkRelationships.Any()
-            || part.DataPartReferenceRelationships.Any();
 
         private static List<string> DescribeDiagramParts(IEnumerable<OpenXmlPart> parts) {
             return DescribePartsByType<DiagramDataPart>(parts)

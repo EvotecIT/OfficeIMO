@@ -36,15 +36,26 @@ namespace OfficeIMO.Visio {
             _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
 
+        internal static bool TryFromPath(string path,
+            out VisioPackageType type) {
+            switch (Path.GetExtension(path).ToLowerInvariant()) {
+                case ".vsdx": type = VisioPackageType.Drawing; return true;
+                case ".vstx": type = VisioPackageType.Template; return true;
+                case ".vssx": type = VisioPackageType.Stencil; return true;
+                case ".vsdm": type = VisioPackageType.MacroEnabledDrawing; return true;
+                case ".vstm": type = VisioPackageType.MacroEnabledTemplate; return true;
+                case ".vssm": type = VisioPackageType.MacroEnabledStencil; return true;
+                default: type = VisioPackageType.Drawing; return false;
+            }
+        }
+
         internal static VisioPackageType FromPath(string path) =>
-            Path.GetExtension(path).ToLowerInvariant() switch {
-                ".vstx" => VisioPackageType.Template,
-                ".vssx" => VisioPackageType.Stencil,
-                ".vsdm" => VisioPackageType.MacroEnabledDrawing,
-                ".vstm" => VisioPackageType.MacroEnabledTemplate,
-                ".vssm" => VisioPackageType.MacroEnabledStencil,
-                _ => VisioPackageType.Drawing
-            };
+            TryFromPath(path, out VisioPackageType type)
+                ? type
+                : throw new ArgumentException(
+                    "The file extension is not a supported Visio Open XML package extension. " +
+                    "Use .vsdx, .vstx, .vssx, .vsdm, .vstm, or .vssm.",
+                    nameof(path));
 
         internal static bool IsMacroEnabled(VisioPackageType type) =>
             type == VisioPackageType.MacroEnabledDrawing ||

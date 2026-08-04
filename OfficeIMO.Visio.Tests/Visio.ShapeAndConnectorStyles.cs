@@ -39,7 +39,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("#000000", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LineColor").Attribute("V")?.Value);
             Assert.Equal("0", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillPattern").Attribute("V")?.Value);
             Assert.Equal("#000000", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillForegnd").Attribute("V")?.Value);
-            Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "OneD").Attribute("V")?.Value);
+            Assert.DoesNotContain(connectorXml.Elements(ns + "Cell"),
+                cell => cell.Attribute("N")?.Value == "OneD");
             Assert.Equal("13", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EndArrow").Attribute("V")?.Value);
             Assert.Equal("2", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "BeginX").Attribute("V")?.Value);
             Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "BeginY").Attribute("V")?.Value);

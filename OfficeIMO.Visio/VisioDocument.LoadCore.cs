@@ -186,6 +186,9 @@ namespace OfficeIMO.Visio {
                     XElement? masterShapeElement = masterShapesElement?.Elements(ns + "Shape").FirstOrDefault();
                     VisioShape masterShape = masterShapeElement != null ? ParseShapeCore(masterShapeElement, ns, faceNamesById) : new VisioShape("1");
                     VisioMaster master = new(masterId, masterNameU, masterShape);
+                    if (!masterPart.GetRelationships().Any()) {
+                        master.RawMasterContentXml = new XDocument(masterDoc);
+                    }
                     foreach (XAttribute attribute in masterElement.Attributes().Where(ShouldPreserveMasterAttribute)) {
                         master.PreservedMasterAttributes.Add(new XAttribute(attribute));
                     }
@@ -672,7 +675,10 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
                     VisioConnector connector = new VisioConnector(id, fromShape!, toShape!) {
-                        PersistedId = persistedId
+                        PersistedId = persistedId,
+                        PreserveDynamicConnectorMaster =
+                            HasDynamicConnectorIdentity(connectorElement,
+                                masters)
                     };
 
                     foreach (XElement cell in connectorElement.Elements(vNs + "Cell")) {
@@ -845,8 +851,9 @@ namespace OfficeIMO.Visio {
                     }
 
                     XElement? connectorPropSection = connectorElement.Elements(vNs + "Section")
-                        .FirstOrDefault(section => string.Equals(section.Attribute("N")?.Value, "Prop", StringComparison.OrdinalIgnoreCase));
+                        .FirstOrDefault(section => IsShapeDataSectionName(section.Attribute("N")?.Value));
                     if (connectorPropSection != null) {
+                        connector.ShapeDataSectionName = connectorPropSection.Attribute("N")?.Value ?? "Prop";
                         ParseShapeDataRows(connectorPropSection, vNs, connector.ShapeData, connector.PreservedDataRows, connector.Data);
                     }
 

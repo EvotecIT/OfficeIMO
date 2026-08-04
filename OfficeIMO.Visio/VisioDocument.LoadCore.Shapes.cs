@@ -362,7 +362,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            XElement? propSection = sectionElements.FirstOrDefault(e => e.Attribute("N")?.Value == "Prop");
+            XElement? propSection = sectionElements.FirstOrDefault(e => IsShapeDataSectionName(e.Attribute("N")?.Value));
             if (propSection != null) {
                 ParseShapeDataRows(propSection, ns, shape);
             }
@@ -370,7 +370,7 @@ namespace OfficeIMO.Visio {
 
         private static string? GetOriginalId(XElement shapeElement, XNamespace ns) {
             XElement? propSection = shapeElement.Elements(ns + "Section")
-                .FirstOrDefault(e => e.Attribute("N")?.Value == "Prop");
+                .FirstOrDefault(e => IsShapeDataSectionName(e.Attribute("N")?.Value));
             if (propSection == null) {
                 return null;
             }

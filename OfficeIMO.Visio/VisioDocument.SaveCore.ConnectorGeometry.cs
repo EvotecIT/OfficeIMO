@@ -14,11 +14,11 @@ namespace OfficeIMO.Visio {
 
         private static void WriteConnectorGeometry(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY) {
             bool hasExplicitWaypoints = connector.Waypoints.Count > 0;
-            if (connector.Kind == ConnectorKind.Dynamic && !hasExplicitWaypoints) {
+            if (!hasExplicitWaypoints && WritePreservedGeometrySections(writer, connector.PreservedGeometrySections)) {
                 return;
             }
 
-            if (!hasExplicitWaypoints && WritePreservedGeometrySections(writer, connector.PreservedGeometrySections)) {
+            if (connector.Kind == ConnectorKind.Dynamic && !hasExplicitWaypoints) {
                 return;
             }
 

@@ -20,7 +20,8 @@ namespace OfficeIMO.Visio {
             VisioMaster? effectiveMaster = TryGetEffectiveMaster(effectiveMasters, shape);
             writer.WriteAttributeString("NameU", shape.NameU ?? effectiveMaster?.NameU ?? shapeName);
 
-            bool isRawMasterBackedShape = effectiveMaster?.RawMasterContentXml != null;
+            bool isRawMasterBackedShape = effectiveMaster?.IsPackageBacked == true &&
+                                          effectiveMaster.RawMasterContentXml != null;
             bool useLocalGeometryForGeneratedStencil = effectiveMaster != null &&
                                                        effectiveMaster.RawMasterContentXml == null &&
                                                        VisioStencilMetadata.HasStencilMetadata(shape);
@@ -62,7 +63,8 @@ namespace OfficeIMO.Visio {
         }
 
         private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, VisioMaster master, KeyValuePair<string, string>? originalIdEntry, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, int> layerIndexes) {
-            if (WriteMasterDeltasOnly && master.RawMasterContentXml != null) {
+            if (WriteMasterDeltasOnly && master.IsPackageBacked &&
+                master.RawMasterContentXml != null) {
                 double masterWidth = master.Shape.Width > 0 ? master.Shape.Width : 1;
                 double masterHeight = master.Shape.Height > 0 ? master.Shape.Height : 1;
                 double width = shape.Width > 0 ? shape.Width : masterWidth;
@@ -92,7 +94,7 @@ namespace OfficeIMO.Visio {
                 WriteUserSection(writer, ns, shape.UserCells);
                 WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
                 WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData, shape.ShapeDataSectionName);
                 WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
                 WriteRawMasterInstanceChildShapes(writer, ns, shape, master, persistedIds);
                 return;
@@ -149,7 +151,7 @@ namespace OfficeIMO.Visio {
                 double geometryHeight = shape.Height > 0 ? shape.Height : masterHeight;
                 WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, master.NameU, geometryWidth, geometryHeight, writeGeneratedGeometryWhenEmpty: false);
                 WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData, shape.ShapeDataSectionName);
                 WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
                 return;
             }
@@ -191,7 +193,7 @@ namespace OfficeIMO.Visio {
             WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
             WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, master.NameU, widthValue, heightValue);
             WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-            WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
+            WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData, shape.ShapeDataSectionName);
             WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
         }
 
@@ -222,7 +224,7 @@ namespace OfficeIMO.Visio {
             WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
             WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, shape.NameU, width, height, writeGeneratedGeometryWhenEmpty: !isGroup);
             WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-            WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
+            WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData, shape.ShapeDataSectionName);
             WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
         }
 
@@ -320,7 +322,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (string.Equals(token, "Section:Prop", StringComparison.OrdinalIgnoreCase)) {
-                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData, shape.ShapeDataSectionName);
                 return true;
             }
 
@@ -388,7 +390,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (emittedTokens.Add("Section:Prop")) {
-                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData, shape.ShapeDataSectionName);
             }
 
             if (emittedTokens.Add("Text")) {

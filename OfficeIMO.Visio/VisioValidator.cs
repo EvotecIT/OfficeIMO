@@ -21,7 +21,6 @@ namespace OfficeIMO.Visio {
         private const string RT_Pages = "http://schemas.microsoft.com/visio/2010/relationships/pages";
         private const string RT_Page = "http://schemas.microsoft.com/visio/2010/relationships/page";
 
-        private const string CT_Document = "application/vnd.ms-visio.drawing.main+xml";
         private const string CT_Pages = "application/vnd.ms-visio.pages+xml";
         private const string CT_Page = "application/vnd.ms-visio.page+xml";
         private const long MaxXmlCharactersInDocument = 10_000_000;
@@ -56,8 +55,19 @@ namespace OfficeIMO.Visio {
             bool HasOverride(string partName, string type) =>
                 overrides.Any(o => (string?)o.Attribute("PartName") == partName && (string?)o.Attribute("ContentType") == type);
 
-            if (!HasOverride("/visio/document.xml", CT_Document)) {
-                issues.Add("Missing Override for /visio/document.xml -> application/vnd.ms-visio.drawing.main+xml.");
+            XElement? documentOverride = overrides.FirstOrDefault(o =>
+                (string?)o.Attribute("PartName") == "/visio/document.xml");
+            string? documentContentType = documentOverride?.Attribute("ContentType")?.Value;
+            if (!VisioPackageFormat.TryFromContentType(documentContentType,
+                    out VisioPackageType packageType)) {
+                issues.Add("Missing or unsupported Override for /visio/document.xml; expected a supported Visio drawing, template, stencil, or macro-enabled main content type.");
+            } else {
+                if (!VisioPackageFormat.TryFromPath(vsdxPath,
+                        out VisioPackageType extensionType)) {
+                    issues.Add($"Package extension '{Path.GetExtension(vsdxPath)}' is not a supported Visio Open XML package extension.");
+                } else if (extensionType != packageType) {
+                    issues.Add($"Package extension '{Path.GetExtension(vsdxPath)}' does not match the Visio main content type '{documentContentType}'.");
+                }
             }
 
             if (!HasOverride("/visio/pages/pages.xml", CT_Pages)) {

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -147,7 +148,18 @@ namespace OfficeIMO.PowerPoint {
                 connection.SetAttributeValue("srcId", node.ParentId ?? documentId);
                 connection.SetAttributeValue("srcOrd", node.Order.ToString(CultureInfo.InvariantCulture));
             }
-            SaveDiagramData(dataPart, xdoc);
+            if (!TrySynchronizePersistedBasicProcessTopology(xdoc, ns,
+                    current, requested, out DiagramPersistLayoutPart? persistPart,
+                    out XDocument? persistDocument,
+                    out string persistDiagnostic)) {
+                throw new NotSupportedException(persistDiagnostic);
+            }
+            if (persistPart != null && persistDocument != null) {
+                SaveDiagramTopologyAtomically(dataPart, xdoc, persistPart,
+                    persistDocument);
+            } else {
+                SaveDiagramData(dataPart, xdoc);
+            }
             return this;
         }
 

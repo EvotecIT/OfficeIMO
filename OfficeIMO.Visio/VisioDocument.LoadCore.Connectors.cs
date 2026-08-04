@@ -256,6 +256,10 @@ namespace OfficeIMO.Visio {
                 if (string.Equals(localName, "Cell", StringComparison.OrdinalIgnoreCase)) {
                     string? cellName = child.Attribute("N")?.Value;
                     if (IsModeledConnectorCell(cellName)) {
+                        if (IsConnectorEndpointCell(cellName)) {
+                            connector.PreservedEndpointCellElements[cellName!] =
+                                new XElement(child);
+                        }
                         connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry($"Cell:{cellName}"));
                     } else {
                         connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
@@ -276,7 +280,7 @@ namespace OfficeIMO.Visio {
                     } else if (connector.HasModeledParaSection &&
                                IsParagraphSection(sectionName)) {
                         connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("Section:Para"));
-                    } else if (string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase)) {
+                    } else if (IsShapeDataSectionName(sectionName)) {
                         connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("Section:Prop"));
                     } else {
                         connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
@@ -329,6 +333,13 @@ namespace OfficeIMO.Visio {
                    string.Equals(cellName, "ConLineJumpDirY", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "ConFixedCode", StringComparison.OrdinalIgnoreCase) ||
                    VisioProtection.IsCellName(cellName);
+        }
+
+        private static bool IsConnectorEndpointCell(string? cellName) {
+            return string.Equals(cellName, "BeginX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "BeginY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "EndX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "EndY", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ShouldPreserveConnectorCell(string? cellName) {
@@ -388,7 +399,7 @@ namespace OfficeIMO.Visio {
             string? sectionName = section.Attribute("N")?.Value;
             return !string.Equals(sectionName, "Geometry", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(sectionName, "Hyperlink", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase);
+                   !IsShapeDataSectionName(sectionName);
         }
     }
 }

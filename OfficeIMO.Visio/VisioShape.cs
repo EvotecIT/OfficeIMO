@@ -335,6 +335,8 @@ namespace OfficeIMO.Visio {
 
         internal IList<XElement> PreservedDataRows { get; } = new List<XElement>();
 
+        internal string ShapeDataSectionName { get; set; } = "Prop";
+
         /// <summary>
         /// Arbitrary data associated with the shape.
         /// </summary>

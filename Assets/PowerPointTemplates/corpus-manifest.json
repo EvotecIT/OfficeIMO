@@ -18,6 +18,11 @@
       "focus": ["title placeholder", "theme and layout inheritance"]
     },
     {
+      "file": "PowerPointAdvancedRoadmap.pptx",
+      "sha256": "b5c2480605d376c3550941b7cc1e1601b54f881803c9655fa521211e6508e78c",
+      "focus": ["advanced charts", "SmartArt topology", "animation timeline", "embedded audio"]
+    },
+    {
       "file": "Tables.pptx",
       "sha256": "cf21f272893014502f9cee95f1aa90fde6a90fe61c7607a8bf2910e33d641fa0",
       "focus": ["PowerPoint-authored tables", "table style preservation"]

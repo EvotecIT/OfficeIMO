@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
@@ -122,8 +123,71 @@ namespace OfficeIMO.PowerPoint {
             Dgm.LayoutDefinition expected = PowerPointSlide
                 .CreateSmartArtLayoutDefinition(type, nodeCount,
                     aspectRatio);
-            return string.Equals(layoutPart.LayoutDefinition.OuterXml,
-                expected.OuterXml, StringComparison.Ordinal);
+            if (string.Equals(layoutPart.LayoutDefinition.OuterXml,
+                    expected.OuterXml, StringComparison.Ordinal)) {
+                return true;
+            }
+            return type == PowerPointSmartArtType.BasicProcess
+                && IsMicrosoftBasicProcessLayout(
+                    layoutPart.LayoutDefinition);
+        }
+
+        private static bool IsMicrosoftBasicProcessLayout(
+            Dgm.LayoutDefinition layout) {
+            const string diagramNamespace =
+                "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+            const string relationshipNamespace =
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            const string markupCompatibilityNamespace =
+                "http://schemas.openxmlformats.org/markup-compatibility/2006";
+            const string xmlNamespace =
+                "http://www.w3.org/XML/1998/namespace";
+            const string basicProcessLayoutId =
+                "urn:microsoft.com/office/officeart/2005/8/layout/process1";
+            if (!string.Equals(layout.UniqueId?.Value,
+                    basicProcessLayoutId, StringComparison.Ordinal)) {
+                return false;
+            }
+            IEnumerable<OpenXmlElement> elements =
+                new OpenXmlElement[] { layout }.Concat(layout.Descendants());
+            if (elements.Any(element =>
+                    !string.Equals(element.NamespaceUri, diagramNamespace,
+                        StringComparison.Ordinal)
+                    || element.GetAttributes().Any(attribute =>
+                        !string.IsNullOrEmpty(attribute.NamespaceUri)
+                        && !string.Equals(attribute.NamespaceUri,
+                            relationshipNamespace, StringComparison.Ordinal)
+                        && !string.Equals(attribute.NamespaceUri,
+                            markupCompatibilityNamespace,
+                            StringComparison.Ordinal)
+                        && !string.Equals(attribute.NamespaceUri,
+                            xmlNamespace, StringComparison.Ordinal)))) {
+                return false;
+            }
+            bool processCategory = layout.Descendants<Dgm.Category>()
+                .Any(category => string.Equals(category.Type?.Value,
+                    "process", StringComparison.OrdinalIgnoreCase));
+            bool linearAlgorithm = layout.Descendants<Dgm.Algorithm>()
+                .Any(algorithm => algorithm.Type?.Value ==
+                    Dgm.AlgorithmValues.Linear);
+            bool nodeIterator = layout.Descendants<Dgm.ForEach>()
+                .Any(iterator =>
+                    (iterator.Axis?.InnerText ?? string.Empty)
+                        .Split(' ').Contains("ch")
+                    && (iterator.PointType?.InnerText ?? string.Empty)
+                        .Split(' ').Contains("node"));
+            string?[] shapeTypes = layout.Descendants<Dgm.Shape>()
+                .Select(shape => shape.Type?.Value).ToArray();
+            bool nodeShape = shapeTypes.Length == 4
+                && shapeTypes[0] == null
+                && string.Equals(shapeTypes[1], "roundRect",
+                    StringComparison.Ordinal)
+                && string.Equals(shapeTypes[2], "conn",
+                    StringComparison.Ordinal)
+                && string.Equals(shapeTypes[3], "conn",
+                    StringComparison.Ordinal);
+            return processCategory && linearAlgorithm && nodeIterator
+                && nodeShape;
         }
 
         private bool TryReadRepresentableStyle(XElement? properties,

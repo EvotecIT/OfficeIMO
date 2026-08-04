@@ -230,11 +230,12 @@ namespace OfficeIMO.Visio {
                     effectivePageMasters[page] = pageMasters;
                     AddMastersInShapeOrder(page.Shapes, pageMasters, masterCandidates);
 
-                    if (UseMastersByDefault) {
-                        foreach (VisioConnector connector in page.Connectors) {
-                            if (connector.Kind == ConnectorKind.Dynamic) {
-                                masterCandidates.Add(EnsureBuiltinMaster("Dynamic connector"));
-                            }
+                    foreach (VisioConnector connector in page.Connectors) {
+                        if (connector.Kind == ConnectorKind.Dynamic &&
+                            (UseMastersByDefault ||
+                             connector.PreserveDynamicConnectorMaster)) {
+                            masterCandidates.Add(EnsureBuiltinMaster(
+                                "Dynamic connector"));
                         }
                     }
                 }
@@ -328,7 +329,7 @@ namespace OfficeIMO.Visio {
                             WriteConnectionSection(writer, ns, s.ConnectionPoints);
                             WriteMasterUserSection(writer, ns);
                             WriteMasterCharacterSection(writer, ns);
-                            WriteDataSection(writer, ns, s.Data, s.PreservedDataRows, shapeDataRows: s.ShapeData);
+                            WriteDataSection(writer, ns, s.Data, s.PreservedDataRows, shapeDataRows: s.ShapeData, sectionName: s.ShapeDataSectionName);
                             WriteTextElement(writer, ns, s.Text, s.PreservedTextElement, s.PreservedTextValue);
                             writer.WriteEndElement();
                             WritePreservedElements(writer, master.PreservedAdditionalShapeElements);

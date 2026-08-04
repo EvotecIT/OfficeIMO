@@ -12,6 +12,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
+[Collection(PowerPointNonParallelCollection.Name)]
 public class PowerPointChartSecurityTests {
     [Fact]
     public void BubbleSnapshot_RejectsOversizedNestedWorkbookPart() {

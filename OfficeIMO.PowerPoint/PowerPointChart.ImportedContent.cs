@@ -164,20 +164,58 @@ namespace OfficeIMO.PowerPoint {
                 .Where(element => element.LocalName == "ser").ToList();
             if (series.Count != data.Series.Count)
                 throw new NotSupportedException("Changing the series count of an imported advanced chart can alter its meaning; update the existing series only.");
-            int lastRow = data.Categories.Count + 1;
-            for (int index = 0; index < series.Count; index++) {
-                OfficeChartSeries item = data.Series[index];
-                string column = GetExcelColumn(index + 2);
-                UpdateStringReference(series[index].GetFirstChild<C.SeriesText>()!,
-                    $"Sheet1!${column}$1", new[] { item.Name });
-                UpdateStringReference(series[index].GetFirstChild<C.CategoryAxisData>()!,
-                    $"Sheet1!$A$2:$A${lastRow}", data.Categories);
-                UpdateNumberReference(series[index].GetFirstChild<C.Values>()!,
-                    $"Sheet1!${column}$2:${column}${lastRow}", item.Values);
+            byte[] original;
+            using (Stream stream = embedded.GetStream(FileMode.Open,
+                       FileAccess.Read)) {
+                original = PowerPointChartWorkbookSecurity.ReadAndValidate(
+                    stream);
             }
-            byte[] workbook = PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointChartData(data));
-            using (var stream = new MemoryStream(workbook)) embedded.FeedData(stream);
-            Save();
+            byte[] workbook = PowerPointChartWorkbookEditor.Update(original,
+                data);
+            using (var validation = new MemoryStream(workbook,
+                       writable: false)) {
+                _ = PowerPointChartWorkbookSecurity.ReadAndValidate(
+                    validation);
+            }
+            C.ChartSpace originalChartSpace = (C.ChartSpace)chartPart
+                .ChartSpace.CloneNode(true);
+            try {
+                int lastRow = data.Categories.Count + 1;
+                for (int index = 0; index < series.Count; index++) {
+                    OfficeChartSeries item = data.Series[index];
+                    string column = GetExcelColumn(index + 2);
+                    UpdateStringReference(series[index]
+                            .GetFirstChild<C.SeriesText>()!,
+                        $"Sheet1!${column}$1", new[] { item.Name });
+                    UpdateStringReference(series[index]
+                            .GetFirstChild<C.CategoryAxisData>()!,
+                        $"Sheet1!$A$2:$A${lastRow}", data.Categories);
+                    UpdateNumberReference(series[index]
+                            .GetFirstChild<C.Values>()!,
+                        $"Sheet1!${column}$2:${column}${lastRow}",
+                        item.Values);
+                }
+                using var replacement = new MemoryStream(workbook,
+                    writable: false);
+                embedded.FeedData(replacement);
+                Save();
+            } catch {
+                try {
+                    chartPart.ChartSpace = originalChartSpace;
+                    chartPart.ChartSpace.Save();
+                } catch {
+                    // Best-effort restoration continues with the workbook.
+                }
+                try {
+                    using var rollback = new MemoryStream(original,
+                        writable: false);
+                    embedded.FeedData(rollback);
+                } catch {
+                    // Preserve the original update exception. A subsequent
+                    // save/validation will surface any package I/O failure.
+                }
+                throw;
+            }
             return this;
         }
 
@@ -225,10 +263,12 @@ namespace OfficeIMO.PowerPoint {
             if (holder == null) throw new NotSupportedException("The advanced chart series does not expose numeric values.");
             C.NumberReference reference = holder.GetFirstChild<C.NumberReference>() ??
                 throw new NotSupportedException("The advanced chart series uses producer-specific numeric storage.");
+            string formatCode = reference.GetFirstChild<C.NumberingCache>()?
+                .GetFirstChild<C.FormatCode>()?.Text ?? "General";
             reference.GetFirstChild<C.Formula>()?.Remove();
             reference.InsertAt(new C.Formula(formula), 0);
             reference.GetFirstChild<C.NumberingCache>()?.Remove();
-            var cache = new C.NumberingCache(new C.FormatCode("General"),
+            var cache = new C.NumberingCache(new C.FormatCode(formatCode),
                 new C.PointCount { Val = (uint)values.Count });
             for (int index = 0; index < values.Count; index++)
                 cache.Append(new C.NumericPoint(new C.NumericValue(values[index].ToString("R", CultureInfo.InvariantCulture))) { Index = (uint)index });
