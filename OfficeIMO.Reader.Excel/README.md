@@ -11,22 +11,12 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 ```
 
-The package also owns the thin Excel/CSV adapter. Parsing and schema inference
-come from `OfficeIMO.CSV`; worksheet insertion and saving come from
-`OfficeIMO.Excel`:
+For CSV import and export, install the separate `OfficeIMO.Excel.Csv` adapter.
+Keeping conversion outside the Reader package avoids pulling CSV behavior into
+applications that only need generic Excel document extraction.
 
-```csharp
-using OfficeIMO.CSV;
-using OfficeIMO.Excel;
-using OfficeIMO.Reader.Excel;
+## Targets and dependencies
 
-using var workbook = ExcelDocument.Create();
-ExcelCsvImportResult imported = workbook.ImportCsvFile("sales.csv");
-workbook[imported.SheetName].SaveAsCsv("sales-roundtrip.csv");
-workbook.Save("sales.xlsx");
-```
-
-Use `ImportCsvText`, `ImportCsv(Stream)`, or `ImportCsv(CsvDocument)` for other
-source shapes. `ExcelCsvImportOptions.LoadOptions` and `ReaderOptions` expose
-the canonical CSV option types instead of a second delimiter or conversion
-model.
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
+- OfficeIMO dependencies: `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Drawing`.
+- License: MIT.

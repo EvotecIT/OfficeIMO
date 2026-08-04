@@ -8,7 +8,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Examples.Excel {
     /// <summary>
-    /// Demonstrates clickable hyperlinks in Excel tables using the Fluent API + RowEdit.SetFormula.
+    /// Demonstrates clickable hyperlinks in Excel tables using the fluent composer and direct cell formulas.
     /// Produces a small sheet with a "Top Links" table and converts the Title column to =HYPERLINK(Url, "Title").
     /// </summary>
     internal static class HyperlinksTopLinks {

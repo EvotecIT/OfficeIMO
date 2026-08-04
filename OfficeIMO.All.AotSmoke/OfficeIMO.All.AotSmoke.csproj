@@ -25,6 +25,7 @@
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub.Image\OfficeIMO.Epub.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
@@ -117,6 +118,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Epub" />
     <TrimmerRootAssembly Include="OfficeIMO.Epub.Image" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel.Csv" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.GoogleSheets" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.Html" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.OpenDocument" />

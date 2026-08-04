@@ -33,8 +33,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />

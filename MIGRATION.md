@@ -117,6 +117,8 @@ Replace the removed public reader roots as follows:
 | `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenDataReader(...)` |
 | `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenDataReader(...)` for streaming, or `ExcelDocument.Load(...)` for editing |
 | Concrete `ExcelDocumentReader` / `ExcelSheetReader` use | `ExcelWorkbookDataReader` returned by `ExcelDocument.OpenDataReader(...)` or `workbook.CreateDataReader(...)` |
+| `ExcelSheet.Rows(...)` | `workbook.CreateDataReader(...)` to read the current open workbook (including unsaved edits), `ExcelDocument.OpenDataReader(...)` for an unopened file/stream, or `ExcelSheet.RowsAs<T>(...)` for typed materialization |
+| `ExcelSheet.RowsObjects(...)`, `RowEdit`, or `CellEdit` | Direct `ExcelSheet` cell APIs such as `CellValue(...)`, `CellFormula(...)`, and `FormatCell(...)` |
 
 `CsvLoadOptions.Mode`, `CsvLoadMode`, and `CsvDocument.Mode` are no longer
 public. Use `CsvDocument.OpenDataReader` for a forward-only read and
@@ -130,8 +132,10 @@ Excel exposes worksheets as ordered `ExcelWorkbookDataReader` results through
 `A1Range` to select a range, `CurrentSheetName` / `CurrentSheetIndex` to identify the
 workbook sheet, and `CurrentResultIndex` to identify its position in the selected results.
 
-The Excel/CSV adapter in `OfficeIMO.Reader.Excel` now uses the native CSV reader
-and writer pipelines. Replace `ImportDelimitedFile` with `ImportCsvFile`, and
+The Excel/CSV adapter has moved from `OfficeIMO.Reader.Excel` to the dedicated
+`OfficeIMO.Excel.Csv` package and namespace. It uses the native CSV reader and
+writer pipelines without making either core format package depend on the other.
+Replace `ImportDelimitedFile` with `ImportCsvFile`, and
 replace decoded-text `ImportDelimitedText` and worksheet `FromCsv` calls with
 `ImportCsvText`. Use `ImportCsv` when the source is a `CsvDocument` or `Stream`.
 Replace `ExcelDelimitedImportOptions` and `ExcelDelimitedImportResult` with
@@ -155,7 +159,7 @@ For example, an explicit semicolon import now uses nested options:
 ```csharp
 using System.Globalization;
 using OfficeIMO.CSV;
-using OfficeIMO.Reader.Excel;
+using OfficeIMO.Excel.Csv;
 
 var options = new ExcelCsvImportOptions {
     SheetName = "Import",
@@ -184,7 +188,7 @@ former `FromCsv` no-table and string-valued parsing behavior:
 
 ```csharp
 using OfficeIMO.CSV;
-using OfficeIMO.Reader.Excel;
+using OfficeIMO.Excel.Csv;
 
 ExcelCsvImportResult imported = sheet.ImportCsvText(
     csvText,
@@ -459,20 +463,12 @@ The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF 
 limit before opening the package. For trusted documents that intentionally
 exceed that size, pass `new VisioLoadOptions { MaxInputBytes = null }`. The
 options-first async overload keeps cancellation explicit:
-`LoadAsync(path, options, cancellationToken)`. Existing two-argument calls such
-as `LoadAsync(path, default)` continue to bind to the `CancellationToken`
-overload; use a typed or named token when the argument's purpose is not obvious.
-The former positional three-argument shape `LoadAsync(path, default, default)`
-is ambiguous while both the token-first compatibility overload and the
-options-first 3.1 overload are available. Replace it with
-`LoadAsync(path, options: null, cancellationToken: default)` (and use the same
-named arguments for the stream overload), or pass explicitly typed values.
-
-The modular Visio reader now registers `.vsdx` only. Earlier handler metadata
-listed `.vsdm`, `.vstx`, and `.vstm`, but the document loader did not accept
-their distinct main-part content types. Convert those files to `.vsdx` before
-using the document reader; use the dedicated stencil package APIs for `.vstx`
-master catalogs.
+`LoadAsync(path, options, cancellationToken)`. The token-first overloads were
+removed. Replace `LoadAsync(path, cancellationToken)` with
+`LoadAsync(path, cancellationToken: cancellationToken)`, and replace
+`LoadAsync(path, cancellationToken, options)` with
+`LoadAsync(path, options, cancellationToken)`. Use the same ordering for the
+stream overload.
 
 ### Common member replacements
 

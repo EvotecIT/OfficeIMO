@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 159,
-    "productionComponentCount": 92,
+    "projectCount": 160,
+    "productionComponentCount": 93,
     "testProjectCount": 31,
     "benchmarkProjectCount": 15,
     "validationProjectCount": 22,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39718
+    "conceptualWordCount": 39879
   },
   "categories": [
     {
@@ -30,7 +30,7 @@
     },
     {
       "name": "Office documents",
-      "componentCount": 17
+      "componentCount": 18
     },
     {
       "name": "Publishing and conversion",
@@ -119,7 +119,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
       "sourceFileCount": 61,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.CSV"
@@ -209,11 +209,24 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 956,
+      "sourceFileCount": 951,
       "referencingTestProjectCount": 9,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel"
+    },
+    {
+      "name": "OfficeIMO.Excel.Csv",
+      "packageId": "OfficeIMO.Excel.Csv",
+      "category": "Office documents",
+      "description": "Bidirectional CSV and Excel conversion adapter using the native OfficeIMO.CSV and OfficeIMO.Excel engines.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/excel/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Csv"
     },
     {
       "name": "OfficeIMO.Excel.GoogleSheets",
@@ -638,7 +651,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 451,
+      "sourceFileCount": 458,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -739,7 +752,7 @@
       "name": "OfficeIMO.Reader.Csv",
       "packageId": "OfficeIMO.Reader.Csv",
       "category": "Extraction and ingestion",
-      "description": "CSV/TSV adapters for OfficeIMO.Reader and OfficeIMO.Excel.",
+      "description": "CSV/TSV adapter for OfficeIMO.Reader.Core.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Csv/OfficeIMO.Reader.Csv.csproj",
       "sourceFileCount": 3,
@@ -781,7 +794,7 @@
       "description": "Excel workbook adapter for OfficeIMO.Reader.Core.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
-      "sourceFileCount": 8,
+      "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -1119,7 +1132,7 @@
       "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Microsoft Visio documents.",
       "kind": "package",
       "projectPath": "OfficeIMO.Visio/OfficeIMO.Visio.csproj",
-      "sourceFileCount": 334,
+      "sourceFileCount": 345,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/visio/",
       "apiUrl": "/api/visio/",

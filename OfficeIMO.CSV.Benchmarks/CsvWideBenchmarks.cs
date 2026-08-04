@@ -554,8 +554,7 @@ public class CsvWideBenchmarks
     {
         using var csv = CsvDocument.OpenDataReader(
             _csvPath,
-            new CsvLoadOptions { Mode = CsvLoadMode.Stream },
-            new CsvDataReaderOptions { Schema = _wideSchema });
+            readerOptions: new CsvDataReaderOptions { Schema = _wideSchema });
         return DataTableBenchmarkUtilities.Measure(csv);
     }
 

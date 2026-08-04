@@ -48,7 +48,8 @@ public class MarkPflug65KXlsxBenchmarks {
         }
 
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsxFileName);
-        _expected = OfficeIMO();
+        _expected = ExpectedObservation();
+        Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(Sylvan), Sylvan());
         Validate(nameof(ExcelDataReader), ExcelDataReader());
         Validate(nameof(ClosedXML), ClosedXML());
@@ -196,6 +197,11 @@ public class MarkPflug65KXlsxBenchmarks {
             _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
         };
 
+    internal static ExcelReadObservation ExpectedObservation() => new(
+        MarkPflug65KFixture.ExpectedRows,
+        MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns,
+        MarkPflug65KFixture.ExpectedExcelChecksum);
+
     private void Validate(string library, ExcelReadObservation actual) {
         if (actual != _expected
             || actual.Rows != MarkPflug65KFixture.ExpectedRows
@@ -219,7 +225,8 @@ public class MarkPflug65KXlsbBenchmarks {
     public void Setup() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);
-        _expected = OfficeIMO();
+        _expected = MarkPflug65KXlsxBenchmarks.ExpectedObservation();
+        Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(Sylvan), Sylvan());
         Validate(nameof(ExcelDataReader), ExcelDataReader());
     }

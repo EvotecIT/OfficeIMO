@@ -31,11 +31,28 @@ sheet.AutoFitColumns();
 document.Save();
 ```
 
+`AsFluent()` wraps the same `ExcelDocument`; it does not create a separate
+workbook model. Call `End()` when direct worksheet APIs are more convenient:
+
+```csharp
+using var document = ExcelDocument.Create("report.xlsx");
+
+document.AsFluent()
+    .Sheet("Data", sheet => sheet
+        .Cell(1, 1, "Name")
+        .Cell(1, 2, "Value")
+        .Cell(2, 1, "Alpha")
+        .Cell(2, 2, 42))
+    .End();
+
+document.Save();
+```
+
 ## What it does
 
 - Creates and edits workbooks, worksheets, cells, ranges, tables, styles, hyperlinks, formulas, names, comments, images, charts, filters, and page setup.
-- Reads values through worksheet, range, row, dictionary, stream, and typed object helpers.
-- Supports editable row workflows where rows can be read, changed, and saved back.
+- Reads tabular values through the forward-only `ExcelDocument.OpenDataReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers.
+- Edits loaded workbooks through the normal worksheet, cell, range, table, and fluent authoring APIs.
 - Handles practical workbook hygiene such as table/filter conflicts, safe table names, deterministic save order, and feature inspection.
 - Applies optional shared package-security policy before parsing Open XML, XLSB, or compound XLS files.
 - Includes parallel execution controls for heavy export and autofit workloads while serializing the Open XML mutation phase safely.
@@ -59,11 +76,12 @@ The quick start covers the smallest workbook. These examples show common read, w
 ### Read rows by header
 
 ```csharp
-using var document = ExcelDocument.Load("input.xlsx");
-var sheet = document["Data"];
+using var reader = ExcelDocument.OpenDataReader("input.xlsx", new ExcelReadOptions {
+    SheetName = "Data"
+});
 
-foreach (var row in sheet.Rows()) {
-    Console.WriteLine(row["Name"]);
+while (reader.Read()) {
+    Console.WriteLine(reader["Name"]);
 }
 ```
 

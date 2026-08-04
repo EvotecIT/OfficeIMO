@@ -49,8 +49,8 @@ $managedOnly = @(
 if ($dedicatedRootedLibraries.Count -ne 1 -or $dedicatedRootedLibraries[0] -ne 'OfficeIMO.Security') {
     throw "The optional security NativeAOT host must root exactly OfficeIMO.Security; found $($dedicatedRootedLibraries -join ', ')."
 }
-if ($fullyRootedLibraries.Count -ne 89) {
-    throw "Expected 89 fully rooted production libraries across the ordinary and optional-security hosts, found $($fullyRootedLibraries.Count)."
+if ($fullyRootedLibraries.Count -ne 90) {
+    throw "Expected 90 fully rooted production libraries across the ordinary and optional-security hosts, found $($fullyRootedLibraries.Count)."
 }
 if ($boundedLibraries.Count -ne 1 -or $boundedLibraries[0] -ne 'OfficeIMO.GoogleWorkspace.Auth.GoogleApis') {
     throw "The bounded NativeAOT library set changed: $($boundedLibraries -join ', ')."

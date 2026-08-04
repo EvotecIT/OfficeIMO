@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class VisioLoad {
         [Fact]
-        public async Task LoadAsync_DefaultLiteralRetainsCancellationTokenOverload() {
+        public async Task LoadAsync_DefaultLiteralUsesCanonicalOptionsOverload() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             document.AddPage("Page-1");
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task LoadAsync_NamedOptionsAndCancellationTokenRemainUnambiguous() {
+        public async Task LoadAsync_UsesOptionsThenCancellationToken() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             try {
                 VisioDocument document = VisioDocument.Create(filePath);
@@ -30,27 +30,16 @@ namespace OfficeIMO.Tests {
 
                 VisioDocument pathLoaded = await VisioDocument.LoadAsync(
                     filePath,
-                    cancellationToken: default,
-                    options: options);
-                VisioDocument legacyNamedPathLoaded = await VisioDocument.LoadAsync(
-                    filePath,
-                    default,
-                    options: options);
+                    options,
+                    cancellationToken: default);
                 using var stream = pathLoaded.ToStream();
                 VisioDocument streamLoaded = await VisioDocument.LoadAsync(
                     stream,
-                    cancellationToken: default,
-                    options: options);
-                stream.Position = 0;
-                VisioDocument legacyNamedStreamLoaded = await VisioDocument.LoadAsync(
-                    stream,
-                    default,
-                    options: options);
+                    options,
+                    cancellationToken: default);
 
                 Assert.Single(pathLoaded.Pages);
-                Assert.Single(legacyNamedPathLoaded.Pages);
                 Assert.Single(streamLoaded.Pages);
-                Assert.Single(legacyNamedStreamLoaded.Pages);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

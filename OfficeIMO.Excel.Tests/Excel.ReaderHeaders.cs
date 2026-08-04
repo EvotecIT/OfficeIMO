@@ -833,14 +833,11 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                IEnumerable<Dictionary<string, object?>> rows;
-                using (var document = ExcelDocument.Load(filePath)) {
-                    rows = document.GetSheet("Data").Rows("A1:B2");
-                }
-
-                var row = Assert.Single(rows);
-                Assert.Equal("Alpha", row["Name"]);
-                Assert.Equal(12.5d, row["Amount"]);
+                using var reader = ExcelDocument.OpenDataReader(filePath, new ExcelReadOptions { SheetName = "Data" });
+                Assert.True(reader.Read());
+                Assert.Equal("Alpha", reader["Name"]);
+                Assert.Equal(12.5d, reader["Amount"]);
+                Assert.False(reader.Read());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -910,35 +907,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Fluent_AsObjectsStream_EnumeratesWhileDocumentScopeIsOpen() {
-            string filePath = Path.Combine(_directoryWithFiles, "ReaderFluentObjectsStreamBridge.xlsx");
-
-            try {
-                using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "First Name");
-                    sheet.CellValue(1, 2, "First Name");
-                    sheet.CellValue(1, 3, "Total Amount 2");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, "Beta");
-                    sheet.CellValue(2, 3, 42);
-                    document.Save();
-                }
-
-                using var loadedDocument = ExcelDocument.Load(filePath);
-                var row = Assert.Single(loadedDocument.Read().Sheet("Data").Range("A1:C2").AsObjectsStream<FriendlyHeaderRow>());
-
-                Assert.Equal("Alpha", row.FirstName);
-                Assert.Equal("Beta", row.FirstName_2);
-                Assert.Equal(42, row.TotalAmount2);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
         public void Sheet_ReadHelpers_ExposeDisambiguatedHeadersConsistently() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderDuplicateHeadersEditable.xlsx");
 
@@ -958,10 +926,6 @@ namespace OfficeIMO.Tests {
                 var map = sheet.GetHeaderMap();
                 Assert.Equal(1, map["Value"]);
                 Assert.Equal(2, map["Value_2"]);
-
-                var editable = Assert.Single(sheet.RowsObjects("A1:B2"));
-                Assert.Equal("Left", editable["Value"].Value);
-                Assert.Equal("Right", editable["Value_2"].Value);
 
                 var typed = Assert.Single(sheet.RowsAs<DuplicateHeaderRow>("A1:B2"));
                 Assert.Equal("Left", typed.Value);
@@ -1694,14 +1658,9 @@ namespace OfficeIMO.Tests {
                 using var loadedDocument = ExcelDocument.Load(filePath);
                 var loadedSheet = loadedDocument.GetSheet("Data");
                 var headerMap = loadedSheet.GetHeaderMap(options);
-                var editable = Assert.Single(loadedSheet.RowsObjects("A1:C2", options));
-
                 Assert.Equal(1, headerMap["Value"]);
                 Assert.Equal(2, headerMap["  Value  "]);
                 Assert.Equal(3, headerMap["Column3"]);
-                Assert.Equal("Alpha", editable["Value"].Value);
-                Assert.Equal("Beta", editable["  Value  "].Value);
-                Assert.Equal("Gamma", editable["Column3"].Value);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
