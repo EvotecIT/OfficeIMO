@@ -608,14 +608,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a new section using the document default break behavior.
-        /// </summary>
-        /// <returns>The created <see cref="WordSection"/>.</returns>
-        public WordSection AddSection() {
-            return AddSectionCore(null);
-        }
-
-        /// <summary>
         /// Adds a new section using the specified OfficeIMO break type.
         /// </summary>
         /// <param name="breakType">Section break type.</param>
@@ -629,7 +621,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="sectionMark">Open XML section break type.</param>
         /// <returns>The created <see cref="WordSection"/>.</returns>
-        public WordSection AddSection(SectionMarkValues? sectionMark) {
+        public WordSection AddSection(SectionMarkValues? sectionMark = null) {
             return AddSectionCore(sectionMark);
         }
 

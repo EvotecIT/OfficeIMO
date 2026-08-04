@@ -40,6 +40,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "NullableOpenXmlSectionBreak.docx");
             SectionMarkValues? breakType = SectionMarkValues.Continuous;
 
+            var legacyOverload = typeof(WordDocument).GetMethod(nameof(WordDocument.AddSection), new[] { typeof(SectionMarkValues?) });
+            Assert.NotNull(legacyOverload);
+            var legacyParameter = Assert.Single(legacyOverload!.GetParameters());
+            Assert.True(legacyParameter.IsOptional);
+            Assert.Null(legacyParameter.DefaultValue);
+
             using WordDocument document = WordDocument.Create(filePath);
             WordSection previousSection = document.Sections[0];
             document.AddSection(breakType);
