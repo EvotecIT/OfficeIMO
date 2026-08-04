@@ -215,6 +215,7 @@ namespace OfficeIMO.Word {
             var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
             if (docPt == null) throw new InvalidOperationException("Cannot locate document point in SmartArt data model.");
             var docId = (string?)docPt.Attribute("modelId") ?? throw new InvalidOperationException("Document point missing modelId.");
+            EnsureEditableNodeIdsAreUnique(GetEditableNodePoints(xdoc, dgm));
 
             // Create node point
             string newId = "{" + Guid.NewGuid().ToString().ToUpper() + "}";
@@ -236,8 +237,9 @@ namespace OfficeIMO.Word {
             ptLst.Add(pt);
 
             // Determine next position
-            var existing = cxnLst.Elements(dgm + "cxn").Where(x => (string?)x.Attribute("srcId") == docId).ToList();
-            uint nextPos = existing.Any() ? (uint)(existing.Select(x => (int?)x.Attribute("srcOrd") ?? 0).DefaultIfEmpty(0).Max() + 1) : 0U;
+            List<List<XElement>> existing = GetDocumentChildConnectionGroups(cxnLst, dgm, docId);
+            ResequenceDocumentChildConnections(existing);
+            uint nextPos = (uint)existing.Count;
 
             // Create connection
             var cxn = new XElement(dgm + "cxn",
@@ -267,13 +269,16 @@ namespace OfficeIMO.Word {
             var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
             if (docPt == null) throw new InvalidOperationException("Cannot locate document point in SmartArt data model.");
             var docId = (string?)docPt.Attribute("modelId") ?? throw new InvalidOperationException("Document point missing modelId.");
+            EnsureEditableNodeIdsAreUnique(GetEditableNodePoints(xdoc, dgm));
 
             // Resequence existing srcOrd >= index
-            var conns = cxnLst.Elements(dgm + "cxn").Where(c => (string?)c.Attribute("srcId") == docId).OrderBy(c => (int?)c.Attribute("srcOrd") ?? 0).ToList();
-            if (index < 0 || index > conns.Count) throw new ArgumentOutOfRangeException(nameof(index));
-            foreach (var c in conns.Where((c, i) => i >= index)) {
-                var cur = (int?)c.Attribute("srcOrd") ?? 0;
-                c.SetAttributeValue("srcOrd", cur + 1);
+            List<List<XElement>> connectionGroups = GetDocumentChildConnectionGroups(cxnLst, dgm, docId);
+            if (index < 0 || index > connectionGroups.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            for (int groupIndex = 0; groupIndex < connectionGroups.Count; groupIndex++) {
+                int order = groupIndex < index ? groupIndex : groupIndex + 1;
+                foreach (XElement connection in connectionGroups[groupIndex]) {
+                    connection.SetAttributeValue("srcOrd", order);
+                }
             }
 
             // Create new point
@@ -341,6 +346,7 @@ namespace OfficeIMO.Word {
             var dgm = ns.dgm;
 
             List<XElement> nodePts = GetOrderedEditableNodePoints(xdoc, dgm);
+            EnsureEditableNodeIdsAreUnique(nodePts);
             var targetPt = nodePts[index];
             var targetId = (string)targetPt.Attribute("modelId")!;
 
@@ -357,11 +363,7 @@ namespace OfficeIMO.Word {
                 XElement? docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
                 var docId = (string?)docPt?.Attribute("modelId");
                 if (docId != null) {
-                    var conns = cxn.Elements(dgm + "cxn").Where(x => (string?)x.Attribute("srcId") == docId).ToList();
-                    uint ord = 0;
-                    foreach (var c in conns.OrderBy(c => (int?)c.Attribute("srcOrd") ?? 0)) {
-                        c.SetAttributeValue("srcOrd", ord++);
-                    }
+                    ResequenceDocumentChildConnections(GetDocumentChildConnectionGroups(cxn, dgm, docId));
                 }
             }
 
@@ -383,6 +385,7 @@ namespace OfficeIMO.Word {
 
             XNamespace dgm = ns.dgm;
             List<XElement> nodes = GetOrderedEditableNodePoints(xdoc, dgm);
+            EnsureEditableNodeIdsAreUnique(nodes);
             XElement moved = nodes[fromIndex];
             nodes.RemoveAt(fromIndex);
             nodes.Insert(toIndex, moved);
@@ -391,17 +394,17 @@ namespace OfficeIMO.Word {
                 .Attribute("modelId") ?? throw new InvalidOperationException("Cannot locate document point in SmartArt data model.");
             XElement connections = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault()
                 ?? throw new InvalidOperationException("SmartArt data model missing cxnLst.");
-            Dictionary<string, XElement> byDestination = connections.Elements(dgm + "cxn")
-                .Where(connection => (string?)connection.Attribute("srcId") == docId)
-                .Where(connection => connection.Attribute("destId") != null)
-                .ToDictionary(connection => (string)connection.Attribute("destId")!, StringComparer.Ordinal);
+            Dictionary<string, List<XElement>> byDestination = GetDocumentChildConnectionGroups(connections, dgm, docId)
+                .ToDictionary(group => (string)group[0].Attribute("destId")!, StringComparer.Ordinal);
             for (int index = 0; index < nodes.Count; index++) {
                 string id = (string?)nodes[index].Attribute("modelId")
                     ?? throw new InvalidOperationException("SmartArt node is missing modelId.");
-                if (!byDestination.TryGetValue(id, out XElement? connection)) {
+                if (!byDestination.TryGetValue(id, out List<XElement>? matchingConnections)) {
                     throw new InvalidOperationException("SmartArt node does not have a document-child connection.");
                 }
-                connection.SetAttributeValue("srcOrd", index);
+                foreach (XElement connection in matchingConnections) {
+                    connection.SetAttributeValue("srcOrd", index);
+                }
             }
             SaveDiagramData(dataPart, xdoc);
         }
@@ -450,6 +453,33 @@ namespace OfficeIMO.Word {
             })
             .ToList();
 
+        private static void EnsureEditableNodeIdsAreUnique(IEnumerable<XElement> nodes) {
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (XElement node in nodes) {
+                string? id = (string?)node.Attribute("modelId");
+                if (id == null || id.Length == 0 || !ids.Add(id)) {
+                    throw new InvalidOperationException("SmartArt node modelId values must be non-empty and unique for structural edits.");
+                }
+            }
+        }
+
+        private static List<List<XElement>> GetDocumentChildConnectionGroups(XElement connections, XNamespace dgm, string docId) => connections
+            .Elements(dgm + "cxn")
+            .Where(connection => (string?)connection.Attribute("srcId") == docId)
+            .Where(connection => !string.IsNullOrEmpty((string?)connection.Attribute("destId")))
+            .GroupBy(connection => (string)connection.Attribute("destId")!, StringComparer.Ordinal)
+            .OrderBy(group => group.Min(connection => (int?)connection.Attribute("srcOrd") ?? int.MaxValue))
+            .Select(group => group.ToList())
+            .ToList();
+
+        private static void ResequenceDocumentChildConnections(IReadOnlyList<List<XElement>> connectionGroups) {
+            for (int index = 0; index < connectionGroups.Count; index++) {
+                foreach (XElement connection in connectionGroups[index]) {
+                    connection.SetAttributeValue("srcOrd", index);
+                }
+            }
+        }
+
         private static List<XElement> GetOrderedEditableNodePoints(XDocument xdoc, XNamespace dgm) {
             List<XElement> nodes = GetEditableNodePoints(xdoc, dgm);
             string? docId = (string?)xdoc.Descendants(dgm + "pt")
@@ -457,15 +487,22 @@ namespace OfficeIMO.Word {
                 .Attribute("modelId");
             if (string.IsNullOrEmpty(docId)) return nodes;
 
-            Dictionary<string, XElement> byId = nodes
-                .Where(node => node.Attribute("modelId") != null)
-                .ToDictionary(node => (string)node.Attribute("modelId")!, StringComparer.Ordinal);
+            var byId = new Dictionary<string, XElement>(StringComparer.Ordinal);
+            foreach (XElement node in nodes) {
+                string? nodeId = (string?)node.Attribute("modelId");
+                if (nodeId == null || nodeId.Length == 0 || byId.ContainsKey(nodeId)) {
+                    return nodes;
+                }
+                byId.Add(nodeId, node);
+            }
             List<XElement> ordered = xdoc.Descendants(dgm + "cxn")
                 .Where(connection => (string?)connection.Attribute("srcId") == docId)
                 .OrderBy(connection => (int?)connection.Attribute("srcOrd") ?? int.MaxValue)
                 .Select(connection => (string?)connection.Attribute("destId"))
-                .Where(id => id != null && byId.ContainsKey(id))
-                .Select(id => byId[id!])
+                .OfType<string>()
+                .Distinct(StringComparer.Ordinal)
+                .Where(byId.ContainsKey)
+                .Select(id => byId[id])
                 .ToList();
             return ordered.Count == nodes.Count ? ordered : nodes;
         }
