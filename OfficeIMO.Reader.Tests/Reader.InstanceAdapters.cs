@@ -61,7 +61,9 @@ public sealed class ReaderInstanceAdapterTests {
         ReaderHandlerCapability capability = Assert.Single(
             reader.GetCapabilities(),
             item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
-        Assert.Equal(new[] { ".vsdx" }, capability.Extensions);
+        Assert.Equal(
+            new[] { ".vsdm", ".vsdx", ".vssm", ".vssx", ".vstm", ".vstx" },
+            capability.Extensions);
     }
 
     [Fact]
