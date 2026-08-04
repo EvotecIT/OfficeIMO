@@ -4,8 +4,9 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class GfmInventory {
-    public static GfmInventoryReport Build(string fixturePath) {
+    public static GfmInventoryReport Build(string fixturePath, string provenancePath) {
         var fixtures = LoadFixtures(fixturePath);
+        var provenance = LoadProvenance(provenancePath);
         var sectionOrder = fixtures
             .Select(static fixture => fixture.Section)
             .Distinct(StringComparer.Ordinal)
@@ -16,7 +17,7 @@ internal static class GfmInventory {
             entries.Add(Evaluate(i + 1, fixtures[i]));
         }
 
-        return new GfmInventoryReport(sectionOrder, entries);
+        return new GfmInventoryReport(sectionOrder, entries, provenance);
     }
 
     private static GfmInventoryEntry Evaluate(int index, GfmExampleFixture fixture) {
@@ -84,16 +85,35 @@ internal static class GfmInventory {
 
         return fixtures;
     }
+
+    private static GfmUpstreamProvenance LoadProvenance(string path) {
+        string json = File.ReadAllText(path);
+        var provenance = JsonSerializer.Deserialize<GfmUpstreamProvenance>(json, new JsonSerializerOptions {
+            PropertyNameCaseInsensitive = true
+        });
+
+        if (provenance == null
+            || provenance.SchemaVersion != 1
+            || provenance.Commit.Length != 40
+            || provenance.Sources.Count == 0
+            || provenance.Sources.Any(static source => source.Sha256.Length != 64 || source.Bytes <= 0)) {
+            throw new InvalidOperationException("GFM provenance is incomplete: " + path + ".");
+        }
+
+        return provenance;
+    }
 }
 
 internal sealed class GfmInventoryReport {
-    public GfmInventoryReport(IReadOnlyList<string> sectionOrder, IReadOnlyList<GfmInventoryEntry> entries) {
+    public GfmInventoryReport(IReadOnlyList<string> sectionOrder, IReadOnlyList<GfmInventoryEntry> entries, GfmUpstreamProvenance provenance) {
         SectionOrder = sectionOrder;
         Entries = entries;
+        Provenance = provenance;
     }
 
     public IReadOnlyList<string> SectionOrder { get; }
     public IReadOnlyList<GfmInventoryEntry> Entries { get; }
+    public GfmUpstreamProvenance Provenance { get; }
 
     public int Total => Entries.Count;
     public int UpstreamTracked => Entries.Count(static entry => entry.IsUpstream);
@@ -139,6 +159,24 @@ internal sealed class GfmInventoryReport {
             .OrderByDescending(static cluster => cluster.Count)
             .ThenBy(static cluster => cluster.Cluster, StringComparer.Ordinal);
     }
+}
+
+internal sealed class GfmUpstreamProvenance {
+    public int SchemaVersion { get; set; }
+    public string Repository { get; set; } = string.Empty;
+    public string Release { get; set; } = string.Empty;
+    public string Commit { get; set; } = string.Empty;
+    public string RecordedUtc { get; set; } = string.Empty;
+    public List<GfmUpstreamSource> Sources { get; set; } = new();
+    public string FixturePolicy { get; set; } = string.Empty;
+}
+
+internal sealed class GfmUpstreamSource {
+    public string Path { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Sha256 { get; set; } = string.Empty;
+    public int Bytes { get; set; }
+    public string Use { get; set; } = string.Empty;
 }
 
 internal sealed class GfmInventoryEntry {

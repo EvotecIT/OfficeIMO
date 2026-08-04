@@ -1,7 +1,7 @@
 @namespace OfficeIMO.Web.Converter.Components
 @implements IAsyncDisposable
 
-<main class="ocx-shell">
+<main class="ocx-shell" data-converter-ready="true" data-active-route="@ActiveRoute.Id">
     <header class="ocx-appbar">
         <a class="ocx-brand" href="/" target="_top" aria-label="OfficeIMO home">
             <svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="3" y="2" width="20" height="24" rx="5" fill="currentColor"/><path d="M9 8h8M9 12h8M9 16h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M20 5.5h2.5A2.5 2.5 0 0 1 25 8v13a2.5 2.5 0 0 1-2.5 2.5H20" stroke="#22B8CF" stroke-width="2"/></svg>
@@ -19,6 +19,7 @@
         @foreach (ConversionRoute route in Routes) {
             <button @key="route.Id"
                     type="button"
+                    data-route="@route.Id"
                     class="ocx-route-tab @route.AccentClass @(ActiveRoute.Id == route.Id ? "is-active" : null)"
                     @onclick="() => SelectRouteAsync(route)"
                     aria-pressed="@(ActiveRoute.Id == route.Id)"
@@ -49,7 +50,7 @@
                         <span class="ocx-button ocx-button--choose">Choose file</span>
                     </label>
                     <div class="ocx-input-actions">
-                        <button type="button" class="ocx-text-action" @onclick="LoadSampleAsync">Try a sample</button>
+                        <button type="button" class="ocx-text-action" data-load-sample="@ActiveRoute.Id" @onclick="LoadSampleAsync">Try a sample</button>
                         @if (ActiveRoute.Id == "xlsx-pdf") {
                             <label class="ocx-toggle"><input type="checkbox" @bind="LimitExcelRows" /><span>Browser-safe preview: up to 250 rows (skips sheet layout and media)</span></label>
                         }
@@ -75,6 +76,13 @@
                         </div>
                     </details>
                 }
+
+                <div class="ocx-mobile-action">
+                    <button type="button" class="ocx-convert-button" data-mobile-convert-route="@ActiveRoute.Id" disabled="@(!CanConvert)" @onclick="ConvertAsync">
+                        <span>@(IsBusy ? "Converting locally…" : $"Convert to {ActiveRoute.Target}")</span>
+                        <b aria-hidden="true">↻</b>
+                    </button>
+                </div>
             </section>
 
             <section class="ocx-output-panel" aria-labelledby="output-title">
@@ -116,7 +124,12 @@
                 </div>
 
                 @if (Output is not null) {
-                    <div class="ocx-output-summary"><span><small>FILE</small><strong>@Output.FileName</strong></span><span><small>SIZE</small><strong>@FormatBytes(Output.Bytes.Length)</strong></span><span><small>TIME</small><strong>@ElapsedLabel</strong></span></div>
+                    <div class="ocx-output-summary"
+                         data-performance-result="true"
+                         data-route="@ActiveRoute.Id"
+                         data-conversion-ms="@Output.ConversionMilliseconds"
+                         data-peak-retained-bytes="@(Output.PeakRetainedMemoryBytes ?? 0)"
+                         data-result-bytes="@Output.Bytes.LongLength"><span><small>FILE</small><strong>@Output.FileName</strong></span><span><small>SIZE</small><strong>@FormatBytes(Output.Bytes.Length)</strong></span><span><small>TIME</small><strong>@ElapsedLabel</strong></span></div>
                 }
 
                 <div class="ocx-diagnostics" aria-live="polite">
@@ -145,7 +158,7 @@
 
         <footer class="ocx-actionbar">
             <span>@ActiveRoute.Source → @ActiveRoute.Target</span>
-            <button type="button" class="ocx-convert-button" disabled="@(!CanConvert)" @onclick="ConvertAsync">
+            <button type="button" class="ocx-convert-button" data-convert-route="@ActiveRoute.Id" disabled="@(!CanConvert)" @onclick="ConvertAsync">
                 <span>@(IsBusy ? "Converting locally…" : $"Convert to {ActiveRoute.Target}")</span>
                 <b aria-hidden="true">↻</b>
             </button>

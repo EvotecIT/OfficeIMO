@@ -54,7 +54,17 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     private string Render(bool renderHtmlChildren) {
         var sb = new System.Text.StringBuilder();
         const string NewLine = "\n";
+        if (!renderHtmlChildren) {
+            var standaloneAttributes = MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes);
+            if (!string.IsNullOrEmpty(standaloneAttributes)) {
+                sb.Append(standaloneAttributes).Append(NewLine);
+            }
+        }
+
         sb.Append("<details");
+        if (renderHtmlChildren) {
+            sb.Append(MarkdownHtmlAttributes.Render(Attributes, HtmlRenderContext.Options));
+        }
         if (Open) sb.Append(" open");
         sb.Append('>');
 

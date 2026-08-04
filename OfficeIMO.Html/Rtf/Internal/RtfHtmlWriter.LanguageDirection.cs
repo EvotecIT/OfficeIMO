@@ -54,7 +54,7 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static string? FormatLanguageTag(int? languageId) {
-        if (!languageId.HasValue) {
+        if (!languageId.HasValue || languageId.Value <= 0) {
             return null;
         }
 

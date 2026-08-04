@@ -111,6 +111,8 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 
 The package targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on Windows. CI checks generated ODF 1.3 and 1.4 XML against pinned OASIS Relax NG schemas, then opens and resaves the generated packages with the runner's reported LibreOffice version.
 
+Interoperability coverage includes ODT, ODS, and ODP files from LibreOffice and Microsoft Office, plus an externally verified Google Docs ODT export. These files exercise styles, formulas, drawings, embedded content, and preservation of unknown package entries. See the [producer manifest](../OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json) when you need exact producer versions, hashes, or reproducibility details.
+
 ## Dependency footprint
 
 - **External:** None; no OpenDocument SDK and no LibreOffice process.

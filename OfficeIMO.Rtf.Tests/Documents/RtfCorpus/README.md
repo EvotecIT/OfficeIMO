@@ -12,4 +12,6 @@ The current corpus includes:
 
 Every `.rtf` file must appear in the manifest with a stable hash and redistribution permission. `RtfGoldenCorpusTests` verifies exact source bytes, normalized reparse, required semantic text/control words, executable adapter claims, producer scorecard honesty, and reopen evidence.
 
-Do not relabel synthetic grammar coverage as producer evidence. Google Docs, macOS TextEdit/RTFD, EHR/CRM/helpdesk generators, and commercial-library output remain `unverified` until redistributable source files and reproducible reopen evidence are added.
+Do not relabel synthetic grammar coverage as producer evidence. `corpus-manifest.json` records five separate external paths: genuine Google Docs and macOS TextEdit/RTFD output, a redacted Epic EHI export, a Salesforce configuration-report workflow, and a helpdesk RichEdit artifact. The CRM and helpdesk artifacts are workflow evidence, not vendor-native exports. The checked GemBox.Document fixture is reproducibly generated from the exact package version under `Build/ProducerCorpus`.
+
+`Build/Test-RtfExternalProducerEvidence.ps1` downloads each pinned artifact, verifies its byte/hash or semantic provenance, and then exercises the bounded RTF reader, web-safe HTML, Markdown, and diagnostic-preserving Word bridge. Third-party bytes remain external and are not redistributed.

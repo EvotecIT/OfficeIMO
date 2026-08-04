@@ -97,6 +97,10 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     string IMarkdownBlock.RenderMarkdown() {
         string tag = Kind.ToUpperInvariant();
         StringBuilder sb = new StringBuilder();
+        var standaloneAttributes = MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes);
+        if (!string.IsNullOrEmpty(standaloneAttributes)) {
+            sb.AppendLine(standaloneAttributes);
+        }
         var titleMarkdown = TitleInlines.RenderMarkdown();
         if (string.IsNullOrWhiteSpace(titleMarkdown)) sb.AppendLine($"> [!{tag}]");
         else sb.AppendLine($"> [!{tag}] {titleMarkdown}");
@@ -126,16 +130,19 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        var kind = HtmlTextEncoder.Encode(Kind, HtmlRenderContext.Options);
         var titleMarkdown = TitleInlines.RenderMarkdown();
         var hasTitleInlines = !string.IsNullOrWhiteSpace(titleMarkdown);
         var titleText = hasTitleInlines ? TitleInlines.RenderHtml() : HtmlTextEncoder.Encode(FormatTitleFromKind(Kind), HtmlRenderContext.Options);
         var hasVisibleTitle = hasTitleInlines || !string.IsNullOrWhiteSpace(FormatTitleFromKind(Kind));
 
         var sb = new StringBuilder();
-        sb.Append("<blockquote class=\"callout ")
-            .Append(kind)
-            .Append("\" data-omd-callout-title-explicit=\"")
+        sb.Append("<blockquote")
+            .Append(MarkdownHtmlAttributes.Render(
+                Attributes,
+                HtmlRenderContext.Options,
+                additionalClasses: new[] { "callout", Kind },
+                additionalClassesFirst: true))
+            .Append(" data-omd-callout-title-explicit=\"")
             .Append(hasTitleInlines ? "true" : "false")
             .Append("\">");
         if (hasVisibleTitle) {

@@ -25,7 +25,7 @@ public class RtfGoldenCorpusTests {
             .OrderBy(path => path, StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(1, manifest.SchemaVersion);
+        Assert.Equal(2, manifest.SchemaVersion);
         Assert.Equal(actualFiles, declaredFiles);
         Assert.Equal(manifest.Fixtures.Count, manifest.Fixtures.Select(fixture => fixture.Id).Distinct(StringComparer.Ordinal).Count());
 
@@ -103,20 +103,44 @@ public class RtfGoldenCorpusTests {
     }
 
     [Fact]
-    public void ProducerScorecard_Does_Not_Overstate_Unverified_Evidence() {
+    public void ProducerScorecard_References_Reproducible_Committed_Or_External_Evidence() {
         CorpusManifest manifest = LoadManifest(GetCorpusPath());
         Dictionary<string, CorpusFixture> fixtures = manifest.Fixtures.ToDictionary(item => item.Id, StringComparer.Ordinal);
+        Dictionary<string, ExternalArtifact> externalArtifacts = manifest.ExternalArtifacts.ToDictionary(item => item.Id, StringComparer.Ordinal);
 
         Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Microsoft Word" && item.Status == "verified");
-        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Google Docs" && item.Status == "unverified");
-        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "macOS TextEdit" && item.Status == "unverified");
+        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Google Docs" && item.Status == "verified-external");
+        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "macOS TextEdit" && item.Status == "verified-external");
+        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "EHR workflow" && item.Status == "verified-external");
+        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "CRM workflow" && item.Status == "verified-external");
+        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Helpdesk workflow" && item.Status == "verified-external");
+        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Commercial document library" && item.Status == "verified-generated");
+
+        Assert.Equal(manifest.ExternalArtifacts.Count, externalArtifacts.Count);
+        foreach (ExternalArtifact artifact in manifest.ExternalArtifacts) {
+            Assert.StartsWith("https://", artifact.SourceUrl, StringComparison.Ordinal);
+            Assert.Equal(64, artifact.Sha256.Length);
+            Assert.True(artifact.Bytes > 0, artifact.Id);
+            Assert.False(artifact.RedistributionAllowed, artifact.Id);
+            Assert.False(string.IsNullOrWhiteSpace(artifact.RedistributionNote));
+            Assert.NotEmpty(artifact.RequiredHeaderFragments);
+        }
 
         foreach (ProducerCoverage coverage in manifest.ProducerCoverage) {
             foreach (string fixtureId in coverage.FixtureIds) Assert.True(fixtures.ContainsKey(fixtureId), fixtureId);
+            foreach (string artifactId in coverage.ExternalArtifactIds ?? new List<string>()) Assert.True(externalArtifacts.ContainsKey(artifactId), artifactId);
             if (coverage.Status == "verified") {
                 Assert.NotEmpty(coverage.FixtureIds);
                 Assert.All(coverage.FixtureIds, id => Assert.Equal("producer-generated", fixtures[id].EvidenceClass));
                 Assert.Contains(manifest.ReopenEvidence, evidence => evidence.FixtureId == coverage.FixtureIds[0] && evidence.Opened && evidence.RequiredTextPresent);
+            }
+            if (coverage.Status == "verified-generated") {
+                Assert.NotEmpty(coverage.FixtureIds);
+                Assert.All(coverage.FixtureIds, id => Assert.Equal("producer-generated", fixtures[id].EvidenceClass));
+            }
+            if (coverage.Status == "verified-external") {
+                Assert.Empty(coverage.FixtureIds);
+                Assert.NotEmpty(coverage.ExternalArtifactIds ?? new List<string>());
             }
         }
     }
@@ -182,6 +206,9 @@ public class RtfGoldenCorpusTests {
         [DataMember(Name = "reopenEvidence")]
         public List<ReopenEvidence> ReopenEvidence { get; set; } = new List<ReopenEvidence>();
 
+        [DataMember(Name = "externalArtifacts")]
+        public List<ExternalArtifact> ExternalArtifacts { get; set; } = new List<ExternalArtifact>();
+
         [DataMember(Name = "producerCoverage")]
         public List<ProducerCoverage> ProducerCoverage { get; set; } = new List<ProducerCoverage>();
     }
@@ -226,8 +253,36 @@ public class RtfGoldenCorpusTests {
         public string Status { get; set; } = string.Empty;
         [DataMember(Name = "fixtureIds")]
         public List<string> FixtureIds { get; set; } = new List<string>();
+        [DataMember(Name = "externalArtifactIds")]
+        public List<string>? ExternalArtifactIds { get; set; } = new List<string>();
         [DataMember(Name = "note")]
         public string Note { get; set; } = string.Empty;
+    }
+
+    [DataContract]
+    private sealed class ExternalArtifact {
+        [DataMember(Name = "id")]
+        public string Id { get; set; } = string.Empty;
+        [DataMember(Name = "producer")]
+        public string Producer { get; set; } = string.Empty;
+        [DataMember(Name = "producerVersion")]
+        public string ProducerVersion { get; set; } = string.Empty;
+        [DataMember(Name = "origin")]
+        public string Origin { get; set; } = string.Empty;
+        [DataMember(Name = "sourceUrl")]
+        public string SourceUrl { get; set; } = string.Empty;
+        [DataMember(Name = "observedAtUtc")]
+        public string ObservedAtUtc { get; set; } = string.Empty;
+        [DataMember(Name = "bytes")]
+        public int Bytes { get; set; }
+        [DataMember(Name = "sha256")]
+        public string Sha256 { get; set; } = string.Empty;
+        [DataMember(Name = "redistributionAllowed")]
+        public bool RedistributionAllowed { get; set; }
+        [DataMember(Name = "redistributionNote")]
+        public string RedistributionNote { get; set; } = string.Empty;
+        [DataMember(Name = "requiredHeaderFragments")]
+        public List<string> RequiredHeaderFragments { get; set; } = new List<string>();
     }
 
     [DataContract]

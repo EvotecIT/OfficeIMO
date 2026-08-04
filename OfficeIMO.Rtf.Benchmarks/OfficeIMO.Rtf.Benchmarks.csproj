@@ -20,6 +20,9 @@
 
   <ItemGroup>
     <None Update="rtf-benchmark-budgets.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Rtf.Tests\Documents\RtfCorpus\producers\gembox-document\gembox-document-2026.8.102.rtf"
+          Link="producer-gembox-document.rtf"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

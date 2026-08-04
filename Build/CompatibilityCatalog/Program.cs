@@ -8,6 +8,8 @@ using OfficeIMO.Word;
 
 string outputDirectory = GetOption(args, "--output")
     ?? Path.Combine(Directory.GetCurrentDirectory(), "Docs", "Compatibility", "generated");
+string websiteDataPath = GetOption(args, "--website-data")
+    ?? Path.Combine(Directory.GetCurrentDirectory(), "Website", "data", "office_conversion_routes.json");
 bool verify = args.Contains("--verify", StringComparer.OrdinalIgnoreCase);
 
 var capabilityCatalogs = new (string Name, OfficeCapabilityCatalog Catalog)[] {
@@ -17,6 +19,8 @@ var capabilityCatalogs = new (string Name, OfficeCapabilityCatalog Catalog)[] {
     ("powerpoint-legacy-ppt", PowerPointCompatibilityCatalog.Current)
 };
 var outputs = new SortedDictionary<string, string>(StringComparer.Ordinal) {
+    ["conversion-routes.json"] = EnsureFinalNewline(OfficeConversionCapabilityCatalog.ToJson()),
+    ["conversion-routes.md"] = EnsureFinalNewline(OfficeConversionCapabilityCatalog.ToMarkdown()),
     ["office-formats.json"] = SerializeFormats(),
     ["README.md"] = CreateReadme(capabilityCatalogs)
 };
@@ -36,7 +40,13 @@ if (verify) {
         Environment.ExitCode = 1;
         return;
     }
-    Console.WriteLine($"Verified {outputs.Count} compatibility catalog artifacts in {Path.GetFullPath(outputDirectory)}.");
+    string expectedWebsiteData = outputs["conversion-routes.json"];
+    if (!File.Exists(websiteDataPath) || Normalize(File.ReadAllText(websiteDataPath)) != Normalize(expectedWebsiteData)) {
+        Console.Error.WriteLine("Compatibility catalog website data is missing or stale: " + websiteDataPath);
+        Environment.ExitCode = 1;
+        return;
+    }
+    Console.WriteLine($"Verified {outputs.Count} compatibility catalog artifacts and website route data.");
     return;
 }
 
@@ -44,6 +54,9 @@ Directory.CreateDirectory(outputDirectory);
 foreach ((string fileName, string content) in outputs) {
     File.WriteAllText(Path.Combine(outputDirectory, fileName), Normalize(content), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 }
+string? websiteDataDirectory = Path.GetDirectoryName(websiteDataPath);
+if (!string.IsNullOrEmpty(websiteDataDirectory)) Directory.CreateDirectory(websiteDataDirectory);
+File.WriteAllText(websiteDataPath, Normalize(outputs["conversion-routes.json"]), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 Console.WriteLine($"Generated {outputs.Count} compatibility catalog artifacts in {Path.GetFullPath(outputDirectory)}.");
 
 static string SerializeFormats() {
@@ -77,13 +90,15 @@ static string CreateReadme(IEnumerable<(string Name, OfficeCapabilityCatalog Cat
     markdown.AppendLine("Regenerate:");
     markdown.AppendLine();
     markdown.AppendLine("```powershell");
-    markdown.AppendLine("dotnet run --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated");
+    markdown.AppendLine("dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated");
     markdown.AppendLine("```");
+    markdown.AppendLine();
+    markdown.AppendLine("Use the [conversion route catalog](conversion-routes.md) to find the focused package, representative API, fidelity model, browser availability, and result type for each route.");
     markdown.AppendLine();
     markdown.AppendLine("Verify:");
     markdown.AppendLine();
     markdown.AppendLine("```powershell");
-    markdown.AppendLine("dotnet run --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated --verify");
+    markdown.AppendLine("dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated --verify");
     markdown.AppendLine("```");
     markdown.AppendLine();
     markdown.AppendLine("| Contract | Schema | Rows | JSON | Markdown |");

@@ -34,6 +34,8 @@
 .imo-docs__description{color:var(--imo-text-secondary);font-size:1.05rem;line-height:1.7}
 
 /* Enhanced docs prose content */
+.imo-docs__content .table-responsive{max-width:100%;overflow-x:auto;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
+.conversion-routes__scroll-hint{color:var(--imo-text-muted);font-size:.78rem;line-height:1.5}
 .imo-docs__content .imo-prose table{background:var(--imo-glass);backdrop-filter:blur(12px);border:1px solid var(--imo-glass-border);border-radius:var(--imo-radius-lg);overflow:hidden;border-collapse:separate;border-spacing:0}
 .imo-docs__content .imo-prose th{background:rgba(56,189,248,0.04);border-bottom:1px solid var(--imo-glass-border-hover);padding:0.75rem 1rem;font-size:0.85rem}
 .imo-docs__content .imo-prose td{padding:0.65rem 1rem;border-bottom:1px solid var(--imo-glass-border)}

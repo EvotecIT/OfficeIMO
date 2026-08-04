@@ -1224,9 +1224,27 @@
       "workingDirectory": "."
     },
     {
+      "task": "exec",
+      "id": "test-browser-converter-performance",
+      "dependsOn": "verify-browser-converter",
+      "modes": ["ci"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-ConverterPerformance.ps1",
+        "-SiteRoot",
+        "./_site",
+        "-ReportPath",
+        "./_reports/browser-converter-performance.json"
+      ],
+      "workingDirectory": "."
+    },
+    {
       "task": "agent-ready",
       "id": "agent-ready",
-      "dependsOn": "verify-browser-converter",
+      "dependsOn": "test-browser-converter-performance",
       "skipModes": ["dev"],
       "operation": "prepare",
       "config": "./site.json",

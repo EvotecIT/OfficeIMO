@@ -8,6 +8,17 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfHtmlCharacterFormatTests {
     [Fact]
+    public void Html_Ignores_Zero_Language_Id_From_External_Producer() {
+        const string rtf = @"{\rtf1\ansi\deflang0 External producer text.}";
+
+        RtfDocument document = RtfDocument.Read(rtf).Document;
+        string html = document.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile());
+
+        Assert.Contains("External producer text.", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("lang=", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Parses_Character_Border() {
         const string html = "<p><span style=\"border:1pt solid #0c2238\">Flag</span><span style=\"border-top:2pt dashed red\"> Side</span></p>";
 

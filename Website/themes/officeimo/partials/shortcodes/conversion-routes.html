@@ -1,0 +1,26 @@
+{{ catalog = data.office_conversion_routes }}
+<p class="conversion-routes__scroll-hint">Scroll horizontally to compare package, runtime, and result details.</p>
+<div class="table-responsive" role="region" aria-label="Conversion routes" tabindex="0">
+  <table>
+    <thead>
+      <tr>
+        <th>Conversion</th>
+        <th>Package</th>
+        <th>Output model</th>
+        <th>Where it runs</th>
+        <th>Result type</th>
+      </tr>
+    </thead>
+    <tbody>
+{{~ for route in catalog.routes ~}}
+<tr data-conversion-route="{{ route.id }}">
+<td><strong>{{ route.source }} to {{ route.target }}</strong><br><small>{{ route.description }}</small></td>
+<td><code>{{ route.packageId }}</code></td>
+<td>{{ if route.fidelity == "FixedLayout" }}Fixed layout{{ else if route.fidelity == "Editable" }}Editable document{{ else }}Semantic content{{ end }}</td>
+<td>{{ if route.browserAvailable }}Browser or .NET{{ else }}.NET application{{ end }}</td>
+<td><code>{{ route.resultContract }}</code></td>
+</tr>
+{{~ end ~}}
+    </tbody>
+  </table>
+</div>

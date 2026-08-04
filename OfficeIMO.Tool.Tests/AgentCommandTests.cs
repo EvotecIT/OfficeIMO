@@ -307,4 +307,23 @@ public sealed class AgentCommandTests {
         Assert.Equal(0, result.Returned);
         Assert.Equal("convert", result.Operation);
     }
+
+    [Fact]
+    public void ConvertCapabilitiesExposeSharedSourceToTargetRoutes() {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            ".docx", operation: "convert", maxOutputCharacters: 12_000);
+
+        Assert.Contains(result.Conversions, static route =>
+            route.Id == "docx-pdf" &&
+            route.TargetExtension == ".pdf" &&
+            route.PackageId == "OfficeIMO.Word.Pdf" &&
+            route.Api == "WordDocument.Load(stream).ToPdfDocumentResult(options)" &&
+            route.Description.Contains("fixed-layout PDF", StringComparison.Ordinal) &&
+            route.ResultContract == "PdfDocumentConversionResult" &&
+            route.BrowserAvailable);
+        Assert.Contains(result.Conversions, static route => route.Id == "docx-markdown");
+        Assert.Equal(result.Conversions.Count, result.ConversionReturned);
+    }
 }

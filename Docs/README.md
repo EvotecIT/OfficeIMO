@@ -54,7 +54,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 - [Image export contract](officeimo.image-export.md)
 - [Image export capability matrix](officeimo.image-export-capability-matrix.md)
-- [Blazor WebAssembly conversion proof](officeimo.blazor-wasm-conversion-proof.md)
+- [Browser-local conversion performance and limits](officeimo.blazor-wasm-conversion-proof.md)
 
 ## Generated evidence
 

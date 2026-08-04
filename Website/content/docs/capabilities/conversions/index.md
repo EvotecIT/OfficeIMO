@@ -1,32 +1,20 @@
 ---
 title: "Conversion and Rendering Map"
-description: "Choose the owning model, focused adapter, diagnostic policy, and deployment path for OfficeIMO conversions. Includes examples and API links."
+description: "Find the OfficeIMO package, public API, fidelity model, runtime, and diagnostic result type for each supported document conversion route."
 layout: docs
 ---
 
-OfficeIMO keeps document models and conversion adapters separate. That lets an application reference the source engine it needs and add only the destination routes it actually ships.
+Choose a source and destination below, then add the focused package to your .NET application. Each route identifies what the conversion preserves, where it can run, and which result type carries warnings or loss information.
 
 ## Choose by source and destination
 
-| Source | Destination | Focused adapter | Typical use |
-|---|---|---|---|
-| Word | HTML | `OfficeIMO.Word.Html` | Browser review, publishing, email previews, and content projection |
-| Word | Markdown | `OfficeIMO.Word.Markdown` | Repository workflows, text pipelines, and review-friendly exports |
-| Word | PDF | `OfficeIMO.Word.Pdf` | Fixed-layout delivery with explicit render diagnostics |
-| Word | OpenDocument or RTF | `OfficeIMO.Word.OpenDocument`, `OfficeIMO.Word.Rtf` | Interchange with open-document and rich-text workflows |
-| Excel | HTML or PDF | `OfficeIMO.Excel.Html`, `OfficeIMO.Excel.Pdf` | Workbook previews and fixed-layout reports |
-| Excel | OpenDocument | `OfficeIMO.Excel.OpenDocument` | XLSX and ODS interoperability |
-| PowerPoint | HTML or PDF | `OfficeIMO.PowerPoint.Html`, `OfficeIMO.PowerPoint.Pdf` | Slide review, publishing, and delivery |
-| PowerPoint | OpenDocument | `OfficeIMO.PowerPoint.OpenDocument` | PPTX and ODP interoperability |
-| Markdown | HTML or PDF | `OfficeIMO.Markdown.Html`, `OfficeIMO.Markdown.Pdf` | Typed text publishing and portable output |
-| HTML | PDF | `OfficeIMO.Html.Pdf` | Managed web-to-PDF workflows without a browser process |
-| OneNote | HTML, Markdown, or PDF | `OfficeIMO.OneNote.Html`, `OfficeIMO.OneNote.Markdown`, `OfficeIMO.OneNote.Pdf` | Notebook extraction and publishing |
-| OpenDocument | PDF and back | `OfficeIMO.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, `.Odp.Pdf` | Focused ODT, ODS, and ODP routes without unrelated Office dependencies |
-| AsciiDoc, LaTeX, or RTF | Markdown or PDF | format-specific `.Markdown` and `.Pdf` adapters | Bounded text-format bridges with explicit loss handling |
+Routes marked **Browser or .NET** are available in the [browser converter](/convert/) and through the listed package. Routes marked **.NET application** run through the package in an application or service you control.
+
+{{< conversion-routes >}}
 
 ## Preserve the source model
 
-Use the source package for loading, editing, and source-specific validation. The adapter should own projection into the destination. This matters because a table, field, comment, animation, formula, or drawing can have no exact equivalent in the target format.
+Load and edit the document with its source package, then call the focused adapter shown in the table. This matters because a table, field, comment, animation, formula, or drawing may have no exact equivalent in the destination format.
 
 Do not treat “a file was written” as proof that the conversion preserved everything important. For production routes:
 
@@ -38,7 +26,7 @@ Do not treat “a file was written” as proof that the conversion preserved eve
 
 ## Browser-local routes
 
-The [browser converter](/convert/) exposes only routes that can execute safely inside the WebAssembly application. That is intentionally smaller than the managed server-side conversion surface. A missing browser route does not mean that no .NET adapter exists; consult the [complete component index](/docs/capabilities/packages/) and the adapter API.
+Browser routes run locally in the current tab; OfficeIMO does not upload the source file to a conversion service. Routes for a **.NET application** run wherever you host them, so your application controls authentication, storage, logging, and retention. If a route is absent from the browser converter, check the [complete component index](/docs/capabilities/packages/) for a focused .NET adapter.
 
 ## Loss policy
 

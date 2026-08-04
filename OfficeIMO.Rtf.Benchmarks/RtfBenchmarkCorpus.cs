@@ -21,7 +21,7 @@ internal static class RtfBenchmarkCorpus {
     private static readonly ConcurrentDictionary<string, RtfBenchmarkFixture> Fixtures =
         new ConcurrentDictionary<string, RtfBenchmarkFixture>(StringComparer.OrdinalIgnoreCase);
 
-    public static IReadOnlyList<string> Scales { get; } = new[] { "Small", "Medium", "Large" };
+    public static IReadOnlyList<string> Scales { get; } = new[] { "Small", "Medium", "Large", "Producer" };
 
     public static RtfBenchmarkFixture Get(string scale) {
         if (!Scales.Contains(scale, StringComparer.OrdinalIgnoreCase)) {
@@ -32,6 +32,12 @@ internal static class RtfBenchmarkCorpus {
     }
 
     private static RtfBenchmarkFixture Create(string scale) {
+        if (string.Equals(scale, "Producer", StringComparison.OrdinalIgnoreCase)) {
+            string path = Path.Combine(AppContext.BaseDirectory, "producer-gembox-document.rtf");
+            string producerRtf = File.ReadAllText(path);
+            return new RtfBenchmarkFixture(scale, producerRtf, paragraphCount: 3);
+        }
+
         int paragraphCount = string.Equals(scale, "Small", StringComparison.OrdinalIgnoreCase) ? 12 :
             string.Equals(scale, "Medium", StringComparison.OrdinalIgnoreCase) ? 250 : 2_000;
         RtfDocument document = RtfDocument.Create();

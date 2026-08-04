@@ -26,6 +26,9 @@ public sealed class BrowserConversionServiceTests {
             Assert.False(string.IsNullOrWhiteSpace(route.Target));
             Assert.False(string.IsNullOrWhiteSpace(route.EnginePath));
         });
+        Assert.Equal(
+            OfficeConversionCapabilityCatalog.BrowserRoutes.Select(static route => route.Id),
+            ConversionRouteCatalog.All.Select(static route => route.Id));
     }
 
     [Fact]

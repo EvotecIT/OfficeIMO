@@ -29,20 +29,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Add typed Visio APIs for data graphics, legends, and additional high-value ShapeSheet sections and formulas while continuing to preserve unmodeled package content explicitly.
 - [ ] Prove Visio template, stencil, and macro-enabled package variants with representative load, reader, and conversion fixtures before advertising them beyond the current `.vsdx` boundary.
 
-## Markdown and text formats
-
-- [ ] Close the remaining CommonMark 0.31.2 inventory failure and broaden GFM evidence without changing OfficeIMO-specific profile defaults.
-- [ ] Finish generic-attribute ownership across the remaining supported block and inline families, including containers, source-backed edits, HTML output, and Markdown writing.
-- [ ] Complete trivia and delimiter coverage, original-to-normalized mapping, generated-node semantics, and stable associations between the semantic model and source syntax before claiming precise locations or lossless arbitrary edits.
-- [ ] Harden RTF untrusted-input limits, safe HTML output profiles, semantic-loss reporting, cancellation, structural editing, Word bridging, and performance baselines beyond the current tested profiles.
-- [ ] Expand the provenance-recorded RTF producer corpus beyond current Word, Outlook, and LibreOffice evidence to Google Docs, macOS TextEdit/RTFD, EHR/CRM/helpdesk generators, and commercial libraries.
-- [ ] Expand OpenDocument style, formula, drawing, embedded-content, and producer-corpus coverage while preserving unknown package content.
-
-## Browser and agent surfaces
-
-- [ ] Add reproducible browser-converter bundle-size, startup-time, and peak-memory gates for representative DOCX, XLSX, and PPTX conversions.
-- [ ] Expose the shared conversion capability model consistently through package documentation, MCP discovery, and the browser converter.
-
 ## Completion rule
 
 Remove an item when its public API, compatibility boundary, tests, generated evidence, and user documentation agree. GitHub Releases records delivered history, while `MIGRATION.md` retains only upgrade actions; this file does not retain completed milestones.

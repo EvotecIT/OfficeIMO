@@ -3204,6 +3204,13 @@
     "html": "<p><em>foo <strong>bar *baz bim</strong> bam</em></p>\n"
   },
   {
+    "example": 632,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"\\\"\">\n",
+    "html": "<p>&lt;a href=&quot;&quot;&quot;&gt;</p>\n"
+  },
+  {
     "example": 634,
     "section": "Hard line breaks",
     "topLevelKinds": ["Paragraph"],

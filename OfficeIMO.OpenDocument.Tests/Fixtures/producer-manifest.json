@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    { "file": "libreoffice-writer-basic.odt", "kind": "ODT", "producer": "LibreOffice Writer", "producerVersion": "LibreOfficeDev 26.8", "producedOn": "2026-07-10", "bytes": 10150, "sha256": "0fdaeb1575825a8c4a98dd2c41cecca7fc506255677dbce18b77988d2ce069c8", "evidence": [ "styles", "tables", "package-preservation" ] },
+    { "file": "microsoft-word-basic.odt", "kind": "ODT", "producer": "Microsoft Word for Mac", "producerVersion": "16.99", "producedOn": "2026-07-10", "bytes": 5167, "sha256": "0fe787dc7c1b4dce8d6a584ba9570a524871ef6461364baa5545478d9f9e0742", "evidence": [ "styles", "tables", "package-preservation" ] },
+    { "file": "libreoffice-calc-basic.ods", "kind": "ODS", "producer": "LibreOffice Calc", "producerVersion": "LibreOfficeDev 26.8", "producedOn": "2026-07-10", "bytes": 8499, "sha256": "4ca1815f34c841dc0c0ae6c6a3c3f2fc399db4b38170a38f132b09859ec767d0", "evidence": [ "spreadsheet-values", "styles", "package-preservation" ] },
+    { "file": "microsoft-excel-basic.ods", "kind": "ODS", "producer": "Microsoft Excel for Mac", "producerVersion": "16.99", "producedOn": "2026-07-10", "bytes": 3293, "sha256": "15c5aa93ac8eaa07271fafefe4ab0011c4e9ebc1648417b19950230d620cc770", "evidence": [ "spreadsheet-values", "styles", "package-preservation" ] },
+    { "file": "libreoffice-impress-basic.odp", "kind": "ODP", "producer": "LibreOffice Impress", "producerVersion": "LibreOfficeDev 26.8", "producedOn": "2026-07-10", "bytes": 22352, "sha256": "607a71c2191299adcaf0ef28a6022a3de5ae80b03bdbbb4c120032673388e79f", "evidence": [ "drawings", "slide-layout", "package-preservation" ] },
+    { "file": "microsoft-powerpoint-basic.odp", "kind": "ODP", "producer": "Microsoft PowerPoint for Mac", "producerVersion": "16.99", "producedOn": "2026-07-10", "bytes": 23246, "sha256": "7c2838b6881b9251133bcc8d16cbe176b782a9088c022ebd8bc8edd4f51e528a", "evidence": [ "drawings", "slide-layout", "package-preservation" ] }
+  ],
+  "externalArtifacts": [
+    {
+      "id": "google-docs-public-odt-export",
+      "kind": "ODT",
+      "producer": "Google Docs",
+      "producerVersion": "Web ODT export observed 2026-08-04",
+      "sourceUrl": "https://docs.google.com/document/d/1S8gJeCD_vDjbM2JKk8Ojkt-6Uj_fdn_NQPdzHeQnn0Y/export?format=odt",
+      "observedAtUtc": "2026-08-04T00:00:00Z",
+      "minBytes": 3200000,
+      "maxBytes": 3300000,
+      "paragraphCount": 20,
+      "semanticTextSha256": "a9c190764380532099951263c46cce77ed92fb1ef65ead127edeece61ce2cba8",
+      "redistributionAllowed": false,
+      "note": "Google regenerates ZIP metadata and XML ids on each export, so evidence is pinned by producer endpoint, bounded package size, paragraph count, and a stable semantic-text hash; unlicensed document bytes are not copied into the repository."
+    }
+  ],
+  "capabilityEvidence": [
+    { "id": "styles", "contract": "Named and automatic styles survive typed reads, edits, and package saves.", "test": "OpenDocumentOdtTests.WritesAndReopensUsefulTextDocumentWithoutFlatteningStructure" },
+    { "id": "formulas", "contract": "OpenFormula text, cached values, bounded evaluation, and conversion diagnostics are covered.", "test": "OpenDocumentFormulaTests.EvaluatesReferencesRangesFunctionsAndArithmetic" },
+    { "id": "drawings", "contract": "ODP shapes, groups, transforms, images, tables, masters, and notes round trip.", "test": "OpenDocumentOdpTests.WritesAndReopensSlidesShapesTextImagesTablesAndNotes" },
+    { "id": "embedded-content", "contract": "Embedded image bytes and manifest media types survive package and flat-XML projection.", "test": "OpenDocumentAdvancedCapabilityTests.ProjectsPackageToFlatXmlAndBackWithEmbeddedImageBytes" },
+    { "id": "unknown-package-content", "contract": "Unknown entries and foreign XML survive targeted typed edits without interpretation or execution.", "test": "OpenDocumentOdtTests.PreservesUnknownXmlAndEntriesDuringTargetedOdtEdit" }
+  ]
+}

@@ -7,6 +7,7 @@ internal static class GfmInventoryMarkdownWriter {
         sb.AppendLine("# OfficeIMO.Markdown GFM Inventory");
         sb.AppendLine();
         sb.AppendLine("This report is generated from the checked-in cmark-gfm extension smoke fixtures and the current `OfficeIMO.Markdown` GitHub Flavored Markdown profile.");
+        sb.AppendLine($"Upstream evidence is pinned to cmark-gfm `{report.Provenance.Release}` at commit `{report.Provenance.Commit}`; recorded hashes cover the extension examples, full specification, and pathological-test inventory.");
         sb.AppendLine();
         sb.AppendLine("Refresh command:");
         sb.AppendLine();
@@ -26,6 +27,17 @@ internal static class GfmInventoryMarkdownWriter {
         sb.AppendLine($"| Passing fixtures | {report.Passing} |");
         sb.AppendLine($"| Failing fixtures | {report.Failing} |");
         sb.AppendLine($"| Intentional deviations | {report.IntentionalDeviations} |");
+        sb.AppendLine($"| Pinned upstream source files | {report.Provenance.Sources.Count} |");
+        sb.AppendLine();
+        sb.AppendLine("## Upstream Provenance");
+        sb.AppendLine();
+        sb.AppendLine("| Source | Bytes | SHA-256 | Use |" );
+        sb.AppendLine("| --- | ---: | --- | --- |" );
+        foreach (var source in report.Provenance.Sources) {
+            sb.AppendLine($"| `{EscapeTable(source.Path)}` | {source.Bytes} | `{source.Sha256}` | {EscapeTable(source.Use)} |");
+        }
+        sb.AppendLine();
+        sb.AppendLine(report.Provenance.FixturePolicy);
         sb.AppendLine();
         sb.AppendLine("## Section Inventory");
         sb.AppendLine();
