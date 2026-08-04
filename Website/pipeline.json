@@ -1112,7 +1112,7 @@
       ],
       "quickstart": "./data/llms-quickstart.cs",
       "discovery": "./data/llms-discovery.md",
-      "overview": "OfficeIMO is a free, MIT-licensed .NET library suite for creating, reading, editing, converting, rendering, inspecting, and extracting Office documents, PDF, email, OneNote, OpenDocument, and text formats without Microsoft Office; PSWriteOffice provides the PowerShell surface.",
+      "overview": "OfficeIMO is a free, MIT-licensed .NET library suite with documented creation, reading, editing, conversion, rendering, inspection, and extraction workflows across Office documents, PDF, email, OneNote, OpenDocument, and text formats without Microsoft Office; PSWriteOffice provides the PowerShell surface.",
       "license": "MIT",
       "targets": ".NET 8+, .NET 10+, .NET Standard 2.0, .NET Framework 4.7.2"
     },

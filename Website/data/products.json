@@ -1,16 +1,16 @@
 [
   {
-    "id": "word", "title": "OfficeIMO.Word", "tagline": "Create, read, edit, and convert DOC, DOCX, DOCM, and Word templates with explicit compatibility diagnostics.",
+    "id": "word", "title": "OfficeIMO.Word", "tagline": "Create and edit DOCX, work with supported DOC and template subsets, and inspect explicit compatibility diagnostics.",
     "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 3h7l5 5v13H7z'/><path d='M14 3v6h6M10 13h6m-6 4h6'/></svg>",
-    "install": "dotnet add package OfficeIMO.Word", "url": "/products/word/", "secondary_url": "/docs/word/", "secondary_label": "Guide", "highlights": ["DOC + DOCX", "Templates", "Review"], "family": "create", "tag": "Popular", "color": "#2563eb"
+    "install": "dotnet add package OfficeIMO.Word", "url": "/products/word/", "secondary_url": "/docs/word/", "secondary_label": "Guide", "highlights": ["DOCX + supported DOC", "Templates", "Review"], "family": "create", "tag": "Popular", "color": "#2563eb"
   },
   {
-    "id": "excel", "title": "OfficeIMO.Excel", "tagline": "Create, read, edit, and convert XLS, XLSX, XLSB, and macro-enabled workbooks without Excel.",
+    "id": "excel", "title": "OfficeIMO.Excel", "tagline": "Create and edit XLSX, work with supported XLS and XLSB subsets, and inspect conversion diagnostics without Excel.",
     "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='4' width='18' height='16' rx='2'/><path d='M3 10h18M9 4v16m6-10v10'/></svg>",
     "install": "dotnet add package OfficeIMO.Excel", "url": "/products/excel/", "secondary_url": "/docs/excel/", "secondary_label": "Guide", "highlights": ["XLS + XLSX + XLSB", "Charts", "Validation"], "family": "create", "color": "#059669"
   },
   {
-    "id": "powerpoint", "title": "OfficeIMO.PowerPoint", "tagline": "Create, read, edit, and convert PPT, PPTX, PPS, and POT presentations with preservation-aware legacy handling.",
+    "id": "powerpoint", "title": "OfficeIMO.PowerPoint", "tagline": "Create and edit PPTX and work with supported PPT, PPS, and POT subsets through preservation-aware legacy handling.",
     "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='3' width='18' height='18' rx='2'/><path d='M8 16V8h4a3 3 0 010 6H8'/></svg>",
     "install": "dotnet add package OfficeIMO.PowerPoint", "url": "/products/powerpoint/", "secondary_url": "/docs/powerpoint/", "secondary_label": "Guide", "highlights": ["PPT + PPTX", "Charts", "Preservation"], "family": "create", "color": "#dc2626"
   },

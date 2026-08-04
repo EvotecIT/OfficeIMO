@@ -5,15 +5,15 @@
       "items": [
         {
           "question": "Does OfficeIMO require Microsoft Office to be installed?",
-          "answer": "<p>No. OfficeIMO uses managed, first-party document engines and does not require Microsoft Office, COM automation, or Office interop assemblies at runtime. That includes supported Word 97–2003 DOC, Excel XLS/XLSB, PowerPoint PPT/POT/PPS, modern Office, PDF, OpenDocument, email, and publishing workflows. Optional desktop Office checks are validation oracles, not runtime dependencies.</p>"
+          "answer": "<p>No. OfficeIMO uses managed document engines and focused package dependencies; it does not require Microsoft Office, COM automation, or Office interop assemblies at runtime. Optional desktop Office checks are validation oracles, not runtime dependencies.</p>"
         },
         {
           "question": "Does OfficeIMO support DOC, XLS, XLSB, and PPT as well as DOCX, XLSX, and PPTX?",
-          "answer": "<p>Yes. OfficeIMO classifies and reads modern and legacy Word, Excel, and PowerPoint families, writes documented native subsets, and supports bidirectional conversions. Coverage is reported by operation and fidelity rather than by extension alone. Check the <a href='/compatibility/'>compatibility dashboard</a> for current formats, tracked behaviors, fallbacks, and deliberate blocks.</p>"
+          "answer": "<p>Current repository source classifies and reads modern and legacy Word, Excel, and PowerPoint families, writes documented native subsets, and reports conversion coverage by operation and fidelity. Check the installed package version because released packages can lag the source documentation, then use the <a href='/compatibility/'>compatibility dashboard</a> for tracked behaviors, fallbacks, and deliberate blocks.</p>"
         },
         {
           "question": "What .NET versions are supported?",
-          "answer": "<p>OfficeIMO targets <strong>.NET 8.0</strong>, <strong>.NET 10.0</strong>, <strong>.NET Standard 2.0</strong>, and <strong>.NET Framework 4.7.2</strong>. This means it works with .NET Core, .NET 5+, and legacy .NET Framework projects.</p>"
+          "answer": "<p>Current repository source targets <strong>.NET 8.0</strong>, <strong>.NET 10.0</strong>, <strong>.NET Standard 2.0</strong>, and <strong>.NET Framework 4.7.2</strong>. Check the selected package on NuGet for the target frameworks in the published version you plan to install.</p>"
         },
         {
           "question": "Is OfficeIMO free for commercial use?",
@@ -29,15 +29,15 @@
         },
         {
           "question": "What is PSWriteOffice?",
-          "answer": "<p>PSWriteOffice is the PowerShell surface over the OfficeIMO document platform. Its current manifest exports 477 cmdlets and 360 aliases across 16 validated families for Word, Excel, PowerPoint, PDF, Reader, Visio, Confluence, text, open-format, email, and conversion workflows. Install it with <code>Install-Module PSWriteOffice</code>.</p>"
+          "answer": "<p>PSWriteOffice is the PowerShell surface over the OfficeIMO document platform. This site derives its command catalog from a pinned PSWriteOffice source snapshot; the PowerShell Gallery page is the authority for the version installed by <code>Install-Module PSWriteOffice</code>.</p>"
         },
         {
           "question": "Does OfficeIMO support reading existing documents?",
-          "answer": "<p>Yes. All core libraries (Word, Excel, PowerPoint) support both creating new documents and loading/editing existing ones. The OfficeIMO.Reader package family provides one extraction API for AI ingestion and search indexing: install a selective format package, or OfficeIMO.Reader.All when you want every local handler.</p>"
+          "answer": "<p>Yes, within each package's documented format and feature boundaries. Word, Excel, and PowerPoint expose load and edit workflows for supported content. OfficeIMO.Reader provides a normalized extraction API through selective format handlers or OfficeIMO.Reader.All.</p>"
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>Yes, for <strong>92 of the 93 production projects</strong>, with proof recorded per project rather than inferred from a few samples. CI fully roots 90 library assemblies across the main native host and a dedicated OfficeIMO.Security host, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts the production CLI tool on Windows and Linux. The WPF/WebView2 renderer is the one managed-only project because the .NET SDK rejects trimming for WPF executables. See the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and the <a href='/data/aot-compatibility.json'>complete project matrix</a>.</p>"
+          "answer": "<p>The current source validation matrix covers <strong>92 of the 93 production projects</strong>. CI fully roots 90 library assemblies, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts the production CLI tool on Windows and Linux. The WPF/WebView2 renderer is managed-only. Check the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and <a href='/data/aot-compatibility.json'>project matrix</a> for the exact package and runtime path.</p>"
         }
       ]
     },

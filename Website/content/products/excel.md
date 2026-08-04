@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Excel"
-description: "Create, read, edit, and convert XLS, XLSX, XLSB, XLSM, and Excel templates from .NET without Microsoft Excel. Compare packages, examples, and limits."
+description: "Create and edit XLSX, work with documented XLS and XLSB subsets, and inspect compatibility limits from .NET without Microsoft Excel."
 layout: product
 product_color: "#059669"
 install: "dotnet add package OfficeIMO.Excel"
@@ -10,7 +10,6 @@ api_url: "/api/excel/"
 meta.software.name: "OfficeIMO.Excel"
 meta.software.application_category: "DeveloperApplication"
 meta.software.operating_system: "Windows, Linux, macOS"
-meta.software.version: "3.1.0"
 meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Excel"
 meta.software.price: 0
 meta.software.price_currency: "USD"
@@ -24,7 +23,7 @@ XLS and XLSB use first-party readers and writers with explicit preservation and 
 
 ## Features
 
-- **Worksheets & cell values** — strings, numbers, dates, booleans, and shared strings with full type fidelity
+- **Worksheets & cell values** — strings, numbers, dates, booleans, and shared strings with documented type conversion rules
 - **Tables with AutoFilter** — structured tables with column headers, totals row, and built-in filter controls
 - **Named ranges & formulas** — workbook and sheet-scoped names, cell formulas, and calculated columns
 - **Charts** — column, pie, doughnut, scatter, and bubble charts with series data, axis labels, and legends

@@ -15,7 +15,7 @@
     <div class="imo-product-compatibility__formats">
       <div><strong>Legacy binary</strong>{{ for extension in family.legacyFormats }}<span>{{ string.upcase extension }}</span>{{ end }}</div>
       <div><strong>Modern</strong>{{ for extension in family.modernFormats }}<span>{{ string.upcase extension }}</span>{{ end }}</div>
-      <div><strong>Tracked contracts</strong>{{ for contract in family.contracts }}<span>{{ contract.label }}: {{ contract.capabilityCount }}</span>{{ end }}<span>Package line {{ family.packageVersion }}</span></div>
+      <div><strong>Tracked contracts</strong>{{ for contract in family.contracts }}<span>{{ contract.label }}: {{ contract.capabilityCount }}</span>{{ end }}<span>Source target {{ family.packageVersion }}</span></div>
     </div>
   </div>
 </section>

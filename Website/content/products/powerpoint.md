@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.PowerPoint"
-description: "Create, read, edit, and convert PPT, PPTX, PPTM, POT, and PPS presentations from .NET without Microsoft PowerPoint. Compare packages, examples, and limits."
+description: "Create and edit PPTX, work with documented legacy PowerPoint subsets, and inspect compatibility limits from .NET without Microsoft PowerPoint."
 layout: product
 product_color: "#dc2626"
 install: "dotnet add package OfficeIMO.PowerPoint"
@@ -11,7 +11,6 @@ preview_id: "powerpoint"
 meta.software.name: "OfficeIMO.PowerPoint"
 meta.software.application_category: "DeveloperApplication"
 meta.software.operating_system: "Windows, Linux, macOS"
-meta.software.version: "3.1.0"
 meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
 meta.software.price: 0
 meta.software.price_currency: "USD"
@@ -19,7 +18,7 @@ meta.software.price_currency: "USD"
 
 ## Why OfficeIMO.PowerPoint?
 
-OfficeIMO.PowerPoint lets you create and edit `.pptx`, `.ppt`, `.pot`, and `.pps` presentations from code. Automate slide decks for reporting pipelines, update legacy decks, or build dynamic dashboards — all without PowerPoint installed on your machine.
+OfficeIMO.PowerPoint creates and edits `.pptx` presentations and supports documented subsets of legacy `.ppt`, `.pot`, and `.pps` workflows. Automate slide decks for reporting pipelines, inspect or modernize supported legacy content, or build dynamic dashboards without PowerPoint installed on your machine.
 
 ## Features
 
@@ -39,7 +38,7 @@ OfficeIMO.PowerPoint lets you create and edit `.pptx`, `.ppt`, `.pot`, and `.pps
 - **Deck rhythm checks** — flag repetitive layouts, dense streaks, long sections, and missing closing actions before rendering
 - **Speaker notes** — attach presenter notes to any slide
 - **Slide copying & importing** — copy slides within a presentation or import from another `.pptx` file
-- **PowerPoint 97-2003 compatibility** — import into the normal editable model, author native binary files, preserve unrelated records during supported edits, and preflight PPTX-to-binary conversion loss
+- **PowerPoint 97-2003 compatibility** — import supported content into the editable model, author the documented native binary subset, preserve unrelated records during supported edits, and preflight PPTX-to-binary conversion loss
 - **Password and signature policy** — open and save protected binary presentations, inspect legacy signatures, and block signature-invalidating saves by default
 
 ## Common deck patterns

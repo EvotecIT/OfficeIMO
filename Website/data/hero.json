@@ -2,7 +2,7 @@
   "badge": "Open source document automation for .NET and PowerShell",
   "title_lead": "Modern and legacy",
   "title_accent": "Office files",
-  "tagline": "Use typed .NET packages for the full DOC, XLS, XLSB, PPT, and modern Office surface. Use PSWriteOffice for its documented PowerShell authoring, inspection, and conversion workflows — all without Microsoft Office.",
+  "tagline": "Use typed .NET packages for documented DOC, XLS, XLSB, PPT, and modern Office workflows. Use PSWriteOffice for its published PowerShell authoring, inspection, and conversion surface — all without Microsoft Office.",
   "ctas": [
     { "label": "Check format support", "href": "/compatibility/", "style": "primary" },
     { "label": "Try the converter", "href": "/convert/", "style": "ghost" }

@@ -30,7 +30,7 @@
       "id": "powershell",
       "label": "PowerShell",
       "language": "powershell",
-      "code": "New-OfficeWord -FilePath 'Report.docx' {\n    WordSection {\n        WordParagraph -Text 'Monthly Report' -Style Heading1\n        WordParagraph -Text 'Generated with PSWriteOffice'\n\n        WordTable -DataTable $SalesData -Style LightGrid\n    }\n}\n\nNew-OfficeExcel -FilePath 'Data.xlsx' {\n    ExcelSheet -Name 'Sales' {\n        ExcelTable -DataTable $Records -AutoFilter -AutoFit\n    }\n    ExcelSheet -Name 'Charts' {\n        ExcelChart -Type ColumnClustered -Title 'Revenue'\n    }\n}"
+      "code": "New-OfficeWord -FilePath 'Report.docx' {\n    WordSection {\n        WordParagraph -Text 'Monthly Report' -Style Heading1\n        WordParagraph -Text 'Generated with PSWriteOffice'\n\n        WordTable -InputObject $SalesData -Style LightGrid\n    }\n}\n\nNew-OfficeExcel -FilePath 'Data.xlsx' {\n    ExcelSheet -Name 'Sales' {\n        ExcelTable -InputObject $Records -TableName 'SalesTable' -AutoFit\n        ExcelChart -TableName 'SalesTable' -Row 2 -Column 8 -Type ColumnClustered -Title 'Revenue'\n    }\n}"
     }
   ]
 }

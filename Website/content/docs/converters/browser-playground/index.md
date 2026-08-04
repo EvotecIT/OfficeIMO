@@ -13,6 +13,7 @@ The [browser converter](/convert/) is a static Blazor WebAssembly application. S
 | DOCX | PDF | `OfficeIMO.Word.Pdf` |
 | XLSX | PDF | `OfficeIMO.Excel.Pdf` |
 | PPTX | PDF | `OfficeIMO.PowerPoint.Pdf` |
+| HTML | PDF | `OfficeIMO.Html.Pdf` |
 | Markdown | HTML preview and download | `OfficeIMO.MarkdownRenderer` |
 | HTML | Markdown | `OfficeIMO.Markdown.Html` |
 | Markdown | DOCX | `OfficeIMO.Word.Markdown` |

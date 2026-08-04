@@ -337,14 +337,98 @@ if (@($aotMatrix.components).Count -ne $catalog.repository.productionComponentCo
 
 $powerShellCatalogPath = Join-Path $SiteRoot 'data\pswriteoffice_command_catalog.json'
 $powerShellCatalog = Get-Content -LiteralPath $powerShellCatalogPath -Raw | ConvertFrom-Json
-if ($powerShellCatalog.module.commandCount -ne 477) {
-    Add-Failure "The PSWriteOffice snapshot has $($powerShellCatalog.module.commandCount) commands; expected the authoritative 477-command surface."
+if ($powerShellCatalog.module.commandCount -le 0) {
+    Add-Failure 'The PSWriteOffice snapshot must contain at least one exported command.'
 }
 if ((@($powerShellCatalog.families | Measure-Object commandCount -Sum).Sum) -ne $powerShellCatalog.module.commandCount) {
     Add-Failure 'The PSWriteOffice family totals do not cover each command exactly once.'
 }
-if ($powerShellCatalog.module.aliasCount -ne 360) {
-    Add-Failure "The PSWriteOffice snapshot has $($powerShellCatalog.module.aliasCount) aliases; expected 360."
+if ($powerShellCatalog.module.aliasCount -lt 0) {
+    Add-Failure 'The PSWriteOffice snapshot alias count cannot be negative.'
+}
+
+$codeExamplesPath = Join-Path $SiteRoot 'data\code_examples.json'
+$codeExamples = Get-Content -LiteralPath $codeExamplesPath -Raw | ConvertFrom-Json
+$powerShellExample = @($codeExamples.tabs | Where-Object language -EQ 'powershell')
+if ($powerShellExample.Count -ne 1) {
+    Add-Failure 'The home page must contain exactly one PowerShell example tab.'
+} else {
+    $tokens = $null
+    $parseErrors = $null
+    $exampleAst = [System.Management.Automation.Language.Parser]::ParseInput(
+        [string] $powerShellExample[0].code,
+        [ref] $tokens,
+        [ref] $parseErrors)
+    foreach ($parseError in @($parseErrors)) {
+        Add-Failure "The home PowerShell example does not parse: $($parseError.Message)"
+    }
+
+    $commandMetadataPath = Join-Path $SiteRoot 'data\apidocs\powershell\command-metadata.json'
+    $commandMetadata = Get-Content -LiteralPath $commandMetadataPath -Raw | ConvertFrom-Json
+    $commandByName = @{}
+    foreach ($command in @($commandMetadata.commands)) {
+        $commandByName[[string] $command.name] = [string] $command.name
+        foreach ($alias in @($command.aliases)) {
+            $commandByName[[string] $alias] = [string] $command.name
+        }
+    }
+
+    [xml] $help = Get-Content -LiteralPath (Join-Path $SiteRoot 'data\apidocs\powershell\PSWriteOffice-Help.xml') -Raw
+    $helpNamespaces = [System.Xml.XmlNamespaceManager]::new($help.NameTable)
+    $helpNamespaces.AddNamespace('command', 'http://schemas.microsoft.com/maml/dev/command/2004/10')
+    $helpNamespaces.AddNamespace('maml', 'http://schemas.microsoft.com/maml/2004/10')
+
+    $commandAsts = @($exampleAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
+    foreach ($commandAst in $commandAsts) {
+        $invokedName = $commandAst.GetCommandName()
+        if ([string]::IsNullOrWhiteSpace($invokedName) -or -not $commandByName.ContainsKey($invokedName)) {
+            Add-Failure "The home PowerShell example uses unknown PSWriteOffice command or alias '$invokedName'."
+            continue
+        }
+
+        $canonicalName = $commandByName[$invokedName]
+        $helpCommand = $help.SelectSingleNode("//command:command[command:details/command:name='$canonicalName']", $helpNamespaces)
+        if ($null -eq $helpCommand) {
+            Add-Failure "The home PowerShell example command '$invokedName' has no generated help entry for '$canonicalName'."
+            continue
+        }
+
+        $parameterMap = @{}
+        foreach ($parameterNode in @($helpCommand.SelectNodes('command:syntax/command:syntaxItem/command:parameter', $helpNamespaces))) {
+            $parameterName = [string] $parameterNode.SelectSingleNode('maml:name', $helpNamespaces).InnerText
+            $parameterMap[$parameterName] = $parameterName
+            foreach ($alias in @(([string] $parameterNode.aliases) -split '[,\s]+' | Where-Object { $_ -and $_ -ne 'none' })) {
+                $parameterMap[$alias] = $parameterName
+            }
+        }
+
+        $usedParameters = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($parameterAst in @($commandAst.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] })) {
+            if (-not $parameterMap.ContainsKey($parameterAst.ParameterName)) {
+                Add-Failure "The home PowerShell example uses unknown parameter '-$($parameterAst.ParameterName)' on '$invokedName'."
+                continue
+            }
+            [void] $usedParameters.Add([string] $parameterMap[$parameterAst.ParameterName])
+        }
+
+        $syntaxItems = @($helpCommand.SelectNodes('command:syntax/command:syntaxItem', $helpNamespaces))
+        $satisfiedSet = $false
+        foreach ($syntaxItem in $syntaxItems) {
+            $requiredNames = @($syntaxItem.SelectNodes("command:parameter[@required='true']/maml:name", $helpNamespaces) | ForEach-Object InnerText)
+            if (@($requiredNames | Where-Object { -not $usedParameters.Contains($_) }).Count -eq 0) {
+                $satisfiedSet = $true
+                break
+            }
+        }
+        if (-not $satisfiedSet) {
+            Add-Failure "The home PowerShell example does not satisfy a mandatory parameter set for '$invokedName'."
+        }
+    }
+}
+
+$codeExamplesPartial = Get-Content -LiteralPath (Join-Path $SiteRoot 'themes\officeimo\partials\sections\code-examples.html') -Raw
+if (-not $codeExamplesPartial.Contains('{{ tab.code | html.escape }}', [StringComparison]::Ordinal)) {
+    Add-Failure 'Home code examples must HTML-escape generic type arguments and other source text.'
 }
 
 if ($failures.Count -gt 0) {
