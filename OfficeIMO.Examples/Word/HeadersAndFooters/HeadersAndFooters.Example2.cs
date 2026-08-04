@@ -97,7 +97,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
-                //var section2 = document.InsertSection(SectionMarkValues.NextPage);
+                //var section2 = document.AddSection(WordSectionBreakType.NextPage);
                 var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
                 section2.DifferentFirstPage = true;
