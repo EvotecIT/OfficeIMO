@@ -18,7 +18,7 @@
 <td><code>{{ route.packageId }}</code></td>
 <td>{{ if route.fidelity == "FixedLayout" }}Fixed layout{{ else if route.fidelity == "Editable" }}Editable document{{ else }}Semantic content{{ end }}</td>
 <td>{{ if route.browserAvailable }}Browser or .NET{{ else }}.NET application{{ end }}</td>
-<td><code>{{ route.resultContract }}</code></td>
+<td><code>{{ route.resultContract | html.escape }}</code></td>
 </tr>
 {{~ end ~}}
     </tbody>

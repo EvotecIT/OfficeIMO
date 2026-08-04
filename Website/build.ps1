@@ -174,6 +174,20 @@ function Assert-SiteOutput {
     if (-not (Test-Path -LiteralPath $notFoundPage -PathType Leaf)) {
         throw "Build validation failed: expected '$notFoundPage' for GitHub Pages 404 handling."
     }
+
+    $conversionRoutesPage = Join-Path $SiteRoot 'docs/capabilities/conversions/index.html'
+    if (-not (Test-Path -LiteralPath $conversionRoutesPage -PathType Leaf)) {
+        throw "Build validation failed: expected '$conversionRoutesPage' for the conversion route catalog."
+    }
+
+    $conversionRoutesCatalog = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'data/office_conversion_routes.json') -Raw | ConvertFrom-Json
+    $conversionRoutesHtml = Get-Content -LiteralPath $conversionRoutesPage -Raw
+    foreach ($resultContract in @($conversionRoutesCatalog.routes.resultContract | Where-Object { $_ -match '[<>]' } | Sort-Object -Unique)) {
+        $encodedContract = [System.Net.WebUtility]::HtmlEncode([string] $resultContract)
+        if (-not $conversionRoutesHtml.Contains("<code>$encodedContract</code>", [System.StringComparison]::Ordinal)) {
+            throw "Build validation failed: conversion result contract '$resultContract' is not preserved as encoded code text."
+        }
+    }
 }
 
 try {
