@@ -319,6 +319,8 @@ public sealed class AgentCommandTests {
             route.Id == "docx-pdf" &&
             route.TargetExtension == ".pdf" &&
             route.PackageId == "OfficeIMO.Word.Pdf" &&
+            route.Api == "WordDocument.Load(stream).ToPdfDocumentResult(options)" &&
+            route.Description.Contains("fixed-layout PDF", StringComparison.Ordinal) &&
             route.ResultContract == "PdfDocumentConversionResult" &&
             route.BrowserAvailable);
         Assert.Contains(result.Conversions, static route => route.Id == "docx-markdown");

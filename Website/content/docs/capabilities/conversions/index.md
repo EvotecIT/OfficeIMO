@@ -1,20 +1,20 @@
 ---
 title: "Conversion and Rendering Map"
-description: "Choose the owning model, focused adapter, diagnostic policy, and deployment path for OfficeIMO conversions. Includes examples and API links."
+description: "Find the OfficeIMO package, public API, fidelity model, and runtime for each document conversion route."
 layout: docs
 ---
 
-OfficeIMO keeps document models and conversion adapters separate. That lets an application reference the source engine it needs and add only the destination routes it actually ships.
+Choose a source and destination below, then add the focused package to your .NET application. Each route identifies what the conversion preserves, where it can run, and which result type carries warnings or loss information.
 
 ## Choose by source and destination
 
-This table is rendered from the same public `OfficeConversionCapabilityCatalog` used by MCP discovery and the browser converter. “Managed only” means the package route exists but is intentionally absent from the WebAssembly app.
+Routes marked **Browser or .NET** are available in the [browser converter](/convert/) and through the listed package. Routes marked **.NET application** run through the package in an application or service you control.
 
 {{< conversion-routes >}}
 
 ## Preserve the source model
 
-Use the source package for loading, editing, and source-specific validation. The adapter should own projection into the destination. This matters because a table, field, comment, animation, formula, or drawing can have no exact equivalent in the target format.
+Load and edit the document with its source package, then call the focused adapter shown in the table. This matters because a table, field, comment, animation, formula, or drawing may have no exact equivalent in the destination format.
 
 Do not treat “a file was written” as proof that the conversion preserved everything important. For production routes:
 
@@ -26,7 +26,7 @@ Do not treat “a file was written” as proof that the conversion preserved eve
 
 ## Browser-local routes
 
-The [browser converter](/convert/) exposes only routes that can execute safely inside the WebAssembly application. That is intentionally smaller than the managed server-side conversion surface. A missing browser route does not mean that no .NET adapter exists; consult the [complete component index](/docs/capabilities/packages/) and the adapter API.
+Browser routes run locally in the current tab; OfficeIMO does not upload the source file to a conversion service. Routes for a **.NET application** run wherever you host them, so your application controls authentication, storage, logging, and retention. If a route is absent from the browser converter, check the [complete component index](/docs/capabilities/packages/) for a focused .NET adapter.
 
 ## Loss policy
 

@@ -43,13 +43,14 @@ public sealed class DrawingConversionCapabilities {
     }
 
     [Fact]
-    public void SharedCatalog_MarkdownIsDeterministicAndNamesEvidenceContracts() {
+    public void SharedCatalog_MarkdownIsDeterministicAndNamesPublicResultTypes() {
         string first = OfficeConversionCapabilityCatalog.ToMarkdown();
         string second = OfficeConversionCapabilityCatalog.ToMarkdown();
 
         Assert.Equal(first, second);
         Assert.Contains("| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf |", first, StringComparison.Ordinal);
         Assert.Contains("PdfDocumentConversionResult", first, StringComparison.Ordinal);
+        Assert.Contains("What it does", first, StringComparison.Ordinal);
         Assert.DoesNotContain("RtfDocument.Parse", first, StringComparison.Ordinal);
         Assert.Contains("RtfDocument.Load(stream, readOptions).ToWordDocumentResult(sourcePath)", first, StringComparison.Ordinal);
     }

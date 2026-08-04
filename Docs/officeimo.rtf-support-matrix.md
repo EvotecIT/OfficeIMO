@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-08-04
 
-This is the current contract for RTF read, write, edit, conversion, and ingestion. The machine-readable source is [officeimo.rtf-capabilities.json](officeimo.rtf-capabilities.json); a test requires every capability below to remain represented here.
+Use this matrix to check whether an RTF workflow is fully modeled, broadly supported with a named fidelity boundary, preserved without semantic editing, or available only for extraction. The [machine-readable capability catalog](officeimo.rtf-capabilities.json) exposes the same classifications to tooling.
 
 Status meanings:
 
@@ -67,9 +67,9 @@ The untrusted profile is intentionally conservative. Applications can clone or c
 | <!-- capability:word-workflows --> Word workflows | Broad | Result-bearing mail merge, cross-run find/replace, field update, append/merge, and comparison route through `OfficeIMO.Word` and return combined conversion/workflow reports. |
 | <!-- capability:pdf-adapter --> PDF bridge | Broad | Export maps semantic layout, tables, images, links, notes, and headers/footers. Import is logical extraction, not lossless PDF reconstruction. |
 | <!-- capability:reader-adapter --> Reader bridge | Extractive | Emits bounded chunks, Markdown-friendly tables, image placeholders, source metadata, and parser/conversion warnings. |
-| <!-- capability:producer-corpus --> Producer corpus | Broad | Real Word 16 and Outlook 16 files, four pinned LibreOffice regressions, five distinct external Google Docs, macOS TextEdit/RTFD, Epic EHI, CRM-workflow, and helpdesk-workflow artifacts, and a reproducibly generated GemBox.Document fixture have provenance plus executable product-path evidence. CRM/helpdesk artifacts are not labeled as vendor-native exports. External third-party bytes are not redistributed. |
+| <!-- capability:producer-corpus --> Producer corpus | Broad | Interoperability coverage includes real Word 16 and Outlook 16 files, four LibreOffice regressions, external Google Docs, macOS TextEdit/RTFD, Epic EHI, CRM-workflow, and helpdesk-workflow artifacts, and a reproducibly generated GemBox.Document fixture. CRM and helpdesk files are workflow evidence, not vendor-native exports. |
 
-The checked corpus distinguishes redistributed producer fixtures, externally refreshed evidence, reproducibly generated commercial-library output, and synthetic grammar probes. That distinction prevents a parser fixture from being presented as independent producer evidence. `Build/Test-RtfExternalProducerEvidence.ps1` refreshes each external record and proves bounded read, web-safe HTML, Markdown, and diagnostic-preserving Word conversion.
+Each producer entry identifies whether its bytes are redistributed, verified externally, generated reproducibly, or synthetic. This prevents a grammar sample from being mistaken for producer interoperability. The [producer manifest](../OfficeIMO.Rtf.Tests/Documents/RtfCorpus/corpus-manifest.json) records exact provenance; `Build/Test-RtfExternalProducerEvidence.ps1` reproduces bounded read, web-safe HTML, Markdown, and diagnostic-preserving Word conversion for external samples.
 
 ## P2: editing and scale
 

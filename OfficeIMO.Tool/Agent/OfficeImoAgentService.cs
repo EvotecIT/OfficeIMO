@@ -171,6 +171,8 @@ internal sealed partial class OfficeImoAgentService {
                     SourceExtensions = route.SourceExtensions,
                     TargetExtension = route.TargetExtension,
                     PackageId = route.PackageId,
+                    Api = route.Api,
+                    Description = route.Description,
                     Fidelity = route.Fidelity.ToString(),
                     ResultContract = route.ResultContract,
                     BrowserAvailable = route.BrowserAvailable

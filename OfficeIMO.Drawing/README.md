@@ -136,9 +136,9 @@ OfficeDrawing mathDrawing = OfficeMathRenderer.Render(expression);
 
 The same immutable expression tree feeds native OneNote math and Word OMML adapters. The shared model includes right and left scripts, centered upper/lower limits, built-up and slashed fractions, delimiter lists, stacks, matrices, equation arrays, n-ary operators, accents, bars, boxes, and phantoms. OneNote maps all of those structures natively. Word maps the lossless OMML subset; `Stack` and `StretchStack` fail with `NotSupportedException` because OMML has no equivalent, and callers can choose `EquationArray` explicitly when that projection is intended. Drawing owns the AST, portable markup, measurement, and visual layout; each document package owns only its native codec. MathML and LaTeX parsing default to a nesting limit of 128 and expose bounded overloads; excessive nesting fails with `OfficeMathParseException.Code == "DRAWING_MATH_DEPTH"`.
 
-## Conversion capability discovery
+## Find a conversion package
 
-`OfficeConversionCapabilityCatalog` is the package-neutral inventory of source-to-target routes. It names the focused adapter, accepted extensions, fidelity kind, public result contract, and whether the shipped browser converter executes the route. The same catalog feeds generated package documentation, MCP capability discovery, and the browser route list.
+Use `OfficeConversionCapabilityCatalog` when an application needs to discover the package and public API for a source-to-target conversion. Each route includes accepted extensions, its fidelity model, the result type that carries diagnostics, and whether the route is available in the browser converter.
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -149,7 +149,7 @@ foreach (OfficeConversionCapability route in
 }
 ```
 
-Capability discovery does not imply that `OfficeIMO.Drawing` executes a conversion. Add the focused package named by `PackageId`, call its public adapter API, and inspect the route's result or report contract.
+`OfficeIMO.Drawing` describes these routes but does not execute them. Add the package named by `PackageId`, call the API shown by `Api`, and inspect the returned result or report before accepting the output.
 
 ## Examples
 

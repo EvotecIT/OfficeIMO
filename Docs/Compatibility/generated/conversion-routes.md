@@ -1,57 +1,59 @@
 # OfficeIMO conversion routes
 
+Use this table to find the focused package, representative API, fidelity model, and result type for a source-to-target conversion.
+
 Schema version: 1
 
-| Route | Source | Target | Package | Fidelity | Browser | API | Result contract |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf | FixedLayout | Yes | `WordDocument.Load(stream).ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| xlsx-pdf | XLSX | PDF | OfficeIMO.Excel.Pdf | FixedLayout | Yes | `ExcelDocument.Load(stream).ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| pptx-pdf | PPTX | PDF | OfficeIMO.PowerPoint.Pdf | FixedLayout | Yes | `PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| html-pdf | HTML | PDF | OfficeIMO.Html.Pdf | FixedLayout | Yes | `HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| markdown-html | Markdown | HTML | OfficeIMO.MarkdownRenderer | Semantic | Yes | `MarkdownRenderer.RenderBodyHtml(markdown, options)` | string |
-| html-markdown | HTML | Markdown | OfficeIMO.Markdown.Html | Semantic | Yes | `HtmlConversionDocument.Parse(html).ToMarkdownDocumentResult(options)` | HtmlToMarkdownResult |
-| markdown-docx | Markdown | DOCX | OfficeIMO.Word.Markdown | Editable | Yes | `MarkdownReader.Parse(markdown).ToWordDocumentResult(options)` | MarkdownToWordResult |
-| docx-html | DOCX | HTML | OfficeIMO.Word.Html | Semantic | No | `WordDocument.Load(stream).ToHtmlResult(options)` | HtmlTextConversionResult |
-| docx-markdown | DOCX | Markdown | OfficeIMO.Word.Markdown | Semantic | No | `WordDocument.Load(stream).ToMarkdownDocumentResult(options)` | WordToMarkdownResult |
-| docx-odt | DOCX | ODT | OfficeIMO.Word.OpenDocument | Editable | No | `WordDocument.Load(stream).ToOpenDocumentResult(options)` | OdfConversionResult<OdtDocument> |
-| odt-docx | ODT | DOCX | OfficeIMO.Word.OpenDocument | Editable | No | `OdtDocument.Load(stream).ToWordDocumentResult(options)` | OdfConversionResult<WordDocument> |
-| docx-rtf | DOCX | RTF | OfficeIMO.Word.Rtf | Editable | No | `WordDocument.Load(stream).ToRtfDocumentResult()` | RtfConversionResult<RtfDocument> |
-| rtf-docx | RTF | DOCX | OfficeIMO.Word.Rtf | Editable | No | `RtfDocument.Load(stream, readOptions).ToWordDocumentResult(sourcePath)` | RtfConversionResult<WordDocument> |
-| xlsx-html | XLSX | HTML | OfficeIMO.Excel.Html | Semantic | No | `ExcelDocument.Load(stream).ToHtmlResult(options)` | HtmlTextConversionResult |
-| xlsx-ods | XLSX | ODS | OfficeIMO.Excel.OpenDocument | Editable | No | `ExcelDocument.Load(stream).ToOpenDocumentResult(options)` | OdfConversionResult<OdsDocument> |
-| ods-xlsx | ODS | XLSX | OfficeIMO.Excel.OpenDocument | Editable | No | `OdsDocument.Load(stream).ToExcelDocumentResult(options)` | OdfConversionResult<ExcelDocument> |
-| pptx-html | PPTX | HTML | OfficeIMO.PowerPoint.Html | Semantic | No | `PowerPointPresentation.Load(stream).ToHtmlResult(options)` | PowerPointToHtmlResult |
-| pptx-odp | PPTX | ODP | OfficeIMO.PowerPoint.OpenDocument | Editable | No | `PowerPointPresentation.Load(stream).ToOpenDocumentResult(options)` | OdfConversionResult<OdpPresentation> |
-| odp-pptx | ODP | PPTX | OfficeIMO.PowerPoint.OpenDocument | Editable | No | `OdpPresentation.Load(stream).ToPowerPointPresentationResult(options)` | OdfConversionResult<PowerPointPresentation> |
-| markdown-pdf | Markdown | PDF | OfficeIMO.Markdown.Pdf | FixedLayout | No | `MarkdownReader.Parse(markdown).ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| rtf-markdown | RTF | Markdown | OfficeIMO.Rtf.Markdown | Semantic | No | `RtfDocument.Load(stream, readOptions).Document.ToMarkdownResult(options)` | RtfConversionResult<string> |
-| rtf-pdf | RTF | PDF | OfficeIMO.Rtf.Pdf | FixedLayout | No | `RtfDocument.Load(stream, readOptions).Document.ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| markdown-rtf | Markdown | RTF | OfficeIMO.Rtf.Markdown | Editable | No | `MarkdownReader.Parse(markdown).ToRtfDocumentResult(options)` | RtfConversionResult<RtfDocument> |
-| html-docx | HTML | DOCX | OfficeIMO.Word.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToWordDocumentResult(options)` | HtmlToWordResult |
-| html-xlsx | HTML | XLSX | OfficeIMO.Excel.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToExcelDocumentResult(options)` | HtmlToExcelResult |
-| html-pptx | HTML | PPTX | OfficeIMO.PowerPoint.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(options)` | HtmlToPowerPointResult |
-| html-rtf | HTML | RTF | OfficeIMO.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options)` | HtmlToRtfResult |
-| rtf-html | RTF | HTML | OfficeIMO.Html | Semantic | No | `RtfDocument.Load(stream, readOptions).Document.ToHtmlResult(options)` | RtfToHtmlResult |
-| asciidoc-markdown | AsciiDoc | Markdown | OfficeIMO.AsciiDoc.Markdown | Semantic | No | `AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult(options)` | AsciiDocToMarkdownResult |
-| markdown-asciidoc | Markdown | AsciiDoc | OfficeIMO.AsciiDoc.Markdown | Semantic | No | `MarkdownReader.Parse(markdown).ToAsciiDocDocumentResult(options)` | MarkdownToAsciiDocResult |
-| asciidoc-pdf | AsciiDoc | PDF | OfficeIMO.AsciiDoc.Pdf | FixedLayout | No | `AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| latex-markdown | LaTeX | Markdown | OfficeIMO.Latex.Markdown | Semantic | No | `LatexDocument.Parse(source).Document.ToMarkdownDocumentResult(options)` | LatexToMarkdownResult |
-| markdown-latex | Markdown | LaTeX | OfficeIMO.Latex.Markdown | Semantic | No | `MarkdownReader.Parse(markdown).ToLatexDocumentResult(options)` | MarkdownToLatexResult |
-| latex-pdf | LaTeX | PDF | OfficeIMO.Latex.Pdf | FixedLayout | No | `LatexDocument.Parse(source).Document.ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| onenote-html | OneNote | HTML | OfficeIMO.OneNote.Html | Semantic | No | `section.ToHtmlDocumentResult(projectionOptions, htmlOptions)` | HtmlTextConversionResult |
-| html-onenote | HTML | OneNote | OfficeIMO.OneNote.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(options)` | HtmlToOneNoteSectionResult |
-| onenote-markdown | OneNote | Markdown | OfficeIMO.OneNote.Markdown | Semantic | No | `section.ToMarkdownDocumentResult(options)` | OneNoteMarkdownConversionResult |
-| onenote-pdf | OneNote | PDF | OfficeIMO.OneNote.Pdf | FixedLayout | No | `section.ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
-| odt-pdf | ODT | PDF | OfficeIMO.OpenDocument.Odt.Pdf | FixedLayout | No | `OdtDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)` | PdfDocumentConversionResult |
-| ods-pdf | ODS | PDF | OfficeIMO.OpenDocument.Ods.Pdf | FixedLayout | No | `OdsDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)` | PdfDocumentConversionResult |
-| odp-pdf | ODP | PDF | OfficeIMO.OpenDocument.Odp.Pdf | FixedLayout | No | `OdpPresentation.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)` | PdfDocumentConversionResult |
-| pdf-docx | PDF | DOCX | OfficeIMO.Word.Pdf | Editable | No | `PdfDocument.Open(stream).ToWordDocumentResult(options)` | PdfWordConversionResult |
-| pdf-xlsx | PDF | XLSX | OfficeIMO.Excel.Pdf | Editable | No | `PdfDocument.Open(stream).ImportTablesToExcelDocumentResult(options)` | PdfExcelTableImportResult |
-| pdf-pptx | PDF | PPTX | OfficeIMO.PowerPoint.Pdf | Editable | No | `PdfDocument.Open(stream).ToPowerPointPresentationResult(options)` | PdfPowerPointConversionResult |
-| pdf-html | PDF | HTML | OfficeIMO.Html.Pdf | Semantic | No | `PdfDocument.Open(stream).ToHtmlResult(options)` | PdfHtmlConversionResult |
-| pdf-rtf | PDF | RTF | OfficeIMO.Rtf.Pdf | Editable | No | `PdfDocument.Open(stream).ToRtfDocumentResult(options)` | PdfRtfConversionResult |
-| pdf-odt | PDF | ODT | OfficeIMO.OpenDocument.Odt.Pdf | Editable | No | `PdfDocument.Open(stream).ToOdtDocumentResult(pdfOptions, openDocumentOptions)` | PdfOdtConversionResult |
-| pdf-ods | PDF | ODS | OfficeIMO.OpenDocument.Ods.Pdf | Editable | No | `PdfDocument.Open(stream).ToOdsDocumentResult(pdfOptions, openDocumentOptions)` | PdfOdsConversionResult |
-| pdf-odp | PDF | ODP | OfficeIMO.OpenDocument.Odp.Pdf | Editable | No | `PdfDocument.Open(stream).ToOdpPresentationResult(pdfOptions, openDocumentOptions)` | PdfOdpConversionResult |
-| mhtml-pdf | MHTML | PDF | OfficeIMO.Html.Pdf | FixedLayout | No | `MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)` | PdfDocumentConversionResult |
-| visio-pdf | Visio | PDF | OfficeIMO.Visio.Pdf | FixedLayout | No | `VisioDocument.Load(stream).ToPdfDocumentResult(options)` | PdfDocumentConversionResult |
+| Route | Source | Target | Package | Fidelity | Browser | API | Result type | What it does |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf | FixedLayout | Yes | `WordDocument.Load(stream).ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Convert a Word document into a fixed-layout PDF with diagnostics. |
+| xlsx-pdf | XLSX | PDF | OfficeIMO.Excel.Pdf | FixedLayout | Yes | `ExcelDocument.Load(stream).ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render workbook sheets with layout and conversion diagnostics. |
+| pptx-pdf | PPTX | PDF | OfficeIMO.PowerPoint.Pdf | FixedLayout | Yes | `PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render presentation slides into a fixed-layout PDF. |
+| html-pdf | HTML | PDF | OfficeIMO.Html.Pdf | FixedLayout | Yes | `HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render bounded HTML and CSS into a tagged PDF. |
+| markdown-html | Markdown | HTML | OfficeIMO.MarkdownRenderer | Semantic | Yes | `MarkdownRenderer.RenderBodyHtml(markdown, options)` | string | Render typed Markdown through an explicit safe HTML profile. |
+| html-markdown | HTML | Markdown | OfficeIMO.Markdown.Html | Semantic | Yes | `HtmlConversionDocument.Parse(html).ToMarkdownDocumentResult(options)` | HtmlToMarkdownResult | Project HTML into portable Markdown with explicit resource and loss policy. |
+| markdown-docx | Markdown | DOCX | OfficeIMO.Word.Markdown | Editable | Yes | `MarkdownReader.Parse(markdown).ToWordDocumentResult(options)` | MarkdownToWordResult | Create an editable Word document from typed Markdown. |
+| docx-html | DOCX | HTML | OfficeIMO.Word.Html | Semantic | No | `WordDocument.Load(stream).ToHtmlResult(options)` | HtmlTextConversionResult | Project a Word document into reviewable HTML. |
+| docx-markdown | DOCX | Markdown | OfficeIMO.Word.Markdown | Semantic | No | `WordDocument.Load(stream).ToMarkdownDocumentResult(options)` | WordToMarkdownResult | Convert a Word document into portable Markdown for editing, publishing, or version control. |
+| docx-odt | DOCX | ODT | OfficeIMO.Word.OpenDocument | Editable | No | `WordDocument.Load(stream).ToOpenDocumentResult(options)` | OdfConversionResult<OdtDocument> | Convert editable Word content to OpenDocument Text. |
+| odt-docx | ODT | DOCX | OfficeIMO.Word.OpenDocument | Editable | No | `OdtDocument.Load(stream).ToWordDocumentResult(options)` | OdfConversionResult<WordDocument> | Convert OpenDocument Text into an editable Word document. |
+| docx-rtf | DOCX | RTF | OfficeIMO.Word.Rtf | Editable | No | `WordDocument.Load(stream).ToRtfDocumentResult()` | RtfConversionResult<RtfDocument> | Convert editable Word content to semantic RTF. |
+| rtf-docx | RTF | DOCX | OfficeIMO.Word.Rtf | Editable | No | `RtfDocument.Load(stream, readOptions).ToWordDocumentResult(sourcePath)` | RtfConversionResult<WordDocument> | Convert bounded RTF into an editable Word document while retaining read and conversion diagnostics. |
+| xlsx-html | XLSX | HTML | OfficeIMO.Excel.Html | Semantic | No | `ExcelDocument.Load(stream).ToHtmlResult(options)` | HtmlTextConversionResult | Project workbook content into reviewable HTML. |
+| xlsx-ods | XLSX | ODS | OfficeIMO.Excel.OpenDocument | Editable | No | `ExcelDocument.Load(stream).ToOpenDocumentResult(options)` | OdfConversionResult<OdsDocument> | Convert an editable workbook to OpenDocument Spreadsheet. |
+| ods-xlsx | ODS | XLSX | OfficeIMO.Excel.OpenDocument | Editable | No | `OdsDocument.Load(stream).ToExcelDocumentResult(options)` | OdfConversionResult<ExcelDocument> | Convert OpenDocument Spreadsheet into an editable workbook. |
+| pptx-html | PPTX | HTML | OfficeIMO.PowerPoint.Html | Semantic | No | `PowerPointPresentation.Load(stream).ToHtmlResult(options)` | PowerPointToHtmlResult | Project presentation slides into reviewable HTML. |
+| pptx-odp | PPTX | ODP | OfficeIMO.PowerPoint.OpenDocument | Editable | No | `PowerPointPresentation.Load(stream).ToOpenDocumentResult(options)` | OdfConversionResult<OdpPresentation> | Convert an editable presentation to OpenDocument Presentation. |
+| odp-pptx | ODP | PPTX | OfficeIMO.PowerPoint.OpenDocument | Editable | No | `OdpPresentation.Load(stream).ToPowerPointPresentationResult(options)` | OdfConversionResult<PowerPointPresentation> | Convert OpenDocument Presentation into an editable presentation. |
+| markdown-pdf | Markdown | PDF | OfficeIMO.Markdown.Pdf | FixedLayout | No | `MarkdownReader.Parse(markdown).ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render Markdown into PDF with structured conversion warnings. |
+| rtf-markdown | RTF | Markdown | OfficeIMO.Rtf.Markdown | Semantic | No | `RtfDocument.Load(stream, readOptions).Document.ToMarkdownResult(options)` | RtfConversionResult<string> | Project bounded RTF into portable Markdown. |
+| rtf-pdf | RTF | PDF | OfficeIMO.Rtf.Pdf | FixedLayout | No | `RtfDocument.Load(stream, readOptions).Document.ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render bounded RTF into a fixed-layout PDF. |
+| markdown-rtf | Markdown | RTF | OfficeIMO.Rtf.Markdown | Editable | No | `MarkdownReader.Parse(markdown).ToRtfDocumentResult(options)` | RtfConversionResult<RtfDocument> | Convert typed Markdown into semantic RTF with loss diagnostics. |
+| html-docx | HTML | DOCX | OfficeIMO.Word.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToWordDocumentResult(options)` | HtmlToWordResult | Convert bounded HTML into an editable Word document. |
+| html-xlsx | HTML | XLSX | OfficeIMO.Excel.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToExcelDocumentResult(options)` | HtmlToExcelResult | Convert bounded HTML tables and content into an editable workbook. |
+| html-pptx | HTML | PPTX | OfficeIMO.PowerPoint.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(options)` | HtmlToPowerPointResult | Convert bounded HTML into an editable presentation. |
+| html-rtf | HTML | RTF | OfficeIMO.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options)` | HtmlToRtfResult | Convert bounded HTML into semantic RTF. |
+| rtf-html | RTF | HTML | OfficeIMO.Html | Semantic | No | `RtfDocument.Load(stream, readOptions).Document.ToHtmlResult(options)` | RtfToHtmlResult | Render bounded RTF through an explicit safe HTML profile. |
+| asciidoc-markdown | AsciiDoc | Markdown | OfficeIMO.AsciiDoc.Markdown | Semantic | No | `AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult(options)` | AsciiDocToMarkdownResult | Project AsciiDoc into typed Markdown with diagnostics. |
+| markdown-asciidoc | Markdown | AsciiDoc | OfficeIMO.AsciiDoc.Markdown | Semantic | No | `MarkdownReader.Parse(markdown).ToAsciiDocDocumentResult(options)` | MarkdownToAsciiDocResult | Project typed Markdown into canonical AsciiDoc with diagnostics. |
+| asciidoc-pdf | AsciiDoc | PDF | OfficeIMO.AsciiDoc.Pdf | FixedLayout | No | `AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render bounded AsciiDoc into a fixed-layout PDF. |
+| latex-markdown | LaTeX | Markdown | OfficeIMO.Latex.Markdown | Semantic | No | `LatexDocument.Parse(source).Document.ToMarkdownDocumentResult(options)` | LatexToMarkdownResult | Project LaTeX into typed Markdown with diagnostics. |
+| markdown-latex | Markdown | LaTeX | OfficeIMO.Latex.Markdown | Semantic | No | `MarkdownReader.Parse(markdown).ToLatexDocumentResult(options)` | MarkdownToLatexResult | Project typed Markdown into canonical LaTeX with diagnostics. |
+| latex-pdf | LaTeX | PDF | OfficeIMO.Latex.Pdf | FixedLayout | No | `LatexDocument.Parse(source).Document.ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render bounded LaTeX into a fixed-layout PDF. |
+| onenote-html | OneNote | HTML | OfficeIMO.OneNote.Html | Semantic | No | `section.ToHtmlDocumentResult(projectionOptions, htmlOptions)` | HtmlTextConversionResult | Project a OneNote section into reviewable HTML. |
+| html-onenote | HTML | OneNote | OfficeIMO.OneNote.Html | Editable | No | `HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(options)` | HtmlToOneNoteSectionResult | Convert bounded HTML into an editable OneNote section model. |
+| onenote-markdown | OneNote | Markdown | OfficeIMO.OneNote.Markdown | Semantic | No | `section.ToMarkdownDocumentResult(options)` | OneNoteMarkdownConversionResult | Project a OneNote section into typed Markdown. |
+| onenote-pdf | OneNote | PDF | OfficeIMO.OneNote.Pdf | FixedLayout | No | `section.ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render a OneNote section into a fixed-layout PDF. |
+| odt-pdf | ODT | PDF | OfficeIMO.OpenDocument.Odt.Pdf | FixedLayout | No | `OdtDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)` | PdfDocumentConversionResult | Render OpenDocument Text into a fixed-layout PDF with source diagnostics. |
+| ods-pdf | ODS | PDF | OfficeIMO.OpenDocument.Ods.Pdf | FixedLayout | No | `OdsDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)` | PdfDocumentConversionResult | Render an OpenDocument spreadsheet into a fixed-layout PDF with source diagnostics. |
+| odp-pdf | ODP | PDF | OfficeIMO.OpenDocument.Odp.Pdf | FixedLayout | No | `OdpPresentation.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)` | PdfDocumentConversionResult | Render an OpenDocument presentation into a fixed-layout PDF with source diagnostics. |
+| pdf-docx | PDF | DOCX | OfficeIMO.Word.Pdf | Editable | No | `PdfDocument.Open(stream).ToWordDocumentResult(options)` | PdfWordConversionResult | Import PDF logical content into an editable Word document with diagnostics. |
+| pdf-xlsx | PDF | XLSX | OfficeIMO.Excel.Pdf | Editable | No | `PdfDocument.Open(stream).ImportTablesToExcelDocumentResult(options)` | PdfExcelTableImportResult | Import detected PDF tables into an editable workbook with diagnostics. |
+| pdf-pptx | PDF | PPTX | OfficeIMO.PowerPoint.Pdf | Editable | No | `PdfDocument.Open(stream).ToPowerPointPresentationResult(options)` | PdfPowerPointConversionResult | Import PDF pages into an editable presentation profile with diagnostics. |
+| pdf-html | PDF | HTML | OfficeIMO.Html.Pdf | Semantic | No | `PdfDocument.Open(stream).ToHtmlResult(options)` | PdfHtmlConversionResult | Project PDF logical content into reviewable HTML. |
+| pdf-rtf | PDF | RTF | OfficeIMO.Rtf.Pdf | Editable | No | `PdfDocument.Open(stream).ToRtfDocumentResult(options)` | PdfRtfConversionResult | Import PDF logical content into semantic RTF with diagnostics. |
+| pdf-odt | PDF | ODT | OfficeIMO.OpenDocument.Odt.Pdf | Editable | No | `PdfDocument.Open(stream).ToOdtDocumentResult(pdfOptions, openDocumentOptions)` | PdfOdtConversionResult | Import PDF logical content into OpenDocument Text with diagnostics. |
+| pdf-ods | PDF | ODS | OfficeIMO.OpenDocument.Ods.Pdf | Editable | No | `PdfDocument.Open(stream).ToOdsDocumentResult(pdfOptions, openDocumentOptions)` | PdfOdsConversionResult | Import detected PDF tables into an OpenDocument spreadsheet with diagnostics. |
+| pdf-odp | PDF | ODP | OfficeIMO.OpenDocument.Odp.Pdf | Editable | No | `PdfDocument.Open(stream).ToOdpPresentationResult(pdfOptions, openDocumentOptions)` | PdfOdpConversionResult | Import PDF pages into an OpenDocument presentation profile with diagnostics. |
+| mhtml-pdf | MHTML | PDF | OfficeIMO.Html.Pdf | FixedLayout | No | `MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)` | PdfDocumentConversionResult | Render a bounded MHTML archive into a fixed-layout PDF. |
+| visio-pdf | Visio | PDF | OfficeIMO.Visio.Pdf | FixedLayout | No | `VisioDocument.Load(stream).ToPdfDocumentResult(options)` | PdfDocumentConversionResult | Render a Visio drawing into a fixed-layout PDF. |

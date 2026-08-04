@@ -130,7 +130,7 @@
       "targetExtension":".md",
       "packageId":"OfficeIMO.Word.Markdown",
       "api":"WordDocument.Load(stream).ToMarkdownDocumentResult(options)",
-      "description":"Project a Word document into repository-friendly Markdown.",
+      "description":"Convert a Word document into portable Markdown for editing, publishing, or version control.",
       "fidelity":"Semantic",
       "resultContract":"WordToMarkdownResult",
       "browserAvailable":false,

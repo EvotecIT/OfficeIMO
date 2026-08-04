@@ -110,6 +110,8 @@ public sealed class AgentConversionCapabilitySummary {
     public IReadOnlyList<string> SourceExtensions { get; set; } = Array.Empty<string>();
     public string TargetExtension { get; set; } = string.Empty;
     public string PackageId { get; set; } = string.Empty;
+    public string Api { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string Fidelity { get; set; } = string.Empty;
     public string ResultContract { get; set; } = string.Empty;
     public bool BrowserAvailable { get; set; }

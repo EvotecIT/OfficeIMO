@@ -102,7 +102,7 @@ Root nodes can also be inserted, removed, or moved with `InsertRootRtf`, `Remove
 
 The reader supports Unicode escapes, single-byte Windows code pages 874 and 1250-1258, IBM 437/850, Mac Roman, and East Asian Windows code pages 932/936/949/950. Font charset changes can switch the active decoder within a document. Unsupported code pages emit diagnostic `RTF103` and use the documented Windows-1252 fallback while lossless source remains intact.
 
-The producer manifest covers real Microsoft Word 16 and Outlook 16 output, pinned LibreOffice regressions, genuine external Google Docs and macOS TextEdit/RTFD output, a redacted Epic EHI export, distinct CRM and helpdesk workflow artifacts, and a reproducibly generated GemBox.Document fixture. CRM/helpdesk evidence is labeled as workflow output rather than a vendor-native export. Third-party external bytes are not redistributed; `Build/Test-RtfExternalProducerEvidence.ps1` verifies provenance and then exercises bounded read, web-safe HTML, Markdown, and diagnostic-preserving Word conversion for every external artifact.
+Interoperability coverage includes RTF produced by Microsoft Word, Outlook, LibreOffice, Google Docs, macOS TextEdit/RTFD, an Epic EHI export, CRM and helpdesk workflows, and GemBox.Document. Each external sample is exercised through bounded reading, web-safe HTML, Markdown, and diagnostic-preserving Word conversion. See the [RTF support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.rtf-support-matrix.md) for exact producer classifications and known limits.
 
 ## Related packages
 

@@ -135,15 +135,17 @@ public static class OfficeConversionCapabilityCatalog {
         return All.Where(route => route.SourceExtensions.Contains(normalized, StringComparer.OrdinalIgnoreCase)).ToArray();
     }
 
-    /// <summary>Formats the shared route contract as a deterministic Markdown table.</summary>
+    /// <summary>Formats the conversion routes as a deterministic Markdown reference.</summary>
     public static string ToMarkdown() {
         var markdown = new StringBuilder();
         markdown.AppendLine("# OfficeIMO conversion routes");
         markdown.AppendLine();
+        markdown.AppendLine("Use this table to find the focused package, representative API, fidelity model, and result type for a source-to-target conversion.");
+        markdown.AppendLine();
         markdown.Append("Schema version: ").Append(SchemaVersion).AppendLine();
         markdown.AppendLine();
-        markdown.AppendLine("| Route | Source | Target | Package | Fidelity | Browser | API | Result contract |");
-        markdown.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- |");
+        markdown.AppendLine("| Route | Source | Target | Package | Fidelity | Browser | API | Result type | What it does |");
+        markdown.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
         foreach (OfficeConversionCapability route in All) {
             markdown.Append("| ").Append(EscapeMarkdown(route.Id))
                 .Append(" | ").Append(EscapeMarkdown(route.Source))
@@ -152,7 +154,8 @@ public static class OfficeConversionCapabilityCatalog {
                 .Append(" | ").Append(route.Fidelity)
                 .Append(" | ").Append(route.BrowserAvailable ? "Yes" : "No")
                 .Append(" | `").Append(EscapeMarkdown(route.Api)).Append("`")
-                .Append(" | ").Append(EscapeMarkdown(route.ResultContract)).AppendLine(" |");
+                .Append(" | ").Append(EscapeMarkdown(route.ResultContract))
+                .Append(" | ").Append(EscapeMarkdown(route.Description)).AppendLine(" |");
         }
         return markdown.ToString().Replace("\r\n", "\n").Replace("\r", "\n");
     }
@@ -207,7 +210,7 @@ public static class OfficeConversionCapabilityCatalog {
         Route("html-markdown", "HTML", "Markdown", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, ".md", "OfficeIMO.Markdown.Html", "HtmlConversionDocument.Parse(html).ToMarkdownDocumentResult(options)", "Project HTML into portable Markdown with explicit resource and loss policy.", OfficeConversionFidelityKind.Semantic, "HtmlToMarkdownResult", browser: true),
         Route("markdown-docx", "Markdown", "DOCX", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".docx", "OfficeIMO.Word.Markdown", "MarkdownReader.Parse(markdown).ToWordDocumentResult(options)", "Create an editable Word document from typed Markdown.", OfficeConversionFidelityKind.Editable, "MarkdownToWordResult", browser: true),
         Route("docx-html", "DOCX", "HTML", OfficeConversionInputKind.File, new[] { ".docx" }, ".html", "OfficeIMO.Word.Html", "WordDocument.Load(stream).ToHtmlResult(options)", "Project a Word document into reviewable HTML.", OfficeConversionFidelityKind.Semantic, "HtmlTextConversionResult"),
-        Route("docx-markdown", "DOCX", "Markdown", OfficeConversionInputKind.File, new[] { ".docx" }, ".md", "OfficeIMO.Word.Markdown", "WordDocument.Load(stream).ToMarkdownDocumentResult(options)", "Project a Word document into repository-friendly Markdown.", OfficeConversionFidelityKind.Semantic, "WordToMarkdownResult"),
+        Route("docx-markdown", "DOCX", "Markdown", OfficeConversionInputKind.File, new[] { ".docx" }, ".md", "OfficeIMO.Word.Markdown", "WordDocument.Load(stream).ToMarkdownDocumentResult(options)", "Convert a Word document into portable Markdown for editing, publishing, or version control.", OfficeConversionFidelityKind.Semantic, "WordToMarkdownResult"),
         Route("docx-odt", "DOCX", "ODT", OfficeConversionInputKind.File, new[] { ".docx" }, ".odt", "OfficeIMO.Word.OpenDocument", "WordDocument.Load(stream).ToOpenDocumentResult(options)", "Convert editable Word content to OpenDocument Text.", OfficeConversionFidelityKind.Editable, "OdfConversionResult<OdtDocument>"),
         Route("odt-docx", "ODT", "DOCX", OfficeConversionInputKind.File, new[] { ".odt" }, ".docx", "OfficeIMO.Word.OpenDocument", "OdtDocument.Load(stream).ToWordDocumentResult(options)", "Convert OpenDocument Text into an editable Word document.", OfficeConversionFidelityKind.Editable, "OdfConversionResult<WordDocument>"),
         Route("docx-rtf", "DOCX", "RTF", OfficeConversionInputKind.File, new[] { ".docx" }, ".rtf", "OfficeIMO.Word.Rtf", "WordDocument.Load(stream).ToRtfDocumentResult()", "Convert editable Word content to semantic RTF.", OfficeConversionFidelityKind.Editable, "RtfConversionResult<RtfDocument>"),

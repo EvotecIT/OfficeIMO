@@ -74,47 +74,47 @@ This is the published routing inventory for optional and profile-specific extens
 <!-- extension-partial-boundaries:start -->
 ### Partial-family boundaries
 
-These are the exact current implementation boundaries and promotion requirements for every `Partial` family in the structured extension inventory.
+These entries explain what works today and what remains outside each `Partial` compatibility family.
 
 #### Custom containers
 
-- **OfficeIMO state:** Opt-in colon-fenced containers have complete ownership for the supported root, nested, blockquote-contained, and list-contained shapes: child parsing, HTML rendering, Markdown writing, syntax/native fields, source slices, source edits, and stable reparse. This row remains partial only relative to the broader optional extension surface.
-- **Promotion bar:** Adopt any additional optional container shape only with parser, semantic owner, source fields, HTML output, Markdown writing, and reparse proof in the same change.
+- **Current behavior:** Opt-in colon-fenced containers support root, nested, blockquote-contained, and list-contained shapes with child parsing, HTML rendering, Markdown writing, syntax fields, source slices, source edits, and stable reparse.
+- **Limit:** Other optional container shapes are not recognized. Unsupported syntax remains literal rather than receiving partial parse, render, or source-edit behavior.
 
 #### Diagrams
 
-- **OfficeIMO state:** Semantic fenced blocks and visual renderer hooks exist; named diagram-language mapping and a complete renderer handoff contract remain open.
-- **Promotion bar:** Define named diagram-language mapping, renderer-package ownership, source/writer behavior, and focused fixtures.
+- **Current behavior:** Semantic fenced blocks and visual renderer hooks exist; named diagram-language mapping and a complete renderer handoff contract remain open.
+- **Limit:** Named diagram-language parsing and a complete renderer handoff are not available.
 
 #### Figures
 
-- **OfficeIMO state:** Image and figure import plus publisher rendering paths exist; a dedicated Markdown figure syntax and its source/writer contract remain open.
-- **Promotion bar:** Separate HTML-import figure recovery from authored Markdown figure syntax, then prove renderer, writer, and source behavior.
+- **Current behavior:** Image and figure import plus publisher rendering paths exist; a dedicated Markdown figure syntax and its source/writer contract remain open.
+- **Limit:** HTML figure recovery does not provide a dedicated authored Markdown figure syntax or a source-preserving writer contract.
 
 #### Generic attributes
 
-- **OfficeIMO state:** Generic attributes have end-to-end ownership for every supported target family, including callouts, details blocks, and custom containers: semantic and syntax storage, exact source fields, HTML projection, Markdown writing, source edits, and stable reparse. Targets outside that declared set remain literal or deliberately consumed according to the documented profile boundary.
-- **Promotion bar:** Adopt any additional target family only when it has one semantic owner plus source mapping, HTML projection or deliberate consumption, Markdown writing, source editing, and stable reparse proof.
+- **Current behavior:** Generic attributes have end-to-end ownership for every supported target family, including callouts, details blocks, and custom containers: semantic and syntax storage, exact source fields, HTML projection, Markdown writing, source edits, and stable reparse. Targets outside that declared set remain literal or deliberately consumed according to the documented profile boundary.
+- **Limit:** Only the documented target families accept attributes. Other targets remain literal or follow the selected profile's documented consumption rule.
 
 #### List extras
 
-- **OfficeIMO state:** Opt-in alphabetic and Roman ordered markers support nested parsing, marker-style HTML, source metadata and edits, and Markdown writer preservation. Remaining edge, source-edit, and reparse coverage keeps this family partial.
-- **Promotion bar:** Broaden remaining list-marker edges, native source edits, and writer reparse proof.
+- **Current behavior:** Opt-in alphabetic and Roman ordered markers support nested parsing, marker-style HTML, source metadata and edits, and Markdown writer preservation.
+- **Limit:** Some list-marker edge cases and source-edit round trips remain outside the supported subset.
 
 #### Mathematics
 
-- **OfficeIMO state:** Math-oriented semantic and rendering hooks exist, but inline and block delimiter parsing does not yet have a complete AST, source, writer, and renderer contract.
-- **Promotion bar:** Define inline and block delimiters, AST/source/native metadata, writer preservation, and renderer handoff.
+- **Current behavior:** Math-oriented semantic and rendering hooks exist, but inline and block delimiter parsing does not yet have a complete AST, source, writer, and renderer contract.
+- **Limit:** Built-in inline and block math delimiter parsing, source metadata, Markdown writing, and renderer handoff are not available as one complete contract.
 
 #### Media links
 
-- **OfficeIMO state:** Image and media semantics exist, but shortcut media providers do not yet have a complete parser, safe-renderer, source, and writer contract.
-- **Promotion bar:** Define the provider model, safe renderer output, writer preservation, and source metadata for shortcut media links.
+- **Current behavior:** Image and media semantics exist, but shortcut media providers do not yet have a complete parser, safe-renderer, source, and writer contract.
+- **Limit:** Shortcut media-provider syntax does not yet have a complete parser, safe HTML output, source mapping, and Markdown writer contract.
 
 #### Precise source location
 
-- **OfficeIMO state:** The public source contract is complete and field-bounded: documented source-backed fields expose normalized spans, exact or line-ending-equivalent original mappings, stable semantic associations, and source edits; generated or transformed nodes are spanless with machine-readable unavailable reasons; arbitrary semantic edits use normalized writing. This row remains partial only because arbitrary-node locations and lossless arbitrary semantic edits are intentionally outside the contract.
-- **Promotion bar:** Do not promote this comparison row unless OfficeIMO deliberately expands beyond its field-bounded contract; never infer spans for generated nodes or advertise arbitrary semantic edits as lossless.
+- **Current behavior:** The source contract is field-bounded: documented source-backed fields expose normalized spans, exact or line-ending-equivalent original mappings, stable semantic associations, and source edits. Generated or transformed nodes are spanless with machine-readable unavailable reasons, and arbitrary semantic edits use normalized writing.
+- **Limit:** Exact locations are not returned for arbitrary fields, transformed nodes, or generated nodes. Arbitrary semantic edits use normalized Markdown writing rather than a lossless source patch.
 <!-- extension-partial-boundaries:end -->
 
 ## Standards profiles

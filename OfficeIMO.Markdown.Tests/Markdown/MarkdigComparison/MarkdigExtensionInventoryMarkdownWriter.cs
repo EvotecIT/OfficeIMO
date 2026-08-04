@@ -76,15 +76,15 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         sb.AppendLine(PartialBoundariesStart);
         sb.AppendLine("### Partial-family boundaries");
         sb.AppendLine();
-        sb.AppendLine("These are the exact current implementation boundaries and promotion requirements for every `Partial` family in the structured extension inventory.");
+        sb.AppendLine("These entries explain what works today and what remains outside each `Partial` compatibility family.");
 
         foreach (MarkdigExtensionInventoryRow row in report.Rows.Where(static row =>
                      row.Status == MarkdigExtensionInventoryStatus.Partial)) {
             sb.AppendLine();
             sb.Append("#### ").AppendLine(EscapePublishedText(row.Family));
             sb.AppendLine();
-            sb.Append("- **OfficeIMO state:** ").AppendLine(EscapePublishedText(GetPublishedOfficeImoState(row)));
-            sb.Append("- **Promotion bar:** ").AppendLine(EscapePublishedText(GetPublishedPromotionBar(row)));
+            sb.Append("- **Current behavior:** ").AppendLine(EscapePublishedText(GetPublishedOfficeImoState(row)));
+            sb.Append("- **Limit:** ").AppendLine(EscapePublishedText(GetPublishedBoundary(row)));
         }
 
         sb.AppendLine(PartialBoundariesEnd);
@@ -98,28 +98,28 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
 
     private static string GetPublishedOfficeImoState(MarkdigExtensionInventoryRow row) =>
         row.Family switch {
-            "Custom containers" => "Opt-in colon-fenced containers have complete ownership for the supported root, nested, blockquote-contained, and list-contained shapes: child parsing, HTML rendering, Markdown writing, syntax/native fields, source slices, source edits, and stable reparse. This row remains partial only relative to the broader optional extension surface.",
+            "Custom containers" => "Opt-in colon-fenced containers support root, nested, blockquote-contained, and list-contained shapes with child parsing, HTML rendering, Markdown writing, syntax fields, source slices, source edits, and stable reparse.",
             "Diagrams" => "Semantic fenced blocks and visual renderer hooks exist; named diagram-language mapping and a complete renderer handoff contract remain open.",
             "Figures" => "Image and figure import plus publisher rendering paths exist; a dedicated Markdown figure syntax and its source/writer contract remain open.",
             "Generic attributes" => "Generic attributes have end-to-end ownership for every supported target family, including callouts, details blocks, and custom containers: semantic and syntax storage, exact source fields, HTML projection, Markdown writing, source edits, and stable reparse. Targets outside that declared set remain literal or deliberately consumed according to the documented profile boundary.",
-            "List extras" => "Opt-in alphabetic and Roman ordered markers support nested parsing, marker-style HTML, source metadata and edits, and Markdown writer preservation. Remaining edge, source-edit, and reparse coverage keeps this family partial.",
+            "List extras" => "Opt-in alphabetic and Roman ordered markers support nested parsing, marker-style HTML, source metadata and edits, and Markdown writer preservation.",
             "Mathematics" => "Math-oriented semantic and rendering hooks exist, but inline and block delimiter parsing does not yet have a complete AST, source, writer, and renderer contract.",
             "Media links" => "Image and media semantics exist, but shortcut media providers do not yet have a complete parser, safe-renderer, source, and writer contract.",
-            "Precise source location" => "The public source contract is complete and field-bounded: documented source-backed fields expose normalized spans, exact or line-ending-equivalent original mappings, stable semantic associations, and source edits; generated or transformed nodes are spanless with machine-readable unavailable reasons; arbitrary semantic edits use normalized writing. This row remains partial only because arbitrary-node locations and lossless arbitrary semantic edits are intentionally outside the contract.",
+            "Precise source location" => "The source contract is field-bounded: documented source-backed fields expose normalized spans, exact or line-ending-equivalent original mappings, stable semantic associations, and source edits. Generated or transformed nodes are spanless with machine-readable unavailable reasons, and arbitrary semantic edits use normalized writing.",
             _ => throw new InvalidOperationException("Published partial-family text is missing for " + row.Family + ".")
         };
 
-    private static string GetPublishedPromotionBar(MarkdigExtensionInventoryRow row) =>
+    private static string GetPublishedBoundary(MarkdigExtensionInventoryRow row) =>
         row.Family switch {
-            "Custom containers" => "Adopt any additional optional container shape only with parser, semantic owner, source fields, HTML output, Markdown writing, and reparse proof in the same change.",
-            "Diagrams" => "Define named diagram-language mapping, renderer-package ownership, source/writer behavior, and focused fixtures.",
-            "Figures" => "Separate HTML-import figure recovery from authored Markdown figure syntax, then prove renderer, writer, and source behavior.",
-            "Generic attributes" => "Adopt any additional target family only when it has one semantic owner plus source mapping, HTML projection or deliberate consumption, Markdown writing, source editing, and stable reparse proof.",
-            "List extras" => "Broaden remaining list-marker edges, native source edits, and writer reparse proof.",
-            "Mathematics" => "Define inline and block delimiters, AST/source/native metadata, writer preservation, and renderer handoff.",
-            "Media links" => "Define the provider model, safe renderer output, writer preservation, and source metadata for shortcut media links.",
-            "Precise source location" => "Do not promote this comparison row unless OfficeIMO deliberately expands beyond its field-bounded contract; never infer spans for generated nodes or advertise arbitrary semantic edits as lossless.",
-            _ => throw new InvalidOperationException("Published promotion text is missing for " + row.Family + ".")
+            "Custom containers" => "Other optional container shapes are not recognized. Unsupported syntax remains literal rather than receiving partial parse, render, or source-edit behavior.",
+            "Diagrams" => "Named diagram-language parsing and a complete renderer handoff are not available.",
+            "Figures" => "HTML figure recovery does not provide a dedicated authored Markdown figure syntax or a source-preserving writer contract.",
+            "Generic attributes" => "Only the documented target families accept attributes. Other targets remain literal or follow the selected profile's documented consumption rule.",
+            "List extras" => "Some list-marker edge cases and source-edit round trips remain outside the supported subset.",
+            "Mathematics" => "Built-in inline and block math delimiter parsing, source metadata, Markdown writing, and renderer handoff are not available as one complete contract.",
+            "Media links" => "Shortcut media-provider syntax does not yet have a complete parser, safe HTML output, source mapping, and Markdown writer contract.",
+            "Precise source location" => "Exact locations are not returned for arbitrary fields, transformed nodes, or generated nodes. Arbitrary semantic edits use normalized Markdown writing rather than a lossless source patch.",
+            _ => throw new InvalidOperationException("Published boundary text is missing for " + row.Family + ".")
         };
 
     private static string EscapeTable(string value) => value.Replace("|", "\\|");
