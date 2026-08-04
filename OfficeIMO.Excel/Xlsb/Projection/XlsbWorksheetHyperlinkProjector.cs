@@ -37,23 +37,27 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             worksheet.Save();
         }
 
-        internal static void ValidateUnchanged(ExcelSheet sheet, XlsbWorksheet sourceSheet) {
+        internal static bool Matches(ExcelSheet sheet, XlsbWorksheet sourceSheet) {
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
             Hyperlinks[] containers = worksheet.Elements<Hyperlinks>().ToArray();
             if (sourceSheet.Hyperlinks.Count == 0) {
-                if (containers.Length != 0 || sheet.WorksheetPart.HyperlinkRelationships.Any()) {
-                    ThrowMutation(sheet);
-                }
-                return;
+                return containers.Length == 0 && !sheet.WorksheetPart.HyperlinkRelationships.Any();
             }
-            if (containers.Length != 1) ThrowMutation(sheet);
+            if (containers.Length != 1) return false;
 
-            Hyperlink[] actualLinks = containers[0].Elements<Hyperlink>().ToArray();
+            Hyperlinks container = containers[0];
+            if (container.GetAttributes().Any(attribute =>
+                    !string.Equals(attribute.NamespaceUri, "http://www.w3.org/2000/xmlns/", StringComparison.Ordinal))) {
+                return false;
+            }
+            Hyperlink[] actualLinks = container.Elements<Hyperlink>().ToArray();
             HyperlinkRelationship[] relationships = sheet.WorksheetPart.HyperlinkRelationships.ToArray();
             int expectedExternalCount = sourceSheet.Hyperlinks.Count(link => link.IsExternal);
-            if (actualLinks.Length != sourceSheet.Hyperlinks.Count || relationships.Length != expectedExternalCount) {
-                ThrowMutation(sheet);
+            if (actualLinks.Length != container.ChildElements.Count
+                || actualLinks.Length != sourceSheet.Hyperlinks.Count
+                || relationships.Length != expectedExternalCount) {
+                return false;
             }
             var relationshipsById = relationships.ToDictionary(relationship => relationship.Id, StringComparer.Ordinal);
             for (int index = 0; index < actualLinks.Length; index++) {
@@ -65,7 +69,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     || !MatchesOptional(actual.Location?.Value, expected.Location)
                     || !MatchesOptional(actual.Tooltip?.Value, expected.Tooltip)
                     || !MatchesOptional(actual.Display?.Value, expected.Display)) {
-                    ThrowMutation(sheet);
+                    return false;
                 }
 
                 string? relationshipId = actual.Id?.Value;
@@ -73,12 +77,14 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     if (string.IsNullOrWhiteSpace(relationshipId)
                         || !relationshipsById.TryGetValue(relationshipId!, out HyperlinkRelationship? relationship)
                         || !string.Equals(relationship.Uri.OriginalString, expected.ExternalTarget, StringComparison.Ordinal)) {
-                        ThrowMutation(sheet);
+                        return false;
                     }
                 } else if (!string.IsNullOrWhiteSpace(relationshipId)) {
-                    ThrowMutation(sheet);
+                    return false;
                 }
             }
+
+            return true;
         }
 
         private static bool IsSupportedAttribute(string localName) {
@@ -91,10 +97,6 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
         private static bool MatchesOptional(string? actual, string expected) {
             return string.Equals(actual ?? string.Empty, expected, StringComparison.Ordinal);
-        }
-
-        private static void ThrowMutation(ExcelSheet sheet) {
-            throw new NotSupportedException($"Native XLSB rewriting preserves but cannot modify hyperlinks on worksheet '{sheet.Name}'. Save as .xlsx to retain that change.");
         }
     }
 }

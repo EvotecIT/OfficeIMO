@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         WriteEntry(
                             archive,
                             "xl/worksheets/_rels/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin.rels",
-                            CreateWorksheetRelationships(hyperlinkPlans[index].Relationships));
+                            hyperlinkPlans[index].CreateRelationshipPart());
                     }
                 }
                 if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart);
@@ -170,34 +170,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             builder.Append("</Relationships>");
             return builder.ToString();
-        }
-
-        private static string CreateWorksheetRelationships(IReadOnlyList<XlsbHyperlinkRelationship> relationships) {
-            var builder = new StringBuilder(160 + relationships.Count * 220);
-            builder.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-            builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
-            foreach (XlsbHyperlinkRelationship relationship in relationships) {
-                builder.Append("<Relationship Id=\"");
-                AppendXmlEscaped(builder, relationship.Id);
-                builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" Target=\"");
-                AppendXmlEscaped(builder, relationship.Target);
-                builder.Append("\" TargetMode=\"External\"/>");
-            }
-            builder.Append("</Relationships>");
-            return builder.ToString();
-        }
-
-        private static void AppendXmlEscaped(StringBuilder builder, string value) {
-            foreach (char character in value) {
-                switch (character) {
-                    case '&': builder.Append("&amp;"); break;
-                    case '<': builder.Append("&lt;"); break;
-                    case '>': builder.Append("&gt;"); break;
-                    case '"': builder.Append("&quot;"); break;
-                    case '\'': builder.Append("&apos;"); break;
-                    default: builder.Append(character); break;
-                }
-            }
         }
 
         private static void WriteEntry(ZipArchive archive, string name, string content) {

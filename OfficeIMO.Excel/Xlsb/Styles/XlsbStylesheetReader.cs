@@ -24,6 +24,8 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
         private const int BrtBorder = 46;
         private const int BrtXf = 47;
         private const int MaxStyleItems = 65_536;
+        private const int MaxFonts = 0xFFD3;
+        private const int MaxCellFormats = 0xFF96;
 
         internal static XlsbStylesheet Read(
             byte[] bytes,
@@ -166,8 +168,13 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
 
             var cursor = new XlsbBinaryCursor(record.Data);
             uint declared = cursor.ReadUInt32();
-            if (declared > MaxStyleItems) {
-                throw new InvalidDataException($"The XLSB {kind} collection declares {declared} items, exceeding the supported limit of {MaxStyleItems}.");
+            int maximum = kind == CollectionKind.Fonts
+                ? MaxFonts
+                : kind == CollectionKind.CellFormats
+                    ? MaxCellFormats
+                    : MaxStyleItems;
+            if (declared > maximum) {
+                throw new InvalidDataException($"The XLSB {kind} collection declares {declared} items, exceeding the supported limit of {maximum}.");
             }
 
             active = kind;

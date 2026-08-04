@@ -20,6 +20,28 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtBeginSheetData = 145;
         private const int BrtEndSheetData = 146;
         private const int BrtWsDim = 148;
+        private const int BrtEndSheet = 130;
+        private const int BrtMargins = 476;
+        private const int BrtPrintOptions = 477;
+        private const int BrtPageSetup = 478;
+        private const int BrtBeginHeaderFooter = 479;
+        private const int BrtEndHeaderFooter = 480;
+        private const int BrtHLink = 494;
+        private const int BrtBeginRowBreaks = 392;
+        private const int BrtBeginColumnBreaks = 394;
+        private const int BrtDrawing = 550;
+        private const int BrtLegacyDrawing = 551;
+        private const int BrtLegacyDrawingHeaderFooter = 552;
+        private const int BrtBeginWebPublishItems = 554;
+        private const int BrtBackgroundImage = 562;
+        private const int BrtBeginDataValidations = 573;
+        private const int BrtBeginSmartTags = 594;
+        private const int BrtBeginCellWatches = 605;
+        private const int BrtBigName = 625;
+        private const int BrtBeginOleObjects = 638;
+        private const int BrtBeginActiveXControls = 643;
+        private const int BrtBeginCellIgnoreErrors = 648;
+        private const int BrtBeginTableParts = 660;
 
         private static readonly byte[] DefaultRowProperties = {
             0x00, 0x00, 0x00, 0x00,
@@ -86,9 +108,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return output.ToArray();
         }
 
-        internal static byte[] Rewrite(byte[] originalPart, IReadOnlyList<XlsbWriteCell> cells) {
+        internal static byte[] Rewrite(byte[] originalPart, IReadOnlyList<XlsbWriteCell> cells) =>
+            Rewrite(originalPart, cells, Array.Empty<XlsbGeneratedRecord>(), rewriteHyperlinks: false);
+
+        internal static byte[] Rewrite(
+            byte[] originalPart,
+            IReadOnlyList<XlsbWriteCell> cells,
+            IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
+            bool rewriteHyperlinks) {
             if (originalPart == null) throw new ArgumentNullException(nameof(originalPart));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
+            if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
 
             IReadOnlyList<XlsbRecord> records;
             using (var input = new MemoryStream(originalPart, writable: false)) {
@@ -107,6 +137,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 .ToDictionary(group => group.Key, group => (IReadOnlyList<XlsbWriteCell>)group.OrderBy(cell => cell.Column).ToArray());
             int[] rowIndexes = layout.Rows.Keys.Concat(cellsByRow.Keys).Distinct().OrderBy(row => row).ToArray();
             byte[]? dimensionPayload = CreateExpandedDimensionPayload(records, cells);
+            int hyperlinkInsertionIndex = rewriteHyperlinks
+                ? FindHyperlinkInsertionIndex(records, endIndex)
+                : -1;
 
             using var output = new MemoryStream(originalPart.Length + Math.Max(256, cells.Count * 24));
             for (int index = 0; index <= beginIndex; index++) {
@@ -135,11 +168,61 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             for (int index = endIndex; index < records.Count; index++) {
+                if (rewriteHyperlinks && index == hyperlinkInsertionIndex) {
+                    foreach (XlsbGeneratedRecord hyperlink in hyperlinkRecords) {
+                        XlsbRecordWriter.Write(output, hyperlink.Type, hyperlink.Payload);
+                    }
+                }
+                if (rewriteHyperlinks && records[index].Type == BrtHLink) continue;
                 WriteRecord(output, records[index]);
             }
 
             return output.ToArray();
         }
+
+        private static int FindHyperlinkInsertionIndex(IReadOnlyList<XlsbRecord> records, int endSheetDataIndex) {
+            int endSheetIndex = FindSingleRecord(records, BrtEndSheet, "BrtEndSheet");
+            int firstHyperlinkIndex = -1;
+            for (int index = 0; index < records.Count; index++) {
+                if (records[index].Type != BrtHLink) continue;
+                if (index <= endSheetDataIndex || index >= endSheetIndex) {
+                    throw new InvalidDataException("The XLSB worksheet contains a BrtHLink record outside the supported worksheet-metadata region.");
+                }
+                if (firstHyperlinkIndex < 0) firstHyperlinkIndex = index;
+            }
+            if (firstHyperlinkIndex >= 0) return firstHyperlinkIndex;
+
+            for (int index = endSheetDataIndex + 1; index < endSheetIndex; index++) {
+                int type = records[index].Type;
+                if (IsHyperlinkSuccessorRecord(type)) {
+                    return index;
+                }
+            }
+            return endSheetIndex;
+        }
+
+        private static bool IsHyperlinkSuccessorRecord(int type) =>
+            type == BrtPrintOptions
+            || type == BrtMargins
+            || type == BrtPageSetup
+            || type == BrtBeginHeaderFooter
+            || type == BrtEndHeaderFooter
+            || type == BrtBeginRowBreaks
+            || type == BrtBeginColumnBreaks
+            || type == BrtBigName
+            || type == BrtBeginCellWatches
+            || type == BrtBeginCellIgnoreErrors
+            || type == BrtBeginSmartTags
+            || type == BrtDrawing
+            || type == BrtLegacyDrawing
+            || type == BrtLegacyDrawingHeaderFooter
+            || type == BrtBackgroundImage
+            || type == BrtBeginOleObjects
+            || type == BrtBeginActiveXControls
+            || type == BrtBeginWebPublishItems
+            || type == BrtBeginTableParts
+            || type == BrtBeginDataValidations
+            || type == BrtEndSheet;
 
         private static byte[] CreateRowHeaderPayload(
             int zeroBasedRow,

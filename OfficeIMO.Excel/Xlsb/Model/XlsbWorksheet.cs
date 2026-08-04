@@ -1,3 +1,5 @@
+using OfficeIMO.Excel.Xlsb.Package;
+
 namespace OfficeIMO.Excel.Xlsb.Model {
     internal sealed class XlsbWorksheet {
         private readonly List<XlsbCell> _cells = new List<XlsbCell>();
@@ -32,6 +34,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal IReadOnlyList<XlsbCellRange> MergedRanges => _mergedRanges;
 
         internal IReadOnlyList<XlsbHyperlink> Hyperlinks => _hyperlinks;
+
+        internal IReadOnlyDictionary<string, XlsbPackageRelationship> Relationships { get; set; } =
+            new Dictionary<string, XlsbPackageRelationship>(StringComparer.Ordinal);
 
         internal XlsbCellRange? UsedRange { get; set; }
 

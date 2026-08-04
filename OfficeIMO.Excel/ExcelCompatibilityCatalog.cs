@@ -85,7 +85,7 @@ public static class ExcelCompatibilityCatalog {
             XlsbSubset("Formatting.Styles", "Formatting", "Fonts, number formats, fills, borders, alignment, protection, and cell formats.",
                 "A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded."),
             XlsbNative("Structure.Geometry", "Structure", "Dimensions, rows, columns, merges, panes, views, selections, and outline metadata."),
-            XlsbNative("Navigation.Hyperlinks", "Navigation", "Internal and relationship-backed external hyperlinks."),
+            XlsbNative("Navigation.Hyperlinks", "Navigation", "Internal and relationship-backed external hyperlinks.", editableRoundTrip: true),
             XlsbSubset("Data.AutoFilter", "Data", "Worksheet AutoFilter ranges and equality-list criteria.",
                 "Unsupported criteria remain preserved on import; native new-package generation supports the documented equality-list subset."),
             XlsbNative("Print.PageSetup", "Print", "Print options, margins, page setup, and text headers and footers."),
@@ -144,10 +144,11 @@ public static class ExcelCompatibilityCatalog {
         OfficeCapabilityCoverageState.Dropped, impact,
         "Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed.");
 
-    private static OfficeCapability XlsbNative(string id, string category, string description) => Capability(
+    private static OfficeCapability XlsbNative(string id, string category, string description, bool editableRoundTrip = false) => Capability(
         XlsbFormatId, "Excel.Xlsb." + id, category, description, OfficeCapabilityRepresentability.Native,
         OfficeCapabilityCoverageState.Native, OfficeCapabilityCoverageState.Native,
-        OfficeCapabilityCoverageState.PreservedOpaque, OfficeCapabilityCoverageState.Native,
+        editableRoundTrip ? OfficeCapabilityCoverageState.Native : OfficeCapabilityCoverageState.PreservedOpaque,
+        OfficeCapabilityCoverageState.Native,
         OfficeCapabilityCoverageState.Native);
 
     private static OfficeCapability XlsbSubset(string id, string category, string description, string note) => Capability(
