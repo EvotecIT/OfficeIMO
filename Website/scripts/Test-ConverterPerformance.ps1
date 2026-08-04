@@ -39,9 +39,13 @@ try {
         $port = ([System.Net.IPEndPoint] $listener.LocalEndpoint).Port
         $listener.Stop()
         $python = Get-Command python -ErrorAction Stop
-        $server = Start-Process -FilePath $python.Source -ArgumentList @(
-            '-m', 'http.server', $port, '--bind', '127.0.0.1', '--directory', $resolvedSiteRoot
-        ) -WindowStyle Hidden -PassThru
+        $serverArguments = @{
+            FilePath = $python.Source
+            ArgumentList = @('-m', 'http.server', $port, '--bind', '127.0.0.1', '--directory', $resolvedSiteRoot)
+            PassThru = $true
+        }
+        if ($IsWindows) { $serverArguments.WindowStyle = 'Hidden' }
+        $server = Start-Process @serverArguments
         $BaseUrl = "http://127.0.0.1:$port/apps/officeimo-converter/"
         $ready = $false
         for ($attempt = 0; $attempt -lt 50; $attempt++) {
