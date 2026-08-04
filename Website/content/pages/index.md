@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO — Office Documents for .NET and PowerShell"
-description: "Explore documented OfficeIMO support for modern and legacy Office formats, PDF, conversion, extraction, and PowerShell automation, with explicit compatibility limits."
+description: "Explore documented OfficeIMO support for Office formats, PDF, conversion, extraction, and PowerShell automation, with explicit compatibility limits."
 layout: home
 slug: index
 meta.social_image: "/images/officeimo-social-premium.jpg"
