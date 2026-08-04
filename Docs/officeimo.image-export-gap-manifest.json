@@ -17,63 +17,107 @@
       "owner": "OfficeIMO.Drawing",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Own shared encoding, density metadata, paths, fonts, policies, save behavior, production batch controls, raster safety, image projection, chart primitives, diagnostics, and visual-quality helpers.",
-      "boundary": "Document packages retain source semantics; bounded codec variants and managed text-shaping approximations remain diagnosed explicitly."
+      "boundary": "Document packages retain source semantics; bounded codec variants and managed text-shaping approximations remain diagnosed explicitly.",
+      "evidence": [
+        "OfficeIMO.Drawing.Tests/Drawing.ImageExportBuilder.cs",
+        "OfficeIMO.Drawing.Tests/Drawing.Raster.Limits.cs",
+        "OfficeIMO.Drawing.Tests/Drawing.TextShaping.Raster.cs"
+      ]
     },
     {
       "id": "excel-premium-fidelity",
       "owner": "OfficeIMO.Excel",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Export worksheet content to PNG and SVG through Excel-owned layout semantics and Drawing-owned rendering primitives.",
-      "boundary": "Complex comments, conditional icons, pattern fills, rich text, sparklines, stacked text, shape text, charts, images, objects, and page slicing have explicit fidelity diagnostics and evidence limits."
+      "boundary": "Complex comments, conditional icons, pattern fills, rich text, sparklines, stacked text, shape text, charts, images, objects, and page slicing have explicit fidelity diagnostics and evidence limits.",
+      "evidence": [
+        "OfficeIMO.Excel.Tests/Excel.ImageExport.Objects.cs",
+        "OfficeIMO.Excel.Tests/Excel.ImageExport.VisualBaseline.cs",
+        "OfficeIMO.Excel.Tests/Excel.ImageExport.SecurityBounds.cs"
+      ]
     },
     {
       "id": "powerpoint-real-world-baselines",
       "owner": "OfficeIMO.PowerPoint",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Export fixed-size authored and imported slides through the native presentation renderer with PNG and SVG evidence.",
-      "boundary": "Placeholder and master inheritance, grouped objects, connectors, charts, tables, and unsupported content retain explicit fidelity boundaries."
+      "boundary": "Placeholder and master inheritance, grouped objects, connectors, charts, tables, and unsupported content retain explicit fidelity boundaries.",
+      "evidence": [
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ImageExport.RealWorldFixtures.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ImageExport.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.VisualProof.cs"
+      ]
     },
     {
       "id": "word-pagination",
       "owner": "OfficeIMO.Word",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Export estimated multi-page Word layouts while keeping Word-owned wrapping, sections, fields, and object anchoring separate from Drawing-owned pixels and vectors.",
-      "boundary": "The renderer does not claim Microsoft Word application pagination; overflow, fallback, and estimated-pagination behavior is diagnosed."
+      "boundary": "The renderer does not claim Microsoft Word application pagination; overflow, fallback, and estimated-pagination behavior is diagnosed.",
+      "evidence": [
+        "OfficeIMO.Word.Tests/Word.ImageExport.cs",
+        "OfficeIMO.Word.Tests/Word.ImageExport.Batch.cs",
+        "OfficeIMO.Word.Tests/Word.ImageExport.Policy.cs"
+      ]
     },
     {
       "id": "html-format-conformance",
       "owner": "OfficeIMO.Html",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Render continuous and paged HTML, email, and EPUB output through the shared five-format image API with bounded resource policies.",
-      "boundary": "HTML owns layout and resource semantics while Drawing owns reusable raster and SVG encoding."
+      "boundary": "HTML owns layout and resource semantics while Drawing owns reusable raster and SVG encoding.",
+      "evidence": [
+        "OfficeIMO.Html.Tests/Html.Rendering.cs",
+        "OfficeIMO.Html.Tests/Html.Rendering.Corpus.cs",
+        "OfficeIMO.Html.Tests/Html.EmailImageExport.cs",
+        "OfficeIMO.Html.Tests/Html.EpubImageExport.cs"
+      ]
     },
     {
       "id": "onenote-visual-baselines",
       "owner": "OfficeIMO.OneNote",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Export OneNote pages, sections, notebooks, ink, math, images, and selections through the shared converter result contract.",
-      "boundary": "OneNote retains package semantics while Drawing owns pixels, vectors, encoders, bounded raster diagnostics, and naming behavior."
+      "boundary": "OneNote retains package semantics while Drawing owns pixels, vectors, encoders, bounded raster diagnostics, and naming behavior.",
+      "evidence": [
+        "OfficeIMO.OneNote.Tests/OneNoteRenderingTests.cs",
+        "OfficeIMO.OneNote.Tests/InkFixtureTests.cs"
+      ]
     },
     {
       "id": "visio-five-format-export",
       "owner": "OfficeIMO.Visio",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Export Visio pages and document batches to PNG, JPEG, TIFF, SVG, and WebP through native Visio geometry and shared encoding contracts.",
-      "boundary": "Loaded stencil artwork, connectors, text, themes, unsupported shapes, and supersampled raster allocation retain explicit evidence and budget limits."
+      "boundary": "Loaded stencil artwork, connectors, text, themes, unsupported shapes, and supersampled raster allocation retain explicit evidence and budget limits.",
+      "evidence": [
+        "OfficeIMO.Visio.Tests/Visio.ImageExport.cs",
+        "OfficeIMO.Visio.Tests/Visio.PremiumVisualBaseline.cs"
+      ]
     },
     {
       "id": "pdf-page-image",
       "owner": "OfficeIMO.Pdf",
       "runtimeDependencyPolicy": "first-party-only",
-      "currentContract": "Render OfficeIMO-generated PDF pages through first-party PDF-to-Drawing operators with shared format, selection, safety, and diagnostic contracts.",
-      "boundary": "Arbitrary-producer operators, fonts, images, transparency, forms, annotations, and missing authored appearance streams are supported conservatively and diagnosed."
+      "currentContract": "Render OfficeIMO-generated and bounded arbitrary-producer PDF pages through first-party PDF-to-Drawing operators with shared format, selection, safety, and diagnostic contracts.",
+      "boundary": "Arbitrary-producer operators, fonts, images, transparency, forms, annotations, and missing authored appearance streams are supported conservatively and diagnosed.",
+      "evidence": [
+        "OfficeIMO.Pdf.Tests/Pdf/PdfAuthoritativeInteroperabilityCorpusTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageImageRendererTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageImageRendererBatchTests.cs"
+      ]
     },
     {
       "id": "visual-qa",
       "owner": "OfficeIMO.Shared.Tests",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Provide Drawing-backed PNG decode, encode, and difference evidence with changed-area, MAE, RMSE, luminance, renderability, and nonblank checks.",
-      "boundary": "Desktop applications, Poppler, and other reference tools are optional test or manual-review dependencies and never product rendering dependencies."
+      "boundary": "Desktop applications, Poppler, and other reference tools are optional test or manual-review dependencies and never product rendering dependencies.",
+      "evidence": [
+        "OfficeIMO.TestAssets/VisualBaselineTestSupport.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfVisualComparerTests.cs",
+        "OfficeIMO.Excel.Tests/Excel.ImageExport.VisualFidelityGate.cs"
+      ]
     }
   ]
 }

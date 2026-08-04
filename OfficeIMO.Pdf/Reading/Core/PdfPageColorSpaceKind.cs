@@ -7,5 +7,8 @@ internal enum PdfPageColorSpaceKind {
     CalGray,
     CalRgb,
     Lab,
+    Indexed,
+    Separation,
+    DeviceN,
     Pattern
 }

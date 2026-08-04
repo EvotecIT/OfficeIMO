@@ -10,15 +10,19 @@ internal sealed class PdfFontResource {
     public string ResourceName { get; }
     public string BaseFont { get; }
     public string Encoding { get; }
+    public string FontSubtype { get; }
+    public string? EmbeddedProgramSubtype { get; }
     public bool HasToUnicode { get; }
     public ToUnicodeCMap? CMap { get; }
     public IReadOnlyDictionary<int, string>? Differences { get; }
     public byte[]? EmbeddedTrueTypeFont { get; }
     public string? DrawingFontFamily { get; }
-    public PdfFontResource(string resourceName, string baseFont, string encoding, bool hasToUnicode, ToUnicodeCMap? cmap = null, IReadOnlyDictionary<int, string>? differences = null, byte[]? embeddedTrueTypeFont = null) {
+    public PdfFontResource(string resourceName, string baseFont, string encoding, bool hasToUnicode, ToUnicodeCMap? cmap = null, IReadOnlyDictionary<int, string>? differences = null, byte[]? embeddedTrueTypeFont = null, string? fontSubtype = null, string? embeddedProgramSubtype = null) {
         ResourceName = resourceName;
         BaseFont = baseFont;
         Encoding = encoding;
+        FontSubtype = fontSubtype ?? string.Empty;
+        EmbeddedProgramSubtype = embeddedProgramSubtype;
         HasToUnicode = hasToUnicode;
         CMap = cmap;
         Differences = differences;

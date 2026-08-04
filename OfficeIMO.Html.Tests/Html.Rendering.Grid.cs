@@ -9,6 +9,54 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlGrid_AutoTrackHonorsAutomaticItemMinimumBeforeStretching() {
+        const string html = """
+            <div style="display:grid;width:240px;grid-template-columns:auto 1fr;column-gap:10px">
+              <span id="intrinsic-label" style="white-space:nowrap;background:#ff0000">Intrinsic label width</span>
+              <span id="flexible-cell" style="background:#0000ff">B</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 260D);
+        HtmlRenderShape label = FindGridShape(rendered, "span#intrinsic-label");
+        HtmlRenderShape flexible = FindGridShape(rendered, "span#flexible-cell");
+
+        Assert.True(label.Width > 100D);
+        Assert.Equal(label.X + label.Width + 10D, flexible.X, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_ExplicitIntrinsicTrackKeywordsUseDiagnosedFallback() {
+        const string html = """
+            <div style="display:grid;width:240px;grid-template-columns:max-content minmax(min-content,1fr)">
+              <span>Intrinsic label width</span><span>Cell</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 260D);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported &&
+            diagnostic.Detail != null && diagnostic.Detail.Contains("intrinsic keyword", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlGrid_FractionalAutomaticMinimumOverflowUsesDiagnosedFallback() {
+        const string html = """
+            <div style="display:grid;width:120px;grid-template-columns:1fr 1fr">
+              <span style="white-space:nowrap">This intrinsic label is wider than one fractional track</span><span>Cell</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 140D);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported &&
+            diagnostic.Detail != null && diagnostic.Detail.Contains("fractional automatic minimum", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlGrid_ResolvesFixedFractionAndImplicitTracks() {
         const string html = """
             <div style="display:grid;width:300px;grid-template-columns:100px 1fr 2fr;grid-auto-rows:40px;gap:5px 10px">

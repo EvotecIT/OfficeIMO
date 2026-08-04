@@ -22,7 +22,11 @@ public sealed partial class PdfReadPage {
         int depth) {
         EnsureContentNestingBudget(depth);
         HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources);
+        HashSet<string> approximatedIccColorSpaces = GetApproximatedIccColorSpaceResourceNames(resources);
         var invokedXObjects = new HashSet<string>(StringComparer.Ordinal);
+        var invokedFonts = new HashSet<string>(StringComparer.Ordinal);
+        var invokedShadings = new HashSet<string>(StringComparer.Ordinal);
+        var invokedPatterns = new HashSet<string>(StringComparer.Ordinal);
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
             string? capabilityId = GetOperatorCapabilityId(operation.Name);
             if (capabilityId != null) AddRenderDiagnostic(diagnostics, seen, capabilityId, operation.Name);
@@ -31,11 +35,26 @@ public sealed partial class PdfReadPage {
                 operation.Operands[operation.Operands.Count - 1] is string xObjectName) {
                 invokedXObjects.Add(xObjectName);
             }
+            if (operation.Name == "Tf" && operation.Operands.Count >= 2 &&
+                operation.Operands[operation.Operands.Count - 2] is string fontName) {
+                invokedFonts.Add(fontName);
+            }
+            if (operation.Name == "sh" && operation.Operands.Count > 0 &&
+                operation.Operands[operation.Operands.Count - 1] is string shadingName) {
+                invokedShadings.Add(shadingName);
+            }
+            if ((operation.Name == "scn" || operation.Name == "SCN") && operation.Operands.Count > 0 &&
+                operation.Operands[operation.Operands.Count - 1] is string patternName) {
+                invokedPatterns.Add(patternName);
+            }
             if ((operation.Name == "cs" || operation.Name == "CS") &&
                 operation.Operands.Count > 0 &&
-                operation.Operands[operation.Operands.Count - 1] is string colorSpaceName &&
-                unsupportedColorSpaces.Contains(colorSpaceName)) {
-                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, colorSpaceName);
+                operation.Operands[operation.Operands.Count - 1] is string colorSpaceName) {
+                if (unsupportedColorSpaces.Contains(colorSpaceName)) {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, colorSpaceName);
+                } else if (approximatedIccColorSpaces.Contains(colorSpaceName)) {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, colorSpaceName);
+                }
             }
             if (operation.InlineImage is PdfContentInlineImage inlineImage) {
                 CollectImageColorSpaceCapabilityDiagnostic(
@@ -50,7 +69,8 @@ public sealed partial class PdfReadPage {
         maxOperands: _limits.MaxContentOperands);
 
         if (resources == null) return;
-        CollectFontCapabilityDiagnostics(resources, diagnostics, seen);
+        CollectFontCapabilityDiagnostics(resources, invokedFonts, diagnostics, seen);
+        CollectShadingCapabilityDiagnostics(resources, invokedShadings, invokedPatterns, diagnostics, seen);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
         CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen);
         CollectXObjectCapabilityDiagnostics(resources, invokedXObjects, diagnostics, seen, activeForms, pageContentBudget, depth);
@@ -69,9 +89,18 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private void CollectFontCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
+    private void CollectFontCapabilityDiagnostics(PdfDictionary resources, HashSet<string> invokedFonts, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
         foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
-            if (font.EmbeddedTrueTypeFont == null) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FontSubstitutionId, font.ResourceName);
+            if (!invokedFonts.Contains(font.ResourceName) || font.EmbeddedTrueTypeFont != null) continue;
+            string capabilityId;
+            if (string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal)) {
+                capabilityId = PdfRenderCapabilities.Type3FontSubstitutionId;
+            } else if (font.EmbeddedProgramSubtype is "Type1C" or "CIDFontType0C" or "CFF") {
+                capabilityId = PdfRenderCapabilities.CffFontSubstitutionId;
+            } else {
+                capabilityId = PdfRenderCapabilities.FontSubstitutionId;
+            }
+            AddRenderDiagnostic(diagnostics, seen, capabilityId, font.ResourceName);
         }
     }
 
@@ -87,6 +116,64 @@ public sealed partial class PdfReadPage {
         }
 
         return unsupported;
+    }
+
+    private HashSet<string> GetApproximatedIccColorSpaceResourceNames(PdfDictionary? resources) {
+        var approximated = new HashSet<string>(StringComparer.Ordinal);
+        if (resources == null) return approximated;
+        PdfDictionary? colorSpaces = ResolveDictionary(resources.Items.TryGetValue("ColorSpace", out PdfObject? value) ? value : null);
+        if (colorSpaces == null) return approximated;
+        foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
+            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace) && colorSpace.UsesIccApproximation) {
+                approximated.Add(entry.Key);
+            }
+        }
+        return approximated;
+    }
+
+    private void CollectShadingCapabilityDiagnostics(
+        PdfDictionary resources,
+        IReadOnlyCollection<string> invokedShadings,
+        IReadOnlyCollection<string> invokedPatterns,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen) {
+        PdfDictionary? shadings = ResolveDictionary(resources.Items.TryGetValue("Shading", out PdfObject? shadingValue) ? shadingValue : null);
+        foreach (string name in invokedShadings) {
+            if (shadings?.Items.TryGetValue(name, out PdfObject? shading) == true) {
+                CollectOneShadingCapabilityDiagnostic(shading, name, diagnostics, seen);
+            } else {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedShadingId, name);
+            }
+        }
+
+        PdfDictionary? patterns = ResolveDictionary(resources.Items.TryGetValue("Pattern", out PdfObject? patternValue) ? patternValue : null);
+        foreach (string name in invokedPatterns) {
+            if (patterns?.Items.TryGetValue(name, out PdfObject? patternValueObject) != true) continue;
+            PdfDictionary? pattern = ResolveDictionary(patternValueObject);
+            if (TryReadInteger(pattern?.Items.TryGetValue("PatternType", out PdfObject? typeValue) == true ? typeValue : null) != 2) continue;
+            if (pattern?.Items.TryGetValue("Shading", out PdfObject? shading) == true) {
+                CollectOneShadingCapabilityDiagnostic(shading, name, diagnostics, seen);
+            } else {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedShadingId, name);
+            }
+        }
+    }
+
+    private void CollectOneShadingCapabilityDiagnostic(
+        PdfObject? value,
+        string subject,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen) {
+        PdfDictionary? shading = ResolveDictionary(value);
+        if (shading == null || !shading.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
+            !TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, subject);
+        } else if (colorSpace.UsesIccApproximation) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, subject);
+        }
+        if (!TryReadShading(value, out _)) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedShadingId, subject);
+        }
     }
 
     private void CollectPatternCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
@@ -201,6 +288,14 @@ public sealed partial class PdfReadPage {
         }
 
         if (ResourceResolver.CanProjectImageColorSpace(image, resources, _objects)) {
+            PdfObject? diagnosticColorSpace = colorSpaceObject;
+            if (ResolveObject(colorSpaceObject) is PdfName resourceName) {
+                PdfDictionary? colorSpaces = ResolveDictionary(resources?.Items.TryGetValue("ColorSpace", out PdfObject? value) == true ? value : null);
+                if (colorSpaces?.Items.TryGetValue(resourceName.Name, out PdfObject? resourceColorSpace) == true) diagnosticColorSpace = resourceColorSpace;
+            }
+            if (TryReadColorSpaceResource(diagnosticColorSpace, out PdfPageColorSpace projectedColorSpace) && projectedColorSpace.UsesIccApproximation) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, imageName);
+            }
             return;
         }
 
@@ -227,13 +322,25 @@ public sealed partial class PdfReadPage {
         EnsureAnnotationBudget(annotations);
         for (int i = 0; i < annotations.Items.Count; i++) {
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[i]);
-            if (annotation == null || IsHiddenAnnotation(annotation) || TryGetNormalAppearanceStream(annotation, out _)) continue;
+            if (annotation == null || IsHiddenAnnotation(annotation) || HasNoVisibleAnnotationArea(annotation) || TryGetNormalAppearanceStream(annotation, out _)) continue;
             string subtype = annotation.Get<PdfName>("Subtype")?.Name ?? "unknown";
             string capabilityId = PdfAnnotationFlattener.TryCreateSyntheticAppearanceStream(_objects, annotation, out _)
                 ? PdfRenderCapabilities.SynthesizedAnnotationAppearanceId
                 : PdfRenderCapabilities.AnnotationAppearanceId;
             AddRenderDiagnostic(diagnostics, seen, capabilityId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
         }
+    }
+
+    private bool HasNoVisibleAnnotationArea(PdfDictionary annotation) {
+        PdfArray? rectangle = ResolveArray(annotation.Items.TryGetValue("Rect", out PdfObject? value) ? value : null);
+        if (rectangle == null || rectangle.Items.Count < 4 ||
+            ResolveObject(rectangle.Items[0]) is not PdfNumber x1 ||
+            ResolveObject(rectangle.Items[1]) is not PdfNumber y1 ||
+            ResolveObject(rectangle.Items[2]) is not PdfNumber x2 ||
+            ResolveObject(rectangle.Items[3]) is not PdfNumber y2) {
+            return false;
+        }
+        return x1.Value == x2.Value || y1.Value == y2.Value;
     }
 
     private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject) {

@@ -182,6 +182,34 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPages_ReportsBoundedType3FontSubstitutionOnlyWhenInvoked() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /Name /FType3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string charProc = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] invoked = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, charProc);
+        byte[] unused = BuildSingleStreamPdf("0 0 20 20 re f", "<< /Font << /FType3 5 0 R >> >>", type3Font, charProc);
+
+        PdfPageRenderResult invokedResult = Assert.Single(PdfPageImageRenderer.RenderPages(invoked));
+        PdfPageRenderResult unusedResult = Assert.Single(PdfPageImageRenderer.RenderPages(unused));
+
+        Assert.Contains(invokedResult.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+        Assert.DoesNotContain(invokedResult.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.FontSubstitutionId && diagnostic.Subject == "FType3");
+        Assert.DoesNotContain(unusedResult.CapabilityDiagnostics, diagnostic => diagnostic.Subject == "FType3");
+    }
+
+    [Fact]
+    public void RenderPages_ReportsEmbeddedCffSubstitutionWithSpecificDiagnostic() {
+        string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+FixtureCff /FirstChar 65 /LastChar 65 /Widths [500] /FontDescriptor 6 0 R >>\nendobj";
+        string descriptor = "6 0 obj\n<< /Type /FontDescriptor /FontName /ABCDEF+FixtureCff /Flags 4 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile3 7 0 R >>\nendobj";
+        string cff = BuildStreamObject(7, "<< /Subtype /Type1C", "bounded-cff-fixture");
+        byte[] pdf = BuildSingleStreamPdf("BT /FCff 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FCff 5 0 R >> >>", font, descriptor, cff);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.CffFontSubstitutionId && diagnostic.Subject == "FCff");
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.FontSubstitutionId && diagnostic.Subject == "FCff");
+    }
+
+    [Fact]
     public void RenderPage_AppliesImageXObjectExtGStateOpacity() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 0, 255, 255, 0 }),
@@ -1040,7 +1068,7 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_ReportsOnlySelectedUnsupportedContentColorSpaces() {
+    public void RenderPage_ProjectsSeparationContentColorSpaceThroughAlternate() {
         byte[] pdf = BuildSingleStreamPdf(
             """
             /CsSpot cs
@@ -1051,14 +1079,55 @@ public class PdfPageImageRendererTests {
             "<< /ColorSpace << /CsUnused [/DeviceN [/Cyan] /DeviceCMYK 5 0 R] /CsSpot [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
             "5 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj");
 
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
 
-        PdfRenderCapabilityDiagnostic diagnostic = Assert.Single(
-            result.CapabilityDiagnostics,
-            item => item.Code == "render.resource.colorspace-unsupported");
-        Assert.Equal("CsSpot", diagnostic.Subject);
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(128, 0, 0));
+        Assert.DoesNotContain(result.CapabilityDiagnostics, item => item.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Fact]
+    public void RenderPage_RejectsTintTransformWithoutRequiredDomainAndFailsNoLossPolicy() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/CsSpot cs\n0.5 scn\n40 80 70 40 re\nf",
+            "<< /ColorSpace << /CsSpot [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
+            "5 0 obj\n<< /FunctionType 2 /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj");
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+        Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
+            OfficeImageExportFormat.Png,
+            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } }));
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsIndexedAndDeviceNContentColorSpaces() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            /CsIndexed cs
+            1 scn
+            20 80 40 40 re
+            f
+            /CsDeviceN cs
+            0 1 1 0 scn
+            80 80 40 40 re
+            f
+            """,
+            "<< /ColorSpace << /CsIndexed [/Indexed /DeviceRGB 1 <FF000000FF00>] /CsDeviceN [/DeviceN [/Cyan /Magenta /Yellow /Black] /DeviceCMYK 5 0 R] >> >>",
+            "5 0 obj\n<< /FunctionType 4 /Domain [0 1 0 1 0 1 0 1] /Range [0 1 0 1 0 1 0 1] /Length 2 >>\nstream\n{}\nendstream\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(0, 255, 0));
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(255, 0, 0));
+        Assert.DoesNotContain(result.CapabilityDiagnostics, item => item.Code == PdfRenderCapabilities.ColorSpaceId);
     }
 
     [Fact]
@@ -1222,6 +1291,7 @@ public class PdfPageImageRendererTests {
         Assert.NotEqual(OfficeColorSpaceConverter.FromCalibratedRgb(0.1D, 0.2D, 0.3D, 0.9505D, 1D, 1.089D), calibrated);
         Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(204, 26, 51));
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.colorspace-unsupported");
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId && diagnostic.Subject == "CsIcc");
     }
 
     [Fact]
@@ -1281,6 +1351,39 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_DiagnosesInvokedIccShadingAndFailsNoLossPolicy() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "20 80 120 40 re\nW\nn\n/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 6 0 R] /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> >>\nendobj",
+            "6 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj");
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
+        Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
+            OfficeImageExportFormat.Png,
+            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } }));
+    }
+
+    [Fact]
+    public void RenderPage_RejectsMalformedInvokedShadingFunctionAndFailsNoLossPolicy() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function << /FunctionType 2 /C0 [1 0 0] /C1 [0 0 1] /N 1 >> >>\nendobj");
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+        Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
+            OfficeImageExportFormat.Png,
+            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } }));
+    }
+
+    [Fact]
     public void RenderPage_PreservesStitchedShadingFunctionsAsMultipleGradientStops() {
         byte[] pdf = BuildSingleStreamPdf(
             """
@@ -1305,7 +1408,7 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_UsesCmykDefaultsForOmittedShadingFunctionColors() {
+    public void RenderPage_UsesExplicitCmykShadingFunctionColors() {
         byte[] pdf = BuildSingleStreamPdf(
             """
             20 80 120 40 re
@@ -1314,7 +1417,7 @@ public class PdfPageImageRendererTests {
             /Sh1 sh
             """,
             "<< /Shading << /Sh1 5 0 R >> >>",
-            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceCMYK /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /N 1 >> /Extend [true true] >>\nendobj");
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceCMYK /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >> /Extend [true true] >>\nendobj");
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 

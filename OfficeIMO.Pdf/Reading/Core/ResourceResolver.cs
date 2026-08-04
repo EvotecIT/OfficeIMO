@@ -455,11 +455,21 @@ internal static partial class ResourceResolver {
             }
         }
 
-        byte[]? embeddedTrueTypeFont = TryReadEmbeddedTrueTypeFont(fontVal, objects);
-        return new PdfFontResource(resourceName, baseFont, encoding, hasToUnicode, cmap, differences, embeddedTrueTypeFont);
+        byte[]? embeddedTrueTypeFont = TryReadEmbeddedTrueTypeFont(fontVal, objects, out string? embeddedProgramSubtype);
+        return new PdfFontResource(
+            resourceName,
+            baseFont,
+            encoding,
+            hasToUnicode,
+            cmap,
+            differences,
+            embeddedTrueTypeFont,
+            fontVal.Get<PdfName>("Subtype")?.Name,
+            embeddedProgramSubtype);
     }
 
-    private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects) {
+    private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? embeddedProgramSubtype) {
+        embeddedProgramSubtype = null;
         PdfDictionary fontWithDescriptor = font;
         if (string.Equals(font.Get<PdfName>("Subtype")?.Name, "Type0", System.StringComparison.Ordinal) &&
             font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject)) {
@@ -478,9 +488,11 @@ internal static partial class ResourceResolver {
         PdfStream? program = ResolveObject(
             descriptor.Items.TryGetValue("FontFile2", out PdfObject? fontFile2) ? fontFile2 : null,
             objects) as PdfStream;
+        if (program != null) embeddedProgramSubtype = "TrueType";
         if (program == null && descriptor.Items.TryGetValue("FontFile3", out PdfObject? fontFile3)) {
             PdfStream? candidate = ResolveObject(fontFile3, objects) as PdfStream;
             string? subtype = candidate?.Dictionary.Get<PdfName>("Subtype")?.Name;
+            embeddedProgramSubtype = subtype;
             if (candidate != null && (string.Equals(subtype, "OpenType", System.StringComparison.Ordinal) || string.Equals(subtype, "TrueType", System.StringComparison.Ordinal))) {
                 program = candidate;
             }

@@ -29,20 +29,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Add typed Visio APIs for data graphics, legends, and additional high-value ShapeSheet sections and formulas while continuing to preserve unmodeled package content explicitly.
 - [ ] Prove Visio template, stencil, and macro-enabled package variants with representative load, reader, and conversion fixtures before advertising them beyond the current `.vsdx` boundary.
 
-## PDF, HTML, and image rendering
-
-- [ ] Expand arbitrary-producer PDF rendering for Type 3/CFF fonts, ICC and currently unsupported color spaces, advanced patterns, and incomplete optional-content cases while keeping every fallback diagnosed and bounded.
-- [ ] Deepen PDF annotation, form, tagged-structure, searchable-text, outline, metadata, encryption-profile, signature-validation, redaction-verification, and source-conversion evidence against cross-producer fixtures.
-- [ ] Complete the HTML cascade, shaping, bidi, intrinsic-sizing, table, flex, grid, multicolumn, pagination, page-master, fragmentation, advanced SVG, and validator-backed accessibility cases recorded as partial in the generated support matrix.
-- [ ] Expand hostile-input, fuzz, aggregate-budget, timeout, cancellation, deterministic-output, and approved visual-baseline coverage across PDF, HTML, SVG, and raster paths at representative sizes, DPI values, fonts, and platforms.
-
-### Image-export evidence
-
-- [ ] Extend `OfficeIMO.Drawing` with reusable bounded codec, geometry, text-shaping, image, chart, streaming, cancellation, budget, and diagnostic contracts needed by more than one document package.
-- [ ] Burn down `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Word` visual-fidelity gaps with focused fixtures for worksheet objects and styling, slide inheritance and grouped content, and estimated Word pagination, overflow, and fallback reporting.
-- [ ] Expand `OfficeIMO.Html`, `OfficeIMO.OneNote`, and `OfficeIMO.Visio` visual galleries across continuous and paged resources, real-world notebook content, and loaded diagrams while keeping allocation bounded before large working surfaces are created.
-- [ ] Expand `OfficeIMO.Pdf` arbitrary-producer visual evidence for operators, fonts, images, transparency, forms, and annotations while retaining source-conversion warnings.
-
 ## Markdown and text formats
 
 - [ ] Close the remaining CommonMark 0.31.2 inventory failure and broaden GFM evidence without changing OfficeIMO-specific profile defaults.
@@ -51,10 +37,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Harden RTF untrusted-input limits, safe HTML output profiles, semantic-loss reporting, cancellation, structural editing, Word bridging, and performance baselines beyond the current tested profiles.
 - [ ] Expand the provenance-recorded RTF producer corpus beyond current Word, Outlook, and LibreOffice evidence to Google Docs, macOS TextEdit/RTFD, EHR/CRM/helpdesk generators, and commercial libraries.
 - [ ] Expand OpenDocument style, formula, drawing, embedded-content, and producer-corpus coverage while preserving unknown package content.
-
-## Reader and document intelligence
-
-- [ ] Improve `OfficeIMO.Reader.Pdf` reading-order, table reconstruction, asset/visual extraction, hierarchical chunking, confidence, and format-specific provenance against arbitrary-producer PDFs without creating a second PDF parser outside `OfficeIMO.Pdf`.
 
 ## Browser and agent surfaces
 

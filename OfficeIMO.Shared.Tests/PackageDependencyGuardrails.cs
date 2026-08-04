@@ -193,6 +193,10 @@ public sealed class PackageDependencyGuardrailTests {
             string policy = workstream.GetProperty("runtimeDependencyPolicy").GetString() ?? string.Empty;
             string currentContract = workstream.GetProperty("currentContract").GetString() ?? string.Empty;
             string boundary = workstream.GetProperty("boundary").GetString() ?? string.Empty;
+            string[] evidence = workstream.GetProperty("evidence")
+                .EnumerateArray()
+                .Select(item => item.GetString() ?? string.Empty)
+                .ToArray();
 
             Assert.False(string.IsNullOrWhiteSpace(id), "Every image export workstream needs an id.");
             Assert.True(ids.Add(id), "Image export evidence ids must be unique: " + id);
@@ -200,6 +204,13 @@ public sealed class PackageDependencyGuardrailTests {
             Assert.Equal("first-party-only", policy);
             Assert.False(string.IsNullOrWhiteSpace(currentContract), "Workstream '" + id + "' needs a current contract.");
             Assert.False(string.IsNullOrWhiteSpace(boundary), "Workstream '" + id + "' needs a current boundary.");
+            Assert.NotEmpty(evidence);
+            Assert.Equal(evidence.Length, evidence.Distinct(StringComparer.Ordinal).Count());
+            Assert.All(evidence, relativePath => {
+                Assert.False(string.IsNullOrWhiteSpace(relativePath), "Workstream '" + id + "' contains an empty evidence path.");
+                Assert.DoesNotContain("..", relativePath, StringComparison.Ordinal);
+                Assert.True(File.Exists(GetRepositoryPath(relativePath)), "Workstream '" + id + "' evidence is missing: " + relativePath);
+            });
             Assert.False(workstream.TryGetProperty("status", out _), "Planning status belongs in Docs/ROADMAP.md, not the capability manifest.");
             Assert.False(workstream.TryGetProperty("nextSlices", out _), "Open slices belong in Docs/ROADMAP.md, not the capability manifest.");
         }

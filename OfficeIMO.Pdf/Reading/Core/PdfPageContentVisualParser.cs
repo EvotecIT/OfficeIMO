@@ -1297,7 +1297,7 @@ internal static class PdfPageContentVisualParser {
                 return false;
             }
 
-            int componentCount = GetColorComponentCount(colorSpace);
+            int componentCount = colorSpace.ComponentCount;
             int endIndex = _args.Count;
             while (endIndex > 0 && !(_args[endIndex - 1] is double)) {
                 endIndex--;
@@ -1308,39 +1308,9 @@ internal static class PdfPageContentVisualParser {
             }
 
             int startIndex = endIndex - componentCount;
-            switch (colorSpace.Kind) {
-                case PdfPageColorSpaceKind.DeviceRgb:
-                    color = ReadRgb(startIndex);
-                    return true;
-                case PdfPageColorSpaceKind.DeviceCmyk:
-                    color = ReadCmyk(startIndex);
-                    return true;
-                case PdfPageColorSpaceKind.CalGray:
-                    color = PdfPageColorConverter.FromCalGray(NumberAt(startIndex));
-                    return true;
-                case PdfPageColorSpaceKind.CalRgb:
-                    color = PdfPageColorConverter.FromCalRgb(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2), colorSpace);
-                    return true;
-                case PdfPageColorSpaceKind.Lab:
-                    color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
-                    return true;
-                default:
-                    color = ReadGray(startIndex);
-                    return true;
-            }
-        }
-
-        private static int GetColorComponentCount(PdfPageColorSpace colorSpace) {
-            switch (colorSpace.Kind) {
-                case PdfPageColorSpaceKind.DeviceRgb:
-                case PdfPageColorSpaceKind.CalRgb:
-                case PdfPageColorSpaceKind.Lab:
-                    return 3;
-                case PdfPageColorSpaceKind.DeviceCmyk:
-                    return 4;
-                default:
-                    return 1;
-            }
+            var components = new double[componentCount];
+            for (int i = 0; i < componentCount; i++) components[i] = NumberAt(startIndex + i);
+            return colorSpace.TryConvertColor(components, out color);
         }
 
         private bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {
