@@ -1,6 +1,6 @@
 ---
 title: "Conversion and Rendering Map"
-description: "Find the OfficeIMO package, public API, fidelity model, and runtime for each document conversion route."
+description: "Find the OfficeIMO package, public API, fidelity model, runtime, and diagnostic result type for each supported document conversion route."
 layout: docs
 ---
 
