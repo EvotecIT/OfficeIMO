@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft Visio 16",
+  "artifacts": [
+    {
+      "file": "VisioAdvancedRoadmap.vsdx",
+      "sha256": "48ed27a4c3fd8cfdc341f982c104bb6be071b48c99ff591f32a474fc2eef005e",
+      "packageType": "Drawing"
+    },
+    {
+      "file": "VisioAdvancedRoadmap.vstx",
+      "sha256": "faf4101b803002d13a7c8411d3bcc0b3c11c242e0076c820702ffeeb04efeb75",
+      "packageType": "Template"
+    },
+    {
+      "file": "VisioAdvancedRoadmap.vssx",
+      "sha256": "7b1d0a6770e615b619207a1a5af9d0e1d499c5803a0860f1dfb1903cad4a9523",
+      "packageType": "Stencil"
+    },
+    {
+      "file": "VisioAdvancedRoadmap.vsdm",
+      "sha256": "0416866617ed479007973c0bab9b77a305842e2513f32c370c8883ff25be29b4",
+      "packageType": "MacroEnabledDrawing"
+    },
+    {
+      "file": "VisioAdvancedRoadmap.vstm",
+      "sha256": "7db8d3f48c204df0445cc3b3de4c2a219c01df756dcb484fc418bb1b2cbe3774",
+      "packageType": "MacroEnabledTemplate"
+    },
+    {
+      "file": "VisioAdvancedRoadmap.vssm",
+      "sha256": "55c470a75b103c375e0d1883801841ace13e4ce724650d61c08fb2e1e5b1c603",
+      "packageType": "MacroEnabledStencil"
+    }
+  ]
+}

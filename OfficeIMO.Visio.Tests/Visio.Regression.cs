@@ -196,6 +196,7 @@ namespace OfficeIMO.Tests {
                     .Last();
                 connectorShape.SetAttributeValue("Name", "Edge-42");
                 connectorShape.SetAttributeValue("NameU", "Edge-42");
+                UpsertCell(connectorShape, ns, "OneD", "1");
             });
 
             VisioDocument loaded = VisioDocument.Load(filePath);

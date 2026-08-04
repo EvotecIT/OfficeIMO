@@ -115,6 +115,60 @@ namespace OfficeIMO.Visio {
             return page.Comments.Where(comment => comment.Done).ToList();
         }
 
+        /// <summary>Adds a native comment reply with stable thread metadata.</summary>
+        public static VisioComment ReplyToComment(this VisioPage page,
+            int parentCommentId, string text, VisioCommentAuthor author,
+            VisioCommentOptions? options = null) {
+            if (author == null) throw new ArgumentNullException(nameof(author));
+            VisioComment parent = RequireComment(page, parentCommentId);
+            string threadId = string.IsNullOrWhiteSpace(parent.ThreadId)
+                ? "visio-thread-" + parent.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : parent.ThreadId!;
+            parent.ThreadId = threadId;
+            VisioComment reply = CreateComment(page, text, author.Name,
+                author.Initials, options);
+            reply.AuthorResolutionId = author.ResolutionId;
+            reply.ShapeId = parent.ShapeId;
+            reply.ThreadId = threadId;
+            reply.ParentCommentId = parent.Id;
+            page.Comments.Add(reply);
+            return reply;
+        }
+
+        /// <summary>Returns deterministic root-and-reply thread projections.</summary>
+        public static IReadOnlyList<VisioCommentThread> GetCommentThreads(
+            this VisioPage page) {
+            if (page == null) throw new ArgumentNullException(nameof(page));
+            Dictionary<int, VisioComment> byId = page.Comments
+                .ToDictionary(comment => comment.Id);
+            return page.Comments
+                .GroupBy(comment => GetEffectiveThreadId(comment, byId),
+                    StringComparer.Ordinal)
+                .Select(group => {
+                    List<VisioComment> comments = group
+                        .OrderBy(comment => comment.CreatedAt)
+                        .ThenBy(comment => comment.Id).ToList();
+                    VisioComment root = comments.FirstOrDefault(comment =>
+                        !comment.ParentCommentId.HasValue) ?? comments[0];
+                    return new VisioCommentThread(group.Key, root, comments);
+                })
+                .OrderBy(thread => thread.Root.CreatedAt)
+                .ThenBy(thread => thread.Root.Id)
+                .ToList();
+        }
+
+        /// <summary>Returns comments written by one stable author identity.</summary>
+        public static IReadOnlyList<VisioComment> CommentsByAuthor(
+            this VisioPage page, VisioCommentAuthor author) {
+            if (page == null) throw new ArgumentNullException(nameof(page));
+            if (author == null) throw new ArgumentNullException(nameof(author));
+            return page.Comments.Where(comment =>
+                    string.Equals(comment.AuthorName, author.Name, StringComparison.Ordinal) &&
+                    string.Equals(comment.AuthorInitials, author.Initials, StringComparison.Ordinal) &&
+                    string.Equals(comment.AuthorResolutionId, author.ResolutionId, StringComparison.Ordinal))
+                .ToList();
+        }
+
         /// <summary>
         /// Updates a native Visio comment's text by its page-scoped identifier.
         /// </summary>
@@ -154,7 +208,9 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(comment));
             }
 
-            return page.Comments.Remove(comment);
+            if (!page.Comments.Contains(comment)) return false;
+            RemoveCommentAndReplies(page, comment.Id);
+            return true;
         }
 
         /// <summary>
@@ -162,7 +218,9 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public static bool RemoveComment(this VisioPage page, int commentId) {
             VisioComment? comment = page.FindComment(commentId);
-            return comment != null && page.Comments.Remove(comment);
+            if (comment == null) return false;
+            RemoveCommentAndReplies(page, comment.Id);
+            return true;
         }
 
         /// <summary>
@@ -180,11 +238,13 @@ namespace OfficeIMO.Visio {
             List<VisioComment> comments = page.Comments
                 .Where(comment => string.Equals(comment.ShapeId, shapeId, StringComparison.Ordinal))
                 .ToList();
+            int before = page.Comments.Count;
             foreach (VisioComment comment in comments) {
-                page.Comments.Remove(comment);
+                if (page.Comments.Contains(comment))
+                    RemoveCommentAndReplies(page, comment.Id);
             }
 
-            return comments.Count;
+            return before - page.Comments.Count;
         }
 
         private static VisioComment RequireComment(VisioPage page, int commentId) {
@@ -198,6 +258,36 @@ namespace OfficeIMO.Visio {
             }
 
             return comment;
+        }
+
+        private static string GetEffectiveThreadId(VisioComment comment,
+            IReadOnlyDictionary<int, VisioComment> byId) {
+            if (!string.IsNullOrWhiteSpace(comment.ThreadId)) return comment.ThreadId!;
+            VisioComment current = comment;
+            var visited = new HashSet<int>();
+            while (current.ParentCommentId.HasValue &&
+                   visited.Add(current.Id) &&
+                   byId.TryGetValue(current.ParentCommentId.Value,
+                       out VisioComment? parent)) current = parent;
+            return "visio-thread-" + current.Id.ToString(
+                System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static void RemoveCommentAndReplies(VisioPage page, int rootId) {
+            var ids = new HashSet<int> { rootId };
+            bool changed;
+            do {
+                changed = false;
+                foreach (VisioComment candidate in page.Comments) {
+                    if (candidate.ParentCommentId.HasValue &&
+                        ids.Contains(candidate.ParentCommentId.Value) &&
+                        ids.Add(candidate.Id)) changed = true;
+                }
+            } while (changed);
+            for (int index = page.Comments.Count - 1; index >= 0; index--) {
+                if (ids.Contains(page.Comments[index].Id))
+                    page.Comments.RemoveAt(index);
+            }
         }
 
         private static VisioComment CreateComment(VisioPage page, string text, string? authorName, string? authorInitials, VisioCommentOptions? options) {

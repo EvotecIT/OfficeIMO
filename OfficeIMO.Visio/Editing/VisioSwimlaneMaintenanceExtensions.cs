@@ -36,6 +36,7 @@ namespace OfficeIMO.Visio {
             }
 
             List<VisioSwimlaneLane> lanes = new();
+            int order = 0;
             foreach (VisioShape body in page.Shapes.Where(IsLaneBody).OrderByDescending(shape => shape.PinY).ThenBy(shape => shape.PinX)) {
                 string? id = GetLaneId(body, header: false);
                 if (string.IsNullOrWhiteSpace(id)) {
@@ -43,7 +44,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 headers.TryGetValue(id!, out VisioShape? header);
-                lanes.Add(new VisioSwimlaneLane(id!, body, header));
+                lanes.Add(new VisioSwimlaneLane(id!, body, header, order++));
             }
 
             return lanes;
@@ -58,10 +59,11 @@ namespace OfficeIMO.Visio {
             }
 
             List<VisioSwimlanePhase> phases = new();
+            int order = 0;
             foreach (VisioShape header in page.Shapes.Where(IsPhaseHeader).OrderBy(shape => shape.PinX)) {
                 string? id = GetPhaseId(header);
                 if (!string.IsNullOrWhiteSpace(id)) {
-                    phases.Add(new VisioSwimlanePhase(id!, header));
+                    phases.Add(new VisioSwimlanePhase(id!, header, order++));
                 }
             }
 
@@ -87,6 +89,52 @@ namespace OfficeIMO.Visio {
 
             return activities;
         }
+
+        /// <summary>
+        /// Assigns native lane and phase metadata to discovered activities from their
+        /// current geometry. Ambiguous or out-of-grid shapes are reported and left unchanged.
+        /// </summary>
+        public static VisioSwimlaneAssignmentResult AssignSwimlaneActivities(
+            this VisioPage page) {
+            if (page == null) throw new ArgumentNullException(nameof(page));
+            IReadOnlyList<VisioSwimlaneLane> lanes = page.GetSwimlaneLanes();
+            IReadOnlyList<VisioSwimlanePhase> phases = page.GetSwimlanePhases();
+            var assigned = new List<VisioSwimlaneActivityPlacement>();
+            var unassigned = new List<string>();
+
+            foreach (VisioShape shape in page.Shapes.Where(IsActivityShape)
+                         .OrderByDescending(item => item.PinY)
+                         .ThenBy(item => item.PinX)
+                         .ThenBy(item => item.Id, StringComparer.Ordinal)) {
+                string[] matchingLanes = lanes.Where(lane => ContainsCenter(
+                        lane.Body.GetShapeBounds(), shape))
+                    .Select(lane => lane.Id).ToArray();
+                string[] matchingPhases = phases.Where(phase => ContainsHorizontalCenter(
+                        phase.Header.GetShapeBounds(), shape))
+                    .Select(phase => phase.Id).ToArray();
+                if (matchingLanes.Length != 1 || matchingPhases.Length != 1) {
+                    unassigned.Add(shape.Id);
+                    continue;
+                }
+
+                VisioSwimlaneActivityKind? kind = GetActivityKind(shape);
+                MarkActivityPlacement(shape, matchingLanes[0], matchingPhases[0], kind);
+                assigned.Add(new VisioSwimlaneActivityPlacement(shape,
+                    matchingLanes[0], matchingPhases[0], kind));
+            }
+
+            return new VisioSwimlaneAssignmentResult(assigned, unassigned);
+        }
+
+        private static bool ContainsCenter(VisioShapeBounds bounds,
+            VisioShape shape) => shape.PinX >= bounds.Left - BoundsTolerance &&
+            shape.PinX <= bounds.Right + BoundsTolerance &&
+            shape.PinY >= bounds.Bottom - BoundsTolerance &&
+            shape.PinY <= bounds.Top + BoundsTolerance;
+
+        private static bool ContainsHorizontalCenter(VisioShapeBounds bounds,
+            VisioShape shape) => shape.PinX >= bounds.Left - BoundsTolerance &&
+            shape.PinX <= bounds.Right + BoundsTolerance;
 
         /// <summary>
         /// Finds a swimlane lane by identifier.

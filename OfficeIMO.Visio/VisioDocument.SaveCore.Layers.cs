@@ -258,16 +258,11 @@ namespace OfficeIMO.Visio {
         }
 
         private static readonly string[] ConnectorModeledCellOrder = {
-            "BeginX",
-            "BeginY",
-            "EndX",
-            "EndY",
             "LineWeight",
             "LinePattern",
             "LineColor",
             "FillPattern",
             "FillForegnd",
-            "OneD",
             "LayerMember",
             "ShapeRouteStyle",
             "ConLineRouteExt",
@@ -409,7 +404,8 @@ namespace OfficeIMO.Visio {
 
             void VisitShape(VisioShape shape) {
                 Reserve(shape.Id);
-                if (effectiveMasters.TryGetValue(shape.Id, out VisioMaster? master) && master.RawMasterContentXml != null) {
+                if (effectiveMasters.TryGetValue(shape.Id, out VisioMaster? master) &&
+                    master.IsPackageBacked && master.RawMasterContentXml != null) {
                     ReserveRawMasterInstanceChildIds(shape, master, Reserve);
                 }
 

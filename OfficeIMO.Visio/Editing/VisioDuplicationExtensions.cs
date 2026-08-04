@@ -386,7 +386,8 @@ namespace OfficeIMO.Visio {
                 PreservedTextElement = source.PreservedTextElement == null ? null : new XElement(source.PreservedTextElement),
                 PreservedTextValue = source.PreservedTextValue,
                 HasModeledCharSection = source.HasModeledCharSection,
-                HasModeledParaSection = source.HasModeledParaSection
+                HasModeledParaSection = source.HasModeledParaSection,
+                ShapeDataSectionName = source.ShapeDataSectionName
             };
 
             CopyStringSet(source.LayerNames, clone.LayerNames);
@@ -441,7 +442,8 @@ namespace OfficeIMO.Visio {
                 PreservedTextElement = source.PreservedTextElement == null ? null : new XElement(source.PreservedTextElement),
                 PreservedTextValue = source.PreservedTextValue,
                 HasModeledCharSection = source.HasModeledCharSection,
-                HasModeledParaSection = source.HasModeledParaSection
+                HasModeledParaSection = source.HasModeledParaSection,
+                ShapeDataSectionName = source.ShapeDataSectionName
             };
 
             if (source.FromConnectionPoint != null &&

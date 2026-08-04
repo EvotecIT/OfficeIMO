@@ -81,6 +81,13 @@ namespace OfficeIMO.Visio {
         private bool _requestRecalcOnOpen;
         private string? _filePath;
         private Stream? _sourceStream;
+        private VisioPackageType _packageType = VisioPackageType.Drawing;
+        private byte[]? _vbaProjectBytes;
+        private string? _vbaProjectContentType;
+        private Uri _vbaProjectPartUri = new("/visio/vbaProject.bin",
+            UriKind.Relative);
+        private readonly Dictionary<string, PreservedVbaPart>
+            _preservedVbaParts = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, VisioMaster> _builtinMasters = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<VisioMaster> _registeredMasters = new();
         internal IList<XAttribute> PreservedDocumentAttributes { get; } = new List<XAttribute>();
@@ -101,7 +108,9 @@ namespace OfficeIMO.Visio {
         public string? FilePath => string.IsNullOrEmpty(_filePath) ? null : _filePath;
 
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
-        private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
+        private const string DocumentContentType = VisioPackageFormat.DrawingContentType;
+        private const string VbaProjectRelationshipType = "http://schemas.microsoft.com/office/2006/relationships/vbaProject";
+        private const string VbaProjectContentType = "application/vnd.ms-office.vbaProject";
         private const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
         private const string ThemeRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/theme";
         private const string ThemeContentType = "application/vnd.ms-visio.theme+xml";
@@ -121,6 +130,21 @@ namespace OfficeIMO.Visio {
         /// Gets the collection of pages in the document.
         /// </summary>
         public IReadOnlyList<VisioPage> Pages => _pages;
+
+        /// <summary>Gets the Open XML Visio package family loaded or selected for output.</summary>
+        public VisioPackageType PackageType => _packageType;
+
+        /// <summary>Gets whether the package family can retain a VBA project.</summary>
+        public bool IsMacroEnabled => VisioPackageFormat.IsMacroEnabled(_packageType);
+
+        /// <summary>Gets whether a preserved opaque VBA project is present.</summary>
+        public bool HasVbaProject => _vbaProjectBytes != null && _vbaProjectBytes.Length > 0;
+
+        /// <summary>Gets whether this document is a template package.</summary>
+        public bool IsTemplate => VisioPackageFormat.IsTemplate(_packageType);
+
+        /// <summary>Gets whether this document is a stencil package.</summary>
+        public bool IsStencil => VisioPackageFormat.IsStencil(_packageType);
 
         /// <summary>
         /// Gets the masters currently registered on the document.
@@ -354,13 +378,26 @@ namespace OfficeIMO.Visio {
         /// <summary>Creates a detached document that must be saved explicitly to a path or stream.</summary>
         public static VisioDocument Create() => new VisioDocument();
 
+        /// <summary>Creates a detached document for the specified Visio package family.</summary>
+        public static VisioDocument Create(VisioPackageType packageType) =>
+            new VisioDocument { _packageType = packageType };
+
         /// <summary>
         /// Creates a new <see cref="VisioDocument"/> with the given save path.
         /// </summary>
         /// <param name="path">Path where the document will be saved.</param>
         public static VisioDocument Create(string path) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-            return new VisioDocument { _filePath = path };
+            return new VisioDocument {
+                _filePath = path,
+                _packageType = VisioPackageFormat.FromPath(path)
+            };
+        }
+
+        /// <summary>Creates a new document with an explicit package family and save path.</summary>
+        public static VisioDocument Create(string path, VisioPackageType packageType) {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+            return new VisioDocument { _filePath = path, _packageType = packageType };
         }
 
         /// <summary>
@@ -374,6 +411,13 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
             }
             return new VisioDocument { _sourceStream = stream };
+        }
+
+        /// <summary>Creates a stream-backed document with an explicit package family.</summary>
+        public static VisioDocument Create(Stream stream, VisioPackageType packageType) {
+            VisioDocument document = Create(stream);
+            document._packageType = packageType;
+            return document;
         }
 
         private static IEnumerable<string>? ResolvePackageMasterNameFilters(string packagePath, IEnumerable<string>? names) {

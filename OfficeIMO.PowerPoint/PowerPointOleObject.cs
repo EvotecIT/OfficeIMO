@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents an embedded OLE object placed on a slide.
     /// </summary>
-    public sealed class PowerPointOleObject : PowerPointShape {
+    public sealed partial class PowerPointOleObject : PowerPointShape {
         internal const string DefaultContentType =
             "application/vnd.openxmlformats-officedocument.oleObject";
         internal const int MaximumStorageBytes = 64 * 1024 * 1024;

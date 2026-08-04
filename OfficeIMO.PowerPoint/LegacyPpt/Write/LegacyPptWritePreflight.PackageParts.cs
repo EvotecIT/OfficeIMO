@@ -184,6 +184,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 .SelectMany(slide => slide.EnumerateShapesDeep(
                     slide.Shapes, includeHidden: true))
                 .OfType<PowerPointOleObject>()
+                .Where(ole => ole.IsEmbedded)
                 .Select(ole => (OpenXmlPart)ole.EmbeddedPart));
             foreach (ChartPart chartPart in parts.OfType<ChartPart>()) {
                 foreach (EmbeddedPackagePart workbook in chartPart

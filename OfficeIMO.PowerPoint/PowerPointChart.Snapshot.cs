@@ -97,6 +97,9 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
 
+                if (TryCreateAdvancedChartSnapshot(chart, plotArea, colorScheme,
+                        out snapshot)) return true;
+
                 if (TryCreateMixedChartSnapshot(chart, plotArea, colorScheme, out snapshot)) {
                     return true;
                 }
@@ -430,8 +433,46 @@ namespace OfficeIMO.PowerPoint {
                 + plotArea.Elements<C.ScatterChart>().Count()
                 + plotArea.Elements<C.BubbleChart>().Count()
                 + plotArea.Elements<C.PieChart>().Count()
-                + plotArea.Elements<C.DoughnutChart>().Count();
+                + plotArea.Elements<C.DoughnutChart>().Count()
+                + plotArea.ChildElements.Count(element =>
+                    AdvancedChartProjections.ContainsKey(element.LocalName));
         }
+
+        private bool TryCreateAdvancedChartSnapshot(C.Chart chart,
+            C.PlotArea plotArea, A.ColorScheme? colorScheme,
+            out PowerPointChartSnapshot snapshot) {
+            snapshot = null!;
+            OpenXmlCompositeElement[] groups = plotArea.ChildElements
+                .OfType<OpenXmlCompositeElement>()
+                .Where(element => AdvancedChartProjections.ContainsKey(element.LocalName))
+                .ToArray();
+            if (groups.Length != 1 || CountSupportedChartElements(plotArea) != 1) return false;
+            PowerPointChartSnapshotKind kind = MapAdvancedSnapshotKind(
+                GetAdvancedProjection(groups[0]));
+            PowerPointChartData? data = ReadCategorySeriesData(groups[0]
+                .ChildElements.OfType<OpenXmlCompositeElement>()
+                .Where(element => element.LocalName == "ser"), kind, colorScheme);
+            if (data == null) return false;
+            snapshot = CreateSnapshot(chart, kind, data);
+            return true;
+        }
+
+        private static PowerPointChartSnapshotKind MapAdvancedSnapshotKind(
+            OfficeChartKind kind) => kind switch {
+                OfficeChartKind.ColumnClustered => PowerPointChartSnapshotKind.ClusteredColumn,
+                OfficeChartKind.ColumnStacked => PowerPointChartSnapshotKind.StackedColumn,
+                OfficeChartKind.ColumnStacked100 => PowerPointChartSnapshotKind.StackedColumn100,
+                OfficeChartKind.BarClustered => PowerPointChartSnapshotKind.ClusteredBar,
+                OfficeChartKind.BarStacked => PowerPointChartSnapshotKind.StackedBar,
+                OfficeChartKind.BarStacked100 => PowerPointChartSnapshotKind.StackedBar100,
+                OfficeChartKind.Area => PowerPointChartSnapshotKind.Area,
+                OfficeChartKind.AreaStacked => PowerPointChartSnapshotKind.StackedArea,
+                OfficeChartKind.AreaStacked100 => PowerPointChartSnapshotKind.StackedArea100,
+                OfficeChartKind.LineStacked => PowerPointChartSnapshotKind.StackedLine,
+                OfficeChartKind.LineStacked100 => PowerPointChartSnapshotKind.StackedLine100,
+                OfficeChartKind.Pie => PowerPointChartSnapshotKind.Pie,
+                _ => PowerPointChartSnapshotKind.Line
+            };
 
         private static bool HasUnsupportedChartGroupElements(C.PlotArea plotArea) =>
             plotArea.ChildElements.Any(element =>
@@ -443,11 +484,14 @@ namespace OfficeIMO.PowerPoint {
                 element is not C.ScatterChart &&
                 element is not C.BubbleChart &&
                 element is not C.PieChart &&
-                element is not C.DoughnutChart);
+                element is not C.DoughnutChart &&
+                !AdvancedChartProjections.ContainsKey(element.LocalName));
 
         private bool TryCreateMixedChartSnapshot(C.Chart chart, C.PlotArea plotArea, A.ColorScheme? colorScheme, out PowerPointChartSnapshot snapshot) {
             snapshot = null!;
-            if (CountSupportedChartElements(plotArea) <= 1) {
+            int supportedGroupCount = CountSupportedChartElements(plotArea);
+            if (supportedGroupCount <= 1 || plotArea.ChildElements.Any(element =>
+                    AdvancedChartProjections.ContainsKey(element.LocalName))) {
                 return false;
             }
             if (plotArea.Elements<C.BubbleChart>().Any()) {
@@ -488,7 +532,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            if (parts.Count <= 1) {
+            if (parts.Count <= 1 || parts.Count != supportedGroupCount) {
                 return false;
             }
 

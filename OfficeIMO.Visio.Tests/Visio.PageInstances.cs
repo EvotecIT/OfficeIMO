@@ -48,7 +48,11 @@ namespace OfficeIMO.Tests {
             var dyn = shapes.Last();
             Assert.Equal("Dynamic connector", (string?)dyn.Attribute("NameU"));
             Assert.NotNull(dyn.Attribute("Master"));
-            Assert.NotNull(dyn.Element(ns + "XForm1D"));
+            Assert.Null(dyn.Element(ns + "XForm1D"));
+            Assert.Contains(dyn.Elements(ns + "Cell"), cell =>
+                (string?)cell.Attribute("N") == "BeginX");
+            Assert.Contains(dyn.Elements(ns + "Cell"), cell =>
+                (string?)cell.Attribute("N") == "EndX");
 
             var reloaded = VisioDocument.Load(target);
             Assert.Equal(new[] { "R1", "S1", "C1", "D1" }, reloaded.Pages[0].Shapes.Select(shape => shape.Id));

@@ -10,7 +10,13 @@ using System.Xml.Linq;
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
 
+        private static bool IsShapeDataSectionName(string? sectionName) {
+            return string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(sectionName, "Property", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static void ParseShapeDataRows(XElement propSection, XNamespace ns, VisioShape shape) {
+            shape.ShapeDataSectionName = propSection.Attribute("N")?.Value ?? "Prop";
             ParseShapeDataRows(propSection, ns, shape.ShapeData, shape.PreservedDataRows, shape.Data);
         }
 

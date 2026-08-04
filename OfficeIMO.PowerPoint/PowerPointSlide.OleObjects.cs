@@ -102,6 +102,54 @@ namespace OfficeIMO.PowerPoint {
             return TrackShape(new PowerPointOleObject(frame, _slidePart));
         }
 
+        /// <summary>Adds a linked OLE object while retaining the external payload URI.</summary>
+        public PowerPointOleObject AddLinkedOleObject(Uri source, string progId,
+            bool autoUpdate = false, long left = 0L, long top = 0L,
+            long width = 2743200L, long height = 1828800L) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (!source.IsAbsoluteUri) throw new ArgumentException("A linked OLE URI must be absolute.", nameof(source));
+            if (string.IsNullOrWhiteSpace(progId)) throw new ArgumentException("An OLE ProgID is required.", nameof(progId));
+            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+
+            uint shapeId = AllocateShapeIds(2);
+            uint previewShapeId = shapeId + 1U;
+            string relationshipId = GetNextRelationshipId(_slidePart);
+            _slidePart.AddExternalRelationship(
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject",
+                source, relationshipId);
+            string name = GenerateUniqueName("Linked Object");
+            var picture = new P.Picture(
+                new P.NonVisualPictureProperties(
+                    new P.NonVisualDrawingProperties { Id = previewShapeId, Name = name },
+                    new P.NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
+                    new P.ApplicationNonVisualDrawingProperties()),
+                new P.BlipFill(),
+                new P.ShapeProperties(
+                    new A.Transform2D(new A.Offset { X = left, Y = top },
+                        new A.Extents { Cx = width, Cy = height }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }));
+            var ole = new P.OleObject(new P.OleObjectLink { AutoUpdate = autoUpdate }, picture) {
+                ShapeId = "_x0000_s" + shapeId,
+                Name = name,
+                Id = relationshipId,
+                ProgId = progId,
+                ImageWidth = checked((int)Math.Min(width, int.MaxValue)),
+                ImageHeight = checked((int)Math.Min(height, int.MaxValue))
+            };
+            var frame = new P.GraphicFrame(
+                new P.NonVisualGraphicFrameProperties(
+                    new P.NonVisualDrawingProperties { Id = shapeId, Name = name },
+                    new P.NonVisualGraphicFrameDrawingProperties(),
+                    new P.ApplicationNonVisualDrawingProperties()),
+                new P.Transform(new A.Offset { X = left, Y = top },
+                    new A.Extents { Cx = width, Cy = height }),
+                new A.Graphic(new A.GraphicData(ole) { Uri = OleGraphicDataUri }));
+            P.CommonSlideData data = SlideRoot.CommonSlideData ??= new P.CommonSlideData(new P.ShapeTree());
+            (data.ShapeTree ??= new P.ShapeTree()).Append(frame);
+            return TrackShape(new PowerPointOleObject(frame, _slidePart));
+        }
+
         private static byte[] ReadOleStorage(Stream storage) {
             if (storage.CanSeek) storage.Position = 0;
             byte[] bytes = OfficeStreamReader.ReadAllBytes(storage,

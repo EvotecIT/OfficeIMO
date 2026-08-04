@@ -45,7 +45,7 @@ namespace OfficeIMO.Visio {
                         shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Para"));
                     } else if (string.Equals(sectionName, "Hyperlink", StringComparison.OrdinalIgnoreCase)) {
                         shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Hyperlink"));
-                    } else if (string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase)) {
+                    } else if (IsShapeDataSectionName(sectionName)) {
                         shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Prop"));
                     } else {
                         shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(child));
@@ -157,7 +157,7 @@ namespace OfficeIMO.Visio {
                    !string.Equals(sectionName, "Connection", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(sectionName, "User", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(sectionName, "Hyperlink", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase);
+                   !IsShapeDataSectionName(sectionName);
         }
 
         private static bool ShouldPreserveShapeSection(VisioShape shape, XElement section) {

@@ -54,6 +54,8 @@ namespace OfficeIMO.Visio {
 
         internal string? PersistedId { get; set; }
 
+        internal bool PreserveDynamicConnectorMaster { get; set; }
+
         /// <summary>
         /// Shape from which the connector starts.
         /// </summary>
@@ -193,6 +195,9 @@ namespace OfficeIMO.Visio {
 
         internal IList<XElement> PreservedCellElements { get; } = new List<XElement>();
 
+        internal IDictionary<string, XElement> PreservedEndpointCellElements { get; } =
+            new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+
         internal IList<XElement> PreservedNonGeometrySections { get; } = new List<XElement>();
 
         internal IList<PreservedShapeChildEntry> PreservedShapeChildren { get; } = new List<PreservedShapeChildEntry>();
@@ -214,6 +219,8 @@ namespace OfficeIMO.Visio {
         internal string? PreservedTextValue { get; set; }
 
         internal IList<XElement> PreservedDataRows { get; } = new List<XElement>();
+
+        internal string ShapeDataSectionName { get; set; } = "Prop";
 
         internal bool HasModeledCharSection { get; set; }
 

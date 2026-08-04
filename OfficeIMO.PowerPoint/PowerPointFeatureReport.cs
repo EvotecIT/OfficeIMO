@@ -13,7 +13,6 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 using P = DocumentFormat.OpenXml.Presentation;
 using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
-using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -362,12 +361,12 @@ namespace OfficeIMO.PowerPoint {
                 "Generated tables include PowerPoint-style table IDs, banding metadata, row and column IDs, and language-aware cell text defaults.",
                 tableMetadataDetails);
             Add(features, "Visualization", "Charts", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(slide => slide.Charts.Count()), chartDetails.Count), null,
-                "Common chart authoring and data updates are supported; advanced chart editing remains partial.",
+                "Common charts are editable and rendered directly. Imported 3-D bar, line, area, and pie charts plus of-pie, stock, and surface charts with compatible referenced caches and workbooks expose in-place data editing and an explicit 2-D semantic export projection; other producer storage and chart families remain preservation-only with diagnostics.",
                 chartDetails.Concat(chartCompanionDetails).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
             Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideImages), null,
                 "Images can be inserted and inspected in common slide scenarios; advanced drawing behaviors remain partial.");
             Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideMedia), null,
-                "Embedded audio and video can be authored with poster frames and playback timing; rich media editing remains partial.",
+                "Linked and embedded audio and video expose targets, payload replacement, poster frames, volume, mute, loop, stopped visibility, video full-screen, trim, fade, and playback timing. Unmodeled producer metadata remains preserved.",
                 DescribePartsByUriOrContentType(allParts, "media"));
             Add(features, "Media", "Legacy media metadata",
                 PowerPointFeatureSupportLevel.Preserved,
@@ -375,7 +374,7 @@ namespace OfficeIMO.PowerPoint {
                 "Linked, device-based, or legacy-only playback metadata from binary PowerPoint remains available for exact binary preservation but is not editable in the Open XML media surface.",
                 LegacyPptMediaDetails);
             Add(features, "Visualization", "SmartArt", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(CountSlideSmartArt), diagramDetails.Count), null,
-                "SmartArt diagrams can be generated and discovered; rich diagram editing remains partial.",
+                "Supported SmartArt families expose node text, sibling order, and safe parent topology editing. Unsupported layouts, cycles, node-set changes, and meaning-changing connections are preserved or rejected explicitly.",
                 diagramDetails);
             var richNotesDetails = DescribeRichNotesContent();
             Add(features, "Presentation", "Speaker notes", PowerPointFeatureSupportLevel.Editable, Slides.Count(slide => slide.SlidePart.NotesSlidePart != null), null,
@@ -400,9 +399,17 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointFeatureSupportLevel.Editable,
                 classicAnimationCount, null,
                 "Classic shape and text entrance effects, paragraph builds, order, automatic advance, after-effects, and sounds can be authored, inspected, and round-tripped.");
+            int typedTimelineActionCount = Slides.Sum(slide =>
+                slide.SlidePart.Slide?.Timing?.Descendants()
+                    .Count(element => element is AnimateMotion or AnimateRotation
+                        or Command) ?? 0);
+            Add(features, "Presentation", "Typed timeline actions",
+                PowerPointFeatureSupportLevel.Editable,
+                typedTimelineActionCount, null,
+                "Motion, rotation, command, duration, and media playback actions can be appended, edited, or removed incrementally without rebuilding unrelated timing sequences.");
             var advancedTimingDetails = DescribeAdvancedTimingMarkup();
             Add(features, "Presentation", "Animations and timing", PowerPointFeatureSupportLevel.Preserved, advancedTimingDetails.Count, null,
-                "Timing trees beyond OfficeIMO's classic-animation and media-playback helpers are detected as preserve-only advanced animation metadata.",
+                "Color, scale, set, producer extensions, and other unmodeled timing nodes remain inspectable and are preserved unless explicitly targeted.",
                 advancedTimingDetails);
             Add(features, "Content", "External relationships", PowerPointFeatureSupportLevel.PartiallyEditable, externalHyperlinkDetails.Count, null,
                 "External hyperlinks can be authored and inspected.",
@@ -431,12 +438,18 @@ namespace OfficeIMO.PowerPoint {
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             PowerPointOleObject[] editableOleObjects = Slides
                 .SelectMany(slide => slide.OleObjects).ToArray();
+            PowerPointOleObject[] embeddedOleObjects = editableOleObjects
+                .Where(ole => ole.IsEmbedded).ToArray();
+            PowerPointOleObject[] linkedOpenXmlOleObjects = editableOleObjects
+                .Where(ole => ole.IsLinked).ToArray();
             var editableOleParts = new HashSet<OpenXmlPart>(
-                editableOleObjects.Select(ole =>
+                embeddedOleObjects.Select(ole =>
                     (OpenXmlPart)ole.EmbeddedPart));
             var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(
                 allParts, editableOleParts, safeChartWorkbookParts);
-            var linkedOleDetails = LegacyPptLinkedOleDetails.ToList();
+            var linkedOleDetails = linkedOpenXmlOleObjects.Select(ole =>
+                    $"{ole.Name ?? "OLE object"}: {ole.ProgId ?? "Package"}, {ole.LinkUri}")
+                .Concat(LegacyPptLinkedOleDetails).ToList();
             var activeXControlDetails = DescribeActiveXControlParts(allParts)
                 .Concat(LegacyPptActiveXDetails)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -470,17 +483,19 @@ namespace OfficeIMO.PowerPoint {
                 customXmlDetails);
             Add(features, "Compatibility", "Embedded OLE objects",
                 PowerPointFeatureSupportLevel.Editable,
-                editableOleObjects.Length, null,
+                embeddedOleObjects.Length, null,
                 "Embedded OLE compound objects expose their ProgID, display mode, color-follow setting, exact storage bytes, geometry, duplication, and removal through the normal slide model.",
-                editableOleObjects.Select(ole =>
+                embeddedOleObjects.Select(ole =>
                     $"{ole.Name ?? "OLE object"}: {ole.ProgId ?? "Package"}, {ole.ContentType}").ToList());
             Add(features, "Compatibility", "Embedded packages", PowerPointFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
                 "Unreferenced or unrecognized embedded package parts remain preserve-only package content.",
                 embeddedPackageDetails);
             Add(features, "Compatibility", "Linked OLE objects",
-                PowerPointFeatureSupportLevel.Preserved,
+                linkedOpenXmlOleObjects.Length > 0
+                    ? PowerPointFeatureSupportLevel.PartiallyEditable
+                    : PowerPointFeatureSupportLevel.Preserved,
                 linkedOleDetails.Count, null,
-                "Binary linked OLE metadata and cached compound storage are typed and retained exactly, but are not projected to an editable Open XML object.",
+                "Open XML linked OLE targets, ProgID, automatic refresh, geometry, duplication, and removal are editable. Binary linked OLE metadata and cached compound storage remain typed and preservation-aware.",
                 linkedOleDetails);
             Add(features, "Compatibility", "ActiveX controls", PowerPointFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
                 "ActiveX metadata and native control storage are detected and retained as preserve-only advanced presentation content.",
@@ -1523,7 +1538,7 @@ namespace OfficeIMO.PowerPoint {
             return result;
         }
 
-        private static bool IsSafeChartWorkbookPart(ChartPart chartPart, EmbeddedPackagePart part) {
+        internal static bool IsSafeChartWorkbookPart(ChartPart chartPart, EmbeddedPackagePart part) {
             if (!string.Equals(
                     part.ContentType,
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1548,7 +1563,7 @@ namespace OfficeIMO.PowerPoint {
                     workbookStream,
                     false,
                     PowerPointChartWorkbookSecurity.CreateOpenSettings());
-                return IsSafeGeneratedChartWorkbook(workbook);
+                return PowerPointChartWorkbookEditor.IsSafelyEditable(workbook);
             } catch (FileFormatException) {
                 return false;
             } catch (OpenXmlPackageException) {
@@ -1559,54 +1574,6 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
         }
-
-        private static bool IsSafeGeneratedChartWorkbook(SpreadsheetDocument workbook) {
-            WorkbookPart? workbookPart = workbook.WorkbookPart;
-            if (workbook.DocumentType != SpreadsheetDocumentType.Workbook
-                || workbookPart?.Workbook == null
-                || workbookPart.VbaProjectPart != null
-                || workbook.Parts.Count() != 1
-                || workbook.Parts.Any(pair => pair.OpenXmlPart is not WorkbookPart)
-                || workbook.ExternalRelationships.Any()) {
-                return false;
-            }
-
-            WorksheetPart[] worksheets = workbookPart.GetPartsOfType<WorksheetPart>().ToArray();
-            SharedStringTablePart[] sharedStrings = workbookPart.GetPartsOfType<SharedStringTablePart>().ToArray();
-            if (worksheets.Length != 1
-                || sharedStrings.Length != 1
-                || workbookPart.Parts.Count() != 2
-                || workbookPart.Parts.Any(pair => pair.OpenXmlPart is not WorksheetPart && pair.OpenXmlPart is not SharedStringTablePart)
-                || HasUnsupportedChartWorkbookRelationships(workbookPart)) {
-                return false;
-            }
-
-            WorksheetPart worksheetPart = worksheets[0];
-            S.Worksheet? worksheet = worksheetPart.Worksheet;
-            if (worksheet == null
-                || worksheetPart.Parts.Any()
-                || sharedStrings[0].Parts.Any()
-                || HasUnsupportedChartWorkbookRelationships(worksheetPart)
-                || HasUnsupportedChartWorkbookRelationships(sharedStrings[0])
-                || worksheet.Descendants<S.CellFormula>().Any()
-                || worksheet.Descendants<S.Hyperlinks>().Any()
-                || worksheet.Descendants<S.OleObjects>().Any()
-                || worksheet.Descendants<S.Controls>().Any()) {
-                return false;
-            }
-
-            S.Sheets? sheets = workbookPart.Workbook.Sheets;
-            S.Sheet? sheet = sheets?.Elements<S.Sheet>().SingleOrDefault();
-            return sheet?.Id?.Value != null
-                && string.Equals(sheet.Id.Value, workbookPart.GetIdOfPart(worksheetPart), StringComparison.Ordinal)
-                && workbookPart.Workbook.DefinedNames == null
-                && workbookPart.Workbook.ExternalReferences == null;
-        }
-
-        private static bool HasUnsupportedChartWorkbookRelationships(OpenXmlPart part) =>
-            part.ExternalRelationships.Any()
-            || part.HyperlinkRelationships.Any()
-            || part.DataPartReferenceRelationships.Any();
 
         private static List<string> DescribeDiagramParts(IEnumerable<OpenXmlPart> parts) {
             return DescribePartsByType<DiagramDataPart>(parts)

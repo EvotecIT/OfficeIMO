@@ -64,6 +64,7 @@ namespace OfficeIMO.Visio {
             List<(VisioPage Page, VisioComment Comment, int AuthorId)> comments = new();
 
             foreach (VisioPage page in pages) {
+                ValidateCommentThreads(page);
                 foreach (VisioComment comment in page.Comments) {
                     ValidateCommentForSave(comment);
                     CommentAuthorKey authorKey = new(comment.AuthorName, comment.AuthorInitials, comment.AuthorResolutionId);
@@ -110,6 +111,17 @@ namespace OfficeIMO.Visio {
                     commentElement.Add(new XAttribute("AutoCommentType", XmlConvert.ToString(comment.AutoCommentType.Value)));
                 }
 
+                if (!string.IsNullOrWhiteSpace(comment.ThreadId)) {
+                    commentElement.Add(new XAttribute(
+                        OfficeImoCommentNamespace + "threadId",
+                        comment.ThreadId!));
+                }
+                if (comment.ParentCommentId.HasValue) {
+                    commentElement.Add(new XAttribute(
+                        OfficeImoCommentNamespace + "parentId",
+                        XmlConvert.ToString(comment.ParentCommentId.Value)));
+                }
+
                 if (!string.IsNullOrWhiteSpace(comment.ShapeId)) {
                     Dictionary<string, string> persistedIds = BuildPersistedIdMap(page, effectivePageMasters[page]);
                     commentElement.Add(new XAttribute("ShapeID", GetPersistedId(persistedIds, comment.ShapeId!)));
@@ -133,6 +145,39 @@ namespace OfficeIMO.Visio {
             string text = comment.Text ?? string.Empty;
             if (text.Length > MaxCommentTextCharacters) {
                 throw new InvalidDataException($"Visio comment text exceeds {MaxCommentTextCharacters} characters.");
+            }
+        }
+
+        private static void ValidateCommentThreads(VisioPage page) {
+            IGrouping<int, VisioComment>[] idGroups = page.Comments
+                .Where(comment => comment.Id > 0)
+                .GroupBy(comment => comment.Id).ToArray();
+            if (idGroups.Any(group => group.Count() != 1))
+                throw new InvalidDataException(
+                    "Visio comment identifiers must be unique within a page.");
+            Dictionary<int, VisioComment> byId = idGroups
+                .ToDictionary(group => group.Key, group => group.Single());
+            foreach (VisioComment comment in page.Comments) {
+                if (!comment.ParentCommentId.HasValue) continue;
+                if (!byId.TryGetValue(comment.ParentCommentId.Value,
+                        out VisioComment? parent)) {
+                    throw new InvalidDataException(
+                        "A Visio comment reply references a missing parent comment.");
+                }
+                if (!string.Equals(comment.ThreadId, parent.ThreadId,
+                        StringComparison.Ordinal)) {
+                    throw new InvalidDataException(
+                        "A Visio comment reply must share its parent's thread identifier.");
+                }
+                var seen = new HashSet<int> { comment.Id };
+                VisioComment current = parent;
+                while (current.ParentCommentId.HasValue) {
+                    if (!seen.Add(current.Id) || !byId.TryGetValue(
+                            current.ParentCommentId.Value, out current!)) {
+                        throw new InvalidDataException(
+                            "The Visio comment thread contains a cycle or missing ancestor.");
+                    }
+                }
             }
         }
 

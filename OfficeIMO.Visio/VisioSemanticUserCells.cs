@@ -23,6 +23,9 @@ namespace OfficeIMO.Visio {
         public const string DataGraphicField = "OfficeIMO.DataGraphicField";
         public const string DataGraphicValue = "OfficeIMO.DataGraphicValue";
         public const string DataGraphicRole = "OfficeIMO.DataGraphicRole";
+        public const string DataGraphicLegendKind = "DataGraphicLegend";
+        public const string DataGraphicLegendTitleRole = "LegendTitle";
+        public const string DataGraphicLegendItemRole = "LegendItem";
         public const string StencilId = "OfficeIMO.StencilId";
         public const string StencilName = "OfficeIMO.StencilName";
         public const string StencilCategory = "OfficeIMO.StencilCategory";

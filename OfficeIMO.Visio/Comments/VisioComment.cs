@@ -66,6 +66,26 @@ namespace OfficeIMO.Visio {
         public int? AutoCommentType { get; set; }
 
         /// <summary>
+        /// Gets or sets the stable OfficeIMO thread identifier. Native Visio comment
+        /// fields remain intact; this value is stored as preservation-safe extension metadata.
+        /// </summary>
+        public string? ThreadId { get; set; }
+
+        /// <summary>Gets or sets the parent native comment identifier for a reply.</summary>
+        public int? ParentCommentId { get; set; }
+
+        /// <summary>Gets whether this comment is a reply in an OfficeIMO thread projection.</summary>
+        public bool IsReply => ParentCommentId.HasValue;
+
+        /// <summary>Changes all author identity fields together.</summary>
+        public void SetAuthor(VisioCommentAuthor author) {
+            if (author == null) throw new ArgumentNullException(nameof(author));
+            AuthorName = author.Name;
+            AuthorInitials = author.Initials;
+            AuthorResolutionId = author.ResolutionId;
+        }
+
+        /// <summary>
         /// Updates the comment text and records the edit timestamp.
         /// </summary>
         /// <param name="text">New comment text.</param>

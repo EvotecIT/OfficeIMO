@@ -157,10 +157,10 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteDataSection(XmlWriter writer, string ns, IDictionary<string, string> data, IEnumerable<XElement>? preservedRows = null, KeyValuePair<string, string>? additionalEntry = null, IList<VisioShapeDataRow>? shapeDataRows = null) {
+        private static void WriteDataSection(XmlWriter writer, string ns, IDictionary<string, string> data, IEnumerable<XElement>? preservedRows = null, KeyValuePair<string, string>? additionalEntry = null, IList<VisioShapeDataRow>? shapeDataRows = null, string sectionName = "Prop") {
             if (data.Count == 0 && additionalEntry == null && (shapeDataRows == null || shapeDataRows.Count == 0)) return;
             writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Prop");
+            writer.WriteAttributeString("N", IsShapeDataSectionName(sectionName) ? sectionName : "Prop");
 
             HashSet<string> emittedKeys = new(StringComparer.Ordinal);
             if (shapeDataRows != null) {

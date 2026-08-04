@@ -39,6 +39,23 @@ namespace OfficeIMO.Visio {
             _filePath = filePath;
         }
 
+        /// <summary>Saves to a specified path using an explicit Visio package family.</summary>
+        /// <remarks>
+        /// Macro-free output is rejected while a preserved VBA project is present so that
+        /// callers cannot silently discard executable package content.
+        /// </remarks>
+        public void Save(string filePath, VisioPackageType packageType) {
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            VisioPackageType previous = _packageType;
+            _packageType = packageType;
+            try {
+                Save(filePath);
+            } catch {
+                _packageType = previous;
+                throw;
+            }
+        }
+
         /// <summary>Saves the document once to a specified stream without changing the associated destination.</summary>
         public void Save(Stream stream) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -62,7 +79,7 @@ namespace OfficeIMO.Visio {
             return OfficeFileCommit.WriteAllBytesAsync(filePath, ToBytes(), cancellationToken: cancellationToken);
         }
 
-        /// <summary>Encodes the document as a VSDX package.</summary>
+        /// <summary>Encodes the document using its current Visio package family.</summary>
         public byte[] ToBytes() {
             ThrowIfInvalidForSave();
             using var stream = new MemoryStream();

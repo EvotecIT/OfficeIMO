@@ -387,7 +387,8 @@ namespace OfficeIMO.Tests {
             RewritePage(filePath, pageDoc => {
                 XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
                 XElement connectorShape = GetConnectorShape(pageDoc, ns);
-                XElement xForm = connectorShape.Element(ns + "XForm1D")!;
+                XElement beginX = connectorShape.Elements(ns + "Cell")
+                    .First(cell => (string?)cell.Attribute("N") == "BeginX");
                 XElement lineWeight = connectorShape.Elements(ns + "Cell")
                     .First(cell => (string?)cell.Attribute("N") == "LineWeight");
                 XElement geometry = connectorShape.Elements(ns + "Section")
@@ -396,11 +397,11 @@ namespace OfficeIMO.Tests {
                     new XAttribute("KeepOrder", "1"));
 
                 XElement[] remainingChildren = connectorShape.Elements()
-                    .Where(element => element != xForm && element != lineWeight && element != geometry)
+                    .Where(element => element != beginX && element != lineWeight && element != geometry)
                     .ToArray();
 
                 connectorShape.RemoveNodes();
-                connectorShape.Add(lineWeight, sidecarElement, geometry, xForm);
+                connectorShape.Add(lineWeight, sidecarElement, geometry, beginX);
                 foreach (XElement remainingChild in remainingChildren) {
                     connectorShape.Add(remainingChild);
                 }

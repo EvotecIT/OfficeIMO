@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Visio)](https://www.nuget.org/packages/OfficeIMO.Visio)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Visio?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Visio)
 
-`OfficeIMO.Visio` creates, edits, inspects, validates, and exports `.vsdx` diagrams without COM automation and without Microsoft Visio installed.
+`OfficeIMO.Visio` creates, edits, inspects, validates, and exports `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, and `.vssm` packages without COM automation and without Microsoft Visio installed.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -40,6 +40,9 @@ document.Save();
 - Creates and edits Visio pages, shapes, connectors, text, styles, Shape Data, layers, hyperlinks, containers, comments, and metadata.
 - Provides fluent diagram builders for common flowchart, block, dependency, architecture, network, topology, swimlane, org chart, sequence, timeline, and generic graph scenarios.
 - Supports loaded-diagram editing, shape selection, topology queries, stencil replacement/migration planning, and container maintenance.
+- Edits nested container topology, swimlane metadata and geometric assignment, threaded comments and authors, generated data graphics and legends, and source-preserving ShapeSheet sections and formulas.
+- Provides rotation- and connector-aware resize-to-content plus deterministic topology-aware whole-page relayout for dense imported diagrams.
+- Preserves opaque VBA project payloads in macro-enabled drawing, template, and stencil packages without executing or rewriting VBA.
 - Exports headless PNG, JPEG, TIFF, SVG, and lossless WebP previews for proof and review workflows.
 - Includes validation and quality analysis for generated and loaded diagrams, including connector-label collisions with unrelated connector paths.
 - Carries caller-supplied stencil license, attribution, and unsupported-master state through shapes, catalogs, and manifests without inferring redistribution rights.
@@ -70,9 +73,20 @@ VisioDocument.Load("operations.vsdx")
 
 ### Loaded-diagram compatibility boundary
 
-Loaded `.vsdx` editing covers common pages, shapes, connectors, text, styles, Shape Data, hyperlinks, layers, containers, comments, selection, topology queries, and targeted layout operations. Unmodeled package XML is preserved where possible, but this is strong round-trip preservation rather than a complete typed object model for every Visio feature.
+Loaded Open XML Visio editing covers pages, shapes, connectors, text, styles,
+Shape Data, hyperlinks, layers, nested containers, swimlanes, threaded comments,
+data graphics, legends, typed ShapeSheet sections/formulas, topology queries,
+resize-to-content, and whole-diagram relayout. Template and stencil packages use
+the same model, including page-less stencils with masters. Macro-enabled variants
+retain their VBA project as an opaque bounded payload.
 
-Current editing limits include advanced nested and container behavior, deeper swimlane metadata and automatic assignment, richer threaded comment and author workflows, advanced resize-to-content, and broader whole-diagram relayout and polish. Data graphics, legends, general ShapeSheet formulas, and many less-common ShapeSheet sections are preserved where possible but are not fully exposed as typed APIs. Track open work in the repository [roadmap](../Docs/ROADMAP.md).
+The boundary is deliberate: OfficeIMO does not execute VBA, evaluate arbitrary
+ShapeSheet formulas, or claim native Visio layout equivalence. Typed edits retain
+unmodeled ShapeSheet rows, cells, attributes, and supported opaque payloads in
+their existing preservation stores. Arbitrary producer package parts outside
+those stores are not advertised as editable. Ambiguous swimlane geometry is
+reported instead of assigned, container cycles are rejected, and semantic
+relayout keeps containers and generated adornments fixed unless the caller opts in.
 
 ### Signed diagrams
 
@@ -247,7 +261,7 @@ IReadOnlyList<OfficeImageExportResult> pages = document
 
 ## Related packages and limits
 
-- `OfficeIMO.Visio` generates and edits `.vsdx` packages without requiring desktop Visio at runtime.
+- `OfficeIMO.Visio` generates and edits drawing, template, stencil, and macro-enabled Open XML Visio packages without requiring desktop Visio at runtime.
 - External stencil packages retain their package and licensing requirements; OfficeIMO records caller-supplied provenance but never infers licensing terms.
 - Use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for PowerShell workflows.
 - Open Visio product work is listed in the repository [roadmap](../Docs/ROADMAP.md).

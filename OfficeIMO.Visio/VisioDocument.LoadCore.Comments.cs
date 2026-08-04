@@ -9,6 +9,8 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
+        private static readonly XNamespace OfficeImoCommentNamespace =
+            "https://officeimo.com/visio/comments/2026";
         internal const long MaxCommentsPartBytes = 12_000_000;
         internal const long MaxCommentsXmlCharacters = 10_000_000;
         internal const int MaxLoadedComments = 10_000;
@@ -83,6 +85,14 @@ namespace OfficeIMO.Visio {
                     Done = ParseCommentBool(commentElement.Attribute("Done")?.Value),
                     AutoCommentType = TryParseIntAttribute(commentElement, "AutoCommentType", out int autoCommentType) ? autoCommentType : (int?)null
                 };
+                comment.ThreadId = (string?)commentElement.Attribute(
+                    OfficeImoCommentNamespace + "threadId");
+                if (int.TryParse((string?)commentElement.Attribute(
+                        OfficeImoCommentNamespace + "parentId"),
+                        NumberStyles.Integer, CultureInfo.InvariantCulture,
+                        out int parentId) && parentId > 0) {
+                    comment.ParentCommentId = parentId;
+                }
 
                 string? editDate = commentElement.Attribute("EditDate")?.Value;
                 if (!string.IsNullOrWhiteSpace(editDate)) {

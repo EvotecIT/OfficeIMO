@@ -99,10 +99,11 @@ OfficeDocumentReadResult document = diagram.ToOfficeDocumentReadResult();
 
 ## What it emits
 
-- Page-aware chunks for `.vsdx` files.
+- Page-aware chunks for `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, and `.vssm` files.
 - Shape Data as `ReaderTable` rows.
 - Pages, shapes, connectors, hyperlinks, and optional preview asset metadata in the shared read result envelope.
 - Point-based geometry and one topology `ReaderVisual` per page for graph-aware consumers.
+- Page-less stencils load as valid packages; they may produce no page chunks while their masters remain available through `OfficeIMO.Visio`.
 
 ## Boundaries
 

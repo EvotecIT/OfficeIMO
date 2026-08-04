@@ -40,13 +40,6 @@ namespace OfficeIMO.Visio {
         }
 
         private static void WriteXForm1D(XmlWriter writer, string ns, double beginX, double beginY, double endX, double endY) {
-            writer.WriteStartElement("XForm1D", ns);
-            writer.WriteElementString("BeginX", ns, ToVisioString(beginX));
-            writer.WriteElementString("BeginY", ns, ToVisioString(beginY));
-            writer.WriteElementString("EndX", ns, ToVisioString(endX));
-            writer.WriteElementString("EndY", ns, ToVisioString(endY));
-            writer.WriteEndElement();
-
             WriteCell(writer, ns, "BeginX", beginX);
             WriteCell(writer, ns, "BeginY", beginY);
             WriteCell(writer, ns, "EndX", endX);

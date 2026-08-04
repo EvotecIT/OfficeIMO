@@ -290,6 +290,11 @@ namespace OfficeIMO.Tests {
                 string extension = Path.GetExtension(path).ToLowerInvariant();
                 switch (extension) {
                     case ".vsdx":
+                    case ".vstx":
+                    case ".vssx":
+                    case ".vsdm":
+                    case ".vstm":
+                    case ".vssm":
                         IReadOnlyList<string> packageIssues = VisioValidator.Validate(path);
                         if (packageIssues.Count > 0) {
                             issue = string.Join(" | ", packageIssues.Take(5));

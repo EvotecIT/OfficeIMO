@@ -19,6 +19,9 @@ namespace OfficeIMO.Visio {
                 container.Id,
                 container.Text,
                 container.ContainerMemberIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                GetDirectParentContainers(page, container).Select(item => item.Id).ToList(),
+                page.GetContainerMembers(container).Where(item => item.IsContainer).Select(item => item.Id).ToList(),
+                GetNestingDepth(page, container),
                 options.Margin,
                 options.HeadingHeight,
                 options.AutoResize,
@@ -98,6 +101,30 @@ namespace OfficeIMO.Visio {
             }
 
             return members;
+        }
+
+        /// <summary>Gets containers that directly contain the supplied container.</summary>
+        public static IReadOnlyList<VisioShape> GetParentContainers(this VisioPage page,
+            VisioShape container) {
+            ValidatePageAndContainer(page, container);
+            return GetDirectParentContainers(page, container);
+        }
+
+        /// <summary>Gets direct member containers.</summary>
+        public static IReadOnlyList<VisioShape> GetNestedContainers(this VisioPage page,
+            VisioShape container) {
+            ValidatePageAndContainer(page, container);
+            return page.GetContainerMembers(container).Where(member => member.IsContainer)
+                .ToList();
+        }
+
+        /// <summary>Adds a container as a cycle-safe nested member.</summary>
+        public static VisioShape AddNestedContainer(this VisioPage page,
+            VisioShape parent, VisioShape child, bool resizeToFit = true,
+            VisioContainerOptions? resizeOptions = null) {
+            if (child == null) throw new ArgumentNullException(nameof(child));
+            if (!child.IsContainer) throw new ArgumentException("The nested member must be a Visio-native container.", nameof(child));
+            return page.AddToContainer(parent, child, resizeToFit, resizeOptions);
         }
 
         /// <summary>
@@ -180,7 +207,9 @@ namespace OfficeIMO.Visio {
 
             VisioContainerOptions effectiveOptions = options ?? VisioContainerSemantics.CreateOptionsFrom(container, page.DefaultUnit);
             VisioContainerSemantics.Validate(effectiveOptions);
-            GetContainerBounds(members, effectiveOptions, page.DefaultUnit, out double pinX, out double pinY, out double width, out double height);
+            GetContainerBounds(container, members, effectiveOptions,
+                page.DefaultUnit, out double pinX, out double pinY,
+                out double width, out double height);
             container.PinX = pinX;
             container.PinY = pinY;
             container.Width = width;
@@ -254,9 +283,60 @@ namespace OfficeIMO.Visio {
                 if (!pageShapes.Contains(member)) {
                     throw new InvalidOperationException("All container members must belong to the page.");
                 }
+
+                if (member.IsContainer && ContainsContainer(page, member,
+                        container.Id, new HashSet<string>(StringComparer.OrdinalIgnoreCase))) {
+                    throw new InvalidOperationException(
+                        "Nested container membership would create a cycle.");
+                }
             }
 
             return memberList;
+        }
+
+        private static IReadOnlyList<VisioShape> GetDirectParentContainers(
+            VisioPage page, VisioShape container) {
+            var ownerIds = new HashSet<string>(container.ContainerOwnerIds,
+                StringComparer.OrdinalIgnoreCase);
+            return page.AllShapes().Where(candidate => candidate.IsContainer &&
+                    (ownerIds.Contains(candidate.Id) || candidate.ContainerMemberIds.Contains(
+                        container.Id, StringComparer.OrdinalIgnoreCase)))
+                .Distinct().ToList();
+        }
+
+        private static int GetNestingDepth(VisioPage page,
+            VisioShape container) {
+            return GetNestingDepthCore(page, container,
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static int GetNestingDepthCore(VisioPage page,
+            VisioShape container, ISet<string> path) {
+            if (!path.Add(container.Id)) {
+                throw new InvalidOperationException(
+                    "The imported container topology contains a cycle.");
+            }
+            int depth = 0;
+            foreach (VisioShape parent in GetDirectParentContainers(page, container)) {
+                var branch = new HashSet<string>(path,
+                    StringComparer.OrdinalIgnoreCase);
+                depth = Math.Max(depth, checked(1 + GetNestingDepthCore(page,
+                    parent, branch)));
+            }
+            return depth;
+        }
+
+        private static bool ContainsContainer(VisioPage page,
+            VisioShape candidate, string targetId, ISet<string> visited) {
+            if (!visited.Add(candidate.Id)) return false;
+            foreach (string memberId in candidate.ContainerMemberIds) {
+                if (string.Equals(memberId, targetId,
+                        StringComparison.OrdinalIgnoreCase)) return true;
+                VisioShape? member = page.FindShapeById(memberId);
+                if (member?.IsContainer == true && ContainsContainer(page,
+                        member, targetId, visited)) return true;
+            }
+            return false;
         }
 
         private static VisioPage RequireOwnerPage(VisioShapeSelection selection) {
@@ -267,8 +347,19 @@ namespace OfficeIMO.Visio {
             return selection.OwnerPage ?? throw new InvalidOperationException("The selection must be created from a VisioPage query before it can edit container membership.");
         }
 
-        private static void GetContainerBounds(IReadOnlyList<VisioShape> members, VisioContainerOptions options, VisioMeasurementUnit unit, out double pinX, out double pinY, out double width, out double height) {
-            VisioShapeBounds bounds = members.GetShapeBounds();
+        private static void GetContainerBounds(VisioShape container,
+            IReadOnlyList<VisioShape> members, VisioContainerOptions options,
+            VisioMeasurementUnit unit, out double pinX, out double pinY,
+            out double width, out double height) {
+            List<(double X, double Y)> points = members
+                .SelectMany(GetPageCorners)
+                .Select(point => container.Parent == null
+                    ? point
+                    : ConvertPagePointToLocal(container.Parent, point.X,
+                        point.Y)).ToList();
+            VisioShapeBounds bounds = new(points.Min(point => point.X),
+                points.Min(point => point.Y), points.Max(point => point.X),
+                points.Max(point => point.Y));
             double margin = options.Margin.ToInches(unit);
             double headingHeight = options.HeadingHeight.ToInches(unit);
             double left = bounds.Left - margin;
@@ -279,6 +370,35 @@ namespace OfficeIMO.Visio {
             height = Math.Max(0.1D, top - bottom);
             pinX = left + width / 2D;
             pinY = bottom + height / 2D;
+        }
+
+        private static IEnumerable<(double X, double Y)> GetPageCorners(
+            VisioShape shape) {
+            yield return GetPagePoint(shape, 0D, 0D);
+            yield return GetPagePoint(shape, shape.Width, 0D);
+            yield return GetPagePoint(shape, 0D, shape.Height);
+            yield return GetPagePoint(shape, shape.Width, shape.Height);
+        }
+
+        private static (double X, double Y) GetPagePoint(VisioShape shape,
+            double x, double y) {
+            (double parentX, double parentY) = shape.GetAbsolutePoint(x, y);
+            return shape.Parent == null
+                ? (parentX, parentY)
+                : GetPagePoint(shape.Parent, parentX, parentY);
+        }
+
+        private static (double X, double Y) ConvertPagePointToLocal(
+            VisioShape shape, double pageX, double pageY) {
+            (double parentX, double parentY) = shape.Parent == null
+                ? (pageX, pageY)
+                : ConvertPagePointToLocal(shape.Parent, pageX, pageY);
+            double dx = parentX - shape.PinX;
+            double dy = parentY - shape.PinY;
+            double cos = Math.Cos(shape.Angle);
+            double sin = Math.Sin(shape.Angle);
+            return (shape.LocPinX + cos * dx + sin * dy,
+                shape.LocPinY - sin * dx + cos * dy);
         }
 
         private static void AddUnique(IList<string> values, string value) {

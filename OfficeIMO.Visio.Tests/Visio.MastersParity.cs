@@ -86,8 +86,13 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("0", (string?)masterElement.Attribute("MasterType"));
                     Assert.NotNull(pageSheet.Elements(ns + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == "Layer"));
                     Assert.NotNull(shape.Elements(ns + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == "Control"));
-                    Assert.NotNull(shape.Element(ns + "XForm1D"));
-                    Assert.Contains(shape.Elements(ns + "Cell"), cell => (string?)cell.Attribute("N") == "OneD");
+                    Assert.Null(shape.Element(ns + "XForm1D"));
+                    Assert.Contains(shape.Elements(ns + "Cell"), cell =>
+                        (string?)cell.Attribute("N") == "BeginX");
+                    Assert.Contains(shape.Elements(ns + "Cell"), cell =>
+                        (string?)cell.Attribute("N") == "EndX");
+                    Assert.Contains(shape.Elements(ns + "Cell"), cell =>
+                        (string?)cell.Attribute("N") == "OneD");
                     continue;
                 }
 

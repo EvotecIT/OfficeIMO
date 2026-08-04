@@ -30,6 +30,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static void ValidateSharedChartData(OfficeChartData data, OfficeChartKind defaultKind) {
             if (data == null) throw new ArgumentNullException(nameof(data));
+            ValidateSharedWorkbookDimensionsAndValues(data);
             if (defaultKind == OfficeChartKind.Bubble) {
                 int maximumPoints = data.Series
                     .Select(series => series.Values.Count)
@@ -88,6 +89,44 @@ namespace OfficeIMO.PowerPoint {
                 item.Kind == OfficeChartKind.Doughnut || item.Kind == OfficeChartKind.Radar);
             if (hasStandalone && (descriptors.Select(item => item.Kind).Distinct().Count() > 1 || hasSecondary)) {
                 throw new NotSupportedException("Pie, doughnut, and radar charts cannot participate in combo or secondary-axis charts.");
+            }
+        }
+
+        private static void ValidateSharedWorkbookDimensionsAndValues(
+            OfficeChartData data) {
+            long totalPoints = data.Series.Sum(series =>
+                (long)series.Values.Count);
+            ValidateSharedWorkbookDimensions(data.Categories.Count,
+                data.Series.Count, totalPoints);
+            foreach (OfficeChartSeries series in data.Series) {
+                if (series.Values.Any(value => double.IsNaN(value)
+                        || double.IsInfinity(value))
+                    || series.XValues?.Any(value => double.IsNaN(value)
+                        || double.IsInfinity(value)) == true
+                    || series.BubbleSizes?.Any(value => double.IsNaN(value)
+                        || double.IsInfinity(value)) == true) {
+                    throw new ArgumentOutOfRangeException(nameof(data),
+                        "Chart data must contain only finite numeric values.");
+                }
+            }
+        }
+
+        internal static void ValidateSharedWorkbookDimensions(
+            int categoryCount, int seriesCount, long totalPoints) {
+            if (categoryCount > SpreadsheetMaximumRows - 1) {
+                throw new ArgumentException(
+                    "Chart data exceeds the embedded worksheet row limit.",
+                    "data");
+            }
+            if (seriesCount > SpreadsheetMaximumColumns - 1) {
+                throw new ArgumentException(
+                    "Chart data exceeds the embedded worksheet column limit.",
+                    "data");
+            }
+            if (totalPoints > MaximumSharedChartPoints) {
+                throw new ArgumentException(
+                    "Chart data exceeds the shared chart total point limit.",
+                    "data");
             }
         }
 
@@ -670,9 +709,10 @@ namespace OfficeIMO.PowerPoint {
         private static IReadOnlyList<double> ParseScatterCategories(IReadOnlyList<string> categories) {
             var values = new List<double>(categories.Count);
             foreach (string category in categories) {
-                if (!double.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+                if (!double.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                    double.IsNaN(value) || double.IsInfinity(value)) {
                     throw new ArgumentException(
-                        "Scatter chart categories must be invariant numeric values when a series has no XValues.",
+                        "Scatter chart categories must be finite invariant numeric values when a series has no XValues.",
                         nameof(categories));
                 }
                 values.Add(value);

@@ -13,6 +13,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
+    [Collection(PowerPointNonParallelCollection.Name)]
     public sealed class PowerPointSourceProducerCorpusTests {
         [Fact]
         public void MicrosoftPowerPointCorpusIsCompleteAndSurvivesOpenEditSave() {
@@ -147,6 +148,7 @@ namespace OfficeIMO.Tests {
                             slide.Uri + "|" + table.OuterXml));
                     break;
                 case "charts":
+                case "advanced charts":
                     entries = presentation.SlideParts.SelectMany(slide =>
                             slide.ChartParts.Select(chart =>
                                 "chart|" + chart.Uri + "|" + chart.ChartSpace.OuterXml))
@@ -155,6 +157,32 @@ namespace OfficeIMO.Tests {
                                 chart.GetPartsOfType<EmbeddedPackagePart>())
                             .Select(package => "workbook|" + package.Uri + "|"
                                 + ComputePartSha256(package))));
+                    break;
+                case "smartart topology":
+                    entries = GetAllParts(presentation)
+                        .Where(part => part is DiagramDataPart
+                            || part is DiagramLayoutDefinitionPart
+                            || part is DiagramPersistLayoutPart)
+                        .Select(part => "diagram|" + part.Uri + "|"
+                            + ComputePartSha256(part));
+                    break;
+                case "animation timeline":
+                    entries = presentation.SlideParts
+                        .Where(slide => slide.Slide.Timing != null)
+                        .Select(slide => "timing|" + slide.Uri + "|"
+                            + slide.Slide.Timing!.OuterXml);
+                    break;
+                case "embedded audio":
+                    entries = presentation.SlideParts.SelectMany(slide =>
+                        slide.DataPartReferenceRelationships
+                            .Where(relationship => relationship is
+                                AudioReferenceRelationship)
+                            .Select(relationship => "audio|" + slide.Uri
+                                + "|" + relationship.Id + "|"
+                                + relationship.RelationshipType + "|"
+                                + relationship.DataPart.Uri + "|"
+                                + ComputeDataPartSha256(
+                                    relationship.DataPart)));
                     break;
                 case "pictures":
                     entries = presentation.SlideParts.SelectMany(slide =>
@@ -253,6 +281,12 @@ namespace OfficeIMO.Tests {
         }
 
         private static string ComputePartSha256(OpenXmlPart part) {
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            using SHA256 sha256 = SHA256.Create();
+            return ToHex(sha256.ComputeHash(stream));
+        }
+
+        private static string ComputeDataPartSha256(DataPart part) {
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
             using SHA256 sha256 = SHA256.Create();
             return ToHex(sha256.ComputeHash(stream));
