@@ -59,6 +59,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, smartArt.NodeCount);
             Assert.Equal(new[] { "A", "B", "C" },
                 Enumerable.Range(0, smartArt.NodeCount).Select(smartArt.GetNodeText));
+            Assert.Contains("non-empty and unique", Assert.Throws<InvalidOperationException>(() => smartArt.AddNode("D")).Message);
+            Assert.Contains("non-empty and unique", Assert.Throws<InvalidOperationException>(() => smartArt.InsertNodeAt(1, "D")).Message);
+            Assert.Contains("non-empty and unique", Assert.Throws<InvalidOperationException>(() => smartArt.RemoveNodeAt(1)).Message);
+            Assert.Contains("non-empty and unique", Assert.Throws<InvalidOperationException>(() => smartArt.MoveNode(0, 2)).Message);
         }
 
         [Fact]
@@ -80,6 +84,7 @@ namespace OfficeIMO.Tests {
                 .First(item => (string?)item.Attribute("srcId") == docId);
             XElement duplicate = new XElement(connection);
             duplicate.SetAttributeValue("modelId", "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}");
+            duplicate.SetAttributeValue("srcOrd", 99);
             connection.AddAfterSelf(duplicate);
             SaveDiagramData(dataPart, data);
 
@@ -96,6 +101,54 @@ namespace OfficeIMO.Tests {
                 item => Assert.Equal(2, (int)item.Attribute("srcOrd")!));
             Assert.Equal(new[] { "B", "C", "A" },
                 Enumerable.Range(0, smartArt.NodeCount).Select(smartArt.GetNodeText));
+        }
+
+        [Fact]
+        public void SmartArt_InsertAndRemove_ResequenceDuplicateDocumentChildConnections() {
+            string filePath = Path.Combine(_directoryWithFiles, "SmartArt.ResequenceDuplicateDocumentChildConnections.docx");
+            string docId;
+            string duplicateDestination;
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordSmartArt smartArt = document.AddSmartArt(SmartArtType.BasicProcess);
+                smartArt.SetNodeText(0, "A");
+                smartArt.AddNode("B");
+                smartArt.AddNode("C");
+
+                DiagramDataPart dataPart = document._wordprocessingDocument.MainDocumentPart!.DiagramDataParts.Single();
+                XDocument data = LoadDiagramData(dataPart);
+                XNamespace dgm = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+                docId = (string)data.Descendants(dgm + "pt")
+                    .Single(point => (string?)point.Attribute("type") == "doc")
+                    .Attribute("modelId")!;
+                XElement connection = data.Descendants(dgm + "cxn")
+                    .Single(item => (string?)item.Attribute("srcId") == docId && (int?)item.Attribute("srcOrd") == 1);
+                duplicateDestination = (string)connection.Attribute("destId")!;
+                XElement duplicate = new XElement(connection);
+                duplicate.SetAttributeValue("modelId", "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}");
+                duplicate.SetAttributeValue("srcOrd", 99);
+                connection.AddAfterSelf(duplicate);
+                SaveDiagramData(dataPart, data);
+
+                smartArt.InsertNodeAt(1, "X");
+                smartArt.RemoveNodeAt(0);
+
+                Assert.Equal(new[] { "X", "B", "C" },
+                    Enumerable.Range(0, smartArt.NodeCount).Select(smartArt.GetNodeText));
+                AssertDuplicateConnectionsShareOrder(LoadDiagramData(dataPart), dgm, docId, duplicateDestination, 1);
+                document.Save();
+            }
+
+            using WordDocument reloaded = WordDocument.Load(filePath);
+            WordSmartArt imported = Assert.Single(reloaded.SmartArts);
+            Assert.Equal(new[] { "X", "B", "C" },
+                Enumerable.Range(0, imported.NodeCount).Select(imported.GetNodeText));
+            DiagramDataPart reloadedDataPart = reloaded._wordprocessingDocument.MainDocumentPart!.DiagramDataParts.Single();
+            AssertDuplicateConnectionsShareOrder(
+                LoadDiagramData(reloadedDataPart),
+                "http://schemas.openxmlformats.org/drawingml/2006/diagram",
+                docId,
+                duplicateDestination,
+                1);
         }
 
         [Fact]
@@ -156,6 +209,20 @@ namespace OfficeIMO.Tests {
             data.Save(stream);
             stream.Position = 0;
             part.FeedData(stream);
+        }
+
+        private static void AssertDuplicateConnectionsShareOrder(
+            XDocument data,
+            XNamespace dgm,
+            string docId,
+            string destinationId,
+            int expectedOrder) {
+            var connections = data.Descendants(dgm + "cxn")
+                .Where(item => (string?)item.Attribute("srcId") == docId)
+                .Where(item => (string?)item.Attribute("destId") == destinationId)
+                .ToList();
+            Assert.Equal(2, connections.Count);
+            Assert.All(connections, item => Assert.Equal(expectedOrder, (int)item.Attribute("srcOrd")!));
         }
     }
 }
