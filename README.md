@@ -45,7 +45,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | PDF | No third-party PDF or cryptographic dependency | PDF parsing/writing/rendering, password security, signature structure, preservation policy, limits, and diagnostics |
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
-| Visio | `System.IO.Packaging` | VSDX model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
+| Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
 | OCR packages | A caller-supplied executable or an installed Tesseract CLI | Candidate selection, bounded execution, protocol, result model, and diagnostics |
@@ -63,7 +63,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Unified Reader packages | 27 |
 | Markdown renderer and OfficeIMO Markup surfaces | 10 |
 | Runnable example projects | 1 |
-| Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx` |
+| Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, `.vssm` |
 | First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
 | First-party offline OneNote support | Desktop/FSSHTTP `.one`, `.onetoc2`, `.onepkg` |
 | Managed PNG/JPEG/TIFF/WebP/SVG document export | Drawing; Word, Excel, PowerPoint, HTML, OneNote, Visio, and PDF; HTML-backed email and EPUB; ODT/ODS/ODP through their Office adapters |
@@ -177,7 +177,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy binary sup
 
 #### [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
 
-- [x] Create, load, edit, inspect, and save `.vsdx` diagrams without Visio automation
+- [x] Create, load, edit, inspect, and save drawing, template, stencil, and macro-enabled Open XML Visio packages without Visio automation
 - [x] Multi-page documents, page settings, scale, backgrounds, metadata, document settings, and stream/file lifecycles
 - [x] Rectangles, ellipses, diamonds, triangles, callouts, custom/master geometry, groups, and shape duplication
 - [x] Connectors, connection points, arrows, routing, line jumps, endpoint queries, and topology inspection
@@ -867,7 +867,7 @@ _Dependency footprint:_ only `OfficeIMO.Reader.Core` and platform APIs; no audio
 
 #### [OfficeIMO.Reader.Visio](OfficeIMO.Reader.Visio/README.md)
 
-- [x] Page-aware `.vsdx`, `.vsdm`, `.vstx`, and `.vstm` extraction
+- [x] Page-aware `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, and `.vssm` extraction, with valid page-less stencil handling
 - [x] Pages, shapes, connectors, hyperlinks, Shape Data tables, and preview metadata
 - [x] Point geometry and per-page topology visuals for graph-aware consumers
 

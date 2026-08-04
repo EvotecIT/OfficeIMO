@@ -26,6 +26,23 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Gets rotation-aware bounds in page coordinates, including every parent-group
+        /// transform for a nested shape.
+        /// </summary>
+        public static VisioShapeBounds GetPageShapeBounds(this VisioShape shape) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            (double x1, double y1) = GetPagePoint(shape, 0D, 0D);
+            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0D);
+            (double x3, double y3) = GetPagePoint(shape, 0D, shape.Height);
+            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
+            return new VisioShapeBounds(
+                Math.Min(Math.Min(x1, x2), Math.Min(x3, x4)),
+                Math.Min(Math.Min(y1, y2), Math.Min(y3, y4)),
+                Math.Max(Math.Max(x1, x2), Math.Max(x3, x4)),
+                Math.Max(Math.Max(y1, y2), Math.Max(y3, y4)));
+        }
+
+        /// <summary>
         /// Gets aggregate bounds for a shape sequence.
         /// </summary>
         /// <param name="shapes">Shapes to inspect.</param>
@@ -71,7 +88,11 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(page));
             }
 
-            VisioShapeBounds bounds = includeGroupChildren ? page.AllShapes().GetShapeBounds() : page.Shapes.GetShapeBounds();
+            VisioShapeBounds bounds = page.Shapes.GetShapeBounds();
+            if (includeGroupChildren) {
+                foreach (VisioShape child in page.AllShapes().Where(shape => shape.Parent != null))
+                    bounds = Combine(bounds, child.GetPageShapeBounds());
+            }
             if (!includeConnectors) {
                 return bounds;
             }
@@ -83,6 +104,14 @@ namespace OfficeIMO.Visio {
             return bounds;
         }
 
+        private static (double X, double Y) GetPagePoint(VisioShape shape,
+            double x, double y) {
+            (double absoluteX, double absoluteY) = shape.GetAbsolutePoint(x, y);
+            return shape.Parent == null
+                ? (absoluteX, absoluteY)
+                : GetPagePoint(shape.Parent, absoluteX, absoluteY);
+        }
+
         /// <summary>
         /// Moves top-level page shapes so content starts at the requested margin and optionally resizes the page to fit.
         /// </summary>
@@ -91,6 +120,38 @@ namespace OfficeIMO.Visio {
         /// <param name="resizePage">Whether to resize the page around the content.</param>
         public static VisioPage FitToContent(this VisioPage page, double margin = 0.5D, bool resizePage = true) {
             return FitToContent(page, margin, margin, resizePage);
+        }
+
+        /// <summary>
+        /// Fits an imported page using explicit group-child, connector-route, translation,
+        /// and resize policies. Rotation-aware shape bounds and connector label boxes are used.
+        /// </summary>
+        public static VisioPage FitToContent(this VisioPage page,
+            VisioFitToContentOptions options) {
+            if (page == null) throw new ArgumentNullException(nameof(page));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (options.HorizontalMargin < 0D || double.IsNaN(options.HorizontalMargin) || double.IsInfinity(options.HorizontalMargin))
+                throw new ArgumentOutOfRangeException(nameof(options), "Horizontal margin must be non-negative and finite.");
+            if (options.VerticalMargin < 0D || double.IsNaN(options.VerticalMargin) || double.IsInfinity(options.VerticalMargin))
+                throw new ArgumentOutOfRangeException(nameof(options), "Vertical margin must be non-negative and finite.");
+            VisioShapeBounds bounds = page.GetContentBounds(options.IncludeGroupChildren,
+                options.IncludeConnectors);
+            if (bounds.IsEmpty) return page;
+            if (options.MoveContent) {
+                double deltaX = options.HorizontalMargin - bounds.Left;
+                double deltaY = options.VerticalMargin - bounds.Bottom;
+                MoveShapes(page.Shapes, deltaX, deltaY);
+                MoveConnectorPageCoordinates(page.Connectors, deltaX, deltaY);
+            }
+            if (options.ResizePage) {
+                page.Width = Math.Max(MinimumPageSize, options.MoveContent
+                    ? bounds.Width + options.HorizontalMargin * 2D
+                    : Math.Max(0D, bounds.Right) + options.HorizontalMargin);
+                page.Height = Math.Max(MinimumPageSize, options.MoveContent
+                    ? bounds.Height + options.VerticalMargin * 2D
+                    : Math.Max(0D, bounds.Top) + options.VerticalMargin);
+            }
+            return page;
         }
 
         /// <summary>

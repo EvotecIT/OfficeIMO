@@ -29,9 +29,12 @@ namespace OfficeIMO.Visio {
                 throw new InvalidDataException($"Document relationship points to missing part '{documentUri}'.");
             }
             PackagePart documentPart = package.GetPart(documentUri);
-            if (documentPart.ContentType != DocumentContentType) {
+            if (!VisioPackageFormat.TryFromContentType(documentPart.ContentType,
+                    out VisioPackageType packageType)) {
                 throw new InvalidDataException($"Unexpected Visio document content type: {documentPart.ContentType}");
             }
+            document._packageType = packageType;
+            LoadVbaProject(documentPart, document);
             XDocument documentXml = LoadPackageXml(documentPart, "Visio document XML part");
             if (documentXml.Root != null) {
                 foreach (XAttribute attribute in documentXml.Root.Attributes().Where(ShouldPreserveDocumentAttribute)) {
@@ -128,14 +131,24 @@ namespace OfficeIMO.Visio {
                 };
             }
 
-            PackageRelationship pagesRel = GetRequiredSingleRelationship(
-                documentPart.GetRelationshipsByType(PagesRelationshipType),
-                "document pages");
-            Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
-            if (!package.PartExists(pagesUri)) {
-                throw new InvalidDataException($"Pages relationship points to missing part '{pagesUri}'.");
+            PackageRelationship[] pageRelationships = documentPart
+                .GetRelationshipsByType(PagesRelationshipType).ToArray();
+            PackagePart? pagesPart = null;
+            if (pageRelationships.Length == 0) {
+                if (!document.IsStencil) {
+                    throw new InvalidDataException("Required relationship 'document pages' is missing.");
+                }
+            } else {
+                if (pageRelationships.Length != 1) {
+                    throw new InvalidDataException("Relationship 'document pages' must occur exactly once.");
+                }
+                PackageRelationship pagesRel = pageRelationships[0];
+                Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
+                if (!package.PartExists(pagesUri)) {
+                    throw new InvalidDataException($"Pages relationship points to missing part '{pagesUri}'.");
+                }
+                pagesPart = package.GetPart(pagesUri);
             }
-            PackagePart pagesPart = package.GetPart(pagesUri);
 
             // Load masters (if exist) to populate references on shapes
             Dictionary<string, VisioMaster> masters = new();
@@ -224,11 +237,12 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            XDocument pagesDoc = LoadPackageXml(pagesPart, "Visio pages XML part");
+            XDocument? pagesDoc = pagesPart == null ? null :
+                LoadPackageXml(pagesPart, "Visio pages XML part");
             XNamespace vNs = VisioNamespace;
             XNamespace relNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
-            foreach (XElement pageRef in pagesDoc.Root?.Elements(vNs + "Page") ?? Enumerable.Empty<XElement>()) {
+            foreach (XElement pageRef in pagesDoc?.Root?.Elements(vNs + "Page") ?? Enumerable.Empty<XElement>()) {
                 string name = pageRef.Attribute("Name")?.Value ?? "Page";
                 int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
                 VisioPage page = document.AddPage(name, id: pageId);
@@ -548,7 +562,7 @@ namespace OfficeIMO.Visio {
                 }
                 string relId = relIdValue!;
 
-                PackageRelationship pageRel = pagesPart.GetRelationship(relId);
+                PackageRelationship pageRel = pagesPart!.GetRelationship(relId);
                 Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 PackagePart pagePart = package.GetPart(pageUri);
                 XDocument pageDoc = LoadPackageXml(pagePart, "Visio page XML part");

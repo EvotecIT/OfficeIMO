@@ -168,6 +168,27 @@ supplied `IOfficeSecurityProvider` for OPC creation and cryptographic validation
 - Supports encrypted Open XML and RC4 CryptoAPI binary presentation save/load workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
 
+### Imported charts, SmartArt, timelines, media, and OLE
+
+Imported 3-D bar, line, area, and pie charts, of-pie charts, stock charts, and
+surface charts support in-place data updates when their referenced caches and
+embedded workbook can be changed consistently. `InspectImportedContent()`
+reports the native family and export boundary. Image and PDF export use an
+explicit 2-D semantic projection for these families; producer-specific storage
+or chart groups that do not have a safe model remain preservation-only.
+
+`PowerPointSmartArt.TryGetTopology(...)` exposes text, sibling order, and parent
+connections only when the imported layout can be represented safely.
+`UpdateTopology(...)` rejects node creation/deletion, cycles, and connections
+that would change the meaning of the supported SmartArt family.
+
+Slides can append motion, rotation, and command timeline actions without
+rebuilding an imported timing tree. Actions can be edited or removed by native
+timing ID. Linked and embedded audio/video expose playback, trim, fade, target,
+and payload controls; linked and embedded OLE objects expose their appropriate
+URI or package-payload controls. Unmodeled timing and package content remains in
+the source package unless a caller explicitly targets a supported node.
+
 ## Runnable samples
 
 ```powershell

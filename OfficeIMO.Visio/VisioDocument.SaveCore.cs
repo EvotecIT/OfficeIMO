@@ -32,7 +32,11 @@ namespace OfficeIMO.Visio {
         private void SaveInternalCore(Stream destination) {
             ApplySignatureMutationPolicy();
             bool includeTheme = PackageTheme != null;
-            List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
+            List<VisioPage> pagesToSave = _pages.Count > 0
+                ? _pages
+                : IsStencil
+                    ? new List<VisioPage>()
+                    : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
             bool includeComments = pagesToSave.Any(page => page.Comments.Count > 0);
             PrepareTextFontFaceNames(pagesToSave);
             ValidatePagesForSave(pagesToSave);
@@ -49,7 +53,11 @@ namespace OfficeIMO.Visio {
                 masterCount = WritePackage(package, includeTheme, includeComments, pagesToSave, pageCount, pagePartNames);
             }
 
-            FixContentTypes(packageStream, masterCount, includeTheme, includeComments, pagePartNames);
+            FixContentTypes(packageStream, masterCount, includeTheme,
+                includeComments, pagePartNames, _packageType,
+                _vbaProjectBytes != null && _vbaProjectBytes.Length > 0,
+                _vbaProjectContentType, _vbaProjectPartUri,
+                _preservedVbaParts.Values);
 
             packageStream.Seek(0, SeekOrigin.Begin);
             OfficeStreamWriter.WriteAllBytes(destination, packageStream.ToArray());
@@ -64,7 +72,8 @@ namespace OfficeIMO.Visio {
             List<string> pagePartNames) {
             int masterCount;
             Uri documentUri = new("/visio/document.xml", UriKind.Relative);
-            PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
+            PackagePart documentPart = package.CreatePart(documentUri,
+                VisioPackageFormat.GetContentType(_packageType));
             package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, "rId1");
 
                 Uri coreUri = new("/docProps/core.xml", UriKind.Relative);
@@ -92,6 +101,18 @@ namespace OfficeIMO.Visio {
                 documentPart.CreateRelationship(new Uri("windows.xml", UriKind.Relative), TargetMode.Internal, WindowsRelationshipType, "rId2");
 
                 int nextDocumentRelationshipId = 3;
+                if (_vbaProjectBytes != null && _vbaProjectBytes.Length > 0) {
+                    if (!VisioPackageFormat.IsMacroEnabled(_packageType)) {
+                        throw new InvalidOperationException(
+                            "A preserved VBA project requires a macro-enabled Visio package type.");
+                    }
+                    WriteVbaSubtree(package);
+                    documentPart.CreateRelationship(
+                        PackUriHelper.GetRelativeUri(documentPart.Uri,
+                            _vbaProjectPartUri),
+                        TargetMode.Internal, VbaProjectRelationshipType,
+                        $"rId{nextDocumentRelationshipId++}");
+                }
                 PackagePart? themePart = null;
                 if (includeTheme) {
                     Uri themeUri = new("/visio/theme/theme1.xml", UriKind.Relative);
@@ -203,6 +224,7 @@ namespace OfficeIMO.Visio {
 
                 Dictionary<VisioPage, Dictionary<string, VisioMaster>> effectivePageMasters = new();
                 List<VisioMaster> masterCandidates = new();
+                if (IsStencil) masterCandidates.AddRange(_registeredMasters);
                 foreach (VisioPage page in pagesToSave) {
                     Dictionary<string, VisioMaster> pageMasters = BuildEffectiveShapeMasterMap(page);
                     effectivePageMasters[page] = pageMasters;
@@ -630,6 +652,41 @@ namespace OfficeIMO.Visio {
                     .Distinct(StringComparer.OrdinalIgnoreCase));
 
             return masterCount;
+        }
+
+        private void WriteVbaSubtree(Package package) {
+            IEnumerable<PreservedVbaPart> sourceParts =
+                _preservedVbaParts.Count > 0
+                    ? _preservedVbaParts.Values
+                    : new[] {
+                        new PreservedVbaPart(_vbaProjectPartUri,
+                            string.IsNullOrWhiteSpace(_vbaProjectContentType)
+                                ? VbaProjectContentType
+                                : _vbaProjectContentType!,
+                            _vbaProjectBytes!,
+                            Array.Empty<PreservedVbaRelationship>())
+                    };
+            PreservedVbaPart[] parts = sourceParts.ToArray();
+            foreach (PreservedVbaPart source in parts) {
+                if (package.PartExists(source.Uri)) {
+                    throw new InvalidOperationException(
+                        $"The preserved VBA subtree conflicts with generated package part '{source.Uri}'.");
+                }
+                PackagePart target = package.CreatePart(source.Uri,
+                    source.ContentType);
+                using Stream stream = target.GetStream(FileMode.Create,
+                    FileAccess.Write);
+                stream.Write(source.Data, 0, source.Data.Length);
+            }
+            foreach (PreservedVbaPart source in parts) {
+                PackagePart target = package.GetPart(source.Uri);
+                foreach (PreservedVbaRelationship relationship in
+                         source.Relationships) {
+                    target.CreateRelationship(relationship.TargetUri,
+                        relationship.TargetMode, relationship.Type,
+                        relationship.Id);
+                }
+            }
         }
 
     }

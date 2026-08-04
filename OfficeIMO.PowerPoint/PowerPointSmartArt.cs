@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a SmartArt diagram on a PowerPoint slide.
     /// </summary>
-    public class PowerPointSmartArt : PowerPointShape {
+    public partial class PowerPointSmartArt : PowerPointShape {
         private const string SimpleQuickStyleId =
             "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1";
         private const string AccentOneColorStyleId =

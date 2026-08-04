@@ -165,7 +165,7 @@ namespace OfficeIMO.Visio {
             return new[] { background, fill, label };
         }
 
-        private static void ValidateDataGraphic(VisioDataGraphic dataGraphic) {
+        internal static void ValidateDataGraphic(VisioDataGraphic dataGraphic) {
             if (double.IsNaN(dataGraphic.Gap) || double.IsInfinity(dataGraphic.Gap) || dataGraphic.Gap < 0D) {
                 throw new ArgumentOutOfRangeException(nameof(dataGraphic.Gap), "Data graphic gap must be a finite non-negative number.");
             }

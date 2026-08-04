@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents an embedded audio or video media frame on a slide.
     /// </summary>
-    public class PowerPointMedia : PowerPointPicture {
+    public partial class PowerPointMedia : PowerPointPicture {
         internal PowerPointMedia(Picture picture, SlidePart slidePart, PowerPointMediaKind kind) : base(picture, slidePart) {
             Kind = kind;
         }
@@ -50,12 +50,11 @@ namespace OfficeIMO.PowerPoint {
         public string? PlaybackReferenceId {
             get {
                 Picture picture = (Picture)Element;
-                return picture.NonVisualPictureProperties?
+                P14.Media? media = picture.NonVisualPictureProperties?
                     .ApplicationNonVisualDrawingProperties?
                     .Descendants<P14.Media>()
-                    .FirstOrDefault()?
-                    .Embed?
-                    .Value;
+                    .FirstOrDefault();
+                return media?.Embed?.Value ?? media?.Link?.Value;
             }
         }
 

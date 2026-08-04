@@ -11,6 +11,9 @@ namespace OfficeIMO.Visio {
             string id,
             string? text,
             IReadOnlyList<string> memberIds,
+            IReadOnlyList<string> parentContainerIds,
+            IReadOnlyList<string> nestedContainerIds,
+            int nestingDepth,
             double margin,
             double headingHeight,
             bool autoResize,
@@ -28,6 +31,9 @@ namespace OfficeIMO.Visio {
             Id = id;
             Text = text;
             MemberIds = new ReadOnlyCollection<string>(new List<string>(memberIds));
+            ParentContainerIds = new ReadOnlyCollection<string>(new List<string>(parentContainerIds));
+            NestedContainerIds = new ReadOnlyCollection<string>(new List<string>(nestedContainerIds));
+            NestingDepth = nestingDepth;
             Margin = margin;
             HeadingHeight = headingHeight;
             AutoResize = autoResize;
@@ -55,6 +61,15 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Number of current member shape identifiers.</summary>
         public int MemberCount => MemberIds.Count;
+
+        /// <summary>Identifiers of containers that directly own this container.</summary>
+        public IReadOnlyList<string> ParentContainerIds { get; }
+
+        /// <summary>Identifiers of member shapes that are themselves containers.</summary>
+        public IReadOnlyList<string> NestedContainerIds { get; }
+
+        /// <summary>Maximum parent-container depth, where a top-level container has depth zero.</summary>
+        public int NestingDepth { get; }
 
         /// <summary>Outer member margin in the owning page unit.</summary>
         public double Margin { get; }
