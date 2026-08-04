@@ -32,6 +32,8 @@ if ($publishedBytes -gt [long] $budgets.maximumPublishedBytes) {
 
 $server = $null
 $session = 'officeimo-converter-performance-' + [Guid]::NewGuid().ToString('N')
+$serverStandardOutputPath = Join-Path ([System.IO.Path]::GetTempPath()) "$session-server.stdout.log"
+$serverStandardErrorPath = Join-Path ([System.IO.Path]::GetTempPath()) "$session-server.stderr.log"
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
@@ -43,6 +45,8 @@ try {
             FilePath = $python.Source
             ArgumentList = @('-m', 'http.server', $port, '--bind', '127.0.0.1', '--directory', $resolvedSiteRoot)
             PassThru = $true
+            RedirectStandardOutput = $serverStandardOutputPath
+            RedirectStandardError = $serverStandardErrorPath
         }
         if ($IsWindows) { $serverArguments.WindowStyle = 'Hidden' }
         $server = Start-Process @serverArguments
@@ -60,8 +64,10 @@ try {
     }
 
     $npx = Get-Command npx -ErrorAction Stop
-    & $npx.Source --yes --package $playwrightPackage playwright-cli "-s=$session" open $BaseUrl --browser $browserEngine | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Playwright could not open the converter.' }
+    $installOutput = & $npx.Source --yes --package $playwrightPackage playwright-cli install-browser $browserEngine 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "Playwright could not install browser '$browserEngine'.`n$($installOutput -join [Environment]::NewLine)" }
+    $openOutput = & $npx.Source --yes --package $playwrightPackage playwright-cli "-s=$session" open $BaseUrl --browser $browserEngine 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "Playwright could not open the converter.`n$($openOutput -join [Environment]::NewLine)" }
     $rawResult = & $npx.Source --yes --package $playwrightPackage playwright-cli "-s=$session" run-code --filename $runnerPath
     if ($LASTEXITCODE -ne 0) { throw 'Playwright browser performance run failed.' }
     $rawText = $rawResult -join [Environment]::NewLine
@@ -118,4 +124,6 @@ try {
     $npxCommand = Get-Command npx -ErrorAction SilentlyContinue
     if ($npxCommand) { & $npxCommand.Source --yes --package $playwrightPackage playwright-cli "-s=$session" close 2>$null | Out-Null }
     if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
+    [System.IO.File]::Delete($serverStandardOutputPath)
+    [System.IO.File]::Delete($serverStandardErrorPath)
 }
