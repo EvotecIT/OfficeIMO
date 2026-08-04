@@ -457,7 +457,7 @@ namespace OfficeIMO.Word {
             var ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (XElement node in nodes) {
                 string? id = (string?)node.Attribute("modelId");
-                if (string.IsNullOrEmpty(id) || !ids.Add(id)) {
+                if (id == null || id.Length == 0 || !ids.Add(id)) {
                     throw new InvalidOperationException("SmartArt node modelId values must be non-empty and unique for structural edits.");
                 }
             }
@@ -490,9 +490,10 @@ namespace OfficeIMO.Word {
             var byId = new Dictionary<string, XElement>(StringComparer.Ordinal);
             foreach (XElement node in nodes) {
                 string? nodeId = (string?)node.Attribute("modelId");
-                if (string.IsNullOrEmpty(nodeId) || !byId.TryAdd(nodeId, node)) {
+                if (nodeId == null || nodeId.Length == 0 || byId.ContainsKey(nodeId)) {
                     return nodes;
                 }
+                byId.Add(nodeId, node);
             }
             List<XElement> ordered = xdoc.Descendants(dgm + "cxn")
                 .Where(connection => (string?)connection.Attribute("srcId") == docId)
