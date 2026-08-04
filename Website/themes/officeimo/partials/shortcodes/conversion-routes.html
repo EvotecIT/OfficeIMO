@@ -1,4 +1,4 @@
-{{- $catalog := site.Data.office_conversion_routes -}}
+{{ catalog = data.office_conversion_routes }}
 <div class="table-responsive">
   <table>
     <thead>
@@ -12,16 +12,16 @@
       </tr>
     </thead>
     <tbody>
-      {{- range $catalog.routes }}
-      <tr data-conversion-route="{{ .id }}">
-        <td>{{ .source }}</td>
-        <td>{{ .target }}</td>
-        <td><code>{{ .packageId }}</code></td>
-        <td>{{ .fidelity }}</td>
-        <td>{{ if .browserAvailable }}Available{{ else }}Managed only{{ end }}</td>
-        <td><code>{{ .resultContract }}</code></td>
-      </tr>
-      {{- end }}
+{{~ for route in catalog.routes ~}}
+<tr data-conversion-route="{{ route.id }}">
+<td>{{ route.source }}</td>
+<td>{{ route.target }}</td>
+<td><code>{{ route.packageId }}</code></td>
+<td>{{ route.fidelity }}</td>
+<td>{{ if route.browserAvailable }}Available{{ else }}Managed only{{ end }}</td>
+<td><code>{{ route.resultContract }}</code></td>
+</tr>
+{{~ end ~}}
     </tbody>
   </table>
 </div>
