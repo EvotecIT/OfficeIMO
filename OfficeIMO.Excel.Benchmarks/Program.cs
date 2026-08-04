@@ -10,8 +10,12 @@ bool profileOfficeIMOXlsb = args.Length > 0 &&
     string.Equals(args[0], "--profile-markpflug65k-xlsb-officeimo", StringComparison.OrdinalIgnoreCase);
 bool profileSylvanXlsb = args.Length > 0 &&
     string.Equals(args[0], "--profile-markpflug65k-xlsb-sylvan", StringComparison.OrdinalIgnoreCase);
+bool profileOfficeIMOXls = args.Length > 0 &&
+    string.Equals(args[0], "--profile-markpflug65k-xls-officeimo", StringComparison.OrdinalIgnoreCase);
+bool profileSylvanXls = args.Length > 0 &&
+    string.Equals(args[0], "--profile-markpflug65k-xls-sylvan", StringComparison.OrdinalIgnoreCase);
 
-if (profileOfficeIMOXlsb || profileSylvanXlsb) {
+if (profileOfficeIMOXlsb || profileSylvanXlsb || profileOfficeIMOXls || profileSylvanXls) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
@@ -19,12 +23,20 @@ if (profileOfficeIMOXlsb || profileSylvanXlsb) {
         throw new ArgumentOutOfRangeException(nameof(iterations));
     }
 
-    MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);
-    var benchmark = new MarkPflug65KXlsbBenchmarks();
-    Func<ExcelReadObservation> run = profileOfficeIMOXlsb
-        ? benchmark.OfficeIMO
-        : benchmark.Sylvan;
-    string implementation = profileOfficeIMOXlsb ? "OfficeIMO" : "Sylvan";
+    bool isXlsb = profileOfficeIMOXlsb || profileSylvanXlsb;
+    bool isOfficeIMO = profileOfficeIMOXlsb || profileOfficeIMOXls;
+    Func<ExcelReadObservation> run;
+    if (isXlsb) {
+        var benchmark = new MarkPflug65KXlsbBenchmarks();
+        benchmark.Setup();
+        run = isOfficeIMO ? benchmark.OfficeIMO : benchmark.Sylvan;
+    } else {
+        var benchmark = new MarkPflug65KXlsBenchmarks();
+        benchmark.Setup();
+        run = isOfficeIMO ? benchmark.OfficeIMO : benchmark.Sylvan;
+    }
+    string implementation = isOfficeIMO ? "OfficeIMO" : "Sylvan";
+    string format = isXlsb ? "XLSB" : "XLS";
     for (int index = 0; index < 3; index++) {
         run();
     }
@@ -37,7 +49,7 @@ if (profileOfficeIMOXlsb || profileSylvanXlsb) {
     stopwatch.Stop();
 
     Console.WriteLine(
-        $"Profiled {implementation} XLSB {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
+        $"Profiled {implementation} {format} {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
         $"({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration): {observation}.");
     return;
 }
