@@ -26,7 +26,12 @@ public class MarkPflug65KCsvBenchmarks {
     [GlobalSetup]
     public void Setup() {
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.CsvFileName);
-        _expected = OfficeIMO();
+        _expected = new CsvReadObservation(
+            MarkPflug65KFixture.ExpectedRows,
+            MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns,
+            MarkPflug65KFixture.ExpectedCsvCharacters,
+            MarkPflug65KFixture.ExpectedCsvChecksum);
+        Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(Sep), Sep());
         Validate(nameof(Sylvan), Sylvan());
         Validate(nameof(CsvHelper), CsvHelper());
@@ -38,7 +43,7 @@ public class MarkPflug65KCsvBenchmarks {
     public CsvReadObservation OfficeIMO() {
         using DbDataReader reader = CsvDocument.OpenDataReader(
             MarkPflug65KFixture.CsvPath,
-            new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
+            new CsvLoadOptions { DetectDelimiter = false });
         return Observe(reader.FieldCount, read: reader.Read, value: reader.GetString);
     }
 

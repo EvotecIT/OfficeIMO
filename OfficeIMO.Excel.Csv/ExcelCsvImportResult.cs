@@ -1,4 +1,4 @@
-namespace OfficeIMO.Reader.Excel;
+namespace OfficeIMO.Excel.Csv;
 
 /// <summary>Describes CSV content imported into an Excel worksheet.</summary>
 public sealed class ExcelCsvImportResult {

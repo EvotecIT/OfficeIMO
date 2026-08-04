@@ -1032,6 +1032,7 @@
         "../OfficeIMO.Epub/OfficeIMO.Epub.csproj",
         "../OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj",
         "../OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+        "../OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj",
         "../OfficeIMO.Excel.GoogleSheets/OfficeIMO.Excel.GoogleSheets.csproj",
         "../OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj",
         "../OfficeIMO.Excel.OpenDocument/OfficeIMO.Excel.OpenDocument.csproj",

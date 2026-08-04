@@ -114,6 +114,26 @@ For very large workbooks, you can disable sheet wrapper caching to reduce memory
 workbook.SheetCachingEnabled = false;
 ```
 
+## CSV interoperability
+
+Install the optional `OfficeIMO.Excel.Csv` adapter when a workflow needs to move data between CSV and Excel. The adapter keeps parsing and writing in `OfficeIMO.CSV`, workbook operations in `OfficeIMO.Excel`, and avoids adding CSV dependencies to Excel-only or Reader workloads.
+
+```powershell
+dotnet add package OfficeIMO.Excel.Csv
+```
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Csv;
+
+using var workbook = ExcelDocument.Create();
+ExcelCsvImportResult imported = workbook.ImportCsvFile("sales.csv");
+workbook[imported.SheetName].SaveAsCsv("sales-roundtrip.csv");
+workbook.Save("sales.xlsx");
+```
+
+Use `OfficeIMO.Reader.Excel` instead when the job is normalized extraction of workbook content for search, indexing, or AI ingestion; it does not own CSV conversion.
+
 ## Further Reading
 
 - [Worksheets](/docs/excel/worksheets) — Cell values, formatting, formulas, and named ranges.

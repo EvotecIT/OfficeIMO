@@ -5,11 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
-using OfficeIMO.Reader.Csv;
-using OfficeIMO.Reader.Excel;
+using OfficeIMO.Excel.Csv;
 using Xunit;
 
-namespace OfficeIMO.Reader.Tests;
+namespace OfficeIMO.Excel.Tests;
 
 public class ExcelCsvExtensionsTests {
     [Fact]

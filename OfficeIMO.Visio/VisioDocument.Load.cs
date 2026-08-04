@@ -55,23 +55,10 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>Asynchronously loads an existing .vsdx file with optional input limits.</summary>
-        public static Task<VisioDocument> LoadAsync(
-            string filePath,
-            CancellationToken cancellationToken = default) =>
-            LoadAsync(filePath, options: null, cancellationToken);
-
-        /// <summary>Asynchronously loads an existing .vsdx file with explicit input limits.</summary>
-        public static Task<VisioDocument> LoadAsync(
-            string filePath,
-            CancellationToken legacyCancellationToken,
-            VisioLoadOptions? options) =>
-            LoadAsync(filePath, options, legacyCancellationToken);
-
-        /// <summary>Asynchronously loads an existing .vsdx file with optional input limits.</summary>
         public static async Task<VisioDocument> LoadAsync(
             string filePath,
-            VisioLoadOptions? options,
-            CancellationToken cancellationToken) {
+            VisioLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             string fullPath = Path.GetFullPath(filePath);
@@ -83,23 +70,10 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
-        public static Task<VisioDocument> LoadAsync(
-            Stream stream,
-            CancellationToken cancellationToken = default) =>
-            LoadAsync(stream, options: null, cancellationToken);
-
-        /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with explicit input limits.</summary>
-        public static Task<VisioDocument> LoadAsync(
-            Stream stream,
-            CancellationToken legacyCancellationToken,
-            VisioLoadOptions? options) =>
-            LoadAsync(stream, options, legacyCancellationToken);
-
-        /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
         public static async Task<VisioDocument> LoadAsync(
             Stream stream,
-            VisioLoadOptions? options,
-            CancellationToken cancellationToken) {
+            VisioLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();

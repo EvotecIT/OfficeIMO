@@ -603,6 +603,21 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void ExcelCsvAdapter_IsTheOnlyExcelCsvPackageBoundary() {
+        string adapterPath = GetRepositoryPath("OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj");
+        string[] adapterReferences = GetProjectReferences(adapterPath);
+
+        Assert.Equal(2, adapterReferences.Length);
+        Assert.Contains(adapterReferences, reference => reference.EndsWith("OfficeIMO.CSV/OfficeIMO.CSV.csproj", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(adapterReferences, reference => reference.EndsWith("OfficeIMO.Excel/OfficeIMO.Excel.csproj", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(GetPackageReferences(adapterPath));
+
+        string readerPath = GetRepositoryPath("OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj");
+        string[] readerReferences = GetProjectReferences(readerPath);
+        Assert.DoesNotContain(readerReferences, reference => reference.EndsWith("OfficeIMO.CSV/OfficeIMO.CSV.csproj", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void LegacyDocRuntime_StaysFirstPartyAndDependencyFree() {
         string[] forbiddenPackageIds = [
             "NPOI",

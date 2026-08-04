@@ -1,19 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>CSV/TSV adapter for OfficeIMO.Reader.Core.</Description>
-    <AssemblyName>OfficeIMO.Reader.Csv</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Reader.Csv</AssemblyTitle>
+    <Description>Bidirectional CSV and Excel conversion adapter using the native OfficeIMO.CSV and OfficeIMO.Excel engines.</Description>
+    <AssemblyName>OfficeIMO.Excel.Csv</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Excel.Csv</AssemblyTitle>
     <VersionPrefix>3.1.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
-
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Reader.Csv</PackageId>
-    <PackageTags>reader;csv;tsv;ingestion;officeimo</PackageTags>
+    <PackageId>OfficeIMO.Excel.Csv</PackageId>
+    <PackageTags>excel;csv;xlsx;xlsm;xlsb;xls;conversion;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -25,27 +24,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="README.md">
-      <Pack>True</Pack>
-      <PackagePath>README.md</PackagePath>
-    </None>
+    <None Include="README.md" Pack="True" PackagePath="README.md" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Data" />
     <Using Include="System.Globalization" />
     <Using Include="System.IO" />
-    <Using Include="System.Linq" />
-    <Using Include="System.Text" />
     <Using Include="System.Threading" />
-  </ItemGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
   </ItemGroup>
 </Project>

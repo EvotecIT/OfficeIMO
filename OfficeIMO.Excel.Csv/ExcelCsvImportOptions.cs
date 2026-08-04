@@ -1,7 +1,7 @@
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 
-namespace OfficeIMO.Reader.Excel;
+namespace OfficeIMO.Excel.Csv;
 
 /// <summary>
 /// Controls how CSV rows are projected into an Excel worksheet. CSV parsing and

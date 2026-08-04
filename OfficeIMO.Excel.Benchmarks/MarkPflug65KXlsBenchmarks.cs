@@ -21,7 +21,8 @@ public class MarkPflug65KXlsBenchmarks {
     public void Setup() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsFileName);
-        _expected = OfficeIMO();
+        _expected = MarkPflug65KXlsxBenchmarks.ExpectedObservation();
+        Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(Sylvan), Sylvan());
         Validate(nameof(ExcelDataReader), ExcelDataReader());
     }

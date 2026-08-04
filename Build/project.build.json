@@ -16,6 +16,7 @@
     "OfficeIMO.Epub": "3.1.X",
     "OfficeIMO.Epub.Image": "3.1.X",
     "OfficeIMO.Excel": "3.1.X",
+    "OfficeIMO.Excel.Csv": "3.1.X",
     "OfficeIMO.Excel.OpenDocument": "3.1.X",
     "OfficeIMO.Excel.GoogleSheets": "3.1.X",
     "OfficeIMO.Excel.Html": "3.1.X",

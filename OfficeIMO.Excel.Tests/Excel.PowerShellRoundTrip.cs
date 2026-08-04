@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.IO;
 using OfficeIMO.Excel;
 using Xunit;
@@ -37,7 +38,7 @@ namespace OfficeIMO.Tests
             }
 
             // Read whole sheet as dictionaries
-            var rows = ExcelRead.ReadUsedRangeObjects(path, "Data", ExcelReadPresets.Simple());
+            var rows = ReadRows(path);
             Assert.Equal(2, rows.Count); // two data rows
 
             // Modify and write again
@@ -67,7 +68,7 @@ namespace OfficeIMO.Tests
             }
 
             // Read back and assert changes
-            var finalRows = ExcelRead.ReadRangeObjects(path, "Data", "A1:C3", ExcelReadPresets.Simple());
+            var finalRows = ReadRows(path);
             Assert.Equal(2, finalRows.Count);
 
             var alpha = finalRows.Find(d => string.Equals(Convert.ToString(d["Name"]), "Alpha", StringComparison.OrdinalIgnoreCase));
@@ -79,6 +80,27 @@ namespace OfficeIMO.Tests
             Assert.Equal(15, Convert.ToInt32(alpha["Value"]));
             Assert.Equal("Processed", Convert.ToString(alpha["Status"]));
             Assert.Equal("Hold", Convert.ToString(beta["Status"]));
+        }
+
+        private static List<Dictionary<string, object?>> ReadRows(string path)
+        {
+            using DbDataReader reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions
+            {
+                SheetName = "Data"
+            });
+            var rows = new List<Dictionary<string, object?>>();
+            while (reader.Read())
+            {
+                var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++)
+                {
+                    row[reader.GetName(ordinal)] = reader.IsDBNull(ordinal)
+                        ? null
+                        : reader.GetValue(ordinal);
+                }
+                rows.Add(row);
+            }
+            return rows;
         }
     }
 }

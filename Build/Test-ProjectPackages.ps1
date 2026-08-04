@@ -152,8 +152,142 @@ try {
     )
     $projectXml = $projectXmlLines -join [Environment]::NewLine
     Set-Content -LiteralPath $projectPath -Value $projectXml -Encoding utf8
-    Set-Content -LiteralPath $programPath -Value (
-        'Console.WriteLine("OfficeIMO 3.0 aggregate package consumer loaded.");') -Encoding utf8
+    $programSource = @"
+using System.Data.Common;
+using OfficeIMO.CSV;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Csv;
+using OfficeIMO.Visio;
+using OfficeIMO.Word;
+
+internal static class Program
+{
+    public static async Task Main()
+    {
+        string workingPath = Path.Combine(
+            Path.GetTempPath(),
+            "officeimo-release-api-smoke-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workingPath);
+        try
+        {
+            string csvPath = Path.Combine(workingPath, "input.csv");
+            File.WriteAllText(csvPath, "Value" + Environment.NewLine + "Alpha" + Environment.NewLine);
+            using (DbDataReader csvReader = OpenCsv(csvPath))
+            {
+                if (!csvReader.Read() || !string.Equals(csvReader["Value"]?.ToString(), "Alpha", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("Packed OfficeIMO.CSV reader failed its runtime smoke.");
+                }
+            }
+            if (!string.Equals(ReadCsvRows(csvPath).Single().Value, "Alpha", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Packed OfficeIMO.CSV typed mapping failed its runtime smoke.");
+            }
+
+            string adapterExcelPath = Path.Combine(workingPath, "csv-import.xlsx");
+            CsvDocument csv = CsvDocument.Load(csvPath);
+            using (ExcelDocument imported = csv.ToExcelDocument(new ExcelCsvImportOptions
+            {
+                SheetName = "Data",
+                CreateTable = false
+            }))
+            {
+                string roundTripCsv = imported["Data"].ToCsv();
+                if (!roundTripCsv.Contains("Alpha", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("Packed OfficeIMO.Excel.Csv round trip failed its runtime smoke.");
+                }
+                imported.Save(adapterExcelPath);
+            }
+
+            string excelPath = Path.Combine(workingPath, "report.xlsx");
+            using (ExcelDocument excel = CreateExcel(excelPath))
+            {
+                excel.Save();
+            }
+            using (DbDataReader excelReader = OpenExcel(excelPath))
+            {
+                if (!excelReader.Read() || !string.Equals(excelReader["Value"]?.ToString(), "Alpha", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("Packed OfficeIMO.Excel reader failed its runtime smoke.");
+                }
+            }
+
+            string wordPath = Path.Combine(workingPath, "report.docx");
+            using (WordDocument word = CreateWord(wordPath))
+            {
+                word.Save();
+            }
+            using (WordDocument loadedWord = WordDocument.Load(wordPath))
+            {
+                if (!loadedWord.Paragraphs.Any(paragraph => paragraph.Text.Contains("OfficeIMO.Word fluent API.", StringComparison.Ordinal)))
+                {
+                    throw new InvalidOperationException("Packed OfficeIMO.Word fluent API failed its runtime smoke.");
+                }
+            }
+
+            string visioPath = Path.Combine(workingPath, "diagram.vsdx");
+            VisioDocument visio = VisioDocument.Create(visioPath);
+            visio.AddPage("Page-1");
+            visio.Save();
+            VisioDocument loadedVisio = await LoadVisioAsync(visioPath, options: null, cancellationToken: default);
+            if (loadedVisio.Pages.Count != 1)
+            {
+                throw new InvalidOperationException("Packed OfficeIMO.Visio async load failed its runtime smoke.");
+            }
+
+            Console.WriteLine("OfficeIMO $Version aggregate package runtime smoke passed.");
+        }
+        finally
+        {
+            Directory.Delete(workingPath, recursive: true);
+        }
+    }
+
+    private static DbDataReader OpenCsv(string path) =>
+        CsvDocument.OpenDataReader(path);
+
+    private static IEnumerable<ReleaseRow> ReadCsvRows(string path) =>
+        CsvDocument.Load(path).RowsAs<ReleaseRow>();
+
+    private static DbDataReader OpenExcel(string path) =>
+        ExcelDocument.OpenDataReader(path, new ExcelReadOptions { SheetName = "Data" });
+
+    private static IEnumerable<ReleaseRow> ReadExcelRows(ExcelSheet sheet) =>
+        sheet.RowsAs<ReleaseRow>();
+
+    private static ExcelDocument CreateExcel(string path)
+    {
+        ExcelDocument document = ExcelDocument.Create(path);
+        return document.AsFluent()
+            .Sheet("Data", sheet => sheet
+                .Cell(1, 1, "Value")
+                .Cell(2, 1, "Alpha"))
+            .End();
+    }
+
+    private static WordDocument CreateWord(string path)
+    {
+        WordDocument document = WordDocument.Create(path);
+        return document.AsFluent()
+            .H1("Package smoke")
+            .Paragraph(paragraph => paragraph.Text("OfficeIMO.Word fluent API."))
+            .End();
+    }
+
+    private static Task<VisioDocument> LoadVisioAsync(
+        string path,
+        VisioLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        VisioDocument.LoadAsync(path, options, cancellationToken);
+
+    private sealed class ReleaseRow
+    {
+        public string? Value { get; set; }
+    }
+}
+"@
+    Set-Content -LiteralPath $programPath -Value $programSource -Encoding utf8
 
     $sourceMappings = $packageIds | ForEach-Object {
         '      <package pattern="' +

@@ -24,11 +24,6 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "BouncyCastle.Cryptography": {
-        "type": "Transitive",
-        "resolved": "2.6.2",
-        "contentHash": "7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w=="
-      },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
         "resolved": "10.0.7",
@@ -127,7 +122,6 @@
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )",
-          "OfficeIMO.Security": "[3.1.0, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       },
@@ -168,12 +162,6 @@
           "OfficeIMO.Drawing": "[3.1.0, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
-      },
-      "officeimo.security": {
-        "type": "Project",
-        "dependencies": {
-          "BouncyCastle.Cryptography": "[2.6.2, 3.0.0)"
-        }
       }
     },
     "net10.0": {
@@ -190,11 +178,6 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "BouncyCastle.Cryptography": {
-        "type": "Transitive",
-        "resolved": "2.6.2",
-        "contentHash": "7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w=="
-      },
       "officeimo.drawing": {
         "type": "Project"
       },
@@ -202,8 +185,7 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )",
-          "OfficeIMO.Rtf": "[3.1.0, )",
-          "OfficeIMO.Security": "[3.1.0, )"
+          "OfficeIMO.Rtf": "[3.1.0, )"
         }
       },
       "officeimo.html": {
@@ -240,12 +222,6 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )"
-        }
-      },
-      "officeimo.security": {
-        "type": "Project",
-        "dependencies": {
-          "BouncyCastle.Cryptography": "[2.6.2, 3.0.0)"
         }
       }
     },
@@ -269,11 +245,6 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "BouncyCastle.Cryptography": {
-        "type": "Transitive",
-        "resolved": "2.6.2",
-        "contentHash": "7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w=="
-      },
       "officeimo.drawing": {
         "type": "Project"
       },
@@ -281,8 +252,7 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )",
-          "OfficeIMO.Rtf": "[3.1.0, )",
-          "OfficeIMO.Security": "[3.1.0, )"
+          "OfficeIMO.Rtf": "[3.1.0, )"
         }
       },
       "officeimo.html": {
@@ -319,12 +289,6 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )"
-        }
-      },
-      "officeimo.security": {
-        "type": "Project",
-        "dependencies": {
-          "BouncyCastle.Cryptography": "[2.6.2, 3.0.0)"
         }
       }
     },
@@ -342,11 +306,6 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "BouncyCastle.Cryptography": {
-        "type": "Transitive",
-        "resolved": "2.6.2",
-        "contentHash": "7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w=="
-      },
       "officeimo.drawing": {
         "type": "Project"
       },
@@ -354,8 +313,7 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )",
-          "OfficeIMO.Rtf": "[3.1.0, )",
-          "OfficeIMO.Security": "[3.1.0, )"
+          "OfficeIMO.Rtf": "[3.1.0, )"
         }
       },
       "officeimo.html": {
@@ -392,12 +350,6 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )"
-        }
-      },
-      "officeimo.security": {
-        "type": "Project",
-        "dependencies": {
-          "BouncyCastle.Cryptography": "[2.6.2, 3.0.0)"
         }
       }
     },
@@ -421,11 +373,6 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "BouncyCastle.Cryptography": {
-        "type": "Transitive",
-        "resolved": "2.6.2",
-        "contentHash": "7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w=="
-      },
       "officeimo.drawing": {
         "type": "Project"
       },
@@ -433,8 +380,7 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )",
-          "OfficeIMO.Rtf": "[3.1.0, )",
-          "OfficeIMO.Security": "[3.1.0, )"
+          "OfficeIMO.Rtf": "[3.1.0, )"
         }
       },
       "officeimo.html": {
@@ -471,12 +417,6 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Drawing": "[3.1.0, )"
-        }
-      },
-      "officeimo.security": {
-        "type": "Project",
-        "dependencies": {
-          "BouncyCastle.Cryptography": "[2.6.2, 3.0.0)"
         }
       }
     }

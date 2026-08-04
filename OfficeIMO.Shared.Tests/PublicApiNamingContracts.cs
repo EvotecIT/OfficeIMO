@@ -1,10 +1,12 @@
 using System.Reflection;
+using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
 using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
+using OfficeIMO.Visio;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 using Xunit;
@@ -71,6 +73,57 @@ public sealed class PublicApiNamingContracts {
             method.Name == "LoadAsync" && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Uri));
         Assert.DoesNotContain(documentMethods, static method =>
             method.Name == "Load" && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Uri));
+    }
+
+    [Fact]
+    public void ExcelPublicApiExposesOnlyCanonicalReadSurfaces() {
+        string[] exportedTypeNames = typeof(ExcelDocument).Assembly
+            .GetExportedTypes()
+            .Select(static type => type.Name)
+            .ToArray();
+        MethodInfo[] documentMethods = typeof(ExcelDocument).GetMethods(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+        MethodInfo[] sheetMethods = typeof(ExcelSheet).GetMethods(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+        Assert.DoesNotContain("ExcelRead", exportedTypeNames);
+        Assert.DoesNotContain("ExcelDocumentReader", exportedTypeNames);
+        Assert.DoesNotContain("ExcelSheetReader", exportedTypeNames);
+        Assert.DoesNotContain("RowEdit", exportedTypeNames);
+        Assert.DoesNotContain("CellEdit", exportedTypeNames);
+        Assert.DoesNotContain(documentMethods, static method => method.Name == "Read");
+        Assert.DoesNotContain(sheetMethods, static method => method.Name == "Rows");
+        Assert.Contains(documentMethods, static method => method.Name == "OpenDataReader");
+        Assert.Contains(sheetMethods, static method => method.Name == "RowsAs" && method.IsGenericMethodDefinition);
+        Assert.Contains(sheetMethods, static method => method.Name == "RowsAsStream" && method.IsGenericMethodDefinition);
+    }
+
+    [Fact]
+    public void VisioAsyncLoadsUseOptionsThenCancellationToken() {
+        MethodInfo[] loadMethods = typeof(VisioDocument).GetMethods(
+            BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(static method => method.Name == "LoadAsync")
+            .ToArray();
+
+        Assert.Contains(loadMethods, static method =>
+            method.GetParameters().Select(static parameter => parameter.ParameterType).SequenceEqual([
+                typeof(string),
+                typeof(VisioLoadOptions),
+                typeof(CancellationToken)
+            ]));
+        Assert.Contains(loadMethods, static method =>
+            method.GetParameters().Select(static parameter => parameter.ParameterType).SequenceEqual([
+                typeof(Stream),
+                typeof(VisioLoadOptions),
+                typeof(CancellationToken)
+            ]));
+        Assert.DoesNotContain(loadMethods, static method => {
+            Type[] parameterTypes = method.GetParameters()
+                .Select(static parameter => parameter.ParameterType)
+                .ToArray();
+            return parameterTypes.Length >= 2
+                   && parameterTypes[1] == typeof(CancellationToken);
+        });
     }
 
     [Fact]

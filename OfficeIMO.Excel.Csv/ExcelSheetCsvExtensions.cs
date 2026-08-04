@@ -5,7 +5,7 @@ using System.Threading;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 
-namespace OfficeIMO.Reader.Excel;
+namespace OfficeIMO.Excel.Csv;
 
 /// <summary>Imports and exports worksheet data through the shared OfficeIMO.CSV pipeline.</summary>
 public static class ExcelSheetCsvExtensions {

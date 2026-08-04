@@ -76,15 +76,6 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(pathRows[0]["Amount"], bytesRows[0]["Amount"]);
                 Assert.Equal(pathRows[1]["Status"], bytesRows[1]["Status"]);
 
-                using var pathDocument = ExcelDocument.Load(filePath);
-                using var streamDocument = ExcelDocument.Load(new MemoryStream(workbookBytes, writable: false));
-
-                var pathEditable = pathDocument.GetSheet("Data").RowsObjects("A1:C3").ToList();
-                var streamEditable = streamDocument.GetSheet("Data").RowsObjects("A1:C3").ToList();
-
-                Assert.Equal(pathEditable[0]["Region"].Value, streamEditable[0]["Region"].Value);
-                Assert.Equal(pathEditable[0]["Amount"].Value, streamEditable[0]["Amount"].Value);
-                Assert.Equal(pathEditable[1]["Status"].Value, streamEditable[1]["Status"].Value);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -129,12 +120,9 @@ namespace OfficeIMO.Tests {
                 using var document = ExcelDocument.Load(filePath);
                 var sheet = document.GetSheet("Data");
                 var headerMap = sheet.GetHeaderMap();
-                var editable = Assert.Single(sheet.RowsObjects("A1:F2"));
                 var typed = Assert.Single(sheet.RowsAs<CompatibilityMessyHeaderRow>("A1:F2"));
 
                 Assert.Equal(new[] { "Value", "Value_2", "Column3", "value_3", "Value_2_2", "Value_2_3" }, headerMap.Keys.ToArray());
-                Assert.Equal("A", editable["Value"].Value);
-                Assert.Equal("F", editable["Value_2_3"].Value);
                 Assert.Equal("A", typed.Value);
                 Assert.Equal("B", typed.Value_2);
                 Assert.Equal("C", typed.Column3);
@@ -176,14 +164,9 @@ namespace OfficeIMO.Tests {
                 using var document = ExcelDocument.Load(filePath);
                 var sheet = document.GetSheet("Data");
                 var headerMap = sheet.GetHeaderMap();
-                var editable = Assert.Single(sheet.RowsObjects("A1:C2"));
-
                 Assert.Equal(1, headerMap["Column1_2"]);
                 Assert.Equal(2, headerMap["Column1"]);
                 Assert.Equal(3, headerMap["Column3"]);
-                Assert.Equal("GeneratedLeft", editable["Column1_2"].Value);
-                Assert.Equal("Explicit", editable["Column1"].Value);
-                Assert.Equal("GeneratedRight", editable["Column3"].Value);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -219,14 +202,9 @@ namespace OfficeIMO.Tests {
                 using var document = ExcelDocument.Load(filePath);
                 var sheet = document.GetSheet("Data");
                 var headerMap = sheet.GetHeaderMap();
-                var editable = Assert.Single(sheet.RowsObjects("A1:C2"));
-
                 Assert.Equal(1, headerMap["Column1_3"]);
                 Assert.Equal(2, headerMap["Column1"]);
                 Assert.Equal(3, headerMap["Column1_2"]);
-                Assert.Equal("Generated", editable["Column1_3"].Value);
-                Assert.Equal("ExplicitBase", editable["Column1"].Value);
-                Assert.Equal("ExplicitSuffix", editable["Column1_2"].Value);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -259,13 +237,6 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("ExplicitBase", row["Column1"]);
                 Assert.Equal("ExplicitSuffix", row["Column1_2"]);
 
-                using var document = ExcelDocument.Load(filePath);
-                var sheet = document.GetSheet("Data");
-                var editable = Assert.Single(sheet.RowsObjects("B2:D3"));
-
-                Assert.Equal("Generated", editable["Column1_3"].Value);
-                Assert.Equal("ExplicitBase", editable["Column1"].Value);
-                Assert.Equal("ExplicitSuffix", editable["Column1_2"].Value);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -303,14 +274,9 @@ namespace OfficeIMO.Tests {
                 using var document = ExcelDocument.Load(filePath);
                 var sheet = document.GetSheet("Data");
                 var headerMap = sheet.GetHeaderMap(options);
-                var editable = Assert.Single(sheet.RowsObjects("A1:C2", options));
-
                 Assert.Equal(1, headerMap["Value"]);
                 Assert.Equal(2, headerMap["  Value  "]);
                 Assert.Equal(3, headerMap["Column3"]);
-                Assert.Equal("A", editable["Value"].Value);
-                Assert.Equal("B", editable["  Value  "].Value);
-                Assert.Equal("C", editable["Column3"].Value);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

@@ -41,6 +41,20 @@ table.Style = WordTableStyle.TableGrid;
 document.Save();
 ```
 
+`AsFluent()` wraps the same `WordDocument`; `End()` returns that document for
+direct object-model work:
+
+```csharp
+using var document = WordDocument.Create("report.docx");
+
+document.AsFluent()
+    .H1("Quarterly report")
+    .Paragraph(paragraph => paragraph.Text("Created with OfficeIMO.Word."))
+    .End();
+
+document.Save();
+```
+
 ## What it does
 
 - Creates, loads, edits, saves, and appends `.docx` documents.

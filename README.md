@@ -56,8 +56,8 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.1.x` source packages | 88 |
-| Documented package, tool, and example projects below | 95 |
+| Coordinated `3.1.x` source packages | 89 |
+| Documented package, tool, and example projects below | 96 |
 | Native format, foundation, and shared-service packages | 26 |
 | Conversion and cloud bridge packages | 32 |
 | Unified Reader packages | 27 |
@@ -481,6 +481,15 @@ _Dependency footprint:_ only OfficeIMO Word and RTF packages.
 
 _Dependency footprint:_ OfficeIMO Word and GoogleWorkspace plus `System.Text.Json`; no Google client SDK.
 
+#### [OfficeIMO.Excel.Csv](OfficeIMO.Excel.Csv/README.md)
+
+- [x] Bidirectional CSV-to-Excel and Excel-to-CSV conversion
+- [x] File, stream, decoded-text, and materialized `CsvDocument` imports
+- [x] Worksheet and range export to CSV text, files, streams, or `CsvDocument`
+- [x] Canonical CSV parsing, schema, compression, and writing options with no duplicate parser
+
+_Dependency footprint:_ only OfficeIMO Excel and CSV packages.
+
 #### [OfficeIMO.Excel.Html](OfficeIMO.Excel.Html/README.md)
 
 - [x] Semantic Excel-to-HTML and HTML-to-editable-Excel round trips
@@ -716,7 +725,6 @@ _Dependency footprint:_ only OfficeIMO.Reader.Core, AsciiDoc, and AsciiDoc.Markd
 
 - [x] CSV/TSV table-aware chunks with row locations and deterministic identifiers
 - [x] Path/stream input, size limits, configurable chunk rows, headers, and Markdown previews
-- [x] Excel worksheet/table CSV exchange helpers
 
 _Dependency footprint:_ only OfficeIMO.Reader.Core and CSV.
 
@@ -739,9 +747,9 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Word`.
 #### [OfficeIMO.Reader.Excel](OfficeIMO.Reader.Excel/README.md)
 
 - [x] XLSX/XLSM/XLSB and legacy XLS extraction through the owning Excel engine
-- [x] Rich workbook/table/image projection plus Excel CSV exchange helpers
+- [x] Rich workbook, table, image, metadata, diagnostic, and password-aware projection
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.CSV`.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Drawing`.
 
 #### [OfficeIMO.Reader.PowerPoint](OfficeIMO.Reader.PowerPoint/README.md)
 
