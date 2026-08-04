@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/github/cmark-gfm",
+  "release": "0.29.0.gfm.13",
+  "commit": "587a12bb54d95ac37241377e6ddc93ea0e45439b",
+  "recordedUtc": "2026-08-04T00:00:00Z",
+  "sources": [
+    {
+      "path": "test/extensions.txt",
+      "url": "https://raw.githubusercontent.com/github/cmark-gfm/587a12bb54d95ac37241377e6ddc93ea0e45439b/test/extensions.txt",
+      "sha256": "a2a45e98be9fca95f564f927265a0f63beea6cae5369d1cf4bde44caa51b2a3a",
+      "bytes": 21274,
+      "use": "Extension-family examples"
+    },
+    {
+      "path": "test/spec.txt",
+      "url": "https://raw.githubusercontent.com/github/cmark-gfm/587a12bb54d95ac37241377e6ddc93ea0e45439b/test/spec.txt",
+      "sha256": "7d8e5814befec287ac116786d81ff14e0adc9b13295b4494649e995408fd871c",
+      "bytes": 216680,
+      "use": "Full GFM specification examples"
+    },
+    {
+      "path": "test/pathological_tests.py",
+      "url": "https://raw.githubusercontent.com/github/cmark-gfm/587a12bb54d95ac37241377e6ddc93ea0e45439b/test/pathological_tests.py",
+      "sha256": "b200aa0fd6c3199cc0fdaff59c759f862f8f18b5824dc4b33afd8892376aaf69",
+      "bytes": 5778,
+      "use": "Adversarial performance-case inventory"
+    }
+  ],
+  "fixturePolicy": "Checked-in examples stay bounded and auditable; upstream files are identified by immutable commit and hash rather than copied wholesale."
+}

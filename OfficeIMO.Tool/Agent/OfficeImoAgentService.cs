@@ -1,4 +1,5 @@
 using OfficeIMO.Email.Store;
+using OfficeIMO.Drawing;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.Email;
@@ -159,15 +160,39 @@ internal sealed partial class OfficeImoAgentService {
                     .ToArray()
             })
             .ToList();
+        var conversions = operation == "convert"
+            ? OfficeConversionCapabilityCatalog.AgentRoutes
+                .Where(route => normalizedExtension == null ||
+                    route.SourceExtensions.Contains(normalizedExtension, StringComparer.OrdinalIgnoreCase))
+                .Select(route => new AgentConversionCapabilitySummary {
+                    Id = route.Id,
+                    Source = route.Source,
+                    Target = route.Target,
+                    SourceExtensions = route.SourceExtensions,
+                    TargetExtension = route.TargetExtension,
+                    PackageId = route.PackageId,
+                    Fidelity = route.Fidelity.ToString(),
+                    ResultContract = route.ResultContract,
+                    BrowserAvailable = route.BrowserAvailable
+                })
+                .ToList()
+            : new List<AgentConversionCapabilitySummary>();
         var result = new AgentCapabilitiesResult {
             Extension = normalizedExtension,
             Operation = operation,
             Returned = capabilities.Count,
-            Capabilities = capabilities
+            Capabilities = capabilities,
+            ConversionReturned = conversions.Count,
+            Conversions = conversions
         };
-        while (AgentJson.Measure(result) > maxOutputCharacters && capabilities.Count > 0) {
-            capabilities.RemoveAt(capabilities.Count - 1);
-            result.Returned = capabilities.Count;
+        while (AgentJson.Measure(result) > maxOutputCharacters && (conversions.Count > 0 || capabilities.Count > 0)) {
+            if (conversions.Count > 0) {
+                conversions.RemoveAt(conversions.Count - 1);
+                result.ConversionReturned = conversions.Count;
+            } else {
+                capabilities.RemoveAt(capabilities.Count - 1);
+                result.Returned = capabilities.Count;
+            }
             result.Truncated = true;
         }
         return result;

@@ -1,50 +1,55 @@
-# Blazor WebAssembly Conversion Proof
+# Blazor WebAssembly conversion proof
 
-Date: 2026-06-22
+Date: 2026-08-04
 
-This note records a local proof that OfficeIMO document-to-PDF conversion can run from a static Blazor WebAssembly app, which is the deployment model used by GitHub Pages.
+OfficeIMO ships a static `net10.0` Blazor WebAssembly converter for representative DOCX, XLSX, and PPTX to PDF workflows. The app references the local OfficeIMO projects directly, uses byte/stream APIs, embeds a deterministic browser font pack, and performs conversion locally without uploading documents.
 
-## Scope
+## Reproducible gate
 
-The proof used a standalone `net10.0` Blazor WebAssembly app that referenced the local OfficeIMO projects directly:
+The website CI pipeline publishes the native-linked WebAssembly app, verifies its static deployment shape, and runs `Website/scripts/Test-ConverterPerformance.ps1`. The Playwright probe loads the production publish through a local HTTP server, waits for the real Blazor surface, converts the checked sample for each route, and rejects:
 
-- `OfficeIMO.Word.Pdf`
-- `OfficeIMO.Excel.Pdf`
-- `OfficeIMO.PowerPoint.Pdf`
+- a publish above 84 MiB;
+- startup above 25 seconds;
+- observed browser heap above 512 MiB;
+- a conversion above 15 seconds;
+- retained PDF serialization buffers above 64 MiB;
+- an empty result or browser console error.
 
-The app loaded Office fixtures as browser static assets, opened them from byte arrays/streams, converted them to PDF bytes in the browser runtime, and checked that the output started with `%PDF`.
+The committed budgets are regression ceilings, not target marketing numbers. SDK, browser, operating system, and hardware must be recorded when comparing measurements.
+
+## Current local baseline
+
+The table below records a Windows Release publish produced with the repository's .NET 10 SDK and native WebAssembly linking. The repository-pinned Playwright CLI 0.1.17 drove its explicit Chromium engine on the same machine.
+
+| Measurement | Observed |
+| --- | ---: |
+| Published app | 79,984,480 bytes |
+| Startup to interactive converter | 1,531 ms |
+| Maximum observed browser heap | 150,168,583 bytes |
+
+| Conversion | Time | Observed browser heap | Peak retained PDF buffers | Result |
+| --- | ---: | ---: | ---: | ---: |
+| DOCX to PDF | 624 ms | 53,922,871 bytes | 12,694 bytes | 200,643 bytes |
+| XLSX to PDF | 667 ms | 102,638,381 bytes | 3,805 bytes | 440,298 bytes |
+| PPTX to PDF | 453 ms | 150,168,583 bytes | 30 bytes | 769 bytes |
+
+`peakBrowserHeapBytes` is Chromium's highest sampled total JavaScript heap before, during, or immediately after each representative conversion. The gate requires at least two non-zero samples per route and fails closed when Chromium's memory API is unavailable. `peakRetainedBytes` is the converter's high-water retained PDF page-content plus object-buffer evidence; it is not presented as whole-process memory.
 
 ## Commands
 
 ```powershell
-dotnet new blazorwasm -o Proofs\BlazorWasmConversionProof -f net10.0
-dotnet build Proofs\BlazorWasmConversionProof\BlazorWasmConversionProof.csproj -c Release
-dotnet publish Proofs\BlazorWasmConversionProof\BlazorWasmConversionProof.csproj -c Release -o artifacts\blazor-wasm-conversion-proof
-dotnet run --project Proofs\BlazorWasmConversionProof\BlazorWasmConversionProof.csproj --configuration Release --urls http://127.0.0.1:5179
+dotnet publish Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj `
+  -c Release `
+  -o Website/_temp/converter-publish `
+  -p:BaseHref=/apps/officeimo-converter/
+
+pwsh Website/scripts/Test-ConverterPerformance.ps1 `
+  -SiteRoot Website/_site `
+  -ReportPath Website/_reports/browser-converter-performance.json
 ```
 
-Browser execution was verified with Playwright against `http://127.0.0.1:5179`.
+The pipeline owns the publish overlay into `Website/_site/apps/officeimo-converter`; the performance command expects that exact static-site layout.
 
-## Result
+## Boundary
 
-| Conversion | Browser result | Notes |
-| --- | --- | --- |
-| Word DOCX to PDF, basic fixture | Pass | Produced 5,256 PDF bytes after fixing a null settings-part read in `WordSection.DifferentOddAndEvenPages`. |
-| Word DOCX to PDF, empty fixture | Pass | Produced 758 PDF bytes. |
-| Word DOCX to PDF, sample1 fixture | Expected fail | PDF text encoding preflight rejected U+F0B7 because embedded Unicode fonts are required. This is a font/Unicode coverage gap, not a browser-platform failure. |
-| Excel XLSX to PDF | Pass | Produced 7,257 PDF bytes. |
-| PowerPoint PPTX to PDF | Pass | Produced 2,088 PDF bytes. |
-
-## Conclusion
-
-GitHub Pages can plausibly host a Blazor WebAssembly conversion playground for OfficeIMO conversions that stay inside byte/stream APIs and do not depend on server processes, native graphics libraries, Office, LibreOffice, or filesystem-only workflows.
-
-The current proof says Excel-to-PDF and PowerPoint-to-PDF already work in-browser for representative fixtures. Word-to-PDF works for simple fixtures after the null guard, but richer Word documents still need the Unicode font embedding path to support symbols such as private-use bullet glyphs.
-
-Before presenting this as a public production feature, validate:
-
-- browser bundle size and startup time;
-- memory use for larger DOCX/XLSX/PPTX files;
-- explicit browser-safe conversion API wrappers;
-- Unicode font embedding or browser-provided font packaging for Word output;
-- static-site UX for drag/drop, per-format diagnostics, and download URLs.
+This evidence proves the three checked browser routes and samples. It does not imply that every OfficeIMO conversion package is WebAssembly-compatible, that arbitrary document sizes fit the browser profile, or that the measured Windows numbers transfer unchanged to every device. Package-size and input/package-part limits remain enforced by the browser conversion service, while conversion reports expose fidelity warnings and the support bundle records the selected profile and performance evidence.

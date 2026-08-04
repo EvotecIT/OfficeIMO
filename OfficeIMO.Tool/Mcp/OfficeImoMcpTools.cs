@@ -124,7 +124,7 @@ internal sealed class OfficeImoMcpTools {
         OpenWorld = false,
         UseStructuredContent = true,
         OutputSchemaType = typeof(AgentCapabilitiesResult))]
-    [Description("Return a bounded capability list, optionally filtered by extension and intended operation.")]
+    [Description("Return bounded Reader capabilities and, for convert, package-neutral source-to-target routes, optionally filtered by source extension.")]
     public CallToolResult Capabilities(
         [Description("Optional extension such as .docx, .msg, .eml, .pst, or .ost.")] string? extension = null,
         [Description("Operation: read, inspect, search, fetch, or convert.")] string operation = "read",

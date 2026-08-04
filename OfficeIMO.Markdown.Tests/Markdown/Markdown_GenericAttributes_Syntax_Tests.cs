@@ -2071,6 +2071,54 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_On_Callout_CustomContainer_And_Details_Are_SourceBacked_And_Rendered() {
+        const string markdown = "{#notice .wide}\n> [!NOTE] Heads up\n> Body\n\n{#panel .framed}\n::: note\nInside\n:::\n\n{#more .expanded}\n<details open>\n<summary>More</summary>\n\nHidden\n</details>\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            CustomContainers = true,
+            PreserveTrivia = true
+        };
+
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var callout = Assert.IsType<CalloutBlock>(result.Document.Blocks[0]);
+        var container = Assert.IsType<CustomContainerBlock>(result.Document.Blocks[1]);
+        var details = Assert.IsType<DetailsBlock>(result.Document.Blocks[2]);
+        Assert.Equal("notice", callout.Attributes.ElementId);
+        Assert.Equal("panel", container.Attributes.ElementId);
+        Assert.Equal("more", details.Attributes.ElementId);
+
+        var fields = MarkdownNativeDocument.Parse(markdown, options)
+            .EnumerateBlockSourceFields("attributes")
+            .ToArray();
+        Assert.Equal(3, fields.Length);
+        Assert.Equal(new[] { "{#notice .wide}", "{#panel .framed}", "{#more .expanded}" }, fields.Select(field => field.Value));
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+        Assert.Contains("<blockquote id=\"notice\" class=\"callout note wide\"", html, StringComparison.Ordinal);
+        Assert.Contains("<div id=\"panel\" class=\"note framed\">", html, StringComparison.Ordinal);
+        Assert.Contains("<details id=\"more\" class=\"expanded\" open>", html, StringComparison.Ordinal);
+
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n");
+        Assert.Contains("{#notice .wide}\n> [!NOTE] Heads up", written, StringComparison.Ordinal);
+        Assert.Contains("{#panel .framed}\n::: note", written, StringComparison.Ordinal);
+        Assert.Contains("{#more .expanded}\n<details open>", written, StringComparison.Ordinal);
+
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(written, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(reparsed.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(reparsed);
+        Assert.Equal(3, reparsed.FinalSyntaxTree.Descendants().Count(node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock));
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Before_HtmlBlock_Attach_With_Metadata() {
         const string markdown = "{#html .wide}\n<div>raw</div>\n";
         var options = new MarkdownReaderOptions {

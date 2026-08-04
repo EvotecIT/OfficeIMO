@@ -78,8 +78,8 @@ These are the exact current implementation boundaries and promotion requirements
 
 #### Custom containers
 
-- **OfficeIMO state:** Opt-in colon-fenced containers support root and nested blocks, child parsing, HTML rendering, Markdown writing, syntax/native fields, source slices, and source edits. Remaining container interactions and writer breadth keep this family partial.
-- **Promotion bar:** Complete remaining blockquote and container interactions plus broader writer behavior.
+- **OfficeIMO state:** Opt-in colon-fenced containers have complete ownership for the supported root, nested, blockquote-contained, and list-contained shapes: child parsing, HTML rendering, Markdown writing, syntax/native fields, source slices, source edits, and stable reparse. This row remains partial only relative to the broader optional extension surface.
+- **Promotion bar:** Adopt any additional optional container shape only with parser, semantic owner, source fields, HTML output, Markdown writing, and reparse proof in the same change.
 
 #### Diagrams
 
@@ -93,8 +93,8 @@ These are the exact current implementation boundaries and promotion requirements
 
 #### Generic attributes
 
-- **OfficeIMO state:** Generic attributes are stored on semantic and syntax nodes and are source-backed for the covered heading, paragraph, code, list, table, image, definition-list, footnote, link, image-link, emphasis, and inline-code shapes. Arbitrary block and inline families remain incomplete.
-- **Promotion bar:** Complete arbitrary block-family parsing, inline-family breadth, and writer/source preservation across supported shapes.
+- **OfficeIMO state:** Generic attributes have end-to-end ownership for every supported target family, including callouts, details blocks, and custom containers: semantic and syntax storage, exact source fields, HTML projection, Markdown writing, source edits, and stable reparse. Targets outside that declared set remain literal or deliberately consumed according to the documented profile boundary.
+- **Promotion bar:** Adopt any additional target family only when it has one semantic owner plus source mapping, HTML projection or deliberate consumption, Markdown writing, source editing, and stable reparse proof.
 
 #### List extras
 
@@ -113,8 +113,8 @@ These are the exact current implementation boundaries and promotion requirements
 
 #### Precise source location
 
-- **OfficeIMO state:** Syntax, semantic, native, transform, renderer, writer, and source-edit APIs expose broad normalized and original source evidence. Complete lossless trivia, original mapping, generated-node semantics, and arbitrary source edits remain partial.
-- **Promotion bar:** Complete lossless trivia and original mapping, generated-node round-trip semantics, and source-edit coverage.
+- **OfficeIMO state:** The public source contract is complete and field-bounded: documented source-backed fields expose normalized spans, exact or line-ending-equivalent original mappings, stable semantic associations, and source edits; generated or transformed nodes are spanless with machine-readable unavailable reasons; arbitrary semantic edits use normalized writing. This row remains partial only because arbitrary-node locations and lossless arbitrary semantic edits are intentionally outside the contract.
+- **Promotion bar:** Do not promote this comparison row unless OfficeIMO deliberately expands beyond its field-bounded contract; never infer spans for generated nodes or advertise arbitrary semantic edits as lossless.
 <!-- extension-partial-boundaries:end -->
 
 ## Standards profiles
@@ -122,14 +122,14 @@ These are the exact current implementation boundaries and promotion requirements
 | Capability | CommonMark profile | GFM profile | OfficeIMO profile | Status and boundary |
 | --- | --- | --- | --- | --- |
 | ATX and Setext headings | Yes | Yes | Yes | Covered, including heading/source marker spans and Setext source edits |
-| Paragraphs, entities, escapes, hard/soft breaks | Yes | Yes | Yes | Partial; broad grammar is covered while complete lossless trivia remains open |
+| Paragraphs, entities, escapes, hard/soft breaks | Yes | Yes | Yes | Covered grammar; exact source claims are limited to the documented source-backed fields |
 | Thematic breaks | Yes | Yes | Yes | Covered with marker syntax and native projection |
 | Fenced and indented code | Yes | Yes | Yes, plus semantic fenced blocks | Partial; core grammar is broad and semantic fenced blocks are an OfficeIMO extension |
-| Blockquotes | Yes | Yes | Yes, plus opt-in callout recognition | Partial source/lossless breadth; callouts are intentional profile behavior |
+| Blockquotes | Yes | Yes | Yes, plus opt-in callout recognition | Covered grammar; plain blockquotes keep literal attribute boundaries while callouts own their documented source fields |
 | Ordered and unordered lists | Yes | Yes | Yes | Partial; parsing is broad while canonical subobject/source ownership continues to improve |
-| Emphasis, strong, escapes, and code spans | Yes | Yes | Yes | Partial; standards grammar is broad and delimiter/trivia completeness remains open |
+| Emphasis, strong, escapes, and code spans | Yes | Yes | Yes | Covered grammar; delimiter locations are exact only for documented source-backed fields |
 | Links, references, images, and autolinks | Yes | Yes | Yes | Partial; profile-specific bare-link and standalone-image behavior is explicit |
-| Raw HTML | Optional | Optional with GFM tag-filter policy | Optional | Grammar and output security are separate options; one CommonMark raw-HTML inventory case remains open |
+| Raw HTML | Optional | Optional with GFM tag-filter policy | Optional | Grammar and output security are separate options; the CommonMark 0.31.2 inventory is complete |
 | Pipe tables | No | Yes | Yes | Covered for the tracked GFM table corpus, source spans, edits, and writer round trips |
 | Task lists | No | Yes | Yes | Covered with marker/source metadata and GitHub HTML output |
 | Strikethrough | No | Yes | Yes | Covered for the tracked profile grammar |
@@ -142,18 +142,18 @@ These are the exact current implementation boundaries and promotion requirements
 | Area | Current contract | Status |
 | --- | --- | --- |
 | Semantic model | Typed public block and inline model used by transforms, converters, and writers | Covered |
-| Syntax model | Final syntax tree with source spans, token/field nodes, semantic association, and navigation helpers | Partial; some subobject associations and full trivia coverage remain open |
-| Original source | Normalized slices are available for span-backed nodes; line-ending-equivalent original slices are available when trivia is preserved | Partial; general original-to-normalized mapping remains open |
-| Round-trip writer | Unchanged trivia-backed input can be emitted byte-for-byte; safe native edits apply to original input; fallback produces diagnostics | Partial; arbitrary generated/multi-node edits are not fully byte preserving |
+| Syntax model | Final syntax tree with source spans, token/field nodes, semantic association, and navigation helpers | Covered for documented source-backed fields; unlisted and generated fields are explicitly unavailable |
+| Original source | Normalized slices are available for span-backed nodes; exact or line-ending-equivalent original slices are available when trivia is preserved | Covered for the bounded field contract; unsafe or unavailable mappings return machine-readable reasons |
+| Round-trip writer | Unchanged trivia-backed input can be emitted byte-for-byte; safe native edits apply to original input; fallback produces diagnostics | Covered for unchanged input and validated source-field edits; arbitrary semantic mutation intentionally uses normalized writing |
 | Parser extensions | Ordered block, fenced-block, and inline parser seams with explicit fallback and source-aware contexts | Covered for the public extension contract |
 | Transforms | Ordered post-parse transforms with source-impact diagnostics | Covered for the current transform contract |
 | Renderer/writer overrides | Type-targeted and syntax-kind-targeted HTML/Markdown overrides with nested rendering contexts | Covered for the public extension contract |
 | Security profiles | Raw HTML, URL handling, images, sanitizer behavior, and host renderer policy are explicit | Covered for the documented profiles |
 
-## Current limits
+## Deliberate boundaries
 
-- Trivia and delimiter-token coverage is incomplete for some built-in and optional syntax nodes.
-- Original-to-normalized mapping remains incomplete for every combination of CRLF/LF/CR, tabs, nested containers, transforms, and generated nodes.
+- Trivia and delimiter locations are claimed only for documented source-backed fields; unsupported optional syntax and unlisted fields remain literal or unavailable.
+- Original-to-normalized mapping succeeds only when exact or line-ending-equivalent. CRLF/LF/CR and tab-aware mapped fields are covered; transformed and generated nodes return an unavailable reason.
 - General byte-preserving writing after arbitrary tree mutation is not claimed.
 - Optional grid tables, mathematics, media providers, figures, and diagram languages require an explicit product contract before they become parser defaults.
 - HTML sanitization is a rendering policy, not part of Markdown grammar.

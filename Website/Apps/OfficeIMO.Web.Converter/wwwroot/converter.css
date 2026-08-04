@@ -844,6 +844,7 @@
 }
 
 .ocx-actionbar .ocx-convert-button b { order: -1; font-size: 1rem; }
+.ocx-mobile-action { display: none; }
 
 .ocx-utility-rail {
   display: grid;
@@ -894,7 +895,7 @@
 }
 
 @media (max-width: 760px) {
-  .ocx-shell { padding-bottom: 5.5rem; }
+  .ocx-shell { padding-bottom: 0; }
 
   .ocx-product-heading,
   .ocx-route-rail,
@@ -942,24 +943,18 @@
   .ocx-preview-stage,
   .ocx-empty-state { min-height: 330px; }
 
-  .ocx-actionbar {
-    position: fixed;
-    right: 0.5rem;
-    bottom: max(0.5rem, env(safe-area-inset-bottom));
-    left: 0.5rem;
-    z-index: 10;
-    align-items: stretch;
-    flex-direction: column;
-    gap: 0.45rem;
-    padding: 0.75rem 1rem;
-    min-height: 0;
-    border: 1px solid var(--ocx-border);
-    border-radius: 12px;
-    box-shadow: 0 12px 36px rgba(20, 33, 58, 0.18);
+  .ocx-actionbar { display: none; }
+  .ocx-mobile-action {
+    display: block;
+    margin-top: 0.8rem;
   }
-
-  .ocx-actionbar > span { display: none; }
-  .ocx-actionbar .ocx-convert-button { width: 100%; max-width: none; }
+  .ocx-mobile-action .ocx-convert-button {
+    width: 100%;
+    min-height: 52px;
+    margin: 0;
+    border-radius: 9px;
+  }
+  .ocx-mobile-action .ocx-convert-button b { order: -1; }
   .ocx-utility-rail { grid-template-columns: 1fr; }
   .ocx-utility-rail > div,
   .ocx-utility-rail > a {

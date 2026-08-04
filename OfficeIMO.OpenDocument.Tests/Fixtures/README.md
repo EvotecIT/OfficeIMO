@@ -15,3 +15,5 @@
 `microsoft-powerpoint-basic.odp` was saved from the same source presentation with Microsoft PowerPoint for Mac 16.99 on 2026-07-10 using PowerPoint's OpenDocument Presentation export.
 
 Keep fixtures small and record the producing application, source file, and date here. Binary fixtures are test evidence; they are not public examples.
+
+`producer-manifest.json` is the machine-readable source of truth for the six authored producer fixtures, their exact hashes, and the tests that own style, formula, drawing, embedded-content, and unknown-package-content contracts. It also records a public Google Docs ODT export as external-only evidence; the source bytes are intentionally not redistributed. `Build/Test-OpenDocumentExternalProducerEvidence.ps1` verifies its bounded package size and stable semantic hash, then loads, validates, preserves, saves, reopens, and validates the artifact through `OfficeIMO.OpenDocument` with strict loss reporting.

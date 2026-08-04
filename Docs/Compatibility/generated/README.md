@@ -8,6 +8,8 @@ Regenerate:
 dotnet run --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated
 ```
 
+The shared [conversion route catalog](conversion-routes.md) drives package documentation, MCP discovery, and the browser converter.
+
 Verify:
 
 ```powershell

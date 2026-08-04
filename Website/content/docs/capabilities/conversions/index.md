@@ -8,21 +8,9 @@ OfficeIMO keeps document models and conversion adapters separate. That lets an a
 
 ## Choose by source and destination
 
-| Source | Destination | Focused adapter | Typical use |
-|---|---|---|---|
-| Word | HTML | `OfficeIMO.Word.Html` | Browser review, publishing, email previews, and content projection |
-| Word | Markdown | `OfficeIMO.Word.Markdown` | Repository workflows, text pipelines, and review-friendly exports |
-| Word | PDF | `OfficeIMO.Word.Pdf` | Fixed-layout delivery with explicit render diagnostics |
-| Word | OpenDocument or RTF | `OfficeIMO.Word.OpenDocument`, `OfficeIMO.Word.Rtf` | Interchange with open-document and rich-text workflows |
-| Excel | HTML or PDF | `OfficeIMO.Excel.Html`, `OfficeIMO.Excel.Pdf` | Workbook previews and fixed-layout reports |
-| Excel | OpenDocument | `OfficeIMO.Excel.OpenDocument` | XLSX and ODS interoperability |
-| PowerPoint | HTML or PDF | `OfficeIMO.PowerPoint.Html`, `OfficeIMO.PowerPoint.Pdf` | Slide review, publishing, and delivery |
-| PowerPoint | OpenDocument | `OfficeIMO.PowerPoint.OpenDocument` | PPTX and ODP interoperability |
-| Markdown | HTML or PDF | `OfficeIMO.Markdown.Html`, `OfficeIMO.Markdown.Pdf` | Typed text publishing and portable output |
-| HTML | PDF | `OfficeIMO.Html.Pdf` | Managed web-to-PDF workflows without a browser process |
-| OneNote | HTML, Markdown, or PDF | `OfficeIMO.OneNote.Html`, `OfficeIMO.OneNote.Markdown`, `OfficeIMO.OneNote.Pdf` | Notebook extraction and publishing |
-| OpenDocument | PDF and back | `OfficeIMO.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, `.Odp.Pdf` | Focused ODT, ODS, and ODP routes without unrelated Office dependencies |
-| AsciiDoc, LaTeX, or RTF | Markdown or PDF | format-specific `.Markdown` and `.Pdf` adapters | Bounded text-format bridges with explicit loss handling |
+This table is rendered from the same public `OfficeConversionCapabilityCatalog` used by MCP discovery and the browser converter. “Managed only” means the package route exists but is intentionally absent from the WebAssembly app.
+
+{{< conversion-routes >}}
 
 ## Preserve the source model
 

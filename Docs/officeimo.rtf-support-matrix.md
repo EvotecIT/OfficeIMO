@@ -1,8 +1,8 @@
 # OfficeIMO RTF support matrix
 
-Last reviewed: 2026-07-10
+Last reviewed: 2026-08-04
 
-This is the current contract for RTF read, write, edit, conversion, and ingestion. The machine-readable source is [officeimo.rtf-capabilities.json](officeimo.rtf-capabilities.json); a test requires every capability below to remain represented here. Open RTF work is tracked in the repository [roadmap](ROADMAP.md).
+This is the current contract for RTF read, write, edit, conversion, and ingestion. The machine-readable source is [officeimo.rtf-capabilities.json](officeimo.rtf-capabilities.json); a test requires every capability below to remain represented here.
 
 Status meanings:
 
@@ -67,9 +67,9 @@ The untrusted profile is intentionally conservative. Applications can clone or c
 | <!-- capability:word-workflows --> Word workflows | Broad | Result-bearing mail merge, cross-run find/replace, field update, append/merge, and comparison route through `OfficeIMO.Word` and return combined conversion/workflow reports. |
 | <!-- capability:pdf-adapter --> PDF bridge | Broad | Export maps semantic layout, tables, images, links, notes, and headers/footers. Import is logical extraction, not lossless PDF reconstruction. |
 | <!-- capability:reader-adapter --> Reader bridge | Extractive | Emits bounded chunks, Markdown-friendly tables, image placeholders, source metadata, and parser/conversion warnings. |
-| <!-- capability:producer-corpus --> Producer corpus | Broad | Real Word 16 and Outlook 16 files, four pinned LibreOffice regression fixtures, and a synthetic Outlook encapsulation fixture have hashes, provenance, adapter assertions, and reopen evidence. |
+| <!-- capability:producer-corpus --> Producer corpus | Broad | Real Word 16 and Outlook 16 files, four pinned LibreOffice regressions, five distinct external Google Docs, macOS TextEdit/RTFD, Epic EHI, CRM-workflow, and helpdesk-workflow artifacts, and a reproducibly generated GemBox.Document fixture have provenance plus executable product-path evidence. CRM/helpdesk artifacts are not labeled as vendor-native exports. External third-party bytes are not redistributed. |
 
-The producer scorecard deliberately leaves Google Docs, macOS TextEdit/RTFD, EHR/CRM/helpdesk generators, and commercial-library output as unverified. Those missing files limit market proof, not the implemented parser contracts.
+The checked corpus distinguishes redistributed producer fixtures, externally refreshed evidence, reproducibly generated commercial-library output, and synthetic grammar probes. That distinction prevents a parser fixture from being presented as independent producer evidence. `Build/Test-RtfExternalProducerEvidence.ps1` refreshes each external record and proves bounded read, web-safe HTML, Markdown, and diagnostic-preserving Word conversion.
 
 ## P2: editing and scale
 
@@ -79,7 +79,7 @@ The producer scorecard deliberately leaves Google Docs, macOS TextEdit/RTFD, EHR
 | <!-- capability:lossless-structural-editing --> Lossless structural editing | Broad | Root syntax fragments/nodes can be inserted, removed, or moved; pictures and destination-group content such as headers/footers can be replaced without normalizing unrelated syntax. |
 | <!-- capability:document-merge --> Semantic document merge | Broad | `AppendDocument` clones and remaps fonts, colors, revision authors, blocks, tables, and notes. Style/list flattening and header/footer omission are reported and fail strict mode. |
 | <!-- capability:fuzz-properties --> Seeded fuzz/property lane | Full | Valid exact round trip, malformed groups, extreme control parameters, Unicode fallback widths, binary lengths/limits, and semantic normalization run on all RTF test targets. |
-| <!-- capability:benchmark-budgets --> Performance and allocation budgets | Full | BenchmarkDotNet covers scale comparison; isolated probes enforce elapsed, allocation, peak-working-set, output-size, and corpus-size ceilings for core plus every adapter. |
+| <!-- capability:benchmark-budgets --> Performance and allocation budgets | Full | BenchmarkDotNet covers scale comparison; isolated probes enforce elapsed, allocation, peak-working-set, output-size, and corpus-size ceilings for core plus every adapter. The enforced operations include untrusted parsing, web-safe HTML, and a real producer-scale GemBox fixture in addition to synthetic small, medium, and large documents. |
 | <!-- capability:conversion-docs --> Living documentation | Full | This matrix, the capability manifest, package READMEs, safe/strict recipes, workflow examples, and benchmark commands are checked into the owning repository. |
 
 ## Adapter fidelity summary
@@ -122,6 +122,9 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Rtf.Benchmarks\Of
 
 # Enforce the committed small/medium/large regression ceilings.
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Rtf.Benchmarks\OfficeIMO.Rtf.Benchmarks.csproj -- --verify-budgets --json .\artifacts\rtf-budget-report.json
+
+# Recheck the external producer records without redistributing their source bytes.
+pwsh .\Build\Test-RtfExternalProducerEvidence.ps1
 
 # Collect focused BenchmarkDotNet measurements.
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Rtf.Benchmarks\OfficeIMO.Rtf.Benchmarks.csproj -- --filter "*RtfCoreBenchmarks*" --job Short --noOverwrite

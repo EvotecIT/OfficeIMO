@@ -259,6 +259,15 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            if (options.Callouts
+                && IsCalloutHeader(lines[i], options, out _, out _)) {
+                return true;
+            }
+
+            if (IsCustomContainerOpeningLine(lines[i], options)) {
+                return true;
+            }
+
             return options.Paragraphs
                 && !IsCodeFenceOpen(lines[i], out _, out _, out _)
                 && !StartsTable(lines, i, options)

@@ -90,6 +90,8 @@ public sealed class AgentCapabilitiesResult {
     public int Returned { get; set; }
     public bool Truncated { get; set; }
     public IReadOnlyList<AgentCapabilitySummary> Capabilities { get; set; } = Array.Empty<AgentCapabilitySummary>();
+    public int ConversionReturned { get; set; }
+    public IReadOnlyList<AgentConversionCapabilitySummary> Conversions { get; set; } = Array.Empty<AgentConversionCapabilitySummary>();
 }
 
 /// <summary>Small capability description intended for CLI and MCP discovery.</summary>
@@ -98,6 +100,19 @@ public sealed class AgentCapabilitySummary {
     public string Name { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
     public IReadOnlyList<string> Extensions { get; set; } = Array.Empty<string>();
+}
+
+/// <summary>Small package-neutral conversion route intended for CLI and MCP discovery.</summary>
+public sealed class AgentConversionCapabilitySummary {
+    public string Id { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
+    public IReadOnlyList<string> SourceExtensions { get; set; } = Array.Empty<string>();
+    public string TargetExtension { get; set; } = string.Empty;
+    public string PackageId { get; set; } = string.Empty;
+    public string Fidelity { get; set; } = string.Empty;
+    public string ResultContract { get; set; } = string.Empty;
+    public bool BrowserAvailable { get; set; }
 }
 
 /// <summary>Result of materializing one OfficeIMO Reader representation.</summary>

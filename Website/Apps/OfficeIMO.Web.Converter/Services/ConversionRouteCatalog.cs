@@ -1,20 +1,42 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Web.Converter.Models;
 
 namespace OfficeIMO.Web.Converter.Services;
 
 public static class ConversionRouteCatalog {
-    public static IReadOnlyList<ConversionRoute> All { get; } = [
-        new("docx-pdf", "DOCX", "PDF", "Word to PDF", "Convert a Word document into a downloadable PDF.", ConversionInputKind.File, ".docx", "WordDocument.Load(stream).ToPdfDocumentResult(options)", "ocx-route-card--word"),
-        new("xlsx-pdf", "XLSX", "PDF", "Excel to PDF", "Render workbook sheets with layout and conversion diagnostics.", ConversionInputKind.File, ".xlsx", "ExcelDocument.Load(stream).ToPdfDocumentResult(options)", "ocx-route-card--excel"),
-        new("pptx-pdf", "PPTX", "PDF", "PowerPoint to PDF", "Render presentation slides into a portable PDF.", ConversionInputKind.File, ".pptx", "PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)", "ocx-route-card--powerpoint"),
-        new("html-pdf", "HTML", "PDF", "HTML to PDF", "Render HTML and CSS into a tagged, downloadable PDF without uploading the source.", ConversionInputKind.Text, ".html,.htm,.txt", "HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)", "ocx-route-card--html"),
-        new("markdown-html", "MD", "HTML", "Markdown to HTML", "Render Markdown into an immediate browser preview and HTML download.", ConversionInputKind.Text, ".md,.markdown,.txt", "MarkdownRenderer.RenderBodyHtml(markdown, options)", "ocx-route-card--markdown"),
-        new("html-markdown", "HTML", "MD", "HTML to Markdown", "Turn HTML into portable Markdown with a shared resource policy.", ConversionInputKind.Text, ".html,.htm,.txt", "HtmlConversionDocument.Parse(html).ToMarkdown(options)", "ocx-route-card--html"),
-        new("markdown-docx", "MD", "DOCX", "Markdown to Word", "Create an editable Word document from typed Markdown.", ConversionInputKind.Text, ".md,.markdown,.txt", "MarkdownReader.Parse(markdown).ToWordDocument(options)", "ocx-route-card--word")
-    ];
+    public static IReadOnlyList<ConversionRoute> All { get; } =
+        OfficeConversionCapabilityCatalog.BrowserRoutes.Select(CreateBrowserRoute).ToArray();
 
     public static ConversionRoute Default => All[0];
 
     public static ConversionRoute Find(string? id) =>
         All.FirstOrDefault(route => string.Equals(route.Id, id, StringComparison.OrdinalIgnoreCase)) ?? Default;
+
+    private static ConversionRoute CreateBrowserRoute(OfficeConversionCapability route) =>
+        new(
+            route.Id,
+            route.Source == "Markdown" ? "MD" : route.Source,
+            route.Target == "Markdown" ? "MD" : route.Target,
+            GetTitle(route),
+            route.Description,
+            route.InputKind == OfficeConversionInputKind.File ? ConversionInputKind.File : ConversionInputKind.Text,
+            string.Join(",", route.SourceExtensions),
+            route.Api,
+            GetAccentClass(route));
+
+    private static string GetTitle(OfficeConversionCapability route) => route.Id switch {
+        "docx-pdf" => "Word to PDF",
+        "xlsx-pdf" => "Excel to PDF",
+        "pptx-pdf" => "PowerPoint to PDF",
+        "markdown-docx" => "Markdown to Word",
+        _ => route.Source + " to " + route.Target
+    };
+
+    private static string GetAccentClass(OfficeConversionCapability route) => route.Source switch {
+        "DOCX" => "ocx-route-card--word",
+        "XLSX" => "ocx-route-card--excel",
+        "PPTX" => "ocx-route-card--powerpoint",
+        "Markdown" => "ocx-route-card--markdown",
+        _ => "ocx-route-card--html"
+    };
 }

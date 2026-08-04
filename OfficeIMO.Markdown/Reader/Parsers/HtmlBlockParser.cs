@@ -796,11 +796,6 @@ public static partial class MarkdownReader {
             if (quote == '"' || quote == '\'') {
                 index++;
                 while (index < line.Length && line[index] != quote) {
-                    if (line[index] == '\\' && index + 1 < line.Length) {
-                        index += 2;
-                        continue;
-                    }
-
                     index++;
                 }
 

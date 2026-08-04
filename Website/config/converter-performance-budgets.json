@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "playwrightCliVersion": "0.1.17",
+  "browserEngine": "chromium",
+  "maximumPublishedBytes": 88080384,
+  "maximumStartupMilliseconds": 25000,
+  "maximumBrowserHeapBytes": 536870912,
+  "routes": {
+    "docx-pdf": { "maximumConversionMilliseconds": 15000, "maximumPeakRetainedBytes": 67108864 },
+    "xlsx-pdf": { "maximumConversionMilliseconds": 15000, "maximumPeakRetainedBytes": 67108864 },
+    "pptx-pdf": { "maximumConversionMilliseconds": 15000, "maximumPeakRetainedBytes": 67108864 }
+  }
+}

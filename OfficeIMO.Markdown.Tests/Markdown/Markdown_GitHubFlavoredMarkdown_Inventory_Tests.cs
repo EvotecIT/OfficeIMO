@@ -6,9 +6,10 @@ public sealed class Markdown_GitHubFlavoredMarkdown_Inventory_Tests {
     [Fact]
     public void Gfm_TrackedExtensionInventory_Report_Is_Current() {
         string fixturePath = GetTestProjectPath("Markdown", "Fixtures", "GitHubFlavoredMarkdown", "cmark-gfm-extensions-smoke.json");
+        string provenancePath = GetTestProjectPath("Markdown", "Fixtures", "GitHubFlavoredMarkdown", "cmark-gfm-provenance.json");
         string reportPath = GetRepositoryPath("Docs", "officeimo.markdown.gfm-inventory.md");
 
-        var report = GfmInventory.Build(fixturePath);
+        var report = GfmInventory.Build(fixturePath, provenancePath);
         string markdown = GfmInventoryMarkdownWriter.Write(report);
 
         if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_GFM_INVENTORY"), "1", StringComparison.Ordinal)) {

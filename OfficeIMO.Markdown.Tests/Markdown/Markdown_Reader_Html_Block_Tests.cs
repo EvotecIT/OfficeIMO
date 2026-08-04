@@ -115,13 +115,13 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void Type6_Tag_With_Escaped_Quotes_Is_Recognized() {
+        public void Type6_Tag_Does_Not_Treat_Backslash_As_Attribute_Quote_Escape() {
             string md = "<div data-json=\"{\\\"key\\\":\\\"value\\\"}\">\ncontent\n\nParagraph";
 
             var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
 
-            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
-            Assert.Equal("<div data-json=\"{\\\"key\\\":\\\"value\\\"}\">\ncontent", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
         }
 
         [Fact]

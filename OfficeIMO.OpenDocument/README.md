@@ -111,6 +111,8 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 
 The package targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on Windows. CI checks generated ODF 1.3 and 1.4 XML against pinned OASIS Relax NG schemas, then opens and resaves the generated packages with the runner's reported LibreOffice version.
 
+Producer evidence is recorded in `OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json`: exact hashes cover LibreOffice and Microsoft Office for ODT, ODS, and ODP, while a genuine Google Docs ODT export is verified externally by stable semantic content because its ZIP bytes contain nondeterministic identifiers. The manifest also names the executable style, formula, drawing, embedded-content, and unknown-package-preservation tests. `Build/Test-OpenDocumentExternalProducerEvidence.ps1` downloads the Google artifact, verifies provenance, loads and validates it with bounded package options, saves with preservation and strict loss reporting, reopens the result, and validates it again without checking third-party bytes into the repository.
+
 ## Dependency footprint
 
 - **External:** None; no OpenDocument SDK and no LibreOffice process.

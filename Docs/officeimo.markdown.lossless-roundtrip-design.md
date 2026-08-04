@@ -36,7 +36,7 @@ The source model supports:
 - token/source fields for headings, fences, links, images, autolinks, code spans, formatting delimiters, breaks, entities, callouts, details blocks, lists, tables, footnotes, and supported raw HTML structures;
 - source-order enumeration, position lookup, native snapshots, and explicit source edits.
 
-Not every syntax family has complete delimiter and trivia coverage. The [compatibility matrix](officeimo.markdown.compatibility-matrix.md) records the public boundary, and open work belongs in [ROADMAP.md](ROADMAP.md).
+The public source contract is deliberately field-bounded. The [compatibility matrix](officeimo.markdown.compatibility-matrix.md) records which syntax families and fields own delimiters and trivia. OfficeIMO describes a location as exact only for a mapped source-backed field; it does not infer locations for generated nodes or claim lossless arbitrary semantic edits. A supported field is not considered source-backed until its semantic association, syntax token, normalized/original mapping, source edit, and reparse behavior are all exercised together.
 
 ## Round-trip decision order
 
@@ -79,10 +79,10 @@ if (!result.IsLossless) {
 }
 ```
 
-## Current limits
+## Complete bounded contract
 
-- Full trivia and delimiter capture is not available for every built-in and optional syntax node.
-- General original-to-normalized mapping is incomplete for tabs, transformed nodes, generated nodes, and every nested-container case.
+- Delimiter and trivia ownership is complete for the documented source-backed fields. Unlisted fields and intentionally unsupported optional syntax do not acquire inferred locations.
+- Original-to-normalized mapping succeeds only when it is exact or line-ending-equivalent. Tabs use the documented visual-column model; transformed or generated nodes report an unavailable reason instead of an invented original span.
 - Arbitrary semantic tree edits do not preserve unrelated bytes through a general changed-node writer.
 - Multi-node and generated-node below-block diffing is intentionally not inferred from output text.
 - `ToMarkdown()` remains semantic generation; it is not an alias for the round-trip writer.

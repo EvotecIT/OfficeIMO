@@ -1,6 +1,7 @@
 # OfficeIMO.Markdown GFM Inventory
 
 This report is generated from the checked-in cmark-gfm extension smoke fixtures and the current `OfficeIMO.Markdown` GitHub Flavored Markdown profile.
+Upstream evidence is pinned to cmark-gfm `0.29.0.gfm.13` at commit `587a12bb54d95ac37241377e6ddc93ea0e45439b`; recorded hashes cover the extension examples, full specification, and pathological-test inventory.
 
 Refresh command:
 
@@ -20,6 +21,17 @@ Remove-Item Env:\OFFICEIMO_UPDATE_GFM_INVENTORY
 | Passing fixtures | 52 |
 | Failing fixtures | 0 |
 | Intentional deviations | 0 |
+| Pinned upstream source files | 3 |
+
+## Upstream Provenance
+
+| Source | Bytes | SHA-256 | Use |
+| --- | ---: | --- | --- |
+| `test/extensions.txt` | 21274 | `a2a45e98be9fca95f564f927265a0f63beea6cae5369d1cf4bde44caa51b2a3a` | Extension-family examples |
+| `test/spec.txt` | 216680 | `7d8e5814befec287ac116786d81ff14e0adc9b13295b4494649e995408fd871c` | Full GFM specification examples |
+| `test/pathological_tests.py` | 5778 | `b200aa0fd6c3199cc0fdaff59c759f862f8f18b5824dc4b33afd8892376aaf69` | Adversarial performance-case inventory |
+
+Checked-in examples stay bounded and auditable; upstream files are identified by immutable commit and hash rather than copied wholesale.
 
 ## Section Inventory
 
