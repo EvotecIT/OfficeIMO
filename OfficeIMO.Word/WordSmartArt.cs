@@ -391,17 +391,20 @@ namespace OfficeIMO.Word {
                 .Attribute("modelId") ?? throw new InvalidOperationException("Cannot locate document point in SmartArt data model.");
             XElement connections = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault()
                 ?? throw new InvalidOperationException("SmartArt data model missing cxnLst.");
-            Dictionary<string, XElement> byDestination = connections.Elements(dgm + "cxn")
+            Dictionary<string, List<XElement>> byDestination = connections.Elements(dgm + "cxn")
                 .Where(connection => (string?)connection.Attribute("srcId") == docId)
                 .Where(connection => connection.Attribute("destId") != null)
-                .ToDictionary(connection => (string)connection.Attribute("destId")!, StringComparer.Ordinal);
+                .GroupBy(connection => (string)connection.Attribute("destId")!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
             for (int index = 0; index < nodes.Count; index++) {
                 string id = (string?)nodes[index].Attribute("modelId")
                     ?? throw new InvalidOperationException("SmartArt node is missing modelId.");
-                if (!byDestination.TryGetValue(id, out XElement? connection)) {
+                if (!byDestination.TryGetValue(id, out List<XElement>? matchingConnections)) {
                     throw new InvalidOperationException("SmartArt node does not have a document-child connection.");
                 }
-                connection.SetAttributeValue("srcOrd", index);
+                foreach (XElement connection in matchingConnections) {
+                    connection.SetAttributeValue("srcOrd", index);
+                }
             }
             SaveDiagramData(dataPart, xdoc);
         }
@@ -457,15 +460,21 @@ namespace OfficeIMO.Word {
                 .Attribute("modelId");
             if (string.IsNullOrEmpty(docId)) return nodes;
 
-            Dictionary<string, XElement> byId = nodes
-                .Where(node => node.Attribute("modelId") != null)
-                .ToDictionary(node => (string)node.Attribute("modelId")!, StringComparer.Ordinal);
+            var byId = new Dictionary<string, XElement>(StringComparer.Ordinal);
+            foreach (XElement node in nodes) {
+                string? nodeId = (string?)node.Attribute("modelId");
+                if (string.IsNullOrEmpty(nodeId) || !byId.TryAdd(nodeId, node)) {
+                    return nodes;
+                }
+            }
             List<XElement> ordered = xdoc.Descendants(dgm + "cxn")
                 .Where(connection => (string?)connection.Attribute("srcId") == docId)
                 .OrderBy(connection => (int?)connection.Attribute("srcOrd") ?? int.MaxValue)
                 .Select(connection => (string?)connection.Attribute("destId"))
-                .Where(id => id != null && byId.ContainsKey(id))
-                .Select(id => byId[id!])
+                .OfType<string>()
+                .Distinct(StringComparer.Ordinal)
+                .Where(byId.ContainsKey)
+                .Select(id => byId[id])
                 .ToList();
             return ordered.Count == nodes.Count ? ordered : nodes;
         }
