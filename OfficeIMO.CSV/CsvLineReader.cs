@@ -9,18 +9,41 @@ namespace OfficeIMO.CSV;
 internal sealed partial class CsvLineReader : IDisposable
 {
     private const int DefaultBufferSize = 32 * 1024;
+    private const int MaximumReadRequestSize = 256 * 1024;
 #if NET8_0_OR_GREATER
     private const int UnquotedDelimiterIndexCapacity = 64;
     private const int QuotedPrefixReuseMinimumDelimiterCount = 4;
 #endif
     private readonly TextReader _reader;
-    private readonly char[] _buffer;
+    private char[] _buffer;
     private readonly CancellationToken _cancellationToken;
     private int _position;
     private int _length;
     private bool _endOfReader;
 
     internal char[] Buffer => _buffer;
+
+    internal bool TryGrowFilledBuffer(int minimumCapacity)
+    {
+        if (minimumCapacity <= _buffer.Length || _length < _buffer.Length)
+        {
+            return false;
+        }
+
+        char[] replacement = ArrayPool<char>.Shared.Rent(minimumCapacity);
+        int remaining = _length - _position;
+        if (remaining > 0)
+        {
+            Array.Copy(_buffer, _position, replacement, 0, remaining);
+        }
+
+        char[] previous = _buffer;
+        _buffer = replacement;
+        _position = 0;
+        _length = remaining;
+        ArrayPool<char>.Shared.Return(previous);
+        return true;
+    }
 
     public CsvLineReader(TextReader reader, CancellationToken cancellationToken)
     {
@@ -827,7 +850,7 @@ internal sealed partial class CsvLineReader : IDisposable
             return false;
         }
 
-        _length = _reader.Read(_buffer, 0, _buffer.Length);
+        _length = _reader.Read(_buffer, 0, Math.Min(MaximumReadRequestSize, _buffer.Length));
         _cancellationToken.ThrowIfCancellationRequested();
         _position = 0;
         if (_length > 0)
@@ -856,7 +879,10 @@ internal sealed partial class CsvLineReader : IDisposable
 
         _position = 0;
         _length = remaining;
-        var read = _reader.Read(_buffer, remaining, _buffer.Length - remaining);
+        var read = _reader.Read(
+            _buffer,
+            remaining,
+            Math.Min(MaximumReadRequestSize, _buffer.Length - remaining));
         _cancellationToken.ThrowIfCancellationRequested();
         if (read == 0)
         {
