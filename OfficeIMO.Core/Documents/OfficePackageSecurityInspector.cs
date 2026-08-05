@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 
-namespace OfficeIMO.Drawing {
+namespace OfficeIMO {
     /// <summary>Inspects and validates Office package structure without executing active content.</summary>
     public static partial class OfficePackageSecurityInspector {
         private const string RelationshipSuffix = ".rels";

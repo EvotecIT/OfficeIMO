@@ -297,7 +297,7 @@ namespace OfficeIMO.Word {
 
         internal static WordLoadOptions CreateSigningReadbackLoadOptions(
             WordPackageSigningOptions signingOptions) => new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly,
                 MaxInputBytes = signingOptions.MaxPackageBytes
             };
 

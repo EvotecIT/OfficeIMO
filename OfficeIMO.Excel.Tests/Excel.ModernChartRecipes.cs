@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
                     .GetFirstChild<C.DataLabels>()?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal(4, document["Dashboard"].Charts.Count());
                 var validationErrors = document.ValidateOpenXml();
                 Assert.True(validationErrors.Count == 0, string.Join(Environment.NewLine, validationErrors));
@@ -263,7 +263,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(properties.Elements<A.GroupFill>());
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(properties.ChildElements.ToList().IndexOf(outline) < properties.ChildElements.ToList().IndexOf(effects));
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -383,7 +383,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(secondProperties.ChildElements.ToList().IndexOf(secondOutline) < secondProperties.ChildElements.ToList().IndexOf(effects));
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

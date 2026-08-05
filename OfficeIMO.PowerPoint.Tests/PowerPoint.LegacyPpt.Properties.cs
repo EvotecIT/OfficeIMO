@@ -129,10 +129,10 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(bytes, writable: false);
             using PowerPointPresentation reopened =
                 PowerPointPresentation.Load(input, new PowerPointLoadOptions {
-                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                    AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
                 });
 
-            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+            Assert.Equal(OfficeIMO.DocumentAccessMode.ReadOnly,
                 reopened.AccessMode);
             Assert.Equal(PowerPointFileFormat.Ppt, reopened.SourceFormat);
             Assert.Equal("Read-only metadata",

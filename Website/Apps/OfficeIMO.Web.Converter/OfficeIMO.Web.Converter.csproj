@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+    <ProjectReference Include="..\..\..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />

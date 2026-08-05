@@ -46,7 +46,7 @@
       "items": [
         {
           "question": "What are the dependencies?",
-          "answer": "<p>The core Office document packages are built on <strong>DocumentFormat.OpenXml</strong> and first-party <strong>OfficeIMO.Drawing</strong> primitives. HTML converter packages use <strong>AngleSharp</strong>, Excel carries compatibility helper packages on older targets, and the PDF packages use the first-party <strong>OfficeIMO.Pdf</strong> engine instead of external PDF/runtime layout libraries. The Markdown, CSV, Drawing, and PDF core packages stay dependency-light. See the <a href='/third-party/'>Third-Party Dependencies</a> page for the package-by-package breakdown and upstream license notes.</p>"
+          "answer": "<p>The core Office document packages are built on <strong>DocumentFormat.OpenXml</strong> and the first-party <strong>OfficeIMO.Core</strong> foundation. Drawing primitives remain in the <strong>OfficeIMO.Drawing</strong> namespace. HTML converter packages use <strong>AngleSharp</strong>, Excel carries compatibility helper packages on older targets, and the PDF packages use the first-party <strong>OfficeIMO.Pdf</strong> engine instead of external PDF/runtime layout libraries. The Markdown, CSV, Core, and PDF packages stay dependency-light. See the <a href='/third-party/'>Third-Party Dependencies</a> page for the package-by-package breakdown and upstream license notes.</p>"
         },
         {
           "question": "Can I convert Word documents to PDF?",

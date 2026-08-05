@@ -194,6 +194,6 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages; no native or commercial PDF renderer.
-- **OfficeIMO:** `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, and `OfficeIMO.Drawing` own slide snapshots, PDF rendering, and reports.
+- **OfficeIMO:** `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own slide snapshots, PDF rendering, and reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

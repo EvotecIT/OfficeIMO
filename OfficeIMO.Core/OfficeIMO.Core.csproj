@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Shared zero-dependency document, drawing, color, image, and font primitives for OfficeIMO projects.</Description>
-    <AssemblyName>OfficeIMO.Drawing</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Drawing</AssemblyTitle>
+    <Description>Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.</Description>
+    <AssemblyName>OfficeIMO.Core</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Core</AssemblyTitle>
     <VersionPrefix>3.1.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Drawing</PackageId>
+    <PackageId>OfficeIMO.Core</PackageId>
     <PackageTags>documents;drawing;color;image;raster;png;jpeg;tiff;webp;font;metadata;lifecycle;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.CSV" />
     <InternalsVisibleTo Include="OfficeIMO.Excel" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint" />
     <InternalsVisibleTo Include="OfficeIMO.Word" />

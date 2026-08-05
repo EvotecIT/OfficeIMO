@@ -1,14 +1,16 @@
-# OfficeIMO.Drawing - shared document and drawing primitives
+# OfficeIMO.Core - shared document, security, data, and drawing primitives
 
-[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Drawing)](https://www.nuget.org/packages/OfficeIMO.Drawing)
-[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Drawing?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Drawing)
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Core)](https://www.nuget.org/packages/OfficeIMO.Core)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Core?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Core)
 
-`OfficeIMO.Drawing` is the zero-dependency shared foundation for OfficeIMO packages. It owns common document lifecycle contracts plus color conversion, image metadata, font and text measurement, vector scenes, reusable ink and math models, chart snapshots, SVG, raster canvases, PNG/JPEG/TIFF/WebP encoding, and drawing-quality primitives. Format packages keep their file-format behavior while reusing these document-agnostic models and renderers.
+`OfficeIMO.Core` is the zero-dependency shared foundation for OfficeIMO packages. It owns common document lifecycle and package-safety contracts, neutral tabular row mapping, color conversion, image metadata, font and text measurement, vector scenes, reusable ink and math models, chart snapshots, SVG, raster canvases, PNG/JPEG/TIFF/WebP encoding, and drawing-quality primitives. Format packages keep their file-format behavior while reusing these document-agnostic models and renderers.
+
+The assembly was previously named `OfficeIMO.Drawing`. Drawing became the original shared foundation because keeping these primitives together avoided a separate Core → Drawing → format dependency chain. As lifecycle, security, package, and data contracts accumulated, the package name stopped describing its actual responsibility. OfficeIMO 3.1 renames that same single zero-dependency foundation to `OfficeIMO.Core`; it does not split it into another runtime dependency. Actual drawing APIs remain in the `OfficeIMO.Drawing` namespace, security APIs remain in `OfficeIMO.Security`, and cross-document lifecycle contracts use the root `OfficeIMO` namespace.
 
 ## Install
 
 ```powershell
-dotnet add package OfficeIMO.Drawing
+dotnet add package OfficeIMO.Core
 ```
 
 ## Quick start
@@ -16,7 +18,7 @@ dotnet add package OfficeIMO.Drawing
 ### Document lifecycle policy
 
 ```csharp
-using OfficeIMO.Drawing;
+using OfficeIMO;
 
 var loadOptions = new DocumentLoadOptions {
     AccessMode = DocumentAccessMode.ReadOnly,
@@ -149,7 +151,7 @@ foreach (OfficeConversionCapability route in
 }
 ```
 
-`OfficeIMO.Drawing` describes these routes but does not execute them. Add the package named by `PackageId`, call the API shown by `Api`, and inspect the returned result or report before accepting the output.
+`OfficeIMO.Core` describes these routes but does not execute them. Add the package named by `PackageId`, call the API shown by `Api`, and inspect the returned result or report before accepting the output.
 
 ## Examples
 
@@ -247,7 +249,7 @@ if (font != null) {
 - Security contracts live here so format packages can expose strongly typed opt-in APIs without depending on a cryptographic implementation. No CMS, XML DSig, certificate-chain, or private-key operation is implemented here.
 - Word, Excel, PowerPoint, Visio, and PDF packages own source-document semantics: package parsing, layout policy, coordinate systems, style/theme resolution, and user-facing export APIs.
 - Document packages should not add private ink or math ASTs, pixel engines, image encoders/decoders, SVG primitive writers, text wrapping engines, or duplicate image-transform loops when the behavior can reasonably live here.
-- PDF keeps PDF-stream and page-writer behavior in `OfficeIMO.Pdf`; when it needs generic image-like drawing, vector descriptors, colors, chart snapshots, PNG helpers, or raster visual QA, it should use `OfficeIMO.Drawing`.
+- PDF keeps PDF-stream and page-writer behavior in `OfficeIMO.Pdf`; when it needs generic image-like drawing, vector descriptors, colors, chart snapshots, PNG helpers, or raster visual QA, it should use `OfficeIMO.Core` and the `OfficeIMO.Drawing` namespace.
 - Unsupported or approximate source features belong in stable diagnostics from the adapter, not as silent omissions in a renderer.
 
 ## Targets and license

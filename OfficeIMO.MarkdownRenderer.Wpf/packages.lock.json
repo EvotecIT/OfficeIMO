@@ -114,13 +114,13 @@
         "resolved": "4.6.2",
         "contentHash": "yQgmjfFximrNm9LIV3mL6T5MzjeC+epeE5rl4hXxAlYmxby7RM1dPSkIKXk9HNkl6G54h2JHOmLD46+Pey+IRg=="
       },
-      "officeimo.drawing": {
+      "officeimo.core": {
         "type": "Project"
       },
       "officeimo.email": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
@@ -130,7 +130,7 @@
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Email": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
@@ -138,7 +138,7 @@
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       },
       "officeimo.markdown.html": {
@@ -159,7 +159,7 @@
       "officeimo.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       }
@@ -178,13 +178,13 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "officeimo.drawing": {
+      "officeimo.core": {
         "type": "Project"
       },
       "officeimo.email": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
       },
@@ -193,7 +193,7 @@
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Email": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
@@ -201,7 +201,7 @@
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       },
       "officeimo.markdown.html": {
@@ -221,7 +221,7 @@
       "officeimo.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       }
     },
@@ -245,13 +245,13 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "officeimo.drawing": {
+      "officeimo.core": {
         "type": "Project"
       },
       "officeimo.email": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
       },
@@ -260,7 +260,7 @@
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Email": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
@@ -268,7 +268,7 @@
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       },
       "officeimo.markdown.html": {
@@ -288,7 +288,7 @@
       "officeimo.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       }
     },
@@ -306,13 +306,13 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "officeimo.drawing": {
+      "officeimo.core": {
         "type": "Project"
       },
       "officeimo.email": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
       },
@@ -321,7 +321,7 @@
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Email": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
@@ -329,7 +329,7 @@
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       },
       "officeimo.markdown.html": {
@@ -349,7 +349,7 @@
       "officeimo.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       }
     },
@@ -373,13 +373,13 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
-      "officeimo.drawing": {
+      "officeimo.core": {
         "type": "Project"
       },
       "officeimo.email": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
       },
@@ -388,7 +388,7 @@
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
-          "OfficeIMO.Drawing": "[3.1.0, )",
+          "OfficeIMO.Core": "[3.1.0, )",
           "OfficeIMO.Email": "[3.1.0, )",
           "OfficeIMO.Rtf": "[3.1.0, )"
         }
@@ -396,7 +396,7 @@
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       },
       "officeimo.markdown.html": {
@@ -416,7 +416,7 @@
       "officeimo.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[3.1.0, )"
+          "OfficeIMO.Core": "[3.1.0, )"
         }
       }
     }

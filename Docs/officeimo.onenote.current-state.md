@@ -70,7 +70,7 @@ OfficeIMO.OneNote
         -> OfficeIMO.OneNote.Pdf semantic document
 ```
 
-This keeps one native parser, one semantic projection, and one positioned visual canvas. Ink and math are document-agnostic models in `OfficeIMO.Drawing`; OneNote owns only the native adapters. Word uses the same math tree through its OMML adapter, so neither document package depends on the other.
+This keeps one native parser, one semantic projection, and one positioned visual canvas. Ink and math are document-agnostic models in the `OfficeIMO.Drawing` namespace supplied by `OfficeIMO.Core`; OneNote owns only the native adapters. Word uses the same math tree through its OMML adapter, so neither document package depends on the other.
 
 Visual HTML embeds one responsive SVG canvas per page and can include an encoded assistive-text projection. Semantic HTML reflows the Markdown model into normal document markup. Visual PDF places a full-page PNG generated from the shared canvas at the native page geometry; its default raster scale is 2 (144 DPI), with a configurable per-page pixel limit. The same Drawing-owned ceiling protects direct PNG/JPEG/TIFF/WebP export. Source images outside Drawing's built-in PNG, JPEG, baseline RGB/RGBA TIFF, BMP, first-frame GIF, and OfficeIMO literal-lossless WebP decoders can use the reusable `IOfficeRasterImageCodec` boundary; otherwise raster outputs contain a visible placeholder and a structured warning. Semantic PDF keeps selectable text and normal document reflow. Applications choose between layout preservation and semantic text behavior rather than receiving a silent hybrid.
 

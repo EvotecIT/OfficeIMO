@@ -148,7 +148,7 @@ public sealed class OfficePackageSignatureIntegrationTests {
             AddPackageSignatureTime(path, "2026-08-03T12:34:56Z", "YYYY-MM-DDThh:mm:ssTZD");
 
             using WordDocument document = WordDocument.Load(path,
-                new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+                new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             WordSignatureTimestampInfo timestamp = Assert.Single(
                 Assert.Single(document.InspectSignatures().SignatureParts).Timestamps,
                 item => item.Value == "2026-08-03T12:34:56Z");

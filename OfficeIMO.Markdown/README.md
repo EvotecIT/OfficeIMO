@@ -175,6 +175,6 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 ## Dependency footprint
 
 - **External:** None; parsing, syntax, semantic models, and writing are first-party.
-- **OfficeIMO:** `OfficeIMO.Drawing`. The AST, parser, builder, transformations, and HTML renderer are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. The AST, parser, builder, transformations, and HTML renderer are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

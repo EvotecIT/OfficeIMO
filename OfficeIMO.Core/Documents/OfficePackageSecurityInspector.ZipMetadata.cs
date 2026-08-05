@@ -4,7 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Xml;
 
-namespace OfficeIMO.Drawing {
+namespace OfficeIMO {
     public static partial class OfficePackageSecurityInspector {
         private sealed class ZipXmlPart {
             internal ZipXmlPart(ZipArchiveEntry entry, string partName) {

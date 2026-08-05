@@ -1,4 +1,4 @@
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>Controls whether a document may be modified after it is opened.</summary>
 public enum DocumentAccessMode {

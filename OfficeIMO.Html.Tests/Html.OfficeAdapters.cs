@@ -74,7 +74,7 @@ public class HtmlOfficeAdapters {
         });
 
         Assert.Contains("data-officeimo-profile=\"ExcelVisualReview\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Drawing\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Core\"", html, StringComparison.Ordinal);
         Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Ready", html, StringComparison.Ordinal);
         Assert.Contains("Visual Chart", html, StringComparison.Ordinal);
@@ -692,7 +692,7 @@ public class HtmlOfficeAdapters {
         using var stream = new MemoryStream();
         imported.Save(stream);
         stream.Position = 0;
-        using ExcelDocument persisted = ExcelDocument.Load(stream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+        using ExcelDocument persisted = ExcelDocument.Load(stream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         ExcelSheet importedSheet = Assert.Single(persisted.Sheets);
 
         Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
@@ -1114,7 +1114,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("Positioned", html, StringComparison.Ordinal);
         Assert.Contains("data:image/png;base64", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-chart-rendered", html, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Drawing\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Core\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-chart-kind=\"ColumnClustered\"", html, StringComparison.Ordinal);
         Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Positioned Pipeline", html, StringComparison.Ordinal);
@@ -1270,7 +1270,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("Rich proof", File.ReadAllText(visualPath), StringComparison.Ordinal);
         string visualHtml = File.ReadAllText(visualPath);
         Assert.Contains("officeimo-chart-rendered", visualHtml, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Drawing\"", visualHtml, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Core\"", visualHtml, StringComparison.Ordinal);
         Assert.Contains("<svg", visualHtml, StringComparison.OrdinalIgnoreCase);
 
         string manifestJson = File.ReadAllText(manifestJsonPath);

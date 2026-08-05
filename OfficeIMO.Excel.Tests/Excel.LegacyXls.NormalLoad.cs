@@ -58,9 +58,9 @@ namespace OfficeIMO.Tests {
             byte[] compound = CreateMinimalLegacyXlsCompound();
             using ExcelDocument document = ExcelDocument.Load(
                 new MemoryStream(compound, writable: false),
-                new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+                new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
-            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadOnly, document.AccessMode);
+            Assert.Equal(OfficeIMO.DocumentAccessMode.ReadOnly, document.AccessMode);
             Assert.Equal(FileAccess.Read, document.FileOpenAccess);
             Assert.Equal(ExcelFileFormat.Xls, document.SourceFormat);
             Assert.True(document.Sheets[0].TryGetCellText(2, 2, out string? value));
@@ -373,7 +373,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = WriteTempWorkbook(compound, ".xls");
 
             try {
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose }));
 
                 Assert.Contains("SaveOnDispose is not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
             } finally {

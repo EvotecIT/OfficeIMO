@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.CSV.Tests;
 
-public class CsvObjectWriterBatchTests
+public class CsvRowWriterBatchTests
 {
     [Fact]
     public void WriteRows_WritesSharedSchemaAndObjectValues()
@@ -17,7 +17,7 @@ public class CsvObjectWriterBatchTests
         ];
 
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
         {
             csv.WriteRows(["Name", "Value"], rows);
         }
@@ -35,7 +35,7 @@ public class CsvObjectWriterBatchTests
         ];
 
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
         {
             csv.WriteTextRows(["Name", "Notes"], rows);
         }
@@ -53,7 +53,7 @@ public class CsvObjectWriterBatchTests
         ];
 
         using var writer = new StringWriter();
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
 
         Assert.Throws<CsvException>(() => csv.WriteRows(["Name", "Value"], rows));
         Assert.Equal("Name,Value\nA,1\n", writer.ToString());
@@ -63,7 +63,7 @@ public class CsvObjectWriterBatchTests
     public void WriteRows_WritesHeaderForAnEmptyBatch()
     {
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
         {
             csv.WriteRows(["Name", "Value"], Array.Empty<object?[]>());
         }

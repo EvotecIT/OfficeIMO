@@ -4,6 +4,7 @@ using System.Data.Common;
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
 using nietras.SeparatedValues;
+using OfficeIMO.Data;
 using CsvHelperConfiguration = CsvHelper.Configuration.CsvConfiguration;
 using CsvHelperReader = CsvHelper.CsvReader;
 using CsvHelperWriter = CsvHelper.CsvWriter;
@@ -94,7 +95,7 @@ public class CsvBenchmarks
     {
         ValidateWriteOutput(nameof(OfficeIMO_WriteObjects), OfficeIMO_WriteObjects, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(OfficeIMO_WriteProjectedRows), OfficeIMO_WriteProjectedRows, expectedObjectRows: _projectedRows);
-        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedProjectedRows), OfficeIMO_WriteTrustedProjectedRows, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteIncrementalProjectedRows), OfficeIMO_WriteIncrementalProjectedRows, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(CsvHelper_WriteTypedRecords), CsvHelper_WriteTypedRecords, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(CsvHelper_WriteProjectedRows), CsvHelper_WriteProjectedRows, expectedObjectRows: _projectedRows);
@@ -103,7 +104,7 @@ public class CsvBenchmarks
         ValidateWriteOutput(nameof(Dataplat_WriteFromReader), Dataplat_WriteFromReader, expectedObjectRows: _projectedRows);
 
         ValidateWriteOutput(nameof(OfficeIMO_WriteValidatedTextRows), OfficeIMO_WriteValidatedTextRows, _projectedTextRows);
-        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedTextRows), OfficeIMO_WriteTrustedTextRows, _projectedTextRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteTextRows), OfficeIMO_WriteTextRows, _projectedTextRows);
         ValidateWriteOutput(nameof(CsvHelper_WriteTextRows), CsvHelper_WriteTextRows, _projectedTextRows);
         ValidateWriteOutput(nameof(Sylvan_WriteTextRows), Sylvan_WriteTextRows, _projectedTextRows);
         ValidateWriteOutput(nameof(Dataplat_WriteTextRows), Dataplat_WriteTextRows, _projectedTextRows);
@@ -170,17 +171,17 @@ public class CsvBenchmarks
     public int OfficeIMO_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         csv.WriteRows(Headers, _projectedRows);
 
         return CompleteWrite(writer);
     }
 
     [Benchmark]
-    public int OfficeIMO_WriteTrustedProjectedRows()
+    public int OfficeIMO_WriteIncrementalProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         if (_projectedRows.Length == 0)
         {
             return 0;
@@ -189,7 +190,7 @@ public class CsvBenchmarks
         csv.WriteRow(Headers, _projectedRows[0]);
         for (var i = 1; i < _projectedRows.Length; i++)
         {
-            csv.WriteTrustedRow(_projectedRows[i]);
+            csv.WriteRow(_projectedRows[i]);
         }
 
         return CompleteWrite(writer);
@@ -199,17 +200,17 @@ public class CsvBenchmarks
     public int OfficeIMO_WriteValidatedTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         csv.WriteTextRows(Headers, _projectedTextRows);
 
         return CompleteWrite(writer);
     }
 
     [Benchmark]
-    public int OfficeIMO_WriteTrustedTextRows()
+    public int OfficeIMO_WriteTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         if (_projectedTextRows.Length == 0)
         {
             return 0;
@@ -218,7 +219,7 @@ public class CsvBenchmarks
         csv.WriteRow(Headers, _projectedTextRows[0]);
         for (var i = 1; i < _projectedTextRows.Length; i++)
         {
-            csv.WriteTrustedTextRow(_projectedTextRows[i]);
+            csv.WriteTextRow(_projectedTextRows[i]);
         }
 
         return CompleteWrite(writer);
@@ -237,7 +238,7 @@ public class CsvBenchmarks
     public int OfficeIMO_WriteProjectedRowsAlwaysQuoted()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", QuoteMode = CsvQuoteMode.Always }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n", QuoteMode = CsvQuoteMode.Always }, leaveOpen: true);
         foreach (object?[] row in _projectedRows)
         {
             csv.WriteRow(Headers, row);

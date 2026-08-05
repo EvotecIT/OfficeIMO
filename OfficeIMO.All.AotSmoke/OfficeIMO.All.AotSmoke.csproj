@@ -18,7 +18,7 @@
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Pdf\OfficeIMO.AsciiDoc.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Confluence\OfficeIMO.Confluence.csproj" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.CodeGlyphX\OfficeIMO.Drawing.CodeGlyphX.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
@@ -111,7 +111,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Confluence" />
     <TrimmerRootAssembly Include="OfficeIMO.CSV" />
-    <TrimmerRootAssembly Include="OfficeIMO.Drawing" />
+    <TrimmerRootAssembly Include="OfficeIMO.Core" />
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.CodeGlyphX" />
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.HarfBuzz" />
     <TrimmerRootAssembly Include="OfficeIMO.Email" />

@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace OfficeIMO.Drawing {
+namespace OfficeIMO {
     public static partial class OfficePackageSecurityInspector {
         private static OfficePackageSecurityReport InspectSeekableSource(
             Stream source,

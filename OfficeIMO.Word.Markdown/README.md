@@ -146,6 +146,6 @@ using var doc = MarkdownReader.Parse(markdown).ToWordDocument(options);
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Word`, `OfficeIMO.Markdown`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, and `OfficeIMO.Drawing`.
+- **OfficeIMO:** `OfficeIMO.Word`, `OfficeIMO.Markdown`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, and `OfficeIMO.Core`.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

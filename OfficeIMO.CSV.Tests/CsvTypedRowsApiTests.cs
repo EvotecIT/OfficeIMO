@@ -1,5 +1,6 @@
 using OfficeIMO.CSV;
 using System;
+using System.ComponentModel;
 using System.Linq;
 using Xunit;
 
@@ -67,7 +68,7 @@ public sealed class CsvTypedRowsApiTests {
     public void RowsAs_RejectsAmbiguousFriendlyPropertyMatches() {
         CsvDocument document = CsvDocument.Parse("Order Id\n42\n");
 
-        CsvException exception = Assert.Throws<CsvException>(() =>
+        DataMappingException exception = Assert.Throws<DataMappingException>(() =>
             document.RowsAs<ExactPriorityRow>().ToArray());
 
         Assert.Contains("matches multiple writable properties", exception.Message);
@@ -86,7 +87,7 @@ public sealed class CsvTypedRowsApiTests {
     public void RowsAs_RejectsUsedHiddenPropertyAmbiguity() {
         CsvDocument document = CsvDocument.Parse("Hidden\n42\n");
 
-        CsvException exception = Assert.Throws<CsvException>(() =>
+        DataMappingException exception = Assert.Throws<DataMappingException>(() =>
             document.RowsAs<HiddenDerivedRow>().ToArray());
 
         Assert.Contains("with that exact name", exception.Message);
@@ -122,7 +123,7 @@ public sealed class CsvTypedRowsApiTests {
     [Fact]
     public void ReaderRowsAs_ReusesExplicitAotFriendlyDocumentMapping() {
         const string csv = "Order Id,Amount\n42,165258.24\n";
-        Action<CsvMapper<SalesValue>> mapping = map => map
+        Action<RowMapper<SalesValue>> mapping = map => map
             .FromColumn<int>("Order Id", static (item, value) => { item.OrderId = value; return item; })
             .FromColumn<decimal>("Amount", static (item, value) => { item.Amount = value; return item; });
 
@@ -134,9 +135,25 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Equal(materialized.Amount, forwardOnly.Amount);
     }
 
+    [Fact]
+    public void RowsAs_UsesStandardDeclaredColumnAliases() {
+        CsvDocument document = CsvDocument.Parse("Order Number,Amount\n42,165258.24\n");
+
+        AliasedSalesRow row = Assert.Single(document.RowsAs<AliasedSalesRow>());
+
+        Assert.Equal(42, row.OrderId);
+        Assert.Equal(165258.24m, row.Amount);
+    }
+
     private sealed class SalesRow {
         public int OrderId { get; set; }
         public string SalesChannel { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+    }
+
+    private sealed class AliasedSalesRow {
+        [DisplayName("Order Number")]
+        public int OrderId { get; set; }
         public decimal Amount { get; set; }
     }
 

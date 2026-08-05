@@ -46,13 +46,13 @@ new CsvDocument()
 - Supports `AddRow`, `AddColumn`, `RemoveColumn`, `SortBy`, `Filter`, and `Transform`.
 - Provides schema inference and schema validation with required columns, typed columns, defaults, and custom rules.
 - Maps rows to typed objects with explicit no-reflection mapping.
-- Supports streaming mode for large files and explicit materialization when transforms are needed.
+- Provides forward-only `DbDataReader` access for large files without presenting a streaming document as an editable model.
 - Includes validated cross-library benchmark lanes with operating-system and run-mode provenance.
 
 ## Performance without giving up the document model
 
 OfficeIMO.CSV has dedicated field-span, reusable-row, streaming `DbDataReader`,
-projected-row, and trusted-text fast paths. The same package also keeps the
+projected-row and preformatted-text fast paths. The same package also keeps the
 features expected from a document and ingestion model: schema inference and
 validation, typed values, transforms, compressed files, malformed-input policy,
 formula-injection protection, progress, cancellation, and diagnostics.
@@ -399,7 +399,7 @@ object?[][] projectedRows = {
 };
 
 using var output = File.CreateText("summary.csv");
-using var csv = new CsvObjectWriter(output);
+using var csv = new CsvRowWriter(output);
 csv.WriteRows(new[] { "Name", "Count", "Active" }, projectedRows);
 ```
 
@@ -437,6 +437,6 @@ string normalized = document.ToString(new CsvSaveOptions {
 ## Dependency footprint
 
 - **External:** No third-party CSV engine. `System.Buffers` and .NET Framework reference assemblies support compatibility targets.
-- **OfficeIMO:** `OfficeIMO.Drawing`. Parsing, streaming, schemas, transforms, compression, and object mapping are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. Parsing, streaming, schemas, transforms, compression, and object mapping are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -13,67 +13,36 @@ namespace OfficeIMO.Excel {
         public string UsedRangeA1 => GetUsedRangeA1();
 
         /// <summary>
-        /// Reads the sheet's used range as materialized instances of T using header-to-property mapping.
+        /// Creates a forward-only data reader over this worksheet in the current open workbook,
+        /// including unsaved edits.
         /// </summary>
-        /// <param name="options">Optional read options.</param>
-        /// <param name="ct">Cancellation token observed during enumeration.</param>
-        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-            ExcelReadOptions? options = null,
-            CancellationToken ct = default) where T : new() {
+        public ExcelWorkbookDataReader CreateDataReader(ExcelReadOptions? options = null) {
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
-            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                ct,
-                effectiveOptions.CancellationToken);
-            CancellationToken token = linkedCancellation.Token;
-            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
-            var sh = rdr.GetSheet(this.Name);
-            string a1Range = sh.GetUsedRangeA1(token);
-            return sh.ReadObjects<T>(a1Range, ct: token).ToArray();
-        }
-
-        /// <summary>
-        /// Reads the specified A1 range as materialized instances of T using header-to-property mapping.
-        /// </summary>
-        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-            string a1Range,
-            ExcelReadOptions? options = null,
-            CancellationToken ct = default) where T : new() {
-            if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
-            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                ct,
-                effectiveOptions.CancellationToken);
-            CancellationToken token = linkedCancellation.Token;
-            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
-            var sh = rdr.GetSheet(this.Name);
-            return sh.ReadObjects<T>(a1Range, ct: token).ToArray();
+            return _excelDocument.CreateDataReader(effectiveOptions.ForSheet(Name, effectiveOptions.A1Range, effectiveOptions.CancellationToken));
         }
 
         /// <summary>
         /// Streams the sheet's used range as instances of T using header-to-property mapping.
-        /// Enumerate the returned sequence while the owning ExcelDocument is still open.
+        /// Enumerate the returned sequence while the owning <see cref="ExcelDocument"/> remains open.
         /// </summary>
         /// <param name="options">Optional read options.</param>
         /// <param name="ct">Cancellation token observed during enumeration.</param>
-        public IEnumerable<T> RowsAsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             ExcelReadOptions? options = null,
             CancellationToken ct = default) where T : new() {
-            return RowsAsUsedRangeStreamIterator<T>(options, ct);
+            return RowsAsUsedRangeIterator<T>(options, ct);
         }
 
         /// <summary>
         /// Streams the specified A1 range as instances of T using header-to-property mapping.
-        /// Enumerate the returned sequence while the owning ExcelDocument is still open.
+        /// Enumerate the returned sequence while the owning <see cref="ExcelDocument"/> remains open.
         /// </summary>
-        /// <param name="a1Range">Inclusive A1 range (for example, "A1:C100").</param>
-        /// <param name="options">Optional read options.</param>
-        /// <param name="ct">Cancellation token observed during enumeration.</param>
-        public IEnumerable<T> RowsAsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
             ExcelReadOptions? options = null,
             CancellationToken ct = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            return RowsAsRangeStreamIterator<T>(a1Range, options, ct);
+            return RowsAsRangeIterator<T>(a1Range, options, ct);
         }
 
         /// <summary>
@@ -103,7 +72,7 @@ namespace OfficeIMO.Excel {
             return EnumerateRangeIterator(a1Range, options, ct);
         }
 
-        private IEnumerable<T> RowsAsUsedRangeStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        private IEnumerable<T> RowsAsUsedRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             ExcelReadOptions? options,
             CancellationToken ct) where T : new() {
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
@@ -111,15 +80,15 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
-            var sh = rdr.GetSheet(this.Name);
-            string a1Range = sh.GetUsedRangeA1(token);
-            foreach (var row in sh.ReadObjectsStream<T>(a1Range, token)) {
+            using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
+                effectiveOptions.ForSheet(Name, a1Range: null, cancellationToken: token));
+            foreach (T row in reader.RowsAs<T>()) {
+                token.ThrowIfCancellationRequested();
                 yield return row;
             }
         }
 
-        private IEnumerable<T> RowsAsRangeStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        private IEnumerable<T> RowsAsRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
             ExcelReadOptions? options,
             CancellationToken ct) where T : new() {
@@ -128,9 +97,10 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
-            var sh = rdr.GetSheet(this.Name);
-            foreach (var row in sh.ReadObjectsStream<T>(a1Range, token)) {
+            using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
+                effectiveOptions.ForSheet(Name, a1Range, token));
+            foreach (T row in reader.RowsAs<T>()) {
+                token.ThrowIfCancellationRequested();
                 yield return row;
             }
         }

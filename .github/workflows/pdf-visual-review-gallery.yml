@@ -6,7 +6,7 @@ on:
       - master
     paths:
       - 'OfficeIMO.Pdf/**'
-      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Core/**'
       - 'OfficeIMO.AsciiDoc/**'
       - 'OfficeIMO.AsciiDoc.Markdown/**'
       - 'OfficeIMO.AsciiDoc.Pdf/**'
@@ -61,7 +61,7 @@ on:
       - master
     paths:
       - 'OfficeIMO.Pdf/**'
-      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Core/**'
       - 'OfficeIMO.AsciiDoc/**'
       - 'OfficeIMO.AsciiDoc.Markdown/**'
       - 'OfficeIMO.AsciiDoc.Pdf/**'

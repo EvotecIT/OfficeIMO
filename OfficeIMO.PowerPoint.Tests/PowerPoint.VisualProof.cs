@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
                     PowerPointToHtmlResult htmlResult = presentation.ToHtmlResult(htmlOptions);
                     string html = htmlResult.Value;
                     Assert.Contains("officeimo-shared-slide-snapshot", html, StringComparison.Ordinal);
-                    Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Drawing\"", html, StringComparison.Ordinal);
+                    Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Core\"", html, StringComparison.Ordinal);
                     Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
                     report.RecordArtifact("proof.html", "text/html", Encoding.UTF8.GetBytes(html),
                         htmlResult.ImageDiagnostics.Count);
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                 "PowerPointWithTablesAndCharts.pptx");
             Assert.True(File.Exists(fixture), "Expected sanitized PowerPoint-authored fixture was not found.");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             PowerPointVisualProofReport report = presentation.CreateVisualProofReport("powerpoint-authored-import");
 
             Assert.NotEmpty(report.Slides);

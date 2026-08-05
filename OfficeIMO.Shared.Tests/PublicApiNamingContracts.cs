@@ -1,5 +1,7 @@
 using System.Reflection;
 using System.Threading;
+using OfficeIMO.CSV;
+using OfficeIMO.Data;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
 using OfficeIMO.Excel;
@@ -94,8 +96,31 @@ public sealed class PublicApiNamingContracts {
         Assert.DoesNotContain(documentMethods, static method => method.Name == "Read");
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "Rows");
         Assert.Contains(documentMethods, static method => method.Name == "OpenDataReader");
+        Assert.Contains(sheetMethods, static method => method.Name == "CreateDataReader");
         Assert.Contains(sheetMethods, static method => method.Name == "RowsAs" && method.IsGenericMethodDefinition);
-        Assert.Contains(sheetMethods, static method => method.Name == "RowsAsStream" && method.IsGenericMethodDefinition);
+        Assert.DoesNotContain(sheetMethods, static method => method.Name == "RowsAsStream");
+    }
+
+    [Fact]
+    public void CsvPublicApiExposesOnlyCanonicalMappingAndWriterSurfaces() {
+        Type[] exportedTypes = typeof(CsvDocument).Assembly.GetExportedTypes();
+        string[] exportedTypeNames = exportedTypes.Select(static type => type.Name).ToArray();
+        MethodInfo[] documentMethods = typeof(CsvDocument).GetMethods(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+        string[] writerMethodNames = typeof(CsvRowWriter)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(static method => method.Name)
+            .ToArray();
+
+        Assert.Contains("CsvRowWriter", exportedTypeNames);
+        Assert.Contains(typeof(RowMapper<>), typeof(RowMapper<>).Assembly.GetExportedTypes());
+        Assert.DoesNotContain("CsvObjectWriter", exportedTypeNames);
+        Assert.DoesNotContain("CsvMapper`1", exportedTypeNames);
+        Assert.DoesNotContain("CsvFile", exportedTypeNames);
+        Assert.DoesNotContain(documentMethods, static method => method.Name == "Materialize");
+        Assert.Contains("WriteRow", writerMethodNames);
+        Assert.Contains("WriteTextRow", writerMethodNames);
+        Assert.DoesNotContain(writerMethodNames, static name => name.Contains("Trusted", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -172,7 +197,7 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void DrawingOwnsTheSharedRemoteImageLoader() {
+    public void CoreOwnsTheSharedRemoteImageLoader() {
         MethodInfo[] methods = typeof(OfficeRemoteImageLoader).GetMethods(
             BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
 

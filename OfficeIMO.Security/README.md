@@ -9,7 +9,7 @@ its strongly typed provider to the format API.
 dotnet add package OfficeIMO.Security
 ```
 
-The dependency-free `IOfficeSecurityProvider` contract and result models ship in the common `OfficeIMO.Drawing`
+The dependency-free `IOfficeSecurityProvider` contract and result models ship in the common `OfficeIMO.Core`
 foundation under the `OfficeIMO.Security` namespace. The concrete `OfficeSecurityProvider` implementation lives in
 this package. This keeps normal document creation, reading, conversion, signature inspection, and safe mutation
 policies free of Bouncy Castle and XML DSig dependencies while avoiding reflection, dynamic plug-in discovery, or a
@@ -123,7 +123,7 @@ not need linker descriptors or reflection-based registration.
 ## Dependency footprint
 
 - **External:** `BouncyCastle.Cryptography` 2.x and `System.Security.Cryptography.Xml`.
-- **OfficeIMO:** the zero-dependency `OfficeIMO.Drawing` foundation for provider contracts and result models.
+- **OfficeIMO:** the zero-dependency `OfficeIMO.Core` foundation for provider contracts and result models.
 - **Not included transitively by:** `OfficeIMO.Word`, `OfficeIMO.Pdf`, `OfficeIMO.Email`, or other format packages.
 
 `IOfficeSecurityProvider` and its result constructors are public in the dependency-free contract assembly, so an

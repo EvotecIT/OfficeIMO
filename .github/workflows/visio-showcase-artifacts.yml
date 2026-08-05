@@ -6,7 +6,7 @@ on:
       - master
     paths:
       - 'OfficeIMO.Visio/**'
-      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
       - 'OfficeIMO.Examples/Visio/**'
       - 'OfficeIMO.Examples/Program.cs'
@@ -19,7 +19,7 @@ on:
       - master
     paths:
       - 'OfficeIMO.Visio/**'
-      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
       - 'OfficeIMO.Examples/Visio/**'
       - 'OfficeIMO.Examples/Program.cs'

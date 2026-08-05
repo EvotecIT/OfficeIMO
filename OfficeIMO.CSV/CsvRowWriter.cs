@@ -10,9 +10,9 @@ using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.CSV;
 
 /// <summary>
-/// Streams object rows to CSV without materializing a <see cref="CsvDocument"/>.
+/// Streams typed, projected, or data-reader rows to CSV without materializing a <see cref="CsvDocument"/>.
 /// </summary>
-public sealed partial class CsvObjectWriter : IDisposable
+public sealed partial class CsvRowWriter : IDisposable
 {
     private readonly TextWriter _writer;
     private readonly CsvSaveOptions _options;
@@ -35,12 +35,12 @@ public sealed partial class CsvObjectWriter : IDisposable
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a streaming object writer.
+    /// Initializes a streaming row writer.
     /// </summary>
     /// <param name="writer">Destination text writer.</param>
     /// <param name="options">Optional CSV save options.</param>
     /// <param name="leaveOpen">Whether to leave the destination writer open when this writer is disposed.</param>
-    public CsvObjectWriter(TextWriter writer, CsvSaveOptions? options = null, bool leaveOpen = false)
+    public CsvRowWriter(TextWriter writer, CsvSaveOptions? options = null, bool leaveOpen = false)
     {
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
         _options = options ?? new CsvSaveOptions();
@@ -347,7 +347,7 @@ public sealed partial class CsvObjectWriter : IDisposable
     /// Use this only when the caller already owns schema validation and can guarantee stable column order.
     /// The method still validates that the row width matches the established header.
     /// </remarks>
-    public void WriteTrustedRow(object?[] values)
+    public void WriteRow(object?[] values)
     {
         ThrowIfDisposed();
 #if NET6_0_OR_GREATER
@@ -361,7 +361,7 @@ public sealed partial class CsvObjectWriter : IDisposable
 
         if (_columns == null)
         {
-            throw new InvalidOperationException("Columns must be established before writing trusted rows.");
+            throw new InvalidOperationException("Columns must be established before writing rows without an explicit schema.");
         }
 
         if (values.Length != _columns.Count)
@@ -379,7 +379,7 @@ public sealed partial class CsvObjectWriter : IDisposable
     /// <param name="valueCount">Number of values exposed by <paramref name="valueAccessor"/>.</param>
     /// <param name="state">Caller state passed to <paramref name="valueAccessor"/> for each column index.</param>
     /// <param name="valueAccessor">Function that returns the value for a column index.</param>
-    public void WriteTrustedRow<TState>(
+    public void WriteRow<TState>(
         int valueCount,
         TState state,
         Func<TState, int, object?> valueAccessor)
@@ -392,7 +392,7 @@ public sealed partial class CsvObjectWriter : IDisposable
 
         if (_columns == null)
         {
-            throw new InvalidOperationException("Columns must be established before writing trusted rows.");
+            throw new InvalidOperationException("Columns must be established before writing rows without an explicit schema.");
         }
 
         if (valueCount != _columns.Count)
@@ -411,7 +411,7 @@ public sealed partial class CsvObjectWriter : IDisposable
     /// Use this only when the caller already owns schema validation and culture-aware value formatting.
     /// The method still applies CSV escaping and validates that the row width matches the established header.
     /// </remarks>
-    public void WriteTrustedTextRow(string?[] values)
+    public void WriteTextRow(string?[] values)
     {
         ThrowIfDisposed();
 #if NET6_0_OR_GREATER
@@ -425,7 +425,7 @@ public sealed partial class CsvObjectWriter : IDisposable
 
         if (_columns == null)
         {
-            throw new InvalidOperationException("Columns must be established before writing trusted rows.");
+            throw new InvalidOperationException("Columns must be established before writing rows without an explicit schema.");
         }
 
         if (values.Length != _columns.Count)
@@ -492,7 +492,7 @@ public sealed partial class CsvObjectWriter : IDisposable
     /// <param name="valueCount">Number of values exposed by <paramref name="valueAccessor"/>.</param>
     /// <param name="state">Caller state passed to <paramref name="valueAccessor"/> for each column index.</param>
     /// <param name="valueAccessor">Function that returns the already-formatted text for a column index.</param>
-    public void WriteTrustedTextRow<TState>(
+    public void WriteTextRow<TState>(
         int valueCount,
         TState state,
         Func<TState, int, string?> valueAccessor)
@@ -505,7 +505,7 @@ public sealed partial class CsvObjectWriter : IDisposable
 
         if (_columns == null)
         {
-            throw new InvalidOperationException("Columns must be established before writing trusted rows.");
+            throw new InvalidOperationException("Columns must be established before writing rows without an explicit schema.");
         }
 
         if (valueCount != _columns.Count)
@@ -570,7 +570,7 @@ public sealed partial class CsvObjectWriter : IDisposable
     {
         if (_disposed)
         {
-            throw new ObjectDisposedException(nameof(CsvObjectWriter));
+            throw new ObjectDisposedException(nameof(CsvRowWriter));
         }
     }
 

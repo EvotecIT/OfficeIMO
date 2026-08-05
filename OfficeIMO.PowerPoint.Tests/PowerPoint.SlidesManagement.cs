@@ -267,8 +267,8 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointPresentation source = PowerPointPresentation.Load(sourcePath,
                            new PowerPointLoadOptions {
-                               AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
-                               PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.Explicit
+                               AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly,
+                               PersistenceMode = OfficeIMO.DocumentPersistenceMode.Explicit
                            }))
                 using (PowerPointPresentation target = PowerPointPresentation.Create(targetPath)) {
                     ChartPart sourceChartPart = source.OpenXmlDocument.PresentationPart!

@@ -9,6 +9,41 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.1 is a coordinated breaking release. Upgrade every OfficeIMO package in an application to the same `3.1.x` version and perform a clean restore after changing versions.
 
+## Shared foundation package: Drawing to Core
+
+The zero-dependency shared package, project, and assembly have been renamed from
+`OfficeIMO.Drawing` to `OfficeIMO.Core`:
+
+```xml
+<PackageReference Include="OfficeIMO.Core" Version="3.1.0" />
+```
+
+This is a rename of the existing shared foundation, not a split into another
+dependency layer. Drawing originally absorbed the shared primitives so Word,
+Excel, PowerPoint, Visio, PDF, and the conversion packages would not require a
+Core package that then depended on a separate Drawing package. Over time that
+assembly also became the owner of lifecycle, package-security, embedded-payload,
+and neutral data-mapping contracts, so `OfficeIMO.Drawing` no longer described
+the package honestly.
+
+Actual drawing types such as `OfficeColor`, `OfficeShape`, and
+`OfficeRenderingProfile` remain in the `OfficeIMO.Drawing` namespace. Security
+provider APIs remain in `OfficeIMO.Security`. Cross-document lifecycle and
+package contracts move to the root `OfficeIMO` namespace:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| Package/assembly `OfficeIMO.Drawing` | Package/assembly `OfficeIMO.Core` |
+| `OfficeIMO.Drawing.DocumentAccessMode` | `OfficeIMO.DocumentAccessMode` |
+| `OfficeIMO.Drawing.DocumentPersistenceMode` | `OfficeIMO.DocumentPersistenceMode` |
+| `OfficeIMO.Drawing.DocumentCreateOptions` | `OfficeIMO.DocumentCreateOptions` |
+| `OfficeIMO.Drawing.DocumentLoadOptions` | `OfficeIMO.DocumentLoadOptions` |
+| `OfficeIMO.Drawing.OfficePackageSecurityOptions` and related package contracts | Root `OfficeIMO` namespace |
+
+Replace the package reference and add `using OfficeIMO;` where lifecycle or
+package contracts are used. Keep `using OfficeIMO.Drawing;` for actual drawing,
+color, image, chart, font, and rendering APIs.
+
 | Version in the application | Upgrade path |
 | --- | --- |
 | `3.0.x` | Apply [3.0 to 3.1](#officeimo-30-to-31). |
@@ -188,12 +223,16 @@ Replace the removed public reader roots as follows:
 | `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenDataReader(...)` |
 | `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenDataReader(...)` for streaming, or `ExcelDocument.Load(...)` for editing |
 | Concrete `ExcelDocumentReader` / `ExcelSheetReader` use | `ExcelWorkbookDataReader` returned by `ExcelDocument.OpenDataReader(...)` or `workbook.CreateDataReader(...)` |
-| `ExcelSheet.Rows(...)` | `workbook.CreateDataReader(...)` to read the current open workbook (including unsaved edits), `ExcelDocument.OpenDataReader(...)` for an unopened file/stream, or `ExcelSheet.RowsAs<T>(...)` for typed materialization |
+| `ExcelSheet.Rows(...)` | `workbook.CreateDataReader(...)` to read the current open workbook (including unsaved edits), `ExcelDocument.OpenDataReader(...)` for an unopened file/stream, or deferred `ExcelSheet.RowsAs<T>(...)` projection |
 | `ExcelSheet.RowsObjects(...)`, `RowEdit`, or `CellEdit` | Direct `ExcelSheet` cell APIs such as `CellValue(...)`, `CellFormula(...)`, and `FormatCell(...)` |
 
 `CsvLoadOptions.Mode`, `CsvLoadMode`, and `CsvDocument.Mode` are no longer
 public. Use `CsvDocument.OpenDataReader` for a forward-only read and
 `CsvDocument.Load` for a materialized model.
+
+`CsvDocument.Materialize()` is also no longer public because `Load` and `Parse`
+always return a materialized document. There is no public streaming-document
+state to convert; use `OpenDataReader` when rows should remain forward-only.
 
 ### CSV and Excel typed-row cleanup
 
@@ -205,12 +244,31 @@ projection name for CSV. Replace the removed overlapping entry points as follows
 | `ExcelDocument.WriteObjects(..., IReadOnlyList<(string Header, Func<T, object?> Selector)>, ...)` | `ExcelDocument.WriteRows(..., headers, (writer, row) => writer.Write(...), ...)` |
 | `ExcelTabularColumn<T>` and its `ExcelDocument.WriteObjects` overload | `ExcelDocument.WriteRows(...)` |
 | `CsvDocument.Map<T>(...)` | `CsvDocument.RowsAs<T>(...)` |
+| `RowMapper<T>` | `OfficeIMO.Data.RowMapper<T>` |
+| `CsvObjectWriter` | `CsvRowWriter` |
+| `CsvObjectWriter.WriteTrustedRow(...)` / `WriteTrustedTextRow(...)` | `CsvRowWriter.WriteRow(...)` / `WriteTextRow(...)`; the established column schema still controls the overloads without a columns argument |
+
+The generic `DbDataReader.RowsAs<T>()` extensions now live in the neutral
+`OfficeIMO.Data` namespace supplied by `OfficeIMO.Core`; add
+`using OfficeIMO.Data;`. CSV and Excel readers use the same mapping plan and
+conversion rules. Mapping failures from this shared path throw
+`DataMappingException`.
+
+The low-level `CsvFile` compression helper is no longer public. Use
+`CsvDocument.Load`, `OpenDataReader`, `Save`, `WriteDataReader`, or caller-owned
+`TextReader` / `TextWriter` streams so file and compression behavior stays with
+the operation being performed.
 
 `WriteRows` keeps typed cell dispatch without boxing when its typed `Write`
 overloads are used. Use `WriteRowsAsync` for an `IAsyncEnumerable<T>` source; it
 consumes and disposes the source one row at a time and supports cancellation.
 The async overload rejects `CreateTable` and `AutoFit` because those features
 require the final row range or column widths before package output starts.
+
+`ExcelSheet.RowsAs<T>()` is now the single typed projection name and enumerates
+rows lazily while the owning workbook remains open. Replace preview
+`RowsAsStream<T>()` calls with `RowsAs<T>()`; call `ToList()` or `ToArray()` when
+an eagerly materialized collection is required.
 
 Use `CsvDocument.Load(...).RowsAs<T>()` when a mutable/materialized CSV document
 is required. For a forward-only typed read, use
@@ -475,7 +533,7 @@ Detailed `LegacyXlsImportReport` record-family counters such as `CommentsByObjec
 
 `LegacyXlsLoadResult.AdvancedWorkbook` is the public imported workbook. Replace `LegacyXlsLoadResult.CreateAdvancedImportReport()` and the old `ImportReport` property with the cached `CreateImportReport()` result.
 
-The `OfficeIMO.Drawing` target-framework compatibility type `System.Runtime.CompilerServices.IsExternalInit` is internal in the `netstandard2.0` and `net472` assets. Remove any application reference to that shim; normal record and `init` usage remains supported.
+The `OfficeIMO.Core` target-framework compatibility type `System.Runtime.CompilerServices.IsExternalInit` is internal in the `netstandard2.0` and `net472` assets. Remove any application reference to that shim; normal record and `init` usage remains supported.
 
 Markdown-to-Word callers should parse through `OfficeIMO.Word.Markdown` rather than calling the removed inline-run helper directly. `ConvertDotxToDocx(...)` also resolves relative template paths before package URI construction, so relative and absolute template paths use the same behavior.
 
@@ -513,7 +571,7 @@ OfficeIMO 2.0 established the shared lifecycle and result vocabulary used by the
 
 ### Shared foundation package
 
-The compiled `OfficeIMO.Shared` implementation package no longer exists. `OfficeIMO.SharedSource` is source-only and is not a runtime package replacement. Move direct package references and namespace imports to the public owner of each reusable value: shared colors, fonts, images, charts, lifecycle options, stream contracts, export results, and dependency-free security provider contracts belong to `OfficeIMO.Drawing`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; the optional concrete CMS, XML DSig, X.509, and RFC 3161 provider belongs to `OfficeIMO.Security`. Native document behavior remains in its format package.
+The compiled `OfficeIMO.Shared` implementation package no longer exists. `OfficeIMO.SharedSource` is source-only and is not a runtime package replacement. Move direct package references to the public owner of each reusable value: shared colors, fonts, images, charts, lifecycle options, stream contracts, export results, and dependency-free security provider contracts belong to `OfficeIMO.Core`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; the optional concrete CMS, XML DSig, X.509, and RFC 3161 provider belongs to `OfficeIMO.Security`. Drawing APIs remain in the `OfficeIMO.Drawing` namespace, lifecycle APIs use the root `OfficeIMO` namespace, and native document behavior remains in its format package.
 
 There is no `OfficeIMO.Core` package and no `.Drawing`-to-`.Core` rename. Native packages own parsing, loading, editing, validation, and serialization for their formats. Adapter packages project one native model into another rather than exposing another parser or document model. `OfficeIMO.Html` owns the canonical HTML source model and resource policy; format adapters consume it. These ownership changes replace direct use of the former shared implementation layer rather than introducing a catch-all dependency.
 
@@ -613,7 +671,7 @@ stream overload.
 
 Format-spelling aliases such as `SaveToPdf`, `SaveAsBytesToPdf`, and generic `WriteToBytes` were removed. Use `SaveAsPdf(...)` for a destination and `ToPdf()` or `ToBytes()` for an in-memory result. Ambiguous `SaveImage` / `SaveAsImage` names were replaced by explicit encodings such as `SaveAsPng(...)`, or by `SaveAsImages(...)` for multi-page and multi-sheet output.
 
-Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`. Replace the removed scale presets as follows:
+Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from the `OfficeIMO.Drawing` namespace supplied by `OfficeIMO.Core`. Replace the removed scale presets as follows:
 
 | Removed member | Replacement |
 | --- | --- |

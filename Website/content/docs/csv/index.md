@@ -14,8 +14,8 @@ The `OfficeIMO.CSV` package provides a fluent, strongly typed CSV document model
 | `CsvRow` | Represents a single data row with typed column access. |
 | `CsvSchema` | Defines column names, types, and validation rules. |
 | `CsvValidator` | Validates rows against a schema. |
-| `CsvObjectWriter` | Writes objects, projected rows, and data readers without materializing a document. |
-| `CsvMapper<T>` | Defines explicit typed assignments for trimming and NativeAOT-sensitive code. |
+| `CsvRowWriter` | Writes objects, projected rows, and data readers without materializing a document. |
+| `OfficeIMO.Data.RowMapper<T>` | Defines neutral explicit typed assignments for trimming and NativeAOT-sensitive code. |
 
 ## Creating a CSV Document
 

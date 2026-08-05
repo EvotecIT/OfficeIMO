@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>Classifies an executable or embedded payload stored in an Office Open XML package.</summary>
 public enum OfficeEmbeddedPayloadKind {

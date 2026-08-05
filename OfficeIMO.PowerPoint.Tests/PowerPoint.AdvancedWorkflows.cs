@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     PowerPointSmartArt[] diagrams = presentation.Slides[0].SmartArts.ToArray();
                     Assert.Equal(3, diagrams.Length);
                     Assert.Equal(new[] { "Discover", "Design", "Deliver" }, diagrams[0].GetNodeTexts());
@@ -766,7 +766,7 @@ namespace OfficeIMO.Tests {
                 AddSyntheticSignature(path);
 
                 PowerPointPresentation edited = PowerPointPresentation.Load(path,
-                    new PowerPointLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose });
+                    new PowerPointLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose });
                 edited.Slides[0].AddTextBox("Must not persist");
                 PowerPointSignedPresentationMutationException blocked =
                     Assert.Throws<PowerPointSignedPresentationMutationException>(() => edited.Dispose());
@@ -775,7 +775,7 @@ namespace OfficeIMO.Tests {
                 using (PresentationDocument signed = PresentationDocument.Open(path, false)) {
                     Assert.NotNull(signed.DigitalSignatureOriginPart);
                 }
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 Assert.DoesNotContain(reopened.Slides[0].TextBoxes,
                     textBox => textBox.Text == "Must not persist");
             } finally {
@@ -793,7 +793,7 @@ namespace OfficeIMO.Tests {
                 }
                 AddSyntheticSignature(path);
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     Assert.True(presentation.InspectSignatures().HasSignatureMetadata);
                     Assert.Equal("Signed inspection", presentation.Slides[0].TextBoxes.First().Text);
                 }

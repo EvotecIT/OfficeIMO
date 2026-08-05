@@ -3,7 +3,7 @@ namespace OfficeIMO.Excel {
     /// Declares explicit spreadsheet header aliases for typed read mapping.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-    public sealed class ExcelColumnAttribute : Attribute {
+    public sealed class ExcelColumnAttribute : Attribute, OfficeIMO.Data.IDataColumnAliasProvider {
         /// <summary>
         /// Primary header name to map to the decorated property.
         /// </summary>
@@ -13,6 +13,9 @@ namespace OfficeIMO.Excel {
         /// Additional header aliases to map to the decorated property.
         /// </summary>
         public IReadOnlyList<string> Aliases { get; }
+
+        IReadOnlyList<string> OfficeIMO.Data.IDataColumnAliasProvider.ColumnAliases =>
+            new[] { Name }.Concat(Aliases).ToArray();
 
         /// <summary>
         /// Creates a new explicit header mapping definition.

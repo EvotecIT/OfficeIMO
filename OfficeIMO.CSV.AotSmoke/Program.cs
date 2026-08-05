@@ -1,4 +1,5 @@
 using OfficeIMO.CSV;
+using OfficeIMO.Data;
 
 CsvDocument document = CsvDocument.Parse("Name,Score\nAlice,42\n");
 if (!document.Header.SequenceEqual(new[] { "Name", "Score" })) {

@@ -44,7 +44,7 @@
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
         <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

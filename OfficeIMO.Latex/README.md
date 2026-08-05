@@ -39,6 +39,6 @@ Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
 ## Dependency footprint
 
 - **External:** None; no TeX runtime, compiler, or parser package.
-- **OfficeIMO:** `OfficeIMO.Drawing`. Parsing, source preservation, bounded macro expansion, and writing are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. Parsing, source preservation, bounded macro expansion, and writing are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

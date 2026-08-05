@@ -49,7 +49,7 @@ public class CsvWideBenchmarks
         _textRows = _rows.Select(ProjectTextRow).ToArray();
 
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         csv.WriteRows(Headers, _rows);
 
         _csvText = writer.ToString();
@@ -74,7 +74,7 @@ public class CsvWideBenchmarks
     private void ValidateWriteBenchmarkOutputs()
     {
         ValidateWriteOutput(nameof(OfficeIMO_WriteProjectedRows), OfficeIMO_WriteProjectedRows, expectedObjectRows: _rows);
-        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedProjectedRows), OfficeIMO_WriteTrustedProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteIncrementalProjectedRows), OfficeIMO_WriteIncrementalProjectedRows, expectedObjectRows: _rows);
         ValidateWriteOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader, expectedObjectRows: _rows);
         ValidateWriteOutput(nameof(CsvHelper_WriteProjectedRows), CsvHelper_WriteProjectedRows, expectedObjectRows: _rows);
         ValidateWriteOutput(nameof(Sylvan_WriteProjectedRows), Sylvan_WriteProjectedRows, expectedObjectRows: _rows);
@@ -82,7 +82,7 @@ public class CsvWideBenchmarks
         ValidateWriteOutput(nameof(Dataplat_WriteFromReader), Dataplat_WriteFromReader, expectedObjectRows: _rows);
 
         ValidateWriteOutput(nameof(OfficeIMO_WriteValidatedTextRows), OfficeIMO_WriteValidatedTextRows, _textRows);
-        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedTextRows), OfficeIMO_WriteTrustedTextRows, _textRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteTextRows), OfficeIMO_WriteTextRows, _textRows);
         ValidateWriteOutput(nameof(CsvHelper_WriteTextRows), CsvHelper_WriteTextRows, _textRows);
         ValidateWriteOutput(nameof(Sylvan_WriteTextRows), Sylvan_WriteTextRows, _textRows);
         ValidateWriteOutput(nameof(Dataplat_WriteTextRows), Dataplat_WriteTextRows, _textRows);
@@ -199,17 +199,17 @@ public class CsvWideBenchmarks
     public int OfficeIMO_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         csv.WriteRows(Headers, _rows);
 
         return CompleteWrite(writer);
     }
 
     [Benchmark]
-    public int OfficeIMO_WriteTrustedProjectedRows()
+    public int OfficeIMO_WriteIncrementalProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         if (_rows.Length == 0)
         {
             return 0;
@@ -218,7 +218,7 @@ public class CsvWideBenchmarks
         csv.WriteRow(Headers, _rows[0]);
         for (var i = 1; i < _rows.Length; i++)
         {
-            csv.WriteTrustedRow(_rows[i]);
+            csv.WriteRow(_rows[i]);
         }
 
         return CompleteWrite(writer);
@@ -228,17 +228,17 @@ public class CsvWideBenchmarks
     public int OfficeIMO_WriteValidatedTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         csv.WriteTextRows(Headers, _textRows);
 
         return CompleteWrite(writer);
     }
 
     [Benchmark]
-    public int OfficeIMO_WriteTrustedTextRows()
+    public int OfficeIMO_WriteTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         if (_textRows.Length == 0)
         {
             return 0;
@@ -247,7 +247,7 @@ public class CsvWideBenchmarks
         csv.WriteRow(Headers, _textRows[0]);
         for (var i = 1; i < _textRows.Length; i++)
         {
-            csv.WriteTrustedTextRow(_textRows[i]);
+            csv.WriteTextRow(_textRows[i]);
         }
 
         return CompleteWrite(writer);

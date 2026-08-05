@@ -41,7 +41,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup
@@ -64,6 +64,7 @@
         <Using Include="System.Linq" />
         <Using Include="System.IO" />
         <Using Include="OfficeIMO.Drawing" />
+        <Using Include="OfficeIMO.Data" />
     </ItemGroup>
 
     <ItemGroup>
@@ -86,6 +87,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
+        <InternalsVisibleTo Include="OfficeIMO.Excel.Csv" />
         <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />
         <InternalsVisibleTo Include="OfficeIMO.Web.Converter" />
     </ItemGroup>

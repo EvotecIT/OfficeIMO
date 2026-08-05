@@ -2,7 +2,7 @@
 
 namespace OfficeIMO.CSV;
 
-public sealed partial class CsvObjectWriter
+public sealed partial class CsvRowWriter
 {
     /// <summary>
     /// Writes already-projected rows using one shared column order.

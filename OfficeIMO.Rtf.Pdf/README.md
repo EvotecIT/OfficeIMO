@@ -49,6 +49,6 @@ PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `R
 ## Dependency footprint
 
 - **External:** None by default. Applications may provide an optional WMF/EMF rasterization callback.
-- **OfficeIMO:** `OfficeIMO.Rtf`, `OfficeIMO.Pdf`, and `OfficeIMO.Drawing` own semantic mapping, rendering, logical import, and reports.
+- **OfficeIMO:** `OfficeIMO.Rtf`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own semantic mapping, rendering, logical import, and reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

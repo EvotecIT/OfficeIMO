@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
                 options.AccessMode,
                 options.PersistenceMode,
                 "workbook");
-            if (options.PersistenceMode == OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose) {
+            if (options.PersistenceMode == OfficeIMO.DocumentPersistenceMode.SaveOnDispose) {
                 throw new ArgumentException(
                     "SaveOnDispose requires an associated file path or writable stream. Remote URI loads are detached and must be saved explicitly.",
                     nameof(options));

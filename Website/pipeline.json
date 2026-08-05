@@ -1025,7 +1025,7 @@
         "../OfficeIMO.AsciiDoc.Pdf/OfficeIMO.AsciiDoc.Pdf.csproj",
         "../OfficeIMO.Confluence/OfficeIMO.Confluence.csproj",
         "../OfficeIMO.CSV/OfficeIMO.CSV.csproj",
-        "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
+        "../OfficeIMO.Core/OfficeIMO.Core.csproj",
         "../OfficeIMO.Drawing.CodeGlyphX/OfficeIMO.Drawing.CodeGlyphX.csproj",
         "../OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj",
         "../OfficeIMO.Email/OfficeIMO.Email.csproj",

@@ -225,5 +225,24 @@ namespace OfficeIMO.Excel {
             clone.CancellationToken = cancellationToken;
             return clone;
         }
+
+        internal ExcelReadOptions ForSheet(string sheetName, string? a1Range, CancellationToken cancellationToken) {
+            var clone = (ExcelReadOptions)MemberwiseClone();
+            clone.SheetName = sheetName;
+            clone.SheetIndex = null;
+            clone.A1Range = a1Range;
+            clone.CancellationToken = cancellationToken;
+            return clone;
+        }
+
+        internal ExcelReadOptions ForSheet(
+            string sheetName,
+            string? a1Range,
+            bool hasHeaderRow,
+            CancellationToken cancellationToken) {
+            ExcelReadOptions clone = ForSheet(sheetName, a1Range, cancellationToken);
+            clone.HasHeaderRow = hasHeaderRow;
+            return clone;
+        }
     }
 }

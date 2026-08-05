@@ -281,7 +281,7 @@ IReadOnlyList<OfficeImageExportResult> pages = document
 ## Dependency footprint
 
 - **External:** `System.IO.Packaging`; Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Drawing`. The VSDX model, builders, editing, topology, validation, and PNG/JPEG/TIFF/SVG/WebP renderers are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. The VSDX model, builders, editing, topology, validation, and PNG/JPEG/TIFF/SVG/WebP renderers are first-party.
 - **Security:** Open XML signature carriers are inspected and signed-diagram mutations fail safely without a cryptographic dependency. Signature creation and validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

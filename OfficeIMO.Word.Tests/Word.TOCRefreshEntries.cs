@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Outline root", "Outline child");
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated TOC Overview", "Word-generated TOC Detail");
@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated TOC Overview", "Word-generated TOC Detail");
@@ -371,7 +371,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated TOC Overview", "Word-generated TOC Detail");
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Text-box TOC overview", "Text-box TOC detail");
@@ -508,7 +508,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated text-box TOC overview", "Word-generated text-box TOC detail");
@@ -562,7 +562,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated table text-box TOC overview", "Word-generated table text-box TOC detail");
@@ -609,7 +609,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated outline root", "Word-generated outline child");
@@ -659,7 +659,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated TC root", "Word-generated TC child", "Word-generated TC appendix");
@@ -782,7 +782,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated custom style root", "Word-generated custom style child", "Word-generated custom style appendix");
@@ -835,7 +835,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string tocText = TocText(toc);
 
@@ -890,7 +890,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertGeneratedEntries(toc, "Word-generated scoped TOC root", "Word-generated scoped TOC child");
@@ -928,7 +928,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberState(toc, "Visible page root", expectedStyleId: "TOC1", shouldContainPageNumber: true);
@@ -962,7 +962,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberState(toc, "All suppressed root", expectedStyleId: "TOC1", shouldContainPageNumber: false);
@@ -1008,7 +1008,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberState(toc, "Word-generated no-page root", expectedStyleId: "TOC1", shouldContainPageNumber: true);
@@ -1055,7 +1055,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberSeparator(toc, "Word-generated no-page root", expectedStyleId: "TOC1", expectedSeparator: " -> ", expectedPageNumber: "1");
@@ -1089,7 +1089,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberSeparator(toc, "Separator root", expectedStyleId: "TOC1", expectedSeparator: " -> ", expectedPageNumber: "1");
@@ -1216,7 +1216,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberSeparator(list, "Figure 1 Separator network diagram", expectedStyleId: "TOC1", expectedSeparator: " :: ", expectedPageNumber: "1");
@@ -1254,7 +1254,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberState(list, "Figure 1 No-page network diagram", expectedStyleId: "TOC1", shouldContainPageNumber: false);
@@ -1302,7 +1302,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -1356,7 +1356,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -1408,7 +1408,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -1454,7 +1454,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -1500,7 +1500,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -1546,7 +1546,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -1593,7 +1593,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -1636,7 +1636,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -1686,7 +1686,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberSeparator(list, "Figure 1 Word-authored network diagram", expectedStyleId: "TOC1", expectedSeparator: " :: ", expectedPageNumber: "1");
@@ -1735,7 +1735,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 AssertTocEntryPageNumberState(list, "Figure 1 Word-authored no-page network diagram", expectedStyleId: "TOC1", shouldContainPageNumber: false);
@@ -1820,7 +1820,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Tables", TocText(list));
@@ -1869,7 +1869,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Equations", TocText(list));
@@ -1945,7 +1945,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2124,7 +2124,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2176,7 +2176,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2234,7 +2234,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2291,7 +2291,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2342,7 +2342,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2393,7 +2393,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2443,7 +2443,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2500,7 +2500,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2555,7 +2555,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2613,7 +2613,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2664,7 +2664,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2707,7 +2707,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 WordIndexRefreshReport report = index.RefreshIndex();
 
@@ -2764,7 +2764,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 
@@ -2816,7 +2816,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Equal(new[] { "--A--", "--B--", "--M--" }, GetIndexHeadingTexts(index));
@@ -2855,7 +2855,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
@@ -2949,7 +2949,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("Concordance Index", TocText(index));
@@ -2992,7 +2992,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 

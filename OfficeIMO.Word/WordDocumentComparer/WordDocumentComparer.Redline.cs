@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
 
             File.Copy(targetPath, outputPath, overwrite: true);
             using WordDocument sourceDocument = WordDocument.Load(sourcePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             });
             using WordDocument document = WordDocument.Load(outputPath);
             HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(

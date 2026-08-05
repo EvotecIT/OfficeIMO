@@ -76,7 +76,7 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 
 ### Native formats and shared foundations
 
-#### [OfficeIMO.Drawing](OfficeIMO.Drawing/README.md)
+#### [OfficeIMO.Core](OfficeIMO.Core/README.md)
 
 - [x] Common `Save`, `SaveAsync`, `SaveCopy`, `ToBytes`, and `ToStream` lifecycle contracts used across formats
 - [x] Immutable RGBA colors, named colors, hexadecimal parsing, palettes, and cross-format visual themes
@@ -101,7 +101,7 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 - [x] Stable logical cluster mappings and positioned glyph advances for TrueType and OpenType/CFF fonts
 - [x] Windows, Linux, macOS, and WebAssembly native assets kept out of the dependency-light Drawing and PDF cores
 
-_Dependency footprint:_ `OfficeIMO.Drawing`, HarfBuzzSharp, and its platform-native runtime assets.
+_Dependency footprint:_ `OfficeIMO.Core`, HarfBuzzSharp, and its platform-native runtime assets.
 
 #### [OfficeIMO.Drawing.CodeGlyphX](OfficeIMO.Drawing.CodeGlyphX/README.md)
 
@@ -109,7 +109,7 @@ _Dependency footprint:_ `OfficeIMO.Drawing`, HarfBuzzSharp, and its platform-nat
 - [x] Neutral SVG handoff without making either core package depend on the other
 - [x] Searchable barcode label text and explicit unsupported-import counts
 
-_Dependency footprint:_ only `OfficeIMO.Drawing` and CodeGlyphX; both core packages remain independently usable.
+_Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX; both core packages remain independently usable.
 
 #### [OfficeIMO.Word](OfficeIMO.Word/README.md)
 
@@ -129,7 +129,7 @@ _Dependency footprint:_ only `OfficeIMO.Drawing` and CodeGlyphX; both core packa
 - [x] Macro add/extract/remove, document protection, encrypted packages, digital-signature inspection, cleanup, repair, and feature preflight
 - [x] Managed document export to PNG, JPEG, TIFF, lossless WebP, and SVG; opt-in conversion packages add PDF, HTML, Markdown, RTF, ODT, and Google Docs
 
-_Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` support and image export are OfficeIMO implementations.
+_Dependency footprint:_ Open XML SDK plus `OfficeIMO.Core`; legacy `.doc` support and image export are OfficeIMO implementations.
 
 #### [OfficeIMO.Excel](OfficeIMO.Excel/README.md)
 
@@ -154,7 +154,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 - [x] Workbook, worksheet, and range export to PNG, JPEG, TIFF, lossless WebP, and SVG; adapters add PDF, HTML, ODS, and Google Sheets
 - [x] Reproducible read, write, edit, package-size, and feature-rich cross-library benchmark suites with output validation and platform provenance
 
-_Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.xls` support and image export are OfficeIMO implementations.
+_Dependency footprint:_ Open XML SDK plus `OfficeIMO.Core`; legacy `.xls` support and image export are OfficeIMO implementations.
 
 #### [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
 
@@ -173,7 +173,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.xls` sup
 - [x] Encrypted presentation save/load and read-only, stream-backed, detached-load, and explicit-persistence lifecycles
 - [x] Slide export to PNG, JPEG, TIFF, lossless WebP, and SVG plus presentation-wide image export; adapters add PDF, HTML, and ODP
 
-_Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy binary support, composition, editing, charting, and managed image export are OfficeIMO implementations.
+_Dependency footprint:_ Open XML SDK plus `OfficeIMO.Core`; legacy binary support, composition, editing, charting, and managed image export are OfficeIMO implementations.
 
 #### [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
 
@@ -189,7 +189,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy binary sup
 - [x] Headless PNG, JPEG, TIFF, lossless WebP, and SVG export for individual pages plus document-wide batch export
 - [x] Searchable PDF conversion through `OfficeIMO.Visio.Pdf`, with explicit semantic-fallback diagnostics
 
-_Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX model and renderers are first-party, while PDF conversion reuses the shared Reader/PDF projection.
+_Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Core`; the VSDX model and renderers are first-party, while PDF conversion reuses the shared Reader/PDF projection.
 
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
@@ -213,7 +213,7 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
-_Dependency footprint:_ `OfficeIMO.Drawing`; no third-party PDF parser, writer, renderer, or cryptographic dependency. Install `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+_Dependency footprint:_ `OfficeIMO.Core`; no third-party PDF parser, writer, renderer, or cryptographic dependency. Install `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
 
 #### [OfficeIMO.Security](OfficeIMO.Security/README.md)
 
@@ -224,7 +224,7 @@ _Dependency footprint:_ `OfficeIMO.Drawing`; no third-party PDF parser, writer, 
 - [x] Platform-RSA signing without exporting private keys, including CNG/HSM-compatible key handles
 - [x] One strongly typed provider explicitly supplied to the thin Word, PDF, and Email security adapters
 
-_Dependency footprint:_ `OfficeIMO.Drawing` contracts plus `BouncyCastle.Cryptography` and `System.Security.Cryptography.Xml`; no dependency on Word, PDF, Email, or another format package. Format packages do not depend on Security.
+_Dependency footprint:_ `OfficeIMO.Core` contracts plus `BouncyCastle.Cryptography` and `System.Security.Cryptography.Xml`; no dependency on Word, PDF, Email, or another format package. Format packages do not depend on Security.
 
 | Format package | Security support without the provider | Optional provider-backed operations |
 | --- | --- | --- |
@@ -248,7 +248,7 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 - [x] ODP slides, masters/layouts, text, shapes, groups, images, crop, tables, notes, backgrounds, transitions, and basic animation metadata
 - [x] Unknown XML and package-part preservation with explicit loss and capability reports
 
-_Dependency footprint:_ only `OfficeIMO.Drawing`; no OpenDocument SDK and no LibreOffice runtime.
+_Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
 
 #### [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md)
 
@@ -257,7 +257,7 @@ _Dependency footprint:_ only `OfficeIMO.Drawing`; no OpenDocument SDK and no Lib
 - [x] Canonical and preserve-mode writing with structured parser, binding, and conversion diagnostics
 - [x] HTML bridge and dedicated Markdown, PDF, and Word workflow adapters
 
-_Dependency footprint:_ `System.Text.Encoding.CodePages` plus `OfficeIMO.Drawing`; no third-party RTF parser.
+_Dependency footprint:_ `System.Text.Encoding.CodePages` plus `OfficeIMO.Core`; no third-party RTF parser.
 
 #### [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md)
 
@@ -266,7 +266,7 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus `OfficeIMO.Drawing
 - [x] HTML fragment/document rendering with CSS profiles and optional Prism, Mermaid, chart, and math shell assets
 - [x] AOT-friendly typed selectors and DTO-style AST projection for editor, chat, transcript, and document hosts
 
-_Dependency footprint:_ only `OfficeIMO.Drawing`; Markdown parsing and writing are first-party.
+_Dependency footprint:_ only `OfficeIMO.Core`; Markdown parsing and writing are first-party.
 
 #### [OfficeIMO.Adf](OfficeIMO.Adf/README.md)
 
@@ -295,7 +295,7 @@ _Dependency footprint:_ AngleSharp and AngleSharp.Css for DOM/CSS parsing, plus 
 - [x] Preserve and canonical output modes with source-located diagnostics
 - [x] Explicit bounded processing with root-confined include policy; parsing never executes directives
 
-_Dependency footprint:_ only `OfficeIMO.Drawing`; no Asciidoctor process or parser package.
+_Dependency footprint:_ only `OfficeIMO.Core`; no Asciidoctor process or parser package.
 
 #### [OfficeIMO.Latex](OfficeIMO.Latex/README.md)
 
@@ -304,7 +304,7 @@ _Dependency footprint:_ only `OfficeIMO.Drawing`; no Asciidoctor process or pars
 - [x] Exact unchanged-source writing and visible preservation of unknown commands/environments
 - [x] Opt-in bounded expansion for safe document-local simple macros
 
-_Dependency footprint:_ only `OfficeIMO.Drawing`; no TeX runtime, compiler, or parser dependency.
+_Dependency footprint:_ only `OfficeIMO.Core`; no TeX runtime, compiler, or parser dependency.
 
 #### [OfficeIMO.CSV](OfficeIMO.CSV/README.md)
 
@@ -362,7 +362,7 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party Office
 - [x] Correct half-inch image geometry, web-picture fallback, and loss-aware unresolved image relationship preservation
 - [x] Lazy assets, bounded corruption-resistant parsing, structured diagnostics, legal desktop/FSSHTTP/handwriting fixtures, benchmarks, and Microsoft OneNote open/edit/save/reopen interoperability proof
 
-_Dependency footprint:_ only first-party `OfficeIMO.Drawing`; zero third-party runtime dependencies and no Microsoft Graph, GraphEssentialsX, COM, installed OneNote, or commercial SDK.
+_Dependency footprint:_ only first-party `OfficeIMO.Core`; zero third-party runtime dependencies and no Microsoft Graph, GraphEssentialsX, COM, installed OneNote, or commercial SDK.
 
 #### [OfficeIMO.Epub](OfficeIMO.Epub/README.md)
 
@@ -371,7 +371,7 @@ _Dependency footprint:_ only first-party `OfficeIMO.Drawing`; zero third-party r
 - [x] XHTML/XML text extraction and optional raw HTML retention
 - [x] Bounded resource payload access with warnings and per-resource/total limits
 
-_Dependency footprint:_ only `OfficeIMO.Drawing`; no third-party EPUB engine.
+_Dependency footprint:_ only `OfficeIMO.Core`; no third-party EPUB engine.
 
 #### [OfficeIMO.Epub.Image](OfficeIMO.Epub.Image/README.md)
 
@@ -388,7 +388,7 @@ _Dependency footprint:_ only first-party OfficeIMO EPUB, HTML, and Drawing packa
 - [x] Depth, entry-count, per-entry size, total uncompressed size, and compression-ratio limits
 - [x] Structured warnings for rejected and limited entries
 
-_Dependency footprint:_ only `OfficeIMO.Drawing`; archive traversal uses platform compression APIs.
+_Dependency footprint:_ only `OfficeIMO.Core`; archive traversal uses platform compression APIs.
 
 #### [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md)
 
@@ -749,7 +749,7 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Word`.
 - [x] XLSX/XLSM/XLSB and legacy XLS extraction through the owning Excel engine
 - [x] Rich workbook, table, image, metadata, diagnostic, and password-aware projection
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Drawing`.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Core`.
 
 #### [OfficeIMO.Reader.PowerPoint](OfficeIMO.Reader.PowerPoint/README.md)
 
@@ -788,7 +788,7 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Html`, `OfficeIMO.Ma
 - [x] Header-level format, dimensions, DPI, asset, visual, and OCR-candidate projection
 - [x] Optional payload retention without pixel decoding or OCR execution
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Drawing`; no pixel-decoding or OCR package.
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Core`; no pixel-decoding or OCR package.
 
 #### [OfficeIMO.Reader.Json](OfficeIMO.Reader.Json/README.md)
 
@@ -855,7 +855,7 @@ _Dependency footprint:_ `OfficeIMO.Reader.Ocr.Process` plus an external Tesserac
 - [x] Image placeholders, visual geometry, and typed fields where the PDF parser can recover them
 - [x] Source-neutral normalized-document-to-PDF projection with explicit page, asset, link, and form policies plus merged source/PDF evidence
 
-_Dependency footprint:_ only `OfficeIMO.Reader.Core`, `OfficeIMO.Drawing`, and the first-party OfficeIMO PDF engine.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core`, `OfficeIMO.Core`, and the first-party OfficeIMO PDF engine.
 
 #### [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md)
 

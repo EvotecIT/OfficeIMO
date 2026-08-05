@@ -12,7 +12,7 @@ meta.faq.questions:
   - "What is PSWriteOffice?|PSWriteOffice is the first-party PowerShell surface over OfficeIMO. Its command catalog is generated from the module manifest used for this release."
   - "Does OfficeIMO support reading existing documents?|Yes, within each package's documented format and feature boundaries. OfficeIMO.Reader provides a normalized extraction API across modular format handlers."
   - "Is NativeAOT compilation supported?|The OfficeIMO 3.1 validation matrix covers 92 of 93 production projects: 90 fully rooted libraries, one bounded Google APIs workflow, one native command-line tool, and one managed-only WPF/WebView2 renderer. Check the matrix for the exact package and runtime path."
-  - "What are the dependencies?|The core Office packages use DocumentFormat.OpenXml and first-party OfficeIMO.Drawing primitives. Optional converter and compatibility packages add focused dependencies documented on the Third-Party Dependencies page."
+  - "What are the dependencies?|The core Office packages use DocumentFormat.OpenXml and the first-party OfficeIMO.Core foundation. Drawing primitives remain in the OfficeIMO.Drawing namespace. Optional converter and compatibility packages add focused dependencies documented on the Third-Party Dependencies page."
   - "Can I convert Word documents to PDF?|Yes. OfficeIMO.Word.Pdf provides Word-to-PDF export without Microsoft Office, and OfficeIMO.Excel.Pdf provides the corresponding Excel route."
   - "Is thread safety supported?|Separate document instances can run on separate threads. Concurrent access to the same document instance is not supported; OfficeIMO.Excel also provides parallel bulk operations such as AutoFit and bulk writes."
 ---

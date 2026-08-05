@@ -12,7 +12,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Forward-only reader for CSV rows projected through an optional schema.
 /// </summary>
-internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata
+internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDataReaderMappingMetadata
 {
     private const string IsReadOnlyColumn = "IsReadOnly";
     private const string IsRowVersionColumn = "IsRowVersion";
@@ -28,9 +28,13 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
 
-    internal CultureInfo MappingCulture => _culture;
+    CultureInfo IDataReaderMappingMetadata.MappingCulture => _culture;
 
-    internal IReadOnlyList<string>? MappingDateTimeFormats => _dateTimeFormats;
+    IReadOnlyList<string>? IDataReaderMappingMetadata.MappingDateTimeFormats => _dateTimeFormats;
+
+    Func<object, Type, CultureInfo, (bool ok, object? value)>? IDataReaderMappingMetadata.MappingTypeConverter => null;
+
+    bool IDataReaderMappingMetadata.RequireAllColumnsMapped => false;
     private readonly IDisposable? _rowOwner;
     private readonly CsvLoadOptions? _stringRowOptions;
     private readonly object?[]? _staticColumnValues;

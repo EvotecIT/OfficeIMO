@@ -47,6 +47,6 @@ Set `Profile = OfficeHtmlConversionProfile.PowerPointVisualReview` for a positio
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.PowerPoint`, `OfficeIMO.Html`, and `OfficeIMO.Drawing` own the slide model, HTML source, mapping, visual review, and reports.
+- **OfficeIMO:** `OfficeIMO.PowerPoint`, `OfficeIMO.Html`, and `OfficeIMO.Core` own the slide model, HTML source, mapping, visual review, and reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

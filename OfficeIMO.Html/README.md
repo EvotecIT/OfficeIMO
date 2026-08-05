@@ -78,7 +78,7 @@ archive.Save("copy.mht");
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing.
-- **OfficeIMO:** `OfficeIMO.Drawing`, `OfficeIMO.Email`, and `OfficeIMO.Rtf`. Resource policy, MHTML projection, layout scene, rendering, and format mappings are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`, `OfficeIMO.Email`, and `OfficeIMO.Rtf`. Resource policy, MHTML projection, layout scene, rendering, and format mappings are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 

@@ -303,7 +303,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Text text = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SimpleField>().Single().Descendants<Text>());
                 Assert.Equal(" padded value ", text.Text);
                 Assert.Equal(SpaceProcessingModeValues.Preserve, text.Space?.Value);
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 SimpleField field = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SimpleField>());
                 Text text = Assert.Single(field.Descendants<Text>());
                 Assert.Equal("Ada Lovelace", text.Text);
@@ -1970,7 +1970,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 SimpleField hiddenField = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SimpleField>()
                     .Single(field => (field.Instruction?.Value ?? string.Empty).Contains("\\h", StringComparison.Ordinal));
                 Assert.Equal(string.Empty, Assert.Single(hiddenField.Descendants<Text>()).Text);

@@ -3,7 +3,8 @@
 `OfficeIMO.Drawing.HarfBuzz` is the optional full OpenType shaping adapter for
 OfficeIMO renderers. It implements the shared
 `IOfficeTextShapingProvider` contract with HarfBuzz GSUB/GPOS processing while
-keeping `OfficeIMO.Drawing` and `OfficeIMO.Pdf` dependency-light.
+keeping `OfficeIMO.Core` and `OfficeIMO.Pdf` dependency-light. Drawing APIs remain
+in the `OfficeIMO.Drawing` namespace.
 
 ```csharp
 using OfficeIMO.Drawing.HarfBuzz;

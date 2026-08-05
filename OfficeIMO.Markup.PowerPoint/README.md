@@ -61,6 +61,6 @@ Set `MermaidRendererPath` in `MarkupToPowerPointOptions`, pass `--mermaid-render
 ## Dependency footprint
 
 - **External:** None by default. Mermaid image export can use a caller-installed Mermaid CLI.
-- **OfficeIMO:** `OfficeIMO.Markup`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Drawing`; the exporter maps semantic nodes to editable slide content.
+- **OfficeIMO:** `OfficeIMO.Markup`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Core`; the exporter maps semantic nodes to editable slide content.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

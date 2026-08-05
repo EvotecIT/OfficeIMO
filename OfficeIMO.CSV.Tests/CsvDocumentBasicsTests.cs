@@ -890,7 +890,7 @@ public class CsvDocumentBasicsTests
     public void Formula_Injection_Policy_Escapes_Span_Formatted_Row_Values()
     {
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions {
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions {
             NewLine = "\n",
             FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
         }))
@@ -905,7 +905,7 @@ public class CsvDocumentBasicsTests
     public void Formula_Injection_Policy_Escapes_Buffered_Null_Tokens()
     {
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions {
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions {
             NewLine = "\n",
             NullValue = "=NULL",
             FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
@@ -960,7 +960,7 @@ public class CsvDocumentBasicsTests
         var value = new DateTime(2026, 7, 15, 12, 34, 56);
         using var writer = new StringWriter(culture);
 
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { Culture = culture, NewLine = "\n" }))
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { Culture = culture, NewLine = "\n" }))
         {
             csv.WriteRow(new[] { "Value" }, new object?[] { value });
         }
@@ -972,7 +972,7 @@ public class CsvDocumentBasicsTests
     public void Default_Writer_Quotes_Custom_Span_Formatted_Values_When_Needed()
     {
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }))
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }))
         {
             csv.WriteRow(new[] { "Value" }, new object?[] { new CommaSpanValue("A,B") });
         }

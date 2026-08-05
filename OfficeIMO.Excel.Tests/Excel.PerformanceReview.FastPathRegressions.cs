@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_Utf8ObjectReaderDoesNotCoerceFormulaTextIntoTypedProperties(bool useCachedFormulaResult) {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 var sheet = document.AddWorksheet("Formula");
                 sheet.CellValue(2, 1, "Id");
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2026, 7, 14);
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExtendedPackageStagesWritesWhenDestinationBacksRawParts() {
             using var associatedDestination = new MemoryStream();
             using (var document = ExcelDocument.Create(associatedDestination, new ExcelCreateOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 var rows = new[] {
                     new FastPackageProjection("Alpha", 10),

@@ -96,9 +96,7 @@ public static class ExcelSheetCsvExtensions {
         bool headersInFirstRow = true,
         ExcelReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        return CsvDocument.Parse(
-            sheet.ToCsv(headersInFirstRow, readOptions: readOptions, cancellationToken: cancellationToken),
-            new CsvLoadOptions { HasHeaderRow = headersInFirstRow });
+        return ToCsvDocumentCore(sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
     }
 
     /// <summary>Converts an A1 worksheet range to a materialized CSV document.</summary>
@@ -108,9 +106,8 @@ public static class ExcelSheetCsvExtensions {
         bool headersInFirstRow = true,
         ExcelReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        return CsvDocument.Parse(
-            sheet.ToCsv(a1Range, headersInFirstRow, readOptions: readOptions, cancellationToken: cancellationToken),
-            new CsvLoadOptions { HasHeaderRow = headersInFirstRow });
+        if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentException("Range cannot be empty.", nameof(a1Range));
+        return ToCsvDocumentCore(sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
     }
 
     /// <summary>Saves the worksheet used range as CSV.</summary>
@@ -122,8 +119,8 @@ public static class ExcelSheetCsvExtensions {
         ExcelReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-        using DataTable table = sheet.ToDataTable(headersInFirstRow, options: readOptions, ct: cancellationToken);
-        using IDataReader reader = table.CreateDataReader();
+        using ExcelWorkbookDataReader reader = CreateSheetReader(
+            sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
         CsvDocument.WriteDataReader(
             path,
             reader,
@@ -140,8 +137,8 @@ public static class ExcelSheetCsvExtensions {
         ExcelReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-        using DataTable table = sheet.ToDataTable(headersInFirstRow, options: readOptions, ct: cancellationToken);
-        using IDataReader reader = table.CreateDataReader();
+        using ExcelWorkbookDataReader reader = CreateSheetReader(
+            sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
         CsvDocument.WriteDataReader(
             stream,
             reader,
@@ -189,10 +186,8 @@ public static class ExcelSheetCsvExtensions {
         ExcelReadOptions? readOptions,
         CancellationToken cancellationToken) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-        using DataTable table = a1Range == null
-            ? sheet.ToDataTable(headersInFirstRow, options: readOptions, ct: cancellationToken)
-            : sheet.ToDataTable(a1Range, headersInFirstRow, options: readOptions, ct: cancellationToken);
-        using IDataReader reader = table.CreateDataReader();
+        using ExcelWorkbookDataReader reader = CreateSheetReader(
+            sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         CsvDocument.WriteDataReader(
             writer,
@@ -200,6 +195,57 @@ public static class ExcelSheetCsvExtensions {
             ResolveSaveOptions(csvOptions, headersInFirstRow),
             cancellationToken);
         return writer.ToString();
+    }
+
+    private static CsvDocument ToCsvDocumentCore(
+        ExcelSheet sheet,
+        string? a1Range,
+        bool headersInFirstRow,
+        ExcelReadOptions? readOptions,
+        CancellationToken cancellationToken) {
+        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        using ExcelWorkbookDataReader reader = CreateSheetReader(
+            sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
+        var document = new CsvDocument();
+        if (reader.FieldCount == 0) return document;
+
+        var headers = new string[reader.FieldCount];
+        for (int index = 0; index < headers.Length; index++) headers[index] = reader.GetName(index);
+        document.WithHeader(headers);
+
+        var values = new object?[reader.FieldCount];
+        while (reader.Read()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int index = 0; index < values.Length; index++) {
+                object value = reader.GetValue(index);
+                values[index] = ReferenceEquals(value, DBNull.Value) ? null : value;
+            }
+            document.AddRow((object?[])values.Clone());
+        }
+        return document;
+    }
+
+    private static ExcelWorkbookDataReader CreateSheetReader(
+        ExcelSheet sheet,
+        string? a1Range,
+        bool headersInFirstRow,
+        ExcelReadOptions? readOptions,
+        CancellationToken cancellationToken) {
+        ExcelReadOptions source = readOptions ?? new ExcelReadOptions();
+        var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            source.CancellationToken);
+        try {
+            ExcelReadOptions effective = source.ForSheet(
+                sheet.Name,
+                a1Range,
+                headersInFirstRow,
+                linkedCancellation.Token);
+            return sheet.CreateDataReader(effective).OwnLifetime(linkedCancellation);
+        } catch {
+            linkedCancellation.Dispose();
+            throw;
+        }
     }
 
     private static CsvSaveOptions ResolveSaveOptions(CsvSaveOptions? options, bool headersInFirstRow) {

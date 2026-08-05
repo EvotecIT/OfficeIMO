@@ -214,6 +214,6 @@ Built-in themes include `Plain`, `WordLike`, `TechnicalDocument`, `GitHubLike`, 
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Markdown`, `OfficeIMO.Pdf`, and `OfficeIMO.Drawing` own parsing, themes, layout, rendering, and reports.
+- **OfficeIMO:** `OfficeIMO.Markdown`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own parsing, themes, layout, rendering, and reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

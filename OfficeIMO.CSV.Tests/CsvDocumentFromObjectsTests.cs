@@ -99,10 +99,10 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
-    public void CsvObjectWriter_StreamsRowsAndCanLeaveWriterOpen()
+    public void CsvRowWriter_StreamsRowsAndCanLeaveWriterOpen()
     {
         using var writer = new StringWriter();
-        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        using (var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
         {
             csvWriter.WriteObject(new { Name = "A", Value = 1 });
             csvWriter.WriteObject(new { Name = "B", Value = 2 });
@@ -114,10 +114,10 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
-    public void CsvObjectWriter_FlushesWhenLeavingWriterOpen()
+    public void CsvRowWriter_FlushesWhenLeavingWriterOpen()
     {
         using var writer = new FlushTrackingWriter();
-        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        using (var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
         {
             csvWriter.WriteObject(new { Name = "A", Value = 1 });
         }
@@ -128,10 +128,10 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
-    public void CsvObjectWriter_WritesProjectedRows()
+    public void CsvRowWriter_WritesProjectedRows()
     {
         using var writer = new StringWriter();
-        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        using (var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
         {
             csvWriter.WriteRow(new[] { "Name", "Value" }, new object?[] { "A", 1 });
             csvWriter.WriteRow(new[] { "Name", "Value" }, new object?[] { "B", 2 });
@@ -141,24 +141,24 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
-    public void CsvObjectWriter_WritesNarrowPlainTextRowsToGeneralTextWriter()
+    public void CsvRowWriter_WritesNarrowPlainTextRowsToGeneralTextWriter()
     {
         using var writer = new FlushTrackingWriter();
-        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        using (var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
         {
             csvWriter.WriteTextRow(new[] { "Name", "Value" }, new string?[] { "Alpha", "1" });
-            csvWriter.WriteTrustedTextRow(new string?[] { "Beta", "2" });
+            csvWriter.WriteTextRow(new string?[] { "Beta", "2" });
         }
 
         Assert.Equal("Name,Value\nAlpha,1\nBeta,2\n", writer.ToString());
     }
 
     [Fact]
-    public void CsvObjectWriter_AlwaysQuotedProjectedRowsPreserveEscaping()
+    public void CsvRowWriter_AlwaysQuotedProjectedRowsPreserveEscaping()
     {
         var created = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", QuoteMode = CsvQuoteMode.Always }, leaveOpen: true))
+        using (var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n", QuoteMode = CsvQuoteMode.Always }, leaveOpen: true))
         {
             csvWriter.WriteRow(
                 new[] { "Id", "Amount", "Enabled", "Created", "Name", "Missing" },
@@ -174,7 +174,7 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
-    public void CsvObjectWriter_WritesWideTextRowsWithEscaping()
+    public void CsvRowWriter_WritesWideTextRowsWithEscaping()
     {
         var columns = Enumerable.Range(1, 21).Select(static index => $"C{index}").ToArray();
         var values = Enumerable.Range(1, 21).Select(static index => $"V{index}").ToArray();
@@ -182,7 +182,7 @@ public class CsvDocumentFromObjectsTests
         values[10] = "A\"B";
 
         using var writer = new StringWriter();
-        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        using (var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
         {
             csvWriter.WriteTextRow(columns, values);
         }
@@ -196,31 +196,31 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
-    public void CsvObjectWriter_RejectsProjectedRowsWithDifferentColumns()
+    public void CsvRowWriter_RejectsProjectedRowsWithDifferentColumns()
     {
         using var writer = new StringWriter();
-        using var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
         csvWriter.WriteRow(new[] { "Name", "Value" }, new object?[] { "A", 1 });
 
         Assert.Throws<CsvException>(() => csvWriter.WriteRow(new[] { "Value", "Name" }, new object?[] { 2, "B" }));
     }
 
     [Fact]
-    public void CsvObjectWriter_ValidatesProjectedRowWidthBeforeWritingHeader()
+    public void CsvRowWriter_ValidatesProjectedRowWidthBeforeWritingHeader()
     {
         using var writer = new StringWriter();
-        using var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        using var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
 
         Assert.Throws<CsvException>(() => csvWriter.WriteRow(new[] { "Name", "Value" }, new object?[] { "A" }));
         Assert.Equal(string.Empty, writer.ToString());
     }
 
     [Fact]
-    public void CsvObjectWriter_WritesDataReaderSchemaAndRows()
+    public void CsvRowWriter_WritesDataReaderSchemaAndRows()
     {
         using var reader = CreateReader();
         using var writer = new StringWriter();
-        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" }, leaveOpen: true))
+        using (var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" }, leaveOpen: true))
         {
             csvWriter.WriteDataReader(reader);
         }
@@ -229,10 +229,10 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
-    public void CsvObjectWriter_TreatsDBNullAsNullValue()
+    public void CsvRowWriter_TreatsDBNullAsNullValue()
     {
         using var writer = new StringWriter();
-        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" }, leaveOpen: true))
+        using (var csvWriter = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" }, leaveOpen: true))
         {
             csvWriter.WriteRow(new[] { "Name", "Score" }, new object?[] { "Alpha", DBNull.Value });
         }

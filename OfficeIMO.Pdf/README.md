@@ -760,7 +760,7 @@ contract, and remaining general engine work, read
 ## Dependency footprint
 
 - **External:** no third-party PDF parser, writer, renderer, or cryptographic package in the base PDF package.
-- **OfficeIMO:** `OfficeIMO.Drawing`. PDF parsing, writing, password security, signature structure, logical recovery, manipulation, forms, diagnostics, and preservation analysis are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. PDF parsing, writing, password security, signature structure, logical recovery, manipulation, forms, diagnostics, and preservation analysis are first-party.
 - **Optional security:** install `OfficeIMO.Security` for the built-in CMS/X.509/RFC 3161 adapters. It is not a transitive PDF dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

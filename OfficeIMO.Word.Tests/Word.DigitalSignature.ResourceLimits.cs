@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             long packageLength = new FileInfo(filePath).Length;
 
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadWrite,
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadWrite,
                 MaxInputBytes = packageLength
             });
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider,
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             }
 
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             });
             WordSignatureValidationReport missing = loaded.ValidateSignatures(SecurityProvider);
             using X509Certificate2 unrelated = CreateSelfSignedSigningCertificate(
@@ -269,7 +269,7 @@ namespace OfficeIMO.Tests {
             AddDigitalSignatureMetadata(filePath, signatureBytes, signatureCount: 2);
 
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             });
             WordSignatureValidationReport bounded = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 ValidateCryptographicSignature = false,
@@ -373,7 +373,7 @@ namespace OfficeIMO.Tests {
             }
 
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             });
             var options = new WordSignatureValidationOptions {
                 MaxCertificateBytes = certificateBytes.LongLength,
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             });
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 MaxTotalDigestBytes = 1024
