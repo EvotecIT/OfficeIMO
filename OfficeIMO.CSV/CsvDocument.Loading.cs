@@ -1,6 +1,6 @@
 #nullable enable
 
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;

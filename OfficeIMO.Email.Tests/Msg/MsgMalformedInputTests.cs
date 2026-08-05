@@ -1,5 +1,5 @@
 using OfficeIMO.Email;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;

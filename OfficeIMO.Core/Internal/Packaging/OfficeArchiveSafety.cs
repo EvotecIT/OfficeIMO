@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 
-namespace OfficeIMO.Drawing.Internal;
+namespace OfficeIMO.Core.Internal;
 
 /// <summary>
 /// Centralizes archive-entry safety rules shared by ZIP-backed OfficeIMO format owners.

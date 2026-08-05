@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using OfficeIMO.PowerPoint;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Markup.PowerPoint;
 

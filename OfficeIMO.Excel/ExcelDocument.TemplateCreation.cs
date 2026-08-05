@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {

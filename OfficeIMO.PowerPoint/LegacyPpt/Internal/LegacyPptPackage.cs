@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {

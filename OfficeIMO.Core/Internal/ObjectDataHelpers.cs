@@ -7,7 +7,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace OfficeIMO.Drawing.Internal;
+namespace OfficeIMO.Core.Internal;
 
 /// <summary>
 /// Shared helpers for projecting object data into tabular structures.

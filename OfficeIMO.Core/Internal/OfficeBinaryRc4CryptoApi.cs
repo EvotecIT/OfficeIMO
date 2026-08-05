@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Implements the shared password verifier and record transform used by Office binary
     /// document RC4 CryptoAPI encryption.

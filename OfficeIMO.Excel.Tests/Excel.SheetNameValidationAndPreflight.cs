@@ -1768,7 +1768,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var reopenedForRead = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                Assert.Equal("A3:B3", reopenedForRead.Sheets.First().GetUsedRangeA1());
+                Assert.Equal("A3:B3", reopenedForRead.Sheets.First().UsedRangeA1);
             }
 
             File.Delete(path);

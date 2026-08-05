@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet copy = document.CopyWorksheet(source, "Copy:Source");
 
                 Assert.Equal("Copy_Source", copy.Name);
-                Assert.Equal("A1:B2", copy.GetUsedRangeA1());
+                Assert.Equal("A1:B2", copy.UsedRangeA1);
                 document.Save();
             }
 
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet copied = targetDocument.CopyWorksheetFrom(sourceDocument, "Source", "Imported");
 
                 Assert.Equal("Imported", copied.Name);
-                Assert.Equal("B2:C3", copied.GetUsedRangeA1());
+                Assert.Equal("B2:C3", copied.UsedRangeA1);
                 targetDocument.Save();
             }
 
@@ -283,14 +283,14 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("Imported", copied.Name);
-                Assert.Equal("A1:B1", copied.GetUsedRangeA1());
+                Assert.Equal("A1:B1", copied.UsedRangeA1);
                 targetDocument.Save();
             }
 
             using (var targetDocument = ExcelDocument.Load(targetPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.True(targetDocument["Imported"].TryGetCellText(1, 1, out var header));
                 Assert.Equal("Region", header);
-                Assert.Equal("A1:B1", targetDocument["Imported"].GetUsedRangeA1());
+                Assert.Equal("A1:B1", targetDocument["Imported"].UsedRangeA1);
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
@@ -1344,7 +1344,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("Imported", copied.Name);
-                Assert.Equal("A1:A2", copied.GetUsedRangeA1());
+                Assert.Equal("A1:A2", copied.UsedRangeA1);
                 document.Save();
             }
 
@@ -1382,7 +1382,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("Imported", copied.Name);
-                Assert.Equal("A1:A2", copied.GetUsedRangeA1());
+                Assert.Equal("A1:A2", copied.UsedRangeA1);
                 targetDocument.Save();
             }
 

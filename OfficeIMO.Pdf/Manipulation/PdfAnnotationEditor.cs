@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Edits or removes PDF annotations without third-party dependencies.</summary>

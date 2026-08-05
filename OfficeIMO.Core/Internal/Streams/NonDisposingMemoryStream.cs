@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
-namespace OfficeIMO.Drawing.Internal;
+namespace OfficeIMO.Core.Internal;
 
 /// <summary>
 /// MemoryStream that suppresses disposal so OpenXml packages can close without losing the buffer.

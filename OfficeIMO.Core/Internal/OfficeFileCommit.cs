@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Commits completed Office files without exposing a partially written destination.
     /// </summary>

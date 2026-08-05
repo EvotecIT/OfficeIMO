@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
             long originalPosition = stream.CanSeek ? stream.Position : 0L;
             byte[] bytes;
             try {
-                bytes = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadRemainingBytes(
+                bytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
                     stream,
                     effectiveOptions.CancellationToken,
                     effectiveOptions.MaxInputBytes);

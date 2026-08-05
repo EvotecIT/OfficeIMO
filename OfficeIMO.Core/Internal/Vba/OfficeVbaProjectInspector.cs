@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     /// <summary>Reads reusable, non-executing metadata from an Office VBA compound project.</summary>
     internal static class OfficeVbaProjectInspector {
         private static readonly HashSet<string> InfrastructureStreams = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {

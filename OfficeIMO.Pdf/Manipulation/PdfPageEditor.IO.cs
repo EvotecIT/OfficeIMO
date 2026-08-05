@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {

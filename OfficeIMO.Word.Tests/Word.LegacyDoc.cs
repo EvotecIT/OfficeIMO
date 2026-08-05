@@ -2,7 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.CustomProperties;

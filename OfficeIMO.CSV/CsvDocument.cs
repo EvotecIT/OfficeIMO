@@ -1,6 +1,6 @@
 #nullable enable
 
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Collections;
 using System.Data;
 using System.Globalization;

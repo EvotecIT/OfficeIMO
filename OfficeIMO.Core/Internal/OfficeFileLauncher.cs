@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     /// <summary>Launches saved Office artifacts through the operating system's registered application.</summary>
     internal static class OfficeFileLauncher {
         /// <summary>Opens an existing file through the operating system shell.</summary>

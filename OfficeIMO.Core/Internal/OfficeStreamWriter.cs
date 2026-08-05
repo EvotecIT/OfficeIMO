@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Writes complete Office artifacts to caller-owned streams using one consistent overwrite contract.
     /// </summary>

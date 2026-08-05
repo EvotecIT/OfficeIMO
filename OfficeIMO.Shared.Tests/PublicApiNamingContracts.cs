@@ -112,6 +112,8 @@ public sealed class PublicApiNamingContracts {
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
         MethodInfo[] sheetMethods = typeof(ExcelSheet).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        PropertyInfo[] sheetProperties = typeof(ExcelSheet).GetProperties(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
         Assert.DoesNotContain("ExcelRead", exportedTypeNames);
         Assert.DoesNotContain("ExcelDocumentReader", exportedTypeNames);
@@ -123,7 +125,21 @@ public sealed class PublicApiNamingContracts {
         Assert.Contains(documentMethods, static method => method.Name == "OpenDataReader");
         Assert.Contains(sheetMethods, static method => method.Name == "CreateDataReader");
         Assert.Contains(sheetMethods, static method => method.Name == "RowsAs" && method.IsGenericMethodDefinition);
+        Assert.Contains(sheetMethods, static method =>
+            method.Name == "RowsAs" && method.GetParameters().Any(parameter =>
+                parameter.ParameterType.IsGenericType &&
+                parameter.ParameterType.GetGenericTypeDefinition() == typeof(Action<>)));
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "RowsAsStream");
+        Assert.DoesNotContain(sheetMethods, static method => method.Name == "GetUsedRangeA1");
+        Assert.Contains(sheetProperties, static property => property.Name == "UsedRangeA1");
+        Assert.All(
+            sheetMethods.Where(static method =>
+                method.Name is "RowsAs" or "EnumerateCells" or "EnumerateRange" &&
+                method.GetParameters().Any(static parameter => parameter.ParameterType == typeof(CancellationToken))),
+            static method => Assert.Contains(
+                method.GetParameters(),
+                static parameter => parameter.ParameterType == typeof(CancellationToken) &&
+                                    parameter.Name == "cancellationToken"));
     }
 
     [Fact]

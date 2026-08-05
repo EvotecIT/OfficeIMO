@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
-            string usedRange = sourceSheet.GetUsedRangeA1();
+            string usedRange = sourceSheet.UsedRangeA1;
             var (startRow, startColumn, _, _) = A1.ParseRange(usedRange);
             object?[,] values;
             using (var reader = sourceDocument.CreateReader()) {

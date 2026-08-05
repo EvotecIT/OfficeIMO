@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
 

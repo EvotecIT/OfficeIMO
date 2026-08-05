@@ -6,7 +6,7 @@ using System.Threading;
 #if OFFICEIMO_READER_CORE
 namespace OfficeIMO.Reader.Internal.Compound {
 #else
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
 #endif
     internal static partial class OfficeCompoundFileReader {
         /// <summary>

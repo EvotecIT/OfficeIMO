@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using System.Text;
 using System.Threading;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.CSV;
 

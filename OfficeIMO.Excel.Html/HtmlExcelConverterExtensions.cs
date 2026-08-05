@@ -382,7 +382,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
         }
 
-        string range = section.GetAttribute("data-officeimo-range") ?? sheet.GetUsedRangeA1();
+        string range = section.GetAttribute("data-officeimo-range") ?? sheet.UsedRangeA1;
         int chartIndex = 0;
         foreach (ExcelDrawingImportItem drawing in drawings.OrderBy(item => item.LayerIndex ?? item.FallbackOrder).ThenBy(item => item.FallbackOrder)) {
             if (drawing.Kind == ExcelDrawingImportKind.Image) {

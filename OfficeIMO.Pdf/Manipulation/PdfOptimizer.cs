@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.IO.Compression;
 using System.Security.Cryptography;
 

@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Rtf.Syntax;
 using OfficeIMO.Rtf.Writing;
 

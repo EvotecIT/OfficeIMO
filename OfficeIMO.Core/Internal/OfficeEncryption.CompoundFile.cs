@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeEncryption {
         private sealed class CompoundFile {
             private const int SectorSize = 512;

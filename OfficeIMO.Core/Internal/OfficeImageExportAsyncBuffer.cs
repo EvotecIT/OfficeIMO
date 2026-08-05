@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Drawing;
 
-namespace OfficeIMO.Drawing.Internal;
+namespace OfficeIMO.Core.Internal;
 
 /// <summary>
 /// Provides a one-item, backpressured bridge from synchronous render producers to

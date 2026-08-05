@@ -120,7 +120,7 @@ public static partial class ExcelHtmlConverterExtensions {
         int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet;
         int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet;
         IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges = sheet.GetMergedRanges(options.MaxMergedRangesPerSheet);
-        string reportedUsedRange = sheet.GetUsedRangeA1();
+        string reportedUsedRange = sheet.UsedRangeA1;
         bool isEmptyDefaultRange = mergedRanges.Count == 0
             && (string.Equals(reportedUsedRange, "A1", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(reportedUsedRange, "A1:A1", StringComparison.OrdinalIgnoreCase))

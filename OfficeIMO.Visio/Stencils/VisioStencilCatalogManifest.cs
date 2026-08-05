@@ -8,7 +8,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>

@@ -8,7 +8,7 @@ using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using Rich = DocumentFormat.OpenXml.Office2019.Excel.RichData;
 using RichRel = DocumentFormat.OpenXml.Office.Y2022.RichValueRel;
 

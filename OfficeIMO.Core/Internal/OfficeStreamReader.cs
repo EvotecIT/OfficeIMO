@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Snapshots complete Office artifacts from caller-owned streams without changing seekable stream state.
     /// </summary>

@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
                 if (withHyperlinks) toc.SetInternalLink(r, 1, sh, "A1", sh.Name); else toc.Cell(r, 1, sh.Name);
 
                 // Details: Used range and size
-                string used = sh.GetUsedRangeA1();
+                string used = sh.UsedRangeA1;
                 try {
                     var (r1, c1, r2, c2) = A1.ParseRange(used);
                     int rows = System.Math.Max(0, r2 - r1 + 1);

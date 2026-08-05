@@ -152,7 +152,7 @@ namespace OfficeIMO.Excel {
 
             options.CancellationToken.ThrowIfCancellationRequested();
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            byte[] bytes = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadRemainingBytes(
+            byte[] bytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
                 stream,
                 options.CancellationToken,
                 options.MaxInputBytes);

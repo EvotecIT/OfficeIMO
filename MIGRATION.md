@@ -233,6 +233,7 @@ Replace the removed public reader roots as follows:
 | Concrete `ExcelDocumentReader` / `ExcelSheetReader` use | `ExcelWorkbookDataReader` returned by `ExcelDocument.OpenDataReader(...)` or `workbook.CreateDataReader(...)` |
 | `ExcelSheet.Rows(...)` | `workbook.CreateDataReader(...)` to read the current open workbook (including unsaved edits), `ExcelDocument.OpenDataReader(...)` for an unopened file/stream, or deferred `ExcelSheet.RowsAs<T>(...)` projection |
 | `ExcelSheet.RowsObjects(...)`, `RowEdit`, or `CellEdit` | Direct `ExcelSheet` cell APIs such as `CellValue(...)`, `CellFormula(...)`, and `FormatCell(...)` |
+| `ExcelSheet.GetUsedRangeA1()` | `ExcelSheet.UsedRangeA1` |
 
 `CsvLoadOptions.Mode`, `CsvLoadMode`, and `CsvDocument.Mode` are no longer
 public. Use `CsvDocument.OpenDataReader` for a forward-only read and
@@ -276,7 +277,10 @@ require the final row range or column widths before package output starts.
 `ExcelSheet.RowsAs<T>()` is now the single typed projection name and enumerates
 rows lazily while the owning workbook remains open. Replace preview
 `RowsAsStream<T>()` calls with `RowsAs<T>()`; call `ToList()` or `ToArray()` when
-an eagerly materialized collection is required.
+an eagerly materialized collection is required. Use the overload accepting
+`Action<RowMapper<T>>` for explicit, NativeAOT-friendly column assignments.
+Named cancellation arguments on `RowsAs`, `EnumerateCells`, and `EnumerateRange`
+use `cancellationToken` instead of `ct`.
 
 Use `CsvDocument.Load(...).RowsAs<T>()` when a mutable/materialized CSV document
 is required. For a forward-only typed read, use
@@ -581,7 +585,7 @@ OfficeIMO 2.0 established the shared lifecycle and result vocabulary used by the
 
 The compiled `OfficeIMO.Shared` implementation package no longer exists. `OfficeIMO.SharedSource` is source-only and is not a runtime package replacement. Move direct package references to the public owner of each reusable value: shared colors, fonts, images, charts, lifecycle options, stream contracts, export results, and dependency-free security provider contracts belong to `OfficeIMO.Core`; normalized Reader contracts belong to `OfficeIMO.Reader.Core`; the optional concrete CMS, XML DSig, X.509, and RFC 3161 provider belongs to `OfficeIMO.Security`. Drawing APIs remain in the `OfficeIMO.Drawing` namespace, lifecycle APIs use the root `OfficeIMO` namespace, and native document behavior remains in its format package.
 
-There is no `OfficeIMO.Core` package and no `.Drawing`-to-`.Core` rename. Native packages own parsing, loading, editing, validation, and serialization for their formats. Adapter packages project one native model into another rather than exposing another parser or document model. `OfficeIMO.Html` owns the canonical HTML source model and resource policy; format adapters consume it. These ownership changes replace direct use of the former shared implementation layer rather than introducing a catch-all dependency.
+OfficeIMO 3.1 introduces the zero-dependency `OfficeIMO.Core` package by renaming the former `OfficeIMO.Drawing` package, project, and assembly; actual drawing APIs remain in the `OfficeIMO.Drawing` namespace. Native packages still own parsing, loading, editing, validation, and serialization for their formats. Adapter packages project one native model into another rather than exposing another parser or document model. `OfficeIMO.Html` owns the canonical HTML source model and resource policy; format adapters consume it. These ownership changes replace direct use of the former shared implementation layer without introducing another dependency tier.
 
 ### Document lifecycle
 

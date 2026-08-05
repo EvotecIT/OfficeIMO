@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Pdf;
 

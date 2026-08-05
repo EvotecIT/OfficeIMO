@@ -270,6 +270,12 @@ List<RowModel> rows = sheet.RowsAs<RowModel>("A1:C100").ToList();
 // Omitting the range maps the populated worksheet range.
 List<RowModel> populatedRows = sheet.RowsAs<RowModel>().ToList();
 
+// For NativeAOT or explicit column control, use the same mapper shape as CSV.
+List<RowModel> mappedRows = sheet.RowsAs<RowModel>(map => map
+    .FromColumn<string>("Name", static (row, value) => { row.Name = value; return row; })
+    .FromColumn<string>("Status", static (row, value) => { row.Status = value; return row; }))
+    .ToList();
+
 public sealed class RowModel {
     public string Name { get; set; } = "";
     public string Status { get; set; } = "";

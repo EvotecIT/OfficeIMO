@@ -1,5 +1,5 @@
 using System.Globalization;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static class LegacyOlePropertySetWriter {

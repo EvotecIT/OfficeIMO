@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateRemoteLoadLifecycle(ExcelLoadOptions options) {
-            OfficeIMO.Drawing.Internal.OfficeDocumentLifecycle.Validate(
+            OfficeIMO.Core.Internal.OfficeDocumentLifecycle.Validate(
                 options.AccessMode,
                 options.PersistenceMode,
                 "workbook");

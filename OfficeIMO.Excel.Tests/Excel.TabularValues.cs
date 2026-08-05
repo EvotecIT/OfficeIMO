@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 };
 
                 sheet.InsertObjects(rows);
-                string range = sheet.GetUsedRangeA1();
+                string range = sheet.UsedRangeA1;
                 Assert.Equal("A1:D3", range);
                 sheet.AddTable(range, hasHeader: true, name: "Sales", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9, includeAutoFilter: true);
 
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
                 sheet.InsertObjects(rows);
                 sheet.CellValue(10, 5, "note");
 
-                Assert.Equal("A1:E10", sheet.GetUsedRangeA1());
+                Assert.Equal("A1:E10", sheet.UsedRangeA1);
 
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);

@@ -43,7 +43,7 @@ public class ExcelCsvExtensionsTests {
         Assert.Equal("Empty", result.SheetName);
         Assert.Null(result.TableName);
         Assert.Equal(string.Empty, result.Range);
-        Assert.Equal("A1:A1", document["Empty"].GetUsedRangeA1());
+        Assert.Equal("A1:A1", document["Empty"].UsedRangeA1);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public class ExcelCsvExtensionsTests {
             existing.ImportCsvText("Name\r\nAlpha", options));
 
         Assert.DoesNotContain(document.Sheets, sheet => sheet.Name == "Rejected");
-        Assert.Equal("A1:A1", existing.GetUsedRangeA1());
+        Assert.Equal("A1:A1", existing.UsedRangeA1);
     }
 
     [Fact]

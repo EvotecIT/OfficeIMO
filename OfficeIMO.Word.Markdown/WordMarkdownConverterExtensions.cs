@@ -1,5 +1,5 @@
 using OfficeIMO.Markdown;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;

@@ -30,7 +30,7 @@ namespace OfficeIMO {
                 int signatureBytes = ReadPrefix(package, signature);
                 package.Position = 0;
                 bool isZip = HasZipSignature(signature, signatureBytes);
-                bool isCompound = OfficeIMO.Drawing.Internal.OfficeCompoundDocumentDetector
+                bool isCompound = OfficeIMO.Core.Internal.OfficeCompoundDocumentDetector
                     .HasCompoundSignature(signature);
                 if (isZip) return InspectZip(package, packageBytes, options, findings);
                 if (isCompound) return InspectCompound(package, packageBytes, options, findings);

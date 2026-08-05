@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.CustomProperties;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {

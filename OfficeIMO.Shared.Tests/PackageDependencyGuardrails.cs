@@ -320,14 +320,14 @@ public sealed class PackageDependencyGuardrailTests {
         string[] internalNamespaceReferences = Directory
             .EnumerateFiles(examplesRoot, "*.cs", SearchOption.AllDirectories)
             .Where(static path => !ContainsBuildOutput(path))
-            .Where(path => File.ReadAllText(path).Contains("OfficeIMO.Drawing.Internal", StringComparison.Ordinal))
+            .Where(path => File.ReadAllText(path).Contains("OfficeIMO.Core.Internal", StringComparison.Ordinal))
             .Select(GetRepositoryRelativePath)
             .ToArray();
         Assert.Empty(internalNamespaceReferences);
 
-        string drawingRoot = GetRepositoryPath("OfficeIMO.Core");
+        string coreRoot = GetRepositoryPath("OfficeIMO.Core");
         string[] friendGrantFiles = Directory
-            .EnumerateFiles(drawingRoot, "*.cs", SearchOption.AllDirectories)
+            .EnumerateFiles(coreRoot, "*.cs", SearchOption.AllDirectories)
             .Where(static path => !ContainsBuildOutput(path))
             .Where(path => File.ReadAllText(path).Contains("InternalsVisibleTo(\"OfficeIMO.Examples\")", StringComparison.Ordinal))
             .Select(GetRepositoryRelativePath)

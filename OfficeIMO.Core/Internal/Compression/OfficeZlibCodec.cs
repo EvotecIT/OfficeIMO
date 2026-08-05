@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     /// <summary>Encodes and decodes RFC 1950 zlib streams with checksum validation.</summary>
     internal static class OfficeZlibCodec {
         internal static byte[] Compress(byte[] bytes) {

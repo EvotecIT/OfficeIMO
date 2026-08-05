@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Email;
 
 /// <summary>Writes deterministic mboxo or mboxrd mailbox aggregates.</summary>

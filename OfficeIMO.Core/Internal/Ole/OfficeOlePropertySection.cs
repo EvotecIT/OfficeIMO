@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Represents a parsed section inside an OLE property set stream.
     /// </summary>

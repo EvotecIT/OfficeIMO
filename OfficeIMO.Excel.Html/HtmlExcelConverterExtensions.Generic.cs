@@ -85,7 +85,7 @@ public static partial class HtmlExcelConverterExtensions {
             ExcelSheet imageSheet = narrativeSheet ?? workbook.Sheets[0];
             int imageRow = narrativeSheet != null ? row : 2;
             if (narrativeSheet == null
-                && A1.TryParseRange(imageSheet.GetUsedRangeA1(), out _, out _, out int lastRow, out _)) {
+                && A1.TryParseRange(imageSheet.UsedRangeA1, out _, out _, out int lastRow, out _)) {
                 imageRow = Math.Min(A1.MaxRows, lastRow + 2);
             }
             ImportGenericImages(document, imageSheet, result, budget, ref imageRow);
