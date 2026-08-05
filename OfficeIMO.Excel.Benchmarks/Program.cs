@@ -651,7 +651,7 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-cellvalue-object-sparse-batch",
         "write-cellformula",
         "write-insertobjects-direct",
-        "write-objects-direct-package",
+        "write-typed-rows-direct-package",
         "write-typed-rows-compact-package",
         "write-insertobjects-autofitcolumnsfor-direct",
         "write-insertobjects-partial-autofitcolumnsfor-direct",

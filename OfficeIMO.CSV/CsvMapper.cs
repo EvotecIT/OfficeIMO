@@ -5,6 +5,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
+#if NET8_0_OR_GREATER
+using System.Runtime.CompilerServices;
+#endif
 
 namespace OfficeIMO.CSV;
 
@@ -483,6 +486,13 @@ public static class CsvMappingExtensions
 
     private static Func<T, object?, T> CreateAssignment<T>(PropertyInfo property)
     {
+#if NET8_0_OR_GREATER
+        if (!RuntimeFeature.IsDynamicCodeSupported)
+        {
+            return CreateReflectionAssignment<T>(property);
+        }
+#endif
+
         try
         {
             ParameterExpression target = Expression.Parameter(typeof(T), "target");
@@ -495,13 +505,18 @@ public static class CsvMappingExtensions
         }
         catch
         {
-            return (target, value) =>
-            {
-                object boxed = target!;
-                property.SetValue(boxed, value, index: null);
-                return (T)boxed;
-            };
+            return CreateReflectionAssignment<T>(property);
         }
+    }
+
+    private static Func<T, object?, T> CreateReflectionAssignment<T>(PropertyInfo property)
+    {
+        return (target, value) =>
+        {
+            object boxed = target!;
+            property.SetValue(boxed, value, index: null);
+            return (T)boxed;
+        };
     }
 
     private static string Canonicalize(string value)
