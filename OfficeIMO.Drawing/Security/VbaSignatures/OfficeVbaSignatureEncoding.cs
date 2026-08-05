@@ -232,7 +232,7 @@ internal static class OfficeVbaSignatureEncoding {
 internal static class OfficeVbaPackageSignatureWriter {
     private static readonly XNamespace ContentTypesNamespace = "http://schemas.openxmlformats.org/package/2006/content-types";
     private static readonly XNamespace RelationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
-#if NETSTANDARD2_0
+#if !NET8_0_OR_GREATER
     private static readonly OfficeVbaSignatureProfile[] SignatureProfiles = {
         OfficeVbaSignatureProfile.Legacy,
         OfficeVbaSignatureProfile.Agile,
@@ -288,10 +288,10 @@ internal static class OfficeVbaPackageSignatureWriter {
     }
 
     private static IEnumerable<OfficeVbaSignatureProfile> EnumerateSignatureProfiles() {
-#if NETSTANDARD2_0
-        return SignatureProfiles;
-#else
+#if NET8_0_OR_GREATER
         return Enum.GetValues<OfficeVbaSignatureProfile>();
+#else
+        return SignatureProfiles;
 #endif
     }
 
