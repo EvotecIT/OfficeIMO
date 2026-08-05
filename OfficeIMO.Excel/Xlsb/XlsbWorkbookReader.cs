@@ -497,6 +497,12 @@ namespace OfficeIMO.Excel.Xlsb {
             int actualMergeCount = 0;
             foreach (XlsbRecord record in records) {
                 options.CancellationToken.ThrowIfCancellationRequested();
+                if (currentAutoFilter != null && !IsSupportedAutoFilterRecord(record.Type)) {
+                    currentAutoFilter.HasUnsupportedContent = true;
+                    if (currentFilterColumn != null) currentFilterColumn.HasUnsupportedContent = true;
+                    PreserveRecord(options, workbook, partName, record);
+                    continue;
+                }
                 switch (record.Type) {
                     case BrtBeginSheet:
                     case BrtEndSheet:
@@ -750,10 +756,6 @@ namespace OfficeIMO.Excel.Xlsb {
                         worksheet.AddCell(cell);
                         break;
                     default:
-                        if (currentAutoFilter != null) {
-                            currentAutoFilter.HasUnsupportedContent = true;
-                            if (currentFilterColumn != null) currentFilterColumn.HasUnsupportedContent = true;
-                        }
                         PreserveRecord(options, workbook, partName, record);
                         break;
                 }
@@ -778,6 +780,9 @@ namespace OfficeIMO.Excel.Xlsb {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' does not contain BrtBeginSheetData/BrtEndSheetData.");
             }
         }
+
+        private static bool IsSupportedAutoFilterRecord(int recordType) =>
+            recordType >= BrtBeginAFilter && recordType <= BrtFilter;
 
         private static XlsbCellRange ParseCellRange(XlsbRecord record, string recordName) {
             if (record.Data.Length != 16) {

@@ -1,6 +1,8 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Write;
 using System.IO.Compression;
 using Xunit;
 
@@ -116,6 +118,73 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Xlsb_LoadedWorkbook_PreservesRecognizedRecordsInsideUnsupportedAutoFilterAndBlocksMutation() {
+            byte[] source;
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet sheet = document.AddWorksheet("Report");
+                sheet.CellValue(1, 1, "Status");
+                sheet.CellValue(2, 1, "Open");
+                sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
+                    [0U] = new[] { "Open" }
+                });
+                source = document.ToBytes(ExcelFileFormat.Xlsb);
+            }
+
+            byte[] nonCanonical = InsertWorksheetRecordBeforeAutoFilterEnd(
+                source,
+                recordType: 477,
+                payload: new byte[] { 0x00, 0x00 });
+            using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(nonCanonical, writable: false))) {
+                ExcelSheet sheet = Assert.Single(loaded.Sheets);
+                sheet.CellValue(2, 1, "Edited");
+                byte[] rewritten = loaded.ToBytes(ExcelFileFormat.Xlsb);
+                IReadOnlyList<XlsbRecord> records = ReadWorksheetRecords(rewritten);
+                int begin = records.ToList().FindIndex(record => record.Type == 161);
+                int end = records.ToList().FindIndex(record => record.Type == 162);
+                Assert.Contains(records.Skip(begin + 1).Take(end - begin - 1),
+                    record => record.Type == 477 && record.Data.SequenceEqual(new byte[] { 0x00, 0x00 }));
+            }
+
+            using ExcelDocument changed = ExcelDocument.Load(new MemoryStream(nonCanonical, writable: false));
+            Assert.Single(changed.Sheets).AddAutoFilter(
+                "A1:A2",
+                new Dictionary<uint, IEnumerable<string>> {
+                    [0U] = new[] { "Open", "Closed" }
+                });
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                () => changed.ToBytes(ExcelFileFormat.Xlsb));
+            Assert.Contains("outside the supported equality-list subset", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Xlsb_LoadedWorkbook_RejectsForeignNamespaceAutoFilterAttributes() {
+            byte[] source;
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet sheet = document.AddWorksheet("Report");
+                sheet.CellValue(1, 1, "Status");
+                sheet.CellValue(2, 1, "Open");
+                sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
+                    [0U] = new[] { "Open" }
+                });
+                source = document.ToBytes(ExcelFileFormat.Xlsb);
+            }
+
+            using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source, writable: false));
+            ExcelSheet loadedSheet = Assert.Single(loaded.Sheets);
+            loadedSheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
+                [0U] = new[] { "Open", "Closed" }
+            });
+            AutoFilter filter = Assert.IsType<AutoFilter>(
+                loadedSheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>());
+            Filters values = Assert.IsType<Filters>(Assert.Single(filter.Elements<FilterColumn>()).GetFirstChild<Filters>());
+            values.SetAttribute(new OpenXmlAttribute("ext", "blank", "urn:officeimo:test", "1"));
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                () => loaded.ToBytes(ExcelFileFormat.Xlsb));
+            Assert.Contains("attribute 'blank'", exception.Message, StringComparison.Ordinal);
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -148,6 +217,36 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             stream.CopyTo(output);
             return output.ToArray();
+        }
+
+        private static IReadOnlyList<XlsbRecord> ReadWorksheetRecords(byte[] package) {
+            byte[] worksheet = ReadPackageEntry(package, "xl/worksheets/sheet1.bin");
+            using var stream = new MemoryStream(worksheet, writable: false);
+            return XlsbRecordReader.ReadAll(stream);
+        }
+
+        private static byte[] InsertWorksheetRecordBeforeAutoFilterEnd(
+            byte[] package,
+            int recordType,
+            byte[] payload) {
+            IReadOnlyList<XlsbRecord> records = ReadWorksheetRecords(package);
+            using var worksheet = new MemoryStream();
+            bool inserted = false;
+            foreach (XlsbRecord record in records) {
+                if (!inserted && record.Type == 162) {
+                    XlsbRecordWriter.Write(worksheet, recordType, payload);
+                    inserted = true;
+                }
+                XlsbRecordWriter.Write(worksheet, record.Type, record.Data);
+            }
+            Assert.True(inserted);
+            return XlsbNativePackageWriter.RewritePackage(
+                package,
+                new Dictionary<string, byte[]> {
+                    ["xl/worksheets/sheet1.bin"] = worksheet.ToArray()
+                },
+                maxPartBytes: 128 * 1024 * 1024,
+                maxPackageBytes: 512L * 1024 * 1024);
         }
     }
 }

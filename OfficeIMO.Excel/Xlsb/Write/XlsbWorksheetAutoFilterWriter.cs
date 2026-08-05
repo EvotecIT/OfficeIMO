@@ -131,12 +131,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void EnsureOnlyAttributes(OpenXmlElement element, string sheetName, params string[] allowedNames) {
-            var allowed = new HashSet<string>(allowedNames, StringComparer.Ordinal);
-            OpenXmlAttribute? unsupported = element.GetAttributes()
-                .Cast<OpenXmlAttribute?>()
-                .FirstOrDefault(attribute => attribute.HasValue
-                    && !string.Equals(attribute.Value.NamespaceUri, "http://www.w3.org/2000/xmlns/", StringComparison.Ordinal)
-                    && !allowed.Contains(attribute.Value.LocalName));
+            OpenXmlAttribute? unsupported =
+                XlsbOpenXmlAttributeValidator.FindUnsupported(element, allowedNames);
             if (unsupported.HasValue) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support AutoFilter attribute '{unsupported.Value.LocalName}' on worksheet '{sheetName}'.");
             }

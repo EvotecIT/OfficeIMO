@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     internal sealed class XlsbWorksheetHyperlinkPlan {
         private const int BrtHLink = 494;
         private const string HyperlinkRelationshipSuffix = "/hyperlink";
+        private const string RelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         private const int MaximumLocationLengthExclusive = 2_084;
         private const int MaximumTooltipLengthExclusive = 256;
 
@@ -216,12 +217,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void EnsureOnlyAttributes(OpenXmlElement element, string sheetName, params string[] allowedNames) {
-            var allowed = new HashSet<string>(allowedNames, StringComparer.Ordinal);
-            OpenXmlAttribute? unsupported = element.GetAttributes()
-                .Cast<OpenXmlAttribute?>()
-                .FirstOrDefault(attribute => attribute.HasValue
-                    && !string.Equals(attribute.Value.NamespaceUri, "http://www.w3.org/2000/xmlns/", StringComparison.Ordinal)
-                    && !allowed.Contains(attribute.Value.LocalName));
+            OpenXmlAttribute? unsupported = XlsbOpenXmlAttributeValidator.FindUnsupported(
+                element,
+                allowedNames,
+                attribute => allowedNames.Contains("id", StringComparer.Ordinal)
+                    && string.Equals(attribute.LocalName, "id", StringComparison.Ordinal)
+                    && string.Equals(attribute.NamespaceUri, RelationshipsNamespace, StringComparison.Ordinal));
             if (unsupported.HasValue) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support attribute '{unsupported.Value.LocalName}' on worksheet element '{element.LocalName}' in worksheet '{sheetName}'.");
             }
