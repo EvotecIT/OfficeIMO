@@ -141,6 +141,12 @@ $categories = @($components | Group-Object { $_['category'] } | Sort-Object Name
     [ordered]@{ name = $_.Name; componentCount = $_.Count }
 })
 $powerShellApiAvailable = Test-Path -LiteralPath (Join-Path $SiteRoot 'data\apidocs\powershell\command-metadata.json') -PathType Leaf
+$powerShellCatalogPath = Join-Path $SiteRoot 'data\pswriteoffice_command_catalog.json'
+$powerShellCatalog = if (Test-Path -LiteralPath $powerShellCatalogPath -PathType Leaf) {
+    Get-Content -LiteralPath $powerShellCatalogPath -Raw | ConvertFrom-Json
+} else {
+    $null
+}
 $apiReferenceCount = $apiRoutes.Count + $(if ($powerShellApiAvailable) { 1 } else { 0 })
 
 $capabilitiesRoot = Join-Path $SiteRoot 'content\docs\capabilities'
@@ -163,7 +169,12 @@ $overview = [System.Text.StringBuilder]::new()
 [void] $overview.AppendLine('| Build or edit a document | Use the Word, Excel, PowerPoint, PDF, email, OneNote, OpenDocument, Markdown, CSV, or Visio guide. |')
 [void] $overview.AppendLine('| Move content between formats | Open the conversion map to choose the source package, destination adapter, and expected loss policy. |')
 [void] $overview.AppendLine('| Normalize mixed documents | Start with Reader and add only the format adapters your application needs. |')
-[void] $overview.AppendLine('| Automate from scripts | Use PSWriteOffice and its manifest-derived 477-command catalog. |')
+$powerShellCatalogDescription = if ($null -ne $powerShellCatalog) {
+    "Use PSWriteOffice and its manifest-derived $($powerShellCatalog.module.commandCount)-command catalog."
+} else {
+    'Use PSWriteOffice and its manifest-derived command catalog.'
+}
+[void] $overview.AppendLine("| Automate from scripts | $powerShellCatalogDescription |")
 [void] $overview.AppendLine('| Inspect exact members | Move from a conceptual guide into one of the generated API references. |')
 [void] $overview.AppendLine('| Evaluate deployment constraints | Use the validation and AOT pages for executable evidence and known boundaries. |')
 [void] $overview.AppendLine()

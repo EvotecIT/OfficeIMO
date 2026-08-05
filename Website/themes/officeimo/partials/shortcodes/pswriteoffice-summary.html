@@ -1,0 +1,13 @@
+{{ catalog = data.pswriteoffice_command_catalog }}
+<p>The current module exports <strong>{{ catalog.module.commandCount }} cmdlets</strong> and <strong>{{ catalog.module.aliasCount }} aliases</strong> across {{ catalog.module.familyCount }} documentation families. Cross-format commands have one documentation owner, so the family totals match the manifest.</p>
+<div class="table-responsive" role="region" aria-label="PSWriteOffice command families" tabindex="0">
+  <table>
+    <thead><tr><th>Family</th><th>Cmdlets</th><th>Typical work</th></tr></thead>
+    <tbody>
+{{~ for family in catalog.families ~}}
+      <tr><td><a href="{{ family.docsUrl }}">{{ family.title }}</a></td><td>{{ family.commandCount }}</td><td>{{ family.description }}</td></tr>
+{{~ end ~}}
+    </tbody>
+  </table>
+</div>
+<p>Browse the <a href="/docs/pswriteoffice/command-families/">generated family guide</a> or search the <a href="/api/powershell/">PowerShell API reference</a> for parameter-level detail.</p>

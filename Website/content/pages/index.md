@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO — Office Documents for .NET and PowerShell"
-description: "Create, edit, convert, inspect, and preserve DOC, DOCX, XLS, XLSX, XLSB, PPT, PPTX, PDF, and more with .NET APIs and broad PowerShell automation."
+description: "Explore documented OfficeIMO support for Office formats, PDF, conversion, extraction, and PowerShell automation, with explicit compatibility limits."
 layout: home
 slug: index
 meta.social_image: "/images/officeimo-social-premium.jpg"

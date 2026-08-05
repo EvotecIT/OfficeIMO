@@ -414,9 +414,9 @@
               {
                 "Title": "Create and edit",
                 "Items": [
-                  { "Title": "Word", "Url": "/products/word/", "Description": "DOC, DOCX, DOCM, templates, and review" },
-                  { "Title": "Excel", "Url": "/products/excel/", "Description": "XLS, XLSX, XLSB, formulas, and charts" },
-                  { "Title": "PowerPoint", "Url": "/products/powerpoint/", "Description": "PPT, PPTX, PPS, POT, and data-driven decks" },
+                  { "Title": "Word", "Url": "/products/word/", "Description": "DOCX plus supported DOC, templates, and review" },
+                  { "Title": "Excel", "Url": "/products/excel/", "Description": "XLSX plus supported XLS/XLSB, formulas, and charts" },
+                  { "Title": "PowerPoint", "Url": "/products/powerpoint/", "Description": "PPTX plus supported PPT/PPS/POT and data-driven decks" },
                   { "Title": "PDF", "Url": "/products/pdf/", "Description": "Author, inspect, transform, and sign PDF" },
                   { "Title": "OneNote", "Url": "/products/onenote/", "Description": "Native offline OneNote files and notebooks" }
                 ]

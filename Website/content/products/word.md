@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Word"
-description: "Create, read, edit, and convert DOC, DOCX, DOCM, DOT, and modern Word templates from .NET without Microsoft Word. Compare packages, examples, and limits."
+description: "Create and edit DOCX, work with documented DOC and DOT subsets, and inspect compatibility limits from .NET without Microsoft Word."
 layout: product
 product_color: "#2563eb"
 install: "dotnet add package OfficeIMO.Word"
@@ -20,7 +20,7 @@ meta.software.price_currency: "USD"
 
 OfficeIMO.Word helps .NET applications create, read, edit, and convert modern `.docx` documents and supported Word 97–2003 `.doc` files without COM interop or Microsoft Word. It is a good fit for reports, contracts, invoices, archive modernization, and other structured workflows where code needs control over content, layout, compatibility, and packaging.
 
-Modern Word files use the complete OfficeIMO object model. Legacy files load through the same `WordDocument.Load(...)` entry point, project supported content into that model, and use preflight diagnostics before native DOC output. Unsupported content is reported, preserved, converted through an explicit fallback, or blocked—it is not silently presented as native support.
+Modern Word files use the main OfficeIMO object model. Legacy files load through the same `WordDocument.Load(...)` entry point, project supported content into that model, and use preflight diagnostics before native DOC output. Unsupported content is reported, preserved, converted through an explicit fallback, or blocked—it is not silently presented as native support.
 
 ## Features
 

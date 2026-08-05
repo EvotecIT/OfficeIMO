@@ -9,7 +9,7 @@
     "validationProjectCount": 22,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39879
+    "conceptualWordCount": 39889
   },
   "categories": [
     {
@@ -209,7 +209,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 951,
+      "sourceFileCount": 952,
       "referencingTestProjectCount": 9,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",

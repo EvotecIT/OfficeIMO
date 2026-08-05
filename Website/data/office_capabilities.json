@@ -761,13 +761,13 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 8
+                "count": 9
               },
               {
                 "state": "PreservedOpaque",
                 "label": "Preserved records",
                 "description": "Original records retained without claiming full editing semantics.",
-                "count": 40
+                "count": 39
               }
             ]
           },
@@ -1107,10 +1107,16 @@
               "label": "Edit and round-trip",
               "states": [
                 {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 1
+                },
+                {
                   "state": "PreservedOpaque",
                   "label": "Preserved records",
                   "description": "Original records retained without claiming full editing semantics.",
-                  "count": 20
+                  "count": 19
                 }
               ]
             },

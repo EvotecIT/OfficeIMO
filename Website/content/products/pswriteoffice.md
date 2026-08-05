@@ -19,33 +19,19 @@ meta.software.price_currency: "USD"
 
 ## Why PSWriteOffice?
 
-PSWriteOffice brings the OfficeIMO document stack to PowerShell. Its authoritative module manifest exports **477 cmdlets and 360 aliases across 16 documentation families**. Create, inspect, update, review, convert, secure, and deliver documents from scripts and automation jobs without maintaining a separate document engine.
+PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command surface shown here is generated from the current module manifest used for this release. Create, inspect, update, review, convert, secure, and deliver documents from scripts and automation jobs without maintaining a separate document engine.
 
 ## Features
 
-- **477 cmdlets** — manifest-validated coverage across 16 command families
+- **Manifest-derived command catalog** — cmdlets, aliases, and families are counted from the current module manifest
 - **DSL aliases** — intuitive shorthand like `WordParagraph`, `ExcelSheet`, and `PptSlide` for concise scripts
 - **Broad document platform** — Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, LaTeX, and HTML asset workflows
-- **Cross-platform** — runs on Windows, Linux, and macOS wherever PowerShell is available
-- **PowerShell 5.1 and 7+** — compatible with Windows PowerShell and modern PowerShell Core
+- **Cross-platform** — PowerShell 7+ runs on Windows, Linux, and macOS
+- **PowerShell 5.1 and 7+** — supports Windows PowerShell 5.1 on Windows and modern PowerShell across platforms
 
 ## Command families
 
-The counts below are generated from the same manifest used by module packaging. Cross-format commands have one documentation owner so the family totals equal the 477 exported cmdlets exactly.
-
-| Family | Cmdlets | Typical work |
-|---|---:|---|
-| [Word](/docs/pswriteoffice/word/) | 91 | Authoring, inspection, review, mail merge, protection, and conversion |
-| [Excel](/docs/pswriteoffice/excel/) | 155 | Worksheets, ranges, tables, formulas, charts, pivots, validation, repair, and comparison |
-| [PowerPoint](/docs/pswriteoffice/powerpoint/) | 57 | Slides, layouts, text, images, shapes, tables, charts, notes, inspection, and rendering |
-| [PDF](/docs/pswriteoffice/pdf/) | 80 | Authoring, preflight, extraction, operations, security, signatures, and redaction |
-| [Confluence Cloud](/docs/pswriteoffice/confluence/) | 7 | Page planning, publishing, managed sections, attachments, and cleanup |
-| [Markdown and text formats](/docs/pswriteoffice/open-text-formats/) | 53 | Markdown, RTF, CSV, OpenDocument, email, AsciiDoc, LaTeX, and HTML assets |
-| [Visio](/docs/pswriteoffice/visio/) | 20 | Pages, shapes, connectors, stencils, inspection, arrangement, and SVG output |
-| [Reader](/docs/pswriteoffice/reader/) | 13 | Format detection, normalized documents, chunks, tables, visuals, assets, and search |
-| [Shared authoring primitive](/docs/pswriteoffice/automation-patterns/) | 1 | Reusable typed text runs |
-
-Browse [all 16 generated families](/docs/pswriteoffice/command-families/) or search the [full PowerShell API reference](/api/powershell/) for parameter-level detail.
+{{< pswriteoffice-summary >}}
 
 ## Start from a real workflow
 
