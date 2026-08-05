@@ -32,6 +32,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal int Position { get; set; }
 
+        internal byte[] Buffer => _bytes;
+
+        internal int Length => _length;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryRead(out XlsbRecordSlice record) {
             if (Position == _length) {
@@ -71,6 +75,68 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 _budget.Consume();
             }
             record = new XlsbRecordSlice(_bytes, recordOffset, type, payloadOffset, size);
+            return true;
+        }
+
+        /// <summary>
+        /// Frames the next record after a complete validation pass over the same immutable
+        /// buffer. The validation pass has already proved canonical headers, payload bounds,
+        /// and record-size limits, so delivery only needs to decode the framing bytes.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool TryReadValidated(out XlsbRecordSlice record) {
+            if (!TryReadValidated(
+                    out int recordOffset,
+                    out int type,
+                    out int payloadOffset,
+                    out int size)) {
+                record = default;
+                return false;
+            }
+
+            record = new XlsbRecordSlice(_bytes, recordOffset, type, payloadOffset, size);
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool TryReadValidated(
+            out int recordOffset,
+            out int type,
+            out int payloadOffset,
+            out int size) {
+            int position = Position;
+            if (position == _length) {
+                recordOffset = 0;
+                type = 0;
+                payloadOffset = 0;
+                size = 0;
+                return false;
+            }
+
+            recordOffset = position;
+            int firstTypeByte = _bytes[position++];
+            type = firstTypeByte & 0x7F;
+            if ((firstTypeByte & 0x80) != 0) {
+                type |= (_bytes[position++] & 0x7F) << 7;
+            }
+
+            int current = _bytes[position++];
+            size = current & 0x7F;
+            if ((current & 0x80) != 0) {
+                current = _bytes[position++];
+                size |= (current & 0x7F) << 7;
+                if ((current & 0x80) != 0) {
+                    current = _bytes[position++];
+                    size |= (current & 0x7F) << 14;
+                    if ((current & 0x80) != 0) {
+                        current = _bytes[position++];
+                        size |= (current & 0x7F) << 21;
+                    }
+                }
+            }
+
+            payloadOffset = position;
+            Position = position + size;
             return true;
         }
 

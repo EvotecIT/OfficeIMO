@@ -166,6 +166,32 @@ namespace OfficeIMO.Excel {
                 return new DirectDataSetTableModel(columns, new DirectObjectRows<T>(rows, selectors));
             }
 
+            internal static DirectDataSetTableModel FromStreamingObjectRows<T>(
+                IReadOnlyList<string> columnNames,
+                IEnumerable<T> rows,
+                IReadOnlyList<Func<T, object?>> selectors,
+                int maximumRows) {
+                if (columnNames.Count != selectors.Count) {
+                    throw new ArgumentException("Column name and selector counts must match.", nameof(selectors));
+                }
+
+                var columns = new DirectDataSetColumnModel[columnNames.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(columnNames[i], typeof(object));
+                }
+
+                return new DirectDataSetTableModel(
+                    columns,
+                    new DirectStreamingObjectRows<T>(
+                        rows,
+                        (writer, row) => {
+                            for (int columnIndex = 0; columnIndex < selectors.Count; columnIndex++) {
+                                writer.Write(selectors[columnIndex](row));
+                            }
+                        },
+                        maximumRows));
+            }
+
             internal static DirectDataSetTableModel FromTypedObjectRows<T>(
                 IReadOnlyList<T> rows,
                 IReadOnlyList<ExcelTabularColumn<T>> tabularColumns) {
@@ -175,6 +201,27 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new DirectDataSetTableModel(columns, new DirectTypedObjectRows<T>(rows, tabularColumns));
+            }
+
+            internal static DirectDataSetTableModel FromStreamingTypedObjectRows<T>(
+                IEnumerable<T> rows,
+                IReadOnlyList<ExcelTabularColumn<T>> tabularColumns,
+                int maximumRows) {
+                var columns = new DirectDataSetColumnModel[tabularColumns.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(tabularColumns[i].Header, tabularColumns[i].DataType);
+                }
+
+                return new DirectDataSetTableModel(
+                    columns,
+                    new DirectStreamingObjectRows<T>(
+                        rows,
+                        (writer, row) => {
+                            for (int columnIndex = 0; columnIndex < tabularColumns.Count; columnIndex++) {
+                                tabularColumns[columnIndex].WriteValue(writer, row);
+                            }
+                        },
+                        maximumRows));
             }
 
             internal static DirectDataSetTableModel FromCallbackRows<T>(
@@ -187,6 +234,21 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new DirectDataSetTableModel(columns, new DirectCallbackRows<T>(rows, writeRow));
+            }
+
+            internal static DirectDataSetTableModel FromStreamingCallbackRows<T>(
+                IReadOnlyList<string> columnNames,
+                IEnumerable<T> rows,
+                Action<ExcelTabularRowWriter, T> writeRow,
+                int maximumRows) {
+                var columns = new DirectDataSetColumnModel[columnNames.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(columnNames[i], typeof(object));
+                }
+
+                return new DirectDataSetTableModel(
+                    columns,
+                    new DirectStreamingObjectRows<T>(rows, writeRow, maximumRows));
             }
 
             internal static DirectDataSetTableModel FromLegacyDictionaries(IReadOnlyList<string> columnNames, IReadOnlyList<Type> columnTypes, IReadOnlyList<System.Collections.IDictionary> rows) {
@@ -536,6 +598,8 @@ namespace OfficeIMO.Excel {
                 rows = null!;
                 return false;
             }
+
+            internal bool HasKnownRowCount => _objectRows?.HasKnownCount ?? true;
 
             internal object?[]? GetBufferedRow(int rowIndex) {
                 if (_arrayRows != null) {

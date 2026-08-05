@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
@@ -211,6 +212,81 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WriteObjects_InlineTupleSelectorsConsumeRowsSinglePass() {
+            using var output = new MemoryStream();
+            bool enumerationActive = false;
+
+            ExcelDataSetImportResult result = ExcelDocument.WriteObjects(
+                output,
+                StreamRows(),
+                new (string Header, Func<TabularWriteRow, object?> Selector)[] {
+                    ("Id", row => {
+                        Assert.True(enumerationActive);
+                        return row.Id;
+                    }),
+                    ("Name", row => row.Name)
+                },
+                new ExcelTabularWriteOptions { UseSharedStrings = false });
+
+            Assert.False(enumerationActive);
+            Assert.Equal(2, result.RowCount);
+            Assert.Equal("A1:B3", result.Range);
+            byte[] package = output.ToArray();
+            using (var spreadsheet = SpreadsheetDocument.Open(
+                       new MemoryStream(package, writable: false),
+                       false)) {
+                Assert.Null(spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.SheetDimension);
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+            }
+            using (var reader = ExcelDocumentReader.Open(new MemoryStream(package, writable: false))) {
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B3");
+                Assert.Equal("Beta", values[2, 1]);
+            }
+
+            IEnumerable<TabularWriteRow> StreamRows() {
+                enumerationActive = true;
+                try {
+                    yield return new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true);
+                    yield return new TabularWriteRow(2, "Beta", new DateTime(2026, 7, 11), false);
+                } finally {
+                    enumerationActive = false;
+                }
+            }
+        }
+
+        [Fact]
+        public void WriteObjects_InlineTypedColumnsConsumeRowsSinglePass() {
+            using var output = new MemoryStream();
+            bool enumerationActive = false;
+
+            ExcelDataSetImportResult result = ExcelDocument.WriteObjects(
+                output,
+                StreamRows(),
+                new ExcelTabularColumn<TabularWriteRow>[] {
+                    ExcelTabularColumn<TabularWriteRow>.Create("Id", row => {
+                        Assert.True(enumerationActive);
+                        return row.Id;
+                    }),
+                    ExcelTabularColumn<TabularWriteRow>.Create("Active", row => row.Active)
+                },
+                new ExcelTabularWriteOptions { UseSharedStrings = false });
+
+            Assert.False(enumerationActive);
+            Assert.Equal(2, result.RowCount);
+            Assert.Equal("A1:B3", result.Range);
+
+            IEnumerable<TabularWriteRow> StreamRows() {
+                enumerationActive = true;
+                try {
+                    yield return new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true);
+                    yield return new TabularWriteRow(2, "Beta", new DateTime(2026, 7, 11), false);
+                } finally {
+                    enumerationActive = false;
+                }
+            }
+        }
+
+        [Fact]
         public void WriteObjects_RejectsDuplicateHeaders() {
             using var output = new MemoryStream();
             var rows = new[] { new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true) };
@@ -248,6 +324,57 @@ namespace OfficeIMO.Tests {
             object?[,] values = reader.GetSheet("Data").ReadRange("A1:D3");
             Assert.Equal("Beta", values[2, 1]);
             Assert.Equal(false, values[2, 3]);
+        }
+
+        [Fact]
+        public void WriteRows_ConsumesGeneratorWhileWriting() {
+            using var output = new MemoryStream();
+            bool enumerationActive = false;
+
+            ExcelDataSetImportResult result = ExcelDocument.WriteRows(
+                output,
+                StreamRows(),
+                ["Id", "Name"],
+                (writer, row) => {
+                    Assert.True(enumerationActive);
+                    writer.Write(row.Id).Write(row.Name);
+                });
+
+            Assert.False(enumerationActive);
+            Assert.Equal(2, result.RowCount);
+            Assert.Equal("A1:B3", result.Range);
+
+            IEnumerable<TabularWriteRow> StreamRows() {
+                enumerationActive = true;
+                try {
+                    yield return new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true);
+                    yield return new TabularWriteRow(2, "Beta", new DateTime(2026, 7, 11), false);
+                } finally {
+                    enumerationActive = false;
+                }
+            }
+        }
+
+        [Fact]
+        public void WriteRows_CancellationStopsBeforeAdvancingGenerator() {
+            using var output = new MemoryStream();
+            using var cts = new CancellationTokenSource();
+            bool enumerationStarted = false;
+            cts.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() => ExcelDocument.WriteRows(
+                output,
+                StreamRows(),
+                ["Id"],
+                static (writer, row) => writer.Write(row.Id),
+                ct: cts.Token));
+
+            Assert.False(enumerationStarted);
+
+            IEnumerable<TabularWriteRow> StreamRows() {
+                enumerationStarted = true;
+                yield return new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true);
+            }
         }
 
         [Fact]

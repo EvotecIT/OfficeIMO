@@ -1,17 +1,15 @@
+using System.Runtime.CompilerServices;
+
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffRkNumberReader {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static double ReadRkNumber(uint rawValue) {
             bool divideBy100 = (rawValue & 0x01) != 0;
             bool isInteger = (rawValue & 0x02) != 0;
             double value;
 
             if (isInteger) {
-                int integerValue = (int)(rawValue >> 2);
-                if ((integerValue & 0x20000000) != 0) {
-                    integerValue |= unchecked((int)0xc0000000);
-                }
-
-                value = integerValue;
+                value = unchecked((int)rawValue) >> 2;
             } else {
                 ulong doubleBits = ((ulong)(rawValue & 0xfffffffc)) << 32;
                 value = BitConverter.Int64BitsToDouble(unchecked((long)doubleBits));

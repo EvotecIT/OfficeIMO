@@ -44,7 +44,7 @@ public class MarkPflug65KCsvBenchmarks {
         using DbDataReader reader = CsvDocument.OpenDataReader(
             MarkPflug65KFixture.CsvPath,
             new CsvLoadOptions { DetectDelimiter = false });
-        return Observe(reader.FieldCount, read: reader.Read, value: reader.GetString);
+        return Observe(reader);
     }
 
     [Benchmark]
@@ -71,7 +71,7 @@ public class MarkPflug65KCsvBenchmarks {
     public CsvReadObservation Sylvan() {
         using var text = new StreamReader(MarkPflug65KFixture.CsvPath);
         using SylvanCsvDataReader reader = SylvanCsvDataReader.Create(text);
-        return Observe(reader.FieldCount, read: reader.Read, value: reader.GetString);
+        return Observe(reader);
     }
 
     [Benchmark]
@@ -129,6 +129,25 @@ public class MarkPflug65KCsvBenchmarks {
             for (int column = 0; column < fieldCount; column++) {
                 cells++;
                 string decoded = value(column);
+                characters += decoded.Length;
+                AddValue(ref checksum, decoded);
+            }
+        }
+
+        return new CsvReadObservation(rows, cells, characters, checksum);
+    }
+
+    private static CsvReadObservation Observe(DbDataReader reader) {
+        int fieldCount = reader.FieldCount;
+        int rows = 0;
+        int cells = 0;
+        long characters = 0;
+        ulong checksum = ChecksumOffset;
+        while (reader.Read()) {
+            rows++;
+            for (int column = 0; column < fieldCount; column++) {
+                cells++;
+                string decoded = reader.GetString(column);
                 characters += decoded.Length;
                 AddValue(ref checksum, decoded);
             }

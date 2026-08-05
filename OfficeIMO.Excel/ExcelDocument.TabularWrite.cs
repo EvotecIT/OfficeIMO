@@ -6,6 +6,8 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
         /// Writes typed rows directly to an XLSX package without creating an editable workbook object.
+        /// Sources are consumed once while worksheet XML is written when shared strings, tables,
+        /// and automatic column sizing are disabled.
         /// </summary>
         public static ExcelDataSetImportResult WriteObjects<T>(
             Stream stream,
@@ -19,7 +21,6 @@ namespace OfficeIMO.Excel {
             if (columns == null) throw new ArgumentNullException(nameof(columns));
             if (columns.Count == 0) throw new ArgumentException("At least one column selector is required.", nameof(columns));
 
-            var rows = items as IReadOnlyList<T> ?? items.ToList();
             var headers = new string[columns.Count];
             var selectors = new Func<T, object?>[columns.Count];
             var usedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -37,12 +38,25 @@ namespace OfficeIMO.Excel {
                 selectors[columnIndex] = columns[columnIndex].Selector ?? throw new ArgumentException("Column selectors must not be null.", nameof(columns));
             }
 
-            var tableModel = DirectDataSetTableModel.FromObjectRows(headers, rows, selectors);
+            options ??= new ExcelTabularWriteOptions();
+            DirectDataSetTableModel tableModel;
+            if (CanWriteObjectRowsSinglePass(options)) {
+                tableModel = DirectDataSetTableModel.FromStreamingObjectRows(
+                    headers,
+                    items,
+                    selectors,
+                    GetMaximumDataRows(options));
+            } else {
+                var rows = items as IReadOnlyList<T> ?? items.ToList();
+                tableModel = DirectDataSetTableModel.FromObjectRows(headers, rows, selectors);
+            }
             return WriteTabularModel(stream, tableModel, options, ct);
         }
 
         /// <summary>
         /// Writes strongly typed rows directly into an XLSX package through a reusable row writer.
+        /// Sources are consumed once while worksheet XML is written unless table creation requires
+        /// the final row range before package output begins.
         /// </summary>
         public static ExcelDataSetImportResult WriteRows<T>(
             Stream stream,
@@ -74,8 +88,17 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var rows = items as IReadOnlyList<T> ?? items.ToList();
-            var tableModel = DirectDataSetTableModel.FromCallbackRows(headers, rows, writeRow);
+            DirectDataSetTableModel tableModel;
+            if (CanWriteObjectRowsSinglePass(options)) {
+                tableModel = DirectDataSetTableModel.FromStreamingCallbackRows(
+                    headers,
+                    items,
+                    writeRow,
+                    GetMaximumDataRows(options));
+            } else {
+                var rows = items as IReadOnlyList<T> ?? items.ToList();
+                tableModel = DirectDataSetTableModel.FromCallbackRows(headers, rows, writeRow);
+            }
             return WriteTabularModel(stream, tableModel, options, ct);
         }
 
@@ -101,6 +124,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Writes typed rows directly to an XLSX package using strongly typed column selectors.
+        /// Sources are consumed once while worksheet XML is written when shared strings, tables,
+        /// and automatic column sizing are disabled.
         /// </summary>
         public static ExcelDataSetImportResult WriteObjects<T>(
             Stream stream,
@@ -123,10 +148,27 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var rows = items as IReadOnlyList<T> ?? items.ToList();
-            var tableModel = DirectDataSetTableModel.FromTypedObjectRows(rows, columns);
+            options ??= new ExcelTabularWriteOptions();
+            DirectDataSetTableModel tableModel;
+            if (CanWriteObjectRowsSinglePass(options)) {
+                tableModel = DirectDataSetTableModel.FromStreamingTypedObjectRows(
+                    items,
+                    columns,
+                    GetMaximumDataRows(options));
+            } else {
+                var rows = items as IReadOnlyList<T> ?? items.ToList();
+                tableModel = DirectDataSetTableModel.FromTypedObjectRows(rows, columns);
+            }
             return WriteTabularModel(stream, tableModel, options, ct);
         }
+
+        private static bool CanWriteObjectRowsSinglePass(ExcelTabularWriteOptions options) =>
+            !options.UseSharedStrings
+            && !options.CreateTable
+            && !options.AutoFit;
+
+        private static int GetMaximumDataRows(ExcelTabularWriteOptions options) =>
+            A1.MaxRows - (options.IncludeHeaders ? 1 : 0);
 
         /// <summary>
         /// Writes an open data reader directly to an XLSX package without creating an editable workbook object.
@@ -248,7 +290,22 @@ namespace OfficeIMO.Excel {
                 stream.Seek(0, SeekOrigin.Begin);
             }
 
-            return model.Results[0];
+            ExcelDataSetImportResult result = model.Results[0];
+            if (result.RowCount == tableModel.RowCount) {
+                return result;
+            }
+
+            string finalRange = ExcelSheet.BuildObjectExportRange(
+                1,
+                tableModel.ColumnCount,
+                tableModel.RowCount,
+                options.IncludeHeaders);
+            return new ExcelDataSetImportResult(
+                sheetName,
+                tableName: null,
+                finalRange,
+                tableModel.RowCount,
+                tableModel.ColumnCount);
         }
     }
 }

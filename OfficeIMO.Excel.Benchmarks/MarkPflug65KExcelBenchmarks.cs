@@ -160,15 +160,26 @@ public class MarkPflug65KXlsxBenchmarks {
     internal static ExcelReadObservation Observe(DbDataReader reader) {
         var observation = new ExcelObservationAccumulator();
         while (reader.Read()) {
-            AddRow(
-                ref observation,
-                reader.GetString,
-                reader.GetDateTime,
-                reader.GetInt32,
-                reader.GetDecimal);
+            AddRow(ref observation, reader);
         }
 
         return observation.Build();
+    }
+
+    private static void AddRow(
+        ref ExcelObservationAccumulator observation,
+        DbDataReader reader) {
+        observation.BeginRow();
+        for (int ordinal = 0; ordinal <= 4; ordinal++) {
+            observation.Add(reader.GetString(ordinal));
+        }
+        observation.Add(reader.GetDateTime(5));
+        observation.Add(reader.GetInt32(6));
+        observation.Add(reader.GetDateTime(7));
+        observation.Add(reader.GetInt32(8));
+        for (int ordinal = 9; ordinal <= 13; ordinal++) {
+            observation.Add(reader.GetDecimal(ordinal));
+        }
     }
 
     internal static void AddRow(
@@ -362,8 +373,10 @@ internal struct ExcelObservationAccumulator {
 
     internal void Add(decimal value) {
         AddTag(4);
-        foreach (int part in decimal.GetBits(value)) {
-            AddUInt64(unchecked((uint)part));
+        Span<int> parts = stackalloc int[4];
+        decimal.GetBits(value, parts);
+        for (int index = 0; index < parts.Length; index++) {
+            AddUInt64(unchecked((uint)parts[index]));
         }
         _cells++;
     }

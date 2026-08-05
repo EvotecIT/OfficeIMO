@@ -2,6 +2,7 @@ using System.Collections;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
@@ -135,9 +136,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         public override decimal GetDecimal(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return IsNumericValueKind(_kinds[ordinal])
-                ? ConvertExcelNumberToDecimal(_numbers[ordinal])
-                : Convert.ToDecimal(GetValue(ordinal), _options.Culture);
+            if (IsNumericValueKind(_kinds[ordinal])) {
+                try {
+                    return (decimal)_numbers[ordinal];
+                } catch (OverflowException exception) {
+                    throw new InvalidCastException(
+                        $"The XLSB numeric value '{_numbers[ordinal]}' cannot be represented as decimal.",
+                        exception);
+                }
+            }
+
+            return Convert.ToDecimal(GetValue(ordinal), _options.Culture);
         }
 
         public override DateTime GetDateTime(int ordinal) {
@@ -152,6 +161,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return value is Guid guid ? guid : Guid.Parse(Convert.ToString(value, _options.Culture)!);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsNumericValueKind(XlsbTabularValueKind kind) =>
             kind == XlsbTabularValueKind.Number
             || kind == XlsbTabularValueKind.Date;

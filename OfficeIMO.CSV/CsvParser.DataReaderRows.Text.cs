@@ -133,6 +133,19 @@ internal static partial class CsvParser
             _materialized[fieldIndex] = null;
         }
 
+        public void VisitFieldRange(
+            int recordIndex,
+            int fieldIndex,
+            char[] buffer,
+            int start,
+            int length)
+        {
+            VisitFieldValue(
+                recordIndex,
+                fieldIndex,
+                length == 0 ? string.Empty : new string(buffer, start, length));
+        }
+
         public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
         {
             _nextVisitIsUnescapedScratch = true;
@@ -237,7 +250,7 @@ internal static partial class CsvParser
         var delimiter = GetDelimiterChar(options);
         var delimiterVector = System.Runtime.Intrinsics.Vector256<byte>.Zero;
         if (!options.TrimWhitespace &&
-            delimiter <= byte.MaxValue &&
+            CanUseAvx2PackedDelimiter(delimiter) &&
             System.Runtime.Intrinsics.X86.Avx2.IsSupported)
         {
             delimiterVector = System.Runtime.Intrinsics.Vector256.Create((byte)delimiter);

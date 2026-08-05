@@ -1,7 +1,10 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Projection;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Data.Common;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using static OfficeIMO.Excel.LegacyXls.Read.LegacyXlsTabularWorkbook;
 
@@ -12,6 +15,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
     /// </summary>
     internal sealed partial class LegacyXlsTabularDataReader : DbDataReader {
         private readonly LegacyBiffSource _bytes;
+        private readonly byte[]? _bufferedBytes;
         private readonly IReadOnlyList<string> _sharedStrings;
         private readonly bool[] _dateStyles;
         private readonly bool _uses1904DateSystem;
@@ -26,6 +30,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly int _firstColumn;
         private readonly int _firstDataRow;
         private readonly int _lastDataRow;
+        private int[]? _bufferedRowOffsets;
+        private readonly int _bufferedWorksheetEndOffset;
         private int _position;
         private int _nextRow;
         private int _recordsSinceCancellationCheck;
@@ -42,49 +48,65 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ExcelReadOptions options,
             CancellationToken cancellationToken) {
             _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
+            _bufferedBytes = bytes.ContiguousBuffer;
             _sharedStrings = sharedStrings ?? throw new ArgumentNullException(nameof(sharedStrings));
             _dateStyles = dateStyles ?? throw new ArgumentNullException(nameof(dateStyles));
             _uses1904DateSystem = uses1904DateSystem;
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _cancellationToken = cancellationToken;
 
-            Discover(
-                sheetOffset,
-                out int firstRow,
-                out int lastRow,
-                out int firstColumn,
-                out int lastColumn,
-                out Dictionary<int, string?>? headerValues);
-            _firstColumn = firstColumn;
-            _firstDataRow = hasHeaderRow && firstRow >= 0 ? checked(firstRow + 1) : firstRow;
-            _lastDataRow = lastRow;
-            _position = sheetOffset;
-            _nextRow = _firstDataRow;
+            int[]? bufferedRowOffsets = _bufferedBytes != null
+                ? ArrayPool<int>.Shared.Rent(ushort.MaxValue + 1)
+                : null;
+            int bufferedWorksheetEndOffset;
+            try {
+                Discover(
+                    sheetOffset,
+                    bufferedRowOffsets,
+                    out bufferedWorksheetEndOffset,
+                    out int firstRow,
+                    out int lastRow,
+                    out int firstColumn,
+                    out int lastColumn,
+                    out Dictionary<int, string?>? headerValues);
+                _bufferedRowOffsets = bufferedRowOffsets;
+                _bufferedWorksheetEndOffset = bufferedWorksheetEndOffset;
+                _firstColumn = firstColumn;
+                _firstDataRow = hasHeaderRow && firstRow >= 0 ? checked(firstRow + 1) : firstRow;
+                _lastDataRow = lastRow;
+                _position = sheetOffset;
+                _nextRow = _firstDataRow;
 
-            int fieldCount = lastColumn >= firstColumn
-                ? checked(lastColumn - firstColumn + 1)
-                : 0;
-            if (fieldCount > options.MaxDataReaderColumns) {
-                throw new InvalidDataException(
-                    $"XLS table column count {fieldCount} exceeds the configured limit of {options.MaxDataReaderColumns}.");
-            }
-            _headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
-                fieldCount,
-                ordinal => hasHeaderRow
-                    && headerValues != null
-                    && headerValues.TryGetValue(ordinal + firstColumn, out string? value)
-                        ? value
-                        : null,
-                options.NormalizeHeaders);
-            _ordinals = new Dictionary<string, int>(_headers.Length, StringComparer.OrdinalIgnoreCase);
-            for (int index = 0; index < _headers.Length; index++) {
-                _ordinals[_headers[index]] = index;
-            }
+                int fieldCount = lastColumn >= firstColumn
+                    ? checked(lastColumn - firstColumn + 1)
+                    : 0;
+                if (fieldCount > options.MaxDataReaderColumns) {
+                    throw new InvalidDataException(
+                        $"XLS table column count {fieldCount} exceeds the configured limit of {options.MaxDataReaderColumns}.");
+                }
+                _headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
+                    fieldCount,
+                    ordinal => hasHeaderRow
+                        && headerValues != null
+                        && headerValues.TryGetValue(ordinal + firstColumn, out string? value)
+                            ? value
+                            : null,
+                    options.NormalizeHeaders);
+                _ordinals = new Dictionary<string, int>(_headers.Length, StringComparer.OrdinalIgnoreCase);
+                for (int index = 0; index < _headers.Length; index++) {
+                    _ordinals[_headers[index]] = index;
+                }
 
-            _kinds = new ValueKind[fieldCount];
-            _numbers = new double[fieldCount];
-            _booleans = new bool[fieldCount];
-            _strings = new string?[fieldCount];
+                _kinds = new ValueKind[fieldCount];
+                _numbers = new double[fieldCount];
+                _booleans = new bool[fieldCount];
+                _strings = new string?[fieldCount];
+            } catch {
+                if (bufferedRowOffsets != null) {
+                    ArrayPool<int>.Shared.Return(bufferedRowOffsets);
+                }
+                throw;
+            }
         }
 
         public override object this[int ordinal] => GetValue(ordinal);
@@ -107,6 +129,39 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int pendingFormulaOrdinal = -1;
             ushort pendingFormulaStyle = 0;
 
+            if (_bufferedBytes != null) {
+                int[] rowOffsets = _bufferedRowOffsets!;
+                int rowStartMarker = rowOffsets[currentRow];
+                if (rowStartMarker == 0) {
+                    _hasCurrentRow = true;
+                    return true;
+                }
+                int rowEnd = _bufferedWorksheetEndOffset;
+                for (int nextRow = currentRow + 1; nextRow <= _lastDataRow; nextRow++) {
+                    int nextMarker = rowOffsets[nextRow];
+                    if (nextMarker != 0) {
+                        rowEnd = nextMarker - 1;
+                        break;
+                    }
+                }
+                ReadBufferedCurrentRow(
+                    _bufferedBytes,
+                    rowStartMarker - 1,
+                    rowEnd,
+                    ref pendingFormulaOrdinal,
+                    ref pendingFormulaStyle);
+            } else {
+                ReadPagedCurrentRow(currentRow, ref pendingFormulaOrdinal, ref pendingFormulaStyle);
+            }
+
+            _hasCurrentRow = true;
+            return true;
+        }
+
+        private void ReadPagedCurrentRow(
+            int currentRow,
+            ref int pendingFormulaOrdinal,
+            ref ushort pendingFormulaStyle) {
             while (true) {
                 int recordOffset = _position;
                 if (!TryReadRecord(_bytes, ref _position, out RecordSlice record)) {
@@ -136,9 +191,53 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
                 StoreCellRecord(record, ref pendingFormulaOrdinal, ref pendingFormulaStyle);
             }
+        }
 
-            _hasCurrentRow = true;
-            return true;
+        private void ReadBufferedCurrentRow(
+            byte[] bytes,
+            int rowStart,
+            int rowEnd,
+            ref int pendingFormulaOrdinal,
+            ref ushort pendingFormulaStyle) {
+            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            _position = rowStart;
+            while (_position < rowEnd) {
+                int recordOffset = _position;
+                ushort type = (ushort)(bytes[recordOffset] | bytes[recordOffset + 1] << 8);
+                int length = bytes[recordOffset + 2] | bytes[recordOffset + 3] << 8;
+                int payloadOffset = recordOffset + 4;
+                _position = payloadOffset + length;
+                if (checkCancellation) {
+                    CheckCancellation();
+                }
+
+                if (pendingFormulaOrdinal >= 0) {
+                    if (type != (ushort)BiffRecordType.String) {
+                        throw MissingFormulaString();
+                    }
+                    StoreFormulaString(
+                        new RecordSlice(type, recordOffset, payloadOffset, length),
+                        pendingFormulaOrdinal,
+                        pendingFormulaStyle,
+                        ref _position);
+                    pendingFormulaOrdinal = -1;
+                    continue;
+                }
+                if (type == (ushort)BiffRecordType.Eof) break;
+
+                if (!IsCellRecordType(type)) continue;
+                StoreBufferedCellRecord(
+                    bytes,
+                    type,
+                    recordOffset,
+                    payloadOffset,
+                    length,
+                    ref pendingFormulaOrdinal,
+                    ref pendingFormulaStyle);
+            }
+            if (pendingFormulaOrdinal >= 0) {
+                throw MissingFormulaString();
+            }
         }
 
         public override bool NextResult() => false;
@@ -146,6 +245,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         public override void Close() {
             _closed = true;
             _hasCurrentRow = false;
+            int[]? rowOffsets = Interlocked.Exchange(ref _bufferedRowOffsets, null);
+            if (rowOffsets != null) {
+                ArrayPool<int>.Shared.Return(rowOffsets);
+            }
         }
 
         protected override void Dispose(bool disposing) {
@@ -155,6 +258,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private void Discover(
             int sheetOffset,
+            int[]? bufferedRowOffsets,
+            out int bufferedWorksheetEndOffset,
             out int firstRow,
             out int lastRow,
             out int firstColumn,
@@ -169,10 +274,14 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             bool sawEof = false;
             int pendingHeaderColumn = -1;
             int previousCellRow = -1;
+            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            bufferedWorksheetEndOffset = -1;
             headerValues = null;
 
-            while (TryReadRecord(_bytes, ref offset, out RecordSlice record)) {
-                CheckCancellation();
+            while (TryReadDiscoveryRecord(ref offset, out RecordSlice record)) {
+                if (checkCancellation) {
+                    CheckCancellation();
+                }
                 if (!sawBof) {
                     if (record.Type != (ushort)BiffRecordType.Bof || record.Length < 4) {
                         throw new InvalidDataException("The XLS worksheet stream is missing a valid BOF record.");
@@ -195,6 +304,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 }
                 if (record.Type == (ushort)BiffRecordType.Eof) {
                     sawEof = true;
+                    bufferedWorksheetEndOffset = record.Offset;
                     break;
                 }
                 if (!TryGetCellBounds(record, out int row, out int recordFirstColumn, out int recordLastColumn)) {
@@ -203,6 +313,13 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 if (row < previousCellRow) {
                     throw new InvalidDataException(
                         $"The XLS worksheet contains decreasing cell row index {row} after row {previousCellRow}.");
+                }
+                if (bufferedRowOffsets != null && row != previousCellRow) {
+                    int firstUninitializedRow = previousCellRow < 0 ? row : previousCellRow + 1;
+                    for (int missingRow = firstUninitializedRow; missingRow < row; missingRow++) {
+                        bufferedRowOffsets[missingRow] = 0;
+                    }
+                    bufferedRowOffsets[row] = record.Offset + 1;
                 }
                 previousCellRow = row;
 
@@ -216,7 +333,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                         pendingHeaderColumn = recordFirstColumn;
                     }
                 }
-                lastRow = Math.Max(lastRow, row);
+                lastRow = row;
                 firstColumn = Math.Min(firstColumn, recordFirstColumn);
                 lastColumn = Math.Max(lastColumn, recordLastColumn);
             }
@@ -247,16 +364,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 case BiffRecordType.Number:
                 case BiffRecordType.Rk:
                     if (record.Length < 6) throw TruncatedCell(record);
-                    row = ReadUInt16(_bytes, record.PayloadOffset);
-                    firstColumn = ReadUInt16(_bytes, record.PayloadOffset + 2);
+                    row = ReadDiscoveryUInt16(record.PayloadOffset);
+                    firstColumn = ReadDiscoveryUInt16(record.PayloadOffset + 2);
                     lastColumn = firstColumn;
                     return true;
                 case BiffRecordType.MulBlank:
                 case BiffRecordType.MulRk:
                     if (record.Length < 6) throw TruncatedCell(record);
-                    row = ReadUInt16(_bytes, record.PayloadOffset);
-                    firstColumn = ReadUInt16(_bytes, record.PayloadOffset + 2);
-                    lastColumn = ReadUInt16(_bytes, record.PayloadOffset + record.Length - 2);
+                    row = ReadDiscoveryUInt16(record.PayloadOffset);
+                    firstColumn = ReadDiscoveryUInt16(record.PayloadOffset + 2);
+                    lastColumn = ReadDiscoveryUInt16(record.PayloadOffset + record.Length - 2);
                     if (lastColumn < firstColumn) throw new InvalidDataException("A BIFF multiple-cell record has an invalid column range.");
                     int cellCount = checked(lastColumn - firstColumn + 1);
                     int bytesPerCell = record.Type == (ushort)BiffRecordType.MulBlank ? 2 : 6;
@@ -270,6 +387,56 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     return false;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryReadDiscoveryRecord(ref int offset, out RecordSlice record) {
+            byte[]? bytes = _bufferedBytes;
+            if (bytes == null) {
+                return TryReadRecord(_bytes, ref offset, out record);
+            }
+
+            int sourceLength = _bytes.Length;
+            if (offset == sourceLength) {
+                record = default;
+                return false;
+            }
+            if (offset < 0 || offset > sourceLength - 4) {
+                throw new InvalidDataException("The BIFF stream ended inside a record header.");
+            }
+
+            int recordOffset = offset;
+            ushort type = (ushort)(bytes[offset] | bytes[offset + 1] << 8);
+            int length = bytes[offset + 2] | bytes[offset + 3] << 8;
+            int payloadOffset = offset + 4;
+            if (length > sourceLength - payloadOffset) {
+                throw new InvalidDataException(
+                    $"BIFF record 0x{type:X4} at offset {recordOffset} declares {length} payload bytes, but the stream ends early.");
+            }
+
+            offset = payloadOffset + length;
+            record = new RecordSlice(type, recordOffset, payloadOffset, length);
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private ushort ReadDiscoveryUInt16(int offset) {
+            byte[]? bytes = _bufferedBytes;
+            return bytes != null
+                ? (ushort)(bytes[offset] | bytes[offset + 1] << 8)
+                : ReadUInt16(_bytes, offset);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsCellRecordType(ushort type) =>
+            type == (ushort)BiffRecordType.Blank
+            || type == (ushort)BiffRecordType.BoolErr
+            || type == (ushort)BiffRecordType.Formula
+            || type == (ushort)BiffRecordType.Label
+            || type == (ushort)BiffRecordType.LabelSst
+            || type == (ushort)BiffRecordType.Number
+            || type == (ushort)BiffRecordType.Rk
+            || type == (ushort)BiffRecordType.MulBlank
+            || type == (ushort)BiffRecordType.MulRk;
 
         private void ReadHeaderCells(RecordSlice record, IDictionary<int, string?> values) {
             if (record.Type == (ushort)BiffRecordType.MulRk) {
@@ -387,6 +554,76 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
         }
 
+        private void StoreBufferedCellRecord(
+            byte[] bytes,
+            ushort type,
+            int recordOffset,
+            int payloadOffset,
+            int length,
+            ref int pendingFormulaOrdinal,
+            ref ushort pendingFormulaStyle) {
+            if (type == (ushort)BiffRecordType.MulRk) {
+                StoreBufferedMulRk(bytes, payloadOffset, length);
+                return;
+            }
+            if (type == (ushort)BiffRecordType.MulBlank) return;
+
+            if (length < 6) {
+                throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
+            }
+
+            int column = bytes[payloadOffset + 2] | bytes[payloadOffset + 3] << 8;
+            int ordinal = column - _firstColumn;
+            ushort style = (ushort)(bytes[payloadOffset + 4] | bytes[payloadOffset + 5] << 8);
+            switch ((BiffRecordType)type) {
+                case BiffRecordType.Blank:
+                    _kinds[ordinal] = ValueKind.Empty;
+                    break;
+                case BiffRecordType.LabelSst:
+                    if (length < 10) throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
+                    _kinds[ordinal] = ValueKind.Text;
+                    _strings[ordinal] = GetSharedString(BinaryPrimitives.ReadUInt32LittleEndian(
+                        bytes.AsSpan(payloadOffset + 6, sizeof(uint))));
+                    break;
+                case BiffRecordType.Label: {
+                    var record = new RecordSlice(type, recordOffset, payloadOffset, length);
+                    _kinds[ordinal] = ValueKind.Text;
+                    _strings[ordinal] = ReadLabel(record);
+                    break;
+                }
+                case BiffRecordType.Number:
+                    if (length < 14) throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
+                    StoreNumber(ordinal, ReadBufferedDouble(bytes, payloadOffset + 6), style);
+                    break;
+                case BiffRecordType.Rk:
+                    if (length < 10) throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
+                    StoreNumber(
+                        ordinal,
+                        BiffRkNumberReader.ReadRkNumber(BinaryPrimitives.ReadUInt32LittleEndian(
+                            bytes.AsSpan(payloadOffset + 6, sizeof(uint)))),
+                        style);
+                    break;
+                case BiffRecordType.BoolErr:
+                    if (length < 8) throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
+                    if (bytes[payloadOffset + 7] != 0) {
+                        _kinds[ordinal] = ValueKind.Error;
+                        _strings[ordinal] = BiffErrorValue.ToText(bytes[payloadOffset + 6]);
+                    } else {
+                        _kinds[ordinal] = ValueKind.Boolean;
+                        _booleans[ordinal] = bytes[payloadOffset + 6] != 0;
+                    }
+                    break;
+                case BiffRecordType.Formula:
+                    StoreFormula(
+                        new RecordSlice(type, recordOffset, payloadOffset, length),
+                        ordinal,
+                        style,
+                        ref pendingFormulaOrdinal,
+                        ref pendingFormulaStyle);
+                    break;
+            }
+        }
+
         private void StoreMulRk(RecordSlice record) {
             int payload = record.PayloadOffset;
             int firstColumn = ReadUInt16(_bytes, payload + 2);
@@ -403,6 +640,25 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     ReadUInt16(_bytes, cellOffset));
             }
         }
+
+        private void StoreBufferedMulRk(byte[] bytes, int payloadOffset, int length) {
+            int firstColumn = bytes[payloadOffset + 2] | bytes[payloadOffset + 3] << 8;
+            int count = (length - 6) / 6;
+            int ordinal = firstColumn - _firstColumn;
+            int cellOffset = payloadOffset + 4;
+            for (int index = 0; index < count; index++, ordinal++, cellOffset += 6) {
+                StoreNumber(
+                    ordinal,
+                    BiffRkNumberReader.ReadRkNumber(BinaryPrimitives.ReadUInt32LittleEndian(
+                        bytes.AsSpan(cellOffset + 2, sizeof(uint)))),
+                    BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(cellOffset, sizeof(ushort))));
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double ReadBufferedDouble(byte[] bytes, int offset) =>
+            BitConverter.Int64BitsToDouble(BinaryPrimitives.ReadInt64LittleEndian(
+                bytes.AsSpan(offset, sizeof(long))));
 
         private void StoreFormula(
             RecordSlice record,
@@ -465,6 +721,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return ReadUInt16(_bytes, result + 6) == ushort.MaxValue && _bytes[result] == 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StoreNumber(int ordinal, double number, ushort style) {
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && style < _dateStyles.Length

@@ -47,6 +47,7 @@ namespace OfficeIMO.Tests {
             Assert.True(reader.Read());
             Assert.Equal(double.MaxValue, Assert.IsType<double>(reader.GetValue(0)));
             Assert.Equal(double.MaxValue, reader.GetDouble(0));
+            Assert.Throws<InvalidCastException>(() => reader.GetDecimal(0));
             Assert.False(reader.Read());
         }
 
@@ -61,6 +62,26 @@ namespace OfficeIMO.Tests {
                     new ExcelReadOptions { HasHeaderRow = false }));
 
             Assert.Contains("MULBLANK", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData((ushort)0x0006)]
+        [InlineData((ushort)0x00fd)]
+        [InlineData((ushort)0x0203)]
+        [InlineData((ushort)0x0204)]
+        [InlineData((ushort)0x0205)]
+        [InlineData((ushort)0x027e)]
+        public void OpenDataReader_XlsFastPathRejectsTruncatedNonHeaderScalarCells(ushort recordType) {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
+                LegacyXlsTestWorkbookBuilder.CreateTruncatedScalarCellWorkbookStream(recordType));
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                compound,
+                new ExcelReadOptions { HasHeaderRow = false });
+            Assert.True(reader.Read());
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => reader.Read());
+
+            Assert.Contains("truncated", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -203,6 +224,19 @@ namespace OfficeIMO.Tests {
                         WriteUInt16(payload, 0);
                         WriteUInt16(payload, 2);
                         WriteRecord(worksheet, 0x00be, payload.ToArray());
+                    });
+
+            internal static byte[] CreateTruncatedScalarCellWorkbookStream(ushort recordType) =>
+                CreateFastPathRegressionWorkbookStream(
+                    "TruncatedCell",
+                    globals => { },
+                    worksheet => {
+                        WriteRecord(worksheet, 0x0203, BuildNumberPayload(0, 0, 1D));
+                        using var payload = new MemoryStream();
+                        WriteUInt16(payload, 1);
+                        WriteUInt16(payload, 0);
+                        WriteUInt16(payload, 0);
+                        WriteRecord(worksheet, recordType, payload.ToArray());
                     });
 
             private static byte[] CreateFastPathRegressionWorkbookStream(

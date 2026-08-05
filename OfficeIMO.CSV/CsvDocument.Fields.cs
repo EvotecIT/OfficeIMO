@@ -355,6 +355,16 @@ public sealed partial class CsvDocument
             }
         }
 
+        public void VisitFieldRange(
+            int recordIndex,
+            int fieldIndex,
+            char[] buffer,
+            int start,
+            int length)
+        {
+            VisitField(recordIndex, fieldIndex, buffer.AsSpan(start, length));
+        }
+
         public void VisitFieldValue(int recordIndex, int fieldIndex, string value)
         {
             BeginOrAdvanceRecord(recordIndex);

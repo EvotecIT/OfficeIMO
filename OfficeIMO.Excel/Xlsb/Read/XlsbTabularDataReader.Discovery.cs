@@ -1,6 +1,7 @@
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Package;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
@@ -154,6 +155,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 "The XLSB worksheet contains BrtEndSheetData without a matching BrtBeginSheetData record.");
                         }
 
+                        if (previousCellColumn > lastColumn) {
+                            lastColumn = previousCellColumn;
+                        }
                         sawEndSheetData = true;
                         inSheetData = false;
                         currentRow = -1;
@@ -168,6 +172,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         continue;
                     }
                     if (recordType == BrtRowHdr) {
+                        if (previousCellColumn > lastColumn) {
+                            lastColumn = previousCellColumn;
+                        }
                         int nextRow = ValidateRowHeader(
                             new XlsbRecordSlice(
                                 bytes,
@@ -202,17 +209,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     if (!useCachedFormulaResult) {
                         EnsureFormulaModeSupported(recordType, useCachedFormulaResult);
                     }
-                    if (firstDataRow < 0) {
-                        firstDataRow = currentRow;
-                    }
-                    lastDataRow = currentRow;
                     int column;
                     if (recordSize >= sizeof(int) + sizeof(uint)
                         && recordType is >= BrtCellBlank and <= BrtCellIsst) {
-                        column = BinaryPrimitives.ReadInt32LittleEndian(
-                            bytes.AsSpan(payloadOffset, sizeof(int)));
-                        uint styleIndex = BinaryPrimitives.ReadUInt32LittleEndian(
-                            bytes.AsSpan(payloadOffset + sizeof(int), sizeof(uint))) & 0x00FFFFFFU;
+                        ref byte payload = ref bytes[payloadOffset];
+                        column = Unsafe.ReadUnaligned<int>(ref payload);
+                        uint styleIndex = Unsafe.ReadUnaligned<uint>(
+                            ref Unsafe.Add(ref payload, sizeof(int))) & 0x00FFFFFFU;
                         if (styleIndex >= styleCount) {
                             throw new InvalidDataException(
                                 $"The XLSB cell record at offset {recordOffset} refers to missing cell format " +
@@ -229,8 +232,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             _ => false
                         };
                         if (validFixedPayload && recordType == BrtCellIsst) {
-                            uint sharedStringIndex = BinaryPrimitives.ReadUInt32LittleEndian(
-                                bytes.AsSpan(payloadOffset + sizeof(int) + sizeof(uint), sizeof(uint)));
+                            uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
+                                ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
                             if (sharedStringIndex >= sharedStringCount) {
                                 throw new InvalidDataException(
                                     $"The XLSB cell record at offset {recordOffset} refers to missing shared string " +
@@ -265,7 +268,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         throw new InvalidDataException(
                             $"The XLSB cell record at offset {recordOffset} contains invalid column index {column}.");
                     }
-                    if (column <= previousCellColumn) {
+                    bool firstCellInRow = previousCellColumn < 0;
+                    if (!firstCellInRow && column <= previousCellColumn) {
                         throw new InvalidDataException(
                             $"The XLSB cell record at offset {recordOffset} is duplicated or out of order within its row.");
                     }
@@ -278,11 +282,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             $"The XLSB cell record at offset {recordOffset} for column {column} is not covered by its BrtRowHdr column spans.");
                     }
 
-                    if (column < firstColumn) {
-                        firstColumn = column;
-                    }
-                    if (column > lastColumn) {
-                        lastColumn = column;
+                    if (firstCellInRow) {
+                        if (firstDataRow < 0) {
+                            firstDataRow = currentRow;
+                        }
+                        lastDataRow = currentRow;
+                        if (column < firstColumn) {
+                            firstColumn = column;
+                        }
                     }
                 }
 

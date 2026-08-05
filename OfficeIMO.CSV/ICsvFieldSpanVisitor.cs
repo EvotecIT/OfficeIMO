@@ -17,6 +17,21 @@ internal interface ICsvFieldSpanVisitor
     void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value);
 
     /// <summary>
+    /// Visits a field that is already known to be an unchanged range of a parser buffer.
+    /// Visitors that retain ranges can override this to avoid reconstructing the source offset
+    /// from a span; other visitors use the normal transient-span callback.
+    /// </summary>
+    void VisitFieldRange(
+        int recordIndex,
+        int fieldIndex,
+        char[] buffer,
+        int start,
+        int length)
+    {
+        VisitField(recordIndex, fieldIndex, buffer.AsSpan(start, length));
+    }
+
+    /// <summary>
     /// Optionally visits an escaped quoted field without forcing the parser to compact doubled quotes into a scratch buffer.
     /// </summary>
     /// <param name="recordIndex">Zero-based emitted record index.</param>
@@ -75,6 +90,16 @@ internal readonly struct CsvFieldSpanActionVisitor : ICsvFieldSpanVisitor
     public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
     {
         _action(recordIndex, fieldIndex, value);
+    }
+
+    public void VisitFieldRange(
+        int recordIndex,
+        int fieldIndex,
+        char[] buffer,
+        int start,
+        int length)
+    {
+        _action(recordIndex, fieldIndex, buffer.AsSpan(start, length));
     }
 }
 #endif

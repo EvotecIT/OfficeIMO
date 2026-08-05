@@ -56,6 +56,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         internal int Length { get; }
 
+        /// <summary>
+        /// Gets the contiguous workbook buffer when the source was small enough to load eagerly.
+        /// Callers must treat the pooled buffer as immutable and observe <see cref="Length"/>.
+        /// </summary>
+        internal byte[]? ContiguousBuffer => _buffer;
+
         internal byte this[int offset] => ReadByte(offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

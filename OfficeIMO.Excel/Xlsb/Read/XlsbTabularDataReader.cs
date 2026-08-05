@@ -5,6 +5,7 @@ using OfficeIMO.Excel.Xlsb.Package;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data.Common;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
@@ -261,7 +262,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             Array.Clear(_kinds, 0, _kinds.Length);
             Array.Clear(_strings, 0, _strings.Length);
-            Array.Clear(_customValues, 0, _customValues.Length);
+            if (_options.CellValueConverter != null) {
+                Array.Clear(_customValues, 0, _customValues.Length);
+            }
             if (_nextLogicalRowIndex < _pendingRowIndex) {
                 _nextLogicalRowIndex++;
                 _hasCurrentRow = true;
@@ -317,7 +320,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             lastColumn = -1;
             bool inSheetData = false;
             bool sawDimension = false;
-            while (_records.TryRead(out XlsbRecordSlice record)) {
+            while (_records.TryReadValidated(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtWsDim) {
                     if (sawDimension) {
@@ -362,7 +365,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private Dictionary<int, string?> ReadHeaderRow() {
             var values = new Dictionary<int, string?>();
             _hasPendingRow = false;
-            while (_records.TryRead(out XlsbRecordSlice record)) {
+            while (_records.TryReadValidated(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtRowHdr) {
                     if (TrySetPendingRow(record)) {
@@ -563,15 +566,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             throw new InvalidCastException($"The XLSB numeric value '{serial}' is not a valid Excel date.");
         }
 
-        private static decimal ConvertExcelNumberToDecimal(double number) {
-            if (TryConvertExcelNumberToDecimal(number, out decimal value)) {
-                return value;
-            }
-
-            throw new InvalidCastException(
-                $"The XLSB numeric value '{number}' cannot be represented as decimal.");
-        }
-
         private static bool TryConvertExcelNumberToDecimal(double number, out decimal value) {
             if (double.IsNaN(number) || double.IsInfinity(number)) {
                 value = default;
@@ -641,14 +635,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     nameof(spanBounds));
             }
 
-            var cursor = record.CreateCursor();
-            uint rowIndex = cursor.ReadUInt32();
-            cursor.ReadUInt32();
-            cursor.ReadUInt16();
-            byte extraFlags = cursor.ReadByte();
-            byte flags = cursor.ReadByte();
-            byte phoneticFlags = cursor.ReadByte();
-            uint declaredSpanCount = cursor.ReadUInt32();
+            ref byte payload = ref record.Bytes[record.PayloadOffset];
+            uint rowIndex = Unsafe.ReadUnaligned<uint>(ref payload);
+            byte extraFlags = Unsafe.Add(ref payload, 10);
+            byte flags = Unsafe.Add(ref payload, 11);
+            byte phoneticFlags = Unsafe.Add(ref payload, 12);
+            uint declaredSpanCount = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, 13));
             if (rowIndex >= A1.MaxRows
                 || (extraFlags & 0xFC) != 0
                 || (flags & 0x80) != 0
@@ -657,7 +649,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The BrtRowHdr record at offset {record.RecordOffset} contains invalid row metadata.");
             }
-            if (cursor.Remaining != checked((int)declaredSpanCount * 8)) {
+            if (record.Size != 17 + checked((int)declaredSpanCount * 8)) {
                 throw new InvalidDataException(
                     $"The BrtRowHdr record at offset {record.RecordOffset} has an invalid column-span payload.");
             }
@@ -665,8 +657,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int previousLast = -1;
             spanCount = checked((int)declaredSpanCount);
             for (int index = 0; index < spanCount; index++) {
-                uint firstColumn = cursor.ReadUInt32();
-                uint lastColumn = cursor.ReadUInt32();
+                int spanOffset = 17 + index * 8;
+                uint firstColumn = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, spanOffset));
+                uint lastColumn = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, spanOffset + 4));
                 if (firstColumn > lastColumn
                     || lastColumn >= A1.MaxColumns
                     || firstColumn / 1024U != lastColumn / 1024U
@@ -703,19 +696,31 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return count;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ValidateOrdinal(int ordinal) {
-            if (ordinal < 0 || ordinal >= FieldCount) {
-                throw new IndexOutOfRangeException($"Column ordinal {ordinal} is outside 0..{FieldCount - 1}.");
+            if ((uint)ordinal >= (uint)_headers.Length) {
+                ThrowOrdinalOutOfRange(ordinal);
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ValidateReadableOrdinal(int ordinal) {
-            ThrowIfClosed();
-            ValidateOrdinal(ordinal);
-            if (!_hasCurrentRow) {
-                throw new InvalidOperationException("Read must be called before accessing values.");
+            if (_closed || (uint)ordinal >= (uint)_headers.Length || !_hasCurrentRow) {
+                ThrowInvalidReadableOrdinal(ordinal);
             }
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void ThrowInvalidReadableOrdinal(int ordinal) {
+            ThrowIfClosed();
+            ValidateOrdinal(ordinal);
+            throw new InvalidOperationException("Read must be called before accessing values.");
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void ThrowOrdinalOutOfRange(int ordinal) =>
+            throw new IndexOutOfRangeException(
+                $"Column ordinal {ordinal} is outside 0..{FieldCount - 1}.");
 
         private void ThrowIfClosed() {
             if (_closed) {
