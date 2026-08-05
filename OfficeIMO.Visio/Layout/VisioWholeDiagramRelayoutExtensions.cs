@@ -75,7 +75,11 @@ namespace OfficeIMO.Visio {
             return page;
         }
 
-        private static Dictionary<VisioShape, int> BuildTopologyLayers(
+        /// <summary>
+        /// Computes deterministic topology layers without consuming call-stack depth
+        /// proportional to the graph depth.
+        /// </summary>
+        internal static Dictionary<VisioShape, int> BuildTopologyLayers(
             IReadOnlyList<VisioShape> nodes,
             IReadOnlyDictionary<VisioShape, HashSet<VisioShape>> outgoing) {
             int nextIndex = 0;
@@ -84,37 +88,52 @@ namespace OfficeIMO.Visio {
             var stack = new Stack<VisioShape>();
             var onStack = new HashSet<VisioShape>();
             var components = new List<List<VisioShape>>();
+            var traversal = new Stack<TraversalFrame>();
 
-            void Visit(VisioShape node) {
+            void BeginVisit(VisioShape node) {
                 indices[node] = nextIndex;
                 lowLinks[node] = nextIndex++;
                 stack.Push(node);
                 onStack.Add(node);
-                foreach (VisioShape target in outgoing[node]
-                             .OrderBy(item => item.Id,
-                                 StringComparer.OrdinalIgnoreCase)) {
-                    if (!indices.ContainsKey(target)) {
-                        Visit(target);
-                        lowLinks[node] = Math.Min(lowLinks[node],
-                            lowLinks[target]);
-                    } else if (onStack.Contains(target)) {
-                        lowLinks[node] = Math.Min(lowLinks[node],
-                            indices[target]);
-                    }
-                }
-                if (lowLinks[node] != indices[node]) return;
-                var component = new List<VisioShape>();
-                VisioShape member;
-                do {
-                    member = stack.Pop();
-                    onStack.Remove(member);
-                    component.Add(member);
-                } while (!ReferenceEquals(member, node));
-                components.Add(component);
+                traversal.Push(new TraversalFrame(node, outgoing[node]
+                    .OrderBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+                    .ToArray()));
             }
 
             foreach (VisioShape node in nodes) {
-                if (!indices.ContainsKey(node)) Visit(node);
+                if (indices.ContainsKey(node)) continue;
+                BeginVisit(node);
+                while (traversal.Count > 0) {
+                    TraversalFrame frame = traversal.Peek();
+                    if (frame.NextTargetIndex < frame.Targets.Length) {
+                        VisioShape target = frame.Targets[frame.NextTargetIndex++];
+                        if (!indices.ContainsKey(target)) {
+                            BeginVisit(target);
+                        } else if (onStack.Contains(target)) {
+                            lowLinks[frame.Node] = Math.Min(lowLinks[frame.Node],
+                                indices[target]);
+                        }
+                        continue;
+                    }
+
+                    traversal.Pop();
+                    if (lowLinks[frame.Node] == indices[frame.Node]) {
+                        var component = new List<VisioShape>();
+                        VisioShape member;
+                        do {
+                            member = stack.Pop();
+                            onStack.Remove(member);
+                            component.Add(member);
+                        } while (!ReferenceEquals(member, frame.Node));
+                        components.Add(component);
+                    }
+
+                    if (traversal.Count > 0) {
+                        VisioShape parent = traversal.Peek().Node;
+                        lowLinks[parent] = Math.Min(lowLinks[parent],
+                            lowLinks[frame.Node]);
+                    }
+                }
             }
 
             var componentByNode = new Dictionary<VisioShape, int>();
@@ -162,6 +181,19 @@ namespace OfficeIMO.Visio {
             }
             return nodes.ToDictionary(node => node,
                 node => componentLayers[componentByNode[node]]);
+        }
+
+        private sealed class TraversalFrame {
+            internal TraversalFrame(VisioShape node, VisioShape[] targets) {
+                Node = node;
+                Targets = targets;
+            }
+
+            internal VisioShape Node { get; }
+
+            internal VisioShape[] Targets { get; }
+
+            internal int NextTargetIndex { get; set; }
         }
 
         private static void Validate(VisioWholeDiagramRelayoutOptions options) {
