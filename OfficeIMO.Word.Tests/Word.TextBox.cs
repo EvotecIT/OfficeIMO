@@ -430,6 +430,21 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void TextBoxHorizontalSizeReferenceCreatesValidRelativeWidth() {
+            string filePath = Path.Combine(_directoryWithFiles, "TextBoxHorizontalSizeReference.docx");
+            using WordDocument document = WordDocument.Create(filePath);
+            WordTextBox textBox = document.AddTextBox("Relative width");
+
+            textBox.SizeRelativeHorizontally = null;
+            textBox.SizeRelativeHorizontally = WordTextBoxHorizontalSizeReference.Page;
+
+            Assert.Equal(WordTextBoxHorizontalSizeReference.Page, textBox.SizeRelativeHorizontally);
+            Assert.Equal(0, textBox.RelativeWidthPercentage);
+            document.Save();
+            Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
+        }
+
 
         [Fact]
         public void Test_CreatingWordDocumentWithTextBoxMultipleParagraphs() {

@@ -384,6 +384,10 @@ namespace OfficeIMO.Word {
                 }
                 relativeWidth ??= new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth();
                 relativeWidth.ObjectId = value.Value.ToOpenXml();
+                relativeWidth.PercentageWidth ??= new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageWidth();
+                if (string.IsNullOrWhiteSpace(relativeWidth.PercentageWidth.Text)) {
+                    relativeWidth.PercentageWidth.Text = "0";
+                }
                 if (relativeWidth.Parent == null) anchor.Append(relativeWidth);
             }
         }
