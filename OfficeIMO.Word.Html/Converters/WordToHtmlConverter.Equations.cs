@@ -6,6 +6,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
+        private const long MaxMathMlEntityEncodingExpansion = 6L;
+
         private static IElement? CreateEquationNode(
             IHtmlDocument htmlDocument,
             IElement context,
@@ -24,7 +26,14 @@ namespace OfficeIMO.Word.Html {
                         GetHtmlEncodedLength(label, attributeValue: false));
                 }
                 long remaining = GetRemainingOutputCharacters(htmlDocument);
-                mathMl = equation.ToMathMl(remaining, options.MaxEquationNestingDepth);
+                // XML entity encoding can make the bounded projection larger than the HTML
+                // serializer's final text (notably for quotes and apostrophes). Keep that
+                // intermediate allocation proportional while enforcing the exact output limit
+                // against the parsed node below.
+                long projectionLimit = remaining > long.MaxValue / MaxMathMlEntityEncodingExpansion
+                    ? long.MaxValue
+                    : remaining * MaxMathMlEntityEncodingExpansion;
+                mathMl = equation.ToMathMl(projectionLimit, options.MaxEquationNestingDepth);
             } catch (WordMathMlOutputLimitExceededException) {
                 ThrowExportLimitExceeded(
                     options,
