@@ -32,7 +32,7 @@ public class CsvMappingTests
             .AddRow(1, "Przemek", 36, "Mikołów")
             .AddRow(2, "Dominika", 30, "Mikołów");
 
-        var people = doc.Map<Person>(map => map
+        var people = doc.RowsAs<Person>(map => map
             .FromColumn<int>("Id", (p, v) => p with { Id = v })
             .FromColumn<string>("Name", (p, v) => p with { Name = v })
             .FromColumn<int>("Age", (p, v) => p with { Age = v })
@@ -51,7 +51,7 @@ public class CsvMappingTests
             "Created\n07-Jul-2026\n",
             new CsvLoadOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
 
-        var row = Assert.Single(doc.Map<EventRow>(map => map
+        var row = Assert.Single(doc.RowsAs<EventRow>(map => map
             .FromColumn<DateTime>("Created", (item, value) => item with { Created = value })));
 
         Assert.Equal(new DateTime(2026, 7, 7), row.Created);

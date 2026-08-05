@@ -3,6 +3,17 @@ using OfficeIMO.Excel;
 
 string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-AotSmoke-" + Guid.NewGuid().ToString("N") + ".xlsx");
 try {
+    using (var asyncRows = new MemoryStream()) {
+        ExcelDataSetImportResult result = await ExcelDocument.WriteRowsAsync(
+            asyncRows,
+            CreateRowsAsync(),
+            ["Region", "Revenue"],
+            static (writer, row) => writer.Write(row.Region).Write(row.Revenue));
+        if (result.Range != "A1:B3" || result.RowCount != 2) {
+            throw new InvalidOperationException("The asynchronous row writer returned an unexpected range.");
+        }
+    }
+
     using (ExcelDocument document = ExcelDocument.Create(path)) {
         var sales = new DataTable("Sales");
         sales.Columns.Add("Region", typeof(string));
@@ -30,3 +41,11 @@ try {
 } finally {
     if (File.Exists(path)) File.Delete(path);
 }
+
+static async IAsyncEnumerable<SalesRow> CreateRowsAsync() {
+    await Task.CompletedTask;
+    yield return new SalesRow("North", 1250000M);
+    yield return new SalesRow("South", 980000M);
+}
+
+internal readonly record struct SalesRow(string Region, decimal Revenue);

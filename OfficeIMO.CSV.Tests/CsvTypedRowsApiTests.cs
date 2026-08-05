@@ -1,4 +1,6 @@
 using OfficeIMO.CSV;
+using System;
+using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.CSV.Tests;
@@ -51,6 +53,87 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Equal(7, row.PrivateSetter);
     }
 
+    [Fact]
+    public void RowsAs_ReservesExactHeadersBeforeFriendlyFallbacks() {
+        CsvDocument document = CsvDocument.Parse("Order Id,Order_Id\n42,84\n");
+
+        ExactPriorityRow row = Assert.Single(document.RowsAs<ExactPriorityRow>());
+
+        Assert.Equal(42, row.OrderId);
+        Assert.Equal(84, row.Order_Id);
+    }
+
+    [Fact]
+    public void RowsAs_RejectsAmbiguousFriendlyPropertyMatches() {
+        CsvDocument document = CsvDocument.Parse("Order Id\n42\n");
+
+        CsvException exception = Assert.Throws<CsvException>(() =>
+            document.RowsAs<ExactPriorityRow>().ToArray());
+
+        Assert.Contains("matches multiple writable properties", exception.Message);
+    }
+
+    [Fact]
+    public void RowsAs_IgnoresUnusedHiddenPropertyAmbiguity() {
+        CsvDocument document = CsvDocument.Parse("Other\n42\n");
+
+        HiddenDerivedRow row = Assert.Single(document.RowsAs<HiddenDerivedRow>());
+
+        Assert.Equal(42, row.Other);
+    }
+
+    [Fact]
+    public void RowsAs_RejectsUsedHiddenPropertyAmbiguity() {
+        CsvDocument document = CsvDocument.Parse("Hidden\n42\n");
+
+        CsvException exception = Assert.Throws<CsvException>(() =>
+            document.RowsAs<HiddenDerivedRow>().ToArray());
+
+        Assert.Contains("with that exact name", exception.Message);
+    }
+
+    [Fact]
+    public void ReaderRowsAs_MapsForwardOnlyRowsWithoutMaterializingADocument() {
+        using var reader = CsvDocument.OpenTextDataReader(
+            "Order Id,Sales Channel,Amount\n42,Online,165258.24\n84,Partner,12.50\n");
+
+        SalesRow[] rows = reader.RowsAs<SalesRow>().ToArray();
+
+        Assert.Equal(2, rows.Length);
+        Assert.Equal(42, rows[0].OrderId);
+        Assert.Equal("Partner", rows[1].SalesChannel);
+        Assert.Equal(12.50m, rows[1].Amount);
+        Assert.False(reader.IsClosed);
+    }
+
+    [Fact]
+    public void ReaderRowsAs_UsesCsvReaderCulture() {
+        var options = new CsvLoadOptions {
+            Delimiter = ';',
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL")
+        };
+        using var reader = CsvDocument.OpenTextDataReader("Order Id;Amount\n42;165258,24\n", options);
+
+        SalesRow row = Assert.Single(reader.RowsAs<SalesRow>());
+
+        Assert.Equal(165258.24m, row.Amount);
+    }
+
+    [Fact]
+    public void ReaderRowsAs_ReusesExplicitAotFriendlyDocumentMapping() {
+        const string csv = "Order Id,Amount\n42,165258.24\n";
+        Action<CsvMapper<SalesValue>> mapping = map => map
+            .FromColumn<int>("Order Id", static (item, value) => { item.OrderId = value; return item; })
+            .FromColumn<decimal>("Amount", static (item, value) => { item.Amount = value; return item; });
+
+        SalesValue materialized = Assert.Single(CsvDocument.Parse(csv).RowsAs(mapping));
+        using var reader = CsvDocument.OpenTextDataReader(csv);
+        SalesValue forwardOnly = Assert.Single(reader.RowsAs(mapping));
+
+        Assert.Equal(materialized.OrderId, forwardOnly.OrderId);
+        Assert.Equal(materialized.Amount, forwardOnly.Amount);
+    }
+
     private sealed class SalesRow {
         public int OrderId { get; set; }
         public string SalesChannel { get; set; } = string.Empty;
@@ -66,5 +149,19 @@ public sealed class CsvTypedRowsApiTests {
         public int Writable { get; set; }
         public int InitOnly { get; init; }
         public int PrivateSetter { get; private set; } = 7;
+    }
+
+    private sealed class ExactPriorityRow {
+        public int OrderId { get; set; }
+        public int Order_Id { get; set; }
+    }
+
+    private class HiddenBaseRow {
+        public int Hidden { get; set; }
+    }
+
+    private sealed class HiddenDerivedRow : HiddenBaseRow {
+        public new string Hidden { get; set; } = string.Empty;
+        public int Other { get; set; }
     }
 }

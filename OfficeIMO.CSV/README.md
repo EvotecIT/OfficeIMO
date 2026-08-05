@@ -114,13 +114,29 @@ document.EnsureInferredSchema()
 
 For ordinary DTOs, `RowsAs<T>()` matches headers to writable properties without
 requiring a range or mapping builder. Matching is case-insensitive and ignores
-spaces and punctuation:
+spaces and punctuation. OfficeIMO builds the writable-property plan once per
+model type and reuses compiled assignments when the runtime supports them:
 
 ```csharp
 List<Person> people = CsvDocument.Load("people.csv")
     .RowsAs<Person>()
     .ToList();
 ```
+
+For a forward-only typed pipeline, project the existing `DbDataReader` surface.
+This avoids building a `CsvDocument` and keeps reader lifetime explicit:
+
+```csharp
+using System.Data.Common;
+
+using DbDataReader reader = CsvDocument.OpenDataReader("people.csv");
+foreach (Person person in reader.RowsAs<Person>()) {
+    Process(person);
+}
+```
+
+The same automatic and explicit `RowsAs<T>` mappings work on both a materialized
+`CsvDocument` and a forward-only reader. The caller owns and disposes the reader.
 
 Use the explicit overload for immutable models and trimming or NativeAOT-sensitive applications:
 

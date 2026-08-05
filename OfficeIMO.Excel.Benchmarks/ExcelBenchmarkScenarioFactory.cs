@@ -16,17 +16,6 @@ internal static class ExcelBenchmarkScenarioFactory {
         ("Notes", item => item.Notes)
     ];
 
-    internal static readonly ExcelTabularColumn<SalesRecord>[] SalesTypedColumns = [
-        ExcelTabularColumn<SalesRecord>.Create("Id", item => item.Id),
-        ExcelTabularColumn<SalesRecord>.Create("Region", item => item.Region),
-        ExcelTabularColumn<SalesRecord>.Create("Owner", item => item.Owner),
-        ExcelTabularColumn<SalesRecord>.Create("CreatedOn", item => item.CreatedOn),
-        ExcelTabularColumn<SalesRecord>.Create("Amount", item => item.Amount),
-        ExcelTabularColumn<SalesRecord>.Create("Units", item => item.Units),
-        ExcelTabularColumn<SalesRecord>.Create("Active", item => item.Active),
-        ExcelTabularColumn<SalesRecord>.Create("Notes", item => item.Notes)
-    ];
-
     internal static readonly string[] SalesColumnNames = ["Id", "Region", "Owner", "CreatedOn", "Amount", "Units", "Active", "Notes"];
 
     internal sealed class SalesRecord {

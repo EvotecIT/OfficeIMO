@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Data.Common;
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
 using nietras.SeparatedValues;
@@ -40,6 +41,7 @@ public class CsvBenchmarks
     private object?[][] _projectedRows = [];
     private string?[][] _projectedTextRows = [];
     private string _csvText = string.Empty;
+    private int _expectedTypedReadChecksum;
     private bool _captureWriteOutput;
     private string? _capturedWriteOutput;
     private static readonly DataplatCsvReaderOptions DataplatReaderOptions = new() { HasHeaderRow = true };
@@ -65,8 +67,27 @@ public class CsvBenchmarks
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         CsvDocument.WriteObjects(writer, _rows, new CsvSaveOptions { NewLine = "\n" });
         _csvText = writer.ToString();
+        _expectedTypedReadChecksum = MeasureTypedRows(_rows);
 
         ValidateWriteBenchmarkOutputs();
+        ValidateTypedReadBenchmarkOutputs();
+    }
+
+    private void ValidateTypedReadBenchmarkOutputs()
+    {
+        ValidateTypedReadOutput(nameof(OfficeIMO_ReadTypedRowsForwardOnly), OfficeIMO_ReadTypedRowsForwardOnly);
+        ValidateTypedReadOutput(nameof(OfficeIMO_ReadTypedRowsMaterialized), OfficeIMO_ReadTypedRowsMaterialized);
+        ValidateTypedReadOutput(nameof(CsvHelper_ReadTypedRecords), CsvHelper_ReadTypedRecords);
+    }
+
+    private void ValidateTypedReadOutput(string method, Func<int> read)
+    {
+        var actual = read();
+        if (actual != _expectedTypedReadChecksum)
+        {
+            throw new InvalidOperationException(
+                $"{method} returned typed-row checksum {actual} instead of {_expectedTypedReadChecksum}.");
+        }
     }
 
     private void ValidateWriteBenchmarkOutputs()
@@ -681,17 +702,72 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_ReadTypedRowsForwardOnly()
+    {
+        using DbDataReader reader = CsvDocument.OpenTextDataReader(_csvText);
+        var checksum = 17;
+        foreach (CsvBenchmarkRow row in reader.RowsAs<CsvBenchmarkRow>())
+        {
+            checksum = AddTypedRowChecksum(checksum, row);
+        }
+
+        return checksum;
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadTypedRowsMaterialized()
+    {
+        CsvDocument document = CsvDocument.Parse(_csvText);
+        var checksum = 17;
+        foreach (CsvBenchmarkRow row in document.RowsAs<CsvBenchmarkRow>())
+        {
+            checksum = AddTypedRowChecksum(checksum, row);
+        }
+
+        return checksum;
+    }
+
+    [Benchmark]
     public int CsvHelper_ReadTypedRecords()
     {
         using var reader = new StringReader(_csvText);
         using var csv = new CsvHelperReader(reader, CultureInfo.InvariantCulture);
-        var count = 0;
-        foreach (CsvBenchmarkRow _ in csv.GetRecords<CsvBenchmarkRow>())
+        var checksum = 17;
+        foreach (CsvBenchmarkRow row in csv.GetRecords<CsvBenchmarkRow>())
         {
-            count++;
+            checksum = AddTypedRowChecksum(checksum, row);
         }
 
-        return count;
+        return checksum;
+    }
+
+    private static int MeasureTypedRows(IEnumerable<CsvBenchmarkRow> rows)
+    {
+        var checksum = 17;
+        foreach (CsvBenchmarkRow row in rows)
+        {
+            checksum = AddTypedRowChecksum(checksum, row);
+        }
+
+        return checksum;
+    }
+
+    private static int AddTypedRowChecksum(int checksum, CsvBenchmarkRow row)
+    {
+        unchecked
+        {
+            checksum = (checksum * 31) + row.Id;
+            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Name);
+            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Department);
+            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Region);
+            checksum = (checksum * 31) + (row.IsEnabled ? 1 : 0);
+            checksum = (checksum * 31) + row.Created.GetHashCode();
+            checksum = (checksum * 31) + row.Score.GetHashCode();
+            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Owner);
+            checksum = (checksum * 31) + row.TicketCount;
+            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Notes);
+            return checksum;
+        }
     }
 
     private static object?[] ProjectRow(CsvBenchmarkRow row)

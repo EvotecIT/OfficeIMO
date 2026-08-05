@@ -350,8 +350,8 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("LargeXlsx", "Streaming typed object export and save.", () => LargeXlsxWriteSalesRows(rows, includeAllColumns: true))
         ]);
 
-        AddScenarioGroup(scenarios, scenarioFilter, "write-objects-direct-package", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Write typed rows through the package-native OfficeIMO API.", () => OfficeImoWriteObjectsDirectPackage(rows)),
+        AddScenarioGroup(scenarios, scenarioFilter, "write-typed-rows-direct-package", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Write typed rows through the package-native OfficeIMO row writer.", () => OfficeImoWriteTypedRowsPackage(rows)),
             new LibraryComparisonCase("LargeXlsx", "Stream the same typed rows through its package-native writer.", () => LargeXlsxWriteSalesRows(rows, includeAllColumns: true))
         ]);
 
@@ -933,8 +933,8 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("LargeXlsx", "Streaming typed object export and save.", () => LargeXlsxWriteSalesRowsBytes(rows, includeAllColumns: true))
         ]);
 
-        AddPackageProfileGroup(scenarios, scenarioFilter, "write-objects-direct-package", warmupIterations, measuredIterations, [
-            new PackageProfileCase("OfficeIMO.Excel", "Write typed rows through the package-native OfficeIMO API.", () => OfficeImoWriteObjectsDirectPackageBytes(rows)),
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-typed-rows-direct-package", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Write typed rows through the package-native OfficeIMO row writer.", () => OfficeImoWriteTypedRowsPackageBytes(rows)),
             new PackageProfileCase("LargeXlsx", "Stream the same typed rows through its package-native writer.", () => LargeXlsxWriteSalesRowsBytes(rows, includeAllColumns: true))
         ]);
 
@@ -1815,12 +1815,24 @@ internal static partial class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
-    private static int OfficeImoWriteObjectsDirectPackage(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows)
-        => ByteCount(OfficeImoWriteObjectsDirectPackageBytes(rows));
+    private static int OfficeImoWriteTypedRowsPackage(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows)
+        => ByteCount(OfficeImoWriteTypedRowsPackageBytes(rows));
 
-    private static byte[] OfficeImoWriteObjectsDirectPackageBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
+    private static byte[] OfficeImoWriteTypedRowsPackageBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteObjects(stream, rows, ExcelBenchmarkScenarioFactory.SalesTypedColumns);
+        ExcelDocument.WriteRows(
+            stream,
+            rows,
+            ExcelBenchmarkScenarioFactory.SalesColumnNames,
+            static (writer, row) => writer
+                .Write(row.Id)
+                .Write(row.Region)
+                .Write(row.Owner)
+                .Write(row.CreatedOn)
+                .Write(row.Amount)
+                .Write(row.Units)
+                .Write(row.Active)
+                .Write(row.Notes));
         return stream.ToArray();
     }
 

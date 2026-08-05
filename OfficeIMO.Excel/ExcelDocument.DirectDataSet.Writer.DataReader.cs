@@ -13,19 +13,7 @@ namespace OfficeIMO.Excel {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
                 using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
-                WriteContentTypes(archive, model.Sheets, includeSharedStrings: false);
-                WriteTextEntry(archive, "_rels/.rels",
-                    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-                    "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>" +
-                    "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/>" +
-                    "<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>" +
-                    "</Relationships>");
-                WriteCoreProperties(archive);
-                WriteAppProperties(archive);
-                WriteWorkbook(archive, model);
-                WriteWorkbookRelationships(archive, model.Sheets.Count, includeSharedStrings: false);
-                WriteStyles(archive, stylePlan);
+                WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: false);
                 return WriteDataReaderWorksheet(
                     archive,
                     model.Sheets[0],

@@ -3,7 +3,7 @@ using BenchmarkDotNet.Attributes;
 namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
-/// Guards the single-pass object-row contract with a generated source large enough to make
+/// Guards the single-pass typed-row contract with a generated source large enough to make
 /// accidental row buffering visible in both execution time and managed allocations.
 /// </summary>
 [MemoryDiagnoser]
@@ -27,7 +27,33 @@ public class ExcelGeneratedRowStreamingBenchmarks {
         return result.RowCount;
     }
 
+    [Benchmark]
+    public async Task<int> WriteRowsAsyncGenerated() {
+        ExcelDataSetImportResult result = await ExcelDocument.WriteRowsAsync(
+            Stream.Null,
+            GenerateRowsAsync(RowCount),
+            Headers,
+            static (writer, row) => writer
+                .Write(row.Id)
+                .Write(row.Amount)
+                .Write(row.CreatedOn)
+                .Write(row.Active));
+        return result.RowCount;
+    }
+
     private static IEnumerable<GeneratedRow> GenerateRows(int count) {
+        var start = new DateTime(2026, 1, 1);
+        for (int index = 0; index < count; index++) {
+            yield return new GeneratedRow(
+                index + 1,
+                index * 1.25m,
+                start.AddMinutes(index),
+                (index & 1) == 0);
+        }
+    }
+
+    private static async IAsyncEnumerable<GeneratedRow> GenerateRowsAsync(int count) {
+        await Task.CompletedTask;
         var start = new DateTime(2026, 1, 1);
         for (int index = 0; index < count; index++) {
             yield return new GeneratedRow(
