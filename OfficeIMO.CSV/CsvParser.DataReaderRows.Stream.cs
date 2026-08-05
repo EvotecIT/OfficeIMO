@@ -14,6 +14,7 @@ internal static partial class CsvParser
     /// </summary>
     internal sealed class CsvStreamDataReaderRowSource : ICsvDataReaderTextRowSource
     {
+        private const int LargeDataReaderBufferSize = 512 * 1024;
         private readonly TextReader _reader;
         private readonly CsvLineReader _lineReader;
         private readonly CsvLoadOptions _options;
@@ -42,8 +43,15 @@ internal static partial class CsvParser
 
         internal int FieldCount => _visitor.FieldCount;
 
-        internal void SetSourceColumnCount(int sourceColumnCount) =>
+        internal void SetSourceColumnCount(int sourceColumnCount)
+        {
+            if (_lineReader.TryGrowFilledBuffer(LargeDataReaderBufferSize))
+            {
+                _visitor.SetBuffer(_lineReader.Buffer);
+            }
+
             _visitor.SetSourceColumnCount(sourceColumnCount);
+        }
 
         public bool Read()
         {
@@ -221,7 +229,7 @@ internal static partial class CsvParser
 
     private struct CsvDataReaderStreamRowVisitor : ICsvFieldSpanVisitor
     {
-        private readonly char[] _buffer;
+        private char[] _buffer;
         private static readonly string[] SingleCharacterStrings = CreateSingleCharacterStrings();
         private int[] _starts;
         private int[] _lengths;
@@ -242,6 +250,11 @@ internal static partial class CsvParser
         internal int FieldCount { get; private set; }
 
         internal int SourceColumnCount { get; private set; }
+
+        internal void SetBuffer(char[] buffer)
+        {
+            _buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
+        }
 
         internal void SetSourceColumnCount(int sourceColumnCount)
         {
