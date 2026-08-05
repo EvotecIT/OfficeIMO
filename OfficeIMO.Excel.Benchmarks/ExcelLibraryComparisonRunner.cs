@@ -452,11 +452,11 @@ internal static partial class ExcelLibraryComparisonRunner {
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "read-used-range", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Discover and materialize the worksheet used range with the public one-pass reader.", () => OfficeImoReadUsedRange(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("OfficeIMO.Excel", "Discover and scan the worksheet used range with the public forward-only data reader.", () => OfficeImoReadUsedRangeDataReader(officeImoWorkbookBytes.Value)),
             new LibraryComparisonCase("ClosedXML", "Resolve and iterate used data cells from the same workbook payload.", () => ClosedXmlReadRange(officeImoWorkbookBytes.Value)),
             new LibraryComparisonCase("EPPlus", "Resolve and iterate used data cells from the same workbook payload.", () => EpPlusReadRange(officeImoWorkbookBytes.Value)),
             new LibraryComparisonCase("MiniExcel", "Stream used data rows from the same workbook payload.", () => MiniExcelReadRange(officeImoWorkbookBytes.Value)),
-            new LibraryComparisonCase("ExcelDataReader", "Forward-only IExcelDataReader scan over the same workbook payload.", () => ExcelDataReaderReadRange(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("ExcelDataReader", "Forward-only typed IExcelDataReader scan over the same workbook payload.", () => ExcelDataReaderReadRangeTyped(officeImoWorkbookBytes.Value)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan over the same workbook payload.", () => SylvanReadRange(officeImoWorkbookBytes.Value))
         ]);
 
@@ -2605,22 +2605,24 @@ internal static partial class ExcelLibraryComparisonRunner {
         return metric;
     }
 
-    private static int OfficeImoReadUsedRange(byte[] workbookBytes) {
-        using var reader = ExcelDocumentReader.Open(workbookBytes);
-        var sheet = reader.GetSheet("Data");
-        object?[,] values = sheet.ReadUsedRange();
+    private static int OfficeImoReadUsedRangeDataReader(byte[] workbookBytes) {
+        using var reader = ExcelDocument.OpenDataReader(workbookBytes, new ExcelReadOptions {
+            SheetName = "Data",
+            HasHeaderRow = true,
+            InferSchema = false
+        });
         int metric = AddSalesHeadersMetric(0);
-        for (int row = 1; row < values.GetLength(0); row++) {
+        while (reader.Read()) {
             metric = AddSalesRangeMetric(
                 metric,
-                Convert.ToInt32(values[row, 0], CultureInfo.InvariantCulture),
-                Convert.ToString(values[row, 1], CultureInfo.InvariantCulture) ?? string.Empty,
-                Convert.ToString(values[row, 2], CultureInfo.InvariantCulture) ?? string.Empty,
-                ReadDateCell(values[row, 3]),
-                Convert.ToDouble(values[row, 4], CultureInfo.InvariantCulture),
-                Convert.ToInt32(values[row, 5], CultureInfo.InvariantCulture),
-                Convert.ToBoolean(values[row, 6], CultureInfo.InvariantCulture),
-                Convert.ToString(values[row, 7], CultureInfo.InvariantCulture) ?? string.Empty);
+                reader.GetInt32(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetDateTime(3),
+                reader.GetDouble(4),
+                reader.GetInt32(5),
+                reader.GetBoolean(6),
+                reader.GetString(7));
         }
 
         return metric;
