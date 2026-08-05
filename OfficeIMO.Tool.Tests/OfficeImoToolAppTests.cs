@@ -16,6 +16,7 @@ public sealed class OfficeImoToolAppTests {
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
         Assert.Contains("officeimo html", help, StringComparison.Ordinal);
+        Assert.Contains("officeimo convert", help, StringComparison.Ordinal);
         Assert.Contains("officeimo reader", help, StringComparison.Ordinal);
         Assert.Contains("officeimo markup", help, StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());

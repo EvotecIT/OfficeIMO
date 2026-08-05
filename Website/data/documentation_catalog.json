@@ -9,7 +9,7 @@
     "validationProjectCount": 22,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 39889
+    "conceptualWordCount": 40335
   },
   "categories": [
     {
@@ -1119,7 +1119,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 27,
+      "sourceFileCount": 29,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1158,7 +1158,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 646,
+      "sourceFileCount": 648,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",

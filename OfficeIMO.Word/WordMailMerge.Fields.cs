@@ -242,7 +242,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> EnumerateTemplateRoots(WordDocument document) {
+        internal static IEnumerable<OpenXmlCompositeElement> EnumerateTemplateRoots(WordDocument document) {
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
             Body? body = mainPart?.Document?.Body;
             if (body != null) {
