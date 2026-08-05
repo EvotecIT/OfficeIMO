@@ -19,15 +19,15 @@ meta.software.price_currency: "USD"
 
 ## Why PSWriteOffice?
 
-PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command surface shown here is generated from the pinned PSWriteOffice source snapshot used by the website build, while the PowerShell Gallery remains the authority for what can be installed today. Create, inspect, update, review, convert, secure, and deliver documents from scripts and automation jobs without maintaining a separate document engine.
+PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command surface shown here is generated from the current module manifest used for this release. Create, inspect, update, review, convert, secure, and deliver documents from scripts and automation jobs without maintaining a separate document engine.
 
 ## Features
 
-- **Manifest-derived command catalog** — cmdlets, aliases, and families are counted from the pinned module manifest
+- **Manifest-derived command catalog** — cmdlets, aliases, and families are counted from the current module manifest
 - **DSL aliases** — intuitive shorthand like `WordParagraph`, `ExcelSheet`, and `PptSlide` for concise scripts
 - **Broad document platform** — Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, LaTeX, and HTML asset workflows
-- **Cross-platform** — runs on Windows, Linux, and macOS wherever PowerShell is available
-- **PowerShell 5.1 and 7+** — compatible with Windows PowerShell and modern PowerShell Core
+- **Cross-platform** — PowerShell 7+ runs on Windows, Linux, and macOS
+- **PowerShell 5.1 and 7+** — supports Windows PowerShell 5.1 on Windows and modern PowerShell across platforms
 
 ## Command families
 

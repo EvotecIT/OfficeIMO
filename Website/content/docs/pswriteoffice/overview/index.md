@@ -1,12 +1,12 @@
 ---
 title: "What PSWriteOffice Covers"
-description: "A map of the module's 477 cmdlets, 16 workflow families, and relationship to OfficeIMO. Includes examples and cmdlet links."
+description: "A practical map of PSWriteOffice's manifest-derived commands, workflow families, OfficeIMO relationship, and supported automation outcomes."
 layout: docs
 ---
 
 Use PSWriteOffice when a PowerShell job needs to create, convert, inspect, repair, or publish documents without automating desktop Office applications. The module is a thin PowerShell surface over the OfficeIMO libraries, so scripts and .NET applications use the same document engines and file-format behavior.
 
-The current manifest exports 477 cmdlets and 360 aliases across 16 documented families. Those totals are generated from `PSWriteOffice.psd1`, not maintained as marketing copy.
+The module manifest is the source of truth for exported cmdlets and aliases. The generated command catalog derives the current totals and family breakdown from `PSWriteOffice.psd1` so the documentation stays aligned with the packaged module.
 
 ## Choose the surface by outcome
 

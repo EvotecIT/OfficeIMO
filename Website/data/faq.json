@@ -9,11 +9,11 @@
         },
         {
           "question": "Does OfficeIMO support DOC, XLS, XLSB, and PPT as well as DOCX, XLSX, and PPTX?",
-          "answer": "<p>Current repository source classifies and reads modern and legacy Word, Excel, and PowerPoint families, writes documented native subsets, and reports conversion coverage by operation and fidelity. Check the installed package version because released packages can lag the source documentation, then use the <a href='/compatibility/'>compatibility dashboard</a> for tracked behaviors, fallbacks, and deliberate blocks.</p>"
+          "answer": "<p>OfficeIMO 3.1 classifies and reads modern and legacy Word, Excel, and PowerPoint families, writes documented native subsets, and reports conversion coverage by operation and fidelity. Use the <a href='/compatibility/'>compatibility dashboard</a> for tracked behaviors, fallbacks, and deliberate blocks.</p>"
         },
         {
           "question": "What .NET versions are supported?",
-          "answer": "<p>Current repository source targets <strong>.NET 8.0</strong>, <strong>.NET 10.0</strong>, <strong>.NET Standard 2.0</strong>, and <strong>.NET Framework 4.7.2</strong>. Check the selected package on NuGet for the target frameworks in the published version you plan to install.</p>"
+          "answer": "<p>OfficeIMO 3.1 targets <strong>.NET 8.0</strong>, <strong>.NET 10.0</strong>, <strong>.NET Standard 2.0</strong>, and <strong>.NET Framework 4.7.2</strong>.</p>"
         },
         {
           "question": "Is OfficeIMO free for commercial use?",
@@ -29,7 +29,7 @@
         },
         {
           "question": "What is PSWriteOffice?",
-          "answer": "<p>PSWriteOffice is the PowerShell surface over the OfficeIMO document platform. This site derives its command catalog from a pinned PSWriteOffice source snapshot; the PowerShell Gallery page is the authority for the version installed by <code>Install-Module PSWriteOffice</code>.</p>"
+          "answer": "<p>PSWriteOffice is the PowerShell surface over the OfficeIMO document platform. Its command catalog is generated from the module manifest used for this release, covering Word, Excel, PowerPoint, PDF, Reader, Visio, text, open-format, email, and conversion workflows.</p>"
         },
         {
           "question": "Does OfficeIMO support reading existing documents?",
@@ -37,7 +37,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>The current source validation matrix covers <strong>92 of the 93 production projects</strong>. CI fully roots 90 library assemblies, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts the production CLI tool on Windows and Linux. The WPF/WebView2 renderer is managed-only. Check the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and <a href='/data/aot-compatibility.json'>project matrix</a> for the exact package and runtime path.</p>"
+          "answer": "<p>The OfficeIMO 3.1 validation matrix covers <strong>92 of the 93 production projects</strong>. CI fully roots 90 library assemblies, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts the production CLI tool on Windows and Linux. The WPF/WebView2 renderer is managed-only. Check the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and <a href='/data/aot-compatibility.json'>project matrix</a> for the exact package and runtime path.</p>"
         }
       ]
     },

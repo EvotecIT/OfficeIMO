@@ -10,6 +10,7 @@ api_url: "/api/excel/"
 meta.software.name: "OfficeIMO.Excel"
 meta.software.application_category: "DeveloperApplication"
 meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.version: "3.1.0"
 meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Excel"
 meta.software.price: 0
 meta.software.price_currency: "USD"

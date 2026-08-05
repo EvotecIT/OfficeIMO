@@ -1222,8 +1222,8 @@
         "WordSection"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordSectionCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordSectionCommand.cs#L18"
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordSectionCommand.cs#L17"
     },
     {
       "name": "Add-OfficeWordShape",
@@ -1268,10 +1268,12 @@
     {
       "name": "Add-OfficeWordTableOfContents",
       "kind": "Cmdlet",
-      "aliases": [],
+      "aliases": [
+        "WordTableOfContents"
+      ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTableOfContentsCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTableOfContentsCommand.cs#L24"
+      "sourceLine": 25,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTableOfContentsCommand.cs#L25"
     },
     {
       "name": "Add-OfficeWordTableRow",
@@ -1707,8 +1709,8 @@
         "ConvertTo-VisioPng"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioPngCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioPngCommand.cs#L20"
+      "sourceLine": 21,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioPngCommand.cs#L21"
     },
     {
       "name": "ConvertTo-OfficeVisioSvg",
@@ -1717,8 +1719,8 @@
         "ConvertTo-VisioSvg"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioSvgCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioSvgCommand.cs#L20"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioSvgCommand.cs#L22"
     },
     {
       "name": "ConvertTo-OfficeWordDocument",
@@ -1871,6 +1873,14 @@
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs#L19"
     },
     {
+      "name": "Export-OfficeVisioImage",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs#L19"
+    },
+    {
       "name": "Export-OfficeVisioStencilPreviewGallery",
       "kind": "Cmdlet",
       "aliases": [
@@ -1901,8 +1911,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/FindOfficeExcelCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/FindOfficeExcelCommand.cs#L21"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/FindOfficeExcelCommand.cs#L22"
     },
     {
       "name": "Find-OfficePowerPointShape",
@@ -2907,8 +2917,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Csv/ImportOfficeCsvCommand.cs",
-      "sourceLine": 34,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Csv/ImportOfficeCsvCommand.cs#L34"
+      "sourceLine": 35,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Csv/ImportOfficeCsvCommand.cs#L35"
     },
     {
       "name": "Import-OfficeExcel",
@@ -2917,8 +2927,8 @@
         "ExcelImport"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelCommand.cs",
-      "sourceLine": 39,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelCommand.cs#L39"
+      "sourceLine": 40,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelCommand.cs#L40"
     },
     {
       "name": "Import-OfficeExcelDelimitedText",
@@ -2928,8 +2938,8 @@
         "ExcelDelimitedImport"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelDelimitedTextCommand.cs",
-      "sourceLine": 28,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelDelimitedTextCommand.cs#L28"
+      "sourceLine": 29,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelDelimitedTextCommand.cs#L29"
     },
     {
       "name": "Import-OfficePdfXfdf",
@@ -3219,8 +3229,8 @@
         "PptNew"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointCommand.cs",
-      "sourceLine": 27,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointCommand.cs#L27"
+      "sourceLine": 28,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointCommand.cs#L28"
     },
     {
       "name": "New-OfficePowerPointDeckPlan",
@@ -3499,8 +3509,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SaveOfficePowerPointCommand.cs",
-      "sourceLine": 22,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/SaveOfficePowerPointCommand.cs#L22"
+      "sourceLine": 23,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/SaveOfficePowerPointCommand.cs#L23"
     },
     {
       "name": "Save-OfficeVisio",

@@ -15,7 +15,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | PDF | 80 | [PDF automation](/docs/pswriteoffice/pdf/) |
 | PowerPoint | 57 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 25 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| Visio | 20 | [Visio diagrams](/docs/pswriteoffice/visio/) |
+| Visio | 21 | [Visio diagrams](/docs/pswriteoffice/visio/) |
 | Reader and extraction | 13 | [Reader and extraction](/docs/pswriteoffice/reader/) |
 | Confluence Cloud | 7 | [Confluence Cloud publishing](/docs/pswriteoffice/confluence/) |
 | RTF | 5 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
@@ -27,7 +27,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | HTML assets | 1 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Shared authoring primitives | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 
-The total is 477 cmdlets. Aliases are intentionally counted separately because they provide a shorter DSL without replacing the canonical command names in help and automation.
+The total is generated from the module manifest. Aliases are intentionally counted separately because they provide a shorter DSL without replacing the canonical command names in help and automation.
 
 ## Reference versus guide
 
