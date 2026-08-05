@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -216,6 +217,28 @@ namespace OfficeIMO.Tests {
                 $"Dense relayout took {timer.Elapsed}.");
             Assert.True(page.Shapes.Last().PinX > page.Shapes.First().PinX);
             Assert.Equal(1000, page.Shapes.Select(shape => shape.PinX).Distinct().Count());
+        }
+
+        [Fact]
+        public void WholeDiagramRelayoutTopologyLayeringHandlesDeepGraphWithoutRecursion() {
+            const int nodeCount = 100000;
+            var nodes = new List<VisioShape>(nodeCount);
+            var outgoing = new Dictionary<VisioShape, HashSet<VisioShape>>(nodeCount);
+            for (int index = 0; index < nodeCount; index++) {
+                var node = new VisioShape("n" + index, 0, 0, 1, 1,
+                    string.Empty);
+                nodes.Add(node);
+                outgoing[node] = new HashSet<VisioShape>();
+                if (index > 0) outgoing[nodes[index - 1]].Add(node);
+            }
+
+            Dictionary<VisioShape, int> layers =
+                VisioWholeDiagramRelayoutExtensions.BuildTopologyLayers(nodes,
+                    outgoing);
+
+            Assert.Equal(nodeCount, layers.Count);
+            Assert.Equal(0, layers[nodes[0]]);
+            Assert.Equal(nodeCount - 1, layers[nodes[nodeCount - 1]]);
         }
 
         [Fact]
