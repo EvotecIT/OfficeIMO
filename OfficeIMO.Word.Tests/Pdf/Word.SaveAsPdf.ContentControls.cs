@@ -320,10 +320,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 7200;
             table.ColumnWidth = new[] { 7200 }.ToList();
-            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidthType = WordTableWidthUnit.Dxa;
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "Native table controls:";
             paragraph.AddDropDownList(new[] { "Poland", "Germany" }, "Cell Country", "CellCountry");
@@ -387,10 +387,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 7200;
             table.ColumnWidth = new[] { 7200 }.ToList();
-            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidthType = WordTableWidthUnit.Dxa;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Table tasks";
             WordRepeatingSection repeatingSection = table.Rows[0].Cells[0].Paragraphs[0]
                 .AddRepeatingSection("Tasks", "Tasks", "TasksTag");

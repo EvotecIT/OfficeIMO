@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
@@ -18,7 +16,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var bottom = Math.Min(metrics.Height - metrics.Vertical(0.25), box.Top + box.Height + metrics.Vertical(padding));
 
         var panel = slide.AddShapeInches(
-            A.ShapeTypeValues.Rectangle,
+            PowerPointShapeType.Rectangle,
             left,
             top,
             Math.Max(0.5, right - left),
@@ -38,7 +36,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var normalizedType = Normalize(source.ChartType);
 
         chart.SetTitleTextStyle(fontSizePoints: 14, bold: true, color: textColor, fontName: font);
-        chart.SetLegend(C.LegendPositionValues.Bottom, overlay: false);
+        chart.SetLegend(PowerPointChartLegendPosition.Bottom, overlay: false);
         chart.SetLegendTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
         chart.SetChartAreaStyle(fillColor: "FFFFFF", lineColor: borderColor, lineWidthPoints: 0.5);
         chart.SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "EEF2F7", lineWidthPoints: 0.5);
@@ -236,61 +234,61 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     private static bool IsTruthy(string value) =>
         Normalize(value) is not ("false" or "no" or "off" or "none" or "hidden" or "0");
 
-    private static bool TryParseLegendPosition(string value, out C.LegendPositionValues position) {
+    private static bool TryParseLegendPosition(string value, out PowerPointChartLegendPosition position) {
         switch (Normalize(value)) {
             case "left":
-                position = C.LegendPositionValues.Left;
+                position = PowerPointChartLegendPosition.Left;
                 return true;
             case "right":
-                position = C.LegendPositionValues.Right;
+                position = PowerPointChartLegendPosition.Right;
                 return true;
             case "top":
-                position = C.LegendPositionValues.Top;
+                position = PowerPointChartLegendPosition.Top;
                 return true;
             case "bottom":
-                position = C.LegendPositionValues.Bottom;
+                position = PowerPointChartLegendPosition.Bottom;
                 return true;
             case "corner":
             case "topright":
-                position = C.LegendPositionValues.TopRight;
+                position = PowerPointChartLegendPosition.TopRight;
                 return true;
             default:
-                position = C.LegendPositionValues.Bottom;
+                position = PowerPointChartLegendPosition.Bottom;
                 return false;
         }
     }
 
-    private static bool TryParseDataLabelPosition(string? value, out C.DataLabelPositionValues position) {
+    private static bool TryParseDataLabelPosition(string? value, out PowerPointChartDataLabelPosition position) {
         switch (Normalize(value ?? string.Empty)) {
             case "center":
-                position = C.DataLabelPositionValues.Center;
+                position = PowerPointChartDataLabelPosition.Center;
                 return true;
             case "insideend":
-                position = C.DataLabelPositionValues.InsideEnd;
+                position = PowerPointChartDataLabelPosition.InsideEnd;
                 return true;
             case "insidebase":
-                position = C.DataLabelPositionValues.InsideBase;
+                position = PowerPointChartDataLabelPosition.InsideBase;
                 return true;
             case "outsideend":
-                position = C.DataLabelPositionValues.OutsideEnd;
+                position = PowerPointChartDataLabelPosition.OutsideEnd;
                 return true;
             case "bestfit":
-                position = C.DataLabelPositionValues.BestFit;
+                position = PowerPointChartDataLabelPosition.BestFit;
                 return true;
             case "left":
-                position = C.DataLabelPositionValues.Left;
+                position = PowerPointChartDataLabelPosition.Left;
                 return true;
             case "right":
-                position = C.DataLabelPositionValues.Right;
+                position = PowerPointChartDataLabelPosition.Right;
                 return true;
             case "top":
-                position = C.DataLabelPositionValues.Top;
+                position = PowerPointChartDataLabelPosition.Top;
                 return true;
             case "bottom":
-                position = C.DataLabelPositionValues.Bottom;
+                position = PowerPointChartDataLabelPosition.Bottom;
                 return true;
             default:
-                position = C.DataLabelPositionValues.OutsideEnd;
+                position = PowerPointChartDataLabelPosition.OutsideEnd;
                 return false;
         }
     }

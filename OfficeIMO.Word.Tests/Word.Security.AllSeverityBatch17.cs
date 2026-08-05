@@ -139,8 +139,8 @@ public partial class Word {
         section.Append(new FooterReference { Type = HeaderFooterValues.Default, Id = "rIdMissingFooter" });
 
         Exception? exception = Record.Exception(() => {
-            WordHeader.RemoveHeaders(document._wordprocessingDocument, HeaderFooterValues.Default);
-            WordFooter.RemoveFooters(document._wordprocessingDocument, HeaderFooterValues.Default);
+            WordHeader.RemoveHeaders(document._wordprocessingDocument, WordHeaderFooterType.Default);
+            WordFooter.RemoveFooters(document._wordprocessingDocument, WordHeaderFooterType.Default);
         });
 
         Assert.Null(exception);

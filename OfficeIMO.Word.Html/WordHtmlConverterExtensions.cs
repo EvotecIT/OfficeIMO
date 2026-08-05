@@ -137,7 +137,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="type">Header type to target.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToHeader(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
+        public static void AddHtmlToHeader(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions? options = null) {
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
@@ -153,20 +153,20 @@ namespace OfficeIMO.Word.Html {
         /// <param name="type">Header type to target.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToHeaderAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task AddHtmlToHeaderAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
             HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
-            type ??= HeaderFooterValues.Default;
+            type ??= WordHeaderFooterType.Default;
 
             // Prefer section-scoped headers to avoid multi-section warnings
             var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the header.");
             doc.AddHeadersAndFooters();
             var headers = targetSection.Header ?? throw new System.InvalidOperationException("The target section does not have any headers defined. Call AddHeadersAndFooters() before appending HTML to the header.");
-            var header = GetOrCreateHeader(doc, targetSection, headers, type.Value);
+            var header = GetOrCreateHeader(doc, targetSection, headers, type.Value.ToOpenXml());
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToHeaderAsync(doc, header, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);
@@ -180,7 +180,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="type">Footer type to target.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToFooter(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
+        public static void AddHtmlToFooter(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions? options = null) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
 
@@ -188,11 +188,11 @@ namespace OfficeIMO.Word.Html {
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             EnsureOfflineSynchronousImport(htmlDocument, resolved);
 
-            var footerType = type ?? HeaderFooterValues.Default;
+            var footerType = type ?? WordHeaderFooterType.Default;
             var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the footer.");
             doc.AddHeadersAndFooters();
             var footers = targetSection.Footer ?? throw new System.InvalidOperationException("The target section does not have any footers defined. Call AddHeadersAndFooters() before appending HTML to the footer.");
-            GetOrCreateFooter(doc, targetSection, footers, footerType);
+            GetOrCreateFooter(doc, targetSection, footers, footerType.ToOpenXml());
 
             doc.AddHtmlToFooterAsync(htmlDocument, footerType, resolved).GetAwaiter().GetResult();
         }
@@ -205,19 +205,19 @@ namespace OfficeIMO.Word.Html {
         /// <param name="type">Footer type to target.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToFooterAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task AddHtmlToFooterAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
             HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
-            var footerType = type ?? HeaderFooterValues.Default;
+            var footerType = type ?? WordHeaderFooterType.Default;
 
             var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the footer.");
             doc.AddHeadersAndFooters();
             var footers = targetSection.Footer ?? throw new System.InvalidOperationException("The target section does not have any footers defined. Call AddHeadersAndFooters() before appending HTML to the footer.");
-            var footer = GetOrCreateFooter(doc, targetSection, footers, footerType);
+            var footer = GetOrCreateFooter(doc, targetSection, footers, footerType.ToOpenXml());
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToFooterAsync(doc, footer, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);

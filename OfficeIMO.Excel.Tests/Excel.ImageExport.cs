@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, "North");
             sheet.CellValue(2, 2, 42);
             sheet.Range("A1:B1").SetFillColor("D9EAF7").SetBold();
-            sheet.CellAt(2, 2).SetBorder(BorderStyleValues.Thin, "111827");
+            sheet.CellAt(2, 2).SetBorder(ExcelBorderStyle.Thin, "111827");
 
             ExcelRange range = sheet.Range("A1:B2");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
@@ -446,7 +446,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, 24);
             sheet.CellValue(1, 2, "Right aligned text spills left");
             sheet.CellValue(1, 3, "Stop");
-            sheet.CellAlign(1, 2, HorizontalAlignmentValues.Right);
+            sheet.CellAlign(1, 2, ExcelHorizontalAlignment.Right);
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -1223,7 +1223,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, 24);
             sheet.SetRowHeight(2, 24);
             sheet.SetRowHeight(3, 24);
-            sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: false, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: false, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A3");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
@@ -1251,7 +1251,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 0);
                 sheet.CellValue(2, 1, 50);
                 sheet.CellValue(3, 1, 100);
-                sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+                sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
                 document.Save();
             }
 
@@ -1289,7 +1289,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, 2);
                 sheet.CellValue(3, 1, 3);
                 sheet.CellValue(4, 1, 100);
-                sheet.AddConditionalIconSet("A1:A4", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+                sheet.AddConditionalIconSet("A1:A4", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
                 document.Save();
             }
 
@@ -1325,7 +1325,7 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(1, 1, 1);
                     sheet.CellValue(2, 1, 2);
                     sheet.CellValue(3, 1, 3);
-                    sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1,
+                    sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1,
                         showValue: true, reverseIconOrder: false);
                     document.Save();
                 }
@@ -1415,7 +1415,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
-            sheet.AddConditionalIconSet("B1:B3", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("B1:B3", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
             ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B3").CreateVisualSnapshot();
 
@@ -1469,7 +1469,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 1, 3);
             sheet.AddConditionalFormulaRule("A2:A2", "=A2>0", stopIfTrue: true, fillColor: null);
             sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
-            sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
             ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -1490,7 +1490,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.SetColumnWidth(1, 12);
-            sheet.AddConditionalIconSet("A1:A5", IconSetValues.FiveArrows, showValue: true, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("A1:A5", ExcelIconSet.FiveArrows, showValue: true, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A5");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
@@ -1524,7 +1524,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.SetColumnWidth(1, 12);
-            sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeFlags, showValue: true, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeFlags, showValue: true, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A3");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
@@ -1561,7 +1561,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, 24);
             sheet.SetRowHeight(2, 24);
             sheet.SetRowHeight(3, 24);
-            sheet.AddConditionalRule("A1:A3", ConditionalFormattingOperatorValues.GreaterThan, "10", fillColor: "C6EFCE");
+            sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "C6EFCE");
             sheet.AddConditionalFormulaRule("B1:B3", "B1<0", stopIfTrue: true, fillColor: "FEE2E2");
             sheet.AddConditionalColorScale("B1:B3", OfficeColor.Red, OfficeColor.Lime);
 
@@ -1614,7 +1614,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, 24);
             sheet.SetRowHeight(2, 24);
             sheet.SetRowHeight(3, 24);
-            sheet.AddConditionalRule("A1:A3", ConditionalFormattingOperatorValues.GreaterThan, "10");
+            sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "10");
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
                 new X.Font(
                     new X.Bold(),
@@ -1666,7 +1666,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, 16);
             sheet.SetRowHeight(1, 28);
             sheet.SetRowHeight(2, 28);
-            sheet.AddConditionalRule("A1:A2", ConditionalFormattingOperatorValues.GreaterThan, "10");
+            sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan, "10");
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
                 new X.Border(
                     new X.LeftBorder(new X.Color { Rgb = "FFFF0000" }) { Style = X.BorderStyleValues.Thick },
@@ -1712,7 +1712,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("FalseFontRules");
             sheet.CellValue(1, 1, 20);
-            sheet.AddConditionalRule("A1:A1", ConditionalFormattingOperatorValues.GreaterThan, "10");
+            sheet.AddConditionalRule("A1:A1", ExcelConditionalFormattingOperator.GreaterThan, "10");
 
             var bold = new X.Bold();
             bold.SetAttribute(new OpenXmlAttribute("val", string.Empty, "0"));
@@ -1742,7 +1742,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("UnderlineNone");
             sheet.CellValue(1, 1, 20);
-            sheet.AddConditionalRule("A1:A1", ConditionalFormattingOperatorValues.GreaterThan, "10");
+            sheet.AddConditionalRule("A1:A1", ExcelConditionalFormattingOperator.GreaterThan, "10");
 
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
                 new X.Font(new X.Underline { Val = X.UnderlineValues.None })));
@@ -1766,7 +1766,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, 4);
             sheet.SetColumnWidth(1, 12);
             sheet.SetColumnWidth(2, 12);
-            sheet.AddConditionalRule("A1:A2", ConditionalFormattingOperatorValues.Equal, "\"Hot\"", fillColor: "FEE2E2");
+            sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.Equal, "\"Hot\"", fillColor: "FEE2E2");
             sheet.AddConditionalFormulaRule("B1:B2", "MOD(B1,2)=0", fillColor: "C6EFCE");
             AddMalformedTimePeriodRuleWithFill(sheet, "B1:B2");
 
@@ -2866,7 +2866,7 @@ namespace OfficeIMO.Tests {
                 showSeriesName: false,
                 showLegendKey: false,
                 showPercent: false,
-                position: C.DataLabelPositionValues.OutsideEnd,
+                position: ExcelChartDataLabelPosition.OutsideEnd,
                 numberFormat: "0");
             chart.SetDataLabelTextStyle(italic: true, fontName: "Aptos Data");
 
@@ -3199,7 +3199,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker Fill");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, C.MarkerStyleValues.Circle, fillColor: "F97316");
+            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Circle, fillColor: "F97316");
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
@@ -3440,7 +3440,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker Size");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 12, fillColor: "F97316");
+            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Circle, size: 12, fillColor: "F97316");
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -3482,7 +3482,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker Shape");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, C.MarkerStyleValues.Diamond, size: 12, fillColor: "F97316");
+            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Diamond, size: 12, fillColor: "F97316");
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -3525,7 +3525,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker X");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, C.MarkerStyleValues.X, size: 14, lineColor: "7C3AED", lineWidthPoints: 2D);
+            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.X, size: 14, lineColor: "7C3AED", lineWidthPoints: 2D);
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -3580,9 +3580,9 @@ namespace OfficeIMO.Tests {
             chart.SetSeriesLineColor(0, "CBD5E1");
             chart.SetSeriesLineColor(1, "CBD5E1");
             chart.SetSeriesLineColor(2, "CBD5E1");
-            chart.SetSeriesMarker(0, C.MarkerStyleValues.Dash, size: 14, lineColor: "DC2626", lineWidthPoints: 2D);
-            chart.SetSeriesMarker(1, C.MarkerStyleValues.Dot, size: 14, fillColor: "059669");
-            chart.SetSeriesMarker(2, C.MarkerStyleValues.Star, size: 14, fillColor: "F59E0B");
+            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Dash, size: 14, lineColor: "DC2626", lineWidthPoints: 2D);
+            chart.SetSeriesMarker(1, ExcelChartMarkerStyle.Dot, size: 14, fillColor: "059669");
+            chart.SetSeriesMarker(2, ExcelChartMarkerStyle.Star, size: 14, fillColor: "F59E0B");
 
             ExcelRange range = sheet.Range("A1:K10");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -3654,7 +3654,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker Outline");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 16, fillColor: "F97316", lineColor: "7C2D12", lineWidthPoints: 3D);
+            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Circle, size: 16, fillColor: "F97316", lineColor: "7C2D12", lineWidthPoints: 3D);
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -4215,7 +4215,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: ExcelChartType.Line, title: "Trendline");
-            chart.SetSeriesTrendline(0, C.TrendlineValues.Linear, displayEquation: true, displayRSquared: true, lineColor: "FF0000", lineWidthPoints: 1);
+            chart.SetSeriesTrendline(0, ExcelChartTrendlineType.Linear, displayEquation: true, displayRSquared: true, lineColor: "FF0000", lineWidthPoints: 1);
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -4330,9 +4330,9 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, 14);
             sheet.SetColumnWidth(2, 14);
             sheet.SetColumnWidth(3, 14);
-            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Top);
-            sheet.CellVerticalAlign(1, 2, VerticalAlignmentValues.Center);
-            sheet.CellVerticalAlign(1, 3, VerticalAlignmentValues.Bottom);
+            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Top);
+            sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Center);
+            sheet.CellVerticalAlign(1, 3, ExcelVerticalAlignment.Bottom);
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
@@ -4359,8 +4359,8 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, 14);
             sheet.SetColumnWidth(2, 14);
             sheet.SetColumnWidth(3, 14);
-            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Top);
-            sheet.CellVerticalAlign(1, 3, VerticalAlignmentValues.Bottom);
+            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Top);
+            sheet.CellVerticalAlign(1, 3, ExcelVerticalAlignment.Bottom);
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
@@ -4909,7 +4909,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AddMalformedTimePeriodRuleWithFill(ExcelSheet sheet, string range) {
-            sheet.AddConditionalTimePeriodRule(range, TimePeriodValues.Today, fillColor: "C6EFCE");
+            sheet.AddConditionalTimePeriodRule(range, ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
             ConditionalFormattingRule rule = sheet.WorksheetPart.Worksheet!
                 .Elements<ConditionalFormatting>()
                 .Where(conditional => string.Equals(conditional.SequenceOfReferences?.InnerText, range, StringComparison.Ordinal))

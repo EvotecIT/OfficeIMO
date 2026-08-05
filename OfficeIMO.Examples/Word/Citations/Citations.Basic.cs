@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with a single citation");
             string filePath = Path.Combine(folderPath, "DocumentWithCitation.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var source = new WordBibliographySource("Src1", DataSourceValues.Book) {
+                var source = new WordBibliographySource("Src1", WordBibliographySourceType.Book) {
                     Title = "Sample Book",
                     Author = "John Doe",
                     Year = "2024"

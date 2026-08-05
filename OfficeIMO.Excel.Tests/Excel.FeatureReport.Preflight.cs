@@ -742,7 +742,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "D1",
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", X.DataConsolidateFunctionValues.Sum, "Total Sales") },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") },
                     pivotStyleName: "PivotStyleMedium9");
                 sheet.AddSparklines("B2:B3", "C2:C3");
                 document.Save();
@@ -780,7 +780,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "D1",
                     name: "HiddenPivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", X.DataConsolidateFunctionValues.Sum, "Total Sales") });
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
                 hidden.AddSparklines("B2:B3", "C2:C3");
                 hidden.SetHidden(true);
                 document.Save();

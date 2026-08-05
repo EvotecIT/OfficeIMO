@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 filters.AddAutoFilter("A1:AA2001");
 
                 ExcelSheet conditional = document.AddWorksheet("Conditional");
-                conditional.AddConditionalRule("B2:AB2002", ConditionalFormattingOperatorValues.GreaterThan, "10");
+                conditional.AddConditionalRule("B2:AB2002", ExcelConditionalFormattingOperator.GreaterThan, "10");
 
                 ExcelSheet charts = document.AddWorksheet("Charts");
                 charts.AddChart(
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.ValidationDate(
                     "A1:A2",
-                    DataValidationOperatorValues.Between,
+                    ExcelDataValidationOperator.Between,
                     new DateTime(2024, 1, 1),
                     new DateTime(2024, 12, 31));
 
@@ -149,8 +149,8 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBold(1, 1)));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellItalic(1, 1)));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellFontSize(1, 1, 18)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBorder(1, 1, BorderStyleValues.Medium, "#FF0000")));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBorder(1, 1, ExcelBorderStyle.Medium, "#FF0000")));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.WrapCells(1, 1, 1)));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.SetHyperlink(1, 1, "https://example.test/", display: "Value", style: false)));
         }
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
                 try {
                     using var document = ExcelDocument.Create(path);
                     ExcelSheet sheet = document.AddWorksheet("Data");
-                    sheet.AddConditionalRule("A1:A10", ConditionalFormattingOperatorValues.GreaterThan, threshold, fillColor: fillColor);
+                    sheet.AddConditionalRule("A1:A10", ExcelConditionalFormattingOperator.GreaterThan, threshold, fillColor: fillColor);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/conditionalFormat/0"];
                 } finally {
                     if (File.Exists(path)) File.Delete(path);
@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(3, 12);
                 sheet.ValidationDate(
                     "A1:A2",
-                    DataValidationOperatorValues.Between,
+                    ExcelDataValidationOperator.Between,
                     new DateTime(2024, 1, 1),
                     new DateTime(2024, 12, 31));
 
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
                     alternateSheet.SetColumnWidth(3, 12);
                     alternateSheet.ValidationDate(
                         "A1:A2",
-                        DataValidationOperatorValues.Between,
+                        ExcelDataValidationOperator.Between,
                         new DateTime(2024, 1, 1),
                         new DateTime(2025, 12, 31));
                     GoogleSheetsSyncCheckpoint alternateValidation = GoogleSheetsDiffPlanner.CreateCheckpoint(alternate);
@@ -308,7 +308,7 @@ namespace OfficeIMO.Tests {
                     "AA2000",
                     name: "ScopedHeaders",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", DataConsolidateFunctionValues.Sum, "Total") });
+                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") });
 
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
 

@@ -113,22 +113,22 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Slide size preset type.
         /// </summary>
-        public SlideSizeValues? Type {
-            get => EnsureSlideSize().Type?.Value;
-            set => EnsureSlideSize().Type = value;
+        public PowerPointSlideSizeType? Type {
+            get => EnsureSlideSize().Type?.Value.ToOfficeEnum();
+            set => EnsureSlideSize().Type = value?.ToOpenXml();
         }
 
         /// <summary>
         ///     Sets a slide size preset.
         /// </summary>
         public void SetPreset(PowerPointSlideSizePreset preset, bool portrait = false) {
-            (long width, long height, SlideSizeValues type) = preset switch {
+            (long width, long height, PowerPointSlideSizeType type) = preset switch {
                 PowerPointSlideSizePreset.Screen4x3 =>
-                    (PowerPointUnits.FromInches(10), PowerPointUnits.FromInches(7.5), SlideSizeValues.Screen4x3),
+                    (PowerPointUnits.FromInches(10), PowerPointUnits.FromInches(7.5), PowerPointSlideSizeType.Screen4x3),
                 PowerPointSlideSizePreset.Screen16x9 =>
-                    (PowerPointUnits.FromInches(13.333), PowerPointUnits.FromInches(7.5), SlideSizeValues.Screen16x9),
+                    (PowerPointUnits.FromInches(13.333), PowerPointUnits.FromInches(7.5), PowerPointSlideSizeType.Screen16x9),
                 PowerPointSlideSizePreset.Screen16x10 =>
-                    (PowerPointUnits.FromInches(10), PowerPointUnits.FromInches(6.25), SlideSizeValues.Screen16x10),
+                    (PowerPointUnits.FromInches(10), PowerPointUnits.FromInches(6.25), PowerPointSlideSizeType.Screen16x10),
                 _ => throw new ArgumentOutOfRangeException(nameof(preset))
             };
 
@@ -143,13 +143,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the slide size in EMUs.
         /// </summary>
         public void SetSizeEmus(long widthEmus, long heightEmus) {
-            SetSizeEmus(widthEmus, heightEmus, SlideSizeValues.Custom);
+            SetSizeEmus(widthEmus, heightEmus, PowerPointSlideSizeType.Custom);
         }
 
         /// <summary>
         ///     Sets the slide size in EMUs with an explicit slide size type.
         /// </summary>
-        public void SetSizeEmus(long widthEmus, long heightEmus, SlideSizeValues type) {
+        public void SetSizeEmus(long widthEmus, long heightEmus, PowerPointSlideSizeType type) {
             if (widthEmus <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(widthEmus));
             }
@@ -166,13 +166,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the slide size in centimeters.
         /// </summary>
         public void SetSizeCm(double widthCm, double heightCm) {
-            SetSizeCm(widthCm, heightCm, SlideSizeValues.Custom);
+            SetSizeCm(widthCm, heightCm, PowerPointSlideSizeType.Custom);
         }
 
         /// <summary>
         ///     Sets the slide size in centimeters with an explicit slide size type.
         /// </summary>
-        public void SetSizeCm(double widthCm, double heightCm, SlideSizeValues type) {
+        public void SetSizeCm(double widthCm, double heightCm, PowerPointSlideSizeType type) {
             SetSizeEmus(PowerPointUnits.FromCentimeters(widthCm),
                 PowerPointUnits.FromCentimeters(heightCm), type);
         }
@@ -181,13 +181,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the slide size in inches.
         /// </summary>
         public void SetSizeInches(double widthInches, double heightInches) {
-            SetSizeInches(widthInches, heightInches, SlideSizeValues.Custom);
+            SetSizeInches(widthInches, heightInches, PowerPointSlideSizeType.Custom);
         }
 
         /// <summary>
         ///     Sets the slide size in inches with an explicit slide size type.
         /// </summary>
-        public void SetSizeInches(double widthInches, double heightInches, SlideSizeValues type) {
+        public void SetSizeInches(double widthInches, double heightInches, PowerPointSlideSizeType type) {
             SetSizeEmus(PowerPointUnits.FromInches(widthInches),
                 PowerPointUnits.FromInches(heightInches), type);
         }
@@ -196,13 +196,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the slide size in points.
         /// </summary>
         public void SetSizePoints(double widthPoints, double heightPoints) {
-            SetSizePoints(widthPoints, heightPoints, SlideSizeValues.Custom);
+            SetSizePoints(widthPoints, heightPoints, PowerPointSlideSizeType.Custom);
         }
 
         /// <summary>
         ///     Sets the slide size in points with an explicit slide size type.
         /// </summary>
-        public void SetSizePoints(double widthPoints, double heightPoints, SlideSizeValues type) {
+        public void SetSizePoints(double widthPoints, double heightPoints, PowerPointSlideSizeType type) {
             SetSizeEmus(PowerPointUnits.FromPoints(widthPoints),
                 PowerPointUnits.FromPoints(heightPoints), type);
         }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public readonly struct ListInfo {
             /// <summary>Initializes a list descriptor using the original public constructor shape.</summary>
-            public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips, int? hangingIndentTwips)
+            public ListInfo(int level, bool ordered, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips)
                 : this(level, ordered, start, format, text, leftIndentTwips, hangingIndentTwips, null, null, null, null, null, null) {
             }
 
@@ -32,11 +32,11 @@ namespace OfficeIMO.Word {
             /// <param name="markerColorHex">Marker color from the numbering level, when defined.</param>
             /// <param name="levelJustification">Marker justification from the numbering level, when defined.</param>
             /// <param name="levelSuffix">Marker suffix from the numbering level, when defined.</param>
-            public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips = null, int? hangingIndentTwips = null, string? markerFontFamily = null, bool? markerBold = null, bool? markerItalic = null, string? markerColorHex = null, LevelJustificationValues? levelJustification = null, LevelSuffixValues? levelSuffix = null)
+            public ListInfo(int level, bool ordered, int start, WordNumberFormat? format, string? text, int? leftIndentTwips = null, int? hangingIndentTwips = null, string? markerFontFamily = null, bool? markerBold = null, bool? markerItalic = null, string? markerColorHex = null, WordListLevelAlignment? levelJustification = null, WordListLevelSuffix? levelSuffix = null)
                 : this(level, ordered, start, format, text, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize: null, levelJustification, levelSuffix) {
             }
 
-            internal ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, LevelJustificationValues? levelJustification, LevelSuffixValues? levelSuffix) {
+            internal ListInfo(int level, bool ordered, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix) {
                 Level = level;
                 Ordered = ordered;
                 Start = start;
@@ -60,7 +60,7 @@ namespace OfficeIMO.Word {
             /// <summary>Starting index for the list.</summary>
             public int Start { get; }
             /// <summary>Numbering format applied to the list.</summary>
-            public NumberFormatValues? NumberFormat { get; }
+            public WordNumberFormat? NumberFormat { get; }
             /// <summary>Pattern used to build the list marker.</summary>
             public string? LevelText { get; }
             /// <summary>List text position in twentieths of a point, when defined.</summary>
@@ -78,9 +78,9 @@ namespace OfficeIMO.Word {
             /// <summary>Marker font size from the numbering level, in points, when defined.</summary>
             public double? MarkerFontSize { get; }
             /// <summary>Marker justification from the numbering level, when defined.</summary>
-            public LevelJustificationValues? LevelJustification { get; }
+            public WordListLevelAlignment? LevelJustification { get; }
             /// <summary>Marker suffix from the numbering level, when defined.</summary>
-            public LevelSuffixValues? LevelSuffix { get; }
+            public WordListLevelSuffix? LevelSuffix { get; }
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
             int level = paragraph.ListItemLevel ?? 0;
             int? overrideStart = null;
             int start = 1;
-            NumberFormatValues? numberFormat = null;
+            WordNumberFormat? numberFormat = null;
             string? levelText = null;
             int? leftIndentTwips = null;
             int? hangingIndentTwips = null;
@@ -121,8 +121,8 @@ namespace OfficeIMO.Word {
             bool? markerItalic = null;
             string? markerColorHex = null;
             double? markerFontSize = null;
-            LevelJustificationValues? levelJustification = null;
-            LevelSuffixValues? levelSuffix = null;
+            WordListLevelAlignment? levelJustification = null;
+            WordListLevelSuffix? levelSuffix = null;
 
             int? numberId = paragraph._listNumberId;
             ListNumberingDefinition? definition = null;
@@ -140,7 +140,7 @@ namespace OfficeIMO.Word {
                 if (!overrideStart.HasValue) {
                     start = levelDefinition.Start;
                 }
-                numberFormat = levelDefinition.NumberFormat;
+                numberFormat = levelDefinition.NumberFormat.ToOfficeEnum();
                 levelText = levelDefinition.LevelText;
                 leftIndentTwips = levelDefinition.LeftIndentTwips;
                 hangingIndentTwips = levelDefinition.HangingIndentTwips;
@@ -149,8 +149,8 @@ namespace OfficeIMO.Word {
                 markerItalic = levelDefinition.MarkerItalic;
                 markerColorHex = levelDefinition.MarkerColorHex;
                 markerFontSize = levelDefinition.MarkerFontSize;
-                levelJustification = levelDefinition.LevelJustification;
-                levelSuffix = levelDefinition.LevelSuffix;
+                levelJustification = levelDefinition.LevelJustification.ToOfficeEnum();
+                levelSuffix = levelDefinition.LevelSuffix.ToOfficeEnum();
             }
 
             bool ordered = definition?.Style switch {
@@ -175,7 +175,7 @@ namespace OfficeIMO.Word {
 
             foreach (KeyValuePair<int, List<WordParagraph>> listItems in itemsByNumberId) {
                 Dictionary<int, int> indices = new();
-                Dictionary<int, NumberFormatValues?> formats = new();
+                Dictionary<int, WordNumberFormat?> formats = new();
                 int lastLevel = 0;
                 bool first = true;
                 foreach (WordParagraph item in listItems.Value) {
@@ -465,7 +465,7 @@ namespace OfficeIMO.Word {
             public int GetHashCode(WordParagraph obj) => RuntimeHelpers.GetHashCode(obj._paragraph);
         }
 
-        private static string BuildMarker(int level, int index, Dictionary<int, int> indices, Dictionary<int, NumberFormatValues?> formats, string? pattern) {
+        private static string BuildMarker(int level, int index, Dictionary<int, int> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
             if (string.IsNullOrEmpty(pattern)) {
                 string formatted = FormatNumber(index, formats[level]);
                 return formatted + ".";
@@ -479,23 +479,23 @@ namespace OfficeIMO.Word {
                 }
                 int lvl = placeholderLevel - 1;
                 int value = lvl == level ? index : indices.TryGetValue(lvl, out int val) ? val - 1 : 0;
-                formats.TryGetValue(lvl, out NumberFormatValues? fmt);
+                formats.TryGetValue(lvl, out WordNumberFormat? fmt);
                 return FormatNumber(value, fmt);
             });
             return marker;
         }
 
-        private static string FormatNumber(int number, NumberFormatValues? format) {
-            if (format == NumberFormatValues.LowerRoman) {
+        private static string FormatNumber(int number, WordNumberFormat? format) {
+            if (format == WordNumberFormat.LowerRoman) {
                 return ToRoman(number).ToLowerInvariant();
             }
-            if (format == NumberFormatValues.UpperRoman) {
+            if (format == WordNumberFormat.UpperRoman) {
                 return ToRoman(number);
             }
-            if (format == NumberFormatValues.LowerLetter) {
+            if (format == WordNumberFormat.LowerLetter) {
                 return ToAlphabeticSequence(number, uppercase: false);
             }
-            if (format == NumberFormatValues.UpperLetter) {
+            if (format == WordNumberFormat.UpperLetter) {
                 return ToAlphabeticSequence(number, uppercase: true);
             }
             return number.ToString();

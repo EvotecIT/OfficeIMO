@@ -321,10 +321,10 @@ namespace OfficeIMO.Word {
         /// Adds a legend to the chart at the specified position.
         /// </summary>
         /// <param name="legendPosition">Desired legend position.</param>
-        public void AddLegend(LegendPositionValues legendPosition) {
+        public void AddLegend(WordChartLegendPosition legendPosition) {
             if (_chart != null) {
                 Legend legend = new Legend();
-                LegendPosition postion = new LegendPosition() { Val = legendPosition };
+                LegendPosition postion = new LegendPosition() { Val = legendPosition.ToOpenXml() };
                 Overlay overlay = new Overlay() { Val = false };
                 legend.Append(postion);
                 legend.Append(overlay);

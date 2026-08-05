@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 var hyperlinkElement = hyperlink.Hyperlink;
                 Assert.NotNull(hyperlinkElement);
 
-                Assert.True(hyperlink.Underline == UnderlineValues.Single);
+                Assert.True(hyperlink.Underline == WordUnderlineStyle.Single);
                 Assert.True(hyperlink.Bold == false);
                 Assert.True(hyperlink.Italic == false);
                 Assert.True(hyperlink.Color == Color.Blue);
@@ -39,14 +39,14 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(hyperlink.Bold);
                 Assert.True(hyperlink.Italic);
-                Assert.True(hyperlink.Underline == UnderlineValues.Single);
+                Assert.True(hyperlink.Underline == WordUnderlineStyle.Single);
                 Assert.True(hyperlink.Color == Color.Blue);
 
                 hyperlink.Color = Color.Red;
-                hyperlink.Underline = UnderlineValues.Dash;
+                hyperlink.Underline = WordUnderlineStyle.Dash;
 
                 Assert.True(hyperlink.Color == Color.Red);
-                Assert.True(hyperlink.Underline == UnderlineValues.Dash);
+                Assert.True(hyperlink.Underline == WordUnderlineStyle.Dash);
 
                 Assert.True(hyperlinkElement!.Text == "bookmark below");
 
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(secondHyperlink.Text == " to website?");
 
-                var section = document.AddSection(SectionMarkValues.NextPage);
+                var section = document.AddSection(WordSectionBreakType.NextPage);
                 section.AddHyperLink("This is my website", new Uri("https://evotec.xyz"));
                 section.AddHyperLink("This is second website", new Uri("https://evotec.pl"), true, "This is tooltip for my website 1");
                 document.AddHyperLink("This is third website", new Uri("https://evotec.se"), true, "This is tooltip for my website 2");
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(hyperlinkElement!._runProperties?.Bold == null);
 
-                Assert.True(hyperlink.Underline == UnderlineValues.Single);
+                Assert.True(hyperlink.Underline == WordUnderlineStyle.Single);
                 Assert.True(hyperlink.Bold == false);
                 Assert.True(hyperlink.Italic == false);
                 Assert.True(hyperlink.Color == Color.Blue);
@@ -243,11 +243,11 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(hyperlink.Bold);
                 Assert.True(hyperlink.Italic);
-                Assert.True(hyperlink.Underline == UnderlineValues.Single);
+                Assert.True(hyperlink.Underline == WordUnderlineStyle.Single);
                 Assert.True(hyperlink.Color == Color.Blue);
 
                 hyperlink.Color = Color.Red;
-                hyperlink.Underline = UnderlineValues.Dash;
+                hyperlink.Underline = WordUnderlineStyle.Dash;
 
 
                 var hyperlinkWithoutStyle = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below",
@@ -275,23 +275,23 @@ namespace OfficeIMO.Tests {
                 hyperlinkWithoutStyle.Bold = true;
                 hyperlinkWithoutStyle.Italic = true;
                 hyperlinkWithoutStyle.Color = Color.Red;
-                hyperlinkWithoutStyle.Underline = UnderlineValues.Dash;
+                hyperlinkWithoutStyle.Underline = WordUnderlineStyle.Dash;
                 hyperlinkWithoutStyle.Spacing = 2;
                 hyperlinkWithoutStyle.FontSize = 12;
                 hyperlinkWithoutStyle.FontFamily = "Arial";
-                hyperlinkWithoutStyle.Highlight = HighlightColorValues.Cyan;
+                hyperlinkWithoutStyle.Highlight = WordHighlightColor.Cyan;
                 hyperlinkWithoutStyle.Strike = true;
                 hyperlinkWithoutStyle.DoubleStrike = true;
                 hyperlinkWithoutStyle.CapsStyle = CapsStyle.SmallCaps;
 
                 Assert.True(hyperlinkWithoutStyle.Bold);
                 Assert.True(hyperlinkWithoutStyle.Italic);
-                Assert.True(hyperlinkWithoutStyle.Underline == UnderlineValues.Dash);
+                Assert.True(hyperlinkWithoutStyle.Underline == WordUnderlineStyle.Dash);
                 Assert.True(hyperlinkWithoutStyle.Color == Color.Red);
                 Assert.True(hyperlinkWithoutStyle.Spacing == 2);
                 Assert.True(hyperlinkWithoutStyle.FontSize == 12);
                 Assert.True(hyperlinkWithoutStyle.FontFamily == "Arial");
-                Assert.True(hyperlinkWithoutStyle.Highlight == HighlightColorValues.Cyan);
+                Assert.True(hyperlinkWithoutStyle.Highlight == WordHighlightColor.Cyan);
                 Assert.True(hyperlinkWithoutStyle.Strike);
                 Assert.True(hyperlinkWithoutStyle.DoubleStrike);
                 Assert.True(hyperlinkWithoutStyle.CapsStyle == CapsStyle.SmallCaps);

@@ -10,8 +10,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelPivotFieldInfo(
             string fieldName,
-            PivotTableAxisValues? axis = null,
-            FieldSortValues? sortType = null,
+            ExcelPivotTableAxis? axis = null,
+            ExcelPivotFieldSort? sortType = null,
             uint? numberFormatId = null,
             bool? showAll = null,
             bool? defaultSubtotal = null,
@@ -57,12 +57,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the pivot axis this field is assigned to, if any.
         /// </summary>
-        public PivotTableAxisValues? Axis { get; }
+        public ExcelPivotTableAxis? Axis { get; }
 
         /// <summary>
         /// Gets the sort mode.
         /// </summary>
-        public FieldSortValues? SortType { get; }
+        public ExcelPivotFieldSort? SortType { get; }
 
         /// <summary>
         /// Gets the field number format id.

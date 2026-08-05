@@ -799,7 +799,7 @@ namespace OfficeIMO.PowerPoint {
             int current = numbered.StartAt?.Value ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
             numberingState[level] = current;
             return PowerPointNumberingFormatter.FormatMarker(current,
-                numbered.Type?.Value) + " ";
+                numbered.Type?.Value.ToOfficeEnum()) + " ";
         }
 
         private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false) {
@@ -840,31 +840,31 @@ namespace OfficeIMO.PowerPoint {
             return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
         }
 
-        private static OfficeTextAlignment MapTextAlignment(A.TextAlignmentTypeValues? alignment) {
-            if (alignment == A.TextAlignmentTypeValues.Center) {
+        private static OfficeTextAlignment MapTextAlignment(PowerPointTextAlignment? alignment) {
+            if (alignment == PowerPointTextAlignment.Center) {
                 return OfficeTextAlignment.Center;
             }
 
-            if (alignment == A.TextAlignmentTypeValues.Right) {
+            if (alignment == PowerPointTextAlignment.Right) {
                 return OfficeTextAlignment.Right;
             }
 
-            if (alignment == A.TextAlignmentTypeValues.Justified ||
-                alignment == A.TextAlignmentTypeValues.Distributed ||
-                alignment == A.TextAlignmentTypeValues.ThaiDistributed ||
-                alignment == A.TextAlignmentTypeValues.JustifiedLow) {
+            if (alignment == PowerPointTextAlignment.Justified ||
+                alignment == PowerPointTextAlignment.Distributed ||
+                alignment == PowerPointTextAlignment.ThaiDistributed ||
+                alignment == PowerPointTextAlignment.JustifiedLow) {
                 return OfficeTextAlignment.Justify;
             }
 
             return OfficeTextAlignment.Left;
         }
 
-        private static OfficeTextVerticalAlignment MapTextVerticalAlignment(A.TextAnchoringTypeValues? alignment) {
-            if (alignment == A.TextAnchoringTypeValues.Center) {
+        private static OfficeTextVerticalAlignment MapTextVerticalAlignment(PowerPointTextVerticalAlignment? alignment) {
+            if (alignment == PowerPointTextVerticalAlignment.Center) {
                 return OfficeTextVerticalAlignment.Center;
             }
 
-            if (alignment == A.TextAnchoringTypeValues.Bottom) {
+            if (alignment == PowerPointTextVerticalAlignment.Bottom) {
                 return OfficeTextVerticalAlignment.Bottom;
             }
 

@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent1, "4472C4");
 
-                    PowerPointSlide slide = presentation.AddSlide(SlideLayoutValues.TitleOnly);
+                    PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
                     slide.AddTitle("Functional Smoke Test");
                     PowerPointTextBox box = slide.AddTextBox("Agenda", PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(3),
                         PowerPointUnits.FromCentimeters(6), PowerPointUnits.FromCentimeters(3));
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                         majorComplexScript: "Arial",
                         minorComplexScript: "Arial"));
 
-                    PowerPointSlide cover = presentation.AddSlide(SlideLayoutValues.TitleOnly);
+                    PowerPointSlide cover = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
                     cover.BackgroundColor = "F8F5EF";
                     cover.Transition = SlideTransition.Morph;
                     PowerPointTextBox title = cover.AddTitle("Commercial Snapshot",
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                     accent.OutlineColor = "F26A3D";
                     accent.SetGlow("F26A3D", radiusPoints: 8, transparencyPercent: 30);
 
-                    PowerPointSlide dashboard = presentation.AddSlide(SlideLayoutValues.Blank);
+                    PowerPointSlide dashboard = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
                     dashboard.SetBackgroundImage(backgroundPath);
                     dashboard.Transition = SlideTransition.Fade;
 
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
                         });
                     PowerPointChart chart = dashboard.AddLineChartCm(data, 1.4, 1.3, 14.5, 7.0);
                     chart.SetTitle("Momentum Over Time");
-                    chart.SetLegend(C.LegendPositionValues.Bottom);
+                    chart.SetLegend(PowerPointChartLegendPosition.Bottom);
                     chart.SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "EFE8DA");
                     chart.SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF");
                     chart.SetSeriesLineColor("Revenue", "156082", widthPoints: 2.5);

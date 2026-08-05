@@ -25,18 +25,18 @@ namespace OfficeIMO.PowerPoint {
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static void SetDataLabelPosition(C.DataLabels labels, C.DataLabelPositionValues? position) {
+        private static void SetDataLabelPosition(C.DataLabels labels, PowerPointChartDataLabelPosition? position) {
             labels.GetFirstChild<C.DataLabelPosition>()?.Remove();
             if (position != null) {
-                ReplaceChild(labels, new C.DataLabelPosition { Val = position.Value });
+                ReplaceChild(labels, new C.DataLabelPosition { Val = position.Value.ToOpenXml() });
             }
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static C.DataLabelPositionValues? GetPowerPointCompatibleDataLabelPosition(
+        private static PowerPointChartDataLabelPosition? GetPowerPointCompatibleDataLabelPosition(
             OpenXmlElement chartElement,
-            C.DataLabelPositionValues position) {
-            if (chartElement is C.DoughnutChart && position == C.DataLabelPositionValues.BestFit) {
+            PowerPointChartDataLabelPosition position) {
+            if (chartElement is C.DoughnutChart && position == PowerPointChartDataLabelPosition.BestFit) {
                 // PowerPoint repairs doughnut charts that explicitly serialize bestFit; omitting it keeps the default behavior.
                 return null;
             }
@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyDataLabelOverrides(OpenXmlCompositeElement label, bool? showLegendKey, bool? showValue,
             bool? showCategoryName, bool? showSeriesName, bool? showPercent,
-            C.DataLabelPositionValues? position, string? numberFormat, bool sourceLinked) {
+            PowerPointChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
             if (showLegendKey != null) {
                 ReplaceChild(label, new C.ShowLegendKey { Val = showLegendKey.Value });
             }
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
             }
             ReplaceChild(label, new C.ShowBubbleSize { Val = false });
             if (position != null) {
-                ReplaceChild(label, new C.DataLabelPosition { Val = position.Value });
+                ReplaceChild(label, new C.DataLabelPosition { Val = position.Value.ToOpenXml() });
             }
             if (numberFormat != null) {
                 ReplaceChild(label, new C.NumberingFormat {

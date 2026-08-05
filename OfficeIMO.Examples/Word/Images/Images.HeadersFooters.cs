@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.Word {
                 var table = header.AddTable(2, 2);
                 GetOrAddParagraph(table, 1, 1).Text = "Test123";
                 GetOrAddParagraph(table, 1, 0).AddImage(filePathImage, 50, 50);
-                table.Alignment = TableRowAlignmentValues.Right;
+                table.Alignment = WordTableAlignment.Right;
 
                 var paragraph = document.AddParagraph("This paragraph starts with some text");
                 paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph2Image = paragraph2.InsertImage(filePathImage, 500, 500);
                 //paragraph2Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
                 paragraph2Image.Rotation = 180;
-                paragraph2Image.Shape = ShapeTypeValues.ActionButtonMovie;
+                paragraph2Image.Shape = WordImageShapeType.ActionButtonMovie;
 
 
                 document.AddParagraph("This adds another picture with 100x100");

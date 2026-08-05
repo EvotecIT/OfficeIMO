@@ -301,11 +301,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the legend position and visibility.
         /// </summary>
-        public ExcelChart SetLegend(C.LegendPositionValues position, bool overlay = false) {
+        public ExcelChart SetLegend(ExcelChartLegendPosition position, bool overlay = false) {
             C.Chart chart = GetChart();
             C.Legend legend = chart.GetFirstChild<C.Legend>() ?? new C.Legend();
             var legendPosition = legend.GetFirstChild<C.LegendPosition>() ?? new C.LegendPosition();
-            legendPosition.Val = position;
+            legendPosition.Val = position.ToOpenXml();
             if (legendPosition.Parent == null) {
                 legend.Append(legendPosition);
             }

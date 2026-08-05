@@ -8,14 +8,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Sets the grouping mode for a line chart.
         /// </summary>
-        /// <param name="grouping">Open XML line chart grouping value.</param>
+        /// <param name="grouping">Line chart grouping value.</param>
         /// <returns>The current chart for fluent configuration.</returns>
-        public PowerPointChart SetLineChartGrouping(C.GroupingValues grouping) {
+        public PowerPointChart SetLineChartGrouping(PowerPointChartGrouping grouping) {
             ChartPart chartPart = GetChartPart();
             C.LineChart lineChart = chartPart.ChartSpace?.Descendants<C.LineChart>().FirstOrDefault()
                 ?? throw new InvalidOperationException("The chart does not contain a line chart.");
             C.Grouping chartGrouping = lineChart.GetFirstChild<C.Grouping>() ?? lineChart.PrependChild(new C.Grouping());
-            chartGrouping.Val = grouping;
+            chartGrouping.Val = grouping.ToOpenXml();
             Save();
             return this;
         }

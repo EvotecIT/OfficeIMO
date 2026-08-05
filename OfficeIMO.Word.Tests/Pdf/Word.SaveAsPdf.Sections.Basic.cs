@@ -56,7 +56,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("ContinuousSectionBefore");
-            document.AddSection(SectionMarkValues.Continuous);
+            document.AddSection(WordSectionBreakType.Continuous);
             document.AddParagraph("ContinuousSectionAfter");
 
             document.Save();
@@ -80,7 +80,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("NextPageSectionBefore");
-            document.AddSection(SectionMarkValues.NextPage);
+            document.AddSection(WordSectionBreakType.NextPage);
             document.AddParagraph("NextPageSectionAfter");
 
             document.Save();
@@ -441,9 +441,9 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordParagraph centeredHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("NativeCenterHeader");
-            centeredHeader.ParagraphAlignment = JustificationValues.Center;
+            centeredHeader.ParagraphAlignment = WordParagraphAlignment.Center;
             WordParagraph rightFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("NativeRightFooter");
-            rightFooter.ParagraphAlignment = JustificationValues.Right;
+            rightFooter.ParagraphAlignment = WordParagraphAlignment.Right;
             document.AddParagraph("NativeAlignedBody");
 
             document.Save();

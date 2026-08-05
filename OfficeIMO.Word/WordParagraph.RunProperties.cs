@@ -67,11 +67,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the underline style for the run.
         /// </summary>
-        public UnderlineValues? Underline {
+        public WordUnderlineStyle? Underline {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
                 if (runProperties != null && runProperties.Underline != null) {
-                    return runProperties.Underline.Val?.Value;
+                    return runProperties.Underline.Val?.Value.ToOfficeEnum();
                 }
                 return null;
             }
@@ -88,7 +88,7 @@ namespace OfficeIMO.Word {
                         runProperties.Underline = new Underline();
                     }
 
-                    runProperties.Underline.Val = value;
+                    runProperties.Underline.Val = value.Value.ToOpenXml();
                 } else {
                     if (runProperties.Underline != null) runProperties.Underline.Remove();
                 }
@@ -349,11 +349,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the theme color applied to the run.
         /// </summary>
-        public ThemeColorValues? ThemeColor {
+        public WordThemeColor? ThemeColor {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
                 if (runProperties != null && runProperties.Color != null && runProperties.Color.ThemeColor != null) {
-                    return runProperties.Color.ThemeColor?.Value;
+                    return runProperties.Color.ThemeColor?.Value.ToOfficeEnum();
                 }
                 return null;
             }
@@ -368,7 +368,7 @@ namespace OfficeIMO.Word {
                 if (value != null) {
                     var color = new DocumentFormat.OpenXml.Wordprocessing.Color {
                         ThemeColor = new EnumValue<ThemeColorValues> {
-                            Value = value.Value
+                            Value = value.Value.ToOpenXml()
                         }
                     };
                     runProperties.Color = color;
@@ -381,11 +381,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the highlight color applied to the run.
         /// </summary>
-        public HighlightColorValues? Highlight {
+        public WordHighlightColor? Highlight {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
                 if (runProperties != null && runProperties.Highlight != null) {
-                    return runProperties.Highlight.Val?.Value;
+                    return runProperties.Highlight.Val?.Value.ToOfficeEnum();
                 }
                 return null;
             }
@@ -404,7 +404,7 @@ namespace OfficeIMO.Word {
                     runProperties = VerifyRunProperties();
                 }
                 var highlight = new Highlight {
-                    Val = value.Value
+                    Val = value.Value.ToOpenXml()
                 };
                 runProperties.Highlight = highlight;
             }

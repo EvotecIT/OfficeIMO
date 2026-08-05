@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
                 textBox.Paragraphs[0].Color = Color.Red;
 
 
-                textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
 
                 Console.WriteLine("Alignment: " + textBox.HorizontalAlignment);
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Alignment: " + textBox.HorizontalAlignment);
 
-                textBox.VerticalPositionRelativeFrom = VerticalRelativePositionValues.Page;
+                textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
 
                 //textBox.VerticalPositionOffset = 1901950;
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].Paragraphs[0].Borders.BottomColor);
 
                 document.TextBoxes[1].Paragraphs[0].Borders.BottomColor = Color.Red;
-                document.TextBoxes[1].Paragraphs[0].Borders.BottomStyle = DocumentFormat.OpenXml.Wordprocessing.BorderValues.DashDotStroked;
+                document.TextBoxes[1].Paragraphs[0].Borders.BottomStyle = WordBorderStyle.DashDotStroked;
 
                 Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].Paragraphs[0].Borders.BottomColor);
 

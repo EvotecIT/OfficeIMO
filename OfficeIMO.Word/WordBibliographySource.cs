@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new source with the given tag and type.
         /// </summary>
-        public WordBibliographySource(string tag, DataSourceValues type) {
+        public WordBibliographySource(string tag, WordBibliographySourceType type) {
             Source = new Source();
             Tag = tag;
             SourceType = type;
@@ -41,16 +41,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the type of the source.
         /// </summary>
-        public DataSourceValues SourceType {
+        public WordBibliographySourceType SourceType {
             get {
-                if (Enum.TryParse(Source.SourceType?.Text, out DataSourceValues val)) {
-                    return val;
+                string? token = Source.SourceType?.Text;
+                if (!string.IsNullOrWhiteSpace(token)) {
+                    return new DataSourceValues(token!).ToOfficeEnum();
                 }
-                return DataSourceValues.Miscellaneous;
+                return WordBibliographySourceType.Miscellaneous;
             }
             set {
                 if (Source.SourceType == null) Source.SourceType = new SourceType();
-                Source.SourceType.Text = value.ToString();
+                Source.SourceType.Text = value.ToOpenXml().ToString();
             }
         }
 

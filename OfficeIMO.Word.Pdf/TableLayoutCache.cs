@@ -37,7 +37,7 @@ namespace OfficeIMO.Word.Pdf {
                 int logicalColumn = rowStartColumns[rowIndex];
                 for (int i = 0; i < row.Count && logicalColumn < widths.Length; i++) {
                     WordTableCell cell = row[i];
-                    if (cell.HorizontalMerge == MergedCellValues.Continue) {
+                    if (cell.HorizontalMerge == WordCellMerge.Continue) {
                         continue;
                     }
 
@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
                 long rowColumns = (long)rowStartColumns[rowIndex] + rowTrailingColumns[rowIndex];
                 EnsureSupportedColumnCount(rowColumns);
                 foreach (WordTableCell cell in row) {
-                    if (cell.HorizontalMerge == MergedCellValues.Continue) {
+                    if (cell.HorizontalMerge == WordCellMerge.Continue) {
                         continue;
                     }
 
@@ -146,7 +146,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsExplicitDxaCellWidth(WordTableCell cell) =>
             cell.Width.HasValue &&
-            cell.WidthType == TableWidthUnitValues.Dxa &&
+            cell.WidthType == WordTableWidthUnit.Dxa &&
             cell.Width.Value > 0;
     }
 }

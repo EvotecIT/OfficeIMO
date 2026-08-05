@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a layout info entry.
         /// </summary>
-        public PowerPointSlideLayoutInfo(int masterIndex, int layoutIndex, string name, SlideLayoutValues? type, string? relationshipId) {
+        public PowerPointSlideLayoutInfo(int masterIndex, int layoutIndex, string name, PowerPointSlideLayoutType? type, string? relationshipId) {
             MasterIndex = masterIndex;
             LayoutIndex = layoutIndex;
             Name = name;
@@ -34,12 +34,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Layout type (may be null for custom layouts).
         /// </summary>
-        public SlideLayoutValues? Type { get; }
-
-        /// <summary>
-        ///     OfficeIMO-owned layout type suitable for PowerShell binding (may be null for layouts without a type).
-        /// </summary>
-        public PowerPointSlideLayoutType? LayoutType => Type?.ToOfficeIMO();
+        public PowerPointSlideLayoutType? Type { get; }
 
         /// <summary>
         ///     Relationship ID for the layout part.

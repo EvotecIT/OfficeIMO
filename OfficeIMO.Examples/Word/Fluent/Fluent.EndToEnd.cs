@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .Info(i => i.Title("Quarterly Review").Author("OfficeIMO"))
-                    .PageSetup(ps => ps.Orientation(PageOrientationValues.Portrait)
+                    .PageSetup(ps => ps.Orientation(WordPageOrientation.Portrait)
                                         .Size(WordPageSize.A4)
                                         .Margins(WordMargin.Normal))
                     .Paragraph(p => p.Text("Hello ").Text("World", t => t.BoldOn().Color("#ff0000")).Text("!"))

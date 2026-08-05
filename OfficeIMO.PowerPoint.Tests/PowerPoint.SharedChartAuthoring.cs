@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
             PowerPointChart chart = slide.AddChart(OfficeChartKind.Line, initial)
                 .SetDataLabels(showValue: true)
                 .SetSeriesDataLabels(0, showValue: true, numberFormat: "0.0")
-                .SetSeriesTrendline(0, C.TrendlineValues.Linear, displayRSquared: true);
+                .SetSeriesTrendline(0, PowerPointChartTrendlineType.Linear, displayRSquared: true);
 
             chart.UpdateData(updated);
 

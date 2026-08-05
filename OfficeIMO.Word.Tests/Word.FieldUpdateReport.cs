@@ -442,13 +442,13 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("First section pages: ").AddField(WordFieldType.SectionPages);
 
-                WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+                WordSection secondSection = document.AddSection(WordSectionBreakType.NextPage);
                 secondSection.AddParagraph("Second section: ").AddField(WordFieldType.Section);
                 secondSection.AddParagraph("Second section formatted: ")._paragraph.Append(BuildSimpleField(" SECTION \\* Roman ", "stale-section-roman"));
                 secondSection.AddParagraph()._paragraph.Append(new Run(new Break { Type = BreakValues.Page }));
                 secondSection.AddParagraph("Second section pages: ")._paragraph.Append(BuildSimpleField(" SECTIONPAGES \\# \"000\" ", "stale-section-pages"));
 
-                WordSection thirdSection = document.AddSection(SectionMarkValues.Continuous);
+                WordSection thirdSection = document.AddSection(WordSectionBreakType.Continuous);
                 thirdSection.AddParagraph("Third section: ").AddField(WordFieldType.Section);
                 thirdSection.AddParagraph("Third section pages: ").AddField(WordFieldType.SectionPages);
                 document.Save();

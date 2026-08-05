@@ -38,7 +38,7 @@ namespace OfficeIMO.Word {
                     // Pad missing columns with an even share of remaining width
                     int missing = columnCount - colWidths.Count;
                     int add = 0;
-                    if (ColumnWidthType == TableWidthUnitValues.Pct) {
+                    if (ColumnWidthType == WordTableWidthUnit.Pct) {
                         int used = colWidths.Sum();
                         add = Math.Max(0, (5000 - used) / Math.Max(1, missing));
                     } else {
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
 
                 // Convert each column width to DXA
                 List<int> gridDxa = new List<int>(columnCount);
-                if (ColumnWidthType == TableWidthUnitValues.Pct) {
+                if (ColumnWidthType == WordTableWidthUnit.Pct) {
                     // values are stored in 1/50 %, so 5000 == 100%
                     int totalPct = Math.Max(1, colWidths.Sum());
                     // Scale to the table width so that the sum matches the table width
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
                         allocated += dxa;
                         gridDxa.Add(Math.Max(1, dxa));
                     }
-                } else if (ColumnWidthType == TableWidthUnitValues.Dxa) {
+                } else if (ColumnWidthType == WordTableWidthUnit.Dxa) {
                     // DXA widths behave differently depending on whether the table itself
                     // has an explicit preferred width:
                     //   - For tables with explicit tblW (Pct or Dxa), Word normalizes the DXA
@@ -74,8 +74,8 @@ namespace OfficeIMO.Word {
                     //   - For Auto-width tables (tblW type="auto" or missing/zero), Word leaves
                     //     tblGrid columns equal to the raw DXA cell widths.
                     bool hasExplicitTableWidth =
-                        (this.WidthType == TableWidthUnitValues.Dxa && (this.Width ?? 0) > 0)
-                        || (this.WidthType == TableWidthUnitValues.Pct && (this.Width ?? 0) > 0);
+                        (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0)
+                        || (this.WidthType == WordTableWidthUnit.Pct && (this.Width ?? 0) > 0);
 
                     if (!hasExplicitTableWidth) {
                         // Match Word's behaviour for pure auto tables: carry DXA widths directly.
@@ -124,18 +124,18 @@ namespace OfficeIMO.Word {
         /// Attempts to derive a complete set of column widths and their unit by scanning rows.
         /// Prefer any row that has widths for all columns; fall back to the first row with any widths.
         /// </summary>
-        private List<int> GetBestAvailableColumnWidths(out TableWidthUnitValues? detectedType, int expectedColumns) {
+        private List<int> GetBestAvailableColumnWidths(out WordTableWidthUnit? detectedType, int expectedColumns) {
             detectedType = ColumnWidthType; // start with the table-level hint
 
             if (Rows.Count == 0) return new List<int>();
             int cols = expectedColumns > 0 ? expectedColumns : Rows.Max(r => r.Cells.Count);
             List<int>? candidate = null;
-            TableWidthUnitValues? candidateType = null;
+            WordTableWidthUnit? candidateType = null;
 
             foreach (var row in Rows) {
                 var rowCells = row.Cells;
                 var w = new List<int>();
-                TableWidthUnitValues? typeForRow = null;
+                WordTableWidthUnit? typeForRow = null;
                 bool allPresent = true;
                 for (int i = 0; i < System.Math.Min(cols, rowCells.Count); i++) {
                     var cell = rowCells[i];
@@ -160,7 +160,7 @@ namespace OfficeIMO.Word {
                 // Replace zeros with an even share
                 int missing = candidate.Count(x => x == 0);
                 if (missing > 0) {
-                    if ((detectedType ?? ColumnWidthType) == TableWidthUnitValues.Pct) {
+                    if ((detectedType ?? ColumnWidthType) == WordTableWidthUnit.Pct) {
                         int used = candidate.Where(x => x > 0).Sum();
                         int add = Math.Max(0, (5000 - used) / missing);
                         for (int i = 0; i < candidate.Count; i++) if (candidate[i] == 0) candidate[i] = add;
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
 
             // No widths anywhere – distribute evenly
             int evenDxa = EstimateTableWidthInDxa() / Math.Max(1, cols);
-            detectedType = TableWidthUnitValues.Dxa;
+            detectedType = WordTableWidthUnit.Dxa;
             return Enumerable.Repeat(evenDxa, cols).ToList();
         }
 
@@ -192,10 +192,10 @@ namespace OfficeIMO.Word {
             // For nested tables, use the containing cell's width as the reference
             if (IsNestedTable) {
                 int container = EstimateContainingCellContentWidthInDxa();
-                if (this.WidthType == TableWidthUnitValues.Dxa && (this.Width ?? 0) > 0) {
+                if (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0) {
                     return Math.Min(this.Width!.Value, container);
                 }
-                if (this.WidthType == TableWidthUnitValues.Pct && (this.Width ?? 0) > 0) {
+                if (this.WidthType == WordTableWidthUnit.Pct && (this.Width ?? 0) > 0) {
                     int desired = (int)Math.Round((double)container * this.Width!.Value / 5000);
                     return Math.Min(desired, container);
                 }
@@ -206,10 +206,10 @@ namespace OfficeIMO.Word {
             // Non-nested: default to page content area as reference
             int contentWidth = EstimateContentAreaWidthInDxa();
 
-            if (this.WidthType == TableWidthUnitValues.Dxa && (this.Width ?? 0) > 0) {
+            if (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0) {
                 return this.Width!.Value;
             }
-            if (this.WidthType == TableWidthUnitValues.Pct && (this.Width ?? 0) > 0) {
+            if (this.WidthType == WordTableWidthUnit.Pct && (this.Width ?? 0) > 0) {
                 // Width is in 1/50 %, 5000 == 100%
                 return (int)Math.Round((double)contentWidth * this.Width!.Value / 5000);
             }
@@ -445,10 +445,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool AllowOverlap {
             get {
-                if (Position.TableOverlap == TableOverlapValues.Overlap) return true;
+                if (Position.TableOverlap == WordTableOverlap.Overlap) return true;
                 return false;
             }
-            set => Position.TableOverlap = value ? TableOverlapValues.Overlap : TableOverlapValues.Never;
+            set => Position.TableOverlap = value ? WordTableOverlap.Overlap : WordTableOverlap.Never;
         }
 
         /// <summary>
@@ -479,13 +479,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool AllowTextWrap {
             get {
-                if (Position.VerticalAnchor == VerticalAnchorValues.Text) return true;
+                if (Position.VerticalAnchor == WordTableVerticalAnchor.Text) return true;
 
                 return false;
             }
             set {
                 if (value)
-                    Position.VerticalAnchor = VerticalAnchorValues.Text;
+                    Position.VerticalAnchor = WordTableVerticalAnchor.Text;
                 else
                     Position.VerticalAnchor = null;
             }
@@ -587,9 +587,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the column width type for a whole table simplifying setup of column width
         /// </summary>
-        public TableWidthUnitValues? ColumnWidthType {
+        public WordTableWidthUnit? ColumnWidthType {
             get {
-                var listReturn = new List<TableWidthUnitValues?>();
+                var listReturn = new List<WordTableWidthUnit?>();
                 // we assume the first row has the same widths as all rows, which may or may not be true
                 for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
                     listReturn.Add(this.Rows[0].Cells[cellIndex].WidthType);

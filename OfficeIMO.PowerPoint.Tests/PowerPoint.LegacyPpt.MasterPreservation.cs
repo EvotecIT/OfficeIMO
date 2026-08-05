@@ -100,14 +100,14 @@ namespace OfficeIMO.Tests {
             };
             textBox.SetTextMarginsPoints(5, 6, 7, 8);
             textBox.TextVerticalAlignment =
-                A.TextAnchoringTypeValues.Bottom;
-            textBox.TextDirection = A.TextVerticalValues.Vertical;
+                PowerPointTextVerticalAlignment.Bottom;
+            textBox.TextDirection = PowerPointTextDirection.Vertical;
             textBox.TextAutoFit = PowerPointTextAutoFit.None;
             textShape.TextBody.BodyProperties!.Wrap =
                 A.TextWrappingValues.None;
-            textBox.PlaceholderType = P.PlaceholderValues.Title;
+            textBox.PlaceholderType = PowerPointPlaceholderType.Title;
             textBox.PlaceholderIndex = 3;
-            textBox.PlaceholderSize = P.PlaceholderSizeValues.Half;
+            textBox.PlaceholderSize = PowerPointPlaceholderSize.Half;
 
             Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
             byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
@@ -157,18 +157,18 @@ namespace OfficeIMO.Tests {
                 Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
                     reopenedMaster, out _)));
             Assert.Equal("Edited label", reopenedText.Text);
-            Assert.Equal(P.PlaceholderValues.Title,
+            Assert.Equal(PowerPointPlaceholderType.Title,
                 reopenedText.PlaceholderType);
             Assert.Equal(3U, reopenedText.PlaceholderIndex);
-            Assert.Equal(P.PlaceholderSizeValues.Half,
+            Assert.Equal(PowerPointPlaceholderSize.Half,
                 reopenedText.PlaceholderSize);
             Assert.Equal(5D, reopenedText.TextMarginLeftPoints);
             Assert.Equal(6D, reopenedText.TextMarginTopPoints);
             Assert.Equal(7D, reopenedText.TextMarginRightPoints);
             Assert.Equal(8D, reopenedText.TextMarginBottomPoints);
-            Assert.Equal(A.TextAnchoringTypeValues.Bottom,
+            Assert.Equal(PowerPointTextVerticalAlignment.Bottom,
                 reopenedText.TextVerticalAlignment);
-            Assert.Equal(A.TextVerticalValues.Vertical,
+            Assert.Equal(PowerPointTextDirection.Vertical,
                 reopenedText.TextDirection);
             Assert.Equal(PowerPointTextAutoFit.None,
                 reopenedText.TextAutoFit);
@@ -310,7 +310,7 @@ namespace OfficeIMO.Tests {
                         new PowerPointLayoutBox(300000, 400000, 500000, 500000),
                         placeholder: null, text: null,
                         shapeType: A.ShapeTypeValues.Ellipse));
-                created.AddSlide(P.SlideLayoutValues.Blank);
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
@@ -561,7 +561,7 @@ namespace OfficeIMO.Tests {
                     new A.Paragraph(
                         new A.Run(new A.Text("Master label")),
                         new A.EndParagraphRunProperties()))));
-            presentation.AddSlide(P.SlideLayoutValues.Blank);
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             return presentation.ToBytes(PowerPointFileFormat.Ppt);
         }
 

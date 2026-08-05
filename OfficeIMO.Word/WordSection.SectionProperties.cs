@@ -8,9 +8,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the page orientation of the section.
         /// </summary>
-        public PageOrientationValues PageOrientation {
-            get => WordPageSizes.GetOrientation(_sectionProperties);
-            set => WordPageSizes.SetOrientation(_sectionProperties, value);
+        public WordPageOrientation PageOrientation {
+            get => WordPageSizes.GetOrientation(_sectionProperties).ToOfficeEnum();
+            set => WordPageSizes.SetOrientation(_sectionProperties, value.ToOpenXml());
         }
         /// <summary>
         /// Gets or sets spacing between section columns.

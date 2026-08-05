@@ -162,7 +162,7 @@ internal static class PowerPointRichMapping {
             return;
         }
 
-        bool isTitle = textBox.ShapePlaceholderType == PlaceholderValues.Title || textBox.ShapePlaceholderType == PlaceholderValues.CenteredTitle;
+        bool isTitle = textBox.ShapePlaceholderType == PowerPointPlaceholderType.Title || textBox.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle;
         var numberingState = new Dictionary<int, int>();
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PowerPointParagraph paragraph = paragraphs[paragraphIndex];
@@ -321,7 +321,7 @@ internal static class PowerPointRichMapping {
 
     private static string ResolvePowerPointSlideName(IEnumerable<PowerPointShape> slideShapes, int slideNumber) {
         PowerPointTextBox? title = slideShapes.OfType<PowerPointTextBox>().FirstOrDefault(textBox =>
-            textBox.ShapePlaceholderType == PlaceholderValues.Title || textBox.ShapePlaceholderType == PlaceholderValues.CenteredTitle);
+            textBox.ShapePlaceholderType == PowerPointPlaceholderType.Title || textBox.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle);
         string? text = title?.Text?.Trim();
         return string.IsNullOrWhiteSpace(text) ? "Slide " + slideNumber.ToString(CultureInfo.InvariantCulture) : text!;
     }

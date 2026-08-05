@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 destinationCell: "E10",
                 name: "SalesPivot",
                 rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
 
             PivotTablePart pivotPart = Assert.Single(sheet.WorksheetPart.PivotTableParts);
             PivotTableCacheDefinitionPart cachePart = pivotPart.PivotTableCacheDefinitionPart!;

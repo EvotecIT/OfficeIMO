@@ -15,11 +15,11 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 3.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
                 document.AddParagraph("Test Section0").SetColor(Color.LightPink);
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = PageOrientationValues.Portrait;
+                section1.PageOrientation = WordPageOrientation.Portrait;
 
                 section1.AddParagraph("Test Section1").SetFontFamily("Tahoma").SetFontSize(20);
 
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
 
                 section2.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(20);
 
-                section2.PageOrientation = PageOrientationValues.Landscape;
+                section2.PageOrientation = WordPageOrientation.Landscape;
 
 
                 Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.Word {
                 section4.AddParagraph("Test Section4");
                 var section5 = document.AddSection();
                 section5.AddParagraph("Test Section5");
-                section5.PageOrientation = PageOrientationValues.Portrait;
+                section5.PageOrientation = WordPageOrientation.Portrait;
 
                 document.AddParagraph("Test Section5-Par1");
                 document.AddParagraph("Test Section5-Par2");

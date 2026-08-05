@@ -23,7 +23,7 @@ public static partial class WordRtfConverterExtensions {
         destination.SpaceBeforeAuto = spacing?.BeforeAutoSpacing?.Value;
         destination.SpaceAfterAuto = spacing?.AfterAutoSpacing?.Value;
         destination.LineSpacingTwips = source.LineSpacing;
-        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.LineSpacingRule);
+        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.LineSpacingRule.ToOpenXml());
         destination.Direction = source.BiDi ? RtfTextDirection.RightToLeft : null;
     }
 
@@ -86,7 +86,7 @@ public static partial class WordRtfConverterExtensions {
 
         LineSpacingRuleValues? lineSpacingRule = ToWordLineSpacingRule(source.LineSpacingMultiple);
         if (lineSpacingRule.HasValue) {
-            destination.LineSpacingRule = lineSpacingRule.Value;
+            destination.LineSpacingRule = lineSpacingRule.Value.ToOfficeEnum();
         }
 
         if (source.WidowControl.HasValue) {

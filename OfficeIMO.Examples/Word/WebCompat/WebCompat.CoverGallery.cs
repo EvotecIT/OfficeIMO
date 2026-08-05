@@ -22,8 +22,8 @@ namespace OfficeIMO.Examples.Word {
                 doc.AddPageBreak();
                 doc.AddParagraph("1. Executive Summary");
                 var t = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-                t.WidthType = DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues.Pct; t.Width = 5000;
-                t.ColumnWidthType = DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues.Pct; t.ColumnWidth = new() { 1500, 3500 };
+                t.WidthType = WordTableWidthUnit.Pct; t.Width = 5000;
+                t.ColumnWidthType = WordTableWidthUnit.Pct; t.ColumnWidth = new() { 1500, 3500 };
                 t.Rows[0].Cells[0].AddParagraph("Name", true);
                 t.Rows[0].Cells[1].AddParagraph("Value", true);
                 t.Rows[1].Cells[0].AddParagraph("Example", true);
@@ -47,8 +47,8 @@ namespace OfficeIMO.Examples.Word {
             doc.AddPageBreak();
             doc.AddParagraph("1. Overview");
             var t = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-            t.ColumnWidthType = DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues.Pct; t.ColumnWidth = new() { 500, 4500 };
-            t.WidthType = DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues.Pct; t.Width = 5000;
+            t.ColumnWidthType = WordTableWidthUnit.Pct; t.ColumnWidth = new() { 500, 4500 };
+            t.WidthType = WordTableWidthUnit.Pct; t.Width = 5000;
             t.Rows[0].Cells[0].AddParagraph("10%", true);
             t.Rows[0].Cells[1].AddParagraph("90%", true);
             t.Rows[1].Cells[0].AddParagraph("10%", true);

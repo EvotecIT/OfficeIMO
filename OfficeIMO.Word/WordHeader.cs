@@ -76,7 +76,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordprocessingDocument">Document to operate on.</param>
         /// <param name="types">Header types to remove.</param>
-        public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
+        public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument, params WordHeaderFooterType[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             var document = docPart?.Document;
 
@@ -91,11 +91,12 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            var openXmlTypes = new HashSet<HeaderFooterValues>(types.Select(type => type.ToOpenXml()));
             var partsToDelete = new HashSet<HeaderPart>();
             var documentRoot = document ?? throw new InvalidOperationException("Main document is missing.");
             var mainDocumentPart = docPart!;
             var headersToRemove = documentRoot.Descendants<HeaderReference>()
-                .Where(h => h.Type != null && types.Contains(WordSection.GetType(h.Type))).ToList();
+                .Where(h => h.Type != null && openXmlTypes.Contains(WordSection.GetType(h.Type))).ToList();
             foreach (var header in headersToRemove) {
                 if (header.Id == null) continue;
                 string relationshipId = header.Id.Value!;
@@ -120,7 +121,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Document to operate on.</param>
         /// <param name="types">Header types to remove.</param>
-        public static void RemoveHeaders(WordDocument document, params HeaderFooterValues[] types) {
+        public static void RemoveHeaders(WordDocument document, params WordHeaderFooterType[] types) {
             RemoveHeaders(document._wordprocessingDocument, types);
         }
 

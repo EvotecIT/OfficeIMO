@@ -32,11 +32,11 @@ namespace OfficeIMO.Tests {
                 barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
                 barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
                 barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
-                barChart1.BarGrouping = BarGroupingValues.Clustered;
-                barChart1.BarDirection = BarDirectionValues.Column;
+                barChart1.BarGrouping = WordChartBarGrouping.Clustered;
+                barChart1.BarDirection = WordChartBarDirection.Column;
 
-                Assert.True(barChart1.BarGrouping == BarGroupingValues.Clustered);
-                Assert.True(barChart1.BarDirection == BarDirectionValues.Column);
+                Assert.True(barChart1.BarGrouping == WordChartBarGrouping.Clustered);
+                Assert.True(barChart1.BarDirection == WordChartBarDirection.Column);
                 Assert.True(document.Paragraphs.Count == 3);
 
                 Assert.True(document.Sections[0].Charts.Count == 1);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                 areaChart.AddArea("Brazil", new List<int>() { 10, 35, 300, 13 }, OfficeIMO.Drawing.OfficeColor.Green);
                 areaChart.AddArea("Poland", new List<int>() { 10, 35, 230, 150 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
 
-                areaChart.AddLegend(LegendPositionValues.Top);
+                areaChart.AddLegend(WordChartLegendPosition.Top);
 
                 Assert.True(document.Sections[0].ParagraphsCharts.Count == 3);
                 Assert.True(document.Sections[0].Charts.Count == 3);
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
                 areaChart.AddArea("Brazil", new List<int> { 100, 1, 18, 230 }, Color.Brown);
                 areaChart.AddArea("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
                 areaChart.AddArea("USA", new List<int> { 10, 305, 18, 23 }, Color.AliceBlue);
-                areaChart.AddLegend(LegendPositionValues.Top);
+                areaChart.AddLegend(WordChartLegendPosition.Top);
 
                 document.Save();
             }
@@ -333,10 +333,10 @@ namespace OfficeIMO.Tests {
 
                 // Test different legend positions to ensure they all validate correctly
                 var positions = new[] {
-                    LegendPositionValues.Top,
-                    LegendPositionValues.Bottom,
-                    LegendPositionValues.Left,
-                    LegendPositionValues.Right
+                    WordChartLegendPosition.Top,
+                    WordChartLegendPosition.Bottom,
+                    WordChartLegendPosition.Left,
+                    WordChartLegendPosition.Right
                 };
 
                 foreach (var position in positions) {

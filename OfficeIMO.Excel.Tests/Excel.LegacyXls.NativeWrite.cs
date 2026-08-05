@@ -1560,11 +1560,11 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorksheet("Alignment");
                     sheet.CellValue(1, 1, "Wrapped text");
-                    sheet.CellAlign(1, 1, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
-                    sheet.CellVerticalAlign(1, 1, DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.Bottom);
+                    sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
+                    sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Bottom);
                     sheet.CellWrapText(1, 1);
                     sheet.CellValue(2, 1, "Top aligned text");
-                    sheet.CellVerticalAlign(2, 1, DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.Top);
+                    sheet.CellVerticalAlign(2, 1, ExcelVerticalAlignment.Top);
 
                     document.Save(xlsOutputPath);
                 }
@@ -1607,7 +1607,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorksheet("Alignment");
                     sheet.CellValue(1, 1, "Extended alignment");
-                    sheet.CellAlign(1, 1, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
+                    sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Right);
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1675,8 +1675,8 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(1, 1, "Bordered");
                     sheet.CellAt(1, 1)
                         .SetFillColor("#ABCDEF")
-                        .SetBorder(DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin, "#654321")
-                        .SetDiagonalBorder(DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Dotted, "#123456", diagonalUp: true, diagonalDown: true);
+                        .SetBorder(ExcelBorderStyle.Thin, "#654321")
+                        .SetDiagonalBorder(ExcelBorderStyle.Dotted, "#123456", diagonalUp: true, diagonalDown: true);
 
                     document.Save(xlsOutputPath);
                 }
@@ -1744,7 +1744,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorksheet("AutoBorder");
                     sheet.CellValue(1, 1, "Automatic border");
-                    sheet.CellAt(1, 1).SetBorder(DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin);
+                    sheet.CellAt(1, 1).SetBorder(ExcelBorderStyle.Thin);
 
                     document.Save(xlsOutputPath);
                 }
@@ -3261,12 +3261,12 @@ namespace OfficeIMO.Tests {
                         Prompt = "Pick a status.",
                         ErrorTitle = "Invalid status",
                         Error = "Use one of the listed statuses.",
-                        ErrorStyle = OpenXmlDataValidationErrorStyleValues.Warning,
+                        ErrorStyle = ExcelDataValidationErrorStyle.Warning,
                         SuppressDropDown = true
                     });
-                    sheet.ValidationWholeNumber("C2:C5", OpenXmlDataValidationOperatorValues.Between, 1, 10, errorTitle: "Invalid quantity", errorMessage: "Use 1-10.");
-                    sheet.ValidationDecimal("D2:D5", OpenXmlDataValidationOperatorValues.GreaterThan, 5.5d, allowBlank: false, errorTitle: "Invalid discount", errorMessage: "Use a value greater than 5.5.");
-                    sheet.ValidationTime("E2:E5", OpenXmlDataValidationOperatorValues.Equal, TimeSpan.FromHours(9), allowBlank: true, errorTitle: "Invalid time", errorMessage: "Use 09:00.");
+                    sheet.ValidationWholeNumber("C2:C5", ExcelDataValidationOperator.Between, 1, 10, errorTitle: "Invalid quantity", errorMessage: "Use 1-10.");
+                    sheet.ValidationDecimal("D2:D5", ExcelDataValidationOperator.GreaterThan, 5.5d, allowBlank: false, errorTitle: "Invalid discount", errorMessage: "Use a value greater than 5.5.");
+                    sheet.ValidationTime("E2:E5", ExcelDataValidationOperator.Equal, TimeSpan.FromHours(9), allowBlank: true, errorTitle: "Invalid time", errorMessage: "Use 09:00.");
 
                     document.Save(xlsOutputPath);
                 }
@@ -3382,8 +3382,8 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(2, 4, 1d);
                     sheet.CellValue(3, 4, -1d);
 
-                    sheet.AddConditionalRule("B2:B5", OpenXmlConditionalFormattingOperatorValues.GreaterThan, "10");
-                    sheet.AddConditionalRule("C2:C5", OpenXmlConditionalFormattingOperatorValues.Between, "1", "5");
+                    sheet.AddConditionalRule("B2:B5", ExcelConditionalFormattingOperator.GreaterThan, "10");
+                    sheet.AddConditionalRule("C2:C5", ExcelConditionalFormattingOperator.Between, "1", "5");
                     sheet.AddConditionalFormulaRule("D2:D5", "D2>0");
 
                     document.Save(xlsOutputPath);

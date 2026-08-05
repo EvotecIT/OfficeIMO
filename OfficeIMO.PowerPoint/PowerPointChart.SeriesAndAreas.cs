@@ -62,7 +62,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds or replaces a trendline for a chart series by index.
         /// </summary>
-        public PowerPointChart SetSeriesTrendline(int seriesIndex, C.TrendlineValues type,
+        public PowerPointChart SetSeriesTrendline(int seriesIndex, PowerPointChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
             bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null) {
             if (seriesIndex < 0) {
@@ -85,7 +85,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds or replaces a trendline for a chart series by name.
         /// </summary>
-        public PowerPointChart SetSeriesTrendline(string seriesName, C.TrendlineValues type,
+        public PowerPointChart SetSeriesTrendline(string seriesName, PowerPointChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
             bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null,
             bool ignoreCase = true) {
@@ -253,7 +253,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets where the category axis crosses the value axis.
         /// </summary>
-        public PowerPointChart SetCategoryAxisCrossing(C.CrossesValues crosses, double? crossesAt = null) {
+        public PowerPointChart SetCategoryAxisCrossing(PowerPointChartAxisCrossing crosses, double? crossesAt = null) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -277,7 +277,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets where the value axis crosses the category axis.
         /// </summary>
-        public PowerPointChart SetValueAxisCrossing(C.CrossesValues crosses, double? crossesAt = null) {
+        public PowerPointChart SetValueAxisCrossing(PowerPointChartAxisCrossing crosses, double? crossesAt = null) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -350,7 +350,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets where the scatter X-axis crosses the Y-axis.
         /// </summary>
-        public PowerPointChart SetScatterXAxisCrossing(C.CrossesValues? crosses = null, double? crossesAt = null) {
+        public PowerPointChart SetScatterXAxisCrossing(PowerPointChartAxisCrossing? crosses = null, double? crossesAt = null) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -367,7 +367,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ValidateCrossesAtForAxis(axis, crossesAt);
-            ApplyAxisCrossing(axis, crosses ?? C.CrossesValues.AutoZero, crossesAt);
+            ApplyAxisCrossing(axis, crosses ?? PowerPointChartAxisCrossing.AutoZero, crossesAt);
             Save();
             return this;
         }
@@ -375,7 +375,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets where the scatter Y-axis crosses the X-axis.
         /// </summary>
-        public PowerPointChart SetScatterYAxisCrossing(C.CrossesValues? crosses = null, double? crossesAt = null) {
+        public PowerPointChart SetScatterYAxisCrossing(PowerPointChartAxisCrossing? crosses = null, double? crossesAt = null) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -392,7 +392,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ValidateCrossesAtForAxis(axis, crossesAt);
-            ApplyAxisCrossing(axis, crosses ?? C.CrossesValues.AutoZero, crossesAt);
+            ApplyAxisCrossing(axis, crosses ?? PowerPointChartAxisCrossing.AutoZero, crossesAt);
             Save();
             return this;
         }
@@ -496,7 +496,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the marker style for a chart series by index.
         /// </summary>
-        public PowerPointChart SetSeriesMarker(int seriesIndex, C.MarkerStyleValues style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) {
+        public PowerPointChart SetSeriesMarker(int seriesIndex, PowerPointChartMarkerStyle style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -525,7 +525,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the marker style for a chart series by name.
         /// </summary>
-        public PowerPointChart SetSeriesMarker(string seriesName, C.MarkerStyleValues style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
+        public PowerPointChart SetSeriesMarker(string seriesName, PowerPointChartMarkerStyle style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }

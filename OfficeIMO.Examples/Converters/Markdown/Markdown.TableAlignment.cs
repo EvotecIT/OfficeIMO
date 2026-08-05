@@ -14,15 +14,15 @@ namespace OfficeIMO.Examples.Markdown {
 
             var left = table.Rows[0].Cells[0].Paragraphs[0];
             left.Text = "Left";
-            left.ParagraphAlignment = JustificationValues.Left;
+            left.ParagraphAlignment = WordParagraphAlignment.Left;
 
             var center = table.Rows[0].Cells[1].Paragraphs[0];
             center.Text = "Center";
-            center.ParagraphAlignment = JustificationValues.Center;
+            center.ParagraphAlignment = WordParagraphAlignment.Center;
 
             var right = table.Rows[0].Cells[2].Paragraphs[0];
             right.Text = "Right";
-            right.ParagraphAlignment = JustificationValues.Right;
+            right.ParagraphAlignment = WordParagraphAlignment.Right;
 
             table.Rows[1].Cells[0].Paragraphs[0].Text = "A";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "B";

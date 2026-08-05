@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "DocumentCustomNumberingFluent.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .List(l => l.Numbered().NumberFormat(NumberFormatValues.UpperRoman)
+                    .List(l => l.Numbered().NumberFormat(WordNumberFormat.UpperRoman)
                                      .Item("First")
                                      .Item("Second"))
                     .List(l => l.Bulleted().BulletCharacter("\u2192")

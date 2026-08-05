@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
             if (preset.HideLegend) {
                 chart.HideLegend();
             } else {
-                chart.SetLegend(preset.LegendPosition);
+                chart.SetLegend(preset.LegendPosition.ToOfficeEnum());
             }
 
             if (preset.ShowDataLabels) {
@@ -100,7 +100,7 @@ namespace OfficeIMO.Excel {
                     showSeriesName: false,
                     showLegendKey: false,
                     showPercent: preset.ShowDataLabelPercent,
-                    position: preset.DataLabelPosition,
+                    position: preset.DataLabelPosition.ToOfficeEnum(),
                     numberFormat: null);
             }
 

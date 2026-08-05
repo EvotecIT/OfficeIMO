@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsAndProjectsInternalSlideHyperlink() {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide first = source.AddSlide(P.SlideLayoutValues.Blank);
-                PowerPointSlide destination = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide first = source.AddSlide(PowerPointSlideLayoutType.Blank);
+                PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 destination.AddTextBox("Destination");
                 AddInternalSlideHyperlink(first, destination, first.AddRectangle(
                     100000, 100000, 1000000, 500000), mouseOver: false,
@@ -74,9 +74,9 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsTextInternalSlideHyperlink() {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide first = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide first = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointTextBox textBox = first.AddTextBox("Jump");
-                PowerPointSlide destination = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 destination.AddTextBox("Destination");
                 first.SlidePart.AddPart(destination.SlidePart);
                 string relationshipId = first.SlidePart.GetIdOfPart(
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 SlideMasterPart masterPart = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single();
                 masterPart.SlideMaster!.CommonSlideData!.ShapeTree!.Append(
@@ -214,9 +214,9 @@ namespace OfficeIMO.Tests {
         public void ImportedInternalSlideHyperlink_RetargetsAndRemovesIncrementally() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide first = source.AddSlide(P.SlideLayoutValues.Blank);
-                PowerPointSlide second = source.AddSlide(P.SlideLayoutValues.Blank);
-                PowerPointSlide third = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide first = source.AddSlide(PowerPointSlideLayoutType.Blank);
+                PowerPointSlide second = source.AddSlide(PowerPointSlideLayoutType.Blank);
+                PowerPointSlide third = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 second.AddTextBox("Second destination");
                 third.AddTextBox("Third destination");
                 AddInternalSlideHyperlink(first, second, first.AddRectangle(
@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests {
         public void ImportedPresentation_AppendedSlideLinksWorkInBothDirections() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank).AddRectangle(
+                source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                     100000, 100000, 1000000, 500000);
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
             using (var input = new MemoryStream(sourceBytes, writable: false))
             using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
                 PowerPointSlide existing = imported.Slides[0];
-                PowerPointSlide appended = imported.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide appended = imported.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape appendedShape = appended.AddRectangle(
                     100000, 100000, 1000000, 500000);
                 AddInternalSlideHyperlink(existing, appended,
@@ -322,9 +322,9 @@ namespace OfficeIMO.Tests {
         public void ImportedInternalSlideHyperlink_FollowsTargetAcrossSlideReorder() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide first = source.AddSlide(P.SlideLayoutValues.Blank);
-                source.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Middle");
-                PowerPointSlide destination = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide first = source.AddSlide(PowerPointSlideLayoutType.Blank);
+                source.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Middle");
+                PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 destination.AddTextBox("Destination");
                 AddInternalSlideHyperlink(first, destination, first.AddRectangle(
                     100000, 100000, 1000000, 500000), mouseOver: false);

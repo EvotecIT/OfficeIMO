@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 "F5",
                 "SalesPivot",
                 rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
             PivotTableCacheDefinitionPart cachePart = sheet.WorksheetPart.PivotTableParts.Single()
                 .PivotTableCacheDefinitionPart!;
 

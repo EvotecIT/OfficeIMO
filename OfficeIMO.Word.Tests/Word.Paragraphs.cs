@@ -15,12 +15,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
 
                 // set font family sets it for FontFamily, FontFamilyEastAsia, FontFamilyHighAnsi and FontFamilyComplexScript
                 paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
+                paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
 
                 paragraph.AddText(" this is more continuation").SetItalic().SetCapsStyle(CapsStyle.Caps);
 
@@ -67,8 +67,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs[1].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[1].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[1].FontFamily);
-                Assert.True(document.Paragraphs[1].Underline == UnderlineValues.Double, "2nd paragraph should be underline double. " + document.Paragraphs[1].Underline);
-                Assert.True(document.Paragraphs[1].Highlight == HighlightColorValues.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[1].Highlight);
+                Assert.True(document.Paragraphs[1].Underline == WordUnderlineStyle.Double, "2nd paragraph should be underline double. " + document.Paragraphs[1].Underline);
+                Assert.True(document.Paragraphs[1].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[1].Highlight);
                 Assert.True(document.Paragraphs[1].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[1].FontSize);
                 Assert.True(document.Paragraphs[1].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[1].IsPageBreak);
                 Assert.True(document.Paragraphs[1].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[1].DoubleStrike);
@@ -89,8 +89,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs[1].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[1].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[1].FontFamily);
-                Assert.True(document.Paragraphs[1].Underline == UnderlineValues.Double, "2nd paragraph should be underline double. " + document.Paragraphs[1].Underline);
-                Assert.True(document.Paragraphs[1].Highlight == HighlightColorValues.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[1].Highlight);
+                Assert.True(document.Paragraphs[1].Underline == WordUnderlineStyle.Double, "2nd paragraph should be underline double. " + document.Paragraphs[1].Underline);
+                Assert.True(document.Paragraphs[1].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[1].Highlight);
                 Assert.True(document.Paragraphs[1].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[1].FontSize);
                 Assert.True(document.Paragraphs[1].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[1].IsPageBreak);
                 Assert.True(document.Paragraphs[1].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[1].DoubleStrike);
@@ -108,13 +108,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.ColorHex = OfficeIMO.Drawing.OfficeColor.Red.ToRgbHex();
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.ColorHex = OfficeIMO.Drawing.OfficeColor.Yellow.ToRgbHex();
 
                 Assert.True(paragraph.DoNotCheckSpellingOrGrammar == false, "DoNotCheckSpellingOrGrammar should not be set.");
@@ -124,11 +124,11 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
+                paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetHighlight(WordHighlightColor.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
 
                 Assert.True(document.Sections.Count() == 1, "Sections count doesn't match. Provided: " + document.Sections.Count);
                 Assert.True(document.Paragraphs.Count == 6, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
@@ -166,8 +166,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs[5].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[5].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[5].FontFamily);
-                Assert.True(document.Paragraphs[5].Underline == UnderlineValues.Double, "2nd paragraph should be underline double. " + document.Paragraphs[5].Underline);
-                Assert.True(document.Paragraphs[5].Highlight == HighlightColorValues.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[5].Highlight);
+                Assert.True(document.Paragraphs[5].Underline == WordUnderlineStyle.Double, "2nd paragraph should be underline double. " + document.Paragraphs[5].Underline);
+                Assert.True(document.Paragraphs[5].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[5].Highlight);
                 Assert.True(document.Paragraphs[5].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize);
                 Assert.True(document.Paragraphs[5].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[5].IsPageBreak);
                 Assert.True(document.Paragraphs[5].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrike);
@@ -195,8 +195,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[5].Color == OfficeIMO.Drawing.OfficeColor.Yellow, "2nd paragraph color should be (load) " + OfficeIMO.Drawing.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[5].Color);
                 Assert.True(document.Paragraphs[5].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[5].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[5].FontFamily);
-                Assert.True(document.Paragraphs[5].Underline == UnderlineValues.Double, "2nd paragraph should be underline double. " + document.Paragraphs[5].Underline);
-                Assert.True(document.Paragraphs[5].Highlight == HighlightColorValues.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[5].Highlight);
+                Assert.True(document.Paragraphs[5].Underline == WordUnderlineStyle.Double, "2nd paragraph should be underline double. " + document.Paragraphs[5].Underline);
+                Assert.True(document.Paragraphs[5].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[5].Highlight);
                 Assert.True(document.Paragraphs[5].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize);
                 Assert.True(document.Paragraphs[5].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[5].IsPageBreak);
                 Assert.True(document.Paragraphs[5].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrike);
@@ -273,16 +273,16 @@ namespace OfficeIMO.Tests {
                 var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
                 foreach (var style in listOfStyles) {
                     var paragraph = document.AddParagraph(style.ToString());
-                    paragraph.ParagraphAlignment = JustificationValues.Center;
+                    paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                     paragraph.Style = style;
                 }
 
                 var count = 0;
                 foreach (var style in listOfStyles) {
                     Assert.True(document.Paragraphs[count].Style == style, "Style should match for every paragraph");
-                    Assert.True(document.Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Paragraphs[count].ParagraphAlignment == WordParagraphAlignment.Center, "Alignment should match");
                     Assert.True(document.Sections[0].Paragraphs[count].Style == style, "Style should match for every paragraph");
-                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == WordParagraphAlignment.Center, "Alignment should match");
                     count++;
                 }
 
@@ -296,9 +296,9 @@ namespace OfficeIMO.Tests {
                 var count = 0;
                 foreach (var style in listOfStyles) {
                     Assert.True(document.Paragraphs[count].Style == style, "Style should match for every paragraph");
-                    Assert.True(document.Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Paragraphs[count].ParagraphAlignment == WordParagraphAlignment.Center, "Alignment should match");
                     Assert.True(document.Sections[0].Paragraphs[count].Style == style, "Style should match for every paragraph");
-                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == WordParagraphAlignment.Center, "Alignment should match");
                     count++;
                 }
                 document.Save();
@@ -309,9 +309,9 @@ namespace OfficeIMO.Tests {
                 var count = 0;
                 foreach (var style in listOfStyles) {
                     Assert.True(document.Paragraphs[count].Style == style, "Style should match for every paragraph");
-                    Assert.True(document.Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Paragraphs[count].ParagraphAlignment == WordParagraphAlignment.Center, "Alignment should match");
                     Assert.True(document.Sections[0].Paragraphs[count].Style == style, "Style should match for every paragraph");
-                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == WordParagraphAlignment.Center, "Alignment should match");
                     count++;
                 }
                 document.Save();
@@ -441,30 +441,30 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(3, document.Paragraphs.Count);
                 Assert.Null(document.Paragraphs[0].VerticalTextAlignment);
-                Assert.Equal(VerticalPositionValues.Subscript, document.Paragraphs[1].VerticalTextAlignment);
-                Assert.Equal(VerticalPositionValues.Superscript, document.Paragraphs[2].VerticalTextAlignment);
+                Assert.Equal(WordVerticalTextPosition.Subscript, document.Paragraphs[1].VerticalTextAlignment);
+                Assert.Equal(WordVerticalTextPosition.Superscript, document.Paragraphs[2].VerticalTextAlignment);
 
                 Assert.True(document.Paragraphs.Count == 3);
 
-                var wordParagraph1 = document.AddParagraph("Subscript").SetVerticalTextAlignment(VerticalPositionValues.Subscript);
-                var wordParagraph2 = document.AddParagraph("Baseline").SetVerticalTextAlignment(VerticalPositionValues.Baseline);
-                var wordParagraph3 = document.AddParagraph("Superscript").SetVerticalTextAlignment(VerticalPositionValues.Superscript);
+                var wordParagraph1 = document.AddParagraph("Subscript").SetVerticalTextAlignment(WordVerticalTextPosition.Subscript);
+                var wordParagraph2 = document.AddParagraph("Baseline").SetVerticalTextAlignment(WordVerticalTextPosition.Baseline);
+                var wordParagraph3 = document.AddParagraph("Superscript").SetVerticalTextAlignment(WordVerticalTextPosition.Superscript);
                 var wordParagraph4 = document.AddParagraph("Normal");
 
                 Assert.True(document.Paragraphs.Count == 7);
-                Assert.Equal(document.Paragraphs[3].VerticalTextAlignment, VerticalPositionValues.Subscript);
-                Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, VerticalPositionValues.Baseline);
-                Assert.Equal(document.Paragraphs[5].VerticalTextAlignment, VerticalPositionValues.Superscript);
+                Assert.Equal(document.Paragraphs[3].VerticalTextAlignment, WordVerticalTextPosition.Subscript);
+                Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, WordVerticalTextPosition.Baseline);
+                Assert.Equal(document.Paragraphs[5].VerticalTextAlignment, WordVerticalTextPosition.Superscript);
                 Assert.Null(document.Paragraphs[6].VerticalTextAlignment);
 
                 document.Paragraphs[3].VerticalTextAlignment = null;
                 Assert.Null(document.Paragraphs[3].VerticalTextAlignment);
                 document.Paragraphs[4].SetSubScript();
-                Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, VerticalPositionValues.Subscript);
+                Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, WordVerticalTextPosition.Subscript);
                 document.Paragraphs[5].SetSubScript();
-                Assert.Equal(document.Paragraphs[5].VerticalTextAlignment, VerticalPositionValues.Subscript);
+                Assert.Equal(document.Paragraphs[5].VerticalTextAlignment, WordVerticalTextPosition.Subscript);
                 document.Paragraphs[6].SetSuperScript();
-                Assert.Equal(document.Paragraphs[6].VerticalTextAlignment, VerticalPositionValues.Superscript);
+                Assert.Equal(document.Paragraphs[6].VerticalTextAlignment, WordVerticalTextPosition.Superscript);
             }
         }
 

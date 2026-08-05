@@ -19,20 +19,20 @@ namespace OfficeIMO.Examples.Word {
                         .ColumnWidth(2, 144)
                         .RowHeight(1, 36)
                         .CellStyle(1, 1, cell => {
-                            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
+                            cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
                             cell.ShadingFillColorHex = "ff0000";
-                            cell.Borders.LeftStyle = BorderValues.Single;
-                            cell.Borders.RightStyle = BorderValues.Single;
-                            cell.Borders.TopStyle = BorderValues.Single;
-                            cell.Borders.BottomStyle = BorderValues.Single;
+                            cell.Borders.LeftStyle = WordBorderStyle.Single;
+                            cell.Borders.RightStyle = WordBorderStyle.Single;
+                            cell.Borders.TopStyle = WordBorderStyle.Single;
+                            cell.Borders.BottomStyle = WordBorderStyle.Single;
                         })
                         .CellStyle(1, 2, cell => {
-                            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
+                            cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
                             cell.ShadingFillColorHex = "0000ff";
-                            cell.Borders.LeftStyle = BorderValues.Single;
-                            cell.Borders.RightStyle = BorderValues.Single;
-                            cell.Borders.TopStyle = BorderValues.Single;
-                            cell.Borders.BottomStyle = BorderValues.Single;
+                            cell.Borders.LeftStyle = WordBorderStyle.Single;
+                            cell.Borders.RightStyle = WordBorderStyle.Single;
+                            cell.Borders.TopStyle = WordBorderStyle.Single;
+                            cell.Borders.BottomStyle = WordBorderStyle.Single;
                         }))
                     .End()
                     .Save();

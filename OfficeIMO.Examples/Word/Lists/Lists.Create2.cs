@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
             foreach (var listStyle in listOfListStyles) {
                 var paragraph = document.AddParagraph(listStyle.ToString());
                 paragraph.SetColor(Color.Red).SetBold();
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 var wordList1 = document.AddList(listStyle);
                 if (listStyle == WordListStyle.Chapters) {

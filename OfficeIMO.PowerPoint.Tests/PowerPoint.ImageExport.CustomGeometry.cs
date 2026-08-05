@@ -854,7 +854,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(160, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 30, 24, 88, 56);
+            PowerPointAutoShape freeform = slide.AddShapePoints(PowerPointShapeType.Rectangle, 30, 24, 88, 56);
             freeform.FillColor = "C084FC";
             freeform.OutlineColor = "6B21A8";
             freeform.OutlineWidthPoints = 2D;
@@ -895,7 +895,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 140);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 20, 30, 120, 72);
+            PowerPointAutoShape freeform = slide.AddShapePoints(PowerPointShapeType.Rectangle, 20, 30, 120, 72);
             freeform.FillColor = "22C55E";
             freeform.OutlineColor = "166534";
             freeform.OutlineWidthPoints = 2D;
@@ -939,7 +939,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(190, 150);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 32, 28, 120, 90);
+            PowerPointAutoShape freeform = slide.AddShapePoints(PowerPointShapeType.Rectangle, 32, 28, 120, 90);
             freeform.FillColor = "F59E0B";
             freeform.OutlineColor = "92400E";
             freeform.OutlineWidthPoints = 2D;
@@ -986,7 +986,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(190, 150);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 36, 30, 120, 80);
+            PowerPointAutoShape freeform = slide.AddShapePoints(PowerPointShapeType.Rectangle, 36, 30, 120, 80);
             freeform.FillColor = "38BDF8";
             freeform.OutlineColor = "075985";
             freeform.OutlineWidthPoints = 2D;
@@ -1030,7 +1030,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(190, 150);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 34, 26, 100, 100);
+            PowerPointAutoShape freeform = slide.AddShapePoints(PowerPointShapeType.Rectangle, 34, 26, 100, 100);
             freeform.FillColor = "A3E635";
             freeform.OutlineColor = "3F6212";
             freeform.OutlineWidthPoints = 2D;
@@ -1074,7 +1074,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(190, 150);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 30, 22, 100, 100);
+            PowerPointAutoShape freeform = slide.AddShapePoints(PowerPointShapeType.Rectangle, 30, 22, 100, 100);
             freeform.FillColor = "F472B6";
             freeform.OutlineColor = "9D174D";
             freeform.OutlineWidthPoints = 2D;
@@ -1117,7 +1117,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 140);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape freeform = slide.AddShapePoints(
-                A.ShapeTypeValues.Rectangle, 30, 24, 80, 60);
+                PowerPointShapeType.Rectangle, 30, 24, 80, 60);
             freeform.FillColor = "0EA5E9";
             freeform.Rotation = 25D;
 
@@ -1151,7 +1151,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 140);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape freeform = slide.AddShapePoints(
-                A.ShapeTypeValues.Rectangle, 20, 20, 120, 80);
+                PowerPointShapeType.Rectangle, 20, 20, 120, 80);
             freeform.FillColor = "22C55E";
             freeform.OutlineColor = "1E3A8A";
             freeform.OutlineWidthPoints = 3D;
@@ -1194,7 +1194,7 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape freeform = slide.AddShapePoints(
-                A.ShapeTypeValues.Rectangle, 20, 20, 120, 80);
+                PowerPointShapeType.Rectangle, 20, 20, 120, 80);
             freeform.FillColor = "22C55E";
             freeform.OutlineColor = "1E3A8A";
             freeform.SetShadow("000000", distancePoints: 8,
@@ -1231,7 +1231,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(640, 360);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape freeform = slide.AddShapePoints(
-                A.ShapeTypeValues.Rectangle, 20, 20, 120, 80);
+                PowerPointShapeType.Rectangle, 20, 20, 120, 80);
             freeform.FillColor = "22C55E";
             freeform.OutlineColor = "1E3A8A";
             freeform.SetShadow("000000", distancePoints: 8,

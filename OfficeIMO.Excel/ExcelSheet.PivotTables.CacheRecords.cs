@@ -501,7 +501,7 @@ namespace OfficeIMO.Excel {
                 return PivotFieldValue.FromNumber(number);
             }
 
-            if (grouping?.GroupBy == GroupByValues.Range
+            if (grouping?.GroupBy == ExcelPivotGroupBy.Range
                 && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
                 return PivotFieldValue.FromNumber(number);
             }
@@ -604,7 +604,7 @@ namespace OfficeIMO.Excel {
                 : normalized;
         }
 
-        private PivotFieldValue GetGeneratedPivotDateFieldValue(int row, int column, GroupByValues groupBy) {
+        private PivotFieldValue GetGeneratedPivotDateFieldValue(int row, int column, ExcelPivotGroupBy groupBy) {
             string text = TryGetCellText(row, column, out string cellText) ? cellText.Trim() : string.Empty;
             if (string.IsNullOrEmpty(text)) {
                 return PivotFieldValue.Blank();
@@ -635,25 +635,25 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static string FormatGeneratedDateGroupValue(DateTime date, GroupByValues groupBy) {
-            if (groupBy == GroupByValues.Years) return date.Year.ToString(CultureInfo.InvariantCulture);
-            if (groupBy == GroupByValues.Quarters) return $"Q{((date.Month - 1) / 3) + 1}";
-            if (groupBy == GroupByValues.Months) return date.ToString("MMMM", CultureInfo.InvariantCulture);
-            if (groupBy == GroupByValues.Days) return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            if (groupBy == GroupByValues.Hours) return date.Hour.ToString("00", CultureInfo.InvariantCulture);
-            if (groupBy == GroupByValues.Minutes) return date.ToString("HH:mm", CultureInfo.InvariantCulture);
-            if (groupBy == GroupByValues.Seconds) return date.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        private static string FormatGeneratedDateGroupValue(DateTime date, ExcelPivotGroupBy groupBy) {
+            if (groupBy == ExcelPivotGroupBy.Years) return date.Year.ToString(CultureInfo.InvariantCulture);
+            if (groupBy == ExcelPivotGroupBy.Quarters) return $"Q{((date.Month - 1) / 3) + 1}";
+            if (groupBy == ExcelPivotGroupBy.Months) return date.ToString("MMMM", CultureInfo.InvariantCulture);
+            if (groupBy == ExcelPivotGroupBy.Days) return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (groupBy == ExcelPivotGroupBy.Hours) return date.Hour.ToString("00", CultureInfo.InvariantCulture);
+            if (groupBy == ExcelPivotGroupBy.Minutes) return date.ToString("HH:mm", CultureInfo.InvariantCulture);
+            if (groupBy == ExcelPivotGroupBy.Seconds) return date.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
             return date.ToString("O", CultureInfo.InvariantCulture);
         }
 
-        private static string GetDateGroupFieldSuffix(GroupByValues groupBy) {
-            if (groupBy == GroupByValues.Years) return "Years";
-            if (groupBy == GroupByValues.Quarters) return "Quarters";
-            if (groupBy == GroupByValues.Months) return "Months";
-            if (groupBy == GroupByValues.Days) return "Days";
-            if (groupBy == GroupByValues.Hours) return "Hours";
-            if (groupBy == GroupByValues.Minutes) return "Minutes";
-            if (groupBy == GroupByValues.Seconds) return "Seconds";
+        private static string GetDateGroupFieldSuffix(ExcelPivotGroupBy groupBy) {
+            if (groupBy == ExcelPivotGroupBy.Years) return "Years";
+            if (groupBy == ExcelPivotGroupBy.Quarters) return "Quarters";
+            if (groupBy == ExcelPivotGroupBy.Months) return "Months";
+            if (groupBy == ExcelPivotGroupBy.Days) return "Days";
+            if (groupBy == ExcelPivotGroupBy.Hours) return "Hours";
+            if (groupBy == ExcelPivotGroupBy.Minutes) return "Minutes";
+            if (groupBy == ExcelPivotGroupBy.Seconds) return "Seconds";
             return groupBy.ToString();
         }
 
@@ -759,7 +759,7 @@ namespace OfficeIMO.Excel {
             var range = new RangeProperties {
                 AutoStart = grouping.AutoStart,
                 AutoEnd = grouping.AutoEnd,
-                GroupBy = grouping.GroupBy
+                GroupBy = grouping.GroupBy.ToOpenXml()
             };
 
             if (grouping.StartDate.HasValue) range.StartDate = grouping.StartDate.Value;
@@ -856,7 +856,7 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class GeneratedPivotGroupingField {
-            public GeneratedPivotGroupingField(int sourceIndex, int fieldIndex, int? parentFieldIndex, string fieldName, GroupByValues groupBy, ExcelPivotGrouping grouping) {
+            public GeneratedPivotGroupingField(int sourceIndex, int fieldIndex, int? parentFieldIndex, string fieldName, ExcelPivotGroupBy groupBy, ExcelPivotGrouping grouping) {
                 SourceIndex = sourceIndex;
                 FieldIndex = fieldIndex;
                 ParentFieldIndex = parentFieldIndex;
@@ -873,7 +873,7 @@ namespace OfficeIMO.Excel {
 
             public string FieldName { get; }
 
-            public GroupByValues GroupBy { get; }
+            public ExcelPivotGroupBy GroupBy { get; }
 
             public ExcelPivotGrouping Grouping { get; }
         }

@@ -23,50 +23,50 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a file path.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
+        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", WordImageShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
             using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            shape ??= ShapeTypeValues.Rectangle; // Set default value if not provided
-            compressionQuality ??= BlipCompressionValues.Print; // Set default value if not provided
-            AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
+            shape ??= WordImageShapeType.Rectangle;
+            compressionQuality ??= WordImageCompressionQuality.Print;
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value.ToOpenXml(), compressionQuality.Value.ToOpenXml(), description, wrapImage);
         }
 
         /// <summary>
         /// Initializes a new image from a stream.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
+        public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", WordImageShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = fileName;
-            shape ??= ShapeTypeValues.Rectangle; // Set default value if not provided
-            compressionQuality ??= BlipCompressionValues.Print; // Set default value if not provided
-            AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
+            shape ??= WordImageShapeType.Rectangle;
+            compressionQuality ??= WordImageCompressionQuality.Print;
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value.ToOpenXml(), compressionQuality.Value.ToOpenXml(), description, wrapImage);
         }
 
         /// <summary>
         /// Initializes a new image from a base64 string.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
+        public WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", WordImageShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = fileName;
-            shape ??= ShapeTypeValues.Rectangle;
-            compressionQuality ??= BlipCompressionValues.Print;
+            shape ??= WordImageShapeType.Rectangle;
+            compressionQuality ??= WordImageCompressionQuality.Print;
             var bytes = Convert.FromBase64String(base64String);
             using var ms = new MemoryStream(bytes);
-            AddImage(document, paragraph, ms, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
+            AddImage(document, paragraph, ms, fileName, width, height, shape.Value.ToOpenXml(), compressionQuality.Value.ToOpenXml(), description, wrapImage);
         }
 
         /// <summary>
         /// Initializes an image linked to an external URI.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null)
+        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", WordImageShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)
             : this(document, paragraph, externalUri, width, height, wrapImage, description, shape, compressionQuality, allowFileUri: false) {
         }
 
-        internal WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage, string description, ShapeTypeValues? shape, BlipCompressionValues? compressionQuality, bool allowFileUri) {
+        internal WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage, string description, WordImageShapeType? shape, WordImageCompressionQuality? compressionQuality, bool allowFileUri) {
             if (externalUri == null) throw new ArgumentNullException(nameof(externalUri));
             FilePath = externalUri.ToString();
-            shape ??= ShapeTypeValues.Rectangle;
-            compressionQuality ??= BlipCompressionValues.Print;
-            AddExternalImage(document, paragraph, externalUri, width, height, shape.Value, compressionQuality.Value, description, wrapImage, allowFileUri);
+            shape ??= WordImageShapeType.Rectangle;
+            compressionQuality ??= WordImageCompressionQuality.Print;
+            AddExternalImage(document, paragraph, externalUri, width, height, shape.Value.ToOpenXml(), compressionQuality.Value.ToOpenXml(), description, wrapImage, allowFileUri);
         }
 
         private Graphic GetGraphic(double emuWidth, double emuHeight, uint picturePropertiesId, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {

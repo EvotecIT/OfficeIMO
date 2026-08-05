@@ -158,10 +158,10 @@ namespace OfficeIMO.Tests {
 
                     WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
                     table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
-                    table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+                    table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
                     table.Rows[0].Cells[0].Width = 1440;
                     table.Rows[0].Cells[0].AddParagraph("Inherited layout", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+                    table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
                     table.Rows[0].Cells[1].Width = 1440;
                     table.Rows[0].Cells[1].AddParagraph("Merged margins", removeExistingParagraphs: true);
 
@@ -172,11 +172,11 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
-                Assert.Equal(TableRowAlignmentValues.Right, reloadedTable.Alignment);
+                Assert.Equal(WordTableAlignment.Right, reloadedTable.Alignment);
                 Assert.Equal((short)720, reloadedTable.StyleDetails!.TableIndentationWidth);
-                Assert.Equal(TableWidthUnitValues.Dxa, reloadedTable.WidthType);
+                Assert.Equal(WordTableWidthUnit.Dxa, reloadedTable.WidthType);
                 Assert.Equal(2160, reloadedTable.Width);
-                Assert.Equal(TableLayoutValues.Fixed, reloadedTable.LayoutType);
+                Assert.Equal(WordTableLayoutMode.Fixed, reloadedTable.LayoutType);
                 Assert.Equal((short)240, reloadedTable.StyleDetails.CellSpacing);
 
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordParagraph paragraph = Assert.Single(Assert.Single(reloadedTable.Rows).Cells[0].Paragraphs);
                 Assert.Equal("Inherited text", paragraph.Text);
-                Assert.Equal(JustificationValues.Center, paragraph.ParagraphAlignment);
+                Assert.Equal(WordParagraphAlignment.Center, paragraph.ParagraphAlignment);
                 Assert.Equal(360, paragraph.IndentationBefore);
                 Assert.Equal(240, paragraph.LineSpacingAfter);
                 Assert.True(paragraph.Bold);

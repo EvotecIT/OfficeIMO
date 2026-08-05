@@ -35,13 +35,13 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
                 data.AddPivotTable(
                     sourceRange: "A1:C3",
                     destinationCell: "E10",
                     name: "SalesPivot2",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
                 PivotTablePart[] pivotParts = data.WorksheetPart.PivotTableParts
                     .OrderBy(part => part.PivotTableDefinition!.Name!.Value, StringComparer.Ordinal)
                     .ToArray();
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
                 destinationCell: "D2",
                 name: "SalesPivot",
                 rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
             var beforeErrors = document.ValidateOpenXml().ToArray();
             Assert.True(
                 beforeErrors.Length == 0,

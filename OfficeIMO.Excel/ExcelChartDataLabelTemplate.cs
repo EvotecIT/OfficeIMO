@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Toggle bubble size labels.</summary>
         public bool? ShowBubbleSize { get; set; }
         /// <summary>Sets label position.</summary>
-        public DataLabelPositionValues? Position { get; set; }
+        public ExcelChartDataLabelPosition? Position { get; set; }
         /// <summary>Number format code for labels.</summary>
         public string? NumberFormat { get; set; }
         /// <summary>Separator between label parts.</summary>

@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Markdown {
 
             // Convert Markdown to Word document with page settings
             var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions {
-                DefaultOrientation = PageOrientationValues.Landscape,
+                DefaultOrientation = WordPageOrientation.Landscape,
                 DefaultPageSize = WordPageSize.A5
             });
             

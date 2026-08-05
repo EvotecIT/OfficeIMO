@@ -249,7 +249,7 @@ namespace OfficeIMO.Word {
 
             var firstCell = rows[startIndex].Cells[cellIndex];
             firstCell.AddTableCellProperties();
-            firstCell.VerticalMerge = MergedCellValues.Restart;
+            firstCell.VerticalMerge = WordCellMerge.Restart;
             var targetCell = firstCell._tableCell;
 
             for (int i = 0; i < rowsToMerge; i++) {
@@ -275,7 +275,7 @@ namespace OfficeIMO.Word {
                     cell._tableCell.Append(new Paragraph());
                 }
 
-                cell.VerticalMerge = MergedCellValues.Continue;
+                cell.VerticalMerge = WordCellMerge.Continue;
             }
         }
 

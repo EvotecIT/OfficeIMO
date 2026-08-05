@@ -15,12 +15,12 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 1.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
                 document.AddParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
 
                 var section1 = document.AddSection();
 
-                section1.PageOrientation = PageOrientationValues.Portrait;
+                section1.PageOrientation = WordPageOrientation.Portrait;
 
                 section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
 
                 section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(20);
 
-                section2.PageOrientation = PageOrientationValues.Landscape;
+                section2.PageOrientation = WordPageOrientation.Landscape;
 
                 //// primary section (for the whole document)
                 Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var section3 = document.AddSection();
                 section3.AddParagraph("Test Section6");
-                section3.PageOrientation = PageOrientationValues.Portrait;
+                section3.PageOrientation = WordPageOrientation.Portrait;
 
                 Console.WriteLine("Loaded document information:");
                 Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);

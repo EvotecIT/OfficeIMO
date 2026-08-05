@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Optional default page orientation applied when creating new documents.
         /// </summary>
-        public DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues? DefaultOrientation { get; set; }
+        public WordPageOrientation? DefaultOrientation { get; set; }
 
         /// <summary>
         /// Optional PDF title that overrides the Word document title.

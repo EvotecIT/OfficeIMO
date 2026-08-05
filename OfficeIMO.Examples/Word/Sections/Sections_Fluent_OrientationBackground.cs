@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AsFluent()
                     .Section(s => s
                         .New()
-                            .Orientation(PageOrientationValues.Landscape)
+                            .Orientation(WordPageOrientation.Landscape)
                             .Background("FFD700")
                             .Paragraph(p => p.Text("Landscape section with background")))
                     .End()

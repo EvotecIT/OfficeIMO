@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                     new ExcelRichTextRun(" plain"),
                 });
                 sheet.CellValue(2, 1, 12);
-                sheet.AddConditionalRule("A2:A5", ConditionalFormattingOperatorValues.GreaterThan, "10", fillColor: "FFC6EFCE");
+                sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
                 sheet.GroupRows(2, 5, outlineLevel: 1);
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = document.AddWorksheet("Data");
                     sheet.CellValue(2, 1, 12);
-                    sheet.AddConditionalRule("A2:A5", ConditionalFormattingOperatorValues.GreaterThan, "10", fillColor: "FFC6EFCE");
+                    sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
                     document.Save();
                 }
 
@@ -440,10 +440,10 @@ namespace OfficeIMO.Tests {
                     name: "PopulationPivot",
                     rowFields: new[] { "Region" },
                     dataFields: new[] {
-                        new ExcelPivotDataField("Value", DataConsolidateFunctionValues.Count, "Non-empty count"),
-                        new ExcelPivotDataField("Value", DataConsolidateFunctionValues.CountNumbers, "Numeric count"),
-                        new ExcelPivotDataField("Value", DataConsolidateFunctionValues.StandardDeviationP, "Population SD"),
-                        new ExcelPivotDataField("Value", DataConsolidateFunctionValues.VarianceP, "Population Variance"),
+                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.Count, "Non-empty count"),
+                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.CountNumbers, "Numeric count"),
+                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.StandardDeviationP, "Population SD"),
+                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.VarianceP, "Population Variance"),
                     });
 
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
@@ -475,7 +475,7 @@ namespace OfficeIMO.Tests {
                     "D1",
                     name: "CachedPivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", DataConsolidateFunctionValues.Sum, "Total") });
+                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") });
 
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
 

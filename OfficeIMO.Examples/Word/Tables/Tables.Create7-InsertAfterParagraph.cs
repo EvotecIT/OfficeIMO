@@ -14,9 +14,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Table Alignment.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Lets add table with some alignment ");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
                 WordTable wordTable = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable1.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 wordTable1.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
-                wordTable1.WidthType = TableWidthUnitValues.Pct;
+                wordTable1.WidthType = WordTableWidthUnit.Pct;
                 wordTable1.Width = 3000;
 
                 wordTable1.AllowTextWrap = true;

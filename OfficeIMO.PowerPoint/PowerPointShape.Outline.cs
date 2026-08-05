@@ -114,8 +114,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets or sets the outline dash preset.
         /// </summary>
-        public A.PresetLineDashValues? OutlineDash {
-            get => GetOutline()?.GetFirstChild<A.PresetDash>()?.Val?.Value;
+        public PowerPointLineDashStyle? OutlineDash {
+            get => GetOutline()?.GetFirstChild<A.PresetDash>()?.Val?.Value.ToOfficeEnum();
             set {
                 A.Outline? outline = GetOutline(create: value != null);
                 if (outline == null) {
@@ -128,7 +128,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 A.PresetDash dash = outline.GetFirstChild<A.PresetDash>() ?? new A.PresetDash();
-                dash.Val = value.Value;
+                dash.Val = value.Value.ToOpenXml();
                 if (dash.Parent == null) {
                     InsertOutlineChild(outline, dash);
                 }
@@ -138,7 +138,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets arrowheads for line-based shapes.
         /// </summary>
-        public void SetLineEnds(A.LineEndValues? startType, A.LineEndValues? endType, A.LineEndWidthValues? width = null, A.LineEndLengthValues? length = null) {
+        public void SetLineEnds(PowerPointLineEndType? startType, PowerPointLineEndType? endType, PowerPointLineEndWidth? width = null, PowerPointLineEndLength? length = null) {
             bool create = startType != null || endType != null || width != null || length != null;
             A.Outline? outline = GetOutline(create: create);
             if (outline == null) {
@@ -322,7 +322,7 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
-        private static void ApplyLineEnd(A.Outline outline, A.LineEndValues? type, A.LineEndWidthValues? width, A.LineEndLengthValues? length, bool isStart) {
+        private static void ApplyLineEnd(A.Outline outline, PowerPointLineEndType? type, PowerPointLineEndWidth? width, PowerPointLineEndLength? length, bool isStart) {
             bool hasData = type != null || width != null || length != null;
             if (isStart) {
                 A.HeadEnd? head = outline.GetFirstChild<A.HeadEnd>();
@@ -332,12 +332,12 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 head ??= new A.HeadEnd();
-                head.Type = type ?? A.LineEndValues.None;
+                head.Type = (type ?? PowerPointLineEndType.None).ToOpenXml();
                 if (width != null) {
-                    head.Width = width.Value;
+                    head.Width = width.Value.ToOpenXml();
                 }
                 if (length != null) {
-                    head.Length = length.Value;
+                    head.Length = length.Value.ToOpenXml();
                 }
                 if (head.Parent == null) {
                     InsertOutlineChild(outline, head);
@@ -350,12 +350,12 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 tail ??= new A.TailEnd();
-                tail.Type = type ?? A.LineEndValues.None;
+                tail.Type = (type ?? PowerPointLineEndType.None).ToOpenXml();
                 if (width != null) {
-                    tail.Width = width.Value;
+                    tail.Width = width.Value.ToOpenXml();
                 }
                 if (length != null) {
-                    tail.Length = length.Value;
+                    tail.Length = length.Value.ToOpenXml();
                 }
                 if (tail.Parent == null) {
                     InsertOutlineChild(outline, tail);

@@ -134,7 +134,7 @@ namespace OfficeIMO.Word {
                     if (block is LegacyDocParagraphBlock paragraphBlock) {
                         AddLegacyDocParagraph(section, paragraphBlock, legacyDocument.StyleSheet, notes);
                     } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
-                        section = document.AddSection(sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage);
+                        section = document.AddSection((sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage).ToOfficeEnum());
                         sectionFormats.Add((section, sectionBreakBlock.Format));
                     } else if (block is LegacyDocTableBlock tableBlock) {
                         AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet, notes);
@@ -223,8 +223,8 @@ namespace OfficeIMO.Word {
 
                 WordSection section = document.Sections[story.SectionIndex];
                 WordHeaderFooter target = story.IsHeader
-                    ? section.GetOrCreateHeader(story.Type)
-                    : section.GetOrCreateFooter(story.Type);
+                    ? section.GetOrCreateHeader(story.Type.ToOfficeEnum())
+                    : section.GetOrCreateFooter(story.Type.ToOfficeEnum());
                 foreach (WordParagraph paragraph in target.Paragraphs.ToList()) {
                     paragraph.Remove();
                 }
@@ -261,7 +261,7 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.Orientation != null) {
-                section.PageOrientation = sectionFormat.Orientation.Value;
+                section.PageOrientation = sectionFormat.Orientation.Value.ToOfficeEnum();
             }
 
             if (sectionFormat.PageWidthTwips != null) {
@@ -370,7 +370,7 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.PageNumberStart != null || sectionFormat.PageNumberFormat != null) {
-                section.AddPageNumbering(sectionFormat.PageNumberStart, sectionFormat.PageNumberFormat);
+                section.AddPageNumbering(sectionFormat.PageNumberStart, sectionFormat.PageNumberFormat.ToOfficeEnum());
             }
 
             if (sectionFormat.FootnotePosition != null
@@ -378,9 +378,9 @@ namespace OfficeIMO.Word {
                 || sectionFormat.FootnoteStart != null
                 || sectionFormat.FootnoteNumberFormat != null) {
                 section.AddFootnoteProperties(
-                    sectionFormat.FootnoteNumberFormat,
-                    sectionFormat.FootnotePosition,
-                    sectionFormat.FootnoteRestart,
+                    sectionFormat.FootnoteNumberFormat.ToOfficeEnum(),
+                    sectionFormat.FootnotePosition.ToOfficeEnum(),
+                    sectionFormat.FootnoteRestart.ToOfficeEnum(),
                     sectionFormat.FootnoteStart);
             }
 
@@ -389,9 +389,9 @@ namespace OfficeIMO.Word {
                 || sectionFormat.EndnoteStart != null
                 || sectionFormat.EndnoteNumberFormat != null) {
                 section.AddEndnoteProperties(
-                    numberingFormat: sectionFormat.EndnoteNumberFormat,
-                    position: sectionFormat.EndnotePosition,
-                    restartNumbering: sectionFormat.EndnoteRestart,
+                    numberingFormat: sectionFormat.EndnoteNumberFormat.ToOfficeEnum(),
+                    position: sectionFormat.EndnotePosition.ToOfficeEnum(),
+                    restartNumbering: sectionFormat.EndnoteRestart.ToOfficeEnum(),
                     startNumber: sectionFormat.EndnoteStart);
             }
         }
@@ -498,7 +498,7 @@ namespace OfficeIMO.Word {
                 .Select(row => row.TableAutofit)
                 .FirstOrDefault(autofit => autofit.HasValue);
             if (tableAutofit != null) {
-                table.LayoutType = tableAutofit.Value ? TableLayoutValues.Autofit : TableLayoutValues.Fixed;
+                table.LayoutType = tableAutofit.Value ? WordTableLayoutMode.Autofit : WordTableLayoutMode.Fixed;
             }
 
             int? tableCellSpacingTwips = tableBlock.Rows
@@ -514,7 +514,7 @@ namespace OfficeIMO.Word {
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
                     AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet, notes);
                     if (columnIndex < sourceRow.CellWidthsTwips.Count) {
-                        table.Rows[rowIndex].Cells[columnIndex].WidthType = TableWidthUnitValues.Dxa;
+                        table.Rows[rowIndex].Cells[columnIndex].WidthType = WordTableWidthUnit.Dxa;
                         table.Rows[rowIndex].Cells[columnIndex].Width = sourceRow.CellWidthsTwips[columnIndex];
                     }
 
@@ -618,15 +618,15 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTablePreferredWidth(WordTable table, LegacyDocTablePreferredWidth preferredWidth) {
             switch (preferredWidth.Unit) {
                 case LegacyDocTablePreferredWidthUnit.Auto:
-                    table.WidthType = TableWidthUnitValues.Auto;
+                    table.WidthType = WordTableWidthUnit.Auto;
                     table.Width = 0;
                     break;
                 case LegacyDocTablePreferredWidthUnit.Percent:
-                    table.WidthType = TableWidthUnitValues.Pct;
+                    table.WidthType = WordTableWidthUnit.Pct;
                     table.Width = preferredWidth.Value;
                     break;
                 case LegacyDocTablePreferredWidthUnit.Dxa:
-                    table.WidthType = TableWidthUnitValues.Dxa;
+                    table.WidthType = WordTableWidthUnit.Dxa;
                     table.Width = preferredWidth.Value;
                     break;
             }
@@ -635,13 +635,13 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTableAlignment(WordTable table, LegacyDocTableAlignment tableAlignment) {
             switch (tableAlignment) {
                 case LegacyDocTableAlignment.Left:
-                    table.Alignment = TableRowAlignmentValues.Left;
+                    table.Alignment = WordTableAlignment.Left;
                     break;
                 case LegacyDocTableAlignment.Center:
-                    table.Alignment = TableRowAlignmentValues.Center;
+                    table.Alignment = WordTableAlignment.Center;
                     break;
                 case LegacyDocTableAlignment.Right:
-                    table.Alignment = TableRowAlignmentValues.Right;
+                    table.Alignment = WordTableAlignment.Right;
                     break;
             }
         }
@@ -681,25 +681,25 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTableCellBorders(WordTableCell cell, LegacyDocTableCellBorders borders) {
             ApplyLegacyDocTableCellBorder(
                 borders.Top,
-                style => cell.Borders.TopStyle = style,
+                style => cell.Borders.TopStyle = style.ToOfficeEnum(),
                 color => cell.Borders.TopColorHex = color,
                 size => cell.Borders.TopSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
                 space => cell.Borders.TopSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
             ApplyLegacyDocTableCellBorder(
                 borders.Left,
-                style => cell.Borders.LeftStyle = style,
+                style => cell.Borders.LeftStyle = style.ToOfficeEnum(),
                 color => cell.Borders.LeftColorHex = color,
                 size => cell.Borders.LeftSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
                 space => cell.Borders.LeftSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
             ApplyLegacyDocTableCellBorder(
                 borders.Bottom,
-                style => cell.Borders.BottomStyle = style,
+                style => cell.Borders.BottomStyle = style.ToOfficeEnum(),
                 color => cell.Borders.BottomColorHex = color,
                 size => cell.Borders.BottomSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
                 space => cell.Borders.BottomSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
             ApplyLegacyDocTableCellBorder(
                 borders.Right,
-                style => cell.Borders.RightStyle = style,
+                style => cell.Borders.RightStyle = style.ToOfficeEnum(),
                 color => cell.Borders.RightColorHex = color,
                 size => cell.Borders.RightSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
                 space => cell.Borders.RightSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
@@ -748,10 +748,10 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTableCellHorizontalMerge(WordTableCell cell, LegacyDocTableCellHorizontalMerge horizontalMerge) {
             switch (horizontalMerge) {
                 case LegacyDocTableCellHorizontalMerge.Restart:
-                    cell.HorizontalMerge = MergedCellValues.Restart;
+                    cell.HorizontalMerge = WordCellMerge.Restart;
                     break;
                 case LegacyDocTableCellHorizontalMerge.Continue:
-                    cell.HorizontalMerge = MergedCellValues.Continue;
+                    cell.HorizontalMerge = WordCellMerge.Continue;
                     break;
             }
         }
@@ -759,10 +759,10 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTableCellVerticalMerge(WordTableCell cell, LegacyDocTableCellVerticalMerge verticalMerge) {
             switch (verticalMerge) {
                 case LegacyDocTableCellVerticalMerge.Restart:
-                    cell.VerticalMerge = MergedCellValues.Restart;
+                    cell.VerticalMerge = WordCellMerge.Restart;
                     break;
                 case LegacyDocTableCellVerticalMerge.Continue:
-                    cell.VerticalMerge = MergedCellValues.Continue;
+                    cell.VerticalMerge = WordCellMerge.Continue;
                     break;
             }
         }
@@ -770,10 +770,10 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTableCellVerticalAlignment(WordTableCell cell, LegacyDocTableCellVerticalAlignment verticalAlignment) {
             switch (verticalAlignment) {
                 case LegacyDocTableCellVerticalAlignment.Center:
-                    cell.VerticalAlignment = TableVerticalAlignmentValues.Center;
+                    cell.VerticalAlignment = WordTableVerticalAlignment.Center;
                     break;
                 case LegacyDocTableCellVerticalAlignment.Bottom:
-                    cell.VerticalAlignment = TableVerticalAlignmentValues.Bottom;
+                    cell.VerticalAlignment = WordTableVerticalAlignment.Bottom;
                     break;
             }
         }
@@ -781,16 +781,16 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTableCellTextDirection(WordTableCell cell, LegacyDocTableCellTextDirection textDirection) {
             switch (textDirection) {
                 case LegacyDocTableCellTextDirection.TopToBottomRightToLeft:
-                    cell.TextDirection = TextDirectionValues.TopToBottomRightToLeft;
+                    cell.TextDirection = WordTextDirection.TopToBottomRightToLeft;
                     break;
                 case LegacyDocTableCellTextDirection.BottomToTopLeftToRight:
-                    cell.TextDirection = TextDirectionValues.BottomToTopLeftToRight;
+                    cell.TextDirection = WordTextDirection.BottomToTopLeftToRight;
                     break;
                 case LegacyDocTableCellTextDirection.LeftToRightTopToBottomRotated:
-                    cell.TextDirection = TextDirectionValues.LefttoRightTopToBottomRotated;
+                    cell.TextDirection = WordTextDirection.LeftToRightTopToBottomRotated;
                     break;
                 case LegacyDocTableCellTextDirection.TopToBottomRightToLeftRotated:
-                    cell.TextDirection = TextDirectionValues.TopToBottomRightToLeftRotated;
+                    cell.TextDirection = WordTextDirection.TopToBottomRightToLeftRotated;
                     break;
             }
         }
@@ -1679,11 +1679,11 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
-                paragraph.ParagraphAlignment = alignment;
+                paragraph.ParagraphAlignment = alignment.ToOfficeEnum();
             }
 
             if (paragraphFormat.VerticalCharacterAlignment != null && TryMapVerticalCharacterAlignment(paragraphFormat.VerticalCharacterAlignment.Value, out VerticalTextAlignmentValues verticalCharacterAlignment)) {
-                paragraph.VerticalCharacterAlignmentOnLine = verticalCharacterAlignment;
+                paragraph.VerticalCharacterAlignmentOnLine = verticalCharacterAlignment.ToOfficeEnum();
             }
 
             if (paragraphFormat.OutlineLevel != null) {
@@ -1789,7 +1789,7 @@ namespace OfficeIMO.Word {
             foreach (LegacyDocTabStop tabStop in paragraphFormat.TabStops) {
                 if (TryMapTabStopAlignment(tabStop.Alignment, out TabStopValues tabAlignment)
                     && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
-                    paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment, leader);
+                    paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment.ToOfficeEnum(), leader.ToOfficeEnum());
                 }
             }
         }
@@ -1941,25 +1941,25 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocParagraphBorders(WordParagraph paragraph, LegacyDocParagraphBorders borders) {
             ApplyLegacyDocParagraphBorder(
                 borders.Top,
-                style => paragraph.Borders.TopStyle = style,
+                style => paragraph.Borders.TopStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.TopColorHex = color,
                 size => paragraph.Borders.TopSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
                 space => paragraph.Borders.TopSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
             ApplyLegacyDocParagraphBorder(
                 borders.Left,
-                style => paragraph.Borders.LeftStyle = style,
+                style => paragraph.Borders.LeftStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.LeftColorHex = color,
                 size => paragraph.Borders.LeftSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
                 space => paragraph.Borders.LeftSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
             ApplyLegacyDocParagraphBorder(
                 borders.Bottom,
-                style => paragraph.Borders.BottomStyle = style,
+                style => paragraph.Borders.BottomStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.BottomColorHex = color,
                 size => paragraph.Borders.BottomSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
                 space => paragraph.Borders.BottomSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
             ApplyLegacyDocParagraphBorder(
                 borders.Right,
-                style => paragraph.Borders.RightStyle = style,
+                style => paragraph.Borders.RightStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.RightColorHex = color,
                 size => paragraph.Borders.RightSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
                 space => paragraph.Borders.RightSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
@@ -2534,21 +2534,21 @@ namespace OfficeIMO.Word {
             ApplyLegacyDocRunOnOffProperty<SmallCaps>(run, legacyRun.Caps == LegacyDocCapsKind.SmallCaps, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
 
             if (legacyRun.VerticalPosition != null && TryMapVerticalPosition(legacyRun.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
-                run.VerticalTextAlignment = verticalPosition;
+                run.VerticalTextAlignment = verticalPosition.ToOfficeEnum();
             } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.VerticalPosition)) {
-                run.VerticalTextAlignment = VerticalPositionValues.Baseline;
+                run.VerticalTextAlignment = WordVerticalTextPosition.Baseline;
             }
 
             if (legacyRun.Underline != null && TryMapUnderline(legacyRun.Underline.Value, out UnderlineValues underline)) {
-                run.Underline = underline;
+                run.Underline = underline.ToOfficeEnum();
             } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Underline)) {
-                run.Underline = UnderlineValues.None;
+                run.Underline = WordUnderlineStyle.None;
             }
 
             if (legacyRun.Highlight != null && TryMapHighlight(legacyRun.Highlight.Value, out HighlightColorValues highlight)) {
-                run.Highlight = highlight;
+                run.Highlight = highlight.ToOfficeEnum();
             } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)) {
-                run.Highlight = HighlightColorValues.None;
+                run.Highlight = WordHighlightColor.None;
             }
 
             if (legacyRun.FontSizeHalfPoints != null) {

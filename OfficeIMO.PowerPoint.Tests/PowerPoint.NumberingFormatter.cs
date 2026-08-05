@@ -7,23 +7,23 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NumberingFormatter_PreservesScriptAndSymbolSchemes() {
             Assert.Equal("๓.", PowerPointNumberingFormatter.FormatMarker(3,
-                A.TextAutoNumberSchemeValues.ThaiNumberPeriod));
+                PowerPointNumberingScheme.ThaiNumberPeriod));
             Assert.Equal("३)", PowerPointNumberingFormatter.FormatMarker(3,
-                A.TextAutoNumberSchemeValues
+                PowerPointNumberingScheme
                     .HindiNumberParenthesisRight));
             Assert.Equal("３．", PowerPointNumberingFormatter.FormatMarker(3,
-                A.TextAutoNumberSchemeValues.ArabicDoubleBytePeriod));
+                PowerPointNumberingScheme.ArabicDoubleBytePeriod));
             Assert.Equal("三.", PowerPointNumberingFormatter.FormatMarker(3,
-                A.TextAutoNumberSchemeValues
+                PowerPointNumberingScheme
                     .EastAsianSimplifiedChinesePeriod));
             Assert.Equal("❸", PowerPointNumberingFormatter.FormatMarker(3,
-                A.TextAutoNumberSchemeValues
+                PowerPointNumberingScheme
                     .CircleNumberWingdingsBlackPlain));
             Assert.Equal("③", PowerPointNumberingFormatter.FormatMarker(3,
-                A.TextAutoNumberSchemeValues
+                PowerPointNumberingScheme
                     .CircleNumberDoubleBytePlain));
             Assert.Equal("ג-", PowerPointNumberingFormatter.FormatMarker(3,
-                A.TextAutoNumberSchemeValues.Hebrew2Minus));
+                PowerPointNumberingScheme.Hebrew2Minus));
         }
     }
 }

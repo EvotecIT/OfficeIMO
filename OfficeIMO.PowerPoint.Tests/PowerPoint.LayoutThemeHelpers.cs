@@ -14,9 +14,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                int titleOnlyIndex = presentation.GetLayoutIndex(SlideLayoutValues.TitleOnly);
+                int titleOnlyIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);
 
-                PowerPointSlide slide = presentation.AddSlide(SlideLayoutValues.TitleOnly);
+                PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
                 Assert.Equal(titleOnlyIndex, slide.LayoutIndex);
 
                 int titleSlideIndex = presentation.GetLayoutIndex("Title Slide");

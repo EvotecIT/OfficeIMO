@@ -93,6 +93,7 @@
         <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Html" />
+        <InternalsVisibleTo Include="OfficeIMO.PowerPoint.GoogleSlides" />
         <InternalsVisibleTo Include="OfficeIMO.Markup.PowerPoint" />
     </ItemGroup>
 

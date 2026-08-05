@@ -70,7 +70,7 @@ Available `WordPageNumberStyle` values:
 
 ```csharp
 var footerParagraph = document.Footer.Default.AddParagraph();
-footerParagraph.ParagraphAlignment = JustificationValues.Center;
+footerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
 document.Footer.Default.AddPageNumber(WordPageNumberStyle.Normal);
 ```
 
@@ -149,9 +149,9 @@ Or remove specific header types:
 
 ```csharp
 WordHeader.RemoveHeaders(
-    document._wordprocessingDocument,
-    HeaderFooterValues.Default,
-    HeaderFooterValues.First
+    document,
+    WordHeaderFooterType.Default,
+    WordHeaderFooterType.First
 );
 ```
 
@@ -166,7 +166,7 @@ var headerParagraph = document.Header.Default.AddParagraph();
 headerParagraph.Text = "Document Title";
 headerParagraph.Bold = true;
 headerParagraph.FontSize = 10;
-headerParagraph.ParagraphAlignment = JustificationValues.Center;
+headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
 var footerParagraph = document.Footer.Default.AddParagraph();
 footerParagraph.Text = "Printed: " + DateTime.Now.ToString("yyyy-MM-dd");

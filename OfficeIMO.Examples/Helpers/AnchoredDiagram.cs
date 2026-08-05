@@ -49,15 +49,15 @@ namespace OfficeIMO.Examples.Utils {
                     var lp = document.AddParagraph("");
                     var tb = lp.AddTextBox("", WrapTextImage.InFrontOfText);
                     tb.WrapText = WrapTextImage.InFrontOfText;
-                    tb.HorizontalPositionRelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page;
-                    tb.VerticalPositionRelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalRelativePositionValues.Page;
+                    tb.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
+                    tb.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     tb.HorizontalPositionOffset = PtToEmus(labelLeftPt);
                     tb.VerticalPositionOffset = PtToEmus(labelTopPt);
                     tb.WidthCentimeters = PtToCm(labelWpt);
                     tb.HeightCentimeters = PtToCm(labelHpt);
                     var para = tb.Paragraphs.Count > 0 ? tb.Paragraphs[0] : document.AddParagraph("");
                     para.SetText(item.name)
-                        .SetAlignment(DocumentFormat.OpenXml.Wordprocessing.JustificationValues.Center);
+                        .SetAlignment(WordParagraphAlignment.Center);
                 }
             }
 
@@ -107,15 +107,15 @@ namespace OfficeIMO.Examples.Utils {
                 var lp = document.AddParagraph("");
                 var tb = lp.AddTextBox("", WrapTextImage.InFrontOfText);
                 tb.WrapText = WrapTextImage.InFrontOfText;
-                tb.HorizontalPositionRelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page;
-                tb.VerticalPositionRelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalRelativePositionValues.Page;
+                tb.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
+                tb.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                 tb.HorizontalPositionOffset = PtToEmus(legendLeftPt);
                 tb.VerticalPositionOffset = PtToEmus(legendTopPt);
                 tb.WidthCentimeters = PtToCm(legendWpt);
                 tb.HeightCentimeters = PtToCm(legendHpt);
                 var para = tb.Paragraphs.Count > 0 ? tb.Paragraphs[0] : document.AddParagraph("");
                 para.SetText(legend)
-                    .SetAlignment(DocumentFormat.OpenXml.Wordprocessing.JustificationValues.Center);
+                    .SetAlignment(WordParagraphAlignment.Center);
             }
 
             if (elbowConnector != null) {

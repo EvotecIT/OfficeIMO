@@ -2334,7 +2334,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(rules, rule => rule.Type == "DuplicateValues");
                 Assert.Contains(rules, rule => rule.Type == "Top10");
 
-                sheet.ValidationWholeNumber("B2:B4", DataValidationOperatorValues.Between, 1, 30);
+                sheet.ValidationWholeNumber("B2:B4", ExcelDataValidationOperator.Between, 1, 30);
                 sheet.SetDataValidationMessages("B2:B4", new ExcelDataValidationMessageOptions {
                     PromptTitle = "Allowed",
                     Prompt = "1-30 only",
@@ -2387,7 +2387,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(6, 2, 40d);
 
                 sheet.AddConditionalFormulaRule("A2:A4 A6", "A2>15");
-                sheet.ValidationWholeNumber("B2:B4 B6", DataValidationOperatorValues.Between, 1, 50);
+                sheet.ValidationWholeNumber("B2:B4 B6", ExcelDataValidationOperator.Between, 1, 50);
 
                 Assert.Single(sheet.GetConditionalFormattingRules("A6"));
                 Assert.Single(sheet.GetDataValidations("B6"));

@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                         .First(ft => ft.Paragraph("First footer"))
                         .Even(ev => ev.Paragraph("Even footer")))
                     .Paragraph(p => p.Text("Body"))
-                    .Section(s => s.New(SectionMarkValues.Continuous))
+                    .Section(s => s.New(WordSectionBreakType.Continuous))
                     .End()
                     .Save();
             }

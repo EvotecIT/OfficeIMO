@@ -111,8 +111,8 @@ public static class PowerPointExtractionExtensions {
         value.Replace("\r\n", "\n").Replace('\r', '\n');
 
     private static void AppendTextBoxMarkdown(StringBuilder markdown, PowerPointTextBox textBox) {
-        bool isTitle = textBox.ShapePlaceholderType == PlaceholderValues.Title
-            || textBox.ShapePlaceholderType == PlaceholderValues.CenteredTitle;
+        bool isTitle = textBox.ShapePlaceholderType == PowerPointPlaceholderType.Title
+            || textBox.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle;
         var numberingState = new Dictionary<int, int>();
         var listContentIndents = new Dictionary<int, int>();
         bool appended = false;

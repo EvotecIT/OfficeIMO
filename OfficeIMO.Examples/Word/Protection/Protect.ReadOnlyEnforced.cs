@@ -11,13 +11,13 @@ internal static partial class Protect {
         string filePath = System.IO.Path.Combine(folderPath, "Basic Document with enforced read-only protection.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("This document is protected: password required to edit");
-            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
             paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
             paragraph.AddText(" - Password is 'Test123'");
 
             // This is the only way to enforce editing restrictions in modern Word
             document.Settings.ProtectionPassword = "Test123";
-            document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
+            document.Settings.ProtectionType = WordDocumentProtectionType.ReadOnly;
 
             document.Save();
             var valid = document.ValidateDocument();

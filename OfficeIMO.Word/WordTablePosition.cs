@@ -106,11 +106,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         ///     Get or set Table Vertical Anchor
         /// </summary>
-        public VerticalAnchorValues? VerticalAnchor {
+        public WordTableVerticalAnchor? VerticalAnchor {
             get {
                 var tableProperties = TableProperties;
                 if (tableProperties?.TablePositionProperties?.VerticalAnchor != null)
-                    return tableProperties.TablePositionProperties.VerticalAnchor.Value;
+                    return tableProperties.TablePositionProperties.VerticalAnchor.Value.ToOfficeEnum();
 
                 return null;
             }
@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
                     tableProperties.TablePositionProperties = new TablePositionProperties();
 
                 if (value != null)
-                    tableProperties.TablePositionProperties.VerticalAnchor = value;
+                    tableProperties.TablePositionProperties.VerticalAnchor = value.Value.ToOpenXml();
                 else
                     tableProperties.TablePositionProperties.VerticalAnchor = null;
             }
@@ -129,11 +129,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         ///     Get or set Table Horizontal Anchor
         /// </summary>
-        public HorizontalAnchorValues? HorizontalAnchor {
+        public WordTableHorizontalAnchor? HorizontalAnchor {
             get {
                 var tableProperties = TableProperties;
                 if (tableProperties?.TablePositionProperties?.HorizontalAnchor != null)
-                    return tableProperties.TablePositionProperties.HorizontalAnchor.Value;
+                    return tableProperties.TablePositionProperties.HorizontalAnchor.Value.ToOfficeEnum();
 
                 return null;
             }
@@ -143,7 +143,7 @@ namespace OfficeIMO.Word {
                     tableProperties.TablePositionProperties = new TablePositionProperties();
 
                 if (value != null)
-                    tableProperties.TablePositionProperties.HorizontalAnchor = value;
+                    tableProperties.TablePositionProperties.HorizontalAnchor = value.Value.ToOpenXml();
                 else
                     tableProperties.TablePositionProperties.HorizontalAnchor = null;
             }
@@ -198,11 +198,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         ///     Get or set Relative Vertical Alignment from Anchor
         /// </summary>
-        public VerticalAlignmentValues? TablePositionYAlignment {
+        public WordTableVerticalPositionAlignment? TablePositionYAlignment {
             get {
                 var tableProperties = TableProperties;
                 if (tableProperties?.TablePositionProperties?.TablePositionYAlignment != null)
-                    return tableProperties.TablePositionProperties.TablePositionYAlignment;
+                    return tableProperties.TablePositionProperties.TablePositionYAlignment.Value.ToOfficeEnum();
 
                 return null;
             }
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word {
                     tableProperties.TablePositionProperties = new TablePositionProperties();
 
                 if (value != null)
-                    tableProperties.TablePositionProperties.TablePositionYAlignment = value;
+                    tableProperties.TablePositionProperties.TablePositionYAlignment = value.Value.ToOpenXml();
                 else
                     tableProperties.TablePositionProperties.TablePositionYAlignment = null;
             }
@@ -221,11 +221,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         ///     Get or set Relative Horizontal Alignment From Anchor
         /// </summary>
-        public HorizontalAlignmentValues? TablePositionXAlignment {
+        public WordTableHorizontalAlignment? TablePositionXAlignment {
             get {
                 var tableProperties = TableProperties;
                 if (tableProperties?.TablePositionProperties?.TablePositionXAlignment != null)
-                    return tableProperties.TablePositionProperties.TablePositionXAlignment;
+                    return tableProperties.TablePositionProperties.TablePositionXAlignment.Value.ToOfficeEnum();
 
                 return null;
             }
@@ -235,7 +235,7 @@ namespace OfficeIMO.Word {
                     tableProperties.TablePositionProperties = new TablePositionProperties();
 
                 if (value != null)
-                    tableProperties.TablePositionProperties.TablePositionXAlignment = value;
+                    tableProperties.TablePositionProperties.TablePositionXAlignment = value.Value.ToOpenXml();
                 else
                     tableProperties.TablePositionProperties.TablePositionXAlignment = null;
             }
@@ -244,11 +244,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         ///     Gets or sets Table Overlap
         /// </summary>
-        public TableOverlapValues? TableOverlap {
+        public WordTableOverlap? TableOverlap {
             get {
                 var tableProperties = TableProperties;
                 if (tableProperties?.TableOverlap?.Val != null)
-                    return tableProperties.TableOverlap.Val.Value;
+                    return tableProperties.TableOverlap.Val.Value.ToOfficeEnum();
 
                 return null;
             }
@@ -256,7 +256,7 @@ namespace OfficeIMO.Word {
                 var tableProperties = EnsureTableProperties();
                 if (tableProperties.TableOverlap == null) tableProperties.TableOverlap = new TableOverlap();
                 if (value != null)
-                    tableProperties.TableOverlap.Val = value;
+                    tableProperties.TableOverlap.Val = value.Value.ToOpenXml();
                 else
                     tableProperties.TableOverlap.Remove();
             }

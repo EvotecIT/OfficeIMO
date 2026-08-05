@@ -173,7 +173,7 @@ namespace OfficeIMO.PowerPoint {
             int endOpacityPercent = 0,
             int startPositionPercent = 0,
             int endPositionPercent = 100,
-            A.RectangleAlignmentValues? alignment = null,
+            PowerPointRectangleAlignment? alignment = null,
             bool rotateWithShape = false) {
             if (blurPoints < 0) {
                 throw new ArgumentOutOfRangeException(nameof(blurPoints));
@@ -207,7 +207,7 @@ namespace OfficeIMO.PowerPoint {
             reflection.EndAlpha = ToAlphaValue(endOpacityPercent);
             reflection.StartPosition = ToPercentValue(startPositionPercent);
             reflection.EndPosition = ToPercentValue(endPositionPercent);
-            reflection.Alignment = alignment ?? A.RectangleAlignmentValues.Bottom;
+            reflection.Alignment = (alignment ?? PowerPointRectangleAlignment.Bottom).ToOpenXml();
             reflection.RotateWithShape = rotateWithShape;
         }
 

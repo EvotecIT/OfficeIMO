@@ -85,13 +85,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bar grouping mode for bar charts.
         /// </summary>
-        public BarGroupingValues? BarGrouping {
+        public WordChartBarGrouping? BarGrouping {
             get {
                 if (_chartPart != null) {
                     var chart = ChartSpaceRoot.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart?.BarGrouping != null) {
-                        return barChart.BarGrouping.Val?.Value;
+                        return barChart.BarGrouping.Val?.Value.ToOfficeEnum();
                     }
                 }
 
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart != null) {
                         if (value.HasValue) {
-                            (barChart.BarGrouping ??= new BarGrouping()).Val = value.Value;
+                            (barChart.BarGrouping ??= new BarGrouping()).Val = value.Value.ToOpenXml();
                         } else {
                             barChart.BarGrouping = null;
                         }
@@ -114,13 +114,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bar direction (row or column) for bar charts.
         /// </summary>
-        public BarDirectionValues? BarDirection {
+        public WordChartBarDirection? BarDirection {
             get {
                 if (_chartPart != null) {
                     var chart = ChartSpaceRoot.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart?.BarDirection != null) {
-                        return barChart.BarDirection.Val?.Value;
+                        return barChart.BarDirection.Val?.Value.ToOfficeEnum();
                     }
                 }
 
@@ -132,7 +132,7 @@ namespace OfficeIMO.Word {
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart != null) {
                         if (value.HasValue) {
-                            (barChart.BarDirection ??= new BarDirection()).Val = value.Value;
+                            (barChart.BarDirection ??= new BarDirection()).Val = value.Value.ToOpenXml();
                         } else {
                             barChart.BarDirection = null;
                         }

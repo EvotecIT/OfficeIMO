@@ -70,8 +70,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointTableCell header = table.GetCell(0, c);
                 header.Bold = true;
                 header.FontSize = 12;
-                header.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
-                header.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+                header.HorizontalAlignment = PowerPointTextAlignment.Center;
+                header.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
                 header.PaddingLeftPoints = 4;
                 header.PaddingRightPoints = 4;
                 header.PaddingTopPoints = 3;
@@ -82,9 +82,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 for (int c = 0; c < table.Columns; c++) {
                     PowerPointTableCell cell = table.GetCell(r, c);
                     cell.FontSize = 11;
-                    cell.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+                    cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
                     if (c > 0) {
-                        cell.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
+                        cell.HorizontalAlignment = PowerPointTextAlignment.Center;
                     }
                     cell.PaddingLeftPoints = 3;
                     cell.PaddingRightPoints = 3;
@@ -126,9 +126,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 for (int c = 0; c < mergeTable.Columns; c++) {
                     PowerPointTableCell cell = mergeTable.GetCell(r, c);
                     cell.FontSize = r == 0 ? 12 : 11;
-                    cell.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+                    cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
                     if (r <= 1 || c > 0) {
-                        cell.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
+                        cell.HorizontalAlignment = PowerPointTextAlignment.Center;
                     }
                     cell.PaddingLeftPoints = 3;
                     cell.PaddingRightPoints = 3;
@@ -216,9 +216,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 for (int c = 0; c < compactTable.Columns; c++) {
                     PowerPointTableCell cell = compactTable.GetCell(r, c);
                     cell.FontSize = r == 0 ? 10 : 9;
-                    cell.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+                    cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
                     if (c > 0) {
-                        cell.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
+                        cell.HorizontalAlignment = PowerPointTextAlignment.Center;
                     }
                 }
             }

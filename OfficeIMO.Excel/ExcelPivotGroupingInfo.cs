@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Creates pivot grouping readback information.</summary>
         public ExcelPivotGroupingInfo(
             string fieldName,
-            GroupByValues? groupBy,
+            ExcelPivotGroupBy? groupBy,
             DateTime? startDate,
             DateTime? endDate,
             double? startNumber,
@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
         public string FieldName { get; }
 
         /// <summary>Gets the grouping mode.</summary>
-        public GroupByValues? GroupBy { get; }
+        public ExcelPivotGroupBy? GroupBy { get; }
 
         /// <summary>Gets the date grouping start, if present.</summary>
         public DateTime? StartDate { get; }

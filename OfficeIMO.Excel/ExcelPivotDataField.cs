@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         /// <param name="displayName">Optional display name for the data field.</param>
         /// <param name="numberFormatId">Optional number format id to apply to the data field.</param>
         public ExcelPivotDataField(string fieldName,
-            DataConsolidateFunctionValues? function,
+            ExcelPivotDataFunction? function,
             string? displayName,
             uint? numberFormatId)
             : this(fieldName, function, displayName, numberFormatId, null) {
@@ -32,15 +32,15 @@ namespace OfficeIMO.Excel {
         /// <param name="baseField">Optional base field index for show-values-as calculations that require one.</param>
         /// <param name="baseItem">Optional base item index for show-values-as calculations that require one.</param>
         public ExcelPivotDataField(string fieldName,
-            DataConsolidateFunctionValues? function = null,
+            ExcelPivotDataFunction? function = null,
             string? displayName = null,
             uint? numberFormatId = null,
             string? numberFormat = null,
-            ShowDataAsValues? showDataAs = null,
+            ExcelPivotShowDataAs? showDataAs = null,
             int? baseField = null,
             uint? baseItem = null) {
             FieldName = fieldName ?? throw new ArgumentNullException(nameof(fieldName));
-            Function = function ?? DataConsolidateFunctionValues.Sum;
+            Function = function ?? ExcelPivotDataFunction.Sum;
             DisplayName = displayName;
             NumberFormatId = numberFormatId;
             NumberFormat = numberFormat;
@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the aggregation function.
         /// </summary>
-        public DataConsolidateFunctionValues Function { get; }
+        public ExcelPivotDataFunction Function { get; }
 
         /// <summary>
         /// Gets the optional display name for the data field.
@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the optional show-values-as calculation mode.
         /// </summary>
-        public ShowDataAsValues? ShowDataAs { get; }
+        public ExcelPivotShowDataAs? ShowDataAs { get; }
 
         /// <summary>
         /// Gets the optional base field index for show-values-as calculations that require one.

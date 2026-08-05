@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                     cell.SetBullets(new[] { "First bullet", "Second bullet" }, configure: paragraph => {
                         paragraph.SetBulletSizePoints(11);
                     });
-                    cell.AddNumberedList(new[] { "First number", "Second number" }, A.TextAutoNumberSchemeValues.AlphaLowerCharacterPeriod, startAt: 2);
+                    cell.AddNumberedList(new[] { "First number", "Second number" }, PowerPointNumberingScheme.AlphaLowerCharacterPeriod, startAt: 2);
                     presentation.Save();
                 }
 

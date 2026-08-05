@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBox(string.Empty);
                 Assert.IsType<P.Shape>(textBox.Element).TextBody =
                     new P.TextBody(new A.BodyProperties(),

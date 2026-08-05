@@ -3618,7 +3618,7 @@ namespace OfficeIMO.Tests {
 
             var intro = document.AddParagraph("Intro ");
             intro.Style = WordParagraphStyles.Heading1;
-            intro.ParagraphAlignment = JustificationValues.Center;
+            intro.ParagraphAlignment = WordParagraphAlignment.Center;
             intro.AddFormattedText("Bold", bold: true);
             intro.AddHyperLink(" Portal", new Uri("https://example.com"));
 
@@ -3635,7 +3635,7 @@ namespace OfficeIMO.Tests {
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Alpha";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "42";
 
-            document.AddSection(SectionMarkValues.NextPage);
+            document.AddSection(WordSectionBreakType.NextPage);
             document.AddParagraph("Second section");
 
             return document;
@@ -3661,7 +3661,7 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Highlights";
 
             var paragraph = document.AddParagraph("Plain ");
-            paragraph.AddText("Highlighted").SetHighlight(HighlightColorValues.Yellow);
+            paragraph.AddText("Highlighted").SetHighlight(WordHighlightColor.Yellow);
             paragraph.AddText(" tail");
 
             return document;
@@ -3672,9 +3672,9 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Baseline";
 
             var paragraph = document.AddParagraph("Base ");
-            paragraph.AddText("Super").SetVerticalTextAlignment(VerticalPositionValues.Superscript);
+            paragraph.AddText("Super").SetVerticalTextAlignment(WordVerticalTextPosition.Superscript);
             paragraph.AddText(" and ");
-            paragraph.AddText("Sub").SetVerticalTextAlignment(VerticalPositionValues.Subscript);
+            paragraph.AddText("Sub").SetVerticalTextAlignment(WordVerticalTextPosition.Subscript);
 
             return document;
         }
@@ -3732,7 +3732,7 @@ namespace OfficeIMO.Tests {
 
             var paragraph = document.AddParagraph("Auto spaced paragraph");
             paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = LineSpacingRuleValues.Auto;
+            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
 
             return document;
         }
@@ -3754,9 +3754,9 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Tab Stops";
 
             var paragraph = document.AddParagraph("Label");
-            paragraph.AddTabStop(1440, TabStopValues.Left, TabStopLeaderCharValues.None);
+            paragraph.AddTabStop(1440, WordTabAlignment.Left, WordTabLeader.None);
             paragraph.AddText("\tValue");
-            paragraph.AddTabStop(2880, TabStopValues.Decimal, TabStopLeaderCharValues.Dot);
+            paragraph.AddTabStop(2880, WordTabAlignment.Decimal, WordTabLeader.Dot);
             paragraph.AddText("\t12.34");
 
             return document;
@@ -3768,7 +3768,7 @@ namespace OfficeIMO.Tests {
 
             var section = document.Sections[0];
             section.PageSettings.PageSize = WordPageSize.A5;
-            section.PageOrientation = PageOrientationValues.Landscape;
+            section.PageOrientation = WordPageOrientation.Landscape;
             section.Margins.Top = 720;
             section.Margins.Bottom = 900;
             section.Margins.Left = 1080U;
@@ -3801,7 +3801,7 @@ namespace OfficeIMO.Tests {
 
             var paragraph = document.AddParagraph("Exact spaced paragraph");
             paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
+            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
 
             return document;
         }
@@ -3812,7 +3812,7 @@ namespace OfficeIMO.Tests {
 
             var paragraph = document.AddParagraph("AtLeast spaced paragraph");
             paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = LineSpacingRuleValues.AtLeast;
+            paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
 
             return document;
         }
@@ -3832,11 +3832,11 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Borders";
 
             var paragraph = document.AddParagraph("Bordered paragraph");
-            paragraph.Borders.TopStyle = BorderValues.Single;
+            paragraph.Borders.TopStyle = WordBorderStyle.Single;
             paragraph.Borders.TopColorHex = "336699";
             paragraph.Borders.TopSize = 8;
             paragraph.Borders.TopSpace = 6;
-            paragraph.Borders.LeftStyle = BorderValues.Single;
+            paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             paragraph.Borders.LeftColorHex = "CC3300";
             paragraph.Borders.LeftSize = 12;
             paragraph.Borders.LeftSpace = 4;
@@ -3940,13 +3940,13 @@ namespace OfficeIMO.Tests {
             firstCellParagraph.AddFormattedText("Bold", bold: true);
             firstCellParagraph.AddHyperLink(" Link", new Uri("https://example.com"));
             table.Rows[0].Cells[0].ShadingFillColorHex = "FFCC00";
-            table.Rows[0].Cells[0].Borders.LeftStyle = BorderValues.Single;
+            table.Rows[0].Cells[0].Borders.LeftStyle = WordBorderStyle.Single;
             table.Rows[0].Cells[0].Borders.LeftColorHex = "FF0000";
             table.Rows[0].Cells[0].Borders.LeftSize = (UInt32Value)8U;
-            table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Dashed;
+            table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Dashed;
             table.Rows[0].Cells[0].Borders.TopColorHex = "0000FF";
             table.Rows[0].Cells[0].Borders.TopSize = (UInt32Value)12U;
-            table.Rows[0].Cells[0].Borders.BottomStyle = BorderValues.Dotted;
+            table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Dotted;
             table.Rows[0].Cells[0].Borders.BottomColorHex = "00AA00";
             table.Rows[0].Cells[0].Borders.BottomSize = (UInt32Value)16U;
 
@@ -4016,7 +4016,7 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Leading Table Section";
             document.AddParagraph("First section");
-            document.AddSection(SectionMarkValues.NextPage);
+            document.AddSection(WordSectionBreakType.NextPage);
 
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
@@ -4036,7 +4036,7 @@ namespace OfficeIMO.Tests {
             var headerTable = document.Sections[0].Header.Default!.AddTable(2, 2, WordTableStyle.TableGrid);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
             headerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
-            headerTable.Rows[0].Cells[0].Borders.RightStyle = BorderValues.Single;
+            headerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             headerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
             headerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "H2";
@@ -4062,7 +4062,7 @@ namespace OfficeIMO.Tests {
             var footerTable = document.Sections[0].Footer.Default!.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
             footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
-            footerTable.Rows[0].Cells[0].Borders.RightStyle = BorderValues.Single;
+            footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
             footerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
@@ -4081,7 +4081,7 @@ namespace OfficeIMO.Tests {
             var footerTable = document.Sections[0].Footer.First!.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
             footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
-            footerTable.Rows[0].Cells[0].Borders.RightStyle = BorderValues.Single;
+            footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
             footerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
@@ -4100,7 +4100,7 @@ namespace OfficeIMO.Tests {
             var footerTable = document.Sections[0].Footer.Even!.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
             footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
-            footerTable.Rows[0].Cells[0].Borders.RightStyle = BorderValues.Single;
+            footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
             footerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
@@ -4126,7 +4126,7 @@ namespace OfficeIMO.Tests {
             var headerTable = document.Sections[0].Header.Even!.AddTable(2, 2, WordTableStyle.TableGrid);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
             headerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
-            headerTable.Rows[0].Cells[0].Borders.RightStyle = BorderValues.Single;
+            headerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             headerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
             headerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "H2";

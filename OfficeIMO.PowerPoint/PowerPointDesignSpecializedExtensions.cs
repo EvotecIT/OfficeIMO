@@ -161,7 +161,7 @@ namespace OfficeIMO.PowerPoint {
             panel.OutlineWidthPoints = 0;
             panel.SetShadow("000000", blurPoints: 5, distancePoints: 1.2, angleDegrees: 90, transparencyPercent: 86);
 
-            PowerPointAutoShape wash = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, bounds.LeftCm + bounds.WidthCm * 0.16,
+            PowerPointAutoShape wash = slide.AddShapeCm(PowerPointShapeType.Parallelogram, bounds.LeftCm + bounds.WidthCm * 0.16,
                 bounds.TopCm, bounds.WidthCm * 0.28, bounds.HeightCm, "Coverage Map Wash");
             wash.FillColor = theme.AccentLightColor;
             wash.FillTransparency = 72;
@@ -524,7 +524,7 @@ namespace OfficeIMO.PowerPoint {
                 rail.FillColor = theme.AccentColor;
                 rail.OutlineColor = theme.AccentColor;
 
-                PowerPointAutoShape watermark = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram,
+                PowerPointAutoShape watermark = slide.AddShapeCm(PowerPointShapeType.Parallelogram,
                     bounds.LeftCm + bounds.WidthCm * 0.60, bounds.TopCm + 0.08,
                     bounds.WidthCm * 0.23, bounds.HeightCm - 0.16, "Logo Wall Certificate Watermark");
                 watermark.FillColor = theme.AccentLightColor;
@@ -631,7 +631,7 @@ namespace OfficeIMO.PowerPoint {
         private static void AddCoverageRegion(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointLayoutBox bounds, double x, double y, double width, double height, string name,
             string fillColor, int fillTransparency) {
-            PowerPointAutoShape region = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram,
+            PowerPointAutoShape region = slide.AddShapeCm(PowerPointShapeType.Parallelogram,
                 bounds.LeftCm + bounds.WidthCm * x,
                 bounds.TopCm + bounds.HeightCm * y,
                 bounds.WidthCm * width,

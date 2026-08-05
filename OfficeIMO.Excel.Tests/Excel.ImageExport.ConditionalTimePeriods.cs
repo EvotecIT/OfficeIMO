@@ -22,8 +22,8 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, 30);
             sheet.SetRowHeight(2, 30);
             sheet.SetRowHeight(3, 30);
-            sheet.AddConditionalTimePeriodRule("A1:A3", TimePeriodValues.Today, fillColor: "C6EFCE");
-            sheet.AddConditionalTimePeriodRule("B1:B3", TimePeriodValues.Last7Days, fillColor: "DBEAFE");
+            sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
+            sheet.AddConditionalTimePeriodRule("B1:B3", ExcelConditionalTimePeriod.Last7Days, fillColor: "DBEAFE");
 
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false,

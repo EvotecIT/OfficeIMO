@@ -21,8 +21,8 @@ public class WordAllSeverityBatch18SecurityTests {
         using WordDocument document = WordDocument.Create();
         var paragraph = new WordParagraph(document, newParagraph: true, newRun: false);
 
-        paragraph.VerticalTextAlignment = VerticalPositionValues.Superscript;
-        paragraph.Borders.LeftStyle = BorderValues.Single;
+        paragraph.VerticalTextAlignment = WordVerticalTextPosition.Superscript;
+        paragraph.Borders.LeftStyle = WordBorderStyle.Single;
         WordParagraph emptyText = paragraph.AddText(null);
 
         Assert.NotNull(paragraph._run);
@@ -43,9 +43,9 @@ public class WordAllSeverityBatch18SecurityTests {
             candidate => candidate.IsHyperLink);
         int directRunCount = paragraph._paragraph.Elements<Run>().Count();
 
-        hyperlinkParagraph.VerticalTextAlignment = VerticalPositionValues.Superscript;
+        hyperlinkParagraph.VerticalTextAlignment = WordVerticalTextPosition.Superscript;
 
-        Assert.Equal(VerticalPositionValues.Superscript, hyperlinkParagraph.VerticalTextAlignment);
+        Assert.Equal(WordVerticalTextPosition.Superscript, hyperlinkParagraph.VerticalTextAlignment);
         Assert.Equal(
             VerticalPositionValues.Superscript,
             hyperlinkParagraph.Hyperlink!._runProperties.VerticalTextAlignment?.Val?.Value);

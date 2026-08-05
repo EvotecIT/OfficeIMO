@@ -105,20 +105,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets horizontal relative position of the text box
         /// </summary>
-        public HorizontalRelativePositionValues? HorizontalPositionRelativeFrom {
-            get => _anchor?.HorizontalPosition?.RelativeFrom?.Value;
+        public WordHorizontalRelativePosition? HorizontalPositionRelativeFrom {
+            get => _anchor?.HorizontalPosition?.RelativeFrom?.Value.ToOfficeEnum();
             set {
                 var horizontalPosition = _anchor?.HorizontalPosition;
                 if (horizontalPosition != null && value.HasValue) {
-                    horizontalPosition.RelativeFrom = value.Value;
+                    horizontalPosition.RelativeFrom = value.Value.ToOpenXml();
                 }
             }
-        }
-
-        /// <summary>Sets the horizontal anchor using an OfficeIMO-owned value.</summary>
-        public WordTextBox SetHorizontalPositionRelativeFrom(WordHorizontalRelativePosition relativePosition) {
-            HorizontalPositionRelativeFrom = relativePosition.ToOpenXml();
-            return this;
         }
 
         /// <summary>
@@ -165,20 +159,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the relative4 vertical alignment of the text box
         /// </summary>
-        public VerticalRelativePositionValues VerticalPositionRelativeFrom {
-            get => _anchor?.VerticalPosition?.RelativeFrom?.Value ?? VerticalRelativePositionValues.Page;
+        public WordVerticalRelativePosition VerticalPositionRelativeFrom {
+            get => _anchor?.VerticalPosition?.RelativeFrom?.Value.ToOfficeEnum() ?? WordVerticalRelativePosition.Page;
             set {
                 var verticalPosition = _anchor?.VerticalPosition;
                 if (verticalPosition != null) {
-                    verticalPosition.RelativeFrom = value;
+                    verticalPosition.RelativeFrom = value.ToOpenXml();
                 }
             }
-        }
-
-        /// <summary>Sets the vertical anchor using an OfficeIMO-owned value.</summary>
-        public WordTextBox SetVerticalPositionRelativeFrom(WordVerticalRelativePosition relativePosition) {
-            VerticalPositionRelativeFrom = relativePosition.ToOpenXml();
-            return this;
         }
 
         /// <summary>
@@ -379,13 +367,24 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets size relative horizontally
         /// </summary>
-        public DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues? SizeRelativeHorizontally {
+        public WordTextBoxHorizontalSizeReference? SizeRelativeHorizontally {
             get => _anchor?
                 .ChildElements.OfType<DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth>()
                 .FirstOrDefault()?
-                .ObjectId?.Value;
+                .ObjectId?.Value.ToOfficeEnum();
             set {
-
+                var anchor = _anchor;
+                if (anchor == null) return;
+                var relativeWidth = anchor.ChildElements
+                    .OfType<DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth>()
+                    .FirstOrDefault();
+                if (!value.HasValue) {
+                    relativeWidth?.Remove();
+                    return;
+                }
+                relativeWidth ??= new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth();
+                relativeWidth.ObjectId = value.Value.ToOpenXml();
+                if (relativeWidth.Parent == null) anchor.Append(relativeWidth);
             }
         }
 

@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 pie.AddPie("Passed", 42);
                 pie.AddPie("Failed", 30);
                 pie.AddPie("Skipped", 5);
-                pie.AddLegend(LegendPositionValues.Right);
+                pie.AddLegend(WordChartLegendPosition.Right);
 
                 pie.ApplyPalette(WordChart.WordChartPalette.Professional, semanticOutcomes: true, applyToPies: true, applyToSeries: false)
                    .SetWidthToPageContent(1.0, 320);

@@ -41,7 +41,7 @@ namespace OfficeIMO.PowerPoint {
 
     /// <summary>Template placeholder with its semantic role and authored bounds.</summary>
     public sealed class PowerPointTemplatePlaceholderInfo {
-        internal PowerPointTemplatePlaceholderInfo(string name, PlaceholderValues? placeholderType,
+        internal PowerPointTemplatePlaceholderInfo(string name, PowerPointPlaceholderType? placeholderType,
             uint? placeholderIndex, PowerPointTemplatePlaceholderRole role, PowerPointLayoutBox? bounds,
             string? defaultText) {
             Name = name ?? string.Empty;
@@ -56,7 +56,7 @@ namespace OfficeIMO.PowerPoint {
         public string Name { get; }
 
         /// <summary>Native PowerPoint placeholder type.</summary>
-        public PlaceholderValues? PlaceholderType { get; }
+        public PowerPointPlaceholderType? PlaceholderType { get; }
 
         /// <summary>Native placeholder index.</summary>
         public uint? PlaceholderIndex { get; }
@@ -119,7 +119,7 @@ namespace OfficeIMO.PowerPoint {
             MasterIndex = masterIndex;
             LayoutIndex = layoutIndex;
             Name = name ?? string.Empty;
-            Type = type;
+            Type = type?.ToOfficeIMO();
             _placeholders = new ReadOnlyCollection<PowerPointTemplatePlaceholderInfo>(
                 new List<PowerPointTemplatePlaceholderInfo>(placeholders));
             SafeArea = safeArea;
@@ -136,7 +136,7 @@ namespace OfficeIMO.PowerPoint {
         public string Name { get; }
 
         /// <summary>Native layout type, when declared.</summary>
-        public SlideLayoutValues? Type { get; }
+        public PowerPointSlideLayoutType? Type { get; }
 
         /// <summary>Layout placeholders in authored order.</summary>
         public IReadOnlyList<PowerPointTemplatePlaceholderInfo> Placeholders => _placeholders;

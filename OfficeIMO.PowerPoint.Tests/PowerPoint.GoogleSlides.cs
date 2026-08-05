@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         public void BatchCompiler_PreservesTextBearingPresetGeometry() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTextShapePoints(A.ShapeTypeValues.RightArrow, "Next step", 20, 30, 180, 60);
+            slide.AddTextShapePoints(PowerPointShapeType.RightArrow, "Next step", 20, 30, 180, 60);
             slide.AddTextBoxPoints("Plain text", 20, 110, 180, 60);
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BatchCompiler_RasterizesUnmappedAutoShapesInsteadOfChangingTheirGeometry() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.AddSlide().AddShapePoints(A.ShapeTypeValues.Cloud, 20, 20, 160, 90);
+            presentation.AddSlide().AddShapePoints(PowerPointShapeType.Cloud, 20, 20, 160, 90);
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PlanBuilder_ReportsRasterFallbackWithoutMaterializingPngBytes() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.AddSlide().AddShapePoints(A.ShapeTypeValues.Cloud, 20, 20, 160, 90);
+            presentation.AddSlide().AddShapePoints(PowerPointShapeType.Cloud, 20, 20, 160, 90);
 
             GoogleSlidesBatch planningBatch = GoogleSlidesBatchCompiler.Build(
                 presentation,
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("image/png", compiled.BackgroundImage!.ContentType);
             Assert.DoesNotContain(batch.Plan.Report.Notices, notice => notice.Code == "SLIDES.BACKGROUND.SKIPPED");
 
-            slide.AddShapePoints(A.ShapeTypeValues.Cloud, 20, 20, 160, 90);
+            slide.AddShapePoints(PowerPointShapeType.Cloud, 20, 20, 160, 90);
             GoogleSlidesBatch rasterized = GoogleSlidesBatchCompiler.Build(
                 presentation,
                 new GoogleSlidesSaveOptions(),
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
             authoredSlide.BackgroundColor = "112233";
             PowerPointTextBox mixedText = authoredSlide.AddTextBoxPoints("Hello ", 20, 30, 300, 80);
             mixedText.Paragraphs[0].AddRun("Slides", run => run.Bold = true);
-            authoredSlide.AddTextShapePoints(A.ShapeTypeValues.RightArrow, "Next step", 340, 30, 160, 80);
+            authoredSlide.AddTextShapePoints(PowerPointShapeType.RightArrow, "Next step", 340, 30, 160, 80);
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
                 string uri = request.RequestUri!.AbsoluteUri;
@@ -698,7 +698,7 @@ namespace OfficeIMO.Tests {
                         Assert.Equal("CC331A", run.ForegroundColorHex);
                     });
                 PowerPointAutoShape importedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>());
-                Assert.Equal(A.ShapeTypeValues.Rectangle, importedShape.ShapeType);
+                Assert.Equal(PowerPointShapeType.Rectangle, importedShape.ShapeType);
                 Assert.Equal("CC6633", importedShape.FillColor);
                 Assert.Equal(25, importedShape.FillTransparency);
                 Assert.Equal("336699", importedShape.OutlineColor);
@@ -735,7 +735,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox shape = Assert.Single(
                     Assert.Single(imported.Presentation.Slides).TextBoxes,
                     candidate => candidate.Text == "Next step");
-                Assert.Equal(A.ShapeTypeValues.RightArrow, shape.ShapeType);
+                Assert.Equal(PowerPointShapeType.RightArrow, shape.ShapeType);
                 Assert.True(shape.Paragraphs[0].Runs[0].Bold);
             }
         }
@@ -890,17 +890,17 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DiffPlanner_HashesNativeGeometryAndEffectiveTextStyle() {
-            string ShapeHash(A.ShapeTypeValues shapeType) {
+            string ShapeHash(PowerPointShapeType shapeType) {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create();
                 PowerPointAutoShape shape = presentation.AddSlide().AddShapePoints(shapeType, 20, 20, 160, 90);
                 Assert.Equal(shapeType, shape.ShapeType);
                 return ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
             }
 
-            Assert.NotEqual(ShapeHash(A.ShapeTypeValues.Rectangle), ShapeHash(A.ShapeTypeValues.RightArrow));
+            Assert.NotEqual(ShapeHash(PowerPointShapeType.Rectangle), ShapeHash(PowerPointShapeType.RightArrow));
 
             using PowerPointPresentation transformedPresentation = PowerPointPresentation.Create();
-            PowerPointAutoShape transformedShape = transformedPresentation.AddSlide().AddShapePoints(A.ShapeTypeValues.Rectangle, 20, 20, 160, 90);
+            PowerPointAutoShape transformedShape = transformedPresentation.AddSlide().AddShapePoints(PowerPointShapeType.Rectangle, 20, 20, 160, 90);
             string unrotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
             transformedShape.Rotation = 30;
             string rotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));

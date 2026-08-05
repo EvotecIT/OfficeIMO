@@ -61,7 +61,7 @@ public partial class Word {
 
         Assert.Equal(new[] { "First", "Nested" }, cell.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
         Assert.All(cell.Paragraphs, paragraph => Assert.Same(cell._tableCell, paragraph._paragraph.Parent));
-        Assert.Equal(NumberFormatValues.Bullet, DocumentTraversal.GetListInfo(first)!.Value.NumberFormat);
+        Assert.Equal(WordNumberFormat.Bullet, DocumentTraversal.GetListInfo(first)!.Value.NumberFormat);
         Assert.Equal(1, DocumentTraversal.GetListInfo(nested)!.Value.Level);
 
         using MemoryStream stream = document.ToStream();

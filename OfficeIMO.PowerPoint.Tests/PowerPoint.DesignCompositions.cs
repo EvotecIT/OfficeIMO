@@ -1872,7 +1872,7 @@ namespace OfficeIMO.Tests {
                 for (int i = 1; i <= 11; i++) {
                     PowerPointAutoShape arrow = Assert.IsAssignableFrom<PowerPointAutoShape>(
                         slide.GetShape("Designer Direction " + i));
-                    Assert.Equal(A.ShapeTypeValues.Triangle, arrow.ShapeType);
+                    Assert.Equal(PowerPointShapeType.Triangle, arrow.ShapeType);
                     Assert.Equal(90, arrow.Rotation);
                 }
 
@@ -2090,15 +2090,15 @@ namespace OfficeIMO.Tests {
 
                 PowerPointAutoShape rail = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     slide.GetShape("Process Rail"));
-                Assert.Equal(A.ShapeTypeValues.Line, rail.ShapeType);
+                Assert.Equal(PowerPointShapeType.Line, rail.ShapeType);
                 Assert.True(rail.OutlineWidthPoints <= 1.2);
 
                 PowerPointAutoShape firstNode = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     slide.GetShape("Process Node 1"));
                 PowerPointAutoShape secondNode = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     slide.GetShape("Process Node 2"));
-                Assert.Equal(A.ShapeTypeValues.Ellipse, firstNode.ShapeType);
-                Assert.Equal(A.ShapeTypeValues.Ellipse, secondNode.ShapeType);
+                Assert.Equal(PowerPointShapeType.Ellipse, firstNode.ShapeType);
+                Assert.Equal(PowerPointShapeType.Ellipse, secondNode.ShapeType);
                 Assert.True(rail.LeftCm < firstNode.RightCm);
                 Assert.True(rail.RightCm > secondNode.LeftCm);
                 Assert.Null(slide.GetShape("Process Arrow 1"));
@@ -2161,7 +2161,7 @@ namespace OfficeIMO.Tests {
 
                     PowerPointAutoShape connector = Assert.IsAssignableFrom<PowerPointAutoShape>(
                         slide.GetShape("Process Connector 1"));
-                    Assert.Equal(A.ShapeTypeValues.Line, connector.ShapeType);
+                    Assert.Equal(PowerPointShapeType.Line, connector.ShapeType);
                     Assert.NotNull(slide.GetShape("Process Connector 2"));
                     Assert.Null(slide.GetShape("Process Rail"));
 
@@ -2216,11 +2216,11 @@ namespace OfficeIMO.Tests {
 
                 PowerPointAutoShape dot = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     dotSlide.GetShape("Designer Direction 1"));
-                Assert.Equal(A.ShapeTypeValues.Ellipse, dot.ShapeType);
+                Assert.Equal(PowerPointShapeType.Ellipse, dot.ShapeType);
 
                 PowerPointAutoShape bar = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     barSlide.GetShape("Designer Direction 1"));
-                Assert.Equal(A.ShapeTypeValues.Rectangle, bar.ShapeType);
+                Assert.Equal(PowerPointShapeType.Rectangle, bar.ShapeType);
 
                 Assert.NotNull(chevronSlide.GetShape("Designer Direction 1"));
                 Assert.NotNull(chevronSlide.GetShape("Designer Direction Chevron 1B"));

@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
                         new[] {
                             new ExcelRichTextRun("Raised comment") {
                                 FontName = "Arial",
-                                VerticalTextAlignment = VerticalAlignmentRunValues.Subscript
+                                VerticalTextAlignment = ExcelVerticalTextAlignment.Subscript
                             }
                         },
                         "Reviewer");
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
 
                 ExcelCommentInfo projectedComment = Assert.Single(result.Document.Sheets[0].GetComments());
                 ExcelRichTextRun projectedRun = Assert.Single(projectedComment.RichTextRuns);
-                Assert.Equal(VerticalAlignmentRunValues.Subscript, projectedRun.VerticalTextAlignment);
+                Assert.Equal(ExcelVerticalTextAlignment.Subscript, projectedRun.VerticalTextAlignment);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
                         new[] {
                             new ExcelRichTextRun("Double accounting") {
                                 FontName = "Arial",
-                                UnderlineStyle = UnderlineValues.DoubleAccounting
+                                UnderlineStyle = ExcelUnderlineStyle.DoubleAccounting
                             }
                         },
                         "Reviewer");
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
 
                 ExcelCommentInfo projectedComment = Assert.Single(result.Document.Sheets[0].GetComments());
                 ExcelRichTextRun projectedRun = Assert.Single(projectedComment.RichTextRuns);
-                Assert.Equal(UnderlineValues.DoubleAccounting, projectedRun.UnderlineStyle);
+                Assert.Equal(ExcelUnderlineStyle.DoubleAccounting, projectedRun.UnderlineStyle);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

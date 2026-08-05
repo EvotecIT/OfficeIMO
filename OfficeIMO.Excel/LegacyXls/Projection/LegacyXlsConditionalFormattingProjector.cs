@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
                     sheet.AddConditionalRule(
                         range,
-                        ToOperator(conditionalFormatting.Operator.Value),
+                        ToOperator(conditionalFormatting.Operator.Value).ToOfficeEnum(),
                         conditionalFormatting.Formula1,
                         conditionalFormatting.Formula2,
                         conditionalFormatting.StopIfTrue,

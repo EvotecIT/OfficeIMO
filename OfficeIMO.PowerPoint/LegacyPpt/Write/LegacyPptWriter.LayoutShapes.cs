@@ -167,7 +167,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool TryGetPlaceholderSignature(PowerPointShape shape,
             out P.PlaceholderValues? type, out uint? index) {
-            type = shape.ShapePlaceholderType;
+            type = shape.ShapePlaceholderType.ToOpenXml();
             index = shape.ShapePlaceholderIndex;
             return type.HasValue || index.HasValue;
         }

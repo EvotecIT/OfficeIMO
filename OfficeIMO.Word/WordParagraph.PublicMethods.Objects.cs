@@ -70,11 +70,11 @@ namespace OfficeIMO.Word {
         /// <param name="alignment">The optional alignment for the tabs.</param>
         /// <param name="leader">The optional rune to use before the tabs.</param>
         /// <returns>The added tabs.</returns>
-        public WordTabStop AddTabStop(int position, TabStopValues? alignment = null, TabStopLeaderCharValues? leader = null) {
-            alignment ??= TabStopValues.Left;
-            leader ??= TabStopLeaderCharValues.None;
+        public WordTabStop AddTabStop(int position, WordTabAlignment? alignment = null, WordTabLeader? leader = null) {
+            alignment ??= WordTabAlignment.Left;
+            leader ??= WordTabLeader.None;
             var wordTab = new WordTabStop(this);
-            wordTab.AddTab(position, alignment, leader);
+            wordTab.AddTab(position, alignment.Value.ToOpenXml(), leader.Value.ToOpenXml());
             return wordTab;
         }
 

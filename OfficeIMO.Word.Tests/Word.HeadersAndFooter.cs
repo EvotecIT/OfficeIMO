@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
@@ -76,13 +76,13 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 Assert.True(defaultHeader.Paragraphs[0].Text == "Default Header / Section 0", "Text for default header is wrong (section 0)");
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                 document.DifferentOddAndEvenPages = true;
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var oddHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
@@ -164,13 +164,13 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 Assert.True(oddHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
                 document.DifferentFirstPage = true;
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var firstHeader = RequireSectionHeader(document, 0, HeaderFooterValues.First);
@@ -231,13 +231,13 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 Assert.True(oddHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentHeadersAndFooters() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeaders.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
                 document.AddHeadersAndFooters();
 
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentHeadersAndFootersAndDeletingHeadersAndFooters() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndRemoveThem.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
                 document.AddHeadersAndFooters();
 

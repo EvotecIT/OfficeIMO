@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Tables8_StyleModification.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 document.AddParagraph();
 
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable2.Rows[0].Cells[2].Borders.TopColor = Color.Red;
                 wordTable2.Rows[0].Cells[2].Borders.BottomColor = Color.Green;
                 wordTable2.Rows[0].Cells[2].Borders.TopSize = 24;
-                wordTable2.Rows[0].Cells[2].Borders.TopStyle = BorderValues.Single;
+                wordTable2.Rows[0].Cells[2].Borders.TopStyle = WordBorderStyle.Single;
 
                 Console.WriteLine("\nSecond table settings:");
                 Console.WriteLine("Table style: " + wordTable2.Style);

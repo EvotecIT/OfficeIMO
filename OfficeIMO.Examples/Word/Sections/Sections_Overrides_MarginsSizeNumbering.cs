@@ -14,17 +14,17 @@ namespace OfficeIMO.Examples.Word {
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .PageSetup(ps => ps
-                        .Orientation(PageOrientationValues.Portrait)
+                        .Orientation(WordPageOrientation.Portrait)
                         .Size(WordPageSize.A4)
                         .Margins(WordMargin.Normal))
                     .Section(sec => sec
-                        .NewWithBreakType(WordSectionBreakType.NextPage)
+                        .New(WordSectionBreakType.NextPage)
                             .Margins(WordMargin.Narrow)
                             .Size(WordPageSize.Legal)
                             .PageNumbering(restart: true)
                             .Paragraph(p => p.Text("Section 1"))
                             .Table(t => t.Create(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 1"))
-                        .NewWithBreakType(WordSectionBreakType.NextPage)
+                        .New(WordSectionBreakType.NextPage)
                             .Margins(WordMargin.Wide)
                             .Size(WordPageSize.A3)
                             .PageNumbering(restart: false)

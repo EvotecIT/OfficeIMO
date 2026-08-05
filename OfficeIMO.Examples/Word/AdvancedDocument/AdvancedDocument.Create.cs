@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Word {
                 table.Rows[3].Cells[2].Paragraphs[0].Color = Color.Blue; ;
                 table.Rows[3].Cells[3].Paragraphs[0].Text = "Different cell";
 
-                document.AddParagraph("As you can see adding a table with some style, and adding content to it ").SetBold().SetUnderline(UnderlineValues.Dotted).AddText("is not really complicated").SetColor(Color.OrangeRed);
+                document.AddParagraph("As you can see adding a table with some style, and adding content to it ").SetBold().SetUnderline(WordUnderlineStyle.Dotted).AddText("is not really complicated").SetColor(Color.OrangeRed);
 
                 wordListToc.AddItem("How to add a list to document?");
 
@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word {
                 // you can also change the hyperlink text, uri later on using properties
                 var hyperlink = Guard.NotNull(paragraphWithHyperlink.Hyperlink, "Hyperlink should be created when calling AddHyperLink.");
                 hyperlink.Uri = new Uri("https://evotec.xyz/hub");
-                paragraphWithHyperlink.ParagraphAlignment = JustificationValues.Center;
+                paragraphWithHyperlink.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 list.AddItem("3rd element of list, but added after hyperlink", 0);
                 list.AddItem("4th element with hyperlink ").AddHyperLink("included.", new Uri("https://evotec.xyz/hub"), addStyle: true);
@@ -83,7 +83,7 @@ namespace OfficeIMO.Examples.Word {
                 listNumbered.AddItem("Different list number 4", 1);
 
                 var section = document.AddSection();
-                section.PageOrientation = PageOrientationValues.Landscape;
+                section.PageOrientation = WordPageOrientation.Landscape;
                 section.PageSettings.PageSize = WordPageSize.A4;
 
                 wordListToc.AddItem("Adding headers / footers");
@@ -92,7 +92,7 @@ namespace OfficeIMO.Examples.Word {
                 document.HeaderDefaultOrCreate.AddParagraph("Text added to header - Default");
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = PageOrientationValues.Portrait;
+                section1.PageOrientation = WordPageOrientation.Portrait;
                 section1.PageSettings.PageSize = WordPageSize.A5;
 
                 wordListToc.AddItem("Adding custom properties and page numbers to document");

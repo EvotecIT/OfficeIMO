@@ -33,4 +33,15 @@ internal static class WordSectionBreakTypeExtensions {
             _ => throw new ArgumentOutOfRangeException(nameof(breakType), breakType, "Unsupported Word section break type.")
         };
     }
+
+    internal static WordSectionBreakType ToOfficeEnum(this SectionMarkValues breakType) {
+        return breakType switch {
+            _ when breakType == SectionMarkValues.NextPage => WordSectionBreakType.NextPage,
+            _ when breakType == SectionMarkValues.NextColumn => WordSectionBreakType.NextColumn,
+            _ when breakType == SectionMarkValues.Continuous => WordSectionBreakType.Continuous,
+            _ when breakType == SectionMarkValues.EvenPage => WordSectionBreakType.EvenPage,
+            _ when breakType == SectionMarkValues.OddPage => WordSectionBreakType.OddPage,
+            _ => throw new ArgumentOutOfRangeException(nameof(breakType), breakType, "Unsupported Word section break type.")
+        };
+    }
 }

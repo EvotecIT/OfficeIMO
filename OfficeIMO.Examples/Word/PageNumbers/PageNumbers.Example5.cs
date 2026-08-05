@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
                 var defaultFooter = document.FooterDefaultOrCreate;
 
                 var firstFooter = defaultFooter.AddParagraph();
-                firstFooter.ParagraphAlignment = JustificationValues.Right;
+                firstFooter.ParagraphAlignment = WordParagraphAlignment.Right;
                 firstFooter.AddText("Page ");
                 firstFooter.AddPageNumber(includeTotalPages: true, separator: " of ");
 
@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
                 section.AddParagraph("Section 2");
 
                 var secondFooter = defaultFooter.AddParagraph();
-                secondFooter.ParagraphAlignment = JustificationValues.Right;
+                secondFooter.ParagraphAlignment = WordParagraphAlignment.Right;
                 secondFooter.AddText("Page ");
                 secondFooter.AddPageNumber(includeTotalPages: true, separator: " of ");
 

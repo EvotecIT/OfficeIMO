@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                 4, 3, OfficeColor.FromRgb(37, 99, 235)));
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 using (var first = new MemoryStream(image, writable: false)) {
                     PowerPointPicture picture = slide.AddPicture(first,
                         ImagePartType.Png, 158750, 317500, 635000, 476250);
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointPicture picture;
                 using (var stream = new MemoryStream(image,
                            writable: false)) {
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                         158750, 317500, 635000, 476250);
                 }
                 PowerPointAutoShape frame = slide.AddShape(
-                    A.ShapeTypeValues.Rectangle,
+                    PowerPointShapeType.Rectangle,
                     952500, 317500, 635000, 476250);
                 frame.Fill("ED7D31");
                 slide.GroupShapes(new PowerPointShape[] { picture, frame },
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
                        0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
                        0x01, 0x00
                    }, writable: false)) {
-                gifPresentation.AddSlide(P.SlideLayoutValues.Blank)
+                gifPresentation.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddPicture(gif, ImagePartType.Gif);
             }
             LegacyPptWritePreflightReport gifPreflight = gifPresentation
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
                 .Create();
             using (var stream = new MemoryStream(png, writable: false)) {
                 PowerPointPicture picture = effectPresentation
-                    .AddSlide(P.SlideLayoutValues.Blank)
+                    .AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddPicture(stream, ImagePartType.Png);
                 P.Picture element = Assert.IsType<P.Picture>(picture.Element);
                 element.BlipFill!.Blip!.Append(new A.AlphaReplace {
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointPicture first = AddPicture(slide, image, 0);
                 first.LuminanceBrightness = 25;
                 first.LuminanceContrast = -30;
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 using var stream = new MemoryStream(emf, writable: false);
-                source.AddSlide(P.SlideLayoutValues.Blank)
+                source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddPicture(stream, ImagePartType.Emf,
                         PowerPointUnits.FromPoints(20D),
                         PowerPointUnits.FromPoints(30D),

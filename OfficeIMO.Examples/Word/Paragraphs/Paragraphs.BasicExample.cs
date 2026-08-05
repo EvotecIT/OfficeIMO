@@ -12,13 +12,13 @@ internal static partial class Paragraphs {
         string filePath = System.IO.Path.Combine(folderPath, "Basic Document with some paragraphs.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
             paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
             paragraph.AddText(" This is continutation in the same line");
-            paragraph.AddBreak(BreakValues.TextWrapping);
-            paragraph.AddText(" This is continuation, in another line").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
+            paragraph.AddBreak(WordBreakType.TextWrapping);
+            paragraph.AddText(" This is continuation, in another line").SetUnderline(WordUnderlineStyle.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
 
-            var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(BreakValues.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
+            var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(WordBreakType.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
 
             Console.WriteLine("+ Color: " + paragraph.Color);
             Console.WriteLine("+ Color 0: " + document.Paragraphs[0].Color);

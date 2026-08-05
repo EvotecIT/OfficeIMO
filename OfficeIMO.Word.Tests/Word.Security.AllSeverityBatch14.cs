@@ -49,7 +49,7 @@ public sealed class WordAllSeverityBatch14SecurityTests {
     public void NativePdfTreatsZeroDxaTableWidthAsAutomatic() {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
-        table.WidthType = TableWidthUnitValues.Dxa;
+        table.WidthType = WordTableWidthUnit.Dxa;
         table.Width = 0;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "cell";
         using var output = new MemoryStream();

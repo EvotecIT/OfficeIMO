@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
         /// <param name="italic">Whether the text should be italic.</param>
         /// <param name="underline">Optional underline style.</param>
         /// <returns>The run containing the formatted text.</returns>
-        public WordParagraph AddFormattedText(string text, bool bold = false, bool italic = false, UnderlineValues? underline = null) {
+        public WordParagraph AddFormattedText(string text, bool bold = false, bool italic = false, WordUnderlineStyle? underline = null) {
             var run = AddText(text);
             if (bold) {
                 run.SetBold();

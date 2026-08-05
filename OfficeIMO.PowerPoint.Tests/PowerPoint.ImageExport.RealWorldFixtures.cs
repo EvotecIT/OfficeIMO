@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AddProcessNode(PowerPointSlide slide, string label, string color, double left, double top) {
-            PowerPointAutoShape node = slide.AddShapePoints(A.ShapeTypeValues.RoundRectangle, left, top, 66, 36);
+            PowerPointAutoShape node = slide.AddShapePoints(PowerPointShapeType.RoundRectangle, left, top, 66, 36);
             node.FillColor = color;
             node.OutlineColor = "0F172A";
             node.OutlineWidthPoints = 1D;
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AddConnector(PowerPointSlide slide, double left, double top, double width, double height) {
-            PowerPointAutoShape connector = slide.AddShapePoints(A.ShapeTypeValues.Line, left, top, width, height);
+            PowerPointAutoShape connector = slide.AddShapePoints(PowerPointShapeType.Line, left, top, width, height);
             connector.OutlineColor = "0F172A";
             connector.OutlineWidthPoints = 1.2D;
         }

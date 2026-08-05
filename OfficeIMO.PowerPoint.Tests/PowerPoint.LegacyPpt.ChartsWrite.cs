@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 });
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointChart chart = slide.AddChartPoints(
                     OfficeChartKind.ColumnClustered, data, 30D, 20D, 240D, 150D);
                 slide.AddClassicAnimation(chart, PowerPointClassicAnimationEffect.Fade,
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 });
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank)
+                source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddChartPoints(OfficeChartKind.ColumnClustered, data,
                         30D, 20D, 240D, 150D)
                     .SetTitle("Quarterly revenue");

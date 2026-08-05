@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="range">Address of the table range (for example, "A1:D10") whose totals row should be displayed.</param>
         /// <param name="byHeader">Mapping of table header names to the totals function that should be applied for each column.</param>
-        public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader) {
+        public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, ExcelTableTotalsFunction> byHeader) {
             if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
             if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
 
@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="tableName">Table name or display name.</param>
         /// <param name="byHeader">Mapping of table header names to totals functions.</param>
-        public void SetTableTotalsByName(string tableName, System.Collections.Generic.IDictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader) {
+        public void SetTableTotalsByName(string tableName, System.Collections.Generic.IDictionary<string, ExcelTableTotalsFunction> byHeader) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new System.ArgumentNullException(nameof(tableName));
             if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
 
@@ -116,8 +116,8 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private void SetTableTotalsCore(string tableOrRange, System.Collections.Generic.IDictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader, bool throwIfMissing) {
-            var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(System.StringComparer.OrdinalIgnoreCase);
+        private void SetTableTotalsCore(string tableOrRange, System.Collections.Generic.IDictionary<string, ExcelTableTotalsFunction> byHeader, bool throwIfMissing) {
+            var totalsByHeader = new System.Collections.Generic.Dictionary<string, ExcelTableTotalsFunction>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var entry in byHeader) {
                 totalsByHeader[entry.Key] = entry.Value;
             }
@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel {
                 foreach (var tc in tableColumns.Elements<TableColumn>()) {
                     var name = tc.Name?.Value ?? string.Empty;
                     if (totalsByHeader.TryGetValue(name, out var fn)) {
-                        tc.TotalsRowFunction = fn;
+                        tc.TotalsRowFunction = fn.ToOpenXml();
                     }
                 }
 

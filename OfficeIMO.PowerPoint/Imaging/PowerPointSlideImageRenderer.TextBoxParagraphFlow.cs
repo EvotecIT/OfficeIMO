@@ -241,13 +241,13 @@ namespace OfficeIMO.PowerPoint {
             return Math.Max(lineHeight, layout.Height);
         }
 
-        private static double ResolveTextBoxVerticalOffset(A.TextAnchoringTypeValues? alignment, double textHeight, double flowHeight) {
+        private static double ResolveTextBoxVerticalOffset(PowerPointTextVerticalAlignment? alignment, double textHeight, double flowHeight) {
             double extraHeight = Math.Max(0D, textHeight - flowHeight);
-            if (alignment == A.TextAnchoringTypeValues.Center) {
+            if (alignment == PowerPointTextVerticalAlignment.Center) {
                 return extraHeight / 2D;
             }
 
-            if (alignment == A.TextAnchoringTypeValues.Bottom) {
+            if (alignment == PowerPointTextVerticalAlignment.Bottom) {
                 return extraHeight;
             }
 

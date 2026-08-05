@@ -70,37 +70,37 @@ namespace OfficeIMO.Excel.Fluent {
 
         /// <summary>Adds a Sum data field.</summary>
         public PivotTableBuilder Sum(string fieldName, string? displayName = null, string? numberFormat = null) {
-            return Value(fieldName, DataConsolidateFunctionValues.Sum, displayName, numberFormat: numberFormat);
+            return Value(fieldName, ExcelPivotDataFunction.Sum, displayName, numberFormat: numberFormat);
         }
 
         /// <summary>Adds a Count data field.</summary>
         public PivotTableBuilder Count(string fieldName, string? displayName = null, string? numberFormat = null) {
-            return Value(fieldName, DataConsolidateFunctionValues.Count, displayName, numberFormat: numberFormat);
+            return Value(fieldName, ExcelPivotDataFunction.Count, displayName, numberFormat: numberFormat);
         }
 
         /// <summary>Adds an Average data field.</summary>
         public PivotTableBuilder Average(string fieldName, string? displayName = null, string? numberFormat = null) {
-            return Value(fieldName, DataConsolidateFunctionValues.Average, displayName, numberFormat: numberFormat);
+            return Value(fieldName, ExcelPivotDataFunction.Average, displayName, numberFormat: numberFormat);
         }
 
         /// <summary>Adds a Min data field.</summary>
         public PivotTableBuilder Min(string fieldName, string? displayName = null, string? numberFormat = null) {
-            return Value(fieldName, DataConsolidateFunctionValues.Minimum, displayName, numberFormat: numberFormat);
+            return Value(fieldName, ExcelPivotDataFunction.Minimum, displayName, numberFormat: numberFormat);
         }
 
         /// <summary>Adds a Max data field.</summary>
         public PivotTableBuilder Max(string fieldName, string? displayName = null, string? numberFormat = null) {
-            return Value(fieldName, DataConsolidateFunctionValues.Maximum, displayName, numberFormat: numberFormat);
+            return Value(fieldName, ExcelPivotDataFunction.Maximum, displayName, numberFormat: numberFormat);
         }
 
         /// <summary>Adds a data field using a specific aggregation function.</summary>
         public PivotTableBuilder Value(
             string fieldName,
-            DataConsolidateFunctionValues function,
+            ExcelPivotDataFunction function,
             string? displayName = null,
             uint? numberFormatId = null,
             string? numberFormat = null,
-            ShowDataAsValues? showDataAs = null,
+            ExcelPivotShowDataAs? showDataAs = null,
             int? baseField = null,
             uint? baseItem = null) {
             if (string.IsNullOrWhiteSpace(fieldName)) throw new ArgumentNullException(nameof(fieldName));
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel.Fluent {
 
         /// <summary>Adds a Sum data field shown as a percentage of the pivot grand total.</summary>
         public PivotTableBuilder PercentOfTotal(string fieldName, string? displayName = null, string? numberFormat = "0.0%") {
-            return Value(fieldName, DataConsolidateFunctionValues.Sum, displayName, numberFormat: numberFormat, showDataAs: ShowDataAsValues.PercentOfTotal);
+            return Value(fieldName, ExcelPivotDataFunction.Sum, displayName, numberFormat: numberFormat, showDataAs: ExcelPivotShowDataAs.PercentOfTotal);
         }
 
         /// <summary>Sets the pivot table style name, for example PivotStyleMedium9.</summary>
@@ -233,7 +233,7 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>Sets the sort mode for a pivot field.</summary>
-        public PivotTableBuilder SortField(string fieldName, FieldSortValues sortType) {
+        public PivotTableBuilder SortField(string fieldName, ExcelPivotFieldSort sortType) {
             return UpdateFieldOptions(fieldName, sortType: sortType);
         }
 
@@ -320,13 +320,13 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>Adds date grouping metadata for a pivot field.</summary>
-        public PivotTableBuilder DateGroup(string fieldName, GroupByValues groupBy, DateTime? startDate = null, DateTime? endDate = null, double? interval = null) {
+        public PivotTableBuilder DateGroup(string fieldName, ExcelPivotGroupBy groupBy, DateTime? startDate = null, DateTime? endDate = null, double? interval = null) {
             _groupings.Add(ExcelPivotGrouping.Date(fieldName, groupBy, startDate, endDate, interval));
             return this;
         }
 
         /// <summary>Adds generated date hierarchy fields for a pivot field, such as years, quarters, and months.</summary>
-        public PivotTableBuilder DateHierarchy(string fieldName, params GroupByValues[] levels) {
+        public PivotTableBuilder DateHierarchy(string fieldName, params ExcelPivotGroupBy[] levels) {
             _groupings.Add(ExcelPivotGrouping.DateHierarchy(fieldName, levels));
             return this;
         }
@@ -407,7 +407,7 @@ namespace OfficeIMO.Excel.Fluent {
 
         private PivotTableBuilder UpdateFieldOptions(
             string fieldName,
-            FieldSortValues? sortType = null,
+            ExcelPivotFieldSort? sortType = null,
             uint? numberFormatId = null,
             string? numberFormat = null,
             bool replaceNumberFormat = false,

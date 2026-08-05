@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointChart chart = presentation.Slides.First().Charts.First();
-                    chart.SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 8, fillColor: "FF0000", lineColor: "00FF00", lineWidthPoints: 1);
+                    chart.SetSeriesMarker(0, PowerPointChartMarkerStyle.Circle, size: 8, fillColor: "FF0000", lineColor: "00FF00", lineWidthPoints: 1);
                     presentation.Save();
                 }
 

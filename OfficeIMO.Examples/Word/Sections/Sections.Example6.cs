@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,20 +18,20 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.Language = "pl-PL";
 
                 var section0 = document.Sections[0];
-                section0.PageOrientation = PageOrientationValues.Portrait;
+                section0.PageOrientation = WordPageOrientation.Portrait;
                 section0.AddParagraph("Test Section0");
 
                 // Default header is created on demand; keep it simple
-                section0.GetOrCreateHeader(HeaderFooterValues.Default)
+                section0.GetOrCreateHeader(WordHeaderFooterType.Default)
                        .AddParagraph().SetText("Test Section 0 - Header");
 
                 // First/even require toggles; GetOrCreate does the rest
                 section0.DifferentFirstPage = true;
-                section0.GetOrCreateHeader(HeaderFooterValues.First)
+                section0.GetOrCreateHeader(WordHeaderFooterType.First)
                        .AddParagraph().SetText("Test Section 0 - First Header");
 
                 section0.DifferentOddAndEvenPages = true;
-                section0.GetOrCreateHeader(HeaderFooterValues.Even)
+                section0.GetOrCreateHeader(WordHeaderFooterType.Even)
                        .AddParagraph().SetText("Test Section 0 - Even");
 
                 document.Sections[0].Paragraphs[0].AddComment("Przemysław Kłys", "PK", "This should be a comment");
@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 var section1Created = document.AddSection();
-                section1Created.PageOrientation = PageOrientationValues.Landscape;
+                section1Created.PageOrientation = WordPageOrientation.Landscape;
 
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -55,35 +55,35 @@ namespace OfficeIMO.Examples.Word {
                 //Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
                 //Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
 
-                //Console.WriteLine("Section 0 - Text 0: " + RequireSectionHeader(document.Sections[0], HeaderFooterValues.Default, "Section 0 default header").Paragraphs[0].Text);
-                //Console.WriteLine("Section 1 - Text 0: " + RequireSectionHeader(document.Sections[1], HeaderFooterValues.Default, "Section 1 default header").Paragraphs[0].Text);
-                //Console.WriteLine("Section 2 - Text 0: " + RequireSectionHeader(document.Sections[2], HeaderFooterValues.Default, "Section 2 default header").Paragraphs[0].Text);
-                //Console.WriteLine("Section 3 - Text 0: " + RequireSectionHeader(document.Sections[3], HeaderFooterValues.Default, "Section 3 default header").Paragraphs[0].Text);
+                //Console.WriteLine("Section 0 - Text 0: " + RequireSectionHeader(document.Sections[0], WordHeaderFooterType.Default, "Section 0 default header").Paragraphs[0].Text);
+                //Console.WriteLine("Section 1 - Text 0: " + RequireSectionHeader(document.Sections[1], WordHeaderFooterType.Default, "Section 1 default header").Paragraphs[0].Text);
+                //Console.WriteLine("Section 2 - Text 0: " + RequireSectionHeader(document.Sections[2], WordHeaderFooterType.Default, "Section 2 default header").Paragraphs[0].Text);
+                //Console.WriteLine("Section 3 - Text 0: " + RequireSectionHeader(document.Sections[3], WordHeaderFooterType.Default, "Section 3 default header").Paragraphs[0].Text);
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var section1 = document.Sections[1];
-                section1.GetOrCreateHeader(HeaderFooterValues.Default)
+                section1.GetOrCreateHeader(WordHeaderFooterType.Default)
                         .AddParagraph().SetText("Test Section 1 - Header");
 
-                section1.GetOrCreateFooter(HeaderFooterValues.Default)
+                section1.GetOrCreateFooter(WordHeaderFooterType.Default)
                         .AddParagraph().SetText("Test Section 1 - Header");
 
                 section1.DifferentFirstPage = true;
-                section1.GetOrCreateHeader(HeaderFooterValues.First)
+                section1.GetOrCreateHeader(WordHeaderFooterType.First)
                         .AddParagraph().SetText("Test Section 1 - First Header");
-                section1.GetOrCreateFooter(HeaderFooterValues.First)
+                section1.GetOrCreateFooter(WordHeaderFooterType.First)
                         .AddParagraph().SetText("Test Section 1 - First Footer");
 
                 section1.DifferentOddAndEvenPages = true;
-                section1.GetOrCreateHeader(HeaderFooterValues.Even)
+                section1.GetOrCreateHeader(WordHeaderFooterType.Even)
                         .AddParagraph().SetText("Test Section 1 - Even Header");
-                section1.GetOrCreateFooter(HeaderFooterValues.Even)
+                section1.GetOrCreateFooter(WordHeaderFooterType.Even)
                         .AddParagraph().SetText("Test Section 1 - Even Footer");
 
                 document.Settings.ProtectionPassword = "ThisIsTest";
-                document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
+                document.Settings.ProtectionType = WordDocumentProtectionType.ReadOnly;
                 document.Settings.RemoveProtection();
                 document.Save();
                 if (openWord) document.OpenInApplication();

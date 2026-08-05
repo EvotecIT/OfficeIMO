@@ -68,10 +68,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="breakType">Type of break to insert.</param>
         /// <returns>The created <see cref="WordParagraph"/> containing the break.</returns>
-        public WordParagraph AddBreak(BreakValues? breakType = null) {
-            breakType ??= BreakValues.Page;
+        public WordParagraph AddBreak(WordBreakType? breakType = null) {
+            breakType ??= WordBreakType.Page;
             WordParagraph newWordParagraph = new WordParagraph {
-                _run = new Run(new Break() { Type = breakType }),
+                _run = new Run(new Break() { Type = breakType.Value.ToOpenXml() }),
                 _document = this
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
@@ -84,13 +84,6 @@ namespace OfficeIMO.Word {
                 newWordParagraph.RefreshParent();
             }
             return newWordParagraph;
-        }
-
-        /// <summary>Inserts a break using an OfficeIMO-owned break type.</summary>
-        /// <param name="breakType">Type of break to insert.</param>
-        /// <returns>The created paragraph containing the break.</returns>
-        public WordParagraph AddBreakWithType(WordBreakType breakType) {
-            return AddBreak(breakType.ToOpenXml());
         }
 
         /// <summary>
@@ -609,8 +602,8 @@ namespace OfficeIMO.Word {
         /// <param name="size">Line width in eighths of a point.</param>
         /// <param name="space">Space above and below the line.</param>
         /// <returns>The paragraph containing the line.</returns>
-        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
-            lineType ??= BorderValues.Single;
+        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
+            lineType ??= WordBorderStyle.Single;
             return this.AddParagraph().AddHorizontalLine(lineType.Value, color, size, space);
         }
 
@@ -619,17 +612,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="breakType">Section break type.</param>
         /// <returns>The created <see cref="WordSection"/>.</returns>
-        public WordSection AddSectionWithBreakType(WordSectionBreakType breakType) {
+        public WordSection AddSection(WordSectionBreakType breakType) {
             return AddSectionCore(breakType.ToOpenXml());
         }
 
         /// <summary>
-        /// Adds a new section using the Open XML section mark value.
+        /// Adds a new section using the document default break behavior.
         /// </summary>
-        /// <param name="sectionMark">Open XML section break type.</param>
         /// <returns>The created <see cref="WordSection"/>.</returns>
-        public WordSection AddSection(SectionMarkValues? sectionMark = null) {
-            return AddSectionCore(sectionMark);
+        public WordSection AddSection() {
+            return AddSectionCore(null);
         }
 
         private WordSection AddSectionCore(SectionMarkValues? sectionMark) {

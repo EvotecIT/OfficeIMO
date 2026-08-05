@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                     summary.FormatCell(2, 1, "0.00%");
                     summary.CellBackground(2, 1, "#00FF00");
                     summary.CellBold(2, 1, true);
-                    summary.CellAlign(2, 1, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
+                    summary.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
                     summary.CellFontColor(2, 3, "#112233");
                     summary.SetColumnWidth(1, 20);
                     summary.CellValue(3, 1, "First line\nSecond line");
@@ -88,9 +88,9 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(4, 6, 30d);
                     summary.CellValue(4, 7, 28d);
                     summary.AddTable("A1:B2", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.SetTableTotals("A1:B2", new Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> {
-                        ["Name"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Count,
-                        ["Column2"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Sum,
+                    summary.SetTableTotals("A1:B2", new Dictionary<string, ExcelTableTotalsFunction> {
+                        ["Name"] = ExcelTableTotalsFunction.Count,
+                        ["Column2"] = ExcelTableTotalsFunction.Sum,
                     });
                     summary.AddAutoFilter("D1:G4", new Dictionary<uint, IEnumerable<string>> {
                         { 0, new[] { "Open" } }
@@ -221,16 +221,16 @@ namespace OfficeIMO.Tests {
                     sheet.CellBold(2, 1, true);
                     sheet.CellItalic(2, 1, true);
                     sheet.CellUnderline(2, 1, true);
-                    sheet.CellAlign(2, 1, HorizontalAlignmentValues.Center);
-                    sheet.CellVerticalAlign(2, 1, VerticalAlignmentValues.Center);
-                    sheet.CellBorder(2, 1, BorderStyleValues.Thin, "#445566");
+                    sheet.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
+                    sheet.CellVerticalAlign(2, 1, ExcelVerticalAlignment.Center);
+                    sheet.CellBorder(2, 1, ExcelBorderStyle.Thin, "#445566");
                     sheet.FormatCell(2, 1, "0.00%");
 
                     sheet.CellValue(3, 1, "First line\nSecond line");
                     sheet.WrapCells(3, 3, 1, 20);
                     sheet.CellFontColor(3, 1, "#445566");
                     sheet.CellBold(3, 1, true);
-                    sheet.CellAlign(3, 1, HorizontalAlignmentValues.Left);
+                    sheet.CellAlign(3, 1, ExcelHorizontalAlignment.Left);
 
                     document.Save();
                 }
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
                     summary.FormatCell(2, 2, "0.00%");
                     summary.CellBackground(2, 2, "#00FF00");
                     summary.CellBold(2, 2, true);
-                    summary.CellAlign(2, 2, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
+                    summary.CellAlign(2, 2, ExcelHorizontalAlignment.Center);
                     summary.CellFontColor(2, 6, "#112233");
                     summary.SetColumnWidth(2, 20);
                     summary.CellValue(3, 2, "Wrapped\nRow");
@@ -314,9 +314,9 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(4, 9, 30d);
                     summary.CellValue(4, 10, 28d);
                     summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.SetTableTotals("A1:B3", new Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> {
-                        ["Name"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Count,
-                        ["Count"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Sum,
+                    summary.SetTableTotals("A1:B3", new Dictionary<string, ExcelTableTotalsFunction> {
+                        ["Name"] = ExcelTableTotalsFunction.Count,
+                        ["Count"] = ExcelTableTotalsFunction.Sum,
                     });
                     summary.CellBackground(3, 1, "#D9EAD3");
                     summary.CellBackground(3, 2, "#D9EAD3");
@@ -598,9 +598,9 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(4, 2, 30d);
 
                     summary.AddTable("A1:B4", hasHeader: true, name: "StyledTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.SetTableTotals("A1:B4", new Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> {
-                        ["Name"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Count,
-                        ["Amount"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Sum,
+                    summary.SetTableTotals("A1:B4", new Dictionary<string, ExcelTableTotalsFunction> {
+                        ["Name"] = ExcelTableTotalsFunction.Count,
+                        ["Amount"] = ExcelTableTotalsFunction.Sum,
                     });
                     summary.CellBackground(1, 1, "#B6D7A8");
                     summary.CellBackground(1, 2, "#B6D7A8");
@@ -903,8 +903,8 @@ namespace OfficeIMO.Tests {
                     data.CellValue(2, 2, 5.75);
                     data.CellValue(3, 2, 7.25);
 
-                    data.ValidationWholeNumber("A2:A3", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
-                    data.ValidationDecimal("B2:B3", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.GreaterThanOrEqual, 5.5);
+                    data.ValidationWholeNumber("A2:A3", ExcelDataValidationOperator.Between, 1, 10);
+                    data.ValidationDecimal("B2:B3", ExcelDataValidationOperator.GreaterThanOrEqual, 5.5);
 
                     document.Save();
                 }
@@ -983,7 +983,7 @@ namespace OfficeIMO.Tests {
                     data.CellValue(2, 1, minimumDate);
                     data.CellValue(3, 1, new DateTime(2024, 6, 15));
 
-                    data.ValidationDate("A2:A3", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, minimumDate, maximumDate);
+                    data.ValidationDate("A2:A3", ExcelDataValidationOperator.Between, minimumDate, maximumDate);
 
                     document.Save();
                 }
@@ -1044,7 +1044,7 @@ namespace OfficeIMO.Tests {
                     data.CellValue(2, 1, "ABCD");
                     data.CellValue(3, 1, "WXYZ");
 
-                    data.ValidationTextLength("A2:A3", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Equal, 4);
+                    data.ValidationTextLength("A2:A3", ExcelDataValidationOperator.Equal, 4);
 
                     document.Save();
                 }
@@ -1104,7 +1104,7 @@ namespace OfficeIMO.Tests {
 
                     data.CellValue(1, 1, "Quantity");
                     data.CellValue(2, 1, 2);
-                    data.ValidationWholeNumber("A2:A2000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+                    data.ValidationWholeNumber("A2:A2000", ExcelDataValidationOperator.Between, 1, 10);
 
                     document.Save();
                 }
@@ -1159,7 +1159,7 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var data = document.AddWorksheet("Data");
                     data.CellValue(1, 1, "Quantity");
-                    data.ValidationWholeNumber("A1:A1048576", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+                    data.ValidationWholeNumber("A1:A1048576", ExcelDataValidationOperator.Between, 1, 10);
                     document.Save();
                 }
 
@@ -1179,8 +1179,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet first = document.AddWorksheet("First");
             ExcelSheet second = document.AddWorksheet("Second");
-            first.ValidationWholeNumber("A1:ALM5000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
-            second.ValidationWholeNumber("A1:ALM5000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+            first.ValidationWholeNumber("A1:ALM5000", ExcelDataValidationOperator.Between, 1, 10);
+            second.ValidationWholeNumber("A1:ALM5000", ExcelDataValidationOperator.Between, 1, 10);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
                 () => document.BuildGoogleSheetsBatch());
@@ -1254,7 +1254,7 @@ namespace OfficeIMO.Tests {
                     summary.FormatCell(2, 2, "0.00%");
                     summary.CellBackground(2, 2, "#00FF00");
                     summary.CellBold(2, 2, true);
-                    summary.CellAlign(2, 2, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
+                    summary.CellAlign(2, 2, ExcelHorizontalAlignment.Center);
                     summary.SetColumnWidth(2, 20);
                     summary.CellValue(3, 2, "Wrapped\nRow");
                     summary.WrapCells(3, 3, 2, 20);
@@ -1276,9 +1276,9 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(4, 9, 30d);
                     summary.CellValue(4, 10, 28d);
                     summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.SetTableTotals("A1:B3", new Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> {
-                        ["Name"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Count,
-                        ["Count"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Sum,
+                    summary.SetTableTotals("A1:B3", new Dictionary<string, ExcelTableTotalsFunction> {
+                        ["Name"] = ExcelTableTotalsFunction.Count,
+                        ["Count"] = ExcelTableTotalsFunction.Sum,
                     });
                     summary.CellBackground(3, 1, "#D9EAD3");
                     summary.CellBackground(3, 2, "#D9EAD3");

@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a numbered list to the textbox.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> AddNumberedList(IEnumerable<string> items,
-            A.TextAutoNumberSchemeValues style, int startAt = 1,
+            PowerPointNumberingScheme style, int startAt = 1,
             int level = 0, Action<PowerPointParagraph>? configure = null) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
@@ -85,14 +85,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> AddNumberedList(IEnumerable<string> items,
             int startAt = 1, int level = 0, Action<PowerPointParagraph>? configure = null) {
-            return AddNumberedList(items, A.TextAutoNumberSchemeValues.ArabicPeriod, startAt, level, configure);
+            return AddNumberedList(items, PowerPointNumberingScheme.ArabicPeriod, startAt, level, configure);
         }
 
         /// <summary>
         ///     Replaces all paragraphs with a numbered list.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> SetNumberedList(IEnumerable<string> items,
-            A.TextAutoNumberSchemeValues style, int startAt = 1,
+            PowerPointNumberingScheme style, int startAt = 1,
             int level = 0, Action<PowerPointParagraph>? configure = null) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
@@ -121,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> SetNumberedList(IEnumerable<string> items,
             int startAt = 1, int level = 0, Action<PowerPointParagraph>? configure = null) {
-            return SetNumberedList(items, A.TextAutoNumberSchemeValues.ArabicPeriod, startAt, level, configure);
+            return SetNumberedList(items, PowerPointNumberingScheme.ArabicPeriod, startAt, level, configure);
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a numbered item to the textbox.
         /// </summary>
-        public PowerPointParagraph AddNumberedItem(string text, A.TextAutoNumberSchemeValues style, int startAt = 1) {
+        public PowerPointParagraph AddNumberedItem(string text, PowerPointNumberingScheme style, int startAt = 1) {
             PowerPointParagraph paragraph = AddParagraph(text);
             paragraph.SetNumbered(style, startAt);
             PowerPointListParagraphDefaults.Apply(paragraph);

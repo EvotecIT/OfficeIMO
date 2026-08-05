@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         /// When a document contains multiple sections, consider using
         /// <c>Sections[wantedSection].PageOrientation</c> instead.
         /// </remarks>
-        public PageOrientationValues PageOrientation {
+        public WordPageOrientation PageOrientation {
             get {
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageOrientation.");
@@ -181,9 +181,9 @@ namespace OfficeIMO.Word {
         /// <param name="position">Location of footnotes.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
-        public void AddFootnoteProperties(NumberFormatValues? numberingFormat = null,
-            FootnotePositionValues? position = null,
-            RestartNumberValues? restartNumbering = null,
+        public void AddFootnoteProperties(WordNumberFormat? numberingFormat = null,
+            WordFootnotePosition? position = null,
+            WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
             this.Sections[0].AddFootnoteProperties(numberingFormat, position, restartNumbering, startNumber);
         }
@@ -195,9 +195,9 @@ namespace OfficeIMO.Word {
         /// <param name="position">Location of endnotes.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
-        public void AddEndnoteProperties(NumberFormatValues? numberingFormat = null,
-            EndnotePositionValues? position = null,
-            RestartNumberValues? restartNumbering = null,
+        public void AddEndnoteProperties(WordNumberFormat? numberingFormat = null,
+            WordEndnotePosition? position = null,
+            WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
             this.Sections[0].AddEndnoteProperties(numberingFormat, position, restartNumbering, startNumber);
         }
@@ -231,7 +231,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="startNumber">Starting page number.</param>
         /// <param name="format">Number format.</param>
-        public void AddPageNumbering(int? startNumber = null, NumberFormatValues? format = null) {
+        public void AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null) {
             this.Sections[0].AddPageNumbering(startNumber, format);
         }
     }

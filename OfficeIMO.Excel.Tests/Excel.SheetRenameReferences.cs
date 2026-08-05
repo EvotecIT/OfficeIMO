@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                     data.CellValue(2, 1, 15);
 
                     summary.ValidationCustomFormula("A1:A2", "COUNTIF(Data!$A$1:$A$2,\">0\")>0");
-                    summary.AddConditionalRule("B1:B2", ConditionalFormattingOperatorValues.GreaterThan, "Data!$A$1");
+                    summary.AddConditionalRule("B1:B2", ExcelConditionalFormattingOperator.GreaterThan, "Data!$A$1");
 
                     data.Name = "Renamed Data";
                     document.Save(filePath);

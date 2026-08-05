@@ -477,7 +477,7 @@ namespace OfficeIMO.Tests {
         public void ImportedPlainBinaryText_ArbitraryLengthEditUsesIncrementalSave() {
             byte[] source;
             using (PowerPointPresentation created = PowerPointPresentation.Create()) {
-                created.AddSlide(P.SlideLayoutValues.Blank)
+                created.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Short text", 100000, 100000, 3000000, 600000);
                 source = created.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -519,9 +519,9 @@ namespace OfficeIMO.Tests {
                 .OrderBy(placeholder => placeholder.PlaceholderIndex)
                 .ToArray();
             Assert.Equal(2, layoutPlaceholders.Length);
-            Assert.Equal(P.PlaceholderValues.Title, layoutPlaceholders[0].PlaceholderType);
+            Assert.Equal(PowerPointPlaceholderType.Title, layoutPlaceholders[0].PlaceholderType);
             Assert.Equal(0U, layoutPlaceholders[0].PlaceholderIndex);
-            Assert.Equal(P.PlaceholderValues.SubTitle, layoutPlaceholders[1].PlaceholderType);
+            Assert.Equal(PowerPointPlaceholderType.SubTitle, layoutPlaceholders[1].PlaceholderType);
             Assert.Equal(1U, layoutPlaceholders[1].PlaceholderIndex);
             PowerPointSlideBackground background = slide.GetBackground();
             Assert.Equal(PowerPointSlideBackgroundKind.SolidColor, background.Kind);
@@ -534,7 +534,7 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox projectedTitle = Assert.Single(slide.TextBoxes,
                 textBox => textBox.Text == "OfficeIMO PowerPoint Basics");
             Assert.Equal(0U, projectedTitle.ShapePlaceholderIndex);
-            Assert.Equal(P.PlaceholderSizeValues.Full, projectedTitle.ShapePlaceholderSize);
+            Assert.Equal(PowerPointPlaceholderSize.Full, projectedTitle.ShapePlaceholderSize);
             DocumentFormat.OpenXml.Presentation.Shape titleShape = slide.SlidePart.Slide!.CommonSlideData!
                 .ShapeTree!.Elements<DocumentFormat.OpenXml.Presentation.Shape>()
                 .Single(shape => shape.TextBody?.InnerText == "OfficeIMO PowerPoint Basics");
@@ -660,7 +660,7 @@ namespace OfficeIMO.Tests {
             first.AddTextBox("Line one\nLine two", 540000, 1200000, 6000000, 1800000);
             first.AddRectangle(600000, 3300000, 1200000, 700000);
             first.AddEllipse(2100000, 3300000, 1200000, 700000);
-            first.AddShape(A.ShapeTypeValues.Line, 3600000, 3300000, 1600000, 400000);
+            first.AddShape(PowerPointShapeType.Line, 3600000, 3300000, 1600000, 400000);
             presentation.AddSlide().AddTextBox("Second slide", 700000, 700000, 5000000, 1000000);
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
@@ -726,9 +726,9 @@ namespace OfficeIMO.Tests {
         public void ImportedBinarySlideOrder_RequiresExplicitFreshRewrite() {
             byte[] sourceBytes;
             using (PowerPointPresentation created = PowerPointPresentation.Create()) {
-                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("First");
-                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Second");
-                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Third");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("First");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Second");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Third");
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);
@@ -762,9 +762,9 @@ namespace OfficeIMO.Tests {
         public void ImportedBinarySlideDeletion_RequiresExplicitFreshRewrite() {
             byte[] sourceBytes;
             using (PowerPointPresentation created = PowerPointPresentation.Create()) {
-                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Keep first");
-                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Delete middle");
-                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Keep last");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Keep first");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Delete middle");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Keep last");
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
             using var input = new MemoryStream(sourceBytes);

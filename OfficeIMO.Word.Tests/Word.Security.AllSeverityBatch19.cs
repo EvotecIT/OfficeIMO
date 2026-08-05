@@ -11,10 +11,10 @@ public sealed class WordAllSeverityBatch19SecurityTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("automatic");
         paragraph.ColorHex = "AUTO";
-        document.Borders.LeftStyle = BorderValues.Single;
+        document.Borders.LeftStyle = WordBorderStyle.Single;
         document.Borders.LeftColorHex = "Auto";
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        cell.Borders.TopStyle = BorderValues.Single;
+        cell.Borders.TopStyle = WordBorderStyle.Single;
         cell.Borders.TopColorHex = "aUtO";
 
         Assert.Equal("auto", paragraph.ColorHex);

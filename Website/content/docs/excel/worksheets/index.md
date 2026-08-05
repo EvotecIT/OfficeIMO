@@ -92,8 +92,8 @@ sheet.Cells["A1"].ForegroundColor = "FFFFFF";   // White text
 ### Alignment
 
 ```csharp
-sheet.Cells["A1"].HorizontalAlignment = HorizontalAlignmentValues.Center;
-sheet.Cells["A1"].VerticalAlignment = VerticalAlignmentValues.Center;
+sheet.Cells["A1"].HorizontalAlignment = ExcelHorizontalAlignment.Center;
+sheet.Cells["A1"].VerticalAlignment = ExcelVerticalAlignment.Center;
 sheet.Cells["A1"].WrapText = true;
 ```
 
@@ -147,7 +147,7 @@ sheet.Cells["D1"].Value = "=SUM(SalesData)";
 Configure print settings:
 
 ```csharp
-sheet.PageSetup.Orientation = OrientationValues.Landscape;
+sheet.PageSetup.Orientation = ExcelPageOrientation.Landscape;
 sheet.PageSetup.PaperSize = 1;  // Letter
 sheet.PageSetup.FitToWidth = 1;
 sheet.PageSetup.FitToHeight = 0;  // 0 = as many pages as needed

@@ -183,7 +183,7 @@ public enum WordVerticalRelativePosition {
     OutsideMargin
 }
 
-internal static class WordPowerShellValueTypeExtensions {
+internal static class WordValueTypeExtensions {
     internal static BreakValues ToOpenXml(this WordBreakType value) => value switch {
         WordBreakType.Page => BreakValues.Page,
         WordBreakType.Column => BreakValues.Column,
@@ -191,10 +191,24 @@ internal static class WordPowerShellValueTypeExtensions {
         _ => throw Unsupported(value)
     };
 
+    internal static WordBreakType ToOfficeEnum(this BreakValues value) => value switch {
+        _ when value == BreakValues.Page => WordBreakType.Page,
+        _ when value == BreakValues.Column => WordBreakType.Column,
+        _ when value == BreakValues.TextWrapping => WordBreakType.TextWrapping,
+        _ => throw Unsupported(value)
+    };
+
     internal static HeaderFooterValues ToOpenXml(this WordHeaderFooterType value) => value switch {
         WordHeaderFooterType.Default => HeaderFooterValues.Default,
         WordHeaderFooterType.First => HeaderFooterValues.First,
         WordHeaderFooterType.Even => HeaderFooterValues.Even,
+        _ => throw Unsupported(value)
+    };
+
+    internal static WordHeaderFooterType ToOfficeEnum(this HeaderFooterValues value) => value switch {
+        _ when value == HeaderFooterValues.Default => WordHeaderFooterType.Default,
+        _ when value == HeaderFooterValues.First => WordHeaderFooterType.First,
+        _ when value == HeaderFooterValues.Even => WordHeaderFooterType.Even,
         _ => throw Unsupported(value)
     };
 
@@ -211,6 +225,22 @@ internal static class WordPowerShellValueTypeExtensions {
         WordParagraphAlignment.HighKashida => JustificationValues.HighKashida,
         WordParagraphAlignment.LowKashida => JustificationValues.LowKashida,
         WordParagraphAlignment.ThaiDistribute => JustificationValues.ThaiDistribute,
+        _ => throw Unsupported(value)
+    };
+
+    internal static WordParagraphAlignment ToOfficeEnum(this JustificationValues value) => value switch {
+        _ when value == JustificationValues.Left => WordParagraphAlignment.Left,
+        _ when value == JustificationValues.Start => WordParagraphAlignment.Start,
+        _ when value == JustificationValues.Center => WordParagraphAlignment.Center,
+        _ when value == JustificationValues.Right => WordParagraphAlignment.Right,
+        _ when value == JustificationValues.End => WordParagraphAlignment.End,
+        _ when value == JustificationValues.Both => WordParagraphAlignment.Both,
+        _ when value == JustificationValues.MediumKashida => WordParagraphAlignment.MediumKashida,
+        _ when value == JustificationValues.Distribute => WordParagraphAlignment.Distribute,
+        _ when value == JustificationValues.NumTab => WordParagraphAlignment.NumTab,
+        _ when value == JustificationValues.HighKashida => WordParagraphAlignment.HighKashida,
+        _ when value == JustificationValues.LowKashida => WordParagraphAlignment.LowKashida,
+        _ when value == JustificationValues.ThaiDistribute => WordParagraphAlignment.ThaiDistribute,
         _ => throw Unsupported(value)
     };
 
@@ -236,10 +266,39 @@ internal static class WordPowerShellValueTypeExtensions {
         _ => throw Unsupported(value)
     };
 
+    internal static WordUnderlineStyle ToOfficeEnum(this UnderlineValues value) => value switch {
+        _ when value == UnderlineValues.Single => WordUnderlineStyle.Single,
+        _ when value == UnderlineValues.Words => WordUnderlineStyle.Words,
+        _ when value == UnderlineValues.Double => WordUnderlineStyle.Double,
+        _ when value == UnderlineValues.Thick => WordUnderlineStyle.Thick,
+        _ when value == UnderlineValues.Dotted => WordUnderlineStyle.Dotted,
+        _ when value == UnderlineValues.DottedHeavy => WordUnderlineStyle.DottedHeavy,
+        _ when value == UnderlineValues.Dash => WordUnderlineStyle.Dash,
+        _ when value == UnderlineValues.DashedHeavy => WordUnderlineStyle.DashedHeavy,
+        _ when value == UnderlineValues.DashLong => WordUnderlineStyle.DashLong,
+        _ when value == UnderlineValues.DashLongHeavy => WordUnderlineStyle.DashLongHeavy,
+        _ when value == UnderlineValues.DotDash => WordUnderlineStyle.DotDash,
+        _ when value == UnderlineValues.DashDotHeavy => WordUnderlineStyle.DashDotHeavy,
+        _ when value == UnderlineValues.DotDotDash => WordUnderlineStyle.DotDotDash,
+        _ when value == UnderlineValues.DashDotDotHeavy => WordUnderlineStyle.DashDotDotHeavy,
+        _ when value == UnderlineValues.Wave => WordUnderlineStyle.Wave,
+        _ when value == UnderlineValues.WavyHeavy => WordUnderlineStyle.WavyHeavy,
+        _ when value == UnderlineValues.WavyDouble => WordUnderlineStyle.WavyDouble,
+        _ when value == UnderlineValues.None => WordUnderlineStyle.None,
+        _ => throw Unsupported(value)
+    };
+
     internal static TableVerticalAlignmentValues ToOpenXml(this WordTableVerticalAlignment value) => value switch {
         WordTableVerticalAlignment.Top => TableVerticalAlignmentValues.Top,
         WordTableVerticalAlignment.Center => TableVerticalAlignmentValues.Center,
         WordTableVerticalAlignment.Bottom => TableVerticalAlignmentValues.Bottom,
+        _ => throw Unsupported(value)
+    };
+
+    internal static WordTableVerticalAlignment ToOfficeEnum(this TableVerticalAlignmentValues value) => value switch {
+        _ when value == TableVerticalAlignmentValues.Top => WordTableVerticalAlignment.Top,
+        _ when value == TableVerticalAlignmentValues.Center => WordTableVerticalAlignment.Center,
+        _ when value == TableVerticalAlignmentValues.Bottom => WordTableVerticalAlignment.Bottom,
         _ => throw Unsupported(value)
     };
 
@@ -249,6 +308,15 @@ internal static class WordPowerShellValueTypeExtensions {
         WordDocumentProtectionType.Comments => DocumentProtectionValues.Comments,
         WordDocumentProtectionType.TrackedChanges => DocumentProtectionValues.TrackedChanges,
         WordDocumentProtectionType.Forms => DocumentProtectionValues.Forms,
+        _ => throw Unsupported(value)
+    };
+
+    internal static WordDocumentProtectionType ToOfficeEnum(this DocumentProtectionValues value) => value switch {
+        _ when value == DocumentProtectionValues.None => WordDocumentProtectionType.None,
+        _ when value == DocumentProtectionValues.ReadOnly => WordDocumentProtectionType.ReadOnly,
+        _ when value == DocumentProtectionValues.Comments => WordDocumentProtectionType.Comments,
+        _ when value == DocumentProtectionValues.TrackedChanges => WordDocumentProtectionType.TrackedChanges,
+        _ when value == DocumentProtectionValues.Forms => WordDocumentProtectionType.Forms,
         _ => throw Unsupported(value)
     };
 
@@ -268,6 +336,22 @@ internal static class WordPowerShellValueTypeExtensions {
         _ => throw Unsupported(value)
     };
 
+    internal static WordTextDirection ToOfficeEnum(this TextDirectionValues value) => value switch {
+        _ when value == TextDirectionValues.LefToRightTopToBottom => WordTextDirection.LeftToRightTopToBottom,
+        _ when value == TextDirectionValues.LeftToRightTopToBottom2010 => WordTextDirection.LeftToRightTopToBottom2010,
+        _ when value == TextDirectionValues.TopToBottomRightToLeft => WordTextDirection.TopToBottomRightToLeft,
+        _ when value == TextDirectionValues.TopToBottomRightToLeft2010 => WordTextDirection.TopToBottomRightToLeft2010,
+        _ when value == TextDirectionValues.BottomToTopLeftToRight => WordTextDirection.BottomToTopLeftToRight,
+        _ when value == TextDirectionValues.BottomToTopLeftToRight2010 => WordTextDirection.BottomToTopLeftToRight2010,
+        _ when value == TextDirectionValues.LefttoRightTopToBottomRotated => WordTextDirection.LeftToRightTopToBottomRotated,
+        _ when value == TextDirectionValues.LeftToRightTopToBottomRotated2010 => WordTextDirection.LeftToRightTopToBottomRotated2010,
+        _ when value == TextDirectionValues.TopToBottomRightToLeftRotated => WordTextDirection.TopToBottomRightToLeftRotated,
+        _ when value == TextDirectionValues.TopToBottomRightToLeftRotated2010 => WordTextDirection.TopToBottomRightToLeftRotated2010,
+        _ when value == TextDirectionValues.TopToBottomLeftToRightRotated => WordTextDirection.TopToBottomLeftToRightRotated,
+        _ when value == TextDirectionValues.TopToBottomLeftToRightRotated2010 => WordTextDirection.TopToBottomLeftToRightRotated2010,
+        _ => throw Unsupported(value)
+    };
+
     internal static HorizontalRelativePositionValues ToOpenXml(this WordHorizontalRelativePosition value) => value switch {
         WordHorizontalRelativePosition.Margin => HorizontalRelativePositionValues.Margin,
         WordHorizontalRelativePosition.Page => HorizontalRelativePositionValues.Page,
@@ -277,6 +361,18 @@ internal static class WordPowerShellValueTypeExtensions {
         WordHorizontalRelativePosition.RightMargin => HorizontalRelativePositionValues.RightMargin,
         WordHorizontalRelativePosition.InsideMargin => HorizontalRelativePositionValues.InsideMargin,
         WordHorizontalRelativePosition.OutsideMargin => HorizontalRelativePositionValues.OutsideMargin,
+        _ => throw Unsupported(value)
+    };
+
+    internal static WordHorizontalRelativePosition ToOfficeEnum(this HorizontalRelativePositionValues value) => value switch {
+        _ when value == HorizontalRelativePositionValues.Margin => WordHorizontalRelativePosition.Margin,
+        _ when value == HorizontalRelativePositionValues.Page => WordHorizontalRelativePosition.Page,
+        _ when value == HorizontalRelativePositionValues.Column => WordHorizontalRelativePosition.Column,
+        _ when value == HorizontalRelativePositionValues.Character => WordHorizontalRelativePosition.Character,
+        _ when value == HorizontalRelativePositionValues.LeftMargin => WordHorizontalRelativePosition.LeftMargin,
+        _ when value == HorizontalRelativePositionValues.RightMargin => WordHorizontalRelativePosition.RightMargin,
+        _ when value == HorizontalRelativePositionValues.InsideMargin => WordHorizontalRelativePosition.InsideMargin,
+        _ when value == HorizontalRelativePositionValues.OutsideMargin => WordHorizontalRelativePosition.OutsideMargin,
         _ => throw Unsupported(value)
     };
 
@@ -292,6 +388,38 @@ internal static class WordPowerShellValueTypeExtensions {
         _ => throw Unsupported(value)
     };
 
-    private static ArgumentOutOfRangeException Unsupported<T>(T value) where T : struct, Enum =>
+    internal static WordVerticalRelativePosition ToOfficeEnum(this VerticalRelativePositionValues value) => value switch {
+        _ when value == VerticalRelativePositionValues.Margin => WordVerticalRelativePosition.Margin,
+        _ when value == VerticalRelativePositionValues.Page => WordVerticalRelativePosition.Page,
+        _ when value == VerticalRelativePositionValues.Paragraph => WordVerticalRelativePosition.Paragraph,
+        _ when value == VerticalRelativePositionValues.Line => WordVerticalRelativePosition.Line,
+        _ when value == VerticalRelativePositionValues.TopMargin => WordVerticalRelativePosition.TopMargin,
+        _ when value == VerticalRelativePositionValues.BottomMargin => WordVerticalRelativePosition.BottomMargin,
+        _ when value == VerticalRelativePositionValues.InsideMargin => WordVerticalRelativePosition.InsideMargin,
+        _ when value == VerticalRelativePositionValues.OutsideMargin => WordVerticalRelativePosition.OutsideMargin,
+        _ => throw Unsupported(value)
+    };
+
+    internal static BreakValues? ToOpenXml(this WordBreakType? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+    internal static HeaderFooterValues? ToOpenXml(this WordHeaderFooterType? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+    internal static JustificationValues? ToOpenXml(this WordParagraphAlignment? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+    internal static UnderlineValues? ToOpenXml(this WordUnderlineStyle? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+    internal static TableVerticalAlignmentValues? ToOpenXml(this WordTableVerticalAlignment? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+    internal static DocumentProtectionValues? ToOpenXml(this WordDocumentProtectionType? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+    internal static TextDirectionValues? ToOpenXml(this WordTextDirection? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+    internal static HorizontalRelativePositionValues? ToOpenXml(this WordHorizontalRelativePosition? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+    internal static VerticalRelativePositionValues? ToOpenXml(this WordVerticalRelativePosition? value) => value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static WordBreakType? ToOfficeEnum(this BreakValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+    internal static WordHeaderFooterType? ToOfficeEnum(this HeaderFooterValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+    internal static WordParagraphAlignment? ToOfficeEnum(this JustificationValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+    internal static WordUnderlineStyle? ToOfficeEnum(this UnderlineValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+    internal static WordTableVerticalAlignment? ToOfficeEnum(this TableVerticalAlignmentValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+    internal static WordDocumentProtectionType? ToOfficeEnum(this DocumentProtectionValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+    internal static WordTextDirection? ToOfficeEnum(this TextDirectionValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+    internal static WordHorizontalRelativePosition? ToOfficeEnum(this HorizontalRelativePositionValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+    internal static WordVerticalRelativePosition? ToOfficeEnum(this VerticalRelativePositionValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static ArgumentOutOfRangeException Unsupported<T>(T value) where T : struct =>
         new(nameof(value), value, $"Unsupported {typeof(T).Name} value.");
 }

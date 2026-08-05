@@ -26,23 +26,14 @@ namespace OfficeIMO.Word.Fluent {
         /// Starts a new section on the next page.
         /// </summary>
         public SectionBuilder New() {
-            return NewWithBreakType(WordSectionBreakType.NextPage);
+            return New(WordSectionBreakType.NextPage);
         }
 
         /// <summary>
         /// Starts a new section using the specified OfficeIMO break type.
         /// </summary>
         /// <param name="breakType">Section break type.</param>
-        public SectionBuilder NewWithBreakType(WordSectionBreakType breakType) {
-            var section = _fluent.Document.AddSectionWithBreakType(breakType);
-            return new SectionBuilder(_fluent, section);
-        }
-
-        /// <summary>
-        /// Starts a new section using the specified Open XML break type.
-        /// </summary>
-        /// <param name="breakType">Open XML section break type.</param>
-        public SectionBuilder New(SectionMarkValues breakType) {
+        public SectionBuilder New(WordSectionBreakType breakType) {
             var section = _fluent.Document.AddSection(breakType);
             return new SectionBuilder(_fluent, section);
         }
@@ -65,7 +56,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="format">Number format.</param>
         /// <param name="restart">Restart numbering at 1.</param>
-        public SectionBuilder PageNumbering(NumberFormatValues format, bool restart = false) {
+        public SectionBuilder PageNumbering(WordNumberFormat format, bool restart = false) {
             if (_section == null) {
                 throw new InvalidOperationException("No section available to configure.");
             }
@@ -117,7 +108,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Sets the page orientation for the section.
         /// </summary>
         /// <param name="orientation">Orientation value.</param>
-        public SectionBuilder Orientation(PageOrientationValues orientation) {
+        public SectionBuilder Orientation(WordPageOrientation orientation) {
             if (_section == null) {
                 throw new InvalidOperationException("No section available to configure. Call New() before setting orientation.");
             }

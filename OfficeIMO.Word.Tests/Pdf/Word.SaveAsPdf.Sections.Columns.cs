@@ -24,7 +24,7 @@ public partial class Word {
             section.ColumnsSpace = 720;
 
             document.AddParagraph("LeftColumnMarker starts in the first Word section column.")
-                .AddBreak(BreakValues.Column);
+                .AddBreak(WordBreakType.Column);
             document.AddParagraph("RightColumnMarker starts in the second Word section column.");
 
             document.Save();
@@ -65,7 +65,7 @@ public partial class Word {
                 new Column { Width = "4320" });
 
             document.AddParagraph("NarrowColumnMarker starts in the explicitly narrow first Word section column.")
-                .AddBreak(BreakValues.Column);
+                .AddBreak(WordBreakType.Column);
             document.AddParagraph("WideColumnMarker starts in the wider second Word section column.");
 
             document.Save();
@@ -101,7 +101,7 @@ public partial class Word {
             section.HasColumnSeparator = true;
 
             document.AddParagraph("SeparatorLeftMarker starts in the first Word section column.")
-                .AddBreak(BreakValues.Column);
+                .AddBreak(WordBreakType.Column);
             document.AddParagraph("SeparatorRightMarker starts in the second Word section column.");
 
             document.Save();
@@ -251,7 +251,7 @@ public partial class Word {
 
             WordParagraph paragraph = document.AddParagraph();
             paragraph.AddText("InlineLeftColumnMarker remains before the inline Word column break.");
-            paragraph.AddBreak(BreakValues.Column);
+            paragraph.AddBreak(WordBreakType.Column);
             paragraph.AddText("InlineRightColumnMarker starts after the inline Word column break.");
 
             document.Save();

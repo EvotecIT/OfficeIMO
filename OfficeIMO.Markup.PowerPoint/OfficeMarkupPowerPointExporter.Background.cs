@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using OfficeIMO.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
@@ -23,7 +21,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         if (!string.IsNullOrWhiteSpace(spec.OverlayColor)) {
             var overlay = slide.AddShapeInches(
-                A.ShapeTypeValues.Rectangle,
+                PowerPointShapeType.Rectangle,
                 0,
                 0,
                 metrics.Width,

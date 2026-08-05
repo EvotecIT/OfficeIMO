@@ -126,7 +126,7 @@ namespace OfficeIMO.Word.Markdown {
                     text = $"*{text}*";
                 }
 
-                if (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != UnderlineValues.None) {
+                if (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None) {
                     text = $"<u>{text}</u>";
                 }
 
@@ -134,7 +134,7 @@ namespace OfficeIMO.Word.Markdown {
                     text = $"~~{text}~~";
                 }
 
-                if (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != HighlightColorValues.None) {
+                if (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != WordHighlightColor.None) {
                     text = $"=={text}==";
                 }
 

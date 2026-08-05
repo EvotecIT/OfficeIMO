@@ -28,9 +28,9 @@ namespace OfficeIMO.Tests {
                 sheet2.CellValue(2, 2, 2d);
                 sheet2.CellValue(2, 3, 3);
                 sheet2.AddTable("A1:C2", true, "TableTwo", TableStyle.TableStyleMedium9);
-                sheet2.SetTableTotalsByName("TableTwo", new Dictionary<string, TotalsRowFunctionValues> {
-                    ["Value"] = TotalsRowFunctionValues.Sum,
-                    ["Count"] = TotalsRowFunctionValues.Sum,
+                sheet2.SetTableTotalsByName("TableTwo", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["Value"] = ExcelTableTotalsFunction.Sum,
+                    ["Count"] = ExcelTableTotalsFunction.Sum,
                 });
 
                 document.Save();

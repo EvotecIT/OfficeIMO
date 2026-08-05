@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 var listOfTablesStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
                 foreach (var tableStyle in listOfTablesStyles) {
                     var paragraph = document.AddParagraph(tableStyle.ToString());
-                    paragraph.ParagraphAlignment = JustificationValues.Center;
+                    paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                     WordTable wordTable = document.AddTable(4, 4, tableStyle);
                     wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";

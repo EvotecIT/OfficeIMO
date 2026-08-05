@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using OfficeIMO.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
@@ -60,7 +58,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             return;
         }
 
-        var panel = slide.AddShapeInches(A.ShapeTypeValues.Rectangle, box.Left, box.Top, box.Width, box.Height, name);
+        var panel = slide.AddShapeInches(PowerPointShapeType.Rectangle, box.Left, box.Top, box.Width, box.Height, name);
         if (!string.IsNullOrWhiteSpace(fillColor)) {
             panel.FillColor = fillColor;
         }

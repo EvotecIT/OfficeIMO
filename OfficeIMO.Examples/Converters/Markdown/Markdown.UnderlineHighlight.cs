@@ -11,9 +11,9 @@ namespace OfficeIMO.Examples.Markdown {
             using var doc = WordDocument.Create();
 
             var paragraph = doc.AddParagraph();
-            paragraph.AddText("underlined").Underline = UnderlineValues.Single;
+            paragraph.AddText("underlined").Underline = WordUnderlineStyle.Single;
             paragraph.AddText(" and ");
-            paragraph.AddText("highlighted").Highlight = HighlightColorValues.Yellow;
+            paragraph.AddText("highlighted").Highlight = WordHighlightColor.Yellow;
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
                 EnableUnderline = true,

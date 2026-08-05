@@ -43,11 +43,11 @@ namespace OfficeIMO.Word.Fluent {
         /// Sets the numbering format for the current list level.
         /// </summary>
         /// <param name="format">Number format to apply.</param>
-        public ListBuilder NumberFormat(NumberFormatValues format) {
+        public ListBuilder NumberFormat(WordNumberFormat format) {
             if (_list != null) {
                 var levels = _list.Numbering.Levels;
                 if (_level < levels.Count) {
-                    levels[_level]._level.NumberingFormat = new NumberingFormat { Val = format };
+                    levels[_level]._level.NumberingFormat = new NumberingFormat { Val = format.ToOpenXml() };
                 }
             }
             return this;

@@ -138,7 +138,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets cell alignment for all cells.
         /// </summary>
-        public void SetCellAlignment(A.TextAlignmentTypeValues? horizontal, A.TextAnchoringTypeValues? vertical) {
+        public void SetCellAlignment(PowerPointTextAlignment? horizontal, PowerPointTextVerticalAlignment? vertical) {
             ApplyToCells(cell => {
                 cell.HorizontalAlignment = horizontal;
                 cell.VerticalAlignment = vertical;
@@ -148,7 +148,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets cell alignment for a range of cells.
         /// </summary>
-        public void SetCellAlignment(A.TextAlignmentTypeValues? horizontal, A.TextAnchoringTypeValues? vertical,
+        public void SetCellAlignment(PowerPointTextAlignment? horizontal, PowerPointTextVerticalAlignment? vertical,
             int startRow, int endRow, int startColumn, int endColumn) {
             ApplyToCells(startRow, endRow, startColumn, endColumn, cell => {
                 cell.HorizontalAlignment = horizontal;
@@ -166,7 +166,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies dashed borders to all cells.
         /// </summary>
-        public void SetCellBorders(TableCellBorders borders, string color, double? widthPoints, A.PresetLineDashValues dash) {
+        public void SetCellBorders(TableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash) {
             ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints, dash));
         }
 

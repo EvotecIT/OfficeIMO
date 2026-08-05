@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a text-bearing shape with the specified preset geometry.
         /// </summary>
         public PowerPointTextBox AddTextShape(
-            A.ShapeTypeValues shapeType,
+            PowerPointShapeType shapeType,
             string text,
             long left = 0L,
             long top = 0L,
@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
                     new ApplicationNonVisualDrawingProperties()),
                 new ShapeProperties(
                     new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = shapeType }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = shapeType.ToOpenXml() }),
                 new TextBody(
                     new A.BodyProperties(),
                     new A.ListStyle(),
@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a text-bearing shape using centimeter measurements.
         /// </summary>
         public PowerPointTextBox AddTextShapeCm(
-            A.ShapeTypeValues shapeType,
+            PowerPointShapeType shapeType,
             string text,
             double leftCm,
             double topCm,
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a text-bearing shape using inch measurements.
         /// </summary>
         public PowerPointTextBox AddTextShapeInches(
-            A.ShapeTypeValues shapeType,
+            PowerPointShapeType shapeType,
             string text,
             double leftInches,
             double topInches,
@@ -82,7 +82,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a text-bearing shape using point measurements.
         /// </summary>
         public PowerPointTextBox AddTextShapePoints(
-            A.ShapeTypeValues shapeType,
+            PowerPointShapeType shapeType,
             string text,
             double leftPoints,
             double topPoints,

@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelPivotGrouping {
         private ExcelPivotGrouping(
             string fieldName,
-            GroupByValues groupBy,
+            ExcelPivotGroupBy groupBy,
             DateTime? startDate,
             DateTime? endDate,
             double? startNumber,
@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
             double? interval,
             bool autoStart,
             bool autoEnd,
-            IReadOnlyList<GroupByValues>? generatedDateLevels = null) {
+            IReadOnlyList<ExcelPivotGroupBy>? generatedDateLevels = null) {
             FieldName = string.IsNullOrWhiteSpace(fieldName) ? throw new ArgumentNullException(nameof(fieldName)) : fieldName.Trim();
             GroupBy = groupBy;
             StartDate = startDate;
@@ -25,11 +25,11 @@ namespace OfficeIMO.Excel {
             Interval = interval;
             AutoStart = autoStart;
             AutoEnd = autoEnd;
-            GeneratedDateLevels = generatedDateLevels ?? Array.Empty<GroupByValues>();
+            GeneratedDateLevels = generatedDateLevels ?? Array.Empty<ExcelPivotGroupBy>();
         }
 
         /// <summary>Creates date grouping metadata for a pivot field.</summary>
-        public static ExcelPivotGrouping Date(string fieldName, GroupByValues groupBy, DateTime? startDate = null, DateTime? endDate = null, double? interval = null) {
+        public static ExcelPivotGrouping Date(string fieldName, ExcelPivotGroupBy groupBy, DateTime? startDate = null, DateTime? endDate = null, double? interval = null) {
             if (!IsDateGroupBy(groupBy)) {
                 throw new ArgumentException("Date grouping must use days, months, quarters, years, hours, minutes, or seconds.", nameof(groupBy));
             }
@@ -41,12 +41,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Creates generated date hierarchy fields for a pivot field, such as years, quarters, and months.</summary>
-        public static ExcelPivotGrouping DateHierarchy(string fieldName, params GroupByValues[] levels) {
+        public static ExcelPivotGrouping DateHierarchy(string fieldName, params ExcelPivotGroupBy[] levels) {
             return DateHierarchy(fieldName, levels, null, null);
         }
 
         /// <summary>Creates generated date hierarchy fields for a pivot field, such as years, quarters, and months.</summary>
-        public static ExcelPivotGrouping DateHierarchy(string fieldName, IEnumerable<GroupByValues> levels, DateTime? startDate = null, DateTime? endDate = null) {
+        public static ExcelPivotGrouping DateHierarchy(string fieldName, IEnumerable<ExcelPivotGroupBy> levels, DateTime? startDate = null, DateTime? endDate = null) {
             var normalizedLevels = NormalizeDateHierarchyLevels(levels);
             return new ExcelPivotGrouping(
                 fieldName,
@@ -67,14 +67,14 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(interval), "Grouping interval must be greater than zero.");
             }
 
-            return new ExcelPivotGrouping(fieldName, GroupByValues.Range, null, null, startNumber, endNumber, interval, startNumber == null, endNumber == null);
+            return new ExcelPivotGrouping(fieldName, ExcelPivotGroupBy.Range, null, null, startNumber, endNumber, interval, startNumber == null, endNumber == null);
         }
 
         /// <summary>Gets the source field name.</summary>
         public string FieldName { get; }
 
         /// <summary>Gets the OpenXML grouping mode.</summary>
-        public GroupByValues GroupBy { get; }
+        public ExcelPivotGroupBy GroupBy { get; }
 
         /// <summary>Gets the optional date grouping start.</summary>
         public DateTime? StartDate { get; }
@@ -98,17 +98,17 @@ namespace OfficeIMO.Excel {
         public bool AutoEnd { get; }
 
         /// <summary>Gets generated date hierarchy levels requested for this source field.</summary>
-        public IReadOnlyList<GroupByValues> GeneratedDateLevels { get; }
+        public IReadOnlyList<ExcelPivotGroupBy> GeneratedDateLevels { get; }
 
         internal bool IsDateGrouping => IsDateGroupBy(GroupBy);
 
         internal bool HasGeneratedDateLevels => GeneratedDateLevels.Count > 0;
 
-        private static IReadOnlyList<GroupByValues> NormalizeDateHierarchyLevels(IEnumerable<GroupByValues> levels) {
+        private static IReadOnlyList<ExcelPivotGroupBy> NormalizeDateHierarchyLevels(IEnumerable<ExcelPivotGroupBy> levels) {
             if (levels == null) throw new ArgumentNullException(nameof(levels));
 
-            var list = new List<GroupByValues>();
-            var used = new HashSet<GroupByValues>();
+            var list = new List<ExcelPivotGroupBy>();
+            var used = new HashSet<ExcelPivotGroupBy>();
             foreach (var level in levels) {
                 if (!IsDateGroupBy(level)) {
                     throw new ArgumentException("Date hierarchy levels must use days, months, quarters, years, hours, minutes, or seconds.", nameof(levels));
@@ -128,14 +128,14 @@ namespace OfficeIMO.Excel {
             return list;
         }
 
-        private static bool IsDateGroupBy(GroupByValues groupBy) {
-            return groupBy == GroupByValues.Seconds
-                || groupBy == GroupByValues.Minutes
-                || groupBy == GroupByValues.Hours
-                || groupBy == GroupByValues.Days
-                || groupBy == GroupByValues.Months
-                || groupBy == GroupByValues.Quarters
-                || groupBy == GroupByValues.Years;
+        private static bool IsDateGroupBy(ExcelPivotGroupBy groupBy) {
+            return groupBy == ExcelPivotGroupBy.Seconds
+                || groupBy == ExcelPivotGroupBy.Minutes
+                || groupBy == ExcelPivotGroupBy.Hours
+                || groupBy == ExcelPivotGroupBy.Days
+                || groupBy == ExcelPivotGroupBy.Months
+                || groupBy == ExcelPivotGroupBy.Quarters
+                || groupBy == ExcelPivotGroupBy.Years;
         }
     }
 }

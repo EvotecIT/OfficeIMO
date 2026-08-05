@@ -63,10 +63,10 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     var paragraph = document.AddParagraph();
                     paragraph.AddFormattedText("We are ");
-                    var underlined = paragraph.AddFormattedText("\t\tJohn Doe and Jane Doe\t\t", underline: UnderlineValues.Single);
+                    var underlined = paragraph.AddFormattedText("\t\tJohn Doe and Jane Doe\t\t", underline: WordUnderlineStyle.Single);
 
                     Assert.Equal("\t\tJohn Doe and Jane Doe\t\t", underlined.Text);
-                    Assert.Equal(UnderlineValues.Single, underlined.Underline);
+                    Assert.Equal(WordUnderlineStyle.Single, underlined.Underline);
 
                     document.Save();
                 }
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     var paragraph = document.AddParagraph();
-                    paragraph.AddFormattedText("placeholder", underline: UnderlineValues.Single);
+                    paragraph.AddFormattedText("placeholder", underline: WordUnderlineStyle.Single);
                     document.Save();
                 }
 
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     var paragraph = document.AddParagraph();
-                    paragraph.AddFormattedText("placeholder", underline: UnderlineValues.Single);
+                    paragraph.AddFormattedText("placeholder", underline: WordUnderlineStyle.Single);
                     document.Save();
                 }
 

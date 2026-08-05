@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         private static void AddSubtleLightBackground(PowerPointSlide slide, PowerPointDesignTheme theme,
             double slideWidthCm, double slideHeightCm) {
-            PowerPointAutoShape diagonal = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, slideWidthCm * 0.28, 0,
+            PowerPointAutoShape diagonal = slide.AddShapeCm(PowerPointShapeType.Parallelogram, slideWidthCm * 0.28, 0,
                 slideWidthCm * 0.22, slideHeightCm, "Designer Light Diagonal");
             diagonal.FillColor = theme.SurfaceColor;
             diagonal.FillTransparency = 35;
@@ -24,13 +24,13 @@ namespace OfficeIMO.PowerPoint {
             string baseColor = dark ? theme.PrimaryTextColor : theme.SurfaceColor;
             string second = dark ? theme.AccentDarkColor : theme.AccentLightColor;
 
-            PowerPointAutoShape left = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, -1.0, 0,
+            PowerPointAutoShape left = slide.AddShapeCm(PowerPointShapeType.Parallelogram, -1.0, 0,
                 slideWidthCm * 0.48, slideHeightCm, "Designer Plane Left");
             left.FillColor = baseColor;
             left.FillTransparency = dark ? 18 : 60;
             left.OutlineColor = baseColor;
 
-            PowerPointAutoShape middle = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, slideWidthCm * 0.46, 0,
+            PowerPointAutoShape middle = slide.AddShapeCm(PowerPointShapeType.Parallelogram, slideWidthCm * 0.46, 0,
                 slideWidthCm * 0.27, slideHeightCm, "Designer Plane Middle");
             middle.FillColor = second;
             middle.FillTransparency = dark ? 35 : 72;
@@ -147,8 +147,8 @@ namespace OfficeIMO.PowerPoint {
                 "Process Connector " + (index + 1));
             connector.OutlineColor = GetAccent(theme, index);
             connector.OutlineWidthPoints = 1.2;
-            connector.SetLineEnds(null, A.LineEndValues.Triangle, A.LineEndWidthValues.Small,
-                A.LineEndLengthValues.Small);
+            connector.SetLineEnds(null, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Small,
+                PowerPointLineEndLength.Small);
         }
 
         private static void AddProcessConnectorDots(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
@@ -247,7 +247,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddDirectionTriangle(PowerPointSlide slide, double leftCm, double topCm, int index,
             string color, int transparency, bool flip) {
-            PowerPointAutoShape arrow = slide.AddShapeCm(A.ShapeTypeValues.Triangle,
+            PowerPointAutoShape arrow = slide.AddShapeCm(PowerPointShapeType.Triangle,
                 leftCm, topCm, 0.22, 0.24, "Designer Direction " + (index + 1));
             arrow.FillColor = color;
             arrow.FillTransparency = transparency;

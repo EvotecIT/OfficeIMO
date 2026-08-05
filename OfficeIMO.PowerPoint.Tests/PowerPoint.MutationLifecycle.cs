@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide source = presentation.AddSlide(
-                P.SlideLayoutValues.Title);
+                PowerPointSlideLayoutType.Title);
             PowerPointSlide target = presentation.AddSlide();
             PowerPointTextRun run = source.AddTextBox("Target")
                 .Paragraphs.Single().Runs.Single();

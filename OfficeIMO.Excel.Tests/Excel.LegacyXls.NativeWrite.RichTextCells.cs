@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddWorksheet("Rich Escapement");
                     sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Raised") {
                         FontName = "Arial",
-                        VerticalTextAlignment = VerticalAlignmentRunValues.Superscript
+                        VerticalTextAlignment = ExcelVerticalTextAlignment.Superscript
                     });
 
                     document.Save(xlsOutputPath);
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(LegacyXlsFontEscapement.Superscript, font.Escapement);
 
                 ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].CellAt(1, 1).GetRichText());
-                Assert.Equal(VerticalAlignmentRunValues.Superscript, projectedRun.VerticalTextAlignment);
+                Assert.Equal(ExcelVerticalTextAlignment.Superscript, projectedRun.VerticalTextAlignment);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddWorksheet("Rich Underline");
                     sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Accounting") {
                         FontName = "Arial",
-                        UnderlineStyle = UnderlineValues.SingleAccounting
+                        UnderlineStyle = ExcelUnderlineStyle.SingleAccounting
                     });
 
                     document.Save(xlsOutputPath);
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((byte)0x21, font.UnderlineStyle);
 
                 ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].CellAt(1, 1).GetRichText());
-                Assert.Equal(UnderlineValues.SingleAccounting, projectedRun.UnderlineStyle);
+                Assert.Equal(ExcelUnderlineStyle.SingleAccounting, projectedRun.UnderlineStyle);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

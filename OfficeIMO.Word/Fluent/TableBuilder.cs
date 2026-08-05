@@ -63,10 +63,10 @@ namespace OfficeIMO.Word.Fluent {
             }
 
             if (_preferredWidthPct.HasValue) {
-                _table.WidthType = TableWidthUnitValues.Pct;
+                _table.WidthType = WordTableWidthUnit.Pct;
                 _table.Width = _preferredWidthPct.Value * 50;
             } else if (_preferredWidthPoints.HasValue) {
-                _table.WidthType = TableWidthUnitValues.Dxa;
+                _table.WidthType = WordTableWidthUnit.Dxa;
                 _table.Width = _preferredWidthPoints.Value * 20;
             }
         }
@@ -77,10 +77,10 @@ namespace OfficeIMO.Word.Fluent {
         public TableBuilder PreferredWidth(int? percent = null, int? points = null) {
             if (_table != null) {
                 if (percent.HasValue) {
-                    _table.WidthType = TableWidthUnitValues.Pct;
+                    _table.WidthType = WordTableWidthUnit.Pct;
                     _table.Width = percent.Value * 50;
                 } else if (points.HasValue) {
-                    _table.WidthType = TableWidthUnitValues.Dxa;
+                    _table.WidthType = WordTableWidthUnit.Dxa;
                     _table.Width = points.Value * 20;
                 }
             } else {
@@ -177,9 +177,9 @@ namespace OfficeIMO.Word.Fluent {
         public TableBuilder Align(HorizontalAlignment alignment) {
             if (_table != null) {
                 _table.Alignment = alignment switch {
-                    HorizontalAlignment.Center => TableRowAlignmentValues.Center,
-                    HorizontalAlignment.Right => TableRowAlignmentValues.Right,
-                    _ => TableRowAlignmentValues.Left,
+                    HorizontalAlignment.Center => WordTableAlignment.Center,
+                    HorizontalAlignment.Right => WordTableAlignment.Right,
+                    _ => WordTableAlignment.Left,
                 };
             }
             return this;
@@ -370,7 +370,7 @@ namespace OfficeIMO.Word.Fluent {
                     if (columnIndex <= row.CellsCount) {
                         var cell = row.Cells[columnIndex - 1];
                         cell.Width = width;
-                        cell.WidthType = TableWidthUnitValues.Dxa;
+                        cell.WidthType = WordTableWidthUnit.Dxa;
                     }
                 }
             }

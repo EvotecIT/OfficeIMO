@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using OfficeIMO.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
@@ -207,7 +205,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         var wash = slide.AddShapeInches(
-            A.ShapeTypeValues.Parallelogram,
+            PowerPointShapeType.Parallelogram,
             metrics.Horizontal(strong ? 6.95 : 8.18),
             metrics.Vertical(-0.12),
             metrics.Horizontal(strong ? 2.95 : 1.96),
@@ -219,7 +217,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         wash.OutlineWidthPoints = 0;
 
         var rail = slide.AddShapeInches(
-            A.ShapeTypeValues.Rectangle,
+            PowerPointShapeType.Rectangle,
             metrics.Horizontal(strong ? 9.72 : 9.82),
             0,
             metrics.Horizontal(strong ? 0.12 : 0.08),
@@ -231,7 +229,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         rail.OutlineWidthPoints = 0;
 
         var rule = slide.AddShapeInches(
-            A.ShapeTypeValues.Rectangle,
+            PowerPointShapeType.Rectangle,
             metrics.Horizontal(0.72),
             metrics.Vertical(strong ? 1.78 : 0.98),
             metrics.Horizontal(strong ? 1.2 : 0.82),
@@ -254,7 +252,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         for (var index = 0; index < count; index++) {
             var x = left + index * (cardWidth + gap);
             var card = slide.AddShapeInches(
-                A.ShapeTypeValues.Rectangle,
+                PowerPointShapeType.Rectangle,
                 x,
                 top,
                 cardWidth,
@@ -265,7 +263,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             card.OutlineWidthPoints = 0.75;
 
             var accent = slide.AddShapeInches(
-                A.ShapeTypeValues.Rectangle,
+                PowerPointShapeType.Rectangle,
                 x,
                 top,
                 cardWidth,
@@ -358,7 +356,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             });
 
             var rule = slide.AddShapeInches(
-                A.ShapeTypeValues.Rectangle,
+                PowerPointShapeType.Rectangle,
                 cursor.Left,
                 cursor.Top + 0.47,
                 Math.Min(1.2, cursor.Width),

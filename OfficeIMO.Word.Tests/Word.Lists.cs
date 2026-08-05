@@ -15,7 +15,7 @@ public partial class Word {
         var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists.docx");
         using (var document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("First List");
-            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
             Assert.False(document.Paragraphs[0].IsEmpty, "Paragraph is empty");
 
@@ -41,7 +41,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is second list")
                 .SetColor(Color.OrangeRed)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList2 = document.AddList(WordListStyle.ArticleSections);
             wordList2.AddItem("Temp 2");
@@ -53,7 +53,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is third list")
                 .SetColor(Color.Blue)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList3 = document.AddList(WordListStyle.BulletedChars);
             wordList3.AddItem("Text 3");
@@ -63,7 +63,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is fourth list")
                 .SetColor(Color.DeepPink)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList4 = document.AddList(WordListStyle.Numbered);
             wordList4.AddItem("Text 4");
@@ -73,7 +73,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is five list")
                 .SetColor(Color.DeepPink)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             WordList wordList5 = document.AddList(WordListStyle.Headings111Shifted);
             wordList5.AddItem("Text 5");
@@ -83,7 +83,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is 6th list")
                 .SetColor(Color.DeepPink)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList6 = document.AddList(WordListStyle.Chapters);
             wordList6.AddItem("Text 6");
@@ -93,7 +93,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is 7th list")
                 .SetColor(Color.DeepPink)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList7 = document.AddList(WordListStyle.HeadingIA1);
             wordList7.AddItem("Text 7");
@@ -130,7 +130,7 @@ public partial class Word {
             var paragraph = document
                 .AddParagraph("This is 9th list")
                 .SetColor(Color.MediumAquamarine)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList8 = document.AddList(WordListStyle.Bulleted);
 
@@ -145,7 +145,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is 10th list")
                 .SetColor(Color.ForestGreen)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList2 = document.AddList(WordListStyle.Numbered);
             wordList2.AddItem("Temp 10");
@@ -160,7 +160,7 @@ public partial class Word {
 
             paragraph = document
                 .AddParagraph("This is 10th list")
-                .SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
+                .SetColor(Color.ForestGreen).SetUnderline(WordUnderlineStyle.Double);
 
             var wordList3 = document.AddList(WordListStyle.Numbered);
             wordList3.AddItem("Temp 11");
@@ -213,7 +213,7 @@ public partial class Word {
         var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists2.docx");
         using (var document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
             var wordList = document.AddList(WordListStyle.Numbered);
             wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -231,7 +231,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is second list")
                 .SetColor(Color.OrangeRed)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
             wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -248,7 +248,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is third list")
                 .SetColor(Color.Blue)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList2 = document.AddList(WordListStyle.BulletedChars);
             wordList2.AddItem("Oops 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -263,7 +263,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is fourth list")
                 .SetColor(Color.DeepPink)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList3 = document.AddList(WordListStyle.Heading1ai);
             wordList3.AddItem("4th 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -278,7 +278,7 @@ public partial class Word {
             paragraph = document
                 .AddParagraph("This is five list")
                 .SetColor(Color.DeepPink)
-                .SetUnderline(UnderlineValues.Double);
+                .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList4 = document.AddList(WordListStyle.Headings111Shifted);
             wordList4.AddItem("5th 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -319,10 +319,10 @@ public partial class Word {
             Assert.Equal(6, document.Lists[3].ListItems.Count);
 
             var section = document.AddSection();
-            section.PageSettings.Orientation = PageOrientationValues.Landscape;
+            section.PageSettings.Orientation = WordPageOrientation.Landscape;
 
-            Assert.Equal(PageOrientationValues.Portrait, document.Sections[0].PageSettings.Orientation);
-            Assert.Equal(PageOrientationValues.Landscape, document.Sections[1].PageSettings.Orientation);
+            Assert.Equal(WordPageOrientation.Portrait, document.Sections[0].PageSettings.Orientation);
+            Assert.Equal(WordPageOrientation.Landscape, document.Sections[1].PageSettings.Orientation);
 
             Assert.Equal(5, document.Lists.Count);
             Assert.Equal(5, document.Sections[0].Lists.Count);
@@ -380,7 +380,7 @@ public partial class Word {
             foreach (var listStyle in wordListStyles) {
                 var paragraph = document.AddParagraph(listStyle.ToString());
                 paragraph.SetColor(Color.Red).SetBold();
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 var wordList1 = document.AddList(listStyle);
                 wordList1.AddItem("Text 1");
@@ -649,7 +649,7 @@ public partial class Word {
         using (var document = WordDocument.Create(filePath)) {
             // Add header paragraph first
             var paragraph = document.AddParagraph("List with LowerLetterWithBracket style");
-            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
             // Create list
             WordList wordList1 = document.AddList(WordListStyle.LowerLetterWithBracket);
@@ -681,7 +681,7 @@ public partial class Word {
             paragraph.Bold = true;
             paragraph.FontSize = 16;
             paragraph.Color = Color.AliceBlue;
-            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
             listItem3.Bold = false;
             listItem3.FontSize = 12;

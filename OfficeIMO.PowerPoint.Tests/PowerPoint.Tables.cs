@@ -357,8 +357,8 @@ namespace OfficeIMO.Tests {
                     table.SetColumnWidthsByRatio(2, 1, 1);
                     table.SetRowHeightsByRatio(1, 1, 1);
                     table.SetCellPaddingCm(0.15, 0.1, 0.15, 0.1);
-                    table.SetCellAlignment(A.TextAlignmentTypeValues.Center, A.TextAnchoringTypeValues.Center);
-                    table.SetCellBorders(TableCellBorders.All, "4472C4", widthPoints: 0.75, dash: A.PresetLineDashValues.Dash);
+                    table.SetCellAlignment(PowerPointTextAlignment.Center, PowerPointTextVerticalAlignment.Center);
+                    table.SetCellBorders(TableCellBorders.All, "4472C4", widthPoints: 0.75, dash: PowerPointLineDashStyle.Dash);
 
                     PowerPointTableCell header = table.GetCell(0, 0);
                     header.Text = "Header";

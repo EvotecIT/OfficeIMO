@@ -306,7 +306,7 @@ slide.AddChartCm(OfficeChartKind.ColumnClustered, chartData,
     .SetTitle("Quarterly performance")
     .SetCategoryAxisTitle("Quarter")
     .SetValueAxisTitle("Value")
-    .SetLegend(LegendPositionValues.Bottom)
+    .SetLegend(PowerPointChartLegendPosition.Bottom)
     .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "D9E2F3")
     .SetPlotAreaStyle(fillColor: "F8FAFC", lineColor: "D9E2F3");
 
@@ -356,7 +356,7 @@ var mix = new OfficeChartData(
 slide.AddChartCm(OfficeChartKind.Doughnut, mix,
         leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 8.0)
     .SetTitle("Revenue mix")
-    .SetLegend(LegendPositionValues.Right);
+    .SetLegend(PowerPointChartLegendPosition.Right);
 ```
 
 ### Table and chart together
@@ -392,7 +392,7 @@ var segmentChart = new OfficeChartData(
 dashboard.AddChartCm(OfficeChartKind.Line, segmentChart,
         leftCm: 12.2, topCm: 3.0, widthCm: 12.0, heightCm: 6.5)
     .SetTitle("Segment trend")
-    .SetLegend(LegendPositionValues.Bottom);
+    .SetLegend(PowerPointChartLegendPosition.Bottom);
 
 record SegmentRow(string Segment, int Q1, int Q2, int Q3, int Q4);
 ```

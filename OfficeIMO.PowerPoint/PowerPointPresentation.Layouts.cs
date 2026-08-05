@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
                 string name = layout?.CommonSlideData?.Name?.Value ?? string.Empty;
                 SlideLayoutValues? type = layout?.Type?.Value;
                 string? relationshipId = masterPart.GetIdOfPart(layoutPart);
-                results.Add(new PowerPointSlideLayoutInfo(masterIndex, i, name, type, relationshipId));
+                results.Add(new PowerPointSlideLayoutInfo(masterIndex, i, name, type?.ToOfficeIMO(), relationshipId));
             }
 
             return results;
@@ -37,23 +37,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Finds a layout index by layout type.
         /// </summary>
-        public int GetLayoutIndex(SlideLayoutValues layoutType, int masterIndex = 0) {
+        public int GetLayoutIndex(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
             ThrowIfDisposed();
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
             for (int i = 0; i < layouts.Length; i++) {
                 SlideLayoutValues? type = layouts[i].SlideLayout?.Type?.Value;
-                if (type == layoutType) {
+                if (type == layoutType.ToOpenXml()) {
                     return i;
                 }
             }
 
             throw new InvalidOperationException($"Layout type '{layoutType}' not found for master {masterIndex}.");
-        }
-
-        /// <summary>Finds a layout index using an OfficeIMO-owned layout type.</summary>
-        public int GetLayoutIndexWithType(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
-            return GetLayoutIndex(layoutType.ToOpenXml(), masterIndex);
         }
 
         /// <summary>
@@ -81,14 +76,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a slide using a layout type.
         /// </summary>
-        public PowerPointSlide AddSlide(SlideLayoutValues layoutType, int masterIndex = 0) {
+        public PowerPointSlide AddSlide(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
             int layoutIndex = GetLayoutIndex(layoutType, masterIndex);
             return AddSlide(masterIndex, layoutIndex);
-        }
-
-        /// <summary>Adds a slide using an OfficeIMO-owned layout type.</summary>
-        public PowerPointSlide AddSlideWithLayoutType(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
-            return AddSlide(layoutType.ToOpenXml(), masterIndex);
         }
 
         /// <summary>
@@ -146,7 +136,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Retrieves a layout placeholder textbox for a master/layout pair.
         /// </summary>
-        public PowerPointTextBox? GetLayoutPlaceholderTextBox(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+        public PowerPointTextBox? GetLayoutPlaceholderTextBox(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             uint? index = null) {
             ThrowIfDisposed();
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
@@ -157,7 +147,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Ensures a layout placeholder textbox exists, creating it if missing.
         /// </summary>
-        public PowerPointTextBox EnsureLayoutPlaceholderTextBox(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+        public PowerPointTextBox EnsureLayoutPlaceholderTextBox(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             uint? index = null, PowerPointLayoutBox? bounds = null, string? name = null) {
             ThrowIfDisposed();
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
@@ -180,7 +170,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets layout placeholder bounds.
         /// </summary>
-        public void SetLayoutPlaceholderBounds(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+        public void SetLayoutPlaceholderBounds(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             PowerPointLayoutBox bounds, uint? index = null, bool createIfMissing = false) {
             ThrowIfDisposed();
             PowerPointTextBox? textBox = createIfMissing
@@ -197,7 +187,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets layout placeholder text margins in centimeters.
         /// </summary>
-        public void SetLayoutPlaceholderTextMarginsCm(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+        public void SetLayoutPlaceholderTextMarginsCm(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             double leftCm, double topCm, double rightCm, double bottomCm, uint? index = null, bool createIfMissing = false) {
             ThrowIfDisposed();
             PowerPointTextBox? textBox = createIfMissing
@@ -214,7 +204,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets layout placeholder text margins in inches.
         /// </summary>
-        public void SetLayoutPlaceholderTextMarginsInches(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+        public void SetLayoutPlaceholderTextMarginsInches(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             double leftInches, double topInches, double rightInches, double bottomInches, uint? index = null,
             bool createIfMissing = false) {
             ThrowIfDisposed();
@@ -232,7 +222,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets layout placeholder text margins in points.
         /// </summary>
-        public void SetLayoutPlaceholderTextMarginsPoints(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+        public void SetLayoutPlaceholderTextMarginsPoints(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             double leftPoints, double topPoints, double rightPoints, double bottomPoints, uint? index = null,
             bool createIfMissing = false) {
             ThrowIfDisposed();
@@ -250,9 +240,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets layout placeholder text styling and optional bullet settings.
         /// </summary>
-        public void SetLayoutPlaceholderTextStyle(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+        public void SetLayoutPlaceholderTextStyle(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             PowerPointTextStyle style, uint? index = null, int? level = null, char? bulletChar = null,
-            A.TextAutoNumberSchemeValues? numbering = null, bool createIfMissing = false) {
+            PowerPointNumberingScheme? numbering = null, bool createIfMissing = false) {
             ThrowIfDisposed();
             PowerPointTextBox? textBox = createIfMissing
                 ? EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index)
@@ -281,7 +271,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextBox EnsureLayoutFooterPlaceholderTextBox(int masterIndex = 0, int layoutIndex = 0,
             string? text = null, PowerPointLayoutBox? bounds = null, uint? index = null) {
-            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PlaceholderValues.Footer,
+            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PowerPointPlaceholderType.Footer,
                 text, bounds, index ?? 10U, "Footer Placeholder");
         }
 
@@ -290,7 +280,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextBox EnsureLayoutDateTimePlaceholderTextBox(int masterIndex = 0, int layoutIndex = 0,
             string? text = null, PowerPointLayoutBox? bounds = null, uint? index = null) {
-            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PlaceholderValues.DateAndTime,
+            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PowerPointPlaceholderType.DateAndTime,
                 text, bounds, index ?? 11U, "Date Placeholder");
         }
 
@@ -299,7 +289,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextBox EnsureLayoutSlideNumberPlaceholderTextBox(int masterIndex = 0, int layoutIndex = 0,
             string? text = null, PowerPointLayoutBox? bounds = null, uint? index = null) {
-            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PlaceholderValues.SlideNumber,
+            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PowerPointPlaceholderType.SlideNumber,
                 text, bounds, index ?? 12U, "Slide Number Placeholder");
         }
 
@@ -315,7 +305,7 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
-        private static Shape? FindLayoutPlaceholderShape(SlideLayoutPart layoutPart, PlaceholderValues placeholderType, uint? index) {
+        private static Shape? FindLayoutPlaceholderShape(SlideLayoutPart layoutPart, PowerPointPlaceholderType placeholderType, uint? index) {
             ShapeTree? shapeTree = layoutPart.SlideLayout?.CommonSlideData?.ShapeTree;
             if (shapeTree == null) {
                 return null;
@@ -323,7 +313,7 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (OpenXmlElement element in shapeTree.ChildElements) {
                 PlaceholderShape? placeholder = GetLayoutPlaceholderShape(element);
-                if (placeholder?.Type?.Value != placeholderType) {
+                if (placeholder?.Type?.Value.ToOfficeEnum() != placeholderType) {
                     continue;
                 }
                 if (index != null && placeholder.Index?.Value != index.Value) {
@@ -375,13 +365,13 @@ namespace OfficeIMO.PowerPoint {
             return maxId + 1U;
         }
 
-        private static Shape CreateLayoutPlaceholderShape(uint id, string name, PlaceholderValues type, uint index,
+        private static Shape CreateLayoutPlaceholderShape(uint id, string name, PowerPointPlaceholderType type, uint index,
             PowerPointLayoutBox bounds) {
             return new Shape(
                 new NonVisualShapeProperties(
                     new NonVisualDrawingProperties { Id = id, Name = name },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = type, Index = index })),
+                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = type.ToOpenXml(), Index = index })),
                 new ShapeProperties(
                     new A.Transform2D(new A.Offset { X = bounds.Left, Y = bounds.Top },
                         new A.Extents { Cx = bounds.Width, Cy = bounds.Height }),
@@ -394,18 +384,18 @@ namespace OfficeIMO.PowerPoint {
             { };
         }
 
-        private static PowerPointLayoutBox GetFallbackPlaceholderBounds(PlaceholderValues placeholderType) {
-            if (placeholderType == PlaceholderValues.Title || placeholderType == PlaceholderValues.CenteredTitle) {
+        private static PowerPointLayoutBox GetFallbackPlaceholderBounds(PowerPointPlaceholderType placeholderType) {
+            if (placeholderType == PowerPointPlaceholderType.Title || placeholderType == PowerPointPlaceholderType.CenteredTitle) {
                 return new PowerPointLayoutBox(838200L, 365125L, 7772400L, 1470025L);
             }
-            if (placeholderType == PlaceholderValues.SubTitle) {
+            if (placeholderType == PowerPointPlaceholderType.SubTitle) {
                 return new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 1470025L);
             }
             return new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 3962400L);
         }
 
         private PowerPointTextBox EnsureLayoutHeaderFooterPlaceholderTextBox(int masterIndex, int layoutIndex,
-            PlaceholderValues placeholderType, string? text, PowerPointLayoutBox? bounds, uint index, string name) {
+            PowerPointPlaceholderType placeholderType, string? text, PowerPointLayoutBox? bounds, uint index, string name) {
             ThrowIfDisposed();
 
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
@@ -420,7 +410,7 @@ namespace OfficeIMO.PowerPoint {
             return textBox;
         }
 
-        private PowerPointLayoutBox GetDefaultHeaderFooterBounds(PlaceholderValues placeholderType) {
+        private PowerPointLayoutBox GetDefaultHeaderFooterBounds(PowerPointPlaceholderType placeholderType) {
             long slideWidth = SlideSize.WidthEmus;
             long slideHeight = SlideSize.HeightEmus;
             long margin = PowerPointUnits.FromCentimeters(0.6);
@@ -429,30 +419,30 @@ namespace OfficeIMO.PowerPoint {
             long sideWidth = Math.Max(PowerPointUnits.FromCentimeters(2.0), slideWidth / 5);
             long centerWidth = Math.Max(PowerPointUnits.FromCentimeters(4.0), slideWidth / 3);
 
-            if (placeholderType == PlaceholderValues.DateAndTime) {
+            if (placeholderType == PowerPointPlaceholderType.DateAndTime) {
                 return new PowerPointLayoutBox(margin, footerTop, sideWidth, footerHeight);
             }
 
-            if (placeholderType == PlaceholderValues.SlideNumber) {
+            if (placeholderType == PowerPointPlaceholderType.SlideNumber) {
                 return new PowerPointLayoutBox(slideWidth - margin - sideWidth, footerTop, sideWidth, footerHeight);
             }
 
             return new PowerPointLayoutBox((slideWidth - centerWidth) / 2, footerTop, centerWidth, footerHeight);
         }
 
-        private static void SetHeaderFooterFlag(SlideLayoutPart layoutPart, PlaceholderValues placeholderType, bool visible) {
+        private static void SetHeaderFooterFlag(SlideLayoutPart layoutPart, PowerPointPlaceholderType placeholderType, bool visible) {
             HeaderFooter headerFooter = EnsureHeaderFooter(layoutPart);
-            if (placeholderType == PlaceholderValues.Footer) {
+            if (placeholderType == PowerPointPlaceholderType.Footer) {
                 headerFooter.Footer = visible;
                 return;
             }
 
-            if (placeholderType == PlaceholderValues.DateAndTime) {
+            if (placeholderType == PowerPointPlaceholderType.DateAndTime) {
                 headerFooter.DateTime = visible;
                 return;
             }
 
-            if (placeholderType == PlaceholderValues.SlideNumber) {
+            if (placeholderType == PowerPointPlaceholderType.SlideNumber) {
                 headerFooter.SlideNumber = visible;
             }
         }

@@ -46,38 +46,38 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PowerShellSafeWordValues.docx");
 
             using WordDocument document = WordDocument.Create(filePath);
-            WordParagraph paragraph = document.AddParagraph("Formatted")
-                .SetParagraphAlignment(WordParagraphAlignment.Center)
-                .SetUnderlineStyle(WordUnderlineStyle.Double);
-            paragraph.AddBreakWithType(WordBreakType.Page);
+            WordParagraph paragraph = document.AddParagraph("Formatted");
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
+            paragraph.SetUnderline(WordUnderlineStyle.Double);
+            paragraph.AddBreak(WordBreakType.Page);
 
             WordSection section = document.Sections[0];
-            Assert.NotNull(section.GetOrCreateHeaderWithType(WordHeaderFooterType.First));
-            Assert.NotNull(section.GetOrCreateFooterWithType(WordHeaderFooterType.Even));
+            Assert.NotNull(section.GetOrCreateHeader(WordHeaderFooterType.First));
+            Assert.NotNull(section.GetOrCreateFooter(WordHeaderFooterType.Even));
 
-            WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0]
-                .SetVerticalAlignment(WordTableVerticalAlignment.Bottom)
-                .SetTextDirection(WordTextDirection.TopToBottomRightToLeft);
+            WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+            cell.VerticalAlignment = WordTableVerticalAlignment.Bottom;
+            cell.TextDirection = WordTextDirection.TopToBottomRightToLeft;
 
             document.Settings.ProtectionPassword = "TemporaryTestOnly";
             document.Settings.SetProtectionType(WordDocumentProtectionType.ReadOnly);
 
-            WordTextBox textBox = document.AddTextBox("Positioned")
-                .SetHorizontalPositionRelativeFrom(WordHorizontalRelativePosition.Column)
-                .SetVerticalPositionRelativeFrom(WordVerticalRelativePosition.Paragraph);
+            WordTextBox textBox = document.AddTextBox("Positioned");
+            textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
+            textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
 
-            Assert.Equal(JustificationValues.Center, paragraph.ParagraphAlignment);
-            Assert.Equal(UnderlineValues.Double, paragraph.Underline);
+            Assert.Equal(WordParagraphAlignment.Center, paragraph.ParagraphAlignment);
+            Assert.Equal(WordUnderlineStyle.Double, paragraph.Underline);
             Assert.Contains(
                 paragraph._paragraph.Descendants<Break>(),
                 item => item.Type?.Value == BreakValues.Page);
-            Assert.Equal(TableVerticalAlignmentValues.Bottom, cell.VerticalAlignment);
-            Assert.Equal(TextDirectionValues.TopToBottomRightToLeft, cell.TextDirection);
-            cell.SetTextDirection(null);
+            Assert.Equal(WordTableVerticalAlignment.Bottom, cell.VerticalAlignment);
+            Assert.Equal(WordTextDirection.TopToBottomRightToLeft, cell.TextDirection);
+            cell.TextDirection = null;
             Assert.Null(cell.TextDirection);
-            Assert.Equal(DocumentProtectionValues.ReadOnly, document.Settings.ProtectionType);
-            Assert.Equal(HorizontalRelativePositionValues.Column, textBox.HorizontalPositionRelativeFrom);
-            Assert.Equal(VerticalRelativePositionValues.Paragraph, textBox.VerticalPositionRelativeFrom);
+            Assert.Equal(WordDocumentProtectionType.ReadOnly, document.Settings.ProtectionType);
+            Assert.Equal(WordHorizontalRelativePosition.Column, textBox.HorizontalPositionRelativeFrom);
+            Assert.Equal(WordVerticalRelativePosition.Paragraph, textBox.VerticalPositionRelativeFrom);
         }
 
         [Fact]
@@ -87,8 +87,8 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(filePath);
             document.AsFluent()
                 .Paragraph(paragraph => paragraph
-                    .Text("Underlined", text => text.UnderlineStyle(WordUnderlineStyle.WavyDouble))
-                    .BreakWithType(WordBreakType.Column))
+                    .Text("Underlined", text => text.Underline(WordUnderlineStyle.WavyDouble))
+                    .Break(WordBreakType.Column))
                 .End();
 
             var mainDocument = document._wordprocessingDocument.MainDocumentPart?.Document;

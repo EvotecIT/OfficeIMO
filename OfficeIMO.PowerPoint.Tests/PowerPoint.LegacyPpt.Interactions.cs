@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             var textUri = new Uri("https://example.com/text?q=1");
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointTextBox textBox = slide.AddTextBox("Visit OfficeIMO",
                     100000, 100000, 3000000, 500000);
                 P.Shape textShape = (P.Shape)textBox.Element;
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_BlocksTargetFrameWithoutBinaryBaseRepresentation() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+            PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointTextBox textBox = slide.AddTextBox("Details");
             HyperlinkRelationship relationship = slide.SlidePart.AddHyperlinkRelationship(
                 new Uri("https://example.com/details"), true);
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
             var target = new Uri("https://example.com/screen-tip");
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointTextBox textBox = slide.AddTextBox("Details");
                 textBox.Paragraphs.Single().Runs.Single().SetHyperlink(target,
                     "Open the detailed report");
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
             var target = new Uri("https://example.com/shared-target");
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 AddShapeHyperlink(slide, slide.AddRectangle(
                     100000, 100000, 1000000, 500000), target,
                     mouseOver: false, screenTip: "First tip");
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_BlocksDuplicateShapeInteractionTriggers() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+            PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
             P.NonVisualDrawingProperties properties = GetDrawingProperties(shape);
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_BlocksDuplicateTextInteractionTriggers() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+            PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             P.Shape shape = (P.Shape)slide.AddTextBox("Duplicate").Element;
             A.Run run = shape.TextBody!.Descendants<A.Run>().Single();
             run.RunProperties = new A.RunProperties(
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
             LegacyPptInteractionJump expected) {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointAutoShape shape = source.AddSlide(P.SlideLayoutValues.Blank).AddRectangle(
+                PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                     100000, 100000, 1000000, 500000);
                 GetDrawingProperties(shape).Append(new A.HyperlinkOnClick {
                     Id = string.Empty,
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
             var target = new Uri("https://example.com/text-hover");
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointTextBox textBox = slide.AddTextBox("Hover");
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(target, true);
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             var target = new Uri("https://example.com/preserved");
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddRectangle(
                     100000, 100000, 1000000, 500000);
                 AddShapeHyperlink(slide, rectangle, target, mouseOver: false);
@@ -322,7 +322,7 @@ namespace OfficeIMO.Tests {
         public void ImportedHyperlink_NoOpSaveIsByteExact() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
                     100000, 100000, 1000000, 500000);
                 AddShapeHyperlink(slide, shape,
@@ -354,7 +354,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             var target = new Uri("https://example.com/edit-screen-tip");
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 AddShapeHyperlink(slide, slide.AddRectangle(
                     100000, 100000, 1000000, 500000), target,
                     mouseOver: false, screenTip: "Original tip");
@@ -408,7 +408,7 @@ namespace OfficeIMO.Tests {
         public void ImportedShapeHyperlink_AddEditAndRemoveAppendPreservingRecords() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank)
+                source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddRectangle(100000, 100000, 1000000, 500000);
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
         public void ImportedTextHyperlink_AddMoveAndRemoveAppendPreservingRecords() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank)
+                source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Visit OfficeIMO");
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -543,7 +543,7 @@ namespace OfficeIMO.Tests {
         public void ImportedPresentation_AppendedSlideCanCarryNativeHyperlink() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Existing");
+                source.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Existing");
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
@@ -552,7 +552,7 @@ namespace OfficeIMO.Tests {
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
             using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
-                PowerPointSlide added = imported.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide added = imported.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = added.AddRectangle(
                     100000, 100000, 1000000, 500000);
                 AddShapeHyperlink(added, rectangle, target, mouseOver: false);

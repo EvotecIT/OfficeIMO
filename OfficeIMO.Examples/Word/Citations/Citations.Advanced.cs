@@ -10,12 +10,12 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with multiple citations");
             string filePath = Path.Combine(folderPath, "DocumentWithMultipleCitations.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var book = new WordBibliographySource("B1", DataSourceValues.Book) {
+                var book = new WordBibliographySource("B1", WordBibliographySourceType.Book) {
                     Title = "C# in Depth",
                     Author = "Jon Skeet",
                     Year = "2021"
                 };
-                var article = new WordBibliographySource("A1", DataSourceValues.ArticleInAPeriodical) {
+                var article = new WordBibliographySource("A1", WordBibliographySourceType.ArticleInAPeriodical) {
                     Title = "Wordprocessing With OpenXML",
                     Author = "Jane Smith",
                     Year = "2023"

@@ -10,18 +10,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageSizeOrientationSwitch.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-                document.Sections[0].PageSettings.Orientation = PageOrientationValues.Landscape;
+                document.Sections[0].PageSettings.Orientation = WordPageOrientation.Landscape;
                 document.AddParagraph("Test");
                 document.AddSection();
                 document.Sections[1].PageSettings.PageSize = WordPageSize.A5;
-                document.Sections[1].PageSettings.Orientation = PageOrientationValues.Portrait;
+                document.Sections[1].PageSettings.Orientation = WordPageOrientation.Portrait;
                 document.AddParagraph("Section 1");
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(PageOrientationValues.Landscape, document.Sections[0].PageSettings.Orientation);
+                Assert.Equal(WordPageOrientation.Landscape, document.Sections[0].PageSettings.Orientation);
                 Assert.Equal(WordPageSize.A4, document.Sections[0].PageSettings.PageSize);
-                Assert.Equal(PageOrientationValues.Portrait, document.Sections[1].PageSettings.Orientation);
+                Assert.Equal(WordPageOrientation.Portrait, document.Sections[1].PageSettings.Orientation);
                 Assert.Equal(WordPageSize.A5, document.Sections[1].PageSettings.PageSize);
             }
         }

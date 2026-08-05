@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 "D2",
                 "SalesPivot",
                 rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
             using var start = new ManualResetEventSlim(false);
             int successes = 0;
             Task[] callers = Enumerable.Range(0, 8).Select(_ => Task.Run(() => {

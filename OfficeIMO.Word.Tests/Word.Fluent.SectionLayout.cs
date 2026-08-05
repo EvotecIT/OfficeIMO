@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FluentSectionLayout.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .PageSetup(ps => ps.Orientation(PageOrientationValues.Landscape)
+                    .PageSetup(ps => ps.Orientation(WordPageOrientation.Landscape)
                                          .Size(WordPageSize.A4)
                                          .Margins(WordMargin.Normal)
                                          .DifferentFirstPage()
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                             .Margins(WordMargin.Narrow)
                             .Size(WordPageSize.Legal)
                             .Columns(2)
-                            .PageNumbering(NumberFormatValues.LowerRoman, restart: true)
+                            .PageNumbering(WordNumberFormat.LowerRoman, restart: true)
                             .Paragraph(p => p.Text("Section 1"))
                             .Table(t => t.Columns(1).Row("Cell 1"))
                         .New()

@@ -56,7 +56,7 @@ public sealed class PowerPointConversionTests {
         string source = files.Path("chart.pptx");
         string destination = files.Path("chart.ppt");
         using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
-            presentation.AddSlide(SlideLayoutValues.Blank).AddChart();
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddChart();
             presentation.Save();
         }
 
@@ -90,7 +90,7 @@ public sealed class PowerPointConversionTests {
         string source = files.Path("chart.pptx");
         string destination = files.Path("chart.ppt");
         using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
-            presentation.AddSlide(SlideLayoutValues.Blank).AddChart();
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddChart();
             presentation.Save();
         }
 
@@ -149,7 +149,7 @@ public sealed class PowerPointConversionTests {
         string source = files.Path("chart.pptx");
         string destination = files.Path("chart.ppt");
         using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
-            presentation.AddSlide(SlideLayoutValues.Blank).AddChart();
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddChart();
             presentation.Save();
         }
         byte[] sourceBytes = File.ReadAllBytes(source);
@@ -227,7 +227,7 @@ public sealed class PowerPointConversionTests {
         string source = files.Path("chart.pptx");
         string destination = files.Path("chart.ppt");
         using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
-            presentation.AddSlide(SlideLayoutValues.Blank).AddChart();
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddChart();
             presentation.Save();
         }
 
@@ -249,7 +249,7 @@ public sealed class PowerPointConversionTests {
         string blockedDestination = files.Path("blocked.pptx");
         string allowedDestination = files.Path("allowed.pptx");
         using (PowerPointPresentation presentation = PowerPointPresentation.Create()) {
-            presentation.AddSlide(SlideLayoutValues.Blank).AddTextBox("Encrypted conversion source");
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Encrypted conversion source");
             File.WriteAllBytes(source, presentation.ToEncryptedBytes(password, PowerPointFileFormat.Ppt));
         }
 
@@ -331,7 +331,7 @@ public sealed class PowerPointConversionTests {
 
     private static void CreateTextPresentation(string path) {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
-        presentation.AddSlide(SlideLayoutValues.Blank).AddTextBox("Conversion contract");
+        presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Conversion contract");
         presentation.Save();
     }
 

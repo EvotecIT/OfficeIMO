@@ -491,10 +491,10 @@ namespace OfficeIMO.Word {
                 return gridSpan.Value;
             }
 
-            if (cell.HorizontalMerge == MergedCellValues.Restart) {
+            if (cell.HorizontalMerge == WordCellMerge.Restart) {
                 int span = 1;
                 for (int index = columnIndex + 1; index < row.Cells.Count; index++) {
-                    if (row.Cells[index].HorizontalMerge == MergedCellValues.Continue) {
+                    if (row.Cells[index].HorizontalMerge == WordCellMerge.Continue) {
                         span++;
                         continue;
                     }
@@ -518,7 +518,7 @@ namespace OfficeIMO.Word {
             }
 
             var cell = table.Rows[rowIndex].Cells[columnIndex];
-            if (cell.VerticalMerge != MergedCellValues.Restart) {
+            if (cell.VerticalMerge != WordCellMerge.Restart) {
                 return 1;
             }
 
@@ -528,7 +528,7 @@ namespace OfficeIMO.Word {
                     break;
                 }
 
-                if (table.Rows[index].Cells[columnIndex].VerticalMerge == MergedCellValues.Continue) {
+                if (table.Rows[index].Cells[columnIndex].VerticalMerge == WordCellMerge.Continue) {
                     span++;
                     continue;
                 }

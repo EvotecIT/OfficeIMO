@@ -44,7 +44,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             if (normalized is "false" or "none" or "hidden" or "off") {
                 sb.AppendLine($"{chartVariable}.HideLegend();");
             } else if (TryGetLegendPositionIdentifier(legendValue, out var legendPosition)) {
-                sb.AppendLine($"{chartVariable}.SetLegend(C.LegendPositionValues.{legendPosition});");
+                sb.AppendLine($"{chartVariable}.SetLegend(PowerPointChartLegendPosition.{legendPosition});");
             }
         }
 
@@ -54,7 +54,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
                 sb.AppendLine($"{chartVariable}.SetDataLabels(showValue: true, showCategoryName: false, showSeriesName: false, showLegendKey: false, showPercent: false);");
                 var labelPosition = GetAttribute(chart.Attributes, "label-position", "labelPosition", "data-label-position", "dataLabelPosition");
                 if (TryGetDataLabelPositionIdentifier(labelPosition, out var dataLabelPosition)) {
-                    sb.AppendLine($"{chartVariable}.SetDataLabelPosition(C.DataLabelPositionValues.{dataLabelPosition});");
+                    sb.AppendLine($"{chartVariable}.SetDataLabelPosition(PowerPointChartDataLabelPosition.{dataLabelPosition});");
                 }
 
                 var labelFormat = GetAttribute(chart.Attributes, "label-format", "labelFormat", "data-label-format", "dataLabelFormat");
@@ -200,7 +200,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             if (normalized is "false" or "none" or "hidden" or "off") {
                 sb.AppendLine($"{chartVariable}.HideLegend();");
             } else if (TryGetLegendPositionIdentifier(legendValue, out var legendPosition)) {
-                sb.AppendLine($"{chartVariable}.SetLegend(C.LegendPositionValues.{legendPosition});");
+                sb.AppendLine($"{chartVariable}.SetLegend(ExcelChartLegendPosition.{legendPosition});");
             }
         }
 
@@ -209,7 +209,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             var labelPosition = GetAttribute(chart.Attributes, "label-position", "labelPosition", "data-label-position", "dataLabelPosition");
             var labelFormat = GetAttribute(chart.Attributes, "label-format", "labelFormat", "data-label-format", "dataLabelFormat");
             var positionExpression = TryGetDataLabelPositionIdentifier(labelPosition, out var dataLabelPosition)
-                ? $"C.DataLabelPositionValues.{dataLabelPosition}"
+                ? $"ExcelChartDataLabelPosition.{dataLabelPosition}"
                 : "null";
             var numberFormatExpression = !string.IsNullOrWhiteSpace(labelFormat) ? CsString(labelFormat!) : "null";
             sb.AppendLine($"{chartVariable}.SetDataLabels(showValue: true, showCategoryName: false, showSeriesName: false, showLegendKey: false, showPercent: false, position: {positionExpression}, numberFormat: {numberFormatExpression});");

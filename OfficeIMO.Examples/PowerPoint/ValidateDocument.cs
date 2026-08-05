@@ -65,8 +65,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             for (int c = 0; c < table.Columns; c++) {
                 PowerPointTableCell header = table.GetCell(0, c);
                 header.Bold = true;
-                header.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
-                header.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+                header.HorizontalAlignment = PowerPointTextAlignment.Center;
+                header.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
             }
 
             presentation.Save();

@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Presentation;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a placeholder defined by a slide layout.
@@ -8,7 +6,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a layout placeholder info entry.
         /// </summary>
-        public PowerPointLayoutPlaceholderInfo(string name, PlaceholderValues? placeholderType, uint? placeholderIndex, PowerPointLayoutBox? bounds) {
+        public PowerPointLayoutPlaceholderInfo(string name, PowerPointPlaceholderType? placeholderType, uint? placeholderIndex, PowerPointLayoutBox? bounds) {
             Name = name ?? string.Empty;
             PlaceholderType = placeholderType;
             PlaceholderIndex = placeholderIndex;
@@ -23,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Placeholder type (may be null for custom placeholders).
         /// </summary>
-        public PlaceholderValues? PlaceholderType { get; }
+        public PowerPointPlaceholderType? PlaceholderType { get; }
 
         /// <summary>
         ///     Placeholder index (may be null).

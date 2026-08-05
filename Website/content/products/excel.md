@@ -76,9 +76,9 @@ sheet.AddTable(
     style: TableStyle.TableStyleMedium9);
 sheet.SetTableTotalsByName(
     "SalesTable",
-    new Dictionary<string, TotalsRowFunctionValues>
+    new Dictionary<string, ExcelTableTotalsFunction>
     {
-        ["Revenue"] = TotalsRowFunctionValues.Sum
+        ["Revenue"] = ExcelTableTotalsFunction.Sum
     });
 
 // AutoFit for a clean layout

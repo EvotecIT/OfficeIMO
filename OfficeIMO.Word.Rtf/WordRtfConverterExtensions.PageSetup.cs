@@ -25,7 +25,7 @@ public static partial class WordRtfConverterExtensions {
             ToInt32(document.Margins.HeaderDistance),
             ToInt32(document.Margins.FooterDistance));
 
-        rtf.PageSetup.SetLandscape(document.PageOrientation == PageOrientationValues.Landscape);
+        rtf.PageSetup.SetLandscape(document.PageOrientation == WordPageOrientation.Landscape);
         rtf.PageSetup.SetDifferentFirstPageHeaderFooter(document.DifferentFirstPage);
         CopyPageNumbering(document.Sections[0]._sectionProperties.GetFirstChild<PageNumberType>(), rtf.PageSetup);
         CopyPageBorders(document.Sections[0]._sectionProperties.GetFirstChild<PageBorders>(), rtf.PageSetup.PageBorders, rtf);
@@ -37,7 +37,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void ApplyPageSetup(RtfDocument rtfDocument, WordDocument document) {
         if (rtfDocument.PageSetup.Landscape) {
-            document.PageOrientation = PageOrientationValues.Landscape;
+            document.PageOrientation = WordPageOrientation.Landscape;
         }
 
         if (rtfDocument.PageSetup.PaperWidthTwips.HasValue) {
@@ -147,7 +147,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (start.HasValue || format.HasValue) {
-            destination.AddPageNumbering(start, format);
+            destination.AddPageNumbering(start, format.ToOfficeEnum());
         }
     }
 
@@ -345,17 +345,17 @@ public static partial class WordRtfConverterExtensions {
 
         if (hasFootnoteSettings) {
             destination.AddFootnoteProperties(
-                ToWordNoteNumberFormat(source.FootnoteNumberFormat),
-                ToWordFootnotePlacement(source.FootnotePlacement),
-                restartNumbering: ToWordNoteRestart(source.FootnoteRestart),
+                ToWordNoteNumberFormat(source.FootnoteNumberFormat).ToOfficeEnum(),
+                ToWordFootnotePlacement(source.FootnotePlacement).ToOfficeEnum(),
+                restartNumbering: ToWordNoteRestart(source.FootnoteRestart).ToOfficeEnum(),
                 startNumber: source.FootnoteStartNumber);
         }
 
         if (hasEndnoteSettings) {
             destination.AddEndnoteProperties(
-                ToWordNoteNumberFormat(source.EndnoteNumberFormat),
-                ToWordEndnotePlacement(source.EndnotePlacement),
-                restartNumbering: source.EndnoteRestart == RtfNoteNumberRestart.EachPage ? null : ToWordNoteRestart(source.EndnoteRestart),
+                ToWordNoteNumberFormat(source.EndnoteNumberFormat).ToOfficeEnum(),
+                ToWordEndnotePlacement(source.EndnotePlacement).ToOfficeEnum(),
+                restartNumbering: source.EndnoteRestart == RtfNoteNumberRestart.EachPage ? null : ToWordNoteRestart(source.EndnoteRestart).ToOfficeEnum(),
                 startNumber: source.EndnoteStartNumber);
         }
     }

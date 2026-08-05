@@ -621,7 +621,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    if (element is WordBreak wordBreak && wordBreak.BreakType == W.BreakValues.Page) {
+                    if (element is WordBreak wordBreak && wordBreak.BreakType == WordBreakType.Page) {
                         currentPage++;
                         consumedOnPage = 0D;
                         continue;
@@ -682,7 +682,7 @@ namespace OfficeIMO.Word.Pdf {
                 return HasNativePageBreakBefore(paragraph) || paragraph.IsPageBreak;
             }
 
-            return element is WordBreak wordBreak && wordBreak.BreakType == W.BreakValues.Page;
+            return element is WordBreak wordBreak && wordBreak.BreakType == WordBreakType.Page;
         }
 
         private static IEnumerable<WordElement> EnumerateNativeTableOfContentsElements(WordSection section) {

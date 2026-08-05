@@ -33,7 +33,7 @@
         /// </summary>
         public bool IsColumnBreak {
             get {
-                return this.Break?.BreakType == DocumentFormat.OpenXml.Wordprocessing.BreakValues.Column;
+                return this.Break?.BreakType == WordBreakType.Column;
             }
         }
 

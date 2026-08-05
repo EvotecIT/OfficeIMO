@@ -115,35 +115,31 @@ table.Rows[2].AllowRowToBreakAcrossPages = false;
 
 ```csharp
 // Merge cells 0-2 in the first row (spans 3 columns)
-table.Rows[0].Cells[0].HorizontalMerge = MergedCellValues.Restart;
-table.Rows[0].Cells[1].HorizontalMerge = MergedCellValues.Continue;
-table.Rows[0].Cells[2].HorizontalMerge = MergedCellValues.Continue;
+table.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Restart;
+table.Rows[0].Cells[1].HorizontalMerge = WordCellMerge.Continue;
+table.Rows[0].Cells[2].HorizontalMerge = WordCellMerge.Continue;
 ```
 
 ### Vertical Merge (across rows)
 
 ```csharp
 // Merge first column across rows 1-3
-table.Rows[1].Cells[0].VerticalMerge = MergedCellValues.Restart;
-table.Rows[2].Cells[0].VerticalMerge = MergedCellValues.Continue;
-table.Rows[3].Cells[0].VerticalMerge = MergedCellValues.Continue;
+table.Rows[1].Cells[0].VerticalMerge = WordCellMerge.Restart;
+table.Rows[2].Cells[0].VerticalMerge = WordCellMerge.Continue;
+table.Rows[3].Cells[0].VerticalMerge = WordCellMerge.Continue;
 ```
 
 ## Table Borders
 
 ```csharp
-// Access and customize borders via WordTableBorders
-var borders = table.Borders;
-borders.TopBorder = new WordBorder {
-    Value = BorderValues.Single,
-    Size = 12,
-    Color = "FF0000"
-};
-borders.BottomBorder = new WordBorder {
-    Value = BorderValues.Double,
-    Size = 6,
-    Color = "0000FF"
-};
+// Access and customize borders on a table cell
+var borders = table.Rows[0].Cells[0].Borders;
+borders.TopStyle = WordBorderStyle.Single;
+borders.TopSize = 12;
+borders.TopColorHex = "FF0000";
+borders.BottomStyle = WordBorderStyle.Double;
+borders.BottomSize = 6;
+borders.BottomColorHex = "0000FF";
 ```
 
 ## Table Layout
@@ -151,16 +147,16 @@ borders.BottomBorder = new WordBorder {
 Control whether the table uses a fixed or auto-fit layout:
 
 ```csharp
-table.LayoutType = WordTableLayoutType.Fixed;
+table.LayoutMode = WordTableLayoutType.FixedWidth;
 // or
-table.LayoutType = WordTableLayoutType.Autofit;
+table.LayoutMode = WordTableLayoutType.AutoFitToContents;
 ```
 
 ## Table Width
 
 ```csharp
 table.Width = 5000;     // in fiftieths of a percent or twips
-table.WidthType = TableWidthUnitValues.Pct;
+table.WidthType = WordTableWidthUnit.Pct;
 ```
 
 ## Generate Tables from Objects

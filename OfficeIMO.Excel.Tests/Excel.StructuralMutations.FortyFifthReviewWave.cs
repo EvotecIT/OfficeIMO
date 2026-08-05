@@ -130,8 +130,8 @@ namespace OfficeIMO.Tests {
                 style: OfficeIMO.Excel.TableStyle.TableStyleMedium2,
                 includeAutoFilter: false);
             if (totalsRow) {
-                sheet.SetTableTotalsByName("Results", new Dictionary<string, TotalsRowFunctionValues> {
-                    ["Value"] = TotalsRowFunctionValues.Sum
+                sheet.SetTableTotalsByName("Results", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["Value"] = ExcelTableTotalsFunction.Sum
                 });
             }
 

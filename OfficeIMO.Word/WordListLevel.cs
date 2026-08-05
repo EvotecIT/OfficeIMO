@@ -304,28 +304,28 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the level justification.
         /// </summary>
-        public LevelJustificationValues LevelJustification {
+        public WordListLevelAlignment LevelJustification {
             get {
                 var element = GetLevelJustificationElement();
-                return element.Val?.Value ?? LevelJustificationValues.Left;
+                return (element.Val?.Value ?? LevelJustificationValues.Left).ToOfficeEnum();
             }
             set {
                 var element = GetLevelJustificationElement();
-                element.Val = value;
+                element.Val = value.ToOpenXml();
             }
         }
 
         /// <summary>
         /// Gets or sets the suffix placed after the numbering marker.
         /// </summary>
-        public LevelSuffixValues LevelSuffix {
+        public WordListLevelSuffix LevelSuffix {
             get {
                 var element = GetLevelSuffixElement();
-                return element.Val?.Value ?? LevelSuffixValues.Tab;
+                return (element.Val?.Value ?? LevelSuffixValues.Tab).ToOfficeEnum();
             }
             set {
                 var element = GetLevelSuffixElement();
-                element.Val = value;
+                element.Val = value.ToOpenXml();
             }
         }
 

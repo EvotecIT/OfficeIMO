@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -12,9 +12,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Nested Tables.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Lets add table ");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
                 WordTable wordTable = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
                 SetCellText(wordTable, 0, 0, "Test 1");
@@ -46,9 +46,9 @@ namespace OfficeIMO.Examples.Word {
                 }
 
                 var paragraph1 = document.AddParagraph("Lets add table number 2 ");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
                 WordTable wordTable1 = document.AddTable(5, 5, WordTableStyle.GridTable1LightAccent1);
                 SetCellText(wordTable1, 1, 0, "Test 1.2");
@@ -58,9 +58,9 @@ namespace OfficeIMO.Examples.Word {
 
 
                 var paragraph2 = document.AddParagraph("Lets add table number 3 ");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
                 WordTable wordTable2 = document.AddTable(5, 5, WordTableStyle.GridTable1LightAccent1);
                 SetCellText(wordTable2, 1, 0, "Test 2.2");

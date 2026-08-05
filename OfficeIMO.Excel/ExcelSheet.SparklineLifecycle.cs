@@ -8,7 +8,7 @@ using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSeq
 namespace OfficeIMO.Excel {
     /// <summary>Format-neutral snapshot of one worksheet sparkline.</summary>
     public sealed class ExcelSparklineInfo {
-        internal ExcelSparklineInfo(int groupIndex, string dataRange, string locationRange, SparklineTypeValues type) {
+        internal ExcelSparklineInfo(int groupIndex, string dataRange, string locationRange, ExcelSparklineType type) {
             GroupIndex = groupIndex;
             DataRange = dataRange;
             LocationRange = locationRange;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Destination cell or range.</summary>
         public string LocationRange { get; }
         /// <summary>Sparkline rendering type.</summary>
-        public SparklineTypeValues Type { get; }
+        public ExcelSparklineType Type { get; }
     }
 
     public partial class ExcelSheet {
@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
                 var result = new List<ExcelSparklineInfo>();
                 int groupIndex = 0;
                 foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>()) {
-                    SparklineTypeValues type = group.Type?.Value ?? SparklineTypeValues.Line;
+                    ExcelSparklineType type = group.Type?.Value.ToOfficeEnum() ?? ExcelSparklineType.Line;
                     foreach (Sparkline sparkline in group.Descendants<Sparkline>()) {
                         result.Add(new ExcelSparklineInfo(
                             groupIndex,
@@ -47,10 +47,10 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Changes the type of every sparkline whose destination intersects a range.</summary>
-        public int SetSparklineType(string locationRange, SparklineTypeValues type) {
-            if (type != SparklineTypeValues.Line
-                && type != SparklineTypeValues.Column
-                && type != SparklineTypeValues.Stacked) {
+        public int SetSparklineType(string locationRange, ExcelSparklineType type) {
+            if (type != ExcelSparklineType.Line
+                && type != ExcelSparklineType.Column
+                && type != ExcelSparklineType.Stacked) {
                 throw new ArgumentOutOfRangeException(nameof(type));
             }
             ExcelReference target = ParseLocalSparklineReference(locationRange);
@@ -59,10 +59,10 @@ namespace OfficeIMO.Excel {
                 foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>().ToList()) {
                     Sparkline[] all = group.Descendants<Sparkline>().ToArray();
                     Sparkline[] matches = all.Where(sparkline => SparklineLocationIntersects(sparkline, target)).ToArray();
-                    SparklineTypeValues currentType = group.Type?.Value ?? SparklineTypeValues.Line;
+                    ExcelSparklineType currentType = group.Type?.Value.ToOfficeEnum() ?? ExcelSparklineType.Line;
                     if (matches.Length == 0 || currentType == type) continue;
                     if (matches.Length == all.Length) {
-                        group.Type = type;
+                        group.Type = type.ToOpenXml();
                     } else {
                         var changedGroup = (SparklineGroup)group.CloneNode(true);
                         Sparkline[] changedClones = changedGroup.Descendants<Sparkline>().ToArray();
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
                             if (!SparklineLocationIntersects(changedClones[index], target)) changedClones[index].Remove();
                         }
                         foreach (Sparkline match in matches) match.Remove();
-                        changedGroup.Type = type;
+                        changedGroup.Type = type.ToOpenXml();
                         group.Parent!.InsertAfter(changedGroup, group);
                     }
                     changed += matches.Length;

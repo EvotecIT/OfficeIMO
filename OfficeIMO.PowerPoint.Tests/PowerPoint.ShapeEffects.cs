@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
                         directionDegrees: 270, fadeDirectionDegrees: 90,
                         startOpacityPercent: 60, endOpacityPercent: 0,
                         startPositionPercent: 0, endPositionPercent: 100,
-                        alignment: A.RectangleAlignmentValues.Bottom,
+                        alignment: PowerPointRectangleAlignment.Bottom,
                         rotateWithShape: true);
 
                     presentation.Save();

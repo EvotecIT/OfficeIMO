@@ -87,10 +87,10 @@ namespace OfficeIMO.Tests {
             string originalXml = sheet.WorksheetPart.Worksheet.OuterXml;
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                sheet.SetSparklineType("D1", new SparklineTypeValues("invalid")));
+                sheet.SetSparklineType("D1", (ExcelSparklineType)int.MaxValue));
 
             Assert.Equal(originalXml, sheet.WorksheetPart.Worksheet.OuterXml);
-            Assert.Equal(SparklineTypeValues.Line, Assert.Single(sheet.GetSparklines()).Type);
+            Assert.Equal(ExcelSparklineType.Line, Assert.Single(sheet.GetSparklines()).Type);
         }
 
         [Fact]

@@ -16,7 +16,7 @@ public partial class WordPageNumber {
     /// <summary>
     /// Gets or sets the alignment of the page-number paragraph.
     /// </summary>
-    public JustificationValues? ParagraphAlignment {
+    public WordParagraphAlignment? ParagraphAlignment {
         get {
             return this._wordParagraph.ParagraphAlignment;
         }

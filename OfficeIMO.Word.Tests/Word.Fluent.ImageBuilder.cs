@@ -51,13 +51,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(4, document.Images.Count);
                 Assert.Equal(50, document.Images[0].Width);
                 Assert.Equal(WrapTextImage.Square, document.Images[0].WrapText);
-                Assert.Equal(JustificationValues.Center, document.Paragraphs[0].ParagraphAlignment);
+                Assert.Equal(WordParagraphAlignment.Center, document.Paragraphs[0].ParagraphAlignment);
                 Assert.Equal(60, document.Images[1].Width);
-                Assert.Equal(JustificationValues.Right, document.Paragraphs[1].ParagraphAlignment);
+                Assert.Equal(WordParagraphAlignment.Right, document.Paragraphs[1].ParagraphAlignment);
                 Assert.Equal(70, document.Images[2].Width);
-                Assert.Equal(JustificationValues.Left, document.Paragraphs[2].ParagraphAlignment);
+                Assert.Equal(WordParagraphAlignment.Left, document.Paragraphs[2].ParagraphAlignment);
                 Assert.Equal(80, document.Images[3].Width);
-                Assert.Equal(JustificationValues.Center, document.Paragraphs[3].ParagraphAlignment);
+                Assert.Equal(WordParagraphAlignment.Center, document.Paragraphs[3].ParagraphAlignment);
             }
 
             await serverTask;

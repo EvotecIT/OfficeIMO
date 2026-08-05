@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
         /// Creates a new paragraph style instance.
         /// </summary>
         public PowerPointParagraphStyle(
-            A.TextAlignmentTypeValues? alignment = null,
+            PowerPointTextAlignment? alignment = null,
             int? level = null,
             double? indentPoints = null,
             double? leftMarginPoints = null,
@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Paragraph alignment.
         /// </summary>
-        public A.TextAlignmentTypeValues? Alignment { get; }
+        public PowerPointTextAlignment? Alignment { get; }
 
         /// <summary>
         /// Bullet/list level (0-8).
@@ -132,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Returns a copy with a new alignment.
         /// </summary>
-        public PowerPointParagraphStyle WithAlignment(A.TextAlignmentTypeValues alignment) {
+        public PowerPointParagraphStyle WithAlignment(PowerPointTextAlignment alignment) {
             return new PowerPointParagraphStyle(alignment, Level, IndentPoints, LeftMarginPoints, HangingPoints,
                 LineSpacingPoints, LineSpacingMultiplier, SpaceBeforePoints, SpaceAfterPoints);
         }

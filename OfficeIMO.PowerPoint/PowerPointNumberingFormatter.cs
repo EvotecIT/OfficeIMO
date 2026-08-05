@@ -26,25 +26,26 @@ public static class PowerPointNumberingFormatter {
     /// <summary>
     /// Formats a one-based numbering value with the punctuation and casing defined by a PowerPoint numbering scheme.
     /// </summary>
-    public static string FormatMarker(int number, A.TextAutoNumberSchemeValues? scheme) {
-        string value = FormatNumberValue(number, scheme);
-        if (IsParenthesizedOnBothSides(scheme)) {
+    public static string FormatMarker(int number, PowerPointNumberingScheme? scheme) {
+        A.TextAutoNumberSchemeValues? openXmlScheme = scheme?.ToOpenXml();
+        string value = FormatNumberValue(number, openXmlScheme);
+        if (IsParenthesizedOnBothSides(openXmlScheme)) {
             return "(" + value + ")";
         }
 
-        if (IsParenthesizedOnRight(scheme)) {
+        if (IsParenthesizedOnRight(openXmlScheme)) {
             return value + ")";
         }
 
-        if (IsPlainNumbering(scheme)) {
+        if (IsPlainNumbering(openXmlScheme)) {
             return value;
         }
 
-        if (IsMinusNumbering(scheme)) {
+        if (IsMinusNumbering(openXmlScheme)) {
             return value + "-";
         }
 
-        if (IsDoubleBytePeriodNumbering(scheme)) {
+        if (IsDoubleBytePeriodNumbering(openXmlScheme)) {
             return value + "．";
         }
 

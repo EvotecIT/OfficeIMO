@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, -1);
             sheet.CellValue(2, 3, 1);
-            sheet.AddSparklines("A1:C1", "D1", SparklineTypeValues.Column, displayNegative: true, displayAxis: true, seriesColor: "#16A34A", negativeColor: "#DC2626", axisColor: "#6B7280");
-            sheet.AddSparklines("A2:C2", "D2", SparklineTypeValues.Stacked, displayNegative: true, displayAxis: true, seriesColor: "#0EA5E9", negativeColor: "#DC2626", axisColor: "#6B7280");
+            sheet.AddSparklines("A1:C1", "D1", ExcelSparklineType.Column, displayNegative: true, displayAxis: true, seriesColor: "#16A34A", negativeColor: "#DC2626", axisColor: "#6B7280");
+            sheet.AddSparklines("A2:C2", "D2", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: "#0EA5E9", negativeColor: "#DC2626", axisColor: "#6B7280");
 
             ExcelRange range = sheet.Range("A1:D2");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, 0);
             sheet.CellValue(2, 2, 50);
             sheet.CellValue(2, 3, 100);
-            sheet.AddSparklines("A1:C2", "D1:D2", SparklineTypeValues.Column, seriesColor: "#2563EB");
+            sheet.AddSparklines("A1:C2", "D1:D2", ExcelSparklineType.Column, seriesColor: "#2563EB");
 
             ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:D2").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, 0);
             sheet.CellValue(2, 2, 50);
             sheet.CellValue(2, 3, 100);
-            sheet.AddSparklines("A1:C2", "D1:D2", SparklineTypeValues.Column, seriesColor: "#2563EB");
+            sheet.AddSparklines("A1:C2", "D1:D2", ExcelSparklineType.Column, seriesColor: "#2563EB");
 
             ExcelVisualSparkline visible = Assert.Single(sheet.Range("D1:D1").CreateVisualSnapshot().Sparklines);
 
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("BoundedGroupScale");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(7, 1, 1000);
-            sheet.AddSparklines("A1:XFC7", "XFD1:XFD7", SparklineTypeValues.Column, seriesColor: "#2563EB");
+            sheet.AddSparklines("A1:XFC7", "XFD1:XFD7", ExcelSparklineType.Column, seriesColor: "#2563EB");
 
             ExcelVisualSparkline visible = Assert.Single(sheet.Range("XFD1:XFD1").CreateVisualSnapshot().Sparklines);
 

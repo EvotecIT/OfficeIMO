@@ -7,7 +7,7 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-The repository source is on the coordinated `3.1.x` line; the latest NuGet release is `3.0.3`. Keep every OfficeIMO package in one application on the same published compatibility line and perform a clean restore after changing versions.
+OfficeIMO 3.1 is a coordinated breaking release. Upgrade every OfficeIMO package in an application to the same published `3.1.x` version and perform a clean restore after changing versions.
 
 | Version in the application | Upgrade path |
 | --- | --- |
@@ -27,6 +27,76 @@ The repository source is on the coordinated `3.1.x` line; the latest NuGet relea
 | Cryptographic operations reached through a format package's transitive `OfficeIMO.Security` dependency | Install `OfficeIMO.Security` explicitly and pass `OfficeSecurityProvider.Default` through the format API. |
 
 There is no replacement umbrella OpenDocument PDF package. The focused packages keep Word, Excel, and PowerPoint dependencies out of applications that do not use those routes.
+
+### OpenXML value types are now OfficeIMO enums
+
+OpenXML SDK 3 changed schema value types such as `SectionMarkValues` from CLR enums into generated value structs. Those structs work as OpenXML serialization values, but they are poor high-level API contracts: PowerShell cannot bind them like enums, and applications become coupled to an SDK implementation detail.
+
+OfficeIMO 3.1 public APIs therefore accept and return OfficeIMO-owned CLR enums. This is an intentional breaking change. Remove `DocumentFormat.OpenXml` imports that were used only to select a high-level OfficeIMO option, and use the corresponding `Word*`, `PowerPoint*`, or `Excel*` enum. Direct package-element editing can still use OpenXML SDK types at that low level.
+
+Common Word changes are:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `document.AddSection(SectionMarkValues.Continuous)` | `document.AddSection(WordSectionBreakType.Continuous)` |
+| `paragraph.AddBreak(BreakValues.Page)` | `paragraph.AddBreak(WordBreakType.Page)` |
+| `paragraph.SetUnderline(UnderlineValues.Double)` | `paragraph.SetUnderline(WordUnderlineStyle.Double)` |
+| `paragraph.SetAlignment(JustificationValues.Center)` | `paragraph.SetAlignment(WordParagraphAlignment.Center)` |
+| `section.GetOrCreateHeader(HeaderFooterValues.First)` | `section.GetOrCreateHeader(WordHeaderFooterType.First)` |
+| `PageOrientationValues` | `WordPageOrientation` |
+| `NumberFormatValues` | `WordNumberFormat` |
+| `BorderValues` | `WordBorderStyle` |
+| `HighlightColorValues` | `WordHighlightColor` |
+| `ShadingPatternValues` | `WordShadingPattern` |
+| `TabStopValues` / `TabStopLeaderCharValues` | `WordTabAlignment` / `WordTabLeader` |
+| `TableLayoutValues` / `TableOverlapValues` | `WordTableLayoutMode` / `WordTableOverlap` |
+| `TableRowAlignmentValues` / `TableWidthUnitValues` | `WordTableAlignment` / `WordTableWidthUnit` |
+| `TableVerticalAlignmentValues` / `TextDirectionValues` | `WordTableVerticalAlignment` / `WordTextDirection` |
+| `HorizontalRelativePositionValues` / `VerticalRelativePositionValues` | `WordHorizontalRelativePosition` / `WordVerticalRelativePosition` |
+| `HorizontalAnchorValues` / `VerticalAnchorValues` | `WordTableHorizontalAnchor` / `WordTableVerticalAnchor` |
+| `HorizontalAlignmentValues` / `VerticalAlignmentValues` | `WordTableHorizontalAlignment` / `WordTableVerticalPositionAlignment` |
+| `VerticalPositionValues` / `VerticalTextAlignmentValues` | `WordVerticalTextPosition` / `WordVerticalCharacterAlignment` |
+| `DocumentProtectionValues` | `WordDocumentProtectionType` |
+| `FootnotePositionValues` / `EndnotePositionValues` / `RestartNumberValues` | `WordFootnotePosition` / `WordEndnotePosition` / `WordNoteNumberRestart` |
+| `LevelJustificationValues` / `LevelSuffixValues` | `WordListLevelAlignment` / `WordListLevelSuffix` |
+| `ShapeTypeValues` / `BlipCompressionValues` / `BlackWhiteModeValues` | `WordImageShapeType` / `WordImageCompressionQuality` / `WordImageBlackWhiteMode` |
+| chart `BarDirectionValues`, `BarGroupingValues`, and `LegendPositionValues` | `WordChartBarDirection`, `WordChartBarGrouping`, and `WordChartLegendPosition` |
+
+PowerPoint uses the same rule:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `AddSlideWithLayoutType(...)` / `SetLayoutWithType(...)` / `GetLayoutIndexWithType(...)` | `AddSlide(...)` / `SetLayout(...)` / `GetLayoutIndex(...)` with `PowerPointSlideLayoutType` |
+| `SlideLayoutValues` | `PowerPointSlideLayoutType` |
+| `ShapeTypeValues` | `PowerPointShapeType` |
+| `TextAlignmentTypeValues` / `TextAnchoringTypeValues` / `TextVerticalValues` | `PowerPointTextAlignment` / `PowerPointTextVerticalAlignment` / `PowerPointTextDirection` |
+| `TextAutoNumberSchemeValues` / `TextUnderlineValues` | `PowerPointNumberingScheme` / `PowerPointUnderlineStyle` |
+| `LineEndValues` / `LineEndLengthValues` / `LineEndWidthValues` | `PowerPointLineEndType` / `PowerPointLineEndLength` / `PowerPointLineEndWidth` |
+| `PresetLineDashValues` / `RectangleAlignmentValues` | `PowerPointLineDashStyle` / `PowerPointRectangleAlignment` |
+| `PlaceholderValues` / `PlaceholderSizeValues` / `DirectionValues` | `PowerPointPlaceholderType` / `PowerPointPlaceholderSize` / `PowerPointPlaceholderDirection` |
+| `SlideSizeValues` | `PowerPointSlideSizeType` |
+| chart `BuiltInUnitValues`, `CrossBetweenValues`, `CrossesValues`, and `TickLabelPositionValues` | `PowerPointChartDisplayUnit`, `PowerPointChartAxisCrossBetween`, `PowerPointChartAxisCrossing`, and `PowerPointChartTickLabelPosition` |
+| chart `DataLabelPositionValues`, `GroupingValues`, `LegendPositionValues`, `MarkerStyleValues`, and `TrendlineValues` | the corresponding `PowerPointChart*` enum |
+
+Excel replacements include:
+
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| --- | --- |
+| `BorderStyleValues` / `HorizontalAlignmentValues` / `VerticalAlignmentValues` | `ExcelBorderStyle` / `ExcelHorizontalAlignment` / `ExcelVerticalAlignment` |
+| `CellValues` / `UnderlineValues` / `VerticalAlignmentRunValues` | `ExcelCellValueType` / `ExcelUnderlineStyle` / `ExcelVerticalTextAlignment` |
+| `ConditionalFormatValues` / `ConditionalFormattingOperatorValues` / `TimePeriodValues` | `ExcelConditionalFormatType` / `ExcelConditionalFormattingOperator` / `ExcelConditionalTimePeriod` |
+| `DataValidationErrorStyleValues` / `DataValidationOperatorValues` | `ExcelDataValidationErrorStyle` / `ExcelDataValidationOperator` |
+| `IconSetValues` | `ExcelIconSet` |
+| `SparklineTypeValues` | `ExcelSparklineType` |
+| `TotalsRowFunctionValues` | `ExcelTableTotalsFunction` |
+| `DataConsolidateFunctionValues` / `FieldSortValues` / `GroupByValues` | `ExcelPivotDataFunction` / `ExcelPivotFieldSort` / `ExcelPivotGroupBy` |
+| `PivotFilterValues` / `PivotTableAxisValues` / `ShowDataAsValues` | `ExcelPivotFilterType` / `ExcelPivotTableAxis` / `ExcelPivotShowDataAs` |
+| chart `BuiltInUnitValues`, `CrossBetweenValues`, `CrossesValues`, and `TickLabelPositionValues` | `ExcelChartDisplayUnit`, `ExcelChartAxisCrossBetween`, `ExcelChartAxisCrossing`, and `ExcelChartTickLabelPosition` |
+| chart `DataLabelPositionValues`, `LegendPositionValues`, `MarkerStyleValues`, and `TrendlineValues` | the corresponding `ExcelChart*` enum |
+
+The OpenXML member named `ShowDataAsValues.PercentOfRaw` serializes the token `percentOfRow`. OfficeIMO exposes the corrected spelling `ExcelPivotShowDataAs.PercentOfRow`.
+
+`OfficeIMO.Markup` now emits the same OfficeIMO-owned enums in generated C#. Its PowerShell starter output uses canonical PSWriteOffice commands and string enum member names so it remains compatible with the packaged module's isolated dependency context. Regenerate previously emitted starter code, review any emitted `TODO` comments for chart-data binding, or replace remaining `DocumentFormat.OpenXml.*Values` arguments with the matching enum above before compiling or running against 3.1.
 
 ### Optional security provider
 

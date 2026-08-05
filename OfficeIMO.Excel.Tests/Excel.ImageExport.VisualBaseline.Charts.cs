@@ -101,8 +101,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Chart Axis Label Density");
             sheet.Range("A1:H1").Merge();
             sheet.Range("A1:H1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
-            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
+            sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
+            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
 
             sheet.CellValue(2, 1, "Month");
             sheet.CellValue(2, 2, "Actual");
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
 
             ExcelChart chart = sheet.AddChartFromRange("A2:B6", row: 2, column: 4, widthPixels: 340, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Axis Label Density");
             chart.SetValueAxisNumberFormat("#,##0");
-            chart.SetLegend(LegendPositionValues.Bottom);
+            chart.SetLegend(ExcelChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {
                 sheet.SetColumnWidth(column, column <= 2 ? 13 : 11);
@@ -132,8 +132,8 @@ namespace OfficeIMO.Tests {
 
             for (int row = 1; row <= 10; row++) {
                 for (int column = 1; column <= 8; column++) {
-                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
-                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
                 }
             }
 
@@ -148,8 +148,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Data Label Box Fidelity");
             sheet.Range("A1:H1").Merge();
             sheet.Range("A1:H1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
-            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
+            sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
+            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
 
             sheet.CellValue(2, 1, "Month");
             sheet.CellValue(2, 2, "Actual");
@@ -169,11 +169,11 @@ namespace OfficeIMO.Tests {
                 showSeriesName: false,
                 showLegendKey: false,
                 showPercent: false,
-                position: DataLabelPositionValues.OutsideEnd,
+                position: ExcelChartDataLabelPosition.OutsideEnd,
                 numberFormat: "0");
             chart.SetDataLabelShapeStyle(fillColor: "FDE68A", lineColor: "B45309", lineWidthPoints: 1.5D);
             chart.SetDataLabelTextStyle(color: "7C2D12", bold: true);
-            chart.SetLegend(LegendPositionValues.Bottom);
+            chart.SetLegend(ExcelChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {
                 sheet.SetColumnWidth(column, column <= 2 ? 13 : 11);
@@ -183,8 +183,8 @@ namespace OfficeIMO.Tests {
             for (int row = 2; row <= 10; row++) {
                 sheet.SetRowHeight(row, 24);
                 for (int column = 1; column <= 8; column++) {
-                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
-                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
                 }
             }
 

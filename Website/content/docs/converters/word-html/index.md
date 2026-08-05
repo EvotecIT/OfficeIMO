@@ -145,7 +145,7 @@ document.Save();
 document.AddHeadersAndFooters();
 document.AddHtmlToHeader(
     "<p style='text-align: center;'>Company Header</p>",
-    HeaderFooterValues.Default
+    WordHeaderFooterType.Default
 );
 ```
 
@@ -154,7 +154,7 @@ document.AddHtmlToHeader(
 ```csharp
 document.AddHtmlToFooter(
     "<p style='font-size: 8pt; color: gray;'>Confidential</p>",
-    HeaderFooterValues.Default
+    WordHeaderFooterType.Default
 );
 ```
 

@@ -1477,7 +1477,7 @@ public partial class Word {
         chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
         chart.AddBar("HiddenLegend", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
         chart.AddBar("VisibleLegend", new[] { 12, 24 }, OfficeColor.ParseHex("#70ad47"));
-        chart.AddLegend(LegendPositionValues.Right);
+        chart.AddLegend(WordChartLegendPosition.Right);
 
         ChartPart chartPart = (ChartPart)typeof(WordChart)
             .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
@@ -1892,7 +1892,7 @@ public partial class Word {
                 .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
                 .GetValue(chart)!;
             chartPart.ChartSpace!.Descendants<Legend>().ToList().ForEach(legend => legend.Remove());
-            chart.AddLegend(LegendPositionValues.Bottom);
+            chart.AddLegend(WordChartLegendPosition.Bottom);
             document.AddParagraph("After bottom legend chart");
 
             object snapshot = CreateNativeWordChartSnapshot(chart);
@@ -1926,7 +1926,7 @@ public partial class Word {
                 .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
                 .GetValue(chart)!;
             chartPart.ChartSpace!.Descendants<Legend>().ToList().ForEach(legend => legend.Remove());
-            chart.AddLegend(LegendPositionValues.Left);
+            chart.AddLegend(WordChartLegendPosition.Left);
             document.AddParagraph("After left legend chart");
 
             object snapshot = CreateNativeWordChartSnapshot(chart);

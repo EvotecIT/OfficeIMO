@@ -86,7 +86,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Placeholder type associated with the shape, if any.
         /// </summary>
-        public PlaceholderValues? ShapePlaceholderType => GetPlaceholderShape()?.Type?.Value;
+        public PowerPointPlaceholderType? ShapePlaceholderType => GetPlaceholderShape()?.Type?.Value.ToOfficeEnum();
 
         /// <summary>
         ///     Placeholder index associated with the shape, if any.
@@ -96,13 +96,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Preferred placeholder size associated with the shape, if any.
         /// </summary>
-        public PlaceholderSizeValues? ShapePlaceholderSize => GetPlaceholderShape()?.Size?.Value;
+        public PowerPointPlaceholderSize? ShapePlaceholderSize => GetPlaceholderShape()?.Size?.Value.ToOfficeEnum();
 
         /// <summary>
         ///     Placeholder orientation associated with the shape, if any.
         /// </summary>
-        public DirectionValues? ShapePlaceholderOrientation =>
-            GetPlaceholderShape()?.Orientation?.Value;
+        public PowerPointPlaceholderDirection? ShapePlaceholderOrientation =>
+            GetPlaceholderShape()?.Orientation?.Value.ToOfficeEnum();
 
         /// <summary>
         ///     Primary content type represented by this shape wrapper.

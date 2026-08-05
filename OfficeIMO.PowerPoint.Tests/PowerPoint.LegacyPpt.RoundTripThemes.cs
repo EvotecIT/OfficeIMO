@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
                 });
             presentation.SetThemeLatinFontsForAllMasters(
                 "Aptos Display", "Aptos");
-            presentation.AddSlide(P.SlideLayoutValues.Blank);
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank);
 
             LegacyPptWritePreflightReport preflight = presentation
                 .AnalyzeLegacyPptWrite();
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointPresentation presentation =
                    PowerPointPresentation.Create()) {
-                presentation.AddSlide(P.SlideLayoutValues.Blank);
+                presentation.AddSlide(PowerPointSlideLayoutType.Blank);
                 bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
             }
 
@@ -347,8 +347,8 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
-                created.AddSlide(P.SlideLayoutValues.Blank);
-                created.AddSlide(P.SlideLayoutValues.Blank);
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
@@ -575,7 +575,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             A.ThemeElements sourceElements = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.First().ThemePart!.Theme!
                 .ThemeElements!;
@@ -597,7 +597,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             slide.Notes.Text = text;
             NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart!;
             A.ThemeElements sourceElements = presentation.OpenXmlDocument

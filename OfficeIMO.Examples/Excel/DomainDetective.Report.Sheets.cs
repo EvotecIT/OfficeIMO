@@ -202,7 +202,7 @@ namespace OfficeIMO.Examples.Excel {
             }, visuals: v => {
                 v.NumericColumnDecimals["Value"] = 2;
                 v.IconSets["Value"] = new IconSetOptions {
-                    IconSet = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeSymbols,
+                    IconSet = ExcelIconSet.ThreeSymbols,
                     ShowValue = true,
                     ReverseOrder = false,
                     PercentThresholds = new double[] { 0, 60, 85 }

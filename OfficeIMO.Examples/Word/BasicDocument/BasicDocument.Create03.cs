@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.FontFamilyHighAnsi = "Calibri Light";
                 document.Settings.Language = "pt-Br";
 
-                document.Settings.ZoomPreset = PresetZoomValues.BestFit;
+                document.Settings.ZoomPreset = WordZoomPreset.BestFit;
 
                 Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Examples.Word {
 
                 string title = "INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL";
 
-                document.AddParagraph(title).SetBold().ParagraphAlignment = JustificationValues.Center;
+                document.AddParagraph(title).SetBold().ParagraphAlignment = WordParagraphAlignment.Center;
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

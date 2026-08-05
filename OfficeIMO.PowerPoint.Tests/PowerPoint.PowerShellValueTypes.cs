@@ -26,13 +26,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                int textLayout = presentation.GetLayoutIndexWithType(PowerPointSlideLayoutType.Text);
-                PowerPointSlide slide = presentation.AddSlideWithLayoutType(PowerPointSlideLayoutType.Text);
+                int textLayout = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
+                PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
 
                 Assert.Equal(textLayout, slide.LayoutIndex);
-                Assert.Contains(presentation.GetSlideLayouts(), layout => layout.LayoutType == PowerPointSlideLayoutType.Text);
-                slide.SetLayoutWithType(PowerPointSlideLayoutType.Blank);
-                Assert.Equal(presentation.GetLayoutIndexWithType(PowerPointSlideLayoutType.Blank), slide.LayoutIndex);
+                Assert.Contains(presentation.GetSlideLayouts(), layout => layout.Type == PowerPointSlideLayoutType.Text);
+                slide.SetLayout(PowerPointSlideLayoutType.Blank);
+                Assert.Equal(presentation.GetLayoutIndex(PowerPointSlideLayoutType.Blank), slide.LayoutIndex);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 //var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.Circle);
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var pageNumber = footer.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
-                pageNumber.ParagraphAlignment = JustificationValues.Center;
+                pageNumber.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 document.AddPageBreak();
 
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
 
                 var para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
                 para.CapsStyle = CapsStyle.Caps;
-                para.Highlight = HighlightColorValues.DarkMagenta;
+                para.Highlight = WordHighlightColor.DarkMagenta;
 
                 var wordList = document.AddList(WordListStyle.Bulleted);
                 wordList.AddItem("List Item 1");

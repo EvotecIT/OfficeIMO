@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("After T1");
 
             // New section
-            doc.AddSection(SectionMarkValues.NextPage);
+            doc.AddSection(WordSectionBreakType.NextPage);
 
             // Section 2
             doc.AddParagraph("Section2 P1");

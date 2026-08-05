@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word {
                 var firstFooterParagraph = Guard.GetRequiredItem(defaultFooter.Paragraphs, 0, "Default footer should expose the first paragraph after adding one.");
                 firstFooterParagraph.SetFontFamily("Arial");
                 firstFooterParagraph.SetFontSize(7).Bold = false;
-                firstFooterParagraph.ParagraphAlignment = JustificationValues.Right;
+                firstFooterParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
                 firstFooterParagraph.Text = "SMA.5.doc 04/10/19";
                 firstFooterParagraph.LineSpacingAfter = 0;
                 firstFooterParagraph.LineSpacingBefore = 0;
@@ -50,19 +50,19 @@ namespace OfficeIMO.Examples.Word {
                 var secondFooterParagraph = Guard.GetRequiredItem(defaultFooter.Paragraphs, 1, "Default footer should expose the second paragraph after adding two paragraphs.");
                 secondFooterParagraph.SetFontFamily("Arial");
                 secondFooterParagraph.SetFontSize(7).Bold = false;
-                secondFooterParagraph.ParagraphAlignment = JustificationValues.Center;
+                secondFooterParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 secondFooterParagraph.Text = "My address";
                 secondFooterParagraph.LineSpacingAfter = 0;
                 secondFooterParagraph.LineSpacingBefore = 0;
 
                 var par00 = document.AddParagraph("My text");
-                par00.ParagraphAlignment = JustificationValues.Left;
+                par00.ParagraphAlignment = WordParagraphAlignment.Left;
                 par00.SetFontFamily("Arial").SetFontSize(10).Bold = true;
                 par00.LineSpacingAfter = 0;
                 par00.LineSpacingBefore = 0;
 
                 var par01 = document.AddParagraph("My declaration");
-                par01.ParagraphAlignment = JustificationValues.Left;
+                par01.ParagraphAlignment = WordParagraphAlignment.Left;
                 par01.SetFontFamily("Arial").SetFontSize(10).Bold = true;
                 par01.LineSpacingAfter = 0;
                 par01.LineSpacingBefore = 0;

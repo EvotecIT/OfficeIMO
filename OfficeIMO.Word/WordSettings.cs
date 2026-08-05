@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set Protection Type for the document
         /// </summary>
-        public DocumentProtectionValues? ProtectionType {
+        public WordDocumentProtectionType? ProtectionType {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart?
                     .DocumentSettingsPart?.Settings;
@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
                         .OfType<DocumentProtection>()
                         .FirstOrDefault();
                     if (documentProtection != null) {
-                        return documentProtection.Edit?.Value;
+                        return documentProtection.Edit?.Value.ToOfficeEnum();
                     }
                 }
 
@@ -52,7 +52,7 @@ namespace OfficeIMO.Word {
                     .OfType<DocumentProtection>()
                     .FirstOrDefault();
                 if (documentProtection != null) {
-                    documentProtection.Edit = value;
+                    documentProtection.Edit = value?.ToOpenXml();
                 } else {
                     throw new InvalidOperationException("Please first set password using 'ProtectionPassword' property before setting up encryption type.");
                 }
@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Sets document protection using an OfficeIMO-owned value.</summary>
         public WordSettings SetProtectionType(WordDocumentProtectionType protectionType) {
-            ProtectionType = protectionType.ToOpenXml();
+            ProtectionType = protectionType;
             return this;
         }
 
@@ -77,14 +77,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set Zoom Preset for the document
         /// </summary>
-        public PresetZoomValues? ZoomPreset {
+        public WordZoomPreset? ZoomPreset {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart?
                     .DocumentSettingsPart?.Settings;
                 if (settings?.Zoom?.Val == null) {
                     return null;
                 }
-                return settings.Zoom.Val;
+                return settings.Zoom.Val.Value.ToOfficeEnum();
 
             }
             set {
@@ -96,14 +96,14 @@ namespace OfficeIMO.Word {
                 if (settings.Zoom == null) {
                     settings.Zoom = new Zoom();
                 }
-                settings.Zoom.Val = value;
+                settings.Zoom.Val = value?.ToOpenXml();
             }
         }
 
         /// <summary>
         /// Get or set Character Spacing Control
         /// </summary>
-        public CharacterSpacingValues? CharacterSpacingControl {
+        public WordCharacterSpacing? CharacterSpacingControl {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart?
                     .DocumentSettingsPart?.Settings;
@@ -114,7 +114,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                return characterSpacingControl.Val?.Value;
+                return characterSpacingControl.Val?.Value.ToOfficeEnum();
 
             }
             set {
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
                     characterSpacingControl = new CharacterSpacingControl();
                     settings.Append(characterSpacingControl);
                 }
-                characterSpacingControl.Val = value;
+                characterSpacingControl.Val = value?.ToOpenXml();
             }
         }
 

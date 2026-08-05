@@ -46,10 +46,10 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             Assert.True(result.Document.SourceFormat == WordFileFormat.Doc);
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "First Word COM paragraph");
-            Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "Centered Word COM paragraph" && paragraph.ParagraphAlignment == JustificationValues.Center);
-            Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "Right Word COM paragraph" && paragraph.ParagraphAlignment == JustificationValues.Right);
+            Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "Centered Word COM paragraph" && paragraph.ParagraphAlignment == WordParagraphAlignment.Center);
+            Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "Right Word COM paragraph" && paragraph.ParagraphAlignment == WordParagraphAlignment.Right);
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "bold Word COM paragraph" && paragraph.Bold);
-            Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "underlined red Word COM paragraph" && paragraph.Underline == UnderlineValues.Single);
+            Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "underlined red Word COM paragraph" && paragraph.Underline == WordUnderlineStyle.Single);
 
             result.Document.Save(nativeDocPath);
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native DOC output did not open through desktop Word.");

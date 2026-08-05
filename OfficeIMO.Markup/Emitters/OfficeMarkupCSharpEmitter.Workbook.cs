@@ -4,7 +4,6 @@ public sealed partial class OfficeMarkupCSharpEmitter {
     private static void EmitWorkbook(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
         sb.AppendLine("using OfficeIMO.Excel;");
         sb.AppendLine("using OfficeIMO.Excel.Enums;");
-        sb.AppendLine("using C = DocumentFormat.OpenXml.Drawing.Charts;");
         sb.AppendLine();
         sb.AppendLine($"using ExcelDocument workbook = ExcelDocument.Create({options.FilePathVariable});");
         sb.AppendLine("ExcelSheet? sheet = null;");
@@ -112,11 +111,11 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             }
 
             if (TryGetHorizontalAlignmentIdentifier(alignment, out var alignmentIdentifier)) {
-                sb.AppendLine($"{sheetExpression}.CellAlign({row}, {column}, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.{alignmentIdentifier});");
+                sb.AppendLine($"{sheetExpression}.CellAlign({row}, {column}, ExcelHorizontalAlignment.{alignmentIdentifier});");
             }
 
             if (TryGetVerticalAlignmentIdentifier(verticalAlignment, out var verticalAlignmentIdentifier)) {
-                sb.AppendLine($"{sheetExpression}.CellVerticalAlign({row}, {column}, DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.{verticalAlignmentIdentifier});");
+                sb.AppendLine($"{sheetExpression}.CellVerticalAlign({row}, {column}, ExcelVerticalAlignment.{verticalAlignmentIdentifier});");
             }
 
             if (!string.IsNullOrWhiteSpace(wrap) && IsTruthy(wrap!)) {
@@ -127,7 +126,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
                 var borderColorArgument = !string.IsNullOrWhiteSpace(borderColor)
                     ? $", {CsString(borderColor!)}"
                     : string.Empty;
-                sb.AppendLine($"{sheetExpression}.CellBorder({row}, {column}, DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.{borderStyleIdentifier}{borderColorArgument});");
+                sb.AppendLine($"{sheetExpression}.CellBorder({row}, {column}, ExcelBorderStyle.{borderStyleIdentifier}{borderColorArgument});");
             }
         }
     }

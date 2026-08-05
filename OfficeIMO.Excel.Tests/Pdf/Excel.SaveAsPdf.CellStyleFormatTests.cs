@@ -384,7 +384,7 @@ public partial class Excel {
             sheet.Cell(2, 1, 0);
             sheet.Cell(3, 1, 50);
             sheet.Cell(4, 1, 100);
-            sheet.AddConditionalIconSet("A2:A4", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("A2:A4", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("IconSet", rule.Type);
@@ -426,9 +426,9 @@ public partial class Excel {
             sheet.Cell(1, 2, "ZZ");
             sheet.Cell(2, 1, "Reference");
             sheet.Cell(2, 2, "LeftInColumn");
-            sheet.CellAlign(1, 2, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
-            sheet.CellVerticalAlign(1, 2, DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.Bottom);
-            sheet.CellBorder(1, 2, DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Medium, "445566");
+            sheet.CellAlign(1, 2, ExcelHorizontalAlignment.Right);
+            sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Bottom);
+            sheet.CellBorder(1, 2, ExcelBorderStyle.Medium, "445566");
 
             ExcelCellStyleSnapshot style = sheet.CellAt(1, 2).GetStyle();
             Assert.Equal("right", style.HorizontalAlignment);
@@ -472,9 +472,9 @@ public partial class Excel {
             sheet.Cell(1, 1, "Dashed");
             sheet.Cell(1, 2, "Dotted");
             sheet.Cell(1, 3, "DashDot");
-            sheet.CellBorder(1, 1, BorderStyleValues.Dashed, "123456");
-            sheet.CellBorder(1, 2, BorderStyleValues.Dotted, "654321");
-            sheet.CellBorder(1, 3, BorderStyleValues.MediumDashDot, "445566");
+            sheet.CellBorder(1, 1, ExcelBorderStyle.Dashed, "123456");
+            sheet.CellBorder(1, 2, ExcelBorderStyle.Dotted, "654321");
+            sheet.CellBorder(1, 3, ExcelBorderStyle.MediumDashDot, "445566");
 
             Assert.Equal("dashed", sheet.CellAt(1, 1).GetStyle().Border!.Left!.Style);
             Assert.Equal("dotted", sheet.CellAt(1, 2).GetStyle().Border!.Left!.Style);
@@ -513,8 +513,8 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Double");
             sheet.Cell(1, 2, "Diagonal");
-            sheet.CellBorder(1, 1, BorderStyleValues.Double, "123456");
-            sheet.CellDiagonalBorder(1, 2, BorderStyleValues.Double, "654321", diagonalUp: true, diagonalDown: true);
+            sheet.CellBorder(1, 1, ExcelBorderStyle.Double, "123456");
+            sheet.CellDiagonalBorder(1, 2, ExcelBorderStyle.Double, "654321", diagonalUp: true, diagonalDown: true);
 
             ExcelCellStyleSnapshot doubleStyle = sheet.CellAt(1, 1).GetStyle();
             Assert.Equal("double", doubleStyle.Border!.Top!.Style);

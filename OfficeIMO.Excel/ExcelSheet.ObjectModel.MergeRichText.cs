@@ -105,8 +105,8 @@ namespace OfficeIMO.Excel {
                     var properties = new RunProperties();
                     if (run.Bold) properties.Append(new Bold());
                     if (run.Italic) properties.Append(new Italic());
-                    if (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != UnderlineValues.None) {
-                        properties.Append(new Underline { Val = run.UnderlineStyle.Value });
+                    if (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != ExcelUnderlineStyle.None) {
+                        properties.Append(new Underline { Val = run.UnderlineStyle.Value.ToOpenXml() });
                     } else if (run.Underline) {
                         properties.Append(new Underline());
                     }

@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers4.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var para = document.HeaderDefaultOrCreate.AddParagraph();
-                para.ParagraphAlignment = JustificationValues.Center;
+                para.ParagraphAlignment = WordParagraphAlignment.Center;
                 para.AddPageNumber();
 
                 document.Save();

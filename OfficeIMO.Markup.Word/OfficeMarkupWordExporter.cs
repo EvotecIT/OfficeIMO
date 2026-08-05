@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
@@ -273,22 +272,22 @@ internal sealed class OfficeMarkupWordExporter {
             _ => WordParagraphStyles.Heading9
         };
 
-    private static SectionMarkValues? ParseSectionMark(IDictionary<string, string> attributes) {
+    private static WordSectionBreakType ParseSectionMark(IDictionary<string, string> attributes) {
         var value = GetAttribute(attributes, "break") ?? GetAttribute(attributes, "sectionBreak");
         return Normalize(value) switch {
-            "continuous" => SectionMarkValues.Continuous,
-            "evenpage" => SectionMarkValues.EvenPage,
-            "oddpage" => SectionMarkValues.OddPage,
-            _ => SectionMarkValues.NextPage
+            "continuous" => WordSectionBreakType.Continuous,
+            "evenpage" => WordSectionBreakType.EvenPage,
+            "oddpage" => WordSectionBreakType.OddPage,
+            _ => WordSectionBreakType.NextPage
         };
     }
 
-    private static HeaderFooterValues ParseHeaderFooterType(IDictionary<string, string> attributes) {
+    private static WordHeaderFooterType ParseHeaderFooterType(IDictionary<string, string> attributes) {
         var value = Normalize(GetAttribute(attributes, "type") ?? GetAttribute(attributes, "kind"));
         return value switch {
-            "first" or "firstpage" => HeaderFooterValues.First,
-            "even" or "evenpage" => HeaderFooterValues.Even,
-            _ => HeaderFooterValues.Default
+            "first" or "firstpage" => WordHeaderFooterType.First,
+            "even" or "evenpage" => WordHeaderFooterType.Even,
+            _ => WordHeaderFooterType.Default
         };
     }
 

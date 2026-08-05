@@ -293,7 +293,7 @@ namespace OfficeIMO.Excel {
 
                 var dataFieldList = ToNonNullList(dataFields);
                 if (dataFieldList.Count == 0) {
-                    dataFieldList.Add(new ExcelPivotDataField(headers[headers.Count - 1], DataConsolidateFunctionValues.Sum));
+                    dataFieldList.Add(new ExcelPivotDataField(headers[headers.Count - 1], ExcelPivotDataFunction.Sum));
                 }
                 var pivotFilterList = ToNonNullList(pivotFilters);
                 var generatedFieldsBySource = BuildGeneratedPivotGroupingFieldMap(generatedGroupingFields);
@@ -516,11 +516,11 @@ namespace OfficeIMO.Excel {
                     var dataField = new DataField {
                         Name = display,
                         Field = (uint)idx,
-                        Subtotal = df.Function
+                        Subtotal = df.Function.ToOpenXml()
                     };
                     uint? numberFormatId = ResolveNumberFormatId(workbookPart, df.NumberFormatId, df.NumberFormat);
                     if (numberFormatId.HasValue) dataField.NumberFormatId = numberFormatId.Value;
-                    if (df.ShowDataAs.HasValue) dataField.ShowDataAs = df.ShowDataAs.Value;
+                    if (df.ShowDataAs.HasValue) dataField.ShowDataAs = df.ShowDataAs.Value.ToOpenXml();
                     if (df.BaseField.HasValue) dataField.BaseField = df.BaseField.Value;
                     if (df.BaseItem.HasValue) dataField.BaseItem = df.BaseItem.Value;
                     dataFieldsElement.Append(dataField);

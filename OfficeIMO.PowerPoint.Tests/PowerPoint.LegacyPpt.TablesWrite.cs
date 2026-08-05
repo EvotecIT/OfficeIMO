@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 PowerPointTable sourceTable = source
-                    .AddSlide(P.SlideLayoutValues.Blank)
+                    .AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTable(3, 3, PowerPointTableStylePreset.Default,
                         PowerPointUnits.FromPoints(24D),
                         PowerPointUnits.FromPoints(36D),

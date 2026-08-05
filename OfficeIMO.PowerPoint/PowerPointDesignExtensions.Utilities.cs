@@ -136,14 +136,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static void CenterText(PowerPointTextBox textBox) {
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
-                paragraph.Alignment = A.TextAlignmentTypeValues.Center;
+                paragraph.Alignment = PowerPointTextAlignment.Center;
             }
-            textBox.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+            textBox.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
         }
 
         private static void RightAlignText(PowerPointTextBox textBox) {
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
-                paragraph.Alignment = A.TextAlignmentTypeValues.Right;
+                paragraph.Alignment = PowerPointTextAlignment.Right;
             }
         }
 

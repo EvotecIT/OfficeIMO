@@ -38,18 +38,18 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("Some paragraph");
                 paragraph.Bold = true;
                 paragraph = paragraph.AddText(" continue?");
-                paragraph.Underline = UnderlineValues.DashLong;
+                paragraph.Underline = WordUnderlineStyle.DashLong;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 paragraph = document.AddParagraph("2nd paragraph");
                 paragraph.Bold = true;
                 paragraph = paragraph.AddText(" continue?");
-                paragraph.Underline = UnderlineValues.DashLong;
+                paragraph.Underline = WordUnderlineStyle.DashLong;
                 paragraph = paragraph.AddText(" More text");
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
 
@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("2nd paragraph");
                 paragraph.Bold = true;
                 paragraph = paragraph.AddText(" continue?");
-                paragraph.Underline = UnderlineValues.DashLong;
+                paragraph.Underline = WordUnderlineStyle.DashLong;
                 paragraph = paragraph.AddText(" More text");
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
 

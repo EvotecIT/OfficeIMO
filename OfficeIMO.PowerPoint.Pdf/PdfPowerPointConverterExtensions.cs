@@ -694,7 +694,7 @@ public static partial class PowerPointPdfConverterExtensions {
             PptCore.PowerPointTableCell cell = table.GetCell(rowIndex, columnIndex);
             cell.Text = value ?? string.Empty;
             if (alignNumericColumns && data.IsNumericColumn(sourceColumnIndex)) {
-                cell.HorizontalAlignment = A.TextAlignmentTypeValues.Right;
+                cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Right;
             }
         }
     }

@@ -53,7 +53,7 @@ namespace OfficeIMO.Word {
         public WordHeader HeaderDefaultOrCreate {
             get {
                 WarnIfMultipleSections(nameof(HeaderDefaultOrCreate));
-                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default);
+                return this.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
             }
         }
 
@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
         public WordHeader HeaderFirstOrCreate {
             get {
                 WarnIfMultipleSections(nameof(HeaderFirstOrCreate));
-                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.First);
+                return this.Sections[0].GetOrCreateHeader(WordHeaderFooterType.First);
             }
         }
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
         public WordHeader HeaderEvenOrCreate {
             get {
                 WarnIfMultipleSections(nameof(HeaderEvenOrCreate));
-                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.Even);
+                return this.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Even);
             }
         }
 
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word {
         public WordFooter FooterDefaultOrCreate {
             get {
                 WarnIfMultipleSections(nameof(FooterDefaultOrCreate));
-                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.Default);
+                return this.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default);
             }
         }
 
@@ -97,7 +97,7 @@ namespace OfficeIMO.Word {
         public WordFooter FooterFirstOrCreate {
             get {
                 WarnIfMultipleSections(nameof(FooterFirstOrCreate));
-                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.First);
+                return this.Sections[0].GetOrCreateFooter(WordHeaderFooterType.First);
             }
         }
 
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
         public WordFooter FooterEvenOrCreate {
             get {
                 WarnIfMultipleSections(nameof(FooterEvenOrCreate));
-                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.Even);
+                return this.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Even);
             }
         }
 

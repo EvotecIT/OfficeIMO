@@ -102,7 +102,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox chartBounds = PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3,
                 height - 5.7);
             PowerPointChart chart = AddStoryChart(slide, content, chartBounds);
-            chart.SetLegend(LegendPositionValues.Bottom);
+            chart.SetLegend(PowerPointChartLegendPosition.Bottom);
             AddStoryCaption(slide, theme, content.Caption, content.Provenance, 1.55, height - 1.95, width - 3.1);
         }
 
@@ -113,7 +113,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox chartBounds = new PowerPointLayoutBox(columns[0].Left, columns[0].Top,
                 (long)(body.Width * 0.66), columns[0].Height);
             PowerPointChart chart = AddStoryChart(slide, content, chartBounds);
-            chart.SetLegend(LegendPositionValues.Bottom);
+            chart.SetLegend(PowerPointChartLegendPosition.Bottom);
             double railLeft = chartBounds.RightCm + 0.7;
             double railWidth = body.RightCm - railLeft;
             PowerPointAutoShape rail = slide.AddRectangleCm(railLeft, body.TopCm, railWidth, body.HeightCm,

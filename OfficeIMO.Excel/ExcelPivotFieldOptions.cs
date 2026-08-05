@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
         /// <param name="selectedItem">Optional page-field item caption to select.</param>
         public ExcelPivotFieldOptions(
             string fieldName,
-            FieldSortValues? sortType = null,
+            ExcelPivotFieldSort? sortType = null,
             uint? numberFormatId = null,
             string? numberFormat = null,
             bool? showAll = null,
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the optional pivot field sort mode.
         /// </summary>
-        public FieldSortValues? SortType { get; }
+        public ExcelPivotFieldSort? SortType { get; }
 
         /// <summary>
         /// Gets the optional number format id.

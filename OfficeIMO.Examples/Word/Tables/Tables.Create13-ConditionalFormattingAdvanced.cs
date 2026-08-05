@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
                     Color.Black,
                     highlightColumns: new[] { "Name" },
                     matchTextFormat: p => p.SetBold(),
-                    noMatchTextFormat: p => p.SetUnderline(UnderlineValues.Single));
+                    noMatchTextFormat: p => p.SetUnderline(WordUnderlineStyle.Single));
 
                 // rule 2: highlight pending tasks using a color object
                 builder.AddRule(
@@ -61,7 +61,7 @@ namespace OfficeIMO.Examples.Word {
                     highlightColumns: new[] { "Name" },
                     matchTextFormat: p => {
                         p.SetBold();
-                        p.SetUnderline(UnderlineValues.Single);
+                        p.SetUnderline(WordUnderlineStyle.Single);
                     });
 
                 builder.Apply();

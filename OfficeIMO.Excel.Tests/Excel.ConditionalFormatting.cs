@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 5d);
                 sheet.CellValue(2, 1, 15d);
-                sheet.AddConditionalRule("A1:A2", ConditionalFormattingOperatorValues.GreaterThan, "10");
+                sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan, "10");
                 document.Save();
             }
 
@@ -130,11 +130,11 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 3, new System.DateTime(2026, 6, 21));
 
                 sheet.AddConditionalUniqueValuesRule("A1:A3");
-                sheet.AddConditionalTextRule("A1:A3", ConditionalFormatValues.ContainsText, "Ready");
+                sheet.AddConditionalTextRule("A1:A3", ExcelConditionalFormatType.ContainsText, "Ready");
                 sheet.AddConditionalBlanksRule("D1:D3");
                 sheet.AddConditionalErrorsRule("E1:E3", containsErrors: false);
                 sheet.AddConditionalAboveAverageRule("B1:B3", aboveAverage: false, equalAverage: true, standardDeviation: 1);
-                sheet.AddConditionalTimePeriodRule("C1:C3", TimePeriodValues.Today);
+                sheet.AddConditionalTimePeriodRule("C1:C3", ExcelConditionalTimePeriod.Today);
                 document.Save();
             }
 
@@ -232,7 +232,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);
-                sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: false, reverseIconOrder: true);
+                sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: false, reverseIconOrder: true);
                 document.Save();
             }
 
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, 3d);
 
                 var tasks = new Task[] {
-                    Task.Run(() => sheet.AddConditionalRule("A1:A3", ConditionalFormattingOperatorValues.GreaterThan, "2")),
+                    Task.Run(() => sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "2")),
                     Task.Run(() => sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Blue)),
                     Task.Run(() => sheet.AddConditionalDataBar("A1:A3", OfficeColor.Green))
                 };

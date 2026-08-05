@@ -14,8 +14,8 @@ namespace OfficeIMO.Examples.Word {
             barChart.AddBar("USA", new List<int> { 10, 35, 18, 23 }, Color.AliceBlue);
             barChart.AddBar("Brazil", new List<int> { 15, 30, 8, 18 }, Color.Brown);
             barChart.AddBar("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
-            barChart.BarGrouping = BarGroupingValues.Clustered;
-            barChart.BarDirection = BarDirectionValues.Column;
+            barChart.BarGrouping = WordChartBarGrouping.Clustered;
+            barChart.BarDirection = WordChartBarDirection.Column;
             document.Save();
 
             var valid = document.ValidateDocument();

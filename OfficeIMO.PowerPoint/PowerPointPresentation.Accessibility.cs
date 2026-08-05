@@ -59,8 +59,8 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointTextBox> textBoxes = shapes.OfType<PowerPointTextBox>()
                 .Where(box => !string.IsNullOrWhiteSpace(box.Text)).ToList();
             PowerPointTextBox? title = textBoxes.FirstOrDefault(box =>
-                box.ShapePlaceholderType == PlaceholderValues.Title ||
-                box.ShapePlaceholderType == PlaceholderValues.CenteredTitle);
+                box.ShapePlaceholderType == PowerPointPlaceholderType.Title ||
+                box.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle);
             title ??= textBoxes.FirstOrDefault(box =>
                 string.Equals(box.Title, "Slide title", StringComparison.OrdinalIgnoreCase));
             title ??= textBoxes.Where(box => box.TopPoints <= slideHeightPoints * 0.32D)

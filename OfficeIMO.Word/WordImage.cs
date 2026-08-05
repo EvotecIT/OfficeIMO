@@ -108,16 +108,16 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the compression quality for embedded images.
         /// </summary>
-        public BlipCompressionValues? CompressionQuality {
+        public WordImageCompressionQuality? CompressionQuality {
             get {
                 var picture = GetPicture();
-                return picture?.BlipFill?.Blip?.CompressionState?.Value;
+                return picture?.BlipFill?.Blip?.CompressionState?.Value.ToOfficeEnum();
             }
             set {
                 var picture = GetPicture();
                 if (picture?.BlipFill?.Blip != null) {
                     if (value.HasValue) {
-                        picture.BlipFill.Blip.CompressionState = value.Value;
+                        picture.BlipFill.Blip.CompressionState = value.Value.ToOpenXml();
                     } else {
                         picture.BlipFill.Blip.CompressionState = null;
                     }
@@ -336,16 +336,16 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the shape type used to display the image.
         /// </summary>
-        public ShapeTypeValues? Shape {
+        public WordImageShapeType? Shape {
             get {
                 var pictureInline = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                 var presetInline = pictureInline?.ShapeProperties?.GetFirstChild<PresetGeometry>()?.Preset?.Value;
-                if (presetInline.HasValue) return presetInline.Value;
+                if (presetInline.HasValue) return presetInline.Value.ToOfficeEnum();
 
                 var anchorGraphic = _Image.Anchor?.OfType<Graphic>().FirstOrDefault();
                 var pictureAnchor = anchorGraphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                 var presetAnchor = pictureAnchor?.ShapeProperties?.GetFirstChild<PresetGeometry>()?.Preset?.Value;
-                if (presetAnchor.HasValue) return presetAnchor.Value;
+                if (presetAnchor.HasValue) return presetAnchor.Value.ToOfficeEnum();
 
                 return null;
             }
@@ -353,12 +353,12 @@ namespace OfficeIMO.Word {
                 if (_Image.Inline != null) {
                     var picture = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     var geom = picture?.ShapeProperties?.GetFirstChild<PresetGeometry>();
-                    if (geom != null) geom.Preset = value;
+                    if (geom != null) geom.Preset = value?.ToOpenXml();
                 } else if (_Image.Anchor != null) {
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
                     var picture = anchorGraphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     var geom = picture?.ShapeProperties?.GetFirstChild<PresetGeometry>();
-                    if (geom != null) geom.Preset = value;
+                    if (geom != null) geom.Preset = value?.ToOpenXml();
                 }
 
             }
@@ -368,16 +368,16 @@ namespace OfficeIMO.Word {
         /// Microsoft Office does not seem to fully support this attribute, and ignores this setting.
         /// More information: http://officeopenxml.com/drwSp-SpPr.php
         /// </summary>
-        public BlackWhiteModeValues? BlackWiteMode {
+        public WordImageBlackWhiteMode? BlackWhiteMode {
             get {
                 var pictureInline = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                 var bwInline = pictureInline?.ShapeProperties?.BlackWhiteMode?.Value;
-                if (bwInline.HasValue) return bwInline.Value;
+                if (bwInline.HasValue) return bwInline.Value.ToOfficeEnum();
 
                 var anchorGraphic = _Image.Anchor?.OfType<Graphic>().FirstOrDefault();
                 var pictureAnchor = anchorGraphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                 var bwAnchor = pictureAnchor?.ShapeProperties?.BlackWhiteMode?.Value;
-                if (bwAnchor.HasValue) return bwAnchor.Value;
+                if (bwAnchor.HasValue) return bwAnchor.Value.ToOfficeEnum();
 
                 return null;
             }
@@ -390,7 +390,7 @@ namespace OfficeIMO.Word {
                             // no change
                         } else {
                             sp.BlackWhiteMode ??= new EnumValue<BlackWhiteModeValues>();
-                            sp.BlackWhiteMode.Value = value.Value;
+                            sp.BlackWhiteMode.Value = value.Value.ToOpenXml();
                         }
                     }
                 } else if (_Image.Anchor != null) {
@@ -402,7 +402,7 @@ namespace OfficeIMO.Word {
                             // no change
                         } else {
                             sp.BlackWhiteMode ??= new EnumValue<BlackWhiteModeValues>();
-                            sp.BlackWhiteMode.Value = value.Value;
+                            sp.BlackWhiteMode.Value = value.Value.ToOpenXml();
                         }
                     }
                 }

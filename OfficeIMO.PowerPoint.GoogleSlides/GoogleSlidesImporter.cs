@@ -105,7 +105,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         if (element.Shape?.Text != null) {
                             string text = ExtractText(element.Shape.Text);
                             PowerPointTextBox box;
-                            if (TryMapShapeType(element.Shape.ShapeType, out A.ShapeTypeValues textShapeType)) {
+                            if (TryMapShapeType(element.Shape.ShapeType, out PowerPointShapeType textShapeType)) {
                                 box = slide.AddTextShapePoints(textShapeType, text, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
                             } else {
                                 box = slide.AddTextBoxPoints(text, left, top, Math.Max(1, width), Math.Max(1, height));
@@ -122,7 +122,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             ApplyShapeStyle(box, element.Shape, report, element.ObjectId);
                             ApplyTextRuns(box, element.Shape.Text);
                         } else if (element.Shape != null) {
-                            if (TryMapShapeType(element.Shape.ShapeType, out A.ShapeTypeValues shapeType)) {
+                            if (TryMapShapeType(element.Shape.ShapeType, out PowerPointShapeType shapeType)) {
                                 PowerPointAutoShape shape = slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
                                 ApplyTransform(shape, geometry);
                                 ApplyShapeStyle(shape, element.Shape, report, element.ObjectId);
@@ -343,17 +343,17 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static string ToHex(GoogleSlidesApiRgbColor color) => $"{ToByte(color.Red):X2}{ToByte(color.Green):X2}{ToByte(color.Blue):X2}";
         private static int ToByte(double component) => Math.Max(0, Math.Min(255, (int)Math.Round(component * 255d)));
         private static int ToTransparency(double alpha) => (int)Math.Round((1d - Math.Max(0d, Math.Min(1d, alpha))) * 100d);
-        private static bool TryMapShapeType(string? shapeType, out A.ShapeTypeValues mapped) {
+        private static bool TryMapShapeType(string? shapeType, out PowerPointShapeType mapped) {
             switch (shapeType) {
-                case "RECTANGLE": mapped = A.ShapeTypeValues.Rectangle; return true;
-                case "ROUND_RECTANGLE": mapped = A.ShapeTypeValues.RoundRectangle; return true;
-                case "ELLIPSE": mapped = A.ShapeTypeValues.Ellipse; return true;
-                case "TRIANGLE": mapped = A.ShapeTypeValues.Triangle; return true;
-                case "RIGHT_TRIANGLE": mapped = A.ShapeTypeValues.RightTriangle; return true;
-                case "PARALLELOGRAM": mapped = A.ShapeTypeValues.Parallelogram; return true;
-                case "TRAPEZOID": mapped = A.ShapeTypeValues.Trapezoid; return true;
-                case "DIAMOND": mapped = A.ShapeTypeValues.Diamond; return true;
-                case "RIGHT_ARROW": mapped = A.ShapeTypeValues.RightArrow; return true;
+                case "RECTANGLE": mapped = PowerPointShapeType.Rectangle; return true;
+                case "ROUND_RECTANGLE": mapped = PowerPointShapeType.RoundRectangle; return true;
+                case "ELLIPSE": mapped = PowerPointShapeType.Ellipse; return true;
+                case "TRIANGLE": mapped = PowerPointShapeType.Triangle; return true;
+                case "RIGHT_TRIANGLE": mapped = PowerPointShapeType.RightTriangle; return true;
+                case "PARALLELOGRAM": mapped = PowerPointShapeType.Parallelogram; return true;
+                case "TRAPEZOID": mapped = PowerPointShapeType.Trapezoid; return true;
+                case "DIAMOND": mapped = PowerPointShapeType.Diamond; return true;
+                case "RIGHT_ARROW": mapped = PowerPointShapeType.RightArrow; return true;
                 default: mapped = default; return false;
             }
         }

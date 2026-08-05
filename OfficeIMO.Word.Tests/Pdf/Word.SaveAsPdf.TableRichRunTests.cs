@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText(" ");
                 paragraph.AddText("CellBold").SetBold();
                 paragraph.AddText(" ");
-                paragraph.AddText("CellMarked").SetHighlight(HighlightColorValues.Yellow);
+                paragraph.AddText("CellMarked").SetHighlight(WordHighlightColor.Yellow);
                 paragraph.AddText(" ");
                 paragraph.AddText("CellLarge").SetFontSize(18);
 

@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.Markdown {
                 paragraph.ShadingFillColorHex = palette.CodeBackground.ToRgbHex();
             }
 
-            paragraph.Borders.LeftStyle = BorderValues.Single;
+            paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             paragraph.Borders.LeftColorHex = palette.Border.ToRgbHex();
             paragraph.Borders.LeftSize = 4;
             foreach (var run in paragraph.GetRuns()) {
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Markdown {
                 paragraph.ShadingFillColorHex = palette.Surface.ToRgbHex();
             }
 
-            paragraph.Borders.LeftStyle = BorderValues.Single;
+            paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             paragraph.Borders.LeftColorHex = palette.Accent.ToRgbHex();
             paragraph.Borders.LeftSize = 8;
             foreach (var run in paragraph.GetRuns()) {
@@ -106,7 +106,7 @@ namespace OfficeIMO.Word.Markdown {
             bool hasVisibleBorder = palette.Border.A > 0 && IsPositiveFinite(tableStyle.BorderWidth);
             string? borderHex = hasVisibleBorder ? palette.Border.ToRgbHex() : null;
             DocumentFormat.OpenXml.UInt32Value borderSize = hasVisibleBorder ? ToWordBorderSize(tableStyle.BorderWidth) : 0U;
-            BorderValues borderStyle = hasVisibleBorder ? BorderValues.Single : BorderValues.None;
+            WordBorderStyle borderStyle = hasVisibleBorder ? WordBorderStyle.Single : WordBorderStyle.None;
             short horizontalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingX);
             short verticalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingY);
 
@@ -183,9 +183,9 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void ApplyAlignment(Omd.ColumnAlignment align, WordParagraph para) {
             switch (align) {
-                case Omd.ColumnAlignment.Left: para.ParagraphAlignment = JustificationValues.Left; break;
-                case Omd.ColumnAlignment.Center: para.ParagraphAlignment = JustificationValues.Center; break;
-                case Omd.ColumnAlignment.Right: para.ParagraphAlignment = JustificationValues.Right; break;
+                case Omd.ColumnAlignment.Left: para.ParagraphAlignment = WordParagraphAlignment.Left; break;
+                case Omd.ColumnAlignment.Center: para.ParagraphAlignment = WordParagraphAlignment.Center; break;
+                case Omd.ColumnAlignment.Right: para.ParagraphAlignment = WordParagraphAlignment.Right; break;
             }
         }
     }

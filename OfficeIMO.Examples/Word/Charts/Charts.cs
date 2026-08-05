@@ -21,8 +21,8 @@ namespace OfficeIMO.Examples.Word {
                 barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
                 barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
                 barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
-                barChart1.BarGrouping = BarGroupingValues.Clustered;
-                barChart1.BarDirection = BarDirectionValues.Column;
+                barChart1.BarGrouping = WordChartBarGrouping.Clustered;
+                barChart1.BarDirection = WordChartBarDirection.Column;
 
                 Console.WriteLine("Title: " + barChart1.Title);
 
@@ -84,8 +84,8 @@ namespace OfficeIMO.Examples.Word {
                 barChart3.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
                 barChart3.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
                 barChart3.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
-                barChart3.BarGrouping = BarGroupingValues.Clustered;
-                barChart3.BarDirection = BarDirectionValues.Column;
+                barChart3.BarGrouping = WordChartBarGrouping.Clustered;
+                barChart3.BarDirection = WordChartBarDirection.Column;
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
@@ -137,15 +137,15 @@ namespace OfficeIMO.Examples.Word {
                 barChart4.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
                 barChart4.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
                 barChart4.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
-                barChart4.BarGrouping = BarGroupingValues.Clustered;
-                barChart4.BarDirection = BarDirectionValues.Column;
+                barChart4.BarGrouping = WordChartBarGrouping.Clustered;
+                barChart4.BarDirection = WordChartBarDirection.Column;
 
                 var areaChart = document.AddChart("AreaChart");
                 areaChart.AddCategories(categories);
                 areaChart.AddArea("Brazil", new List<int>() { 100, 1, 18, 230 }, OfficeIMO.Drawing.OfficeColor.Brown);
                 areaChart.AddArea("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
                 areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
-                areaChart.AddLegend(LegendPositionValues.Top);
+                areaChart.AddLegend(WordChartLegendPosition.Top);
 
                 var scatterChart = document.AddChart("Scatter chart");
                 scatterChart.AddScatter("Data", new List<double>() { 1, 2, 3 }, new List<double>() { 3, 2, 1 }, OfficeIMO.Drawing.OfficeColor.Red);

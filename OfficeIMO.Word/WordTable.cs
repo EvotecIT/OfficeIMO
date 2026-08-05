@@ -107,10 +107,10 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the horizontal alignment of the table within the page.
         /// </summary>
-        public TableRowAlignmentValues? Alignment {
+        public WordTableAlignment? Alignment {
             get {
                 if (_tableProperties != null && _tableProperties.TableJustification != null) {
-                    return _tableProperties.TableJustification.Val?.Value;
+                    return _tableProperties.TableJustification.Val?.Value.ToOfficeEnum();
                 }
 
                 return null;
@@ -121,7 +121,7 @@ namespace OfficeIMO.Word {
                     _tableProperties.TableJustification = new TableJustification();
                 }
                 if (value != null) {
-                    _tableProperties.TableJustification.Val = value.Value;
+                    _tableProperties.TableJustification.Val = value.Value.ToOpenXml();
                 } else {
                     _tableProperties.TableJustification.Remove();
                 }
@@ -131,10 +131,10 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the unit type used by the <see cref="Width"/> property.
         /// </summary>
-        public TableWidthUnitValues? WidthType {
+        public WordTableWidthUnit? WidthType {
             get {
                 if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    return _tableProperties.TableWidth.Type?.Value;
+                    return _tableProperties.TableWidth.Type?.Value.ToOfficeEnum();
                 }
 
                 return null;
@@ -144,14 +144,14 @@ namespace OfficeIMO.Word {
                 if (_tableProperties!.TableWidth == null) {
                     if (value.HasValue) {
                         _tableProperties.TableWidth = new TableWidth() {
-                            Type = value.Value,
-                            Width = value.Value == TableWidthUnitValues.Auto ? "0" : "5000"
+                            Type = value.Value.ToOpenXml(),
+                            Width = value.Value == WordTableWidthUnit.Auto ? "0" : "5000"
                         };
                     }
                 } else {
                     if (value.HasValue) {
-                        _tableProperties.TableWidth.Type = value.Value;
-                        if (value.Value == TableWidthUnitValues.Auto) {
+                        _tableProperties.TableWidth.Type = value.Value.ToOpenXml();
+                        if (value.Value == WordTableWidthUnit.Auto) {
                             _tableProperties.TableWidth.Width = "0";
                         }
                     } else {
@@ -195,12 +195,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets layout of a table
         /// </summary>
-        public TableLayoutValues? LayoutType {
+        public WordTableLayoutMode? LayoutType {
             get {
                 if (_tableProperties != null && _tableProperties.TableLayout != null) {
-                    return _tableProperties.TableLayout.Type?.Value;
+                    return _tableProperties.TableLayout.Type?.Value.ToOfficeEnum();
                 }
-                return TableLayoutValues.Autofit;
+                return WordTableLayoutMode.Autofit;
             }
             set {
                 CheckTableProperties();
@@ -208,7 +208,7 @@ namespace OfficeIMO.Word {
                     _tableProperties.TableLayout = new TableLayout();
                 }
                 if (value != null) {
-                    _tableProperties.TableLayout.Type = value;
+                    _tableProperties.TableLayout.Type = value.Value.ToOpenXml();
                 } else {
                     _tableProperties.TableLayout.Remove();
                 }
