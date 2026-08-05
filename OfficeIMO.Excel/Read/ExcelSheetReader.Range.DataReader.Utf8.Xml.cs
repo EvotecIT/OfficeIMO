@@ -1,8 +1,50 @@
 #nullable enable
 
+using System.Text;
+using System.Threading;
+
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource {
+            private bool TryGetDeclaredRange(
+                CancellationToken ct,
+                out int firstRow,
+                out int firstColumn,
+                out int lastRow,
+                out int lastColumn) {
+                firstRow = 0;
+                firstColumn = 0;
+                lastRow = 0;
+                lastColumn = 0;
+                if (!HasSupportedUtf8Encoding()) {
+                    return false;
+                }
+
+                int position = 0;
+                while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
+                    ct.ThrowIfCancellationRequested();
+                    if (tag.IsEnd) {
+                        continue;
+                    }
+
+                    if (LocalNameEquals(tag, "sheetData")) {
+                        return false;
+                    }
+
+                    if (!LocalNameEquals(tag, "dimension")
+                        || !TryGetAttribute(tag, "ref", out bool found, out int valueStart, out int valueLength)
+                        || !found) {
+                        continue;
+                    }
+
+                    string reference = Encoding.UTF8.GetString(_buffer!, valueStart, valueLength);
+                    return ExcelSheetReader.TryNormalizeWorksheetDimensionReference(reference, out string normalized)
+                        && A1.TryParseRange(normalized, out firstRow, out firstColumn, out lastRow, out lastColumn);
+                }
+
+                return false;
+            }
+
             private bool HasSupportedUtf8Encoding() {
                 int probeLength = Math.Min(_length, 256);
                 for (int i = 0; i < probeLength; i++) {

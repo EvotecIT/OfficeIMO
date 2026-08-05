@@ -17,6 +17,11 @@ namespace OfficeIMO.Excel {
             bool headersInFirstRow = true,
             int schemaSampleRows = 0,
             CancellationToken ct = default) {
+            if (schemaSampleRows == 0
+                && TryCreateIndexedUsedRangeDataReader(headersInFirstRow, ct, out IDataReader? indexedReader)) {
+                return indexedReader!;
+            }
+
             if (TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
                 return new ExcelRangeDataReader(
                     Array.Empty<RangeChunk>(),
@@ -27,11 +32,6 @@ namespace OfficeIMO.Excel {
                     schemaSampleRows,
                     _opt,
                     ct);
-            }
-
-            if (schemaSampleRows == 0
-                && TryCreateIndexedUsedRangeDataReader(headersInFirstRow, ct, out IDataReader? indexedReader)) {
-                return indexedReader!;
             }
 
             ValidateDataReaderProjection(ct);
@@ -50,33 +50,11 @@ namespace OfficeIMO.Excel {
             out IDataReader? dataReader) {
             dataReader = null;
             if (!CanUseRangeStreamXmlReader()
-                || !TryGetWorksheetDimensionReferenceFromXml(out string declaredRange, ct)
-                || !A1.TryParseRange(
-                    declaredRange,
-                    out int declaredFirstRow,
-                    out int declaredFirstColumn,
-                    out int declaredLastRow,
-                    out int declaredLastColumn)) {
-                return false;
-            }
-
-            int declaredFieldCount = declaredLastColumn - declaredFirstColumn + 1;
-            long declaredRowCount = (long)declaredLastRow - declaredFirstRow + 1L;
-            long declaredCellCount = declaredRowCount * declaredFieldCount;
-            if (declaredFieldCount <= 0
-                || declaredFieldCount > _opt.MaxDataReaderColumns
-                || declaredCellCount > _opt.MaxDataReaderBufferedCells) {
-                return false;
-            }
-
-            if (!ExcelUtf8RangeRowSource.TryCreate(
+                || !ExcelUtf8RangeRowSource.TryCreateForUsedRange(
                     this,
-                    declaredFirstRow,
-                    declaredLastRow,
-                    declaredFirstColumn,
-                    declaredFieldCount,
                     ct,
-                    out ExcelUtf8RangeRowSource? source)) {
+                    out ExcelUtf8RangeRowSource? source,
+                    out int declaredFirstColumn)) {
                 return false;
             }
 

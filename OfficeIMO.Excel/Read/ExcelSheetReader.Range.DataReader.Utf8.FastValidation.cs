@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Text;
+using System.Threading;
 #if NET8_0_OR_GREATER
 using System.Buffers;
 using System.Text.Unicode;
@@ -25,7 +26,8 @@ namespace OfficeIMO.Excel {
             /// Proves full well-formedness for the common, unprefixed SpreadsheetML shape.
             /// Richer XML constructs fall back to XmlReader validation rather than weakening it.
             /// </summary>
-            private bool IsCanonicalWorksheetXmlFullyValidated() {
+            private bool IsCanonicalWorksheetXmlFullyValidated(CancellationToken ct) {
+                ct.ThrowIfCancellationRequested();
                 if (!_sheetDataSupportsFastValidation) {
                     return false;
                 }
@@ -35,6 +37,7 @@ namespace OfficeIMO.Excel {
                     || ContainsInvalidCanonicalXmlBytes(document)) {
                     return false;
                 }
+                ct.ThrowIfCancellationRequested();
 #else
                 try {
                     _ = StrictUtf8.GetCharCount(_buffer!, 0, _length);
@@ -43,6 +46,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 for (int index = 0; index < _length; index++) {
+                    if ((index & 0xFFFF) == 0) {
+                        ct.ThrowIfCancellationRequested();
+                    }
                     byte value = _buffer![index];
                     if (value == (byte)'&'
                         || value < 0x20 && value is not (byte)'\t' and not (byte)'\r' and not (byte)'\n'
@@ -61,6 +67,7 @@ namespace OfficeIMO.Excel {
 
                 if (_sheetDataContentStart >= 0
                     && _sheetDataEndTagStart >= _sheetDataContentStart) {
+                    ct.ThrowIfCancellationRequested();
                     ReadOnlySpan<byte> sheetData = _buffer!.AsSpan(
                         _sheetDataContentStart,
                         _sheetDataEndTagStart - _sheetDataContentStart);
@@ -76,6 +83,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 #endif
+                    ct.ThrowIfCancellationRequested();
                 }
 
                 Span<int> nameStarts = stackalloc int[MaximumFastXmlDepth];
@@ -89,11 +97,14 @@ namespace OfficeIMO.Excel {
                 int position = SkipUtf8PreambleAndWhitespace(0);
                 bool rootSeen = false;
                 bool rootClosed = false;
+                ct.ThrowIfCancellationRequested();
                 if (!HasOnlyRootDefaultNamespace()) {
                     return false;
                 }
+                ct.ThrowIfCancellationRequested();
 
                 while (position < _length) {
+                    ct.ThrowIfCancellationRequested();
                     if (_sheetDataContentStart >= 0
                         && position == _sheetDataContentStart
                         && _sheetDataEndTagStart >= position) {
