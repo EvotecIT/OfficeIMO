@@ -11,7 +11,7 @@ Schema version: 1
 | Formatting | Excel.Xlsb.Formatting.Styles | Excel.Xlsb | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Editability, Carrier | A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded. |
 | Structure | Excel.Xlsb.Structure.Geometry | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
 | Navigation | Excel.Xlsb.Navigation.Hyperlinks | Excel.Xlsb | Native | Native | Native | Native | Native | Native | None |  |
-| Data | Excel.Xlsb.Data.AutoFilter | Excel.Xlsb | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Editability, Carrier | Unsupported criteria remain preserved on import; native new-package generation supports the documented equality-list subset. |
+| Data | Excel.Xlsb.Data.AutoFilter | Excel.Xlsb | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Editability, Carrier | Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged. |
 | Print | Excel.Xlsb.Print.PageSetup | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
 | Security | Excel.Xlsb.Security.Protection | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
 | Names | Excel.Xlsb.Names.DefinedNames | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |

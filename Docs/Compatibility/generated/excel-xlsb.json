@@ -121,7 +121,7 @@
       "modernToLegacy":"Approximated",
       "legacyToModern":"Native",
       "affectedFidelity":"Editability, Carrier",
-      "note":"Unsupported criteria remain preserved on import; native new-package generation supports the documented equality-list subset."
+      "note":"Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged."
     },
     {
       "id":"Excel.Xlsb.Print.PageSetup",

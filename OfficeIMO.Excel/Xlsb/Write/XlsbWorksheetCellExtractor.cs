@@ -136,7 +136,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbWorksheetGeometryProjector.ValidateUnchanged(sheet, sourceSheet);
             XlsbWorksheetPropertiesProjector.ValidateUnchanged(sheet, sourceSheet.Properties);
             XlsbWorksheetProtectionProjector.ValidateUnchanged(sheet, sourceSheet.Protection);
-            XlsbWorksheetAutoFilterProjector.ValidateUnchanged(sheet, sourceSheet.AutoFilter);
             XlsbWorksheetPrintSettingsProjector.ValidateUnchanged(
                 sheet,
                 sourceSheet.PrintOptions,

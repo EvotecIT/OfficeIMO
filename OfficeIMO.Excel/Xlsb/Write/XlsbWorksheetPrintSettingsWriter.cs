@@ -77,6 +77,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (pageSetup.HasChildren) {
                 throw new NotSupportedException($"Native XLSB generation does not support child content in page setup on worksheet '{sheetName}'.");
             }
+            if (!string.IsNullOrEmpty(pageSetup.Id?.Value)) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support printer-settings relationships on worksheet '{sheetName}'.");
+            }
             EnsureOnlyAttributes(
                 pageSetup,
                 sheetName,
@@ -95,12 +98,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 "errors",
                 "horizontalDpi",
                 "verticalDpi",
-                "copies",
-                "id");
-
-            if (!string.IsNullOrEmpty(pageSetup.Id?.Value)) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support printer-settings relationships on worksheet '{sheetName}'.");
-            }
+                "copies");
 
             uint scale = pageSetup.Scale?.Value ?? 0U;
             uint copies = pageSetup.Copies?.Value ?? 0U;
@@ -219,12 +217,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void EnsureOnlyAttributes(OpenXmlElement element, string sheetName, params string[] allowedNames) {
-            var allowed = new HashSet<string>(allowedNames, StringComparer.Ordinal);
-            OpenXmlAttribute? unsupported = element.GetAttributes()
-                .Cast<OpenXmlAttribute?>()
-                .FirstOrDefault(attribute => attribute.HasValue
-                    && !string.Equals(attribute.Value.NamespaceUri, "http://www.w3.org/2000/xmlns/", StringComparison.Ordinal)
-                    && !allowed.Contains(attribute.Value.LocalName));
+            OpenXmlAttribute? unsupported =
+                XlsbOpenXmlAttributeValidator.FindUnsupported(element, allowedNames);
             if (unsupported.HasValue) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support print-setting attribute '{unsupported.Value.LocalName}' on worksheet '{sheetName}'.");
             }
