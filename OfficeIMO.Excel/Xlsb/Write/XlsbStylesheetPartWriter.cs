@@ -6,6 +6,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Writes the core BIFF12 formatting collections referenced by normal worksheet cells.</summary>
     internal static class XlsbStylesheetPartWriter {
         private const int MaximumStyleNameLength = 255;
+        private const int MaximumFonts = 0xFFD3;
+        private const int MaximumCellFormats = 0xFF96;
         private const int BrtBeginStyleSheet = 278;
         private const int BrtEndStyleSheet = 279;
         private const int BrtBeginFills = 603;
@@ -39,11 +41,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             NumberingFormat[] numberFormats = stylesheet.NumberingFormats?.Elements<NumberingFormat>().ToArray()
                 ?? Array.Empty<NumberingFormat>();
-            Font[] fonts = RequireItems(stylesheet.Fonts?.Elements<Font>(), "fonts");
+            Font[] fonts = RequireItems(stylesheet.Fonts?.Elements<Font>(), "fonts", MaximumFonts);
             Fill[] fills = RequireItems(stylesheet.Fills?.Elements<Fill>(), "fills");
             Border[] borders = RequireItems(stylesheet.Borders?.Elements<Border>(), "borders");
             CellFormat[] styleFormats = RequireItems(stylesheet.CellStyleFormats?.Elements<CellFormat>(), "cell style formats");
-            CellFormat[] cellFormats = RequireItems(stylesheet.CellFormats?.Elements<CellFormat>(), "cell formats");
+            CellFormat[] cellFormats = RequireItems(stylesheet.CellFormats?.Elements<CellFormat>(), "cell formats", MaximumCellFormats);
             cellFormatCount = cellFormats.Length;
 
             ValidateCellFormatReferences(styleFormats, fonts.Length, fills.Length, borders.Length, isStyleFormat: true);
@@ -87,13 +89,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static T[] RequireItems<T>(IEnumerable<T>? items, string collectionName) where T : OpenXmlElement {
+        private static T[] RequireItems<T>(
+            IEnumerable<T>? items,
+            string collectionName,
+            int maximumItems = 65_536) where T : OpenXmlElement {
             T[] values = items?.ToArray() ?? Array.Empty<T>();
             if (values.Length == 0) {
                 throw new NotSupportedException($"Native XLSB generation requires a non-empty {collectionName} collection.");
             }
-            if (values.Length > 65_536) {
-                throw new NotSupportedException($"Native XLSB generation supports at most 65,536 {collectionName}.");
+            if (values.Length > maximumItems) {
+                throw new NotSupportedException($"Native XLSB generation supports at most {maximumItems:N0} {collectionName}.");
             }
             return values;
         }
@@ -145,6 +150,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void WriteFont(Stream output, Font font) {
+            XlsbGeneratedRecord record = CreateFontRecord(font);
+            XlsbRecordWriter.Write(output, record.Type, record.Payload);
+        }
+
+        internal static XlsbGeneratedRecord CreateFontRecord(Font font) {
+            if (font == null) throw new ArgumentNullException(nameof(font));
             string name = font.FontName?.Val?.Value ?? "Calibri";
             double size = font.FontSize?.Val?.Value ?? 11D;
             if (string.IsNullOrWhiteSpace(name) || name.Length > 31 || size <= 0D || size > 409.55D) {
@@ -165,14 +176,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteUInt16(payload, flags);
             WriteUInt16(payload, font.Bold != null ? (ushort)700 : (ushort)400);
             WriteUInt16(payload, ToScript(font.VerticalTextAlignment?.Val?.Value));
-            payload.WriteByte(ToUnderline(font.Underline?.Val?.Value));
+            payload.WriteByte(font.Underline == null
+                ? (byte)0
+                : ToUnderline(font.Underline.Val?.Value ?? UnderlineValues.Single));
             payload.WriteByte(checked((byte)(font.FontFamilyNumbering?.Val?.Value ?? 0)));
             payload.WriteByte(checked((byte)(font.GetFirstChild<FontCharSet>()?.Val?.Value ?? 1)));
             payload.WriteByte(0);
             WriteColor(payload, font.Color);
             payload.WriteByte(ToFontScheme(font.GetFirstChild<FontScheme>()?.Val?.Value));
             WriteWideString(payload, name);
-            XlsbRecordWriter.Write(output, BrtFont, payload.ToArray());
+            return new XlsbGeneratedRecord(BrtFont, payload.ToArray());
         }
 
         private static void WriteFill(Stream output, Fill fill) {
@@ -223,6 +236,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void WriteCellFormat(Stream output, CellFormat format, bool isStyleFormat) {
+            XlsbGeneratedRecord record = CreateCellFormatRecord(format, isStyleFormat);
+            XlsbRecordWriter.Write(output, record.Type, record.Payload);
+        }
+
+        internal static XlsbGeneratedRecord CreateCellFormatRecord(CellFormat format, bool isStyleFormat = false) {
+            if (format == null) throw new ArgumentNullException(nameof(format));
             using var payload = new MemoryStream(16);
             WriteUInt16(payload, isStyleFormat ? ushort.MaxValue : ToUInt16(format.FormatId?.Value ?? 0U, "parent style"));
             ushort numberFormatId = ToUInt16(format.NumberFormatId?.Value ?? 0U, "number format");
@@ -262,7 +281,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (ShouldApply(format.ApplyFill, fillId != 0)) applyFlags |= 1 << 4;
             if (ShouldApply(format.ApplyProtection, format.Protection != null)) applyFlags |= 1 << 5;
             WriteUInt16(payload, applyFlags);
-            XlsbRecordWriter.Write(output, BrtXf, payload.ToArray());
+            return new XlsbGeneratedRecord(BrtXf, payload.ToArray());
         }
 
         private static bool ShouldApply(BooleanValue? value, bool inferred) => value?.Value ?? inferred;

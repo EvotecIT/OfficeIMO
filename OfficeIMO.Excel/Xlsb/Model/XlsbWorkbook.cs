@@ -41,6 +41,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal XlsbStylesheet? Stylesheet { get; set; }
 
+        internal string? StylesheetPartName { get; set; }
+
         internal void AddWorksheet(XlsbWorksheet worksheet) => _worksheets.Add(worksheet);
 
         internal void AddDefinedName(XlsbDefinedName definedName) => _definedNames.Add(definedName);

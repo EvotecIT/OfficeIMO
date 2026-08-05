@@ -38,6 +38,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private const int BrtBeginCellStyleXfs = 626;
         private const int BrtEndCellStyleXfs = 627;
         private const int MaxStyleItems = 65_536;
+        private const int MaxFonts = 0xFFD3;
+        private const int MaxCellFormats = 0xFF96;
         private const string WorksheetRelationshipSuffix = "/worksheet";
         private const string ChartSheetRelationshipSuffix = "/chartsheet";
         private const string DialogSheetRelationshipSuffix = "/dialogsheet";
@@ -809,9 +811,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             uint declared = record.CreateCursor().ReadUInt32();
-            if (declared > MaxStyleItems) {
+            int maximum = collectionName == "font"
+                ? MaxFonts
+                : collectionName == "cell-format"
+                    ? MaxCellFormats
+                    : MaxStyleItems;
+            if (declared > maximum) {
                 throw new InvalidDataException(
-                    $"The XLSB {collectionName} collection declares {declared} items, exceeding the supported limit of {MaxStyleItems}.");
+                    $"The XLSB {collectionName} collection declares {declared} items, exceeding the supported limit of {maximum}.");
             }
 
             activeCollectionEnd = expectedEndRecord;

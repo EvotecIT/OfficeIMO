@@ -555,22 +555,216 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Xlsb_HyperlinkMutation_RejectsBeforeNativeWrite() {
-            using ExcelDocument document = ExcelDocument.Load(GetHyperlinkExcelGeneratedXlsbFixturePath());
+        public void Xlsb_HyperlinkMutation_RewritesInternalTargetAndPreservesOtherParts() {
+            byte[] original = File.ReadAllBytes(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
             document.Sheets[0].SetInternalLink(
                 2,
                 1,
                 "'Target Sheet'!C3",
                 display: "Internal link",
                 style: false,
-                tooltip: "Internal screen tip");
-            using var destination = new MemoryStream();
+                tooltip: "Updated internal screen tip");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinks = reloaded.Sheets[0].GetHyperlinks();
+            Assert.Equal("https://example.org/officeimo?source=xlsb", hyperlinks["A1"].Target);
+            Assert.Equal("'Target Sheet'!C3", hyperlinks["A2"].Target);
+            Assert.Equal("Updated internal screen tip", hyperlinks["A2"].Tooltip);
+            AssertPackageEntriesEqualExcept(original, rewritten, "xl/worksheets/sheet1.bin");
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkMutation_RewritesExternalRelationship() {
+            byte[] original = File.ReadAllBytes(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
+            document.Sheets[0].SetHyperlink(
+                1,
+                1,
+                "https://example.org/updated?source=xlsb&mode=rewrite",
+                display: "Updated external link",
+                style: false,
+                tooltip: "Updated external screen tip");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinks = reloaded.Sheets[0].GetHyperlinks();
+            Assert.Equal("https://example.org/updated?source=xlsb&mode=rewrite", hyperlinks["A1"].Target);
+            Assert.Equal("Updated external screen tip", hyperlinks["A1"].Tooltip);
+            Assert.Equal("'Target Sheet'!B2", hyperlinks["A2"].Target);
+            AssertPackageEntriesEqualExcept(
+                original,
+                rewritten,
+                "xl/worksheets/sheet1.bin",
+                "xl/worksheets/_rels/sheet1.bin.rels");
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkMutation_AddsExternalRelationshipPartToLoadedWorkbook() {
+            byte[] original = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
+            document.Sheets[0].SetHyperlinkReference(
+                1,
+                1,
+                "../docs/zażółć-rewrite.pdf",
+                tooltip: "Added after load");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using (var archive = new ZipArchive(new MemoryStream(rewritten, writable: false), ZipArchiveMode.Read)) {
+                Assert.NotNull(archive.GetEntry("xl/worksheets/_rels/sheet1.bin.rels"));
+            }
+            AssertPackageEntriesEqualExcept(
+                original,
+                rewritten,
+                "xl/worksheets/sheet1.bin",
+                "xl/worksheets/_rels/sheet1.bin.rels",
+                "xl/styles.bin");
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            ExcelHyperlinkSnapshot hyperlink = Assert.Single(reloaded.Sheets[0].GetHyperlinks()).Value;
+            Assert.True(hyperlink.IsExternal);
+            Assert.Equal("../docs/zażółć-rewrite.pdf", hyperlink.Target);
+            Assert.Equal("Added after load", hyperlink.Tooltip);
+            Cell styledCell = Assert.Single(
+                reloaded.Sheets[0].WorksheetPart.Worksheet.Descendants<Cell>(),
+                cell => cell.CellReference?.Value == "A1");
+            uint styleIndex = Assert.IsType<DocumentFormat.OpenXml.UInt32Value>(styledCell.StyleIndex).Value;
+            Stylesheet stylesheet = Assert.IsType<Stylesheet>(reloaded.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet);
+            CellFormat hyperlinkFormat = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt(checked((int)styleIndex));
+            DocumentFormat.OpenXml.Spreadsheet.Font hyperlinkFont = stylesheet.Fonts!.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
+                .ElementAt(checked((int)(hyperlinkFormat.FontId?.Value ?? 0U)));
+            Assert.NotNull(hyperlinkFont.Underline);
+            Assert.Equal("FF0563C1", hyperlinkFont.Color?.Rgb?.Value, ignoreCase: true);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkMutation_InsertsFirstRecordBeforeLateWorksheetMetadata() {
+            byte[] original = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
+            byte[] withoutPrintMetadata;
+            using (var archive = new ZipArchive(new MemoryStream(original, writable: false), ZipArchiveMode.Read)) {
+                using Stream worksheetStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/worksheets/sheet1.bin")).Open();
+                IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(worksheetStream);
+                using var rewrittenPart = new MemoryStream();
+                foreach (XlsbRecord record in records) {
+                    if (record.Type >= 476 && record.Type <= 480) continue;
+                    if (record.Type == 130) XlsbRecordWriter.Write(rewrittenPart, 550, Array.Empty<byte>());
+                    XlsbRecordWriter.Write(rewrittenPart, record.Type, record.Data);
+                }
+                withoutPrintMetadata = ReplaceZipEntry(original, "xl/worksheets/sheet1.bin", rewrittenPart.ToArray());
+            }
+
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(withoutPrintMetadata, writable: false));
+            document.Sheets[0].SetInternalLink(1, 1, "A1", display: "Top", style: false);
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using var rewrittenArchive = new ZipArchive(new MemoryStream(rewritten, writable: false), ZipArchiveMode.Read);
+            using Stream rewrittenWorksheet = Assert.IsType<ZipArchiveEntry>(rewrittenArchive.GetEntry("xl/worksheets/sheet1.bin")).Open();
+            IReadOnlyList<XlsbRecord> rewrittenRecords = XlsbRecordReader.ReadAll(rewrittenWorksheet);
+            Assert.True(
+                rewrittenRecords.ToList().FindIndex(record => record.Type == 494)
+                < rewrittenRecords.ToList().FindIndex(record => record.Type == 550));
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkMutation_RejectsLocationAtBiff12Limit() {
+            using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
+            document.Sheets[0].SetInternalLink(
+                1,
+                1,
+                new string('L', 2_084),
+                display: "Oversized location",
+                style: false);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                document.Save(destination, ExcelFileFormat.Xlsb));
+                document.ToBytes(ExcelFileFormat.Xlsb));
 
-            Assert.Contains("cannot modify hyperlinks", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(0, destination.Length);
+            Assert.Contains("locations shorter than 2,084", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkMutation_RejectsTooltipAtBiff12Limit() {
+            using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
+            document.Sheets[0].SetHyperlinkReference(
+                1,
+                1,
+                "https://example.org/tooltip-limit",
+                style: false,
+                tooltip: new string('T', 256));
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.ToBytes(ExcelFileFormat.Xlsb));
+
+            Assert.Contains("tooltips shorter than 256", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkMutation_PreservesUnrelatedRelationshipsAndRemapsCollidingIds() {
+            const string relationshipPartName = "xl/worksheets/_rels/sheet1.bin.rels";
+            byte[] original = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
+
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
+            document.Sheets[0].SetHyperlink(
+                1,
+                1,
+                "https://example.org/collision-safe",
+                display: "Collision-safe hyperlink",
+                style: false,
+                tooltip: "Relationship collision");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using (var archive = new ZipArchive(new MemoryStream(rewritten, writable: false), ZipArchiveMode.Read)) {
+                ZipArchiveEntry relationshipPart = Assert.IsType<ZipArchiveEntry>(archive.GetEntry(relationshipPartName));
+                System.Xml.Linq.XElement[] relationships = System.Xml.Linq.XDocument.Load(relationshipPart.Open())
+                    .Descendants()
+                    .Where(element => element.Name.LocalName == "Relationship")
+                    .ToArray();
+                Assert.Contains(relationships, relationship =>
+                    (string?)relationship.Attribute("Id") == "rId1"
+                    && ((string?)relationship.Attribute("Type"))?.EndsWith("/xlBinaryIndex", StringComparison.Ordinal) == true
+                    && (string?)relationship.Attribute("Target") == "binaryIndex1.bin");
+                Assert.Contains(relationships, relationship =>
+                    (string?)relationship.Attribute("Id") != "rId1"
+                    && ((string?)relationship.Attribute("Type"))?.EndsWith("/hyperlink", StringComparison.Ordinal) == true
+                    && (string?)relationship.Attribute("Target") == "https://example.org/collision-safe");
+                ZipArchiveEntry binaryIndex = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/worksheets/binaryIndex1.bin"));
+                Assert.Equal(61, binaryIndex.Length);
+            }
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.Equal("https://example.org/collision-safe", Assert.Single(reloaded.Sheets[0].GetHyperlinks()).Value.Target);
+
+            reloaded.Sheets[0].ClearRange("A1:A1", ExcelClearOptions.Hyperlinks);
+            byte[] cleared = reloaded.ToBytes(ExcelFileFormat.Xlsb);
+            using var clearedArchive = new ZipArchive(new MemoryStream(cleared, writable: false), ZipArchiveMode.Read);
+            ZipArchiveEntry clearedRelationshipPart = Assert.IsType<ZipArchiveEntry>(clearedArchive.GetEntry(relationshipPartName));
+            System.Xml.Linq.XElement relationship = Assert.Single(
+                System.Xml.Linq.XDocument.Load(clearedRelationshipPart.Open()).Descendants(),
+                element => element.Name.LocalName == "Relationship");
+            Assert.Equal("rId1", (string?)relationship.Attribute("Id"));
+            Assert.EndsWith("/xlBinaryIndex", (string?)relationship.Attribute("Type"), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkMutation_RemovesRecordsAndPreservesUnrelatedRelationshipPart() {
+            using ExcelDocument document = ExcelDocument.Load(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            document.Sheets[0].ClearRange("A1:A2", ExcelClearOptions.Hyperlinks);
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using (var archive = new ZipArchive(new MemoryStream(rewritten, writable: false), ZipArchiveMode.Read)) {
+                ZipArchiveEntry relationshipPart = Assert.IsType<ZipArchiveEntry>(
+                    archive.GetEntry("xl/worksheets/_rels/sheet1.bin.rels"));
+                System.Xml.Linq.XElement relationship = Assert.Single(
+                    System.Xml.Linq.XDocument.Load(relationshipPart.Open()).Descendants(),
+                    element => element.Name.LocalName == "Relationship");
+                Assert.EndsWith("/xlBinaryIndex", (string?)relationship.Attribute("Type"), StringComparison.Ordinal);
+            }
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.Empty(reloaded.Sheets[0].GetHyperlinks());
         }
 
         [Fact]
@@ -589,6 +783,44 @@ namespace OfficeIMO.Tests {
                 ExcelDocument.Load(new MemoryStream(malformed, writable: false)));
 
             Assert.Contains("missing or invalid hyperlink relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkImport_RejectsLocationAtBiff12Limit() {
+            byte[] package = File.ReadAllBytes(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
+            using var input = new MemoryStream(worksheet, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            XlsbRecord hyperlink = records.First(record => record.Type == 494);
+            byte[] malformed = ReplaceWorksheetRecords(
+                package,
+                records,
+                hyperlink,
+                RewriteXlsbHyperlinkStrings(hyperlink.Data, location: new string('L', 2_084)));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(new MemoryStream(malformed, writable: false)));
+
+            Assert.Contains("limit of 2083 characters", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkImport_RejectsTooltipAtBiff12Limit() {
+            byte[] package = File.ReadAllBytes(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
+            using var input = new MemoryStream(worksheet, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            XlsbRecord hyperlink = records.First(record => record.Type == 494);
+            byte[] malformed = ReplaceWorksheetRecords(
+                package,
+                records,
+                hyperlink,
+                RewriteXlsbHyperlinkStrings(hyperlink.Data, tooltip: new string('T', 256)));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(new MemoryStream(malformed, writable: false)));
+
+            Assert.Contains("limit of 255 characters", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -1728,6 +1960,34 @@ namespace OfficeIMO.Tests {
                 XlsbRecordWriter.Write(output, record.Type, ReferenceEquals(record, target) ? replacementData : record.Data);
             }
             return ReplaceZipEntry(package, "xl/worksheets/sheet1.bin", output.ToArray());
+        }
+
+        private static byte[] RewriteXlsbHyperlinkStrings(
+            byte[] data,
+            string? location = null,
+            string? tooltip = null) {
+            var cursor = new XlsbBinaryCursor(data);
+            byte[] range = cursor.ReadBytes(16);
+            string relationshipId = cursor.ReadWideString(1_000_000);
+            string sourceLocation = cursor.ReadWideString(1_000_000);
+            string sourceTooltip = cursor.ReadWideString(1_000_000);
+            string display = cursor.ReadWideString(1_000_000);
+
+            using var output = new MemoryStream();
+            output.Write(range, 0, range.Length);
+            WriteXlsbTestWideString(output, relationshipId);
+            WriteXlsbTestWideString(output, location ?? sourceLocation);
+            WriteXlsbTestWideString(output, tooltip ?? sourceTooltip);
+            WriteXlsbTestWideString(output, display);
+            return output.ToArray();
+        }
+
+        private static void WriteXlsbTestWideString(Stream output, string value) {
+            byte[] count = new byte[4];
+            WriteXlsbTestUInt32(count, 0, checked((uint)value.Length));
+            output.Write(count, 0, count.Length);
+            byte[] text = System.Text.Encoding.Unicode.GetBytes(value);
+            output.Write(text, 0, text.Length);
         }
 
         private static byte[] RemoveWorksheetRowsAndCells(byte[] package) {

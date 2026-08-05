@@ -6,18 +6,19 @@ using OfficeIMO.Excel.Xlsb.Projection;
 using System.Globalization;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
-    /// <summary>Creates the bounded cell-only mutation plan supported by the first XLSB rewriter.</summary>
+    /// <summary>Creates the bounded cell mutation plan used by the preservation-aware XLSB rewriter.</summary>
     internal static class XlsbWorksheetCellExtractor {
         internal static IReadOnlyList<XlsbWriteCell> Extract(
             ExcelDocument document,
             ExcelSheet sheet,
-            XlsbWorksheet sourceSheet) {
+            XlsbWorksheet sourceSheet,
+            int availableCellFormatCount) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
 
             ThrowIfUnsupportedWorksheetMutation(sheet, sourceSheet);
-            return ExtractCore(document, sheet, sourceSheet);
+            return ExtractCore(document, sheet, sourceSheet, availableCellFormatCount);
         }
 
         internal static IReadOnlyList<XlsbWriteCell> ExtractNew(
@@ -27,13 +28,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 
             ThrowIfUnsupportedNewWorksheetContent(sheet);
-            return ExtractCore(document, sheet, sourceSheet: null);
+            return ExtractCore(document, sheet, sourceSheet: null, availableCellFormatCount: null);
         }
 
         private static IReadOnlyList<XlsbWriteCell> ExtractCore(
             ExcelDocument document,
             ExcelSheet sheet,
-            XlsbWorksheet? sourceSheet) {
+            XlsbWorksheet? sourceSheet,
+            int? availableCellFormatCount) {
             var sourceCells = sourceSheet?.Cells.ToDictionary(cell => (cell.Row, cell.Column))
                 ?? new Dictionary<(int Row, int Column), XlsbCell>();
             var visitedSourceCells = new HashSet<(int Row, int Column)>();
@@ -59,8 +61,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         sheet.Name,
                         cellRow,
                         cellColumn,
-                        allowNewStyles: sourceSheet == null);
-                    if (sourceCell != null && CellMatchesSource(sheet, cell, sourceCell, resolvedFormulaTexts)) {
+                        allowNewStyles: sourceSheet == null,
+                        availableCellFormatCount);
+                    if (sourceCell != null
+                        && styleIndex == sourceCell.StyleIndex
+                        && CellMatchesSource(sheet, cell, sourceCell, resolvedFormulaTexts)) {
                         result.Add(XlsbWriteCell.PreserveSource(sourceCell));
                         sequentialColumn = cellColumn + 1;
                         continue;
@@ -138,7 +143,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 sourceSheet.PageMargins,
                 sourceSheet.PageSetup,
                 sourceSheet.HeaderFooter);
-            XlsbWorksheetHyperlinkProjector.ValidateUnchanged(sheet, sourceSheet);
         }
 
         private static XlsbWriteCell? ConvertCell(
@@ -297,18 +301,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             string sheetName,
             int row,
             int column,
-            bool allowNewStyles) {
+            bool allowNewStyles,
+            int? availableCellFormatCount) {
             uint current = cell.StyleIndex?.Value ?? 0U;
             if (sourceCell != null) {
-                if (current != sourceCell.StyleIndex) {
-                    throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Cell {sheetName}!{ToAddress(row, column)} changed style index from {sourceCell.StyleIndex} to {current}.");
+                if (current != sourceCell.StyleIndex
+                    && (!availableCellFormatCount.HasValue || current >= availableCellFormatCount.Value)) {
+                    throw new NotSupportedException($"Native XLSB rewriting cannot apply unavailable style index {current} to cell {sheetName}!{ToAddress(row, column)}.");
                 }
 
                 return current;
             }
 
-            if (current != 0 && !allowNewStyles) {
-                throw new NotSupportedException($"Native XLSB rewriting currently cannot add a styled cell. Cell {sheetName}!{ToAddress(row, column)} uses style index {current}.");
+            if (current != 0
+                && !allowNewStyles
+                && (!availableCellFormatCount.HasValue || current >= availableCellFormatCount.Value)) {
+                throw new NotSupportedException($"Native XLSB rewriting cannot add cell {sheetName}!{ToAddress(row, column)} with unavailable style index {current}.");
             }
 
             return current;

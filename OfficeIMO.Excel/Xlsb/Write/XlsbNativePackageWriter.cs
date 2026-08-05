@@ -7,10 +7,13 @@ using System.IO.Compression;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>
-    /// Rewrites the supported cell-value subset of an existing XLSB package while copying every other part.
+    /// Rewrites supported worksheet cells and hyperlinks in an existing XLSB package while copying every other part.
     /// </summary>
     internal static class XlsbNativePackageWriter {
         private const int MaxWorksheetPartBytes = 128 * 1024 * 1024;
+        private const string HyperlinkRelationshipSuffix = "/hyperlink";
+        private static readonly DateTimeOffset ReproducibleEntryTime =
+            new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         internal static byte[] Rewrite(
             ExcelDocument document,
@@ -23,8 +26,23 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ThrowIfUnsupportedWorkbookMutation(document, sourceWorkbook, sourcePackageBytes);
             ExcelSheet[] sheets = document.Sheets.ToArray();
             var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            var deletions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using (var packageStream = new MemoryStream(sourcePackageBytes, writable: false))
             using (var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false)) {
+                byte[]? sourceStylesPart = null;
+                if (!string.IsNullOrWhiteSpace(sourceWorkbook.StylesheetPartName)) {
+                    ZipArchiveEntry sourceStylesEntry = FindEntry(archive, sourceWorkbook.StylesheetPartName!)
+                        ?? throw new InvalidDataException($"The source XLSB styles part '{sourceWorkbook.StylesheetPartName}' is missing.");
+                    sourceStylesPart = ReadEntry(sourceStylesEntry, sourceWorkbook.MaxPartBytes);
+                }
+                XlsbStylesheetRewritePlan stylesheetPlan = XlsbStylesheetRewritePlan.Create(
+                    document,
+                    sourceWorkbook,
+                    sourceStylesPart);
+                if (stylesheetPlan.Replacement != null) {
+                    replacements.Add(stylesheetPlan.PartName!, stylesheetPlan.Replacement);
+                }
+
                 for (int index = 0; index < sheets.Length; index++) {
                     XlsbWorksheet sourceSheet = sourceWorkbook.Worksheets[index];
                     string partName = sourceSheet.PartName
@@ -32,20 +50,50 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     ZipArchiveEntry sourceEntry = FindEntry(archive, partName)
                         ?? throw new InvalidDataException($"The source XLSB worksheet part '{partName}' is missing.");
                     byte[] originalPart = ReadEntry(sourceEntry, MaxWorksheetPartBytes);
-                    IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.Extract(document, sheets[index], sourceSheet);
-                    byte[] rewrittenPart = XlsbWorksheetPartWriter.Rewrite(originalPart, cells);
+                    IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.Extract(
+                        document,
+                        sheets[index],
+                        sourceSheet,
+                        stylesheetPlan.CellFormatCount);
+                    bool rewriteHyperlinks = !XlsbWorksheetHyperlinkProjector.Matches(sheets[index], sourceSheet);
+                    string[] reservedRelationshipIds = sourceSheet.Relationships.Values
+                        .Where(relationship => !relationship.Type.EndsWith(HyperlinkRelationshipSuffix, StringComparison.Ordinal))
+                        .Select(relationship => relationship.Id)
+                        .ToArray();
+                    XlsbWorksheetHyperlinkPlan? hyperlinkPlan = rewriteHyperlinks
+                        ? XlsbWorksheetHyperlinkPlan.Create(
+                            sheets[index],
+                            pruneOrphanedRelationships: true,
+                            reservedRelationshipIds)
+                        : null;
+                    byte[] rewrittenPart = XlsbWorksheetPartWriter.Rewrite(
+                        originalPart,
+                        cells,
+                        hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
+                        rewriteHyperlinks);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
+                    }
+                    if (hyperlinkPlan != null && !hyperlinkPlan.RelationshipsMatch(sourceSheet)) {
+                        string relationshipPartName = GetRelationshipPartName(partName);
+                        int preservedRelationshipCount = sourceSheet.Relationships.Values.Count(relationship =>
+                            !relationship.Type.EndsWith(HyperlinkRelationshipSuffix, StringComparison.Ordinal));
+                        if (hyperlinkPlan.Relationships.Count == 0 && preservedRelationshipCount == 0) {
+                            deletions.Add(relationshipPartName);
+                        } else {
+                            replacements[relationshipPartName] = hyperlinkPlan.CreateRelationshipPart(sourceSheet.Relationships);
+                        }
                     }
                 }
             }
 
-            if (replacements.Count == 0) return sourcePackageBytes;
+            if (replacements.Count == 0 && deletions.Count == 0) return sourcePackageBytes;
             byte[] rewritten = RewritePackage(
                 sourcePackageBytes,
                 replacements,
                 sourceWorkbook.MaxPartBytes,
-                sourceWorkbook.MaxPackageBytes);
+                sourceWorkbook.MaxPackageBytes,
+                deletions);
             if (!XlsbPackageDetector.TryFindWorkbookPart(rewritten, out _)) {
                 throw new InvalidDataException("The rewritten package no longer satisfies the XLSB package contract.");
             }
@@ -77,8 +125,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ValidateWorkbookProtection(document, sourceWorkbook);
             ValidateDefinedNames(document, sourceWorkbook);
             ValidateCalculationProperties(document, sourceWorkbook);
-            ValidateStylesheet(document, sourceWorkbook);
-
             ExcelSheet[] sheets = document.Sheets.ToArray();
             if (sheets.Length != sourceWorkbook.Worksheets.Count) {
                 throw new NotSupportedException("Native XLSB rewriting currently requires the original worksheet set and order. Save workbook structure changes as .xlsx.");
@@ -141,33 +187,64 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static void ValidateStylesheet(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
-            if (sourceWorkbook.Stylesheet == null) return;
-
-            Stylesheet? current = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-            Stylesheet expected = XlsbStylesheetProjector.Create(sourceWorkbook.Stylesheet);
-            if (current == null || !string.Equals(current.OuterXml, expected.OuterXml, StringComparison.Ordinal)) {
-                throw new NotSupportedException("Native XLSB rewriting currently preserves but cannot modify the workbook style table. Save style changes as .xlsx.");
-            }
-        }
+        internal static byte[] RewritePackage(
+            byte[] sourcePackageBytes,
+            IReadOnlyDictionary<string, byte[]> replacements,
+            int maxPartBytes,
+            long maxPackageBytes) => RewritePackage(
+                sourcePackageBytes,
+                replacements,
+                maxPartBytes,
+                maxPackageBytes,
+                deletions: null);
 
         internal static byte[] RewritePackage(
             byte[] sourcePackageBytes,
             IReadOnlyDictionary<string, byte[]> replacements,
             int maxPartBytes,
-            long maxPackageBytes) {
+            long maxPackageBytes,
+            ISet<string>? deletions) {
+            if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
+            if (replacements == null) throw new ArgumentNullException(nameof(replacements));
+
+            var normalizedReplacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, byte[]> replacement in replacements) {
+                string normalizedName = NormalizePartName(replacement.Key);
+                if (replacement.Value == null) {
+                    throw new ArgumentException($"Replacement package part '{normalizedName}' has no content.", nameof(replacements));
+                }
+                if (normalizedReplacements.ContainsKey(normalizedName)) {
+                    throw new ArgumentException($"Replacement package part '{normalizedName}' is duplicated.", nameof(replacements));
+                }
+                normalizedReplacements.Add(normalizedName, replacement.Value);
+            }
+            var normalizedDeletions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (deletions != null) {
+                foreach (string deletion in deletions) {
+                    string normalizedName = NormalizePartName(deletion);
+                    if (normalizedReplacements.ContainsKey(normalizedName)) {
+                        throw new ArgumentException($"Package part '{normalizedName}' cannot be replaced and deleted in the same rewrite.", nameof(deletions));
+                    }
+                    normalizedDeletions.Add(normalizedName);
+                }
+            }
+
             using var sourceStream = new MemoryStream(sourcePackageBytes, writable: false);
             using var sourceArchive = new ZipArchive(sourceStream, ZipArchiveMode.Read, leaveOpen: false);
             using var destinationStream = new MemoryStream(sourcePackageBytes.Length + 4096);
             long decompressedBytes = 0;
             byte[] buffer = new byte[81920];
+            var writtenReplacements = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using (var destinationArchive = new ZipArchive(destinationStream, ZipArchiveMode.Create, leaveOpen: true)) {
                 foreach (ZipArchiveEntry sourceEntry in sourceArchive.Entries) {
-                    string normalizedName = sourceEntry.FullName.Replace('\\', '/');
+                    if (string.IsNullOrEmpty(sourceEntry.Name)) continue;
+                    string normalizedName = NormalizePartName(sourceEntry.FullName);
+                    if (normalizedDeletions.Contains(normalizedName)) continue;
                     ZipArchiveEntry destinationEntry = destinationArchive.CreateEntry(normalizedName, CompressionLevel.Optimal);
                     try { destinationEntry.LastWriteTime = sourceEntry.LastWriteTime; } catch (ArgumentOutOfRangeException) { }
                     using Stream output = destinationEntry.Open();
-                    if (replacements.TryGetValue(normalizedName, out byte[]? replacement)) {
+                    if (normalizedReplacements.TryGetValue(normalizedName, out byte[]? replacement)) {
+                        writtenReplacements.Add(normalizedName);
                         ChargeRewriteBytes(
                             normalizedName,
                             replacement.Length,
@@ -196,9 +273,41 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         }
                     }
                 }
+
+                foreach (KeyValuePair<string, byte[]> replacement in normalizedReplacements) {
+                    if (writtenReplacements.Contains(replacement.Key)) continue;
+                    ZipArchiveEntry destinationEntry = destinationArchive.CreateEntry(replacement.Key, CompressionLevel.Optimal);
+                    destinationEntry.LastWriteTime = ReproducibleEntryTime;
+                    ChargeRewriteBytes(
+                        replacement.Key,
+                        replacement.Value.Length,
+                        maxPartBytes,
+                        maxPackageBytes,
+                        ref decompressedBytes);
+                    using Stream output = destinationEntry.Open();
+                    output.Write(replacement.Value, 0, replacement.Value.Length);
+                }
             }
 
             return destinationStream.ToArray();
+        }
+
+        private static string GetRelationshipPartName(string sourcePartName) {
+            string source = NormalizePartName(sourcePartName);
+            int separator = source.LastIndexOf('/');
+            string directory = separator < 0 ? string.Empty : source.Substring(0, separator + 1);
+            string fileName = separator < 0 ? source : source.Substring(separator + 1);
+            return directory + "_rels/" + fileName + ".rels";
+        }
+
+        private static string NormalizePartName(string partName) {
+            if (string.IsNullOrWhiteSpace(partName)) throw new ArgumentException("Package part name cannot be empty.", nameof(partName));
+            string normalized = partName.Replace('\\', '/').TrimStart('/');
+            if (normalized.EndsWith("/", StringComparison.Ordinal)
+                || normalized.Split('/').Any(segment => segment.Length == 0 || segment == "." || segment == "..")) {
+                throw new InvalidDataException($"The package part name '{partName}' is not safe.");
+            }
+            return normalized;
         }
 
         private static void ChargeRewriteBytes(

@@ -75,6 +75,8 @@ namespace OfficeIMO.Excel.Xlsb {
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
         private const string HyperlinkRelationshipSuffix = "/hyperlink";
+        private const int MaximumHyperlinkLocationLengthExclusive = 2_084;
+        private const int MaximumHyperlinkTooltipLengthExclusive = 256;
 
         internal static XlsbWorkbook Load(byte[] packageBytes, XlsbImportOptions? options = null) {
             if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
@@ -126,6 +128,7 @@ namespace OfficeIMO.Excel.Xlsb {
                 string sheetPartName = XlsbPackagePartReader.ResolveTarget(workbookPartName!, relationship.Target);
                 worksheet.PartName = sheetPartName;
                 IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = parts.ReadRelationships(sheetPartName, cancellationToken);
+                worksheet.Relationships = worksheetRelationships;
                 ParseWorksheetPart(
                     parts.ReadPart(sheetPartName, cancellationToken),
                     sheetPartName,
@@ -390,6 +393,7 @@ namespace OfficeIMO.Excel.Xlsb {
             if (relationship == null) return null;
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
+            workbook.StylesheetPartName = partName;
             return XlsbStylesheetReader.Read(parts.ReadPart(partName, options.CancellationToken), partName, options, workbook,
                 recordBudget);
         }
@@ -809,8 +813,12 @@ namespace OfficeIMO.Excel.Xlsb {
             var rangeRecord = new XlsbRecord(record.Offset, record.HeaderSize, BrtHLink, rangePayload);
             XlsbCellRange range = ParseCellRange(rangeRecord, "BrtHLink");
             string relationshipId = cursor.ReadWideString(options.MaxStringCharacters);
-            string location = cursor.ReadWideString(options.MaxStringCharacters);
-            string tooltip = cursor.ReadWideString(options.MaxStringCharacters);
+            string location = cursor.ReadWideString(Math.Min(
+                options.MaxStringCharacters,
+                MaximumHyperlinkLocationLengthExclusive - 1));
+            string tooltip = cursor.ReadWideString(Math.Min(
+                options.MaxStringCharacters,
+                MaximumHyperlinkTooltipLengthExclusive - 1));
             string display = cursor.ReadWideString(options.MaxStringCharacters);
             if (cursor.Remaining != 0) {
                 throw new InvalidDataException($"The BrtHLink record at offset {record.Offset} contains trailing payload bytes.");

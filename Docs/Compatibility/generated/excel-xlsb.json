@@ -102,7 +102,7 @@
       "representability":"Native",
       "legacyImport":"Native",
       "newLegacyWrite":"Native",
-      "legacyRoundTrip":"PreservedOpaque",
+      "legacyRoundTrip":"Native",
       "modernToLegacy":"Native",
       "legacyToModern":"Native",
       "affectedFidelity":"None",
