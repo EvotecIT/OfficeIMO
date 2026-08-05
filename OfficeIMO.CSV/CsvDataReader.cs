@@ -27,6 +27,10 @@ internal sealed class CsvDataReader : DbDataReader
 #endif
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
+
+    internal CultureInfo MappingCulture => _culture;
+
+    internal IReadOnlyList<string>? MappingDateTimeFormats => _dateTimeFormats;
     private readonly IDisposable? _rowOwner;
     private readonly CsvLoadOptions? _stringRowOptions;
     private readonly object?[]? _staticColumnValues;

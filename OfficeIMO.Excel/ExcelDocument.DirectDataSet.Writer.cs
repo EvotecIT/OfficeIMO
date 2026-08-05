@@ -26,20 +26,12 @@ namespace OfficeIMO.Excel {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
                 var sharedStrings = disableSharedStrings ? null : DirectSharedStringTable.Create(model, columnWritePlans, ct);
-                using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
-                WriteContentTypes(archive, model.Sheets, sharedStrings != null);
-                WriteTextEntry(archive, "_rels/.rels",
-                    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-                    "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>" +
-                    "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/>" +
-                    "<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>" +
-                    "</Relationships>");
-                WriteCoreProperties(archive);
-                WriteAppProperties(archive);
-                WriteWorkbook(archive, model);
-                WriteWorkbookRelationships(archive, model.Sheets.Count, sharedStrings != null);
-                WriteStyles(archive, stylePlan);
+                using var positionReportingDestination = stream.CanSeek
+                    ? null
+                    : new ExcelPositionReportingWriteStream(stream);
+                Stream packageDestination = positionReportingDestination ?? stream;
+                using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
+                WritePackagePreamble(archive, model, stylePlan, sharedStrings != null);
                 if (sharedStrings != null) {
                     WriteSharedStrings(archive, sharedStrings);
                 }
@@ -62,6 +54,26 @@ namespace OfficeIMO.Excel {
                         WriteTable(archive, sheet);
                     }
                 }
+            }
+
+            private static void WritePackagePreamble(
+                ZipArchive archive,
+                DirectDataSetWorkbookModel model,
+                DirectStylePlan stylePlan,
+                bool includeSharedStrings) {
+                WriteContentTypes(archive, model.Sheets, includeSharedStrings);
+                WriteTextEntry(archive, "_rels/.rels",
+                    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                    "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>" +
+                    "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/>" +
+                    "<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>" +
+                    "</Relationships>");
+                WriteCoreProperties(archive);
+                WriteAppProperties(archive);
+                WriteWorkbook(archive, model);
+                WriteWorkbookRelationships(archive, model.Sheets.Count, includeSharedStrings);
+                WriteStyles(archive, stylePlan);
             }
 
             internal static bool TryCreateExtendedWritePlan(DirectDataSetWorkbookModel model, CancellationToken ct, out ExtendedDirectWritePlan? plan, bool disableSharedStrings = false) {

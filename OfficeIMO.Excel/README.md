@@ -597,8 +597,29 @@ ExcelDocument.WriteRows(
         SheetName = "Data",
         IncludeCellReferences = false,
         UseSharedStrings = false
-    });
+});
 ```
+
+When rows arrive asynchronously, use the same headers and row writer without
+buffering the sequence:
+
+```csharp
+await ExcelDocument.WriteRowsAsync(
+    output,
+    GetRowsAsync(cancellationToken),
+    new[] { "Id", "Name", "Created", "Active" },
+    static (writer, row) => writer
+        .Write(row.Id)
+        .Write(row.Name)
+        .Write(row.Created)
+        .Write(row.Active),
+    ct: cancellationToken);
+```
+
+`WriteRowsAsync` awaits and disposes the source enumerator and writes each row
+once. Because the final row count is unknown when package output starts, this
+overload does not support `CreateTable` or `AutoFit`; add those features through
+the editable workbook API when they are required.
 
 ### Fluent compose
 

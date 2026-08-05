@@ -123,6 +123,29 @@ Replace the removed public reader roots as follows:
 `CsvLoadOptions.Mode`, `CsvLoadMode`, and `CsvDocument.Mode` are no longer
 public. Use `CsvDocument.OpenDataReader` for a forward-only read and
 `CsvDocument.Load` for a materialized model.
+
+### CSV and Excel typed-row cleanup
+
+OfficeIMO 3.1 has one package-native typed-row writer for Excel and one typed-row
+projection name for CSV. Replace the removed overlapping entry points as follows:
+
+| Removed 3.1 preview API | Current 3.1 API |
+| --- | --- |
+| `ExcelDocument.WriteObjects(..., IReadOnlyList<(string Header, Func<T, object?> Selector)>, ...)` | `ExcelDocument.WriteRows(..., headers, (writer, row) => writer.Write(...), ...)` |
+| `ExcelTabularColumn<T>` and its `ExcelDocument.WriteObjects` overload | `ExcelDocument.WriteRows(...)` |
+| `CsvDocument.Map<T>(...)` | `CsvDocument.RowsAs<T>(...)` |
+
+`WriteRows` keeps typed cell dispatch without boxing when its typed `Write`
+overloads are used. Use `WriteRowsAsync` for an `IAsyncEnumerable<T>` source; it
+consumes and disposes the source one row at a time and supports cancellation.
+The async overload rejects `CreateTable` and `AutoFit` because those features
+require the final row range or column widths before package output starts.
+
+Use `CsvDocument.Load(...).RowsAs<T>()` when a mutable/materialized CSV document
+is required. For a forward-only typed read, use
+`CsvDocument.OpenDataReader(...).RowsAs<T>()`; the same automatic and explicit
+mapping definitions are supported without exposing another CSV reader type.
+
 `ExcelDocument.Sheets` now exposes `IReadOnlyList<ExcelSheet>` instead of
 `List<ExcelSheet>`. Enumerate or index the property as before, use the workbook's
 worksheet operations to edit the collection, or call `document.Sheets.ToList()`
