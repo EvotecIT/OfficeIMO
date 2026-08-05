@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void ListInfoRetainsOriginalConstructorSignature() {
+    public void ListInfoUsesOfficeOwnedEnumConstructorSignature() {
         ConstructorInfo? constructor = typeof(DocumentTraversal.ListInfo).GetConstructor(new[] {
             typeof(int),
             typeof(bool),
             typeof(int),
-            typeof(NumberFormatValues?),
+            typeof(WordNumberFormat?),
             typeof(string),
             typeof(int?),
             typeof(int?)

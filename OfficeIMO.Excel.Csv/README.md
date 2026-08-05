@@ -26,6 +26,8 @@ workbook.Save("sales.xlsx");
 Use `ImportCsvText`, `ImportCsv(Stream)`, or `ImportCsv(CsvDocument)` for other
 source shapes. `ExcelCsvImportOptions.LoadOptions` and `ReaderOptions` expose the
 canonical CSV option types instead of introducing another parsing model.
+`ExcelCsvImportResult.Delimiter` reports the delimiter that was actually used,
+including one selected by delimiter detection.
 
 ## Export Excel data to CSV
 

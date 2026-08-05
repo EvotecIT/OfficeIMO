@@ -75,7 +75,10 @@ namespace OfficeIMO.Tests {
             paragraph2.AddImage(filePathImage, 500, 500);
             var paragraph2Image = paragraph2.Image;
             Assert.NotNull(paragraph2Image);
-            //paragraph2Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
+#pragma warning disable CS0618
+            paragraph2Image.BlackWiteMode = WordImageBlackWhiteMode.GrayWhite;
+#pragma warning restore CS0618
+            Assert.Equal(WordImageBlackWhiteMode.GrayWhite, paragraph2Image.BlackWhiteMode);
             paragraph2Image!.Rotation = 180;
             paragraph2Image.Shape = WordImageShapeType.ActionButtonMovie;
 

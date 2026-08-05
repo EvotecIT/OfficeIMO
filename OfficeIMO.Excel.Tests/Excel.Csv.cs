@@ -191,6 +191,7 @@ public class ExcelCsvExtensionsTests {
 
         Assert.Equal("Import", result.SheetName);
         Assert.Equal("A1:B3", result.Range);
+        Assert.Equal(';', result.Delimiter);
         document.Save();
         stream.Position = 0;
         using ExcelDocument reloaded = ExcelDocument.Load(
@@ -234,6 +235,7 @@ public class ExcelCsvExtensionsTests {
             });
 
         Assert.Equal("A1:B2", result.Range);
+        Assert.Equal(';', result.Delimiter);
         Assert.True(document["Import"].TryGetCellText(2, 2, out string? amount));
         Assert.Equal("10.5", amount);
     }
@@ -280,6 +282,7 @@ public class ExcelCsvExtensionsTests {
             });
 
             Assert.Equal("A1:B3", result.Range);
+            Assert.Equal(';', result.Delimiter);
             Assert.True(document["Import"].TryGetCellText(2, 2, out string? amount));
             Assert.Equal("10.5", amount);
         } finally {

@@ -12,7 +12,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Forward-only reader for CSV rows projected through an optional schema.
 /// </summary>
-internal sealed class CsvDataReader : DbDataReader
+internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata
 {
     private const string IsReadOnlyColumn = "IsReadOnly";
     private const string IsRowVersionColumn = "IsRowVersion";
@@ -54,6 +54,7 @@ internal sealed class CsvDataReader : DbDataReader
         IEnumerable<object?[]> rows,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
+        char delimiter,
         bool rawRowsAreParsedStringsOnly = false,
         IDisposable? rowOwner = null)
     {
@@ -61,6 +62,7 @@ internal sealed class CsvDataReader : DbDataReader
         _rows = rows.GetEnumerator();
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
+        Delimiter = delimiter;
         _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
@@ -84,6 +86,7 @@ internal sealed class CsvDataReader : DbDataReader
         _staticColumnValues = CaptureStaticColumnValues(_stringRowOptions.StaticColumns);
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
+        Delimiter = options.Delimiter;
         _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
@@ -107,6 +110,7 @@ internal sealed class CsvDataReader : DbDataReader
         _stringNullValue = options.NullValue;
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
+        Delimiter = options.Delimiter;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectTextSourceStrings = _useRawStringValues && _stringNullValue is null;
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
@@ -120,6 +124,9 @@ internal sealed class CsvDataReader : DbDataReader
 
     /// <inheritdoc />
     public override int Depth => 0;
+
+    /// <inheritdoc />
+    public char Delimiter { get; }
 
     /// <inheritdoc />
     public override int FieldCount => _columns.Length;

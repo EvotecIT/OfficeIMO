@@ -408,6 +408,17 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or sets the image black-and-white mode using the legacy misspelled member name.
+        /// </summary>
+        /// <remarks>Use <see cref="BlackWhiteMode"/>.</remarks>
+        [Obsolete("Use BlackWhiteMode.")]
+        public WordImageBlackWhiteMode? BlackWiteMode {
+            get => BlackWhiteMode;
+            set => BlackWhiteMode = value;
+        }
+
         /// <summary>
         /// Gets or sets whether the image is vertically flipped.
         /// </summary>

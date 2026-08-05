@@ -156,8 +156,11 @@ public static class ExcelSheetCsvExtensions {
         ExcelCsvImportOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        char delimiter = reader is ICsvDataReaderMetadata metadata
+            ? metadata.Delimiter
+            : options.LoadOptions.Delimiter;
         if (reader.FieldCount == 0) {
-            return new ExcelCsvImportResult(sheet.Name, string.Empty);
+            return new ExcelCsvImportResult(sheet.Name, string.Empty, delimiter);
         }
 
         string tableName = string.IsNullOrWhiteSpace(options.TableName)
@@ -175,7 +178,7 @@ public static class ExcelSheetCsvExtensions {
             options.AutoFit,
             cancellationToken);
 
-        return new ExcelCsvImportResult(sheet.Name, range);
+        return new ExcelCsvImportResult(sheet.Name, range, delimiter);
     }
 
     private static string ToCsvCore(

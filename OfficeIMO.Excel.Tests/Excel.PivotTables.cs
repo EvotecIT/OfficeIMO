@@ -414,17 +414,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotPublicCompatibilityOverloadsRemainAvailable() {
+        public void Test_PivotPublicOfficeEnumOverloadsRemainAvailable() {
             Assert.NotNull(typeof(ExcelPivotDataField).GetConstructor(new[] {
                 typeof(string),
-                typeof(DataConsolidateFunctionValues?),
+                typeof(ExcelPivotDataFunction?),
                 typeof(string),
                 typeof(uint?)
             }));
 
             Assert.NotNull(typeof(ExcelPivotDataFieldInfo).GetConstructor(new[] {
                 typeof(string),
-                typeof(DataConsolidateFunctionValues),
+                typeof(ExcelPivotDataFunction),
                 typeof(string)
             }));
 

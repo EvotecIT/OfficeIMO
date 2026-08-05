@@ -132,6 +132,9 @@ workbook[imported.SheetName].SaveAsCsv("sales-roundtrip.csv");
 workbook.Save("sales.xlsx");
 ```
 
+`imported.Delimiter` reports the delimiter that was actually used, including
+one selected automatically by delimiter detection.
+
 Use `OfficeIMO.Reader.Excel` instead when the job is normalized extraction of workbook content for search, indexing, or AI ingestion; it does not own CSV conversion.
 
 ## Further Reading

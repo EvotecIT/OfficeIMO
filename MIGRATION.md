@@ -7,7 +7,7 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.1 is a coordinated breaking release. Upgrade every OfficeIMO package in an application to the same published `3.1.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.1 is a coordinated breaking release. Upgrade every OfficeIMO package in an application to the same `3.1.x` version and perform a clean restore after changing versions.
 
 | Version in the application | Upgrade path |
 | --- | --- |
@@ -60,6 +60,7 @@ Common Word changes are:
 | `FootnotePositionValues` / `EndnotePositionValues` / `RestartNumberValues` | `WordFootnotePosition` / `WordEndnotePosition` / `WordNoteNumberRestart` |
 | `LevelJustificationValues` / `LevelSuffixValues` | `WordListLevelAlignment` / `WordListLevelSuffix` |
 | `ShapeTypeValues` / `BlipCompressionValues` / `BlackWhiteModeValues` | `WordImageShapeType` / `WordImageCompressionQuality` / `WordImageBlackWhiteMode` |
+| `WordImage.BlackWiteMode` | `WordImage.BlackWhiteMode` (the misspelled member remains as an obsolete forwarding alias) |
 | chart `BarDirectionValues`, `BarGroupingValues`, and `LegendPositionValues` | `WordChartBarDirection`, `WordChartBarGrouping`, and `WordChartLegendPosition` |
 
 PowerPoint uses the same rule:
@@ -285,9 +286,10 @@ use the worksheet `ToCsv` / `SaveAsCsv` methods instead. Calls that passed
 `ToCsv` arguments positionally should use the current `headersInFirstRow`,
 `csvOptions`, `readOptions`, and `cancellationToken` parameter names. Replace
 old import-result properties
-`TableName`, `RowCount`, `ColumnCount`, `Delimiter`, and `Warnings` with the
-current `ExcelCsvImportResult.SheetName` and `Range`; inspect the configured CSV
-reader options or the resulting worksheet/table when those details are needed.
+`TableName`, `RowCount`, `ColumnCount`, and `Warnings` with the current
+`ExcelCsvImportResult.SheetName`, `Range`, and `Delimiter`; inspect the
+resulting worksheet/table when row or column counts are needed. `Delimiter`
+reports the actual delimiter used, including one selected by detection.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
