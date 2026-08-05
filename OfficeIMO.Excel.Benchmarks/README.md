@@ -46,9 +46,18 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIM
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsBenchmarks*"
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsbBenchmarks*"
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*XlsbOfficeIMOPipelineBenchmarks*"
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xls-officeimo 100
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xls-sylvan 100
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-officeimo 100
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-sylvan 100
 ```
+
+The four `--profile-markpflug65k-*` commands are lightweight profiling loops,
+not publication-grade benchmark runs. Before timing begins, they authenticate
+the fixture and require OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader to
+produce the same row count, cell count, and deterministic payload observation.
+Use the BenchmarkDotNet class filters above when statistical error and
+allocation measurements are required.
 
 The XLS lane includes OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader. The
 XLSX lane includes OfficeIMO, Sylvan.Data.Excel, ExcelDataReader,
