@@ -219,12 +219,12 @@ public partial class HtmlWordGapClosure {
 
         Assert.Equal("ABCDEF", first.ShadingFillColorHex);
         Assert.Equal("ABCDEF", second.ShadingFillColorHex);
-        Assert.Equal(BorderValues.Single, first.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, first.Borders.TopStyle);
         Assert.Null(first.Borders.BottomStyle);
         Assert.Null(second.Borders.TopStyle);
-        Assert.Equal(BorderValues.Single, second.Borders.BottomStyle);
-        Assert.Equal(BorderValues.Single, first.Borders.LeftStyle);
-        Assert.Equal(BorderValues.Single, second.Borders.RightStyle);
+        Assert.Equal(WordBorderStyle.Single, second.Borders.BottomStyle);
+        Assert.Equal(WordBorderStyle.Single, first.Borders.LeftStyle);
+        Assert.Equal(WordBorderStyle.Single, second.Borders.RightStyle);
         Assert.Equal("123456", first.Borders.LeftColorHex);
         Assert.Equal(120, first.IndentationBefore);
         Assert.Equal(120, second.IndentationAfter);
@@ -261,7 +261,7 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text.Contains("Important frame", StringComparison.Ordinal));
 
         Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
-        Assert.Equal(BorderValues.Single, paragraph.Borders.LeftStyle);
+        Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
         Assert.Equal("123456", paragraph.Borders.LeftColorHex);
     }
 
@@ -292,8 +292,8 @@ public partial class HtmlWordGapClosure {
         WordParagraph inside = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inside");
 
         Assert.NotSame(before, inside);
-        Assert.Equal(BorderValues.Single, inside.Borders.TopStyle);
-        Assert.Equal(BorderValues.Single, inside.Borders.BottomStyle);
+        Assert.Equal(WordBorderStyle.Single, inside.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, inside.Borders.BottomStyle);
         Assert.Equal("123456", inside.Borders.LeftColorHex);
     }
 
@@ -306,8 +306,8 @@ public partial class HtmlWordGapClosure {
             """<div style="border:1px solid #123456">Inside cell</div>"""));
 
         WordParagraph inside = Assert.Single(cell.Paragraphs, paragraph => paragraph.Text == "Inside cell");
-        Assert.Equal(BorderValues.Single, inside.Borders.TopStyle);
-        Assert.Equal(BorderValues.Single, inside.Borders.BottomStyle);
+        Assert.Equal(WordBorderStyle.Single, inside.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, inside.Borders.BottomStyle);
         Assert.Equal("123456", inside.Borders.LeftColorHex);
     }
 
@@ -322,8 +322,8 @@ public partial class HtmlWordGapClosure {
         Paragraph paragraph = Assert.Single(cell._tableCell.Elements<Paragraph>());
         WordParagraph framed = Assert.Single(cell.Paragraphs, candidate => candidate.Text == "Framed");
         Assert.Equal("Framed", paragraph.InnerText);
-        Assert.Equal(BorderValues.Single, framed.Borders.TopStyle);
-        Assert.Equal(BorderValues.Single, framed.Borders.BottomStyle);
+        Assert.Equal(WordBorderStyle.Single, framed.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, framed.Borders.BottomStyle);
         Assert.True(framed.PageBreakBefore);
     }
 
@@ -391,7 +391,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph functionalColor = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Functional color");
 
         Assert.Equal("FF0000", background.ShadingFillColorHex);
-        Assert.Equal(BorderValues.Single, border.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, border.Borders.TopStyle);
         Assert.Equal("FF0000", border.Borders.TopColorHex);
         Assert.True(string.IsNullOrEmpty(transparent.ShadingFillColorHex));
         Assert.Equal("010203", functionalColor.Borders.TopColorHex);
@@ -454,7 +454,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs[0].GetRuns(),
             run => run.Text.Contains("exact", StringComparison.Ordinal));
 
-        Assert.Equal(HighlightColorValues.Yellow, markedRun.Highlight);
+        Assert.Equal(WordHighlightColor.Yellow, markedRun.Highlight);
         Assert.Null(exactRun.Highlight);
         Assert.Equal("ABCDEF", exactRun.RunShadingFillColorHex);
 

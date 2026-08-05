@@ -33,14 +33,14 @@ public class BasicDocumentTests : VerifyTestBase {
     public async Task BasicWord() {
         using var document = WordDocument.Create();
         var paragraph = document.AddParagraph("Adding paragraph with some text");
-        paragraph.ParagraphAlignment = JustificationValues.Center;
+        paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
         paragraph.Color = Color.Red;
 
         paragraph = document.AddParagraph("Adding another paragraph with some more text");
         paragraph.Bold = true;
         paragraph = paragraph.AddText(" , but now we also decided to add more text to this paragraph using different style");
-        paragraph.Underline = UnderlineValues.DashLong;
+        paragraph.Underline = WordUnderlineStyle.DashLong;
         paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
         paragraph.Color = Color.CornflowerBlue;
 
@@ -96,14 +96,14 @@ public class BasicDocumentTests : VerifyTestBase {
         document.Settings.FontFamily = "Calibri Light";
         document.Settings.FontFamilyHighAnsi = "Calibri Light";
         document.Settings.Language = "pt-Br";
-        document.Settings.ZoomPreset = PresetZoomValues.BestFit;
+        document.Settings.ZoomPreset = WordZoomPreset.BestFit;
 
         document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2013;
         document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.None;
 
         const string title = "INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL";
 
-        document.AddParagraph(title).SetBold().ParagraphAlignment = JustificationValues.Center;
+        document.AddParagraph(title).SetBold().ParagraphAlignment = WordParagraphAlignment.Center;
 
         _ = document.ToBytes();
 

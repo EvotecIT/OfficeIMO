@@ -56,7 +56,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph blended = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Blended");
 
         Assert.Null(transparent.Borders.LeftStyle);
-        Assert.Equal(BorderValues.Single, blended.Borders.LeftStyle);
+        Assert.Equal(WordBorderStyle.Single, blended.Borders.LeftStyle);
         Assert.Equal("800080", blended.Borders.LeftColorHex);
     }
 

@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
             using var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().Single();
-            Assert.Equal(UnderlineValues.Wave, run.Underline);
+            Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Wave, run.Underline);
             var diagnostic = Assert.Single(conversion.Report.Diagnostics, diagnostic =>
                 string.Equals(diagnostic.Code, "UnsupportedCssValue", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(diagnostic.Source, "p:text-decoration", StringComparison.OrdinalIgnoreCase));

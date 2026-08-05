@@ -56,7 +56,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
         table.Rows[3].Cells[3].Paragraphs[0].Text = "Different cell";
 
         document.AddParagraph("As you can see adding a table with some style, and adding content to it ").SetBold()
-            .SetUnderline(UnderlineValues.Dotted).AddText("is not really complicated").SetColor(Color.OrangeRed);
+            .SetUnderline(WordUnderlineStyle.Dotted).AddText("is not really complicated").SetColor(Color.OrangeRed);
 
         wordListToc.AddItem("How to add a list to document?");
 
@@ -74,7 +74,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
             true, "URL with tooltip");
         // you can also change the hyperlink text, uri later on using properties
         paragraphWithHyperlink.Hyperlink!.Uri = new Uri("https://evotec.xyz/hub");
-        paragraphWithHyperlink.ParagraphAlignment = JustificationValues.Center;
+        paragraphWithHyperlink.ParagraphAlignment = WordParagraphAlignment.Center;
 
         list.AddItem("3rd element of list, but added after hyperlink", 0);
         list.AddItem("4th element with hyperlink ")
@@ -89,7 +89,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
         listNumbered.AddItem("Different list number 4", 1);
 
         var section = document.AddSection();
-        section.PageOrientation = PageOrientationValues.Landscape;
+        section.PageOrientation = WordPageOrientation.Landscape;
         section.PageSettings.PageSize = WordPageSize.A4;
 
         wordListToc.AddItem("Adding headers / footers");
@@ -103,7 +103,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
         defaultHeader.AddParagraph("Text added to header - Default");
 
         var section1 = document.AddSection();
-        section1.PageOrientation = PageOrientationValues.Portrait;
+        section1.PageOrientation = WordPageOrientation.Portrait;
         section1.PageSettings.PageSize = WordPageSize.A5;
 
         wordListToc.AddItem("Adding custom properties and page numbers to document");

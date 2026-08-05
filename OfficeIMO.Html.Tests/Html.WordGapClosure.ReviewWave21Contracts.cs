@@ -65,12 +65,12 @@ public partial class HtmlWordGapClosure {
         WordTableCell middle = Assert.Single(document.Tables[0].Rows).Cells[0];
         WordTableCell last = Assert.Single(document.Tables[1].Rows).Cells[0];
 
-        Assert.Equal(BorderValues.Single, lead.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, lead.Borders.TopStyle);
         Assert.Null(lead.Borders.BottomStyle);
         Assert.Null(middle.Borders.TopStyle);
         Assert.Null(middle.Borders.BottomStyle);
         Assert.Null(last.Borders.TopStyle);
-        Assert.Equal(BorderValues.Single, last.Borders.BottomStyle);
+        Assert.Equal(WordBorderStyle.Single, last.Borders.BottomStyle);
         Assert.Equal("123456", lead.Borders.LeftColorHex);
         Assert.Equal("123456", middle.Borders.LeftColorHex);
         Assert.Equal("123456", last.Borders.RightColorHex);

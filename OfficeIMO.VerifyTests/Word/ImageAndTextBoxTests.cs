@@ -60,7 +60,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
         using var document = WordDocument.Create();
         document.AddHeadersAndFooters();
 
-        var defaultHeader = document.Sections[0].GetOrCreateHeader(DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default);
+        var defaultHeader = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
         var headerParagraph = defaultHeader.AddParagraph("Header image");
         var image = headerParagraph.InsertImage(GetSampleImagePath(), 64, 64, WrapTextImage.Square, "Header image");
         image.Title = "Header logo";
@@ -74,7 +74,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
         document.AddParagraph("Text box");
         var textBox = document.AddTextBox("Hello from textbox", WrapTextImage.Through);
         textBox.AutoFit = WordTextBoxAutoFitType.ShrinkTextOnOverflow;
-        textBox.HorizontalPositionRelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page;
+        textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         textBox.HorizontalPositionOffsetCentimeters = 2;
         textBox.VerticalPositionOffsetCentimeters = 3;
 
@@ -86,7 +86,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
         using var document = WordDocument.Create();
         document.AddHeadersAndFooters();
 
-        var defaultHeader = document.Sections[0].GetOrCreateHeader(DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default);
+        var defaultHeader = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
         var textBox = defaultHeader.AddTextBox("Header textbox", WrapTextImage.Square);
         textBox.AutoFit = WordTextBoxAutoFitType.ResizeShapeToFitText;
         textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Right;

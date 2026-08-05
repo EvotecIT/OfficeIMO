@@ -53,7 +53,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Nested");
 
-        Assert.Equal(BorderValues.Single, paragraph.Borders.LeftStyle);
+        Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
         Assert.Equal("0000FF", paragraph.Borders.LeftColorHex);
         Assert.Equal(12U, paragraph.Borders.LeftSize?.Value);
     }

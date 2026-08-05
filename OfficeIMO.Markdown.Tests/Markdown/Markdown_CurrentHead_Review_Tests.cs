@@ -93,9 +93,9 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         MarkdownDoc source = OfficeIMO.Markdown.MarkdownReader.Parse("Before ++new++ and ^up^ plus H~down~O", options.CreateReaderOptions());
         using var document = source.ToWordDocument(options);
 
-        Assert.Contains(document.Paragraphs, run => run.Text == "new" && run.Underline == UnderlineValues.Single);
-        Assert.Contains(document.Paragraphs, run => run.Text == "up" && run.VerticalTextAlignment == VerticalPositionValues.Superscript);
-        Assert.Contains(document.Paragraphs, run => run.Text == "down" && run.VerticalTextAlignment == VerticalPositionValues.Subscript);
+        Assert.Contains(document.Paragraphs, run => run.Text == "new" && run.Underline == OfficeIMO.Word.WordUnderlineStyle.Single);
+        Assert.Contains(document.Paragraphs, run => run.Text == "up" && run.VerticalTextAlignment == OfficeIMO.Word.WordVerticalTextPosition.Superscript);
+        Assert.Contains(document.Paragraphs, run => run.Text == "down" && run.VerticalTextAlignment == OfficeIMO.Word.WordVerticalTextPosition.Subscript);
     }
 
     [Fact]
@@ -110,9 +110,9 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         using var document = markdown.ToWordDocument();
 
-        Assert.Contains(document.Paragraphs, run => run.Text == "new" && run.Underline == UnderlineValues.Single);
-        Assert.Contains(document.Paragraphs, run => run.Text == "2" && run.VerticalTextAlignment == VerticalPositionValues.Superscript);
-        Assert.Contains(document.Paragraphs, run => run.Text == "n" && run.VerticalTextAlignment == VerticalPositionValues.Subscript);
+        Assert.Contains(document.Paragraphs, run => run.Text == "new" && run.Underline == OfficeIMO.Word.WordUnderlineStyle.Single);
+        Assert.Contains(document.Paragraphs, run => run.Text == "2" && run.VerticalTextAlignment == OfficeIMO.Word.WordVerticalTextPosition.Superscript);
+        Assert.Contains(document.Paragraphs, run => run.Text == "n" && run.VerticalTextAlignment == OfficeIMO.Word.WordVerticalTextPosition.Subscript);
     }
 
     [Fact]

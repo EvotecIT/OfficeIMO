@@ -11,10 +11,10 @@ namespace OfficeIMO.Tests {
             using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
             var table = doc.Tables[0];
 
-            Assert.Equal(MergedCellValues.Restart, table.Rows[0].Cells[0].VerticalMerge);
-            Assert.Equal(MergedCellValues.Continue, table.Rows[1].Cells[0].VerticalMerge);
-            Assert.Equal(MergedCellValues.Restart, table.Rows[2].Cells[0].HorizontalMerge);
-            Assert.Equal(MergedCellValues.Continue, table.Rows[2].Cells[1].HorizontalMerge);
+            Assert.Equal(WordCellMerge.Restart, table.Rows[0].Cells[0].VerticalMerge);
+            Assert.Equal(WordCellMerge.Continue, table.Rows[1].Cells[0].VerticalMerge);
+            Assert.Equal(WordCellMerge.Restart, table.Rows[2].Cells[0].HorizontalMerge);
+            Assert.Equal(WordCellMerge.Continue, table.Rows[2].Cells[1].HorizontalMerge);
         }
 
         [Fact]
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
             using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
             var table = doc.Tables[0];
 
-            Assert.Equal(MergedCellValues.Restart, table.Rows[0].Cells[0].VerticalMerge);
-            Assert.Equal(MergedCellValues.Continue, table.Rows[1].Cells[0].VerticalMerge);
+            Assert.Equal(WordCellMerge.Restart, table.Rows[0].Cells[0].VerticalMerge);
+            Assert.Equal(WordCellMerge.Continue, table.Rows[1].Cells[0].VerticalMerge);
             Assert.Null(table.Rows[2].Cells[0].VerticalMerge);
         }
     }

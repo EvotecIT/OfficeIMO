@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System.Threading.Tasks;
@@ -27,7 +27,7 @@ public class BookmarkTests : VerifyTestBase {
             paragraph = paragraph.AddText(text);
             paragraph.Bold = true;
             paragraph.Italic = true;
-            paragraph.Underline = UnderlineValues.DashDotDotHeavy;
+            paragraph.Underline = WordUnderlineStyle.DashDotDotHeavy;
         }
 
         document.AddPageBreak();

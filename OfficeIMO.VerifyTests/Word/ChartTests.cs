@@ -32,8 +32,8 @@ public class ChartTests : VerifyTestBase {
         barChart1.AddBar("Brazil", new List<int> { 10, 35, 18, 23 }, Color.Brown);
         barChart1.AddBar("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
         barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, Color.AliceBlue);
-        barChart1.BarGrouping = BarGroupingValues.Clustered;
-        barChart1.BarDirection = BarDirectionValues.Column;
+        barChart1.BarGrouping = WordChartBarGrouping.Clustered;
+        barChart1.BarDirection = WordChartBarDirection.Column;
 
         document.AddParagraph("This is a bar chart");
         var barChart2 = document.AddChart();

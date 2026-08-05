@@ -109,7 +109,7 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Inherited frame");
 
         Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
-        Assert.Equal(BorderValues.Single, paragraph.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
         Assert.Equal("123456", paragraph.Borders.LeftColorHex);
     }
 
@@ -139,7 +139,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs[0].GetRuns(),
             candidate => candidate.Text == "Marked");
 
-        Assert.Equal(HighlightColorValues.Yellow, run.Highlight);
+        Assert.Equal(WordHighlightColor.Yellow, run.Highlight);
         Assert.Equal(string.Empty, run.RunShadingFillColorHex);
     }
 
@@ -152,7 +152,7 @@ public partial class HtmlWordGapClosure {
             });
         WordTable table = Assert.Single(document.Tables);
 
-        Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
+        Assert.Equal(WordTableAlignment.Center, table.Alignment);
     }
 
     [Fact]
@@ -166,8 +166,8 @@ public partial class HtmlWordGapClosure {
 
         Assert.True(paragraph.IsListItem);
         Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
-        Assert.Equal(BorderValues.Single, paragraph.Borders.TopStyle);
-        Assert.Equal(BorderValues.Single, paragraph.Borders.BottomStyle);
+        Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, paragraph.Borders.BottomStyle);
         Assert.Equal("123456", paragraph.Borders.LeftColorHex);
     }
 
@@ -245,7 +245,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
-        Assert.Equal(BorderValues.Single, paragraph.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
         Assert.Equal("123456", paragraph.Borders.TopColorHex);
         Assert.Equal(60, paragraph.IndentationBefore);
         Assert.Equal(60, paragraph.IndentationAfter);
@@ -372,7 +372,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
-        Assert.Equal(BorderValues.Single, paragraph.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
         Assert.Equal("123456", paragraph.Borders.TopColorHex);
         Assert.Equal(60, paragraph.IndentationBefore);
         Assert.Equal(60, paragraph.IndentationAfter);
@@ -383,7 +383,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Layered");
         run.RunShadingFillColorHex = "ABCDEF";
-        run.Highlight = HighlightColorValues.Cyan;
+        run.Highlight = WordHighlightColor.Cyan;
 
         string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
 
@@ -480,10 +480,10 @@ public partial class HtmlWordGapClosure {
         WordParagraph restored = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Restored components");
         WordParagraph currentColor = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Current color");
 
-        Assert.Equal(BorderValues.Single, restored.Borders.LeftStyle);
+        Assert.Equal(WordBorderStyle.Single, restored.Borders.LeftStyle);
         Assert.Equal((uint)6, restored.Borders.LeftSize?.Value);
         Assert.Equal("FF0000", restored.Borders.LeftColorHex);
-        Assert.Equal(BorderValues.Single, currentColor.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, currentColor.Borders.TopStyle);
         Assert.Equal("123456", currentColor.Borders.TopColorHex);
     }
 

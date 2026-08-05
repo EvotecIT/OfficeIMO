@@ -218,7 +218,7 @@ public class HtmlRichGenericImports {
         Assert.Equal("ABCDEF", header.FillColor);
         Assert.All(header.Runs, run => Assert.True(run.Bold));
         Assert.Equal("123456", header.Runs[0].Color);
-        Assert.Equal(DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Center, header.HorizontalAlignment);
+        Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextAlignment.Center, header.HorizontalAlignment);
         Assert.True(Assert.Single(body.Runs, run => run.Text.Contains("Bold", StringComparison.Ordinal)).Bold);
         PowerPointTextRun linked = Assert.Single(body.Runs,
             run => run.Text.Contains("linked", StringComparison.Ordinal));

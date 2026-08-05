@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
 
-            Assert.Contains(runs, r => r.Text == "highlighted" && r.Highlight == HighlightColorValues.Yellow);
-            Assert.Contains(runs, r => r.Text == "important" && r.Highlight == HighlightColorValues.Yellow && r.Bold);
+            Assert.Contains(runs, r => r.Text == "highlighted" && r.Highlight == OfficeIMO.Word.WordHighlightColor.Yellow);
+            Assert.Contains(runs, r => r.Text == "important" && r.Highlight == OfficeIMO.Word.WordHighlightColor.Yellow && r.Bold);
 
             var roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableHighlight = true });
             Assert.Contains("==highlighted==", roundTrip);

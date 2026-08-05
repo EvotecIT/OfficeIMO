@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddHtmlToHeader(OfficeIMO.Html.HtmlConversionDocument.Parse("<q>Quoted header</q>"));
 
-            string innerText = GetHeaderInnerText(document, HeaderFooterValues.Default);
+            string innerText = GetHeaderInnerText(document, WordHeaderFooterType.Default);
 
             Assert.Contains("Quoted header", innerText);
             Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text.Contains("Quoted header", StringComparison.Ordinal));
@@ -44,25 +44,25 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void AddHtmlToFooter_CreatesFirstFooter() {
-            AssertFooterCreated(HeaderFooterValues.First, "Sync first footer", doc => doc.DifferentFirstPage = true);
+            AssertFooterCreated(WordHeaderFooterType.First, "Sync first footer", doc => doc.DifferentFirstPage = true);
         }
 
         [Fact]
         public void AddHtmlToFooter_CreatesEvenFooter() {
-            AssertFooterCreated(HeaderFooterValues.Even, "Sync even footer", doc => doc.DifferentOddAndEvenPages = true);
+            AssertFooterCreated(WordHeaderFooterType.Even, "Sync even footer", doc => doc.DifferentOddAndEvenPages = true);
         }
 
         [Fact]
         public void AddHtmlToHeader_CreatesFirstHeader() {
-            AssertHeaderCreated(HeaderFooterValues.First, "Sync first header", doc => doc.DifferentFirstPage = true);
+            AssertHeaderCreated(WordHeaderFooterType.First, "Sync first header", doc => doc.DifferentFirstPage = true);
         }
 
         [Fact]
         public void AddHtmlToHeader_CreatesEvenHeader() {
-            AssertHeaderCreated(HeaderFooterValues.Even, "Sync even header", doc => doc.DifferentOddAndEvenPages = true);
+            AssertHeaderCreated(WordHeaderFooterType.Even, "Sync even header", doc => doc.DifferentOddAndEvenPages = true);
         }
 
-        private static void AssertFooterCreated(HeaderFooterValues footerType, string expectedText, Action<WordDocument> configure) {
+        private static void AssertFooterCreated(WordHeaderFooterType footerType, string expectedText, Action<WordDocument> configure) {
             using WordDocument document = WordDocument.Create();
             configure(document);
 
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(expectedText, innerText);
         }
 
-        private static void AssertHeaderCreated(HeaderFooterValues headerType, string expectedText, Action<WordDocument> configure) {
+        private static void AssertHeaderCreated(WordHeaderFooterType headerType, string expectedText, Action<WordDocument> configure) {
             using WordDocument document = WordDocument.Create();
             configure(document);
 

@@ -13,12 +13,12 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
-            Assert.Equal(BorderValues.Single, style);
+            Assert.Equal(WordBorderStyle.Single, style);
             Assert.Equal((UInt32Value)12U, size);
             Assert.Equal("FF0000", colorHex);
             var cell = table.Rows[0].Cells[0];
             Assert.Equal("00FF00", cell.ShadingFillColorHex);
-            Assert.Equal(BorderValues.Dashed, cell.Borders.TopStyle);
+            Assert.Equal(WordBorderStyle.Dashed, cell.Borders.TopStyle);
             Assert.Equal("0000FF", cell.Borders.TopColorHex);
         }
 
@@ -29,14 +29,14 @@ namespace OfficeIMO.Tests {
 
             var table = doc.Tables[0];
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Left);
-            Assert.Equal(BorderValues.Double, style);
+            Assert.Equal(WordBorderStyle.Double, style);
             Assert.Equal((UInt32Value)18U, size);
             Assert.Equal("112233", colorHex);
             var cell = table.Rows[0].Cells[0];
-            Assert.Equal(BorderValues.Dotted, cell.Borders.BottomStyle);
+            Assert.Equal(WordBorderStyle.Dotted, cell.Borders.BottomStyle);
             Assert.Equal((UInt32Value)12U, cell.Borders.BottomSize);
             Assert.Equal("445566", cell.Borders.BottomColorHex);
-            Assert.Equal(BorderValues.Dashed, cell.Borders.RightStyle);
+            Assert.Equal(WordBorderStyle.Dashed, cell.Borders.RightStyle);
             Assert.Equal((UInt32Value)6U, cell.Borders.RightSize);
             Assert.Equal("778899", cell.Borders.RightColorHex);
         }
@@ -48,8 +48,8 @@ namespace OfficeIMO.Tests {
             var table = doc.Tables[0];
             var cell1 = table.Rows[0].Cells[0];
             var cell2 = table.Rows[0].Cells[1];
-            Assert.Equal(JustificationValues.Center, cell1.Paragraphs[0].ParagraphAlignment);
-            Assert.Equal(JustificationValues.Right, cell2.Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Center, cell1.Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Right, cell2.Paragraphs[0].ParagraphAlignment);
             string back = doc.ToHtml();
             Assert.Contains("text-align:center", back, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("text-align:right", back, StringComparison.OrdinalIgnoreCase);
@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests {
             var table = doc.Tables[0];
             var cellLeft = table.Rows[0].Cells[0];
             var cellJustify = table.Rows[0].Cells[1];
-            Assert.Equal(JustificationValues.Left, cellLeft.Paragraphs[0].ParagraphAlignment);
-            Assert.Equal(JustificationValues.Both, cellJustify.Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Left, cellLeft.Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Both, cellJustify.Paragraphs[0].ParagraphAlignment);
             string back = doc.ToHtml();
             Assert.Contains("text-align:left", back, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("text-align:justify", back, StringComparison.OrdinalIgnoreCase);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             string html = "<table style=\"width:auto\"><tr><td>Cell</td></tr></table>";
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
-            Assert.Equal(TableWidthUnitValues.Auto, table.WidthType);
+            Assert.Equal(WordTableWidthUnit.Auto, table.WidthType);
             Assert.Equal(0, table.Width);
         }
 
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
-            Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
+            Assert.Equal(WordTableAlignment.Center, table.Alignment);
         }
 
         [Fact]
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
-            Assert.Equal(TableRowAlignmentValues.Right, table.Alignment);
+            Assert.Equal(WordTableAlignment.Right, table.Alignment);
         }
 
         [Fact]
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
-            Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
+            Assert.Equal(WordTableAlignment.Center, table.Alignment);
         }
 
         [Fact]
@@ -129,8 +129,8 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
-            Assert.Equal(TableVerticalAlignmentValues.Center, table.Rows[0].Cells[0].VerticalAlignment);
-            Assert.Equal(TableVerticalAlignmentValues.Bottom, table.Rows[0].Cells[1].VerticalAlignment);
+            Assert.Equal(WordTableVerticalAlignment.Center, table.Rows[0].Cells[0].VerticalAlignment);
+            Assert.Equal(WordTableVerticalAlignment.Bottom, table.Rows[0].Cells[1].VerticalAlignment);
         }
     }
 }

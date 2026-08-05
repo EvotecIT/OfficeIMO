@@ -44,7 +44,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph highlightedParagraph = document.AddParagraph();
         highlightedParagraph.AddHyperLink("Highlighted", new Uri("https://example.test/highlight"));
         WordParagraph highlightedRun = Assert.Single(highlightedParagraph.GetRuns());
-        highlightedRun.Highlight = HighlightColorValues.Yellow;
+        highlightedRun.Highlight = WordHighlightColor.Yellow;
 
         WordParagraph shadedParagraph = document.AddParagraph();
         shadedParagraph.AddHyperLink("Shaded", new Uri("https://example.test/shading"));

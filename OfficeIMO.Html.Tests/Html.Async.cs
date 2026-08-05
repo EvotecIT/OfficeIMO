@@ -44,40 +44,40 @@ namespace OfficeIMO.Tests {
             using var docAsync = WordDocument.Create();
             string fragment = "<p>Header</p>";
             docSync.AddHtmlToHeader(OfficeIMO.Html.HtmlConversionDocument.Parse(fragment));
-            var syncHeader = RequireSectionHeader(docSync, 0, HeaderFooterValues.Default);
+            var syncHeader = RequireSectionHeader(docSync, 0, WordHeaderFooterType.Default);
             await docAsync.AddHtmlToHeaderAsync(OfficeIMO.Html.HtmlConversionDocument.Parse(fragment));
-            var asyncHeader = RequireSectionHeader(docAsync, 0, HeaderFooterValues.Default);
+            var asyncHeader = RequireSectionHeader(docAsync, 0, WordHeaderFooterType.Default);
             Assert.Equal(syncHeader.Paragraphs[0].Text, asyncHeader.Paragraphs[0].Text);
 
             string footerFrag = "<p>Footer</p>";
             docSync.AddHtmlToFooter(OfficeIMO.Html.HtmlConversionDocument.Parse(footerFrag));
-            var syncFooter = RequireSectionFooter(docSync, 0, HeaderFooterValues.Default);
+            var syncFooter = RequireSectionFooter(docSync, 0, WordHeaderFooterType.Default);
             await docAsync.AddHtmlToFooterAsync(OfficeIMO.Html.HtmlConversionDocument.Parse(footerFrag));
-            var asyncFooter = RequireSectionFooter(docAsync, 0, HeaderFooterValues.Default);
+            var asyncFooter = RequireSectionFooter(docAsync, 0, WordHeaderFooterType.Default);
             Assert.Equal(syncFooter.Paragraphs[0].Text, asyncFooter.Paragraphs[0].Text);
         }
 
         [Fact]
         public async Task AddHtmlToFooterAsync_CreatesFirstFooter() {
-            await AssertFooterCreatedAsync(HeaderFooterValues.First, "First footer fragment", doc => doc.DifferentFirstPage = true);
+            await AssertFooterCreatedAsync(WordHeaderFooterType.First, "First footer fragment", doc => doc.DifferentFirstPage = true);
         }
 
         [Fact]
         public async Task AddHtmlToFooterAsync_CreatesEvenFooter() {
-            await AssertFooterCreatedAsync(HeaderFooterValues.Even, "Even footer fragment", doc => doc.DifferentOddAndEvenPages = true);
+            await AssertFooterCreatedAsync(WordHeaderFooterType.Even, "Even footer fragment", doc => doc.DifferentOddAndEvenPages = true);
         }
 
         [Fact]
         public async Task AddHtmlToHeaderAsync_CreatesFirstHeader() {
-            await AssertHeaderCreatedAsync(HeaderFooterValues.First, "First header fragment", doc => doc.DifferentFirstPage = true);
+            await AssertHeaderCreatedAsync(WordHeaderFooterType.First, "First header fragment", doc => doc.DifferentFirstPage = true);
         }
 
         [Fact]
         public async Task AddHtmlToHeaderAsync_CreatesEvenHeader() {
-            await AssertHeaderCreatedAsync(HeaderFooterValues.Even, "Even header fragment", doc => doc.DifferentOddAndEvenPages = true);
+            await AssertHeaderCreatedAsync(WordHeaderFooterType.Even, "Even header fragment", doc => doc.DifferentOddAndEvenPages = true);
         }
 
-        private static async Task AssertFooterCreatedAsync(HeaderFooterValues footerType, string expectedText, Action<WordDocument> configure) {
+        private static async Task AssertFooterCreatedAsync(WordHeaderFooterType footerType, string expectedText, Action<WordDocument> configure) {
             using var doc = WordDocument.Create();
             configure(doc);
 
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(expectedText, innerText);
         }
 
-        private static async Task AssertHeaderCreatedAsync(HeaderFooterValues headerType, string expectedText, Action<WordDocument> configure) {
+        private static async Task AssertHeaderCreatedAsync(WordHeaderFooterType headerType, string expectedText, Action<WordDocument> configure) {
             using var doc = WordDocument.Create();
             configure(doc);
 
@@ -113,67 +113,67 @@ namespace OfficeIMO.Tests {
             Assert.Contains(expectedText, innerText);
         }
 
-        private static WordHeader RequireSectionHeader(WordDocument doc, int index, HeaderFooterValues type) {
+        private static WordHeader RequireSectionHeader(WordDocument doc, int index, WordHeaderFooterType type) {
             Assert.NotNull(doc);
             Assert.InRange(index, 0, doc.Sections.Count - 1);
 
             var section = doc.Sections[index];
-            if (type == HeaderFooterValues.Default && section.Header.Default == null) {
+            if (type == WordHeaderFooterType.Default && section.Header.Default == null) {
                 section.AddHeadersAndFooters();
             }
 
-            if (type == HeaderFooterValues.Default) {
+            if (type == WordHeaderFooterType.Default) {
                 return Assert.IsAssignableFrom<WordHeader>(section.Header.Default);
             }
 
-            if (type == HeaderFooterValues.Even) {
+            if (type == WordHeaderFooterType.Even) {
                 return Assert.IsAssignableFrom<WordHeader>(section.Header.Even);
             }
 
-            if (type == HeaderFooterValues.First) {
+            if (type == WordHeaderFooterType.First) {
                 return Assert.IsAssignableFrom<WordHeader>(section.Header.First);
             }
 
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
         }
 
-        private static WordFooter RequireSectionFooter(WordDocument doc, int index, HeaderFooterValues type) {
+        private static WordFooter RequireSectionFooter(WordDocument doc, int index, WordHeaderFooterType type) {
             Assert.NotNull(doc);
             Assert.InRange(index, 0, doc.Sections.Count - 1);
 
             var section = doc.Sections[index];
-            if (type == HeaderFooterValues.Default && section.Footer.Default == null) {
+            if (type == WordHeaderFooterType.Default && section.Footer.Default == null) {
                 section.AddHeadersAndFooters();
             }
 
-            if (type == HeaderFooterValues.Default) {
+            if (type == WordHeaderFooterType.Default) {
                 return Assert.IsAssignableFrom<WordFooter>(section.Footer.Default);
             }
 
-            if (type == HeaderFooterValues.Even) {
+            if (type == WordHeaderFooterType.Even) {
                 return Assert.IsAssignableFrom<WordFooter>(section.Footer.Even);
             }
 
-            if (type == HeaderFooterValues.First) {
+            if (type == WordHeaderFooterType.First) {
                 return Assert.IsAssignableFrom<WordFooter>(section.Footer.First);
             }
 
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
         }
 
-        private static WordFooter? ResolveFooter(WordFooters footers, HeaderFooterValues type) {
-            if (type == HeaderFooterValues.First) return footers.First;
-            if (type == HeaderFooterValues.Even) return footers.Even;
+        private static WordFooter? ResolveFooter(WordFooters footers, WordHeaderFooterType type) {
+            if (type == WordHeaderFooterType.First) return footers.First;
+            if (type == WordHeaderFooterType.Even) return footers.Even;
             return footers.Default;
         }
 
-        private static WordHeader? ResolveHeader(WordHeaders headers, HeaderFooterValues type) {
-            if (type == HeaderFooterValues.First) return headers.First;
-            if (type == HeaderFooterValues.Even) return headers.Even;
+        private static WordHeader? ResolveHeader(WordHeaders headers, WordHeaderFooterType type) {
+            if (type == WordHeaderFooterType.First) return headers.First;
+            if (type == WordHeaderFooterType.Even) return headers.Even;
             return headers.Default;
         }
 
-        private static string GetFooterInnerText(WordDocument doc, HeaderFooterValues footerType) {
+        private static string GetFooterInnerText(WordDocument doc, WordHeaderFooterType footerType) {
             using var ms = new MemoryStream();
             doc.Save(ms);
             ms.Position = 0;
@@ -181,11 +181,12 @@ namespace OfficeIMO.Tests {
             using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(ms, false);
             var body = package.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("The saved document body is missing.");
             var sectionProperties = body.Descendants<SectionProperties>().LastOrDefault() ?? throw new InvalidOperationException("The document does not define section properties.");
+            HeaderFooterValues openXmlFooterType = ToOpenXmlHeaderFooterType(footerType);
 
             FooterReference? footerReference = sectionProperties.Elements<FooterReference>().FirstOrDefault(reference =>
-                footerType == HeaderFooterValues.Default
-                    ? reference.Type == null || reference.Type.Value == HeaderFooterValues.Default
-                    : reference.Type?.Value == footerType);
+                footerType == WordHeaderFooterType.Default
+                    ? reference.Type == null || reference.Type.Value == openXmlFooterType
+                    : reference.Type?.Value == openXmlFooterType);
 
             string footerPartId = footerReference?.Id?.Value
                 ?? throw new InvalidOperationException($"The {footerType} footer reference could not be located in the saved document.");
@@ -196,7 +197,7 @@ namespace OfficeIMO.Tests {
             return footerPart.Footer?.InnerText ?? string.Empty;
         }
 
-        private static string GetHeaderInnerText(WordDocument doc, HeaderFooterValues headerType) {
+        private static string GetHeaderInnerText(WordDocument doc, WordHeaderFooterType headerType) {
             using var ms = new MemoryStream();
             doc.Save(ms);
             ms.Position = 0;
@@ -204,11 +205,12 @@ namespace OfficeIMO.Tests {
             using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(ms, false);
             var body = package.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("The saved document body is missing.");
             var sectionProperties = body.Descendants<SectionProperties>().LastOrDefault() ?? throw new InvalidOperationException("The document does not define section properties.");
+            HeaderFooterValues openXmlHeaderType = ToOpenXmlHeaderFooterType(headerType);
 
             HeaderReference? headerReference = sectionProperties.Elements<HeaderReference>().FirstOrDefault(reference =>
-                headerType == HeaderFooterValues.Default
-                    ? reference.Type == null || reference.Type.Value == HeaderFooterValues.Default
-                    : reference.Type?.Value == headerType);
+                headerType == WordHeaderFooterType.Default
+                    ? reference.Type == null || reference.Type.Value == openXmlHeaderType
+                    : reference.Type?.Value == openXmlHeaderType);
 
             string headerPartId = headerReference?.Id?.Value
                 ?? throw new InvalidOperationException($"The {headerType} header reference could not be located in the saved document.");
@@ -218,6 +220,13 @@ namespace OfficeIMO.Tests {
 
             return headerPart.Header?.InnerText ?? string.Empty;
         }
+
+        private static HeaderFooterValues ToOpenXmlHeaderFooterType(WordHeaderFooterType type) => type switch {
+            WordHeaderFooterType.Default => HeaderFooterValues.Default,
+            WordHeaderFooterType.First => HeaderFooterValues.First,
+            WordHeaderFooterType.Even => HeaderFooterValues.Even,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header/footer type.")
+        };
 
         [Fact]
         public async Task AsyncMethods_CanBeCancelled() {

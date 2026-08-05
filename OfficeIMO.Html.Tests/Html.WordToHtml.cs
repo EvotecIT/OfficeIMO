@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Visible body");
             document.Sections[0]
-                .GetOrCreateHeader(HeaderFooterValues.Default)
+                .GetOrCreateHeader(WordHeaderFooterType.Default)
                 .AddParagraph("Tracked header ")
                 .AddInsertedText("revision", "Reviewer");
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_WordToHtml_ReusedOptionsKeepConcurrentDiagnosticsIsolated() {
             using var documentWithHeader = WordDocument.Create();
             documentWithHeader.AddParagraph("Header document body");
-            documentWithHeader.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Omitted header");
+            documentWithHeader.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Omitted header");
             using var plainDocument = WordDocument.Create();
             plainDocument.AddParagraph("Plain document body");
             var options = new WordToHtmlOptions();
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_ReportsSingleLandscapeSectionGeometryWhenMetadataIsDisabled() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Landscape content");
-            doc.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+            doc.Sections[0].PageOrientation = WordPageOrientation.Landscape;
 
             HtmlTextConversionResult result = doc.ToHtmlResult();
 
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
             p.AddText(" and ");
             p.AddText("italic").Italic = true;
             p.AddText(" and ");
-            p.AddText("underline").Underline = UnderlineValues.Single;
+            p.AddText("underline").Underline = WordUnderlineStyle.Single;
 
             var link = doc.AddParagraph();
             link.AddHyperLink("GitHub", new Uri("https://github.com"));
@@ -586,12 +586,12 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableColumnGroups_ExportWhenEnabled() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 2);
-            table.WidthType = TableWidthUnitValues.Pct;
+            table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
-            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Pct;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Pct;
             table.Rows[0].Cells[0].Width = 675;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "A";
-            table.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Pct;
+            table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Pct;
             table.Rows[0].Cells[1].Width = 4325;
             table.Rows[0].Cells[1].Paragraphs[0].Text = "B";
 
@@ -631,8 +631,8 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Body text");
             var section = doc.Sections[0];
-            section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header text");
-            section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer text");
+            section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Header text");
+            section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Footer text");
 
             string defaultHtml = doc.ToHtml();
 
@@ -653,8 +653,8 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Body text");
             var section = doc.Sections[0];
-            section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header text");
-            section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer text");
+            section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Header text");
+            section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Footer text");
 
             string html = doc.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
 
@@ -677,9 +677,9 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_HeadersFooters_RoundTripToExportedSectionIndex() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("First body");
-            var second = doc.AddSection(SectionMarkValues.NextPage);
+            var second = doc.AddSection(WordSectionBreakType.NextPage);
             second.AddParagraph("Second body");
-            second.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Second header");
+            second.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Second header");
 
             string html = doc.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
 
@@ -1114,17 +1114,17 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableCellStyles() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
-            table.WidthType = TableWidthUnitValues.Pct;
+            table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
 
             var cell = table.Rows[0].Cells[0];
-            cell.WidthType = TableWidthUnitValues.Pct;
+            cell.WidthType = WordTableWidthUnit.Pct;
             cell.Width = 2500;
-            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
-            cell.Borders.LeftStyle = BorderValues.Single;
-            cell.Borders.RightStyle = BorderValues.Single;
-            cell.Borders.TopStyle = BorderValues.Single;
-            cell.Borders.BottomStyle = BorderValues.Single;
+            cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
+            cell.Borders.LeftStyle = WordBorderStyle.Single;
+            cell.Borders.RightStyle = WordBorderStyle.Single;
+            cell.Borders.TopStyle = WordBorderStyle.Single;
+            cell.Borders.BottomStyle = WordBorderStyle.Single;
 
             string html = doc.ToHtml();
 
@@ -1138,10 +1138,10 @@ namespace OfficeIMO.Tests {
             var table = doc.AddTable(1, 1);
             table.StyleDetails!.CellSpacing = 240;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Spaced";
-            table.Rows[0].Cells[0].Borders.LeftStyle = BorderValues.Single;
-            table.Rows[0].Cells[0].Borders.RightStyle = BorderValues.Single;
-            table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Single;
-            table.Rows[0].Cells[0].Borders.BottomStyle = BorderValues.Single;
+            table.Rows[0].Cells[0].Borders.LeftStyle = WordBorderStyle.Single;
+            table.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
+            table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
+            table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Single;
 
             string html = doc.ToHtml();
 
@@ -1157,7 +1157,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableCellVerticalAlignment_RoundTrips() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
-            table.Rows[0].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Center;
+            table.Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Centered";
 
             string html = doc.ToHtml();
@@ -1166,7 +1166,7 @@ namespace OfficeIMO.Tests {
 
             using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
 
-            Assert.Equal(TableVerticalAlignmentValues.Center, roundTrip.Tables[0].Rows[0].Cells[0].VerticalAlignment);
+            Assert.Equal(WordTableVerticalAlignment.Center, roundTrip.Tables[0].Rows[0].Cells[0].VerticalAlignment);
         }
 
         [Fact]
@@ -1174,12 +1174,12 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
             var cell = table.Rows[0].Cells[0];
-            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
+            cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
             cell.ShadingFillColorHex = "FF0000";
-            cell.Borders.LeftStyle = BorderValues.Single;
-            cell.Borders.RightStyle = BorderValues.Single;
-            cell.Borders.TopStyle = BorderValues.Single;
-            cell.Borders.BottomStyle = BorderValues.Single;
+            cell.Borders.LeftStyle = WordBorderStyle.Single;
+            cell.Borders.RightStyle = WordBorderStyle.Single;
+            cell.Borders.TopStyle = WordBorderStyle.Single;
+            cell.Borders.BottomStyle = WordBorderStyle.Single;
             cell.Borders.LeftColorHex = "00FF00";
             cell.Borders.RightColorHex = "00FF00";
             cell.Borders.TopColorHex = "00FF00";
@@ -1359,7 +1359,7 @@ namespace OfficeIMO.Tests {
             var p = doc.AddParagraph();
             var run = p.AddText("Colored");
             run.ColorHex = "FF0000";
-            run.Highlight = HighlightColorValues.Cyan;
+            run.Highlight = WordHighlightColor.Cyan;
 
             string html = doc.ToHtml(new WordToHtmlOptions {
                 IncludeRunColorStyles = true,
@@ -1375,7 +1375,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             WordParagraph run = doc.AddParagraph().AddText("Colored");
             run.ColorHex = "FF0000";
-            run.Highlight = HighlightColorValues.Cyan;
+            run.Highlight = WordHighlightColor.Cyan;
 
             string html = doc.ToHtml(new WordToHtmlOptions());
 
@@ -1390,7 +1390,7 @@ namespace OfficeIMO.Tests {
             p.LineSpacingBefore = 240;
             p.LineSpacingAfter = 480;
             p.LineSpacing = 360;
-            p.LineSpacingRule = LineSpacingRuleValues.Auto;
+            p.LineSpacingRule = WordLineSpacingRule.Auto;
             p.IndentationAfter = 720;
             p.IndentationFirstLine = 360;
 
@@ -1410,8 +1410,8 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_SectionMetadata_IsOptIn() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("First section");
-            var second = doc.AddSection(SectionMarkValues.NextPage);
-            second.PageOrientation = PageOrientationValues.Landscape;
+            var second = doc.AddSection(WordSectionBreakType.NextPage);
+            second.PageOrientation = WordPageOrientation.Landscape;
             second.PageSettings.PageSize = WordPageSize.Letter;
             second.Margins.Top = 1440;
             second.Margins.Bottom = 720;
@@ -1461,9 +1461,9 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_SectionMetadata_RoundTripsPageSetup() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("First section");
-            var second = doc.AddSection(SectionMarkValues.NextPage);
+            var second = doc.AddSection(WordSectionBreakType.NextPage);
             second.PageSettings.PageSize = WordPageSize.Letter;
-            second.PageOrientation = PageOrientationValues.Landscape;
+            second.PageOrientation = WordPageOrientation.Landscape;
             second.Margins.Top = 1440;
             second.Margins.Bottom = 720;
             second.Margins.Left = 1080;
@@ -1482,7 +1482,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, roundTrip.Sections.Count);
             var roundTripSecond = roundTrip.Sections[1];
-            Assert.Equal(PageOrientationValues.Landscape, roundTripSecond.PageOrientation);
+            Assert.Equal(WordPageOrientation.Landscape, roundTripSecond.PageOrientation);
             Assert.Equal(WordPageSize.Letter, roundTripSecond.PageSettings.PageSize);
             Assert.Equal(1440, roundTripSecond.Margins.Top);
             Assert.Equal(720, roundTripSecond.Margins.Bottom);

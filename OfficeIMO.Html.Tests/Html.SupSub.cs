@@ -12,10 +12,10 @@ namespace OfficeIMO.Tests {
             var docRuns = doc.Paragraphs;
 
             var subRun = docRuns.First(r => r.Text == "2");
-            Assert.Equal(VerticalPositionValues.Subscript, subRun.VerticalTextAlignment);
+            Assert.Equal(OfficeIMO.Word.WordVerticalTextPosition.Subscript, subRun.VerticalTextAlignment);
 
             var supRun = docRuns.First(r => r.Text == "1");
-            Assert.Equal(VerticalPositionValues.Superscript, supRun.VerticalTextAlignment);
+            Assert.Equal(OfficeIMO.Word.WordVerticalTextPosition.Superscript, supRun.VerticalTextAlignment);
 
             string roundTrip = doc.ToHtml();
             Assert.Contains("<sub>2</sub>", roundTrip);

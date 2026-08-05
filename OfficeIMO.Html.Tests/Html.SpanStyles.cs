@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             Assert.True(strikeRun.Strike);
 
             var underRun = runs.First(r => r.Text == "under");
-            Assert.Equal(UnderlineValues.Single, underRun.Underline);
+            Assert.Equal(WordUnderlineStyle.Single, underRun.Underline);
 
             var markRun = runs.First(r => r.Text == "mark");
             Assert.Equal("FFFF00", markRun.RunShadingFillColorHex);
@@ -54,10 +54,10 @@ namespace OfficeIMO.Tests {
             var runs = doc.Paragraphs;
 
             var supRun = runs.First(r => r.Text == "sup");
-            Assert.Equal(VerticalPositionValues.Superscript, supRun.VerticalTextAlignment);
+            Assert.Equal(WordVerticalTextPosition.Superscript, supRun.VerticalTextAlignment);
 
             var subRun = runs.First(r => r.Text == "sub");
-            Assert.Equal(VerticalPositionValues.Subscript, subRun.VerticalTextAlignment);
+            Assert.Equal(WordVerticalTextPosition.Subscript, subRun.VerticalTextAlignment);
         }
 
         [Fact]
