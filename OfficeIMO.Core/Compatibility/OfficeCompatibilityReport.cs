@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>Immutable feature-level fidelity report for one Office conversion assessment.</summary>
 public sealed class OfficeCompatibilityReport {

@@ -5,7 +5,7 @@
 
 `OfficeIMO.Core` is the zero-dependency shared foundation for OfficeIMO packages. It owns common document lifecycle and package-safety contracts, neutral tabular row mapping, color conversion, image metadata, font and text measurement, vector scenes, reusable ink and math models, chart snapshots, SVG, raster canvases, PNG/JPEG/TIFF/WebP encoding, and drawing-quality primitives. Format packages keep their file-format behavior while reusing these document-agnostic models and renderers.
 
-The assembly was previously named `OfficeIMO.Drawing`. Drawing became the original shared foundation because keeping these primitives together avoided a separate Core → Drawing → format dependency chain. As lifecycle, security, package, and data contracts accumulated, the package name stopped describing its actual responsibility. OfficeIMO 3.1 renames that same single zero-dependency foundation to `OfficeIMO.Core`; it does not split it into another runtime dependency. Actual drawing APIs remain in the `OfficeIMO.Drawing` namespace, security APIs remain in `OfficeIMO.Security`, and cross-document lifecycle contracts use the root `OfficeIMO` namespace.
+The assembly was previously named `OfficeIMO.Drawing`. Drawing became the original shared foundation because keeping these primitives together avoided a separate Core → Drawing → format dependency chain. As lifecycle, security, package, and data contracts accumulated, the package name stopped describing its actual responsibility. OfficeIMO 3.1 renames that same single zero-dependency foundation to `OfficeIMO.Core`; it does not split it into another runtime dependency. Actual drawing APIs remain in `OfficeIMO.Drawing`, neutral data and flattening contracts use `OfficeIMO.Data`, security APIs remain in `OfficeIMO.Security`, and cross-document lifecycle, compatibility, capability, and conversion-report contracts use the root `OfficeIMO` namespace.
 
 ## Install
 
@@ -143,7 +143,7 @@ The same immutable expression tree feeds native OneNote math and Word OMML adapt
 Use `OfficeConversionCapabilityCatalog` when an application needs to discover the package and public API for a source-to-target conversion. Each route includes accepted extensions, its fidelity model, the result type that carries diagnostics, and whether the route is available in the browser converter.
 
 ```csharp
-using OfficeIMO.Drawing;
+using OfficeIMO;
 
 foreach (OfficeConversionCapability route in
          OfficeConversionCapabilityCatalog.FindBySourceExtension(".docx")) {

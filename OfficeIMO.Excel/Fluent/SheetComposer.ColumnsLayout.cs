@@ -1,3 +1,5 @@
+using OfficeIMO.Data;
+
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Simple multi-column layout for placing lightweight blocks side by side.

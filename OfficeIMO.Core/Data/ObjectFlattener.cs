@@ -8,7 +8,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
-namespace OfficeIMO.Drawing {
+namespace OfficeIMO.Data {
     /// <summary>
     /// Configuration for flattening objects into key/value pairs where keys represent dotted paths.
     /// </summary>
@@ -936,7 +936,7 @@ namespace OfficeIMO.Drawing {
         }
     }
 }
-namespace OfficeIMO.Drawing {
+namespace OfficeIMO.Data {
 /// <summary>
 /// Configuration for mapping a collection of objects into dynamic columns.
 /// </summary>

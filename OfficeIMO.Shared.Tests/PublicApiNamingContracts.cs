@@ -17,6 +17,31 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class PublicApiNamingContracts {
     [Fact]
+    public void CoreNeutralContractsUsePurposeBasedNamespaces() {
+        Type[] rootContracts = {
+            typeof(IOfficeConversionReport),
+            typeof(OfficeFormatDescriptor),
+            typeof(OfficeCompatibilityReport),
+            typeof(OfficeCompatibilityFinding),
+            typeof(OfficeConversionCapability),
+            typeof(OfficeConversionCapabilityCatalog),
+            typeof(OfficeCapability),
+            typeof(OfficeCapabilityCatalog)
+        };
+        Type[] dataContracts = {
+            typeof(ObjectFlattener),
+            typeof(ObjectFlattenerOptions),
+            typeof(CollectionColumnMapping),
+            typeof(HeaderCase),
+            typeof(NullPolicy),
+            typeof(CollectionMode)
+        };
+
+        Assert.All(rootContracts, static type => Assert.Equal("OfficeIMO", type.Namespace));
+        Assert.All(dataContracts, static type => Assert.Equal("OfficeIMO.Data", type.Namespace));
+    }
+
+    [Fact]
     public void ExcelWorksheetApisUseOneCanonicalCasing() {
         MethodInfo[] methods = typeof(ExcelDocument).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);

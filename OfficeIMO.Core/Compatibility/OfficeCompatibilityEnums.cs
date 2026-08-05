@@ -1,6 +1,6 @@
 using System;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>Identifies the Office document family participating in a conversion.</summary>
 public enum OfficeDocumentFamily {

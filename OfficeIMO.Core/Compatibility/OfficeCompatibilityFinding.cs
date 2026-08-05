@@ -1,6 +1,6 @@
 using System;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>Describes one feature-level compatibility decision made by a conversion.</summary>
 public sealed class OfficeCompatibilityFinding {

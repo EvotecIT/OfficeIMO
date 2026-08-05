@@ -1,4 +1,4 @@
-namespace OfficeIMO.Drawing {
+namespace OfficeIMO.Data {
     /// <summary>
     /// Controls how collections are handled when flattening objects.
     /// </summary>

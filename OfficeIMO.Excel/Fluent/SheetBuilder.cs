@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Data;
 using System.Reflection;
 using System.Text;
+using OfficeIMO.Data;
 using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel.Fluent {

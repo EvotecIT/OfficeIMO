@@ -2,17 +2,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.Serialization;
-#if NET8_0_OR_GREATER
-using System.Runtime.CompilerServices;
-#endif
 
 namespace OfficeIMO.Data;
 
@@ -97,7 +90,7 @@ public static class DataReaderMappingExtensions {
             out IReadOnlyList<string>? dateTimeFormats,
             out Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
             out bool requireAllColumnsMapped);
-        RowMappingPlan<T> plan = RowMappingPlan<T>.CreateAutomatic(GetHeaders(reader), requireAllColumnsMapped);
+        AutomaticRowMappingPlan<T> plan = AutomaticRowMappingPlan<T>.Create(GetHeaders(reader), requireAllColumnsMapped);
         while (reader.Read()) {
             yield return plan.MapRow(
                 index => NormalizeDatabaseNull(reader.GetValue(index)),
@@ -112,7 +105,7 @@ public static class DataReaderMappingExtensions {
         Action<RowMapper<T>> configure) where T : new() {
         if (reader.FieldCount == 0) yield break;
 
-        RowMappingPlan<T> plan = RowMappingPlan<T>.CreateExplicit(GetHeaders(reader), configure);
+        ExplicitRowMappingPlan<T> plan = ExplicitRowMappingPlan<T>.Create(GetHeaders(reader), configure);
         if (plan.IsEmpty) yield break;
 
         GetConversionOptions(
@@ -191,263 +184,6 @@ internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
         TValue? value = DataValueConverter.ConvertTo<TValue>(rawValue, culture, dateTimeFormats, typeConverter);
         return _assign(instance, value!);
     }
-}
-
-internal sealed class RowMappingPlan<
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T> where T : new() {
-    private readonly MappingBinding<T>[] _bindings;
-
-    private RowMappingPlan(MappingBinding<T>[] bindings) {
-        _bindings = bindings;
-    }
-
-    internal bool IsEmpty => _bindings.Length == 0;
-
-    internal static RowMappingPlan<T> CreateAutomatic(IReadOnlyList<string> headers, bool requireAllColumnsMapped = false) {
-        AutomaticPropertySetter<T>?[] mapped = new AutomaticPropertySetter<T>?[headers.Count];
-        var assigned = new HashSet<AutomaticPropertySetter<T>>();
-        MapPass(headers, mapped, assigned, AutomaticMappingCache<T>.Exact, static value => value, "with that exact name");
-        MapPass(headers, mapped, assigned, AutomaticMappingCache<T>.Insensitive, static value => value, "when casing is ignored");
-        MapPass(headers, mapped, assigned, AutomaticMappingCache<T>.Aliases, static value => value, "through a declared alias");
-        MapPass(headers, mapped, assigned, AutomaticMappingCache<T>.Canonical, Canonicalize, "when punctuation is ignored");
-        MapPass(headers, mapped, assigned, AutomaticMappingCache<T>.CanonicalAliases, Canonicalize, "through a normalized alias");
-
-        if (requireAllColumnsMapped) {
-            string[] unmappedHeaders = headers
-                .Where((header, index) => mapped[index] is null && !string.IsNullOrWhiteSpace(header))
-                .ToArray();
-            if (unmappedHeaders.Length > 0) {
-                throw new DataMappingException(
-                    $"Typed mapping for '{typeof(T).Name}' is strict and could not resolve columns: {string.Join(", ", unmappedHeaders.Select(static header => $"'{header}'"))}.");
-            }
-        }
-
-        MappingBinding<T>[] bindings = mapped
-            .Select((property, index) => property is null
-                ? default(MappingBinding<T>?)
-                : new MappingBinding<T>(index, property))
-            .Where(static binding => binding.HasValue)
-            .Select(static binding => binding!.Value)
-            .ToArray();
-
-        if (bindings.Length == 0) {
-            throw new DataMappingException($"No columns match writable properties on {typeof(T).Name}.");
-        }
-        return new RowMappingPlan<T>(bindings);
-    }
-
-    internal static RowMappingPlan<T> CreateExplicit(
-        IReadOnlyList<string> headers,
-        Action<RowMapper<T>> configure) {
-        var mapper = new RowMapper<T>();
-        configure(mapper);
-        MappingBinding<T>[] bindings = mapper.Entries
-            .Select(entry => new MappingBinding<T>(FindColumn(headers, entry.ColumnName), entry))
-            .ToArray();
-        return new RowMappingPlan<T>(bindings);
-    }
-
-    internal T MapRow(
-        Func<int, object?> getValue,
-        CultureInfo culture,
-        IReadOnlyList<string>? dateTimeFormats,
-        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null) {
-        T instance = new T();
-        foreach (MappingBinding<T> binding in _bindings) {
-            instance = binding.Apply(instance, getValue(binding.ColumnIndex), culture, dateTimeFormats, typeConverter);
-        }
-        return instance;
-    }
-
-    private static void MapPass(
-        IReadOnlyList<string> headers,
-        AutomaticPropertySetter<T>?[] mapped,
-        HashSet<AutomaticPropertySetter<T>> assigned,
-        IReadOnlyDictionary<string, AutomaticPropertySetter<T>[]> lookup,
-        Func<string, string> keySelector,
-        string ambiguityDescription) {
-        for (int columnIndex = 0; columnIndex < headers.Count; columnIndex++) {
-            if (mapped[columnIndex] is not null) continue;
-            string key = keySelector(headers[columnIndex]);
-            if (key.Length == 0 || !lookup.TryGetValue(key, out AutomaticPropertySetter<T>[]? candidates)) continue;
-
-            AutomaticPropertySetter<T>? match = null;
-            foreach (AutomaticPropertySetter<T> candidate in candidates) {
-                if (assigned.Contains(candidate)) continue;
-                if (match is not null) {
-                    throw new DataMappingException(
-                        $"Column '{headers[columnIndex]}' matches multiple writable properties on {typeof(T).Name} {ambiguityDescription}.");
-                }
-                match = candidate;
-            }
-            if (match is null) continue;
-            mapped[columnIndex] = match;
-            assigned.Add(match);
-        }
-    }
-
-    private static int FindColumn(IReadOnlyList<string> headers, string columnName) {
-        int found = -1;
-        for (int index = 0; index < headers.Count; index++) {
-            if (!string.Equals(headers[index], columnName, StringComparison.OrdinalIgnoreCase)) continue;
-            if (found >= 0) {
-                throw new DataMappingException($"Column name '{columnName}' is ambiguous.");
-            }
-            found = index;
-        }
-        if (found < 0) throw new DataMappingException($"Column '{columnName}' was not found.");
-        return found;
-    }
-
-    private static string Canonicalize(string value) {
-        var builder = new System.Text.StringBuilder(value.Length);
-        foreach (char character in value) {
-            if (char.IsLetterOrDigit(character)) builder.Append(char.ToUpperInvariant(character));
-        }
-        return builder.ToString();
-    }
-
-    private readonly struct MappingBinding<TTarget> where TTarget : new() {
-        private readonly AutomaticPropertySetter<TTarget>? _property;
-        private readonly IRowMappingEntry<TTarget>? _entry;
-
-        internal MappingBinding(int columnIndex, AutomaticPropertySetter<TTarget> property) {
-            ColumnIndex = columnIndex;
-            _property = property;
-            _entry = null;
-        }
-
-        internal MappingBinding(int columnIndex, IRowMappingEntry<TTarget> entry) {
-            ColumnIndex = columnIndex;
-            _property = null;
-            _entry = entry;
-        }
-
-        internal int ColumnIndex { get; }
-
-        internal TTarget Apply(
-            TTarget instance,
-            object? rawValue,
-            CultureInfo culture,
-            IReadOnlyList<string>? dateTimeFormats,
-            Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) {
-            if (_entry is not null) return _entry.Apply(instance, rawValue, culture, dateTimeFormats, typeConverter);
-            if (!DataValueConverter.TryConvert(rawValue, _property!.ValueType, culture, dateTimeFormats, typeConverter, out object? converted, out string? error)) {
-                throw new DataMappingException(
-                    $"Column value cannot be assigned to {typeof(TTarget).Name}.{_property.Name}: {error}");
-            }
-            return _property.Assign(instance, converted);
-        }
-    }
-
-    private sealed class AutomaticPropertySetter<TTarget> {
-        internal AutomaticPropertySetter(PropertyInfo property, Func<TTarget, object?, TTarget> assign) {
-            Property = property;
-            Name = property.Name;
-            ValueType = property.PropertyType;
-            Assign = assign;
-        }
-
-        internal PropertyInfo Property { get; }
-        internal string Name { get; }
-        internal Type ValueType { get; }
-        internal Func<TTarget, object?, TTarget> Assign { get; }
-    }
-
-    private static class AutomaticMappingCache<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TTarget> {
-        internal static readonly Dictionary<string, AutomaticPropertySetter<TTarget>[]> Exact;
-        internal static readonly Dictionary<string, AutomaticPropertySetter<TTarget>[]> Insensitive;
-        internal static readonly Dictionary<string, AutomaticPropertySetter<TTarget>[]> Aliases;
-        internal static readonly Dictionary<string, AutomaticPropertySetter<TTarget>[]> Canonical;
-        internal static readonly Dictionary<string, AutomaticPropertySetter<TTarget>[]> CanonicalAliases;
-
-        static AutomaticMappingCache() {
-            AutomaticPropertySetter<TTarget>[] properties = typeof(TTarget)
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(static property => property.SetMethod?.IsPublic == true && property.GetIndexParameters().Length == 0)
-                .Select(static property => new AutomaticPropertySetter<TTarget>(property, CreateAssignment<TTarget>(property)))
-                .ToArray();
-            Exact = CreateLookup(properties, static property => property.Name, StringComparer.Ordinal);
-            Insensitive = CreateLookup(properties, static property => property.Name, StringComparer.OrdinalIgnoreCase);
-            Aliases = CreateAliasLookup(properties, canonical: false);
-            Canonical = CreateLookup(properties, static property => Canonicalize(property.Name), StringComparer.Ordinal);
-            CanonicalAliases = CreateAliasLookup(properties, canonical: true);
-        }
-    }
-
-    private static Dictionary<string, AutomaticPropertySetter<TTarget>[]> CreateAliasLookup<TTarget>(
-        IEnumerable<AutomaticPropertySetter<TTarget>> properties,
-        bool canonical) {
-        IEqualityComparer<string> comparer = canonical ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-        return properties
-            .SelectMany(property => GetAliases(property.Property)
-                .Select(alias => new { Key = canonical ? Canonicalize(alias) : alias, Property = property }))
-            .Where(static item => item.Key.Length > 0)
-            .GroupBy(static item => item.Key, comparer)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.Select(static item => item.Property).Distinct().ToArray(),
-                comparer);
-    }
-
-    private static IEnumerable<string> GetAliases(PropertyInfo property) {
-        var aliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (property.GetCustomAttribute<DisplayNameAttribute>(inherit: true)?.DisplayName is { } displayName &&
-            !string.IsNullOrWhiteSpace(displayName)) {
-            aliases.Add(displayName);
-        }
-        if (property.GetCustomAttribute<DataMemberAttribute>(inherit: true)?.Name is { } dataMemberName &&
-            !string.IsNullOrWhiteSpace(dataMemberName)) {
-            aliases.Add(dataMemberName);
-        }
-        foreach (IDataColumnAliasProvider provider in property
-                     .GetCustomAttributes(inherit: true)
-                     .OfType<IDataColumnAliasProvider>()) {
-            foreach (string alias in provider.ColumnAliases) {
-                if (!string.IsNullOrWhiteSpace(alias)) aliases.Add(alias);
-            }
-        }
-        return aliases;
-    }
-
-    private static Dictionary<string, AutomaticPropertySetter<TTarget>[]> CreateLookup<TTarget>(
-        IEnumerable<AutomaticPropertySetter<TTarget>> properties,
-        Func<AutomaticPropertySetter<TTarget>, string> getKey,
-        IEqualityComparer<string> comparer) {
-        return properties
-            .Select(property => new { Key = getKey(property), Property = property })
-            .Where(static item => item.Key.Length > 0)
-            .GroupBy(static item => item.Key, comparer)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.Select(static item => item.Property).ToArray(),
-                comparer);
-    }
-
-    private static Func<TTarget, object?, TTarget> CreateAssignment<TTarget>(PropertyInfo property) {
-#if NET8_0_OR_GREATER
-        if (!RuntimeFeature.IsDynamicCodeSupported) return CreateReflectionAssignment<TTarget>(property);
-#endif
-        try {
-            ParameterExpression target = Expression.Parameter(typeof(TTarget), "target");
-            ParameterExpression value = Expression.Parameter(typeof(object), "value");
-            BinaryExpression assignment = Expression.Assign(
-                Expression.Property(target, property),
-                Expression.Convert(value, property.PropertyType));
-            BlockExpression body = Expression.Block(assignment, target);
-            return Expression.Lambda<Func<TTarget, object?, TTarget>>(body, target, value).Compile();
-        } catch {
-            return CreateReflectionAssignment<TTarget>(property);
-        }
-    }
-
-    private static Func<TTarget, object?, TTarget> CreateReflectionAssignment<TTarget>(PropertyInfo property) =>
-        (target, value) => {
-            object boxed = target!;
-            property.SetValue(boxed, value, index: null);
-            return (TTarget)boxed;
-        };
 }
 
 internal static class DataValueConverter {

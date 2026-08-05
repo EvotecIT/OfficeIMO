@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>

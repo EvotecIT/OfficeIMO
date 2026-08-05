@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>Describes how a conversion route accepts its source content.</summary>
 public enum OfficeConversionInputKind {

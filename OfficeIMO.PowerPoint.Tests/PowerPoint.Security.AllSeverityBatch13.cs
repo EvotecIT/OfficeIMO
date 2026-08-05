@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Data;
 using OfficeIMO.PowerPoint;
 using Xunit;
 

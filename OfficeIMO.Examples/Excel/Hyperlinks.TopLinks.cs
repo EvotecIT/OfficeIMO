@@ -5,6 +5,7 @@ using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
 using OfficeIMO.Drawing;
+using OfficeIMO.Data;
 
 namespace OfficeIMO.Examples.Excel {
     /// <summary>

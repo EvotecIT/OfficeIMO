@@ -30,7 +30,7 @@ public static class CsvMappingExtensions {
     private static IEnumerable<T> EnumerateAutomatic<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         CsvDocument document) where T : new() {
-        RowMappingPlan<T> plan = RowMappingPlan<T>.CreateAutomatic(document.Header);
+        AutomaticRowMappingPlan<T> plan = AutomaticRowMappingPlan<T>.Create(document.Header);
         foreach (CsvRow row in document.AsEnumerable()) {
             yield return plan.MapRow(
                 index => row[index],
@@ -42,7 +42,7 @@ public static class CsvMappingExtensions {
     private static IEnumerable<T> EnumerateExplicit<T>(
         CsvDocument document,
         Action<RowMapper<T>> configure) where T : new() {
-        RowMappingPlan<T> plan = RowMappingPlan<T>.CreateExplicit(document.Header, configure);
+        ExplicitRowMappingPlan<T> plan = ExplicitRowMappingPlan<T>.Create(document.Header, configure);
         if (plan.IsEmpty) yield break;
         foreach (CsvRow row in document.AsEnumerable()) {
             yield return plan.MapRow(

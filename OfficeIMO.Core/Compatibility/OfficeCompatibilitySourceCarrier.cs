@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 internal static class OfficeCompatibilitySourceCarrier {
     internal const string MetadataPath = "OfficeIMOCompatibility/SourceMetadata";

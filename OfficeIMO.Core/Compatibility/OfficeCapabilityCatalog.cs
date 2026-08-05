@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>One versioned, machine-readable feature row in an Office legacy/modern compatibility contract.</summary>
 public sealed class OfficeCapability {

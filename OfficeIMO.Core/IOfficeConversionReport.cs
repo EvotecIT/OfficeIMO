@@ -1,4 +1,4 @@
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>
 /// Common fidelity contract for reports produced by one stage of an Office document conversion.

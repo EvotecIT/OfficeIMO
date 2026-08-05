@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Excel;
+using OfficeIMO.Data;
 using Xunit;
 
 namespace OfficeIMO.Tests {

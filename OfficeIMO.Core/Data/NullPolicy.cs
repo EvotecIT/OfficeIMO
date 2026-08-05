@@ -1,4 +1,4 @@
-namespace OfficeIMO.Drawing {
+namespace OfficeIMO.Data {
     /// <summary>
     /// Describes how null values are represented when flattening objects.
     /// </summary>

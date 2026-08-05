@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>Original Office source retained alongside a visual or editable compatibility fallback.</summary>
 public sealed class OfficeCompatibilitySourcePayload {

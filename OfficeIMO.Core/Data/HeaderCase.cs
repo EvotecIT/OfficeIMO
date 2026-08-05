@@ -1,4 +1,4 @@
-namespace OfficeIMO.Drawing {
+namespace OfficeIMO.Data {
     /// <summary>
     /// Specifies the casing applied to generated headers.
     /// </summary>

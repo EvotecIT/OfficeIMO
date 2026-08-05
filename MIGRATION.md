@@ -29,7 +29,9 @@ the package honestly.
 Actual drawing types such as `OfficeColor`, `OfficeShape`, and
 `OfficeRenderingProfile` remain in the `OfficeIMO.Drawing` namespace. Security
 provider APIs remain in `OfficeIMO.Security`. Cross-document lifecycle and
-package contracts move to the root `OfficeIMO` namespace:
+package contracts, compatibility models, capability catalogs, and conversion
+reports move to the root `OfficeIMO` namespace. Neutral object-flattening and
+row-mapping contracts use `OfficeIMO.Data`:
 
 | OfficeIMO 3.0 | OfficeIMO 3.1 |
 | --- | --- |
@@ -39,10 +41,16 @@ package contracts move to the root `OfficeIMO` namespace:
 | `OfficeIMO.Drawing.DocumentCreateOptions` | `OfficeIMO.DocumentCreateOptions` |
 | `OfficeIMO.Drawing.DocumentLoadOptions` | `OfficeIMO.DocumentLoadOptions` |
 | `OfficeIMO.Drawing.OfficePackageSecurityOptions` and related package contracts | Root `OfficeIMO` namespace |
+| `OfficeIMO.Drawing.OfficeFormatDescriptor`, compatibility models, and capability catalogs | Root `OfficeIMO` namespace |
+| `OfficeIMO.Drawing.IOfficeConversionReport` | `OfficeIMO.IOfficeConversionReport` |
+| `OfficeIMO.Drawing.ObjectFlattener`, `ObjectFlattenerOptions`, and `CollectionColumnMapping` | `OfficeIMO.Data` namespace |
+| `OfficeIMO.Drawing.HeaderCase`, `NullPolicy`, and `CollectionMode` | `OfficeIMO.Data` namespace |
 
 Replace the package reference and add `using OfficeIMO;` where lifecycle or
-package contracts are used. Keep `using OfficeIMO.Drawing;` for actual drawing,
-color, image, chart, font, and rendering APIs.
+package, compatibility, capability, or conversion-report contracts are used.
+Add `using OfficeIMO.Data;` for row mapping and object flattening. Keep
+`using OfficeIMO.Drawing;` for actual drawing, color, image, chart, font, and
+rendering APIs.
 
 | Version in the application | Upgrade path |
 | --- | --- |
