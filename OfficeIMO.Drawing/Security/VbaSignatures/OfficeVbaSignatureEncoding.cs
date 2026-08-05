@@ -232,6 +232,13 @@ internal static class OfficeVbaSignatureEncoding {
 internal static class OfficeVbaPackageSignatureWriter {
     private static readonly XNamespace ContentTypesNamespace = "http://schemas.openxmlformats.org/package/2006/content-types";
     private static readonly XNamespace RelationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+#if NETSTANDARD2_0
+    private static readonly OfficeVbaSignatureProfile[] SignatureProfiles = {
+        OfficeVbaSignatureProfile.Legacy,
+        OfficeVbaSignatureProfile.Agile,
+        OfficeVbaSignatureProfile.V3
+    };
+#endif
 
     internal static void Write(string packagePath, string vbaPartUri,
         IReadOnlyDictionary<OfficeVbaSignatureProfile, byte[]> profileParts) {
@@ -259,7 +266,7 @@ internal static class OfficeVbaPackageSignatureWriter {
             throw new InvalidDataException("The package content-types document has an invalid root element.");
         }
 
-        foreach (OfficeVbaSignatureProfile profile in Enum.GetValues(typeof(OfficeVbaSignatureProfile))) {
+        foreach (OfficeVbaSignatureProfile profile in EnumerateSignatureProfiles()) {
             string fileName = GetFileName(profile);
             string entryPath = directory + fileName;
             DeleteEntry(archive, entryPath);
@@ -278,6 +285,14 @@ internal static class OfficeVbaPackageSignatureWriter {
         }
         WriteXml(archive, relationshipPath, relationships);
         WriteXml(archive, "[Content_Types].xml", contentTypes);
+    }
+
+    private static IEnumerable<OfficeVbaSignatureProfile> EnumerateSignatureProfiles() {
+#if NETSTANDARD2_0
+        return SignatureProfiles;
+#else
+        return Enum.GetValues<OfficeVbaSignatureProfile>();
+#endif
     }
 
     private static string UniqueRelationshipId(XElement root, string prefix) {

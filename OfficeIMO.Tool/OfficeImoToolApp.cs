@@ -1,4 +1,5 @@
 using OfficeIMO.Tool.Commands.Agent;
+using OfficeIMO.Tool.Commands.Convert;
 using OfficeIMO.Tool.Commands.Html;
 using OfficeIMO.Tool.Commands.Markup;
 using OfficeIMO.Tool.Commands.Mcp;
@@ -13,6 +14,7 @@ OfficeIMO.Tool
 
 Usage:
   officeimo html <command> [options]
+  officeimo convert <input.docx|input.xlsx|input.pptx> [options]
   officeimo reader <command> [options]
   officeimo markup <command> [options]
   officeimo agent <command> [options]
@@ -40,6 +42,9 @@ Run 'officeimo <area> --help' for area-specific commands and options.
 
         string[] commandArguments = args.Skip(1).ToArray();
         switch (args[0].ToLowerInvariant()) {
+            case "convert":
+                return await OfficePdfCommand.RunAsync(
+                    commandArguments, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             case "html":
                 return await HtmlCommand.RunAsync(
                     commandArguments, standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);

@@ -13,6 +13,10 @@ OfficeIMO is a set of focused document engines and adapters rather than one clos
 
 ## Choose by outcome
 
+### [Generate documents from approved Word templates](/solutions/template-driven-document-generation/)
+
+Bind application data to Word-authored layouts with ordinary placeholders, repeated blocks, conditions, images, hyperlinks, and explicit completeness checks.
+
 ### [Modernize legacy Office files](/solutions/legacy-office-modernization/)
 
 Inventory and migrate DOC, XLS, XLSB, PPT, and related templates or slide shows into modern formats without pretending every feature converts identically.

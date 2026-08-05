@@ -24,6 +24,18 @@ OfficeIMO conversion is built for .NET applications that need more than a file-e
 
 For HTML, Markdown, RTF, OpenDocument, Google Docs, Sheets, and Slides, use the focused adapter shown in the [package catalog](/downloads/). This keeps dependencies and deployment behavior explicit.
 
+## One CLI binary for modern Office-to-PDF routes
+
+Install `OfficeIMO.Tool` once and use the same `officeimo` executable for DOCX, XLSX, and PPTX input:
+
+```shell
+officeimo convert report.docx
+officeimo convert workbook.xlsx --output published/workbook.pdf
+officeimo convert deck.pptx --output deck.pdf --force
+```
+
+The extension selects the same first-party Word, Excel, or PowerPoint PDF adapter used by .NET applications. The source is opened read-only, diagnostics go to standard error, and an existing destination is not replaced unless `--force` is explicit. The command is intentionally a thin package dispatcher; format-specific fidelity and warning contracts remain in the owning adapters linked above.
+
 ## PowerShell routes are documented separately
 
 PSWriteOffice exposes dedicated DOC/DOCX and XLS/XLSX conversion cmdlets and a much broader set of authoring, inspection, validation, and publishing commands. It does not imply that every .NET conversion route in the table is available as a cmdlet. Start with the [PSWriteOffice product page](/products/pswriteoffice/), then verify the exact command and parameters in the [PowerShell API reference](/api/powershell/).

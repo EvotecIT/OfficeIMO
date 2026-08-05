@@ -141,6 +141,36 @@ document.AddParagraph("Section 1.1").Style = WordParagraphStyles.Heading2;
 document.Paragraphs[0].AddField(WordFieldType.TOC);
 ```
 
+### Plain DOCX templates
+
+Use ordinary `{{Name}}` placeholders when a Word-authored layout should bind directly to an application model. Scalar placeholders retain the formatting of the first template run, while repeated and conditional marker paragraphs can surround paragraphs, lists, or tables.
+
+```csharp
+using var document = WordDocument.Load("invoice-template.docx");
+
+var values = new Dictionary<string, object?> {
+    ["Customer"] = new Dictionary<string, object?> { ["Name"] = "Northwind Traders" },
+    ["Lines"] = new object[] {
+        new Dictionary<string, object?> { ["Description"] = "Assessment", ["Amount"] = 1200m },
+        new Dictionary<string, object?> { ["Description"] = "Implementation", ["Amount"] = 3400m }
+    },
+    ["Portal"] = new WordTemplateHyperlink("Open invoice", new Uri("https://example.com/invoices/42"))
+};
+
+WordTemplateResult result = WordTemplate.Apply(document, values).EnsureComplete();
+document.Save("invoice-42.docx");
+```
+
+Inside the DOCX, use `{{Customer.Name}}` for values and put block markers on their own paragraphs:
+
+```text
+{{#each Lines}}
+{{Description}} — {{Amount}}
+{{/each Lines}}
+```
+
+The dictionary overload is trimming and NativeAOT safe. A POCO overload is available for convenience and is annotated because it reflects over public properties. See the [template guide](https://officeimo.com/docs/word/templates/) for conditions, nested blocks, images, diagnostics, and the executable proof workflow.
+
 ### Mail merge fields
 
 ```csharp

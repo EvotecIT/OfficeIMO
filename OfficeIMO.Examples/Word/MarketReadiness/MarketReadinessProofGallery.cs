@@ -77,6 +77,7 @@ namespace OfficeIMO.Examples.Word {
                 (index, _) => Path.Combine(scenarioPath, $"status-report-{index + 1}.docx"));
 
             CreateInvoiceRowProof(scenarioPath);
+            CreateModelTemplateBindingProof(scenarioPath);
             CreateContentControlFormProof(scenarioPath);
             WriteValidationReport(scenarioPath);
         }
@@ -478,7 +479,7 @@ namespace OfficeIMO.Examples.Word {
                 new ProofScenarioInfo(
                     "01-template-assembly",
                     "Template assembly",
-                    "Batch merge, repeated table rows, content-control form fill, diagnostics, and generated documents."),
+                    "Plain model binding, rich placeholders, batch merge, repeated table rows, content-control form fill, diagnostics, and generated documents."),
                 new ProofScenarioInfo(
                     "02-review-diff",
                     "Review and structured diff",
