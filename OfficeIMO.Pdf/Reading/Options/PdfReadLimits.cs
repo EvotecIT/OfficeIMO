@@ -86,6 +86,9 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum annotations declared on one page. Default: 100,000.</summary>
     public int MaxAnnotationsPerPage { get; init; } = 100_000;
 
+    /// <summary>Maximum named color-space resources inspected on one page. Default: 4,096.</summary>
+    public int MaxColorSpaceResourcesPerPage { get; init; } = 4_096;
+
     /// <summary>Maximum operators parsed from one page or form content stream. Default: 1,000,000.</summary>
     public int MaxContentOperations { get; init; } = DefaultMaxContentOperations;
 
@@ -120,6 +123,7 @@ public sealed class PdfReadLimits {
             MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
             MaxFormFieldAppearanceStates = MaxFormFieldAppearanceStates,
             MaxAnnotationsPerPage = MaxAnnotationsPerPage,
+            MaxColorSpaceResourcesPerPage = MaxColorSpaceResourcesPerPage,
             MaxContentOperations = MaxContentOperations,
             MaxContentOperands = MaxContentOperands,
             MaxContentNestingDepth = MaxContentNestingDepth
@@ -177,6 +181,7 @@ public sealed class PdfReadLimits {
         }
         ValidatePositive(MaxFormFieldAppearanceStates, nameof(MaxFormFieldAppearanceStates), "Maximum form-field appearance states must be positive.");
         ValidatePositive(MaxAnnotationsPerPage, nameof(MaxAnnotationsPerPage), "Maximum annotations per page must be positive.");
+        ValidatePositive(MaxColorSpaceResourcesPerPage, nameof(MaxColorSpaceResourcesPerPage), "Maximum color-space resources per page must be positive.");
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
         ValidatePositive(MaxContentOperands, nameof(MaxContentOperands), "Maximum content operands must be positive.");
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");

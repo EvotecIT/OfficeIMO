@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
         private long _maxInputBytes = 512L * 1024L * 1024L;
         private int _schemaSampleRows = 1_024;
         private int _maxXlsbCells = 4_000_000;
+        private int _maxXlsbLogicalRows = 1_048_576;
 
         /// <summary>
         /// Gets or sets the worksheet exposed by <see cref="ExcelDocument.OpenDataReader(string, ExcelReadOptions?)"/>.
@@ -89,6 +90,21 @@ namespace OfficeIMO.Excel {
                 }
 
                 _maxXlsbCells = value;
+            }
+        }
+
+        /// <summary>
+        /// Maximum logical rows emitted across one XLSB workbook data-reader operation. Default: 1,048,576.
+        /// Sparse row gaps consume this aggregate budget just like populated rows.
+        /// </summary>
+        public int MaxXlsbLogicalRows {
+            get => _maxXlsbLogicalRows;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "XLSB logical-row limit must be greater than zero.");
+                }
+
+                _maxXlsbLogicalRows = value;
             }
         }
 

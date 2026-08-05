@@ -50,6 +50,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly int _firstColumn;
         private readonly int _lastDataRow;
         private readonly CancellationToken _cancellationToken;
+        private readonly XlsbLogicalRowReadBudget _logicalRowBudget;
         private bool _closed;
         private bool _hasPendingRow;
         private bool _hasCurrentRow;
@@ -69,6 +70,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
+            XlsbLogicalRowReadBudget logicalRowBudget,
             CancellationToken cancellationToken)
             : this(
                 CreatePooledPart(worksheetPart, limits, cancellationToken),
@@ -80,6 +82,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 limits,
                 recordBudget,
                 cellBudget,
+                logicalRowBudget,
                 cancellationToken) {
         }
 
@@ -93,6 +96,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
+            XlsbLogicalRowReadBudget logicalRowBudget,
             CancellationToken cancellationToken) {
             _sharedStrings = sharedStrings ?? throw new ArgumentNullException(nameof(sharedStrings));
             _dateStyles = dateStyles ?? throw new ArgumentNullException(nameof(dateStyles));
@@ -102,6 +106,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (cellBudget == null) {
                 throw new ArgumentNullException(nameof(cellBudget));
             }
+            _logicalRowBudget = logicalRowBudget ?? throw new ArgumentNullException(nameof(logicalRowBudget));
             _cancellationToken = cancellationToken;
             if (worksheetPart == null) {
                 throw new ArgumentNullException(nameof(worksheetPart));
@@ -148,6 +153,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     out int dimensionLastColumn);
                 Dictionary<int, string?>? headerValues = null;
                 if (hasHeaderRow && _hasPendingRow) {
+                    _logicalRowBudget.Consume();
                     int headerRowIndex = _pendingRowIndex;
                     headerValues = ReadHeaderRow();
                     if (_hasPendingRow && _pendingRowIndex <= headerRowIndex) {
@@ -266,12 +272,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 Array.Clear(_customValues, 0, _customValues.Length);
             }
             if (_nextLogicalRowIndex < _pendingRowIndex) {
+                _logicalRowBudget.Consume();
                 _nextLogicalRowIndex++;
                 _hasCurrentRow = true;
                 return true;
             }
 
             int currentRowIndex = _pendingRowIndex;
+            _logicalRowBudget.Consume();
             _hasPendingRow = false;
             bool reachedRowBoundary = _options.CellValueConverter == null
                 ? ReadCurrentRowRecordsFast()

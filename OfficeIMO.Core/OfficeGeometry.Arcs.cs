@@ -5,6 +5,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeGeometry {
     private const double MaxCubicArcSegmentRadians = Math.PI / 2D;
+    private const int MaxCubicArcSegments = 4096;
 
     /// <summary>
     /// Converts an elliptical arc into cubic Bezier path commands, excluding the current move point.
@@ -36,7 +37,13 @@ public static partial class OfficeGeometry {
 
         double centerX = start.X - (Math.Cos(startRadians) * radiusX);
         double centerY = start.Y - (Math.Sin(startRadians) * radiusY);
-        int segments = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweepRadians) / MaxCubicArcSegmentRadians));
+        double requestedSegments = Math.Ceiling(Math.Abs(sweepRadians) / MaxCubicArcSegmentRadians);
+        if (requestedSegments > MaxCubicArcSegments) {
+            throw new ArgumentOutOfRangeException(
+                nameof(sweepRadians),
+                $"Arc sweeps cannot require more than {MaxCubicArcSegments} cubic segments.");
+        }
+        int segments = Math.Max(1, (int)requestedSegments);
         double segmentSweep = sweepRadians / segments;
         double segmentStart = startRadians;
 

@@ -9,7 +9,7 @@ internal static partial class CsvParser
     private static bool UsesTextDelimiter(CsvLoadOptions options) =>
         !string.IsNullOrEmpty(options.DelimiterText) && options.DelimiterText!.Length > 1;
 
-    private static char GetDelimiterChar(CsvLoadOptions options) =>
+    internal static char GetDelimiterChar(CsvLoadOptions options) =>
         string.IsNullOrEmpty(options.DelimiterText)
             ? options.Delimiter
             : options.DelimiterText![0];

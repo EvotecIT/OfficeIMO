@@ -7,6 +7,12 @@ namespace OfficeIMO.PowerPoint {
     /// Options controlling dependency-free PowerPoint slide image export.
     /// </summary>
     public class PowerPointImageExportOptions : OfficeImageExportOptions {
+        /// <summary>Default maximum bytes read from one embedded image during export.</summary>
+        public const int DefaultMaximumEmbeddedImageBytes = 64 * 1024 * 1024;
+
+        /// <summary>Default aggregate embedded-image bytes retained by one slide export.</summary>
+        public const long DefaultMaximumTotalEmbeddedImageBytes = 256L * 1024 * 1024;
+
         /// <inheritdoc />
         public override double LogicalUnitsPerInch => 72D;
 
@@ -46,6 +52,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Maximum nested group-shape depth rendered into a shared visual snapshot. Zero skips group content; negative values disable the depth limit.</summary>
         public int MaxGroupShapeDepth { get; set; } = 32;
 
+        /// <summary>Maximum bytes read from one embedded image during export.</summary>
+        public int MaximumEmbeddedImageBytes { get; set; } = DefaultMaximumEmbeddedImageBytes;
+
+        /// <summary>Maximum aggregate embedded-image bytes retained by one slide export.</summary>
+        public long MaximumTotalEmbeddedImageBytes { get; set; } = DefaultMaximumTotalEmbeddedImageBytes;
+
         /// <summary>Creates an independent options snapshot.</summary>
         public PowerPointImageExportOptions Clone() =>
             CopyPowerPointOptionsTo(new PowerPointImageExportOptions());
@@ -62,11 +74,19 @@ namespace OfficeIMO.PowerPoint {
             target.IncludeCharts = IncludeCharts;
             target.IncludeHiddenShapes = IncludeHiddenShapes;
             target.MaxGroupShapeDepth = MaxGroupShapeDepth;
+            target.MaximumEmbeddedImageBytes = MaximumEmbeddedImageBytes;
+            target.MaximumTotalEmbeddedImageBytes = MaximumTotalEmbeddedImageBytes;
             return target;
         }
 
         internal void Validate() {
             ValidateImageExportOptions();
+            if (MaximumEmbeddedImageBytes <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(MaximumEmbeddedImageBytes));
+            }
+            if (MaximumTotalEmbeddedImageBytes <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(MaximumTotalEmbeddedImageBytes));
+            }
         }
     }
 

@@ -25,6 +25,9 @@ namespace OfficeIMO.Word.Html {
         /// </summary>
         public int MaxListNestingDepth { get; set; } = 128;
 
+        /// <summary>Maximum OMML equation nesting depth projected to text or MathML. Defaults to and cannot exceed 256.</summary>
+        public int MaxEquationNestingDepth { get; set; } = 256;
+
         /// <summary>
         /// Optional font family applied to created runs during conversion.
         /// </summary>
@@ -153,6 +156,7 @@ namespace OfficeIMO.Word.Html {
                 MaxOutputCharacters = MaxOutputCharacters,
                 MaxTableNestingDepth = MaxTableNestingDepth,
                 MaxListNestingDepth = MaxListNestingDepth,
+                MaxEquationNestingDepth = MaxEquationNestingDepth,
                 FontFamily = FontFamily,
                 IncludeFontStyles = IncludeFontStyles,
                 IncludeListStyles = IncludeListStyles,

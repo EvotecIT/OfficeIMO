@@ -118,6 +118,7 @@ namespace OfficeIMO.Excel {
                 XlsbImportOptions = new OfficeIMO.Excel.Xlsb.XlsbImportOptions {
                     MaxPackageBytes = options.MaxInputBytes,
                     MaxCells = options.MaxXlsbCells,
+                    MaxLogicalRows = options.MaxXlsbLogicalRows,
                     MaxSharedStrings = options.MaxSharedStringItems,
                     MaxSharedStringItemCharacters = options.MaxSharedStringItemCharacters,
                     MaxSharedStringCharacters = options.MaxSharedStringCharacters,

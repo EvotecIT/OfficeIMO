@@ -25,6 +25,7 @@ public partial class Excel {
                 new XlsbImportOptions(),
                 new XlsbRecordReadBudget(100),
                 new XlsbCellReadBudget(100),
+                new XlsbLogicalRowReadBudget(100),
                 CancellationToken.None));
 
         Assert.True(worksheetPart.WasDisposed);
@@ -46,6 +47,24 @@ public partial class Excel {
         Assert.True(reader.Read());
         Assert.Equal("Data", reader.GetString(0));
         Assert.False(reader.Read());
+    }
+
+    [Fact]
+    public void XlsbTabularReader_ChargesSparseRowsAgainstLogicalRowBudget() {
+        using var worksheetPart = CreateTabularWorksheet(
+            (0, 0U),
+            (100, 1U));
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "Value", "Data" },
+            hasHeaderRow: true,
+            new XlsbCellReadBudget(10),
+            logicalRowBudget: new XlsbLogicalRowReadBudget(4));
+
+        Assert.True(reader.Read());
+        Assert.True(reader.Read());
+        Assert.True(reader.Read());
+        Assert.Throws<InvalidDataException>(() => reader.Read());
     }
 
     [Fact]
@@ -729,7 +748,8 @@ public partial class Excel {
         XlsbCellReadBudget cellBudget,
         ExcelReadOptions? options = null,
         XlsbRecordReadBudget? recordBudget = null,
-        bool dateStyle = false) =>
+        bool dateStyle = false,
+        XlsbLogicalRowReadBudget? logicalRowBudget = null) =>
         new(
             worksheetPart,
             sharedStrings,
@@ -740,6 +760,7 @@ public partial class Excel {
             new XlsbImportOptions(),
             recordBudget ?? new XlsbRecordReadBudget(100),
             cellBudget,
+            logicalRowBudget ?? new XlsbLogicalRowReadBudget(100),
             CancellationToken.None);
 
     private static MemoryStream CreateTabularWorksheet(params (int RowIndex, uint SharedStringIndex)[] rows) {

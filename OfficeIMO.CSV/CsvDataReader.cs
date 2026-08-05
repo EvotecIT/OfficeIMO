@@ -94,7 +94,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
         _staticColumnValues = CaptureStaticColumnValues(_stringRowOptions.StaticColumns);
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
-        Delimiter = options.Delimiter;
+        Delimiter = CsvParser.GetDelimiterChar(options);
         _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
@@ -118,7 +118,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
         _stringNullValue = options.NullValue;
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
-        Delimiter = options.Delimiter;
+        Delimiter = CsvParser.GetDelimiterChar(options);
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectTextSourceStrings = _useRawStringValues && _stringNullValue is null;
         _useDirectValueConversion = CanUseDirectValueConversion(columns);

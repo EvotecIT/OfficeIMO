@@ -13,6 +13,16 @@ namespace OfficeIMO.PowerPoint {
         /// Returns a detached snapshot of the slide background fill that exporters can consume without Open XML coupling.
         /// </summary>
         public PowerPointSlideBackground GetBackground() {
+            return GetBackgroundCore(maximumImageBytes: null);
+        }
+
+        /// <summary>Returns a detached slide-background snapshot with a bound on embedded image bytes.</summary>
+        public PowerPointSlideBackground GetBackground(int maximumImageBytes) {
+            if (maximumImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumImageBytes));
+            return GetBackgroundCore(maximumImageBytes);
+        }
+
+        private PowerPointSlideBackground GetBackgroundCore(int? maximumImageBytes) {
             (BackgroundProperties? properties, OpenXmlPart? ownerPart) = GetResolvedBackgroundProperties();
             if (properties == null || !properties.HasChildren) {
                 (BackgroundStyleReference? styleReference, OpenXmlPart? styleOwnerPart) = GetResolvedBackgroundStyleReference();
@@ -35,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
 
             A.BlipFill? blipFill = properties.GetFirstChild<A.BlipFill>();
             if (blipFill != null) {
-                return GetBackgroundImage(blipFill, ownerPart ?? _slidePart);
+                return GetBackgroundImage(blipFill, ownerPart ?? _slidePart, maximumImageBytes);
             }
 
             A.GradientFill? gradientFill = properties.GetFirstChild<A.GradientFill>();
@@ -148,7 +158,10 @@ namespace OfficeIMO.PowerPoint {
             return null;
         }
 
-        private static PowerPointSlideBackground GetBackgroundImage(A.BlipFill blipFill, OpenXmlPart ownerPart) {
+        private static PowerPointSlideBackground GetBackgroundImage(
+            A.BlipFill blipFill,
+            OpenXmlPart ownerPart,
+            int? maximumImageBytes) {
             string? relationshipId = blipFill.Blip?.Embed?.Value;
             if (string.IsNullOrWhiteSpace(relationshipId)) {
                 return PowerPointSlideBackground.Unsupported("The slide background image is missing its relationship id.");
@@ -166,14 +179,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            using var copy = new MemoryStream();
-            source.CopyTo(copy);
+            byte[] imageBytes = maximumImageBytes.HasValue
+                ? OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source, maximumImageBytes.Value)
+                : OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source);
             PowerPointPictureCrop crop = ReadSourceCrop(blipFill.SourceRectangle);
             if (blipFill.GetFirstChild<A.Tile>() != null) {
                 return PowerPointSlideBackground.Unsupported("The slide background image uses tiled placement, which is not currently supported by OfficeIMO exporters.");
             }
 
-            return PowerPointSlideBackground.Image(copy.ToArray(), imagePart.ContentType, crop);
+            return PowerPointSlideBackground.Image(imageBytes, imagePart.ContentType, crop);
         }
 
         private static PowerPointPictureCrop ReadSourceCrop(A.SourceRectangle? rect) {

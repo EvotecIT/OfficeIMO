@@ -365,9 +365,10 @@ namespace OfficeIMO.Word {
                     return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
                 }
 
-                var memoryStream = new MemoryStream(sourceBytes.Length);
-                memoryStream.Write(sourceBytes, 0, sourceBytes.Length);
-                memoryStream.Position = 0;
+                MemoryStream memoryStream = CreateLegacyValidationPackageStream(
+                    sourceBytes,
+                    readOnly,
+                    resolved.PackageSecurity?.MaxPackageBytes ?? int.MaxValue);
 
                 var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
@@ -482,9 +483,10 @@ namespace OfficeIMO.Word {
                 return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
             }
 
-            var memoryStream = new MemoryStream(sourceBytes.Length);
-            memoryStream.Write(sourceBytes, 0, sourceBytes.Length);
-            memoryStream.Position = 0;
+            MemoryStream memoryStream = CreateLegacyValidationPackageStream(
+                sourceBytes,
+                readOnly,
+                resolved.PackageSecurity?.MaxPackageBytes ?? int.MaxValue);
 
             var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
@@ -572,9 +574,10 @@ namespace OfficeIMO.Word {
                 return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
             }
 
-            var packageStream = new MemoryStream(sourceBytes.Length);
-            packageStream.Write(sourceBytes, 0, sourceBytes.Length);
-            packageStream.Position = 0;
+            MemoryStream packageStream = CreateLegacyValidationPackageStream(
+                sourceBytes,
+                readOnly,
+                resolved.PackageSecurity?.MaxPackageBytes ?? int.MaxValue);
             try {
                 var document = new WordDocument() {
                     OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!,

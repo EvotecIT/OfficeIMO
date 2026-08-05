@@ -12,8 +12,6 @@ namespace OfficeIMO.Security;
 
 /// <summary>Bounded XML Digital Signature primitives used by format-owned signing workflows.</summary>
 internal static class XmlDigitalSignatureService {
-    private static readonly string[] LocalReferenceIdAttributeNames = { "Id", "ID", "id" };
-
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The provider selects a closed XML DSig algorithm set and does not resolve caller-supplied transform implementations.")]
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The provider rejects XSLT and limits XML DSig to statically referenced canonicalization and enveloped-signature transforms.")]
     internal static byte[] Create(XmlDigitalSignatureCreationRequest request) {
@@ -190,9 +188,9 @@ internal static class XmlDigitalSignatureService {
             return Result(SecurityValidationStatus.Indeterminate, Array.Empty<X509Certificate2>(), findings);
         }
 
-        EnsureLocalReferenceWorkWithinLimit(
+        _ = XmlDigitalSignatureReferenceWorkCalculator.Measure(
             document,
-            signedXml,
+            signedInfoElement,
             request.CertificateCandidates.Count,
             request.MaxTotalDigestWorkBytes);
 
@@ -371,73 +369,6 @@ internal static class XmlDigitalSignatureService {
 #endif
         return publicKey;
     }
-
-    private static void EnsureLocalReferenceWorkWithinLimit(
-        XmlDocument document,
-        SignedXml signedXml,
-        int certificateCandidateCount,
-        long maxTotalDigestBytes) {
-        if (certificateCandidateCount <= 0 || signedXml.SignedInfo == null) return;
-        long totalDigestWorkBytes = 0;
-        var targetSizes = new Dictionary<string, long>(StringComparer.Ordinal);
-        IReadOnlyDictionary<string, XmlElement?> targetsById = IndexLocalReferenceTargets(document);
-        foreach (object item in signedXml.SignedInfo.References) {
-            if (item is not Reference reference) continue;
-            string uri = reference.Uri ?? string.Empty;
-            if (uri.Length > 0 && uri[0] != '#') continue;
-            if (!targetSizes.TryGetValue(uri, out long targetBytes)) {
-                XmlElement? target = ResolveLocalReferenceTarget(document, targetsById, uri);
-                targetBytes = target == null ? 0L : Encoding.UTF8.GetByteCount(target.OuterXml);
-                targetSizes.Add(uri, targetBytes);
-            }
-            int transformPasses = (reference.TransformChain?.Count ?? 0) + 1;
-            long referenceWorkBytes = SaturatingMultiply(targetBytes, transformPasses);
-            long candidateWorkBytes = SaturatingMultiply(referenceWorkBytes, certificateCandidateCount);
-            if (candidateWorkBytes > maxTotalDigestBytes - totalDigestWorkBytes) {
-                throw new InvalidDataException(
-                    "Local SignedInfo references exceed the " + maxTotalDigestBytes +
-                    " byte aggregate digest-work limit across certificate candidates.");
-            }
-            totalDigestWorkBytes += candidateWorkBytes;
-        }
-    }
-
-    private static XmlElement? ResolveLocalReferenceTarget(
-        XmlDocument document,
-        IReadOnlyDictionary<string, XmlElement?> targetsById,
-        string uri) {
-        if (uri.Length == 0) return document.DocumentElement;
-        if (uri.Length == 1) return null;
-        return targetsById.TryGetValue(uri.Substring(1), out XmlElement? target) ? target : null;
-    }
-
-    private static Dictionary<string, XmlElement?> IndexLocalReferenceTargets(XmlDocument document) {
-        var targetsById = new Dictionary<string, XmlElement?>(StringComparer.Ordinal);
-        if (document.DocumentElement == null) return targetsById;
-        foreach (XmlElement element in EnumerateElements(document.DocumentElement)) {
-            foreach (string attributeName in LocalReferenceIdAttributeNames) {
-                if (!element.HasAttribute(attributeName)) continue;
-                string id = element.GetAttribute(attributeName);
-                if (id.Length == 0) continue;
-                if (targetsById.TryGetValue(id, out XmlElement? existing)) {
-                    if (!ReferenceEquals(existing, element)) targetsById[id] = null;
-                } else {
-                    targetsById.Add(id, element);
-                }
-            }
-        }
-        return targetsById;
-    }
-
-    private static IEnumerable<XmlElement> EnumerateElements(XmlElement root) {
-        yield return root;
-        foreach (XmlElement descendant in root.GetElementsByTagName("*").OfType<XmlElement>()) {
-            yield return descendant;
-        }
-    }
-
-    private static long SaturatingMultiply(long value, int multiplier) =>
-        multiplier <= 0 || value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
 
     private static void CopyBounded(Stream source, Stream destination, long maxBytes) {
         var buffer = new byte[81920];

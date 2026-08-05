@@ -203,7 +203,78 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_DigitalSignature_BoundsPackageDigestWorkPerSignaturePart() {
+        public void Test_DigitalSignature_BoundsLocalReferenceDigestWorkAcrossSignatureParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureLocalReferenceMultiPartBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Local SignedInfo reference work across signatures");
+                document.Save();
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            string encodedCertificate = Convert.ToBase64String(certificate.Export(X509ContentType.Cert));
+            string digest = "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue>";
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\">" +
+                "<SignedInfo><CanonicalizationMethod Algorithm=\"http://www.w3.org/TR/2001/REC-xml-c14n-20010315\" />" +
+                "<SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                "<Reference URI=\"#payload\">" + digest + "</Reference></SignedInfo>" +
+                "<SignatureValue>AA==</SignatureValue>" +
+                "<KeyInfo><X509Data><X509Certificate>" + encodedCertificate + "</X509Certificate></X509Data></KeyInfo>" +
+                "<Object Id=\"payload\">" + new string('x', 512) + "</Object></Signature>");
+            AddDigitalSignatureMetadata(filePath, signatureBytes, signatureCount: 2);
+
+            using WordDocument loaded = WordDocument.Load(filePath);
+            WordSignatureValidationReport bounded = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
+                MaxTotalDigestBytes = 768
+            });
+            WordSignatureValidationReport allowed = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
+                MaxTotalDigestBytes = 4096
+            });
+
+            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_SharesDigestWorkAcrossInspectionAndCryptographicValidation() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSharedInspectionValidationBudget.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph(new string('x', 4096));
+                document.Save();
+            }
+
+            string documentDigest = ComputePackagePartSha256Digest(filePath, "/word/document.xml");
+            byte[] packageReferenceSignature = CreateSignatureXml(digestValue: documentDigest);
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            string encodedCertificate = Convert.ToBase64String(certificate.Export(X509ContentType.Cert));
+            string digest = "<DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>T2ZmaWNlSU1P</DigestValue>";
+            byte[] localReferenceSignature = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\">" +
+                "<SignedInfo><CanonicalizationMethod Algorithm=\"http://www.w3.org/TR/2001/REC-xml-c14n-20010315\" />" +
+                "<SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" />" +
+                "<Reference URI=\"#payload\">" + digest + "</Reference></SignedInfo>" +
+                "<SignatureValue>AA==</SignatureValue>" +
+                "<KeyInfo><X509Data><X509Certificate>" + encodedCertificate + "</X509Certificate></X509Data></KeyInfo>" +
+                "<Object Id=\"payload\">" + new string('x', 512) + "</Object></Signature>");
+            AddDigitalSignatureMetadata(filePath, packageReferenceSignature, localReferenceSignature);
+
+            long documentPartLength;
+            using (var archive = ZipFile.OpenRead(filePath)) {
+                documentPartLength = archive.GetEntry("word/document.xml")!.Length;
+            }
+            using WordDocument loaded = WordDocument.Load(filePath);
+            WordSignatureValidationReport bounded = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
+                MaxTotalDigestBytes = checked(documentPartLength + 256L)
+            });
+            WordSignatureValidationReport allowed = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
+                MaxTotalDigestBytes = checked(documentPartLength + 4096L)
+            });
+
+            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_BoundsPackageDigestWorkAcrossSignatureParts() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignaturePackageDigestBudget.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph(new string('x', 4096));
@@ -227,21 +298,21 @@ namespace OfficeIMO.Tests {
                 package.DigitalSignatureOriginPart,
                 hasApplicationSignatureMetadata: true,
                 packageBytes,
-                maxTotalDigestBytes: documentPartLength - 1);
+                maxTotalDigestBytes: documentPartLength);
             OfficePackageSignatureInfo allowed = OfficePackageSignatureInspector.Inspect(
                 package,
                 package.DigitalSignatureOriginPart,
                 hasApplicationSignatureMetadata: true,
                 packageBytes,
-                maxTotalDigestBytes: documentPartLength);
+                maxTotalDigestBytes: checked(documentPartLength * 2L));
 
             Assert.Equal(2, bounded.SignatureParts.Count);
-            Assert.All(bounded.SignatureParts, part => Assert.Contains(
-                "aggregate digest-work limit",
-                part.ParseError,
-                StringComparison.OrdinalIgnoreCase));
+            Assert.True(bounded.InspectionResourceLimitExceeded);
             Assert.Contains(bounded.UnsupportedDetails, detail =>
                 detail.Contains("aggregate digest-work limit", StringComparison.OrdinalIgnoreCase));
+            Assert.Single(bounded.SignatureParts, part => part.ParseError == null);
+            Assert.Single(bounded.SignatureParts, part => part.ParseError != null &&
+                part.ParseError.Contains("aggregate digest-work limit", StringComparison.OrdinalIgnoreCase));
             Assert.All(allowed.SignatureParts, part => {
                 Assert.Null(part.ParseError);
                 Assert.Single(part.SignedReferences);
@@ -441,6 +512,36 @@ namespace OfficeIMO.Tests {
                 finding.Code == "SignatureResourceLimitExceeded" &&
                 finding.Message.Contains("pending package part", StringComparison.OrdinalIgnoreCase));
         }
+
+#if NETFRAMEWORK
+        [Fact]
+        public void Test_DigitalSignature_LegacyRuntimeBoundsLivePackageSerialization() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureLegacyLivePackageLimit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed content");
+                document.Save();
+            }
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            Assert.True(WordDocument.SignPackage(filePath, SecurityProvider, certificate).Succeeded);
+            long originalPackageBytes = new FileInfo(filePath).Length;
+
+            using WordDocument loaded = WordDocument.Load(filePath);
+            byte[] randomBytes = new byte[256 * 1024];
+            new Random(17).NextBytes(randomBytes);
+            loaded.AddParagraph(Convert.ToBase64String(randomBytes));
+            WordSignatureValidationReport validation = loaded.ValidateSignatures(
+                SecurityProvider,
+                new WordSignatureValidationOptions {
+                    MaxPartBytes = 2L * 1024 * 1024,
+                    MaxPackageBytes = originalPackageBytes + 1024L,
+                    MaxTotalDigestBytes = 2L * 1024 * 1024
+                });
+
+            Assert.Contains(validation.Diagnostics, finding =>
+                finding.Code == "SignatureResourceLimitExceeded" &&
+                finding.Message.Contains("validation-snapshot limit", StringComparison.OrdinalIgnoreCase));
+        }
+#endif
 
         private static void AddRelatedSignatureCertificates(string filePath, params byte[][] certificates) {
             using WordprocessingDocument package = WordprocessingDocument.Open(filePath, true);

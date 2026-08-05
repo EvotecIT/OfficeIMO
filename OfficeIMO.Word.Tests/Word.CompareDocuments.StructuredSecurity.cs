@@ -329,9 +329,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NumberingStyleInheritanceConsumesDisclosureWorkBudget() {
             string path = Path.Combine(_directoryWithFiles, "compare_structure_numbering_style_inheritance_budget.docx");
+            const int inheritanceDepth = 5_000;
             int styleCount;
             using (WordDocument document = WordDocument.Create(path)) {
-                const int inheritanceDepth = 32;
                 Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                 styles.Append(new Style(
                     new StyleParagraphProperties(new NumberingProperties(
@@ -382,7 +382,7 @@ namespace OfficeIMO.Tests {
 
             object completedCache = Activator.CreateInstance(cacheType, nonPublic: true)
                 ?? throw new InvalidOperationException("Numbering style catalog cache could not be recreated.");
-            object completeBudget = CreateComparisonWorkBudget(styleCount + 128L);
+            object completeBudget = CreateComparisonWorkBudget(styleCount + inheritanceDepth + 128L);
             object completeResult = containsNumberingFormatting.Invoke(
                 null,
                 new[] {

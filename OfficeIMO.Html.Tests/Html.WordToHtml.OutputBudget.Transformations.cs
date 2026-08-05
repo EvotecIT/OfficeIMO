@@ -24,9 +24,16 @@ namespace OfficeIMO.Tests {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = expected.Length
             });
+            HtmlConversionLimitException exceeded = Assert.Throws<HtmlConversionLimitException>(() =>
+                document.ToHtmlResult(new WordToHtmlOptions {
+                    IncludeDefaultCss = false,
+                    MaxOutputCharacters = expected.Length - 1
+                }));
 
             Assert.True(bounded.Succeeded);
             Assert.Equal(expected, bounded.RequireValue());
+            Assert.Equal("WordHtmlOutputLimitExceeded", exceeded.Code);
+            Assert.StartsWith("Equation", exceeded.LimitSource);
         }
 
         [Fact]
