@@ -23,11 +23,12 @@ namespace OfficeIMO.Drawing {
             ISet<string> macroParts,
             ISet<string> embeddedParts,
             ISet<string> activeXParts,
+            long maxXmlCharactersInPart,
             ICollection<OfficePackageSecurityFinding> findings) {
             var defaultContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try {
                 using Stream stream = contentTypesPart.Entry.Open();
-                using XmlReader reader = XmlReader.Create(stream, CreateSecureXmlSettings(contentTypesPart.Entry.Length));
+                using XmlReader reader = XmlReader.Create(stream, CreateSecureXmlSettings(maxXmlCharactersInPart));
                 while (reader.Read()) {
                     if (reader.NodeType != XmlNodeType.Element) continue;
                     if (string.Equals(reader.LocalName, "Override", StringComparison.Ordinal)) {
@@ -63,12 +64,12 @@ namespace OfficeIMO.Drawing {
             }
         }
 
-        private static XmlReaderSettings CreateSecureXmlSettings(long entryLength) => new XmlReaderSettings {
+        private static XmlReaderSettings CreateSecureXmlSettings(long maxXmlCharactersInPart) => new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
             IgnoreComments = true,
             IgnoreWhitespace = true,
-            MaxCharactersInDocument = Math.Max(1024L, entryLength + 1L)
+            MaxCharactersInDocument = maxXmlCharactersInPart
         };
 
         private static void AddContentTypeClassification(

@@ -63,11 +63,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 packageStream.Position = 0;
-                bool normalized = ExcelPackageUtilities.NormalizeContentTypes(packageStream, leaveOpen: true);
+                OpenSettings effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
+                bool normalized = ExcelPackageUtilities.NormalizeContentTypes(
+                    packageStream,
+                    leaveOpen: true,
+                    maxCharactersInPart: effectiveOpenSettings.MaxCharactersInPart);
                 cancellationToken.ThrowIfCancellationRequested();
                 packageStream.Position = 0;
                 bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
-                package = SpreadsheetDocument.Open(packageStream, !readOnly, CreateOpenSettings(resolved.OpenSettings));
+                package = SpreadsheetDocument.Open(packageStream, !readOnly, effectiveOpenSettings);
                 cancellationToken.ThrowIfCancellationRequested();
                 ExcelDocument document = CreateDocument(
                     package,

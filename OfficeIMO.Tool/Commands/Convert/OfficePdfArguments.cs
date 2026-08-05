@@ -1,10 +1,19 @@
+using System.Globalization;
+
 namespace OfficeIMO.Tool.Commands.Convert;
 
 internal sealed class OfficePdfArguments {
+    internal const long DefaultMaxInputBytes = 64L * 1024L * 1024L;
+    internal const long DefaultMaxOutputBytes = 256L * 1024L * 1024L;
+    internal const long DefaultMaxCharactersInPart = 10_000_000L;
+
     internal bool Help { get; private set; }
     internal string? InputPath { get; private set; }
     internal string? OutputPath { get; private set; }
     internal bool Force { get; private set; }
+    internal long MaxInputBytes { get; private set; } = DefaultMaxInputBytes;
+    internal long MaxOutputBytes { get; private set; } = DefaultMaxOutputBytes;
+    internal long MaxCharactersInPart { get; private set; } = DefaultMaxCharactersInPart;
 
     internal static OfficePdfArguments Parse(string[] args) {
         ArgumentNullException.ThrowIfNull(args);
@@ -22,6 +31,15 @@ internal sealed class OfficePdfArguments {
                     break;
                 case "--force":
                     parsed.Force = true;
+                    break;
+                case "--max-input-bytes":
+                    parsed.MaxInputBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
+                    break;
+                case "--max-output-bytes":
+                    parsed.MaxOutputBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
+                    break;
+                case "--max-characters-in-part":
+                    parsed.MaxCharactersInPart = ParsePositiveLong(NextValue(args, ref index, token), token);
                     break;
                 default:
                     if (token.StartsWith("-", StringComparison.Ordinal)) {
@@ -63,6 +81,13 @@ internal sealed class OfficePdfArguments {
             throw new OfficePdfUsageException(option + " requires a value.");
         }
         return args[index];
+    }
+
+    private static long ParsePositiveLong(string value, string option) {
+        if (!long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long parsed) || parsed <= 0) {
+            throw new OfficePdfUsageException(option + " requires a positive integer.");
+        }
+        return parsed;
     }
 
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";

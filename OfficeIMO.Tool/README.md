@@ -32,7 +32,9 @@ officeimo convert .\workbook.xlsx --output .\published\workbook.pdf
 officeimo convert .\deck.pptx --output .\deck.pdf --force
 ```
 
-The input extension selects `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, or `OfficeIMO.PowerPoint.Pdf`. The tool opens the source read-only, writes conversion diagnostics to standard error, and refuses to replace an existing PDF unless `--force` is supplied. The default output is the input path with a `.pdf` extension.
+The input extension selects `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, or `OfficeIMO.PowerPoint.Pdf`. The tool opens the source read-only, applies structural package-bomb checks, bounds Open XML part parsing, writes conversion diagnostics to standard error, and refuses to replace an existing PDF unless `--force` is supplied. The default output is the input path with a `.pdf` extension.
+
+Conversion defaults to a 64 MiB input limit, 10,000,000 characters per Open XML part, and a 256 MiB PDF output limit. Operators processing larger trusted documents can set `--max-input-bytes`, `--max-characters-in-part`, or `--max-output-bytes` explicitly. PDF bytes are streamed to an atomic staging file so a rejected or failed conversion does not replace the destination or require a second full in-memory copy.
 
 ## Compact agent workflow
 
