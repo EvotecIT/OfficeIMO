@@ -26,10 +26,13 @@ namespace OfficeIMO.Excel.Utilities {
             return NormalizeContentTypes(stream, leaveOpen: true);
         }
 
-        internal static bool NormalizeContentTypes(Stream packageStream, bool leaveOpen = false) {
+        internal static bool NormalizeContentTypes(
+            Stream packageStream,
+            bool leaveOpen = false,
+            long maxCharactersInPart = 0) {
             if (packageStream == null || !packageStream.CanRead || !packageStream.CanSeek) return false;
             long originalPosition = packageStream.Position;
-            if (!NeedsContentTypeNormalization(packageStream)) {
+            if (!NeedsContentTypeNormalization(packageStream, maxCharactersInPart)) {
                 packageStream.Position = originalPosition;
                 return false;
             }
@@ -41,7 +44,7 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            string xml = ReadContentTypesXml(entry);
+            string xml = ReadContentTypesXml(entry, maxCharactersInPart);
 
             if (string.IsNullOrWhiteSpace(xml)) {
                 return false;
@@ -135,7 +138,7 @@ namespace OfficeIMO.Excel.Utilities {
             return true;
         }
 
-        internal static bool NeedsContentTypeNormalization(Stream packageStream) {
+        internal static bool NeedsContentTypeNormalization(Stream packageStream, long maxCharactersInPart = 0) {
             try {
                 using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true);
                 var entry = archive.GetEntry(ContentTypesEntry);
@@ -143,7 +146,7 @@ namespace OfficeIMO.Excel.Utilities {
                     return true;
                 }
 
-                string xml = ReadContentTypesXml(entry);
+                string xml = ReadContentTypesXml(entry, maxCharactersInPart);
 
                 if (string.IsNullOrWhiteSpace(xml)) {
                     return true;
@@ -203,13 +206,16 @@ namespace OfficeIMO.Excel.Utilities {
             }
         }
 
-        private static string ReadContentTypesXml(ZipArchiveEntry entry) {
+        private static string ReadContentTypesXml(ZipArchiveEntry entry, long maxCharactersInPart) {
             long declaredLength = entry.Length;
             if (declaredLength > MaximumContentTypesEntryBytes) {
                 throw new InvalidDataException(
                     $"The package content-types part exceeds the supported {MaximumContentTypesEntryBytes}-byte limit.");
             }
 
+            long characterLimit = maxCharactersInPart > 0
+                ? Math.Min(maxCharactersInPart, MaximumContentTypesEntryBytes)
+                : MaximumContentTypesEntryBytes;
             using Stream entryStream = entry.Open();
             using var reader = new StreamReader(
                 entryStream,
@@ -217,14 +223,14 @@ namespace OfficeIMO.Excel.Utilities {
                 detectEncodingFromByteOrderMarks: true,
                 bufferSize: 4096,
                 leaveOpen: false);
-            var text = new StringBuilder((int)Math.Min(declaredLength, 8192L));
-            var buffer = new char[4096];
+            var text = new StringBuilder((int)Math.Min(Math.Min(declaredLength, characterLimit), 8192L));
+            var buffer = new char[(int)Math.Min(4096L, characterLimit)];
             while (true) {
                 int read = reader.Read(buffer, 0, buffer.Length);
                 if (read == 0) return text.ToString();
-                if (text.Length > MaximumContentTypesEntryBytes - read) {
+                if (text.Length > characterLimit - read) {
                     throw new InvalidDataException(
-                        $"The package content-types part exceeds the supported {MaximumContentTypesEntryBytes}-byte limit.");
+                        $"The package content-types part exceeds the configured {characterLimit}-character limit.");
                 }
                 text.Append(buffer, 0, read);
             }

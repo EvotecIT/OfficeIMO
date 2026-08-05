@@ -72,6 +72,9 @@ namespace OfficeIMO.Drawing {
         /// <summary>Maximum uncompressed size of one part. Defaults to 256 MiB.</summary>
         public long MaxPartUncompressedBytes { get; set; } = 256L * 1024L * 1024L;
 
+        /// <summary>Maximum XML characters parsed from one package metadata part. Defaults to 256 MiB.</summary>
+        public long MaxXmlCharactersInPart { get; set; } = 256L * 1024L * 1024L;
+
         /// <summary>Maximum aggregate uncompressed part size. Defaults to 1 GiB.</summary>
         public long MaxTotalUncompressedBytes { get; set; } = 1024L * 1024L * 1024L;
 

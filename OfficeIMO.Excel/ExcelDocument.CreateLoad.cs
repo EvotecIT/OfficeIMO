@@ -279,7 +279,10 @@ namespace OfficeIMO.Excel {
                 normalizedStream.Write(bytes, 0, bytes.Length);
                 normalizedStream.Position = 0;
 
-                bool normalizedContentTypes = Utilities.ExcelPackageUtilities.NormalizeContentTypes(normalizedStream, leaveOpen: true);
+                bool normalizedContentTypes = Utilities.ExcelPackageUtilities.NormalizeContentTypes(
+                    normalizedStream,
+                    leaveOpen: true,
+                    maxCharactersInPart: effectiveOpenSettings.MaxCharactersInPart);
                 normalizedStream.Position = 0;
                 byte[] unchangedPackageBytes = normalizedContentTypes ? normalizedStream.ToArray() : bytes;
 

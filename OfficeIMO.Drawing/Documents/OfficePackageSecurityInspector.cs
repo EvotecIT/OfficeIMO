@@ -225,7 +225,8 @@ namespace OfficeIMO.Drawing {
 
                 if (partCount <= options.MaxPartCount && totalBytes <= options.MaxTotalUncompressedBytes) {
                     if (contentTypesPart != null) {
-                        InspectContentTypes(contentTypesPart, partNames, macroParts, embeddedParts, activeXParts, findings);
+                        InspectContentTypes(contentTypesPart, partNames, macroParts, embeddedParts, activeXParts,
+                            options.MaxXmlCharactersInPart, findings);
                     }
                     foreach (ZipXmlPart relationshipPart in relationshipParts) {
                         externalCount += InspectRelationships(
@@ -234,6 +235,7 @@ namespace OfficeIMO.Drawing {
                             macroParts,
                             embeddedParts,
                             activeXParts,
+                            options.MaxXmlCharactersInPart,
                             findings);
                     }
                 }
@@ -349,11 +351,12 @@ namespace OfficeIMO.Drawing {
             ISet<string> macroParts,
             ISet<string> embeddedParts,
             ISet<string> activeXParts,
+            long maxXmlCharactersInPart,
             ICollection<OfficePackageSecurityFinding> findings) {
             int externalCount = 0;
             try {
                 using Stream stream = entry.Open();
-                using XmlReader reader = XmlReader.Create(stream, CreateSecureXmlSettings(entry.Length));
+                using XmlReader reader = XmlReader.Create(stream, CreateSecureXmlSettings(maxXmlCharactersInPart));
                 while (reader.Read()) {
                     if (reader.NodeType != XmlNodeType.Element
                         || !string.Equals(reader.LocalName, "Relationship", StringComparison.Ordinal)) continue;
@@ -382,6 +385,7 @@ namespace OfficeIMO.Drawing {
             if (options.MaxPackageBytes < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageBytes));
             if (options.MaxPartCount < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPartCount));
             if (options.MaxPartUncompressedBytes < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPartUncompressedBytes));
+            if (options.MaxXmlCharactersInPart < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxXmlCharactersInPart));
             if (options.MaxTotalUncompressedBytes < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalUncompressedBytes));
             if (double.IsNaN(options.MaxCompressionRatio) || double.IsInfinity(options.MaxCompressionRatio)
                 || options.MaxCompressionRatio <= 0) {
