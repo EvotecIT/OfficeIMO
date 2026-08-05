@@ -185,6 +185,44 @@ namespace OfficeIMO.Tests {
             Assert.Contains("attribute 'blank'", exception.Message, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void Xlsb_NewWorkbook_AllowsRelationshipQualifiedHyperlinkIdButRejectsUnqualifiedId() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            sheet.CellValue(1, 1, "OfficeIMO");
+            sheet.SetHyperlink(
+                1,
+                1,
+                "https://evotec.xyz/",
+                display: "OfficeIMO",
+                style: false);
+
+            Assert.NotEmpty(document.ToBytes(ExcelFileFormat.Xlsb));
+            Hyperlink hyperlink = Assert.Single(
+                sheet.WorksheetPart.Worksheet.GetFirstChild<Hyperlinks>()!.Elements<Hyperlink>());
+            Assert.False(string.IsNullOrEmpty(hyperlink.Id?.Value));
+            hyperlink.SetAttribute(new OpenXmlAttribute(string.Empty, "id", string.Empty, "rIdShadow"));
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                () => document.ToBytes(ExcelFileFormat.Xlsb));
+            Assert.Contains("attribute 'id'", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Xlsb_NewWorkbook_RejectsUnqualifiedPageSetupId() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            sheet.CellValue(1, 1, "Status");
+            sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+            PageSetup pageSetup = Assert.IsType<PageSetup>(
+                sheet.WorksheetPart.Worksheet.GetFirstChild<PageSetup>());
+            pageSetup.SetAttribute(new OpenXmlAttribute(string.Empty, "id", string.Empty, "rIdShadow"));
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                () => document.ToBytes(ExcelFileFormat.Xlsb));
+            Assert.Contains("attribute 'id'", exception.Message, StringComparison.Ordinal);
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]

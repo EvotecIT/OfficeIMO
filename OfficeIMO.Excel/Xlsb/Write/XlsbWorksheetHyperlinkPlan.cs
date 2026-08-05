@@ -148,7 +148,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             Hyperlink hyperlink,
             string relationshipId,
             string sheetName) {
-            EnsureOnlyAttributes(hyperlink, sheetName, "ref", "id", "location", "tooltip", "display");
+            EnsureOnlyAttributes(
+                hyperlink,
+                sheetName,
+                true,
+                "ref",
+                "location",
+                "tooltip",
+                "display");
             if (hyperlink.HasChildren) ThrowUnsupportedContent(hyperlink, sheetName);
             if (!TryParseRange(hyperlink.Reference?.Value, out XlsbCellRange? range)) {
                 throw new NotSupportedException($"Native XLSB generation cannot encode hyperlink range '{hyperlink.Reference?.Value}' on worksheet '{sheetName}'.");
@@ -217,10 +224,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void EnsureOnlyAttributes(OpenXmlElement element, string sheetName, params string[] allowedNames) {
+            EnsureOnlyAttributes(element, sheetName, false, allowedNames);
+        }
+
+        private static void EnsureOnlyAttributes(
+            OpenXmlElement element,
+            string sheetName,
+            bool allowRelationshipId,
+            params string[] allowedNames) {
             OpenXmlAttribute? unsupported = XlsbOpenXmlAttributeValidator.FindUnsupported(
                 element,
                 allowedNames,
-                attribute => allowedNames.Contains("id", StringComparer.Ordinal)
+                attribute => allowRelationshipId
                     && string.Equals(attribute.LocalName, "id", StringComparison.Ordinal)
                     && string.Equals(attribute.NamespaceUri, RelationshipsNamespace, StringComparison.Ordinal));
             if (unsupported.HasValue) {
