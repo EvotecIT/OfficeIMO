@@ -115,6 +115,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Sets the horizontal anchor using an OfficeIMO-owned value.</summary>
+        public WordTextBox SetHorizontalPositionRelativeFrom(WordHorizontalRelativePosition relativePosition) {
+            HorizontalPositionRelativeFrom = relativePosition.ToOpenXml();
+            return this;
+        }
+
         /// <summary>
         /// Gets or sets the wrap text of the text box
         /// </summary>
@@ -167,6 +173,12 @@ namespace OfficeIMO.Word {
                     verticalPosition.RelativeFrom = value;
                 }
             }
+        }
+
+        /// <summary>Sets the vertical anchor using an OfficeIMO-owned value.</summary>
+        public WordTextBox SetVerticalPositionRelativeFrom(WordVerticalRelativePosition relativePosition) {
+            VerticalPositionRelativeFrom = relativePosition.ToOpenXml();
+            return this;
         }
 
         /// <summary>

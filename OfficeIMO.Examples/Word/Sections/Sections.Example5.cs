@@ -15,13 +15,13 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test 1");
-                var section1 = document.AddSection(WordSectionBreakType.NextPage);
+                var section1 = document.AddSectionWithBreakType(WordSectionBreakType.NextPage);
 
                 document.AddParagraph("Test 2");
-                var section2 = document.AddSection(WordSectionBreakType.Continuous);
+                var section2 = document.AddSectionWithBreakType(WordSectionBreakType.Continuous);
 
                 document.AddParagraph("Test 3");
-                var section3 = document.AddSection(WordSectionBreakType.NextPage);
+                var section3 = document.AddSectionWithBreakType(WordSectionBreakType.NextPage);
                 section3.AddParagraph("Paragraph added to section number 3");
                 section3.AddParagraph("Continue adding paragraphs to section 3");
 

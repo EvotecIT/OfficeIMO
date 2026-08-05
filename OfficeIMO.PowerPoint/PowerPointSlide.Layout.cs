@@ -68,6 +68,11 @@ namespace OfficeIMO.PowerPoint {
             SetLayout(masterIndex, layoutIndex);
         }
 
+        /// <summary>Sets the slide layout using an OfficeIMO-owned layout type.</summary>
+        public void SetLayoutWithType(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
+            SetLayout(layoutType.ToOpenXml(), masterIndex);
+        }
+
         /// <summary>
         ///     Sets the slide layout using a layout name.
         /// </summary>

@@ -53,6 +53,12 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
+        /// <summary>Applies an OfficeIMO-owned underline style to the current run.</summary>
+        public TextBuilder UnderlineStyle(WordUnderlineStyle underline) {
+            _paragraph?.SetUnderlineStyle(underline);
+            return this;
+        }
+
         /// <summary>
         /// Applies single strikethrough formatting to the current run.
         /// </summary>

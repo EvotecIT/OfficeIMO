@@ -171,6 +171,11 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
         }
 
+        /// <summary>Returns or creates a header using an OfficeIMO-owned header type.</summary>
+        public WordHeader GetOrCreateHeaderWithType(WordHeaderFooterType type) {
+            return GetOrCreateHeader(type.ToOpenXml());
+        }
+
         /// <summary>
         /// Returns an existing footer of the requested <paramref name="type"/> or creates it if missing.
         /// Behavior mirrors <see cref="GetOrCreateHeader"/>.
@@ -192,6 +197,11 @@ namespace OfficeIMO.Word {
             }
 
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
+        }
+
+        /// <summary>Returns or creates a footer using an OfficeIMO-owned footer type.</summary>
+        public WordFooter GetOrCreateFooterWithType(WordHeaderFooterType type) {
+            return GetOrCreateFooter(type.ToOpenXml());
         }
 
         /// <summary>

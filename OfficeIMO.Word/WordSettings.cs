@@ -59,6 +59,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Sets document protection using an OfficeIMO-owned value.</summary>
+        public WordSettings SetProtectionType(WordDocumentProtectionType protectionType) {
+            ProtectionType = protectionType.ToOpenXml();
+            return this;
+        }
+
         /// <summary>
         /// Set a Protection Password for the document
         /// </summary>

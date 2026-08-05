@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
                         }
                     }
                     // New section every 2 chapters
-                    if (ch % 2 == 0) doc.AddSection(WordSectionBreakType.NextPage);
+                    if (ch % 2 == 0) doc.AddSectionWithBreakType(WordSectionBreakType.NextPage);
                 }
 
                 // 2) Save as .docx

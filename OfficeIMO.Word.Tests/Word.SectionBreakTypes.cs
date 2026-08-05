@@ -10,12 +10,12 @@ namespace OfficeIMO.Tests {
         [InlineData(WordSectionBreakType.Continuous, "continuous")]
         [InlineData(WordSectionBreakType.EvenPage, "evenPage")]
         [InlineData(WordSectionBreakType.OddPage, "oddPage")]
-        public void Test_AddSectionMapsOfficeIMOSectionBreakTypes(WordSectionBreakType breakType, string expected) {
+        public void Test_AddSectionWithBreakTypeMapsOfficeIMOSectionBreakTypes(WordSectionBreakType breakType, string expected) {
             string filePath = Path.Combine(_directoryWithFiles, $"SectionBreak{expected}.docx");
 
             using WordDocument document = WordDocument.Create(filePath);
             WordSection previousSection = document.Sections[0];
-            document.AddSection(breakType);
+            document.AddSectionWithBreakType(breakType);
 
             Assert.Equal(2, document.Sections.Count);
             SectionType sectionType = Assert.IsType<SectionType>(previousSection._sectionProperties.GetFirstChild<SectionType>());
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
 
             using WordDocument document = WordDocument.Create(filePath);
             WordSection previousSection = document.Sections[0];
-            document.AsFluent().Section(section => section.New(WordSectionBreakType.Continuous)).End();
+            document.AsFluent().Section(section => section.NewWithBreakType(WordSectionBreakType.Continuous)).End();
 
             Assert.Equal(2, document.Sections.Count);
             SectionType sectionType = Assert.IsType<SectionType>(previousSection._sectionProperties.GetFirstChild<SectionType>());
@@ -52,6 +52,17 @@ namespace OfficeIMO.Tests {
 
             SectionType sectionType = Assert.IsType<SectionType>(previousSection._sectionProperties.GetFirstChild<SectionType>());
             Assert.Equal(SectionMarkValues.Continuous, sectionType.Val?.Value);
+        }
+
+        [Fact]
+        public void Test_LegacyDefaultLiteralCallsRemainSourceCompatible() {
+            string filePath = Path.Combine(_directoryWithFiles, "LegacyDefaultLiteralSectionBreaks.docx");
+
+            using WordDocument document = WordDocument.Create(filePath);
+            document.AddSection(default);
+            document.AsFluent().Section(section => section.New(default)).End();
+
+            Assert.Equal(3, document.Sections.Count);
         }
     }
 }

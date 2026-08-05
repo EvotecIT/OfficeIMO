@@ -105,6 +105,12 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
+        /// <summary>Inserts a break using an OfficeIMO-owned break type.</summary>
+        public ParagraphBuilder BreakWithType(WordBreakType breakType) {
+            _paragraph.AddBreakWithType(breakType);
+            return this;
+        }
+
         /// <summary>
         /// Inserts a tab character.
         /// </summary>

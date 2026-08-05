@@ -37,6 +37,11 @@ namespace OfficeIMO.PowerPoint {
         public SlideLayoutValues? Type { get; }
 
         /// <summary>
+        ///     OfficeIMO-owned layout type suitable for PowerShell binding (may be null for layouts without a type).
+        /// </summary>
+        public PowerPointSlideLayoutType? LayoutType => Type?.ToOfficeIMO();
+
+        /// <summary>
         ///     Relationship ID for the layout part.
         /// </summary>
         public string? RelationshipId { get; }

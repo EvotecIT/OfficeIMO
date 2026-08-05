@@ -32,6 +32,11 @@ namespace OfficeIMO.Word {
             this.Underline = underline;
             return this;
         }
+
+        /// <summary>Sets underline formatting using an OfficeIMO-owned style.</summary>
+        public WordParagraph SetUnderlineStyle(WordUnderlineStyle underline) {
+            return SetUnderline(underline.ToOpenXml());
+        }
         /// <summary>
         /// Sets the character spacing for the text.
         /// </summary>
@@ -152,6 +157,11 @@ namespace OfficeIMO.Word {
         public WordParagraph SetAlignment(JustificationValues alignment) {
             this.ParagraphAlignment = alignment;
             return this;
+        }
+
+        /// <summary>Sets paragraph alignment using an OfficeIMO-owned value.</summary>
+        public WordParagraph SetParagraphAlignment(WordParagraphAlignment alignment) {
+            return SetAlignment(alignment.ToOpenXml());
         }
 
         /// <summary>

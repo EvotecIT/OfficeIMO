@@ -372,6 +372,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Sets or clears text direction using an OfficeIMO-owned value.</summary>
+        public WordTableCell SetTextDirection(WordTextDirection? textDirection) {
+            TextDirection = textDirection?.ToOpenXml();
+            return this;
+        }
+
         /// <summary>
         /// Gets or sets cell vertical alignment in a Table Cell
         /// </summary>
@@ -389,6 +395,12 @@ namespace OfficeIMO.Word {
                     _tableCellProperties?.TableCellVerticalAlignment?.Remove();
                 }
             }
+        }
+
+        /// <summary>Sets vertical alignment using an OfficeIMO-owned value.</summary>
+        public WordTableCell SetVerticalAlignment(WordTableVerticalAlignment alignment) {
+            VerticalAlignment = alignment.ToOpenXml();
+            return this;
         }
 
         /// <summary>

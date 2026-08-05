@@ -30,6 +30,13 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
+        /// <summary>Adds a break using an OfficeIMO-owned break type.</summary>
+        /// <param name="breakType">Type of break to insert.</param>
+        /// <returns>The current paragraph wrapper.</returns>
+        public WordParagraph AddBreakWithType(WordBreakType breakType) {
+            return AddBreak(breakType.ToOpenXml());
+        }
+
         /// <summary>
         /// Remove the paragraph from WordDocument
         /// </summary>

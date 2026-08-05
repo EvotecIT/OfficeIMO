@@ -51,6 +51,11 @@ namespace OfficeIMO.PowerPoint {
             throw new InvalidOperationException($"Layout type '{layoutType}' not found for master {masterIndex}.");
         }
 
+        /// <summary>Finds a layout index using an OfficeIMO-owned layout type.</summary>
+        public int GetLayoutIndexWithType(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
+            return GetLayoutIndex(layoutType.ToOpenXml(), masterIndex);
+        }
+
         /// <summary>
         ///     Finds a layout index by layout name.
         /// </summary>
@@ -79,6 +84,11 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSlide AddSlide(SlideLayoutValues layoutType, int masterIndex = 0) {
             int layoutIndex = GetLayoutIndex(layoutType, masterIndex);
             return AddSlide(masterIndex, layoutIndex);
+        }
+
+        /// <summary>Adds a slide using an OfficeIMO-owned layout type.</summary>
+        public PowerPointSlide AddSlideWithLayoutType(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
+            return AddSlide(layoutType.ToOpenXml(), masterIndex);
         }
 
         /// <summary>

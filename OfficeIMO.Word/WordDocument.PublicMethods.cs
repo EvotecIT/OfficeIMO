@@ -86,6 +86,13 @@ namespace OfficeIMO.Word {
             return newWordParagraph;
         }
 
+        /// <summary>Inserts a break using an OfficeIMO-owned break type.</summary>
+        /// <param name="breakType">Type of break to insert.</param>
+        /// <returns>The created paragraph containing the break.</returns>
+        public WordParagraph AddBreakWithType(WordBreakType breakType) {
+            return AddBreak(breakType.ToOpenXml());
+        }
+
         /// <summary>
         /// Determines whether a paragraph style with the specified identifier exists in the document.
         /// </summary>
@@ -612,7 +619,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="breakType">Section break type.</param>
         /// <returns>The created <see cref="WordSection"/>.</returns>
-        public WordSection AddSection(WordSectionBreakType breakType) {
+        public WordSection AddSectionWithBreakType(WordSectionBreakType breakType) {
             return AddSectionCore(breakType.ToOpenXml());
         }
 
