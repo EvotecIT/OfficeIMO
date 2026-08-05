@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
             }
             PowerPointLayoutBox metrics = PowerPointLayoutBox.FromCentimeters(1.5, top, width - 3, 2.15);
             AddMetrics(slide, theme, content.Metrics.ToList(), metrics.LeftCm, metrics.TopCm,
-                metrics.WidthCm, metrics.HeightCm);
+                metrics.WidthCm, metrics.HeightCm, theme.PrimaryTextColor);
             double cardTop = content.Metrics.Count == 0 ? top : top + 2.6;
             PowerPointLayoutBox cards = PowerPointLayoutBox.FromCentimeters(1.5, cardTop, width - 3,
                 Math.Max(2.4, height - top - 4.1));

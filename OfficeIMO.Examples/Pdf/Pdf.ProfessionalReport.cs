@@ -104,42 +104,11 @@ namespace OfficeIMO.Examples.Pdf {
         }
 
         private static byte[] CreateFallbackLogo() {
-            return new byte[] {
-                137, 80, 78, 71, 13, 10, 26, 10,
-                0, 0, 0, 13,
-                73, 72, 68, 82,
-                0, 0, 0, 1,
-                0, 0, 0, 1,
-                8, 2, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 12,
-                73, 68, 65, 84,
-                0x78, 0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00,
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                73, 69, 78, 68,
-                0, 0, 0, 0
-            };
+            return OfficePngWriter.EncodeRgba(1, 1, new byte[] { 32, 76, 120, 255 });
         }
 
         private static byte[] CreateTransparentBadgePng() {
-            return new byte[] {
-                137, 80, 78, 71, 13, 10, 26, 10,
-                0, 0, 0, 13,
-                73, 72, 68, 82,
-                0, 0, 0, 1,
-                0, 0, 0, 1,
-                8, 6, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 16,
-                73, 68, 65, 84,
-                0x78, 0x01, 0x01, 0x05, 0x00, 0xFA, 0xFF, 0x00,
-                0x2A, 0x84, 0x52, 0xA0, 0x03, 0x7D, 0x01, 0xA1,
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                73, 69, 78, 68,
-                0, 0, 0, 0
-            };
+            return OfficePngWriter.EncodeRgba(1, 1, new byte[] { 42, 132, 82, 160 });
         }
     }
 }

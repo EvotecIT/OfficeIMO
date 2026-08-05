@@ -8,7 +8,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         internal static void AddMetrics(PowerPointSlide slide, PowerPointDesignTheme theme, IReadOnlyList<PowerPointMetric> metrics,
-            double leftCm, double topCm, double widthCm, double heightCm) {
+            double leftCm, double topCm, double widthCm, double heightCm, string? textColor = null) {
             if (metrics.Count == 0) {
                 return;
             }
@@ -22,18 +22,19 @@ namespace OfficeIMO.PowerPoint {
             double labelHeight = Math.Max(0.32, heightCm - labelTopOffset);
             int valueFontSize = heightCm < 1.6 ? 24 : 29;
             int labelFontSize = heightCm < 1.6 ? 8 : 9;
+            string resolvedTextColor = textColor ?? theme.AccentContrastColor;
             for (int i = 0; i < count; i++) {
                 PowerPointMetric metric = metrics[i];
                 PowerPointLayoutBox box = boxes[i];
                 int resolvedValueFontSize = ResolveMetricValueFontSize(metric.Value, box.WidthCm, valueFontSize);
                 PowerPointTextBox value = AddText(slide, metric.Value, box.LeftCm, box.TopCm, box.WidthCm, valueHeight,
                     resolvedValueFontSize,
-                    theme.AccentContrastColor, theme.HeadingFontName, bold: true);
+                    resolvedTextColor, theme.HeadingFontName, bold: true);
                 CenterText(value);
                 int resolvedLabelFontSize = ResolveMetricLabelFontSize(metric.Label, box.WidthCm, labelFontSize);
                 PowerPointTextBox label = AddText(slide, metric.Label, box.LeftCm, box.TopCm + labelTopOffset,
                     box.WidthCm, labelHeight, resolvedLabelFontSize,
-                    theme.AccentContrastColor, theme.BodyFontName, bold: true);
+                    resolvedTextColor, theme.BodyFontName, bold: true);
                 CenterText(label);
             }
         }
