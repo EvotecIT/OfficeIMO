@@ -221,6 +221,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Sheet_EnumerateRange_StreamsSparseCellsAcrossMaximumWorksheetBounds() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Alpha");
+                sheet.CellValue(A1.MaxRows, A1.MaxColumns, "Omega");
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory);
+            var cells = loaded.GetSheet("Data")
+                .EnumerateRange("A1:XFD1048576")
+                .ToList();
+
+            Assert.Collection(
+                cells,
+                cell => {
+                    Assert.Equal(1, cell.Row);
+                    Assert.Equal(1, cell.Column);
+                    Assert.Equal("Alpha", cell.Value);
+                },
+                cell => {
+                    Assert.Equal(A1.MaxRows, cell.Row);
+                    Assert.Equal(A1.MaxColumns, cell.Column);
+                    Assert.Equal("Omega", cell.Value);
+                });
+        }
+
+        [Fact]
         public void Reader_EnumerateRange_DoesNotStopAtOutOfOrderRowsBeyondRange() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderEnumerateRangeOutOfOrderRows.xlsx");
 

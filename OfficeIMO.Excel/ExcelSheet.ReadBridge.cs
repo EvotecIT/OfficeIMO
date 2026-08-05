@@ -76,6 +76,33 @@ namespace OfficeIMO.Excel {
             return RowsAsRangeStreamIterator<T>(a1Range, options, ct);
         }
 
+        /// <summary>
+        /// Streams the non-empty cells in this worksheet without probing every coordinate in its used range.
+        /// Enumerate the returned sequence while the owning <see cref="ExcelDocument"/> is still open.
+        /// </summary>
+        /// <param name="options">Optional read options.</param>
+        /// <param name="ct">Cancellation token observed during enumeration.</param>
+        public IEnumerable<CellValueInfo> EnumerateCells(
+            ExcelReadOptions? options = null,
+            CancellationToken ct = default) {
+            return EnumerateCellsIterator(options, ct);
+        }
+
+        /// <summary>
+        /// Streams the non-empty cells in the specified A1 range without probing every coordinate in the range.
+        /// Enumerate the returned sequence while the owning <see cref="ExcelDocument"/> is still open.
+        /// </summary>
+        /// <param name="a1Range">Inclusive A1 range (for example, "A1:C100").</param>
+        /// <param name="options">Optional read options.</param>
+        /// <param name="ct">Cancellation token observed during enumeration.</param>
+        public IEnumerable<CellValueInfo> EnumerateRange(
+            string a1Range,
+            ExcelReadOptions? options = null,
+            CancellationToken ct = default) {
+            if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
+            return EnumerateRangeIterator(a1Range, options, ct);
+        }
+
         private IEnumerable<T> RowsAsUsedRangeStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             ExcelReadOptions? options,
             CancellationToken ct) where T : new() {
@@ -105,6 +132,37 @@ namespace OfficeIMO.Excel {
             var sh = rdr.GetSheet(this.Name);
             foreach (var row in sh.ReadObjectsStream<T>(a1Range, token)) {
                 yield return row;
+            }
+        }
+
+        private IEnumerable<CellValueInfo> EnumerateCellsIterator(
+            ExcelReadOptions? options,
+            CancellationToken ct) {
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            var sh = rdr.GetSheet(Name);
+            foreach (CellValueInfo cell in sh.EnumerateCells(token)) {
+                yield return cell;
+            }
+        }
+
+        private IEnumerable<CellValueInfo> EnumerateRangeIterator(
+            string a1Range,
+            ExcelReadOptions? options,
+            CancellationToken ct) {
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                ct,
+                effectiveOptions.CancellationToken);
+            CancellationToken token = linkedCancellation.Token;
+            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            var sh = rdr.GetSheet(Name);
+            foreach (CellValueInfo cell in sh.EnumerateRange(a1Range, token)) {
+                yield return cell;
             }
         }
 

@@ -12,12 +12,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Enumerates non-empty cells within the given A1 range as typed values.
         /// </summary>
-        public IEnumerable<CellValueInfo> EnumerateRange(string a1Range) {
+        public IEnumerable<CellValueInfo> EnumerateRange(string a1Range, CancellationToken ct = default) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
 
             return CanUseEnumerateRangeXmlReader()
-                ? EnumerateRangeXmlFast(r1, c1, r2, c2, CancellationToken.None)
-                : EnumerateRangeDom(r1, c1, r2, c2, CancellationToken.None);
+                ? EnumerateRangeXmlFast(r1, c1, r2, c2, ct)
+                : EnumerateRangeDom(r1, c1, r2, c2, ct);
         }
 
         private IEnumerable<CellValueInfo> EnumerateRangeDom(int r1, int c1, int r2, int c2, CancellationToken ct) {

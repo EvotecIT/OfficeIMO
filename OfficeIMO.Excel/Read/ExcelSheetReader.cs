@@ -279,10 +279,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Enumerates non-empty cells as (Row, Column, Value). Values are typed when possible.
         /// </summary>
-        public IEnumerable<CellValueInfo> EnumerateCells() {
+        public IEnumerable<CellValueInfo> EnumerateCells(CancellationToken ct = default) {
             return CanUseEnumerateCellsXmlReader()
-                ? EnumerateCellsXmlFast(CancellationToken.None)
-                : EnumerateCellsDom(CancellationToken.None);
+                ? EnumerateCellsXmlFast(ct)
+                : EnumerateCellsDom(ct);
         }
 
         private IEnumerable<CellValueInfo> EnumerateCellsDom(CancellationToken ct) {

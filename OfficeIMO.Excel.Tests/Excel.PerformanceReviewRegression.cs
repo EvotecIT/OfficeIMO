@@ -2791,11 +2791,12 @@ namespace OfficeIMO.Tests {
                     false,
                     false,
                     CancellationToken.None,
-                    string.Empty
+                    null
                 ];
 
                 Assert.True((bool)method.Invoke(sheet, args)!);
-                Assert.Equal("A1:A2", Assert.IsType<string>(args[12]));
+                ExcelDataReaderInsertResult result = Assert.IsType<ExcelDataReaderInsertResult>(args[12]);
+                Assert.Equal("A1:A2", result.Range);
 
                 document.Save(memory);
 
