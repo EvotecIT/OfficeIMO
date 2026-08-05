@@ -189,6 +189,7 @@ internal static partial class CsvParser
 
         public ReadOnlySpan<char> GetSpan(int ordinal) => _visitor.GetSpan(ordinal);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetString(int ordinal) => _visitor.GetString(ordinal);
 
         public bool IsNull(int ordinal, string? nullValue) =>
@@ -227,7 +228,7 @@ internal static partial class CsvParser
         }
     }
 
-    private struct CsvDataReaderStreamRowVisitor : ICsvFieldSpanVisitor
+    internal struct CsvDataReaderStreamRowVisitor : ICsvFieldSpanVisitor
     {
         private char[] _buffer;
         private static readonly string[] SingleCharacterStrings = CreateSingleCharacterStrings();
@@ -275,8 +276,11 @@ internal static partial class CsvParser
 
         public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
         {
-            EnsureCapacity(fieldIndex + 1);
-            FieldCount = Math.Max(FieldCount, fieldIndex + 1);
+            if ((uint)fieldIndex >= (uint)_starts.Length)
+            {
+                EnsureCapacity(fieldIndex + 1);
+            }
+            FieldCount = fieldIndex + 1;
             _lengths[fieldIndex] = value.Length;
             if (_nextVisitIsUnescapedScratch)
             {
@@ -293,6 +297,50 @@ internal static partial class CsvParser
             _materialized[fieldIndex] = null;
         }
 
+        public void VisitFieldRange(
+            int recordIndex,
+            int fieldIndex,
+            char[] buffer,
+            int start,
+            int length)
+        {
+            if ((uint)fieldIndex >= (uint)_starts.Length)
+            {
+                EnsureCapacity(fieldIndex + 1);
+            }
+            FieldCount = fieldIndex + 1;
+            _starts[fieldIndex] = start;
+            _lengths[fieldIndex] = length;
+            _materialized[fieldIndex] = null;
+            _nextVisitIsUnescapedScratch = false;
+        }
+
+        internal void VisitFieldRanges(
+            char[] buffer,
+            int start,
+            int end,
+            ReadOnlySpan<int> delimiterIndexes)
+        {
+            int fieldCount = delimiterIndexes.Length + 1;
+            EnsureCapacity(fieldCount);
+            int fieldStart = start;
+            for (int fieldIndex = 0; fieldIndex < delimiterIndexes.Length; fieldIndex++)
+            {
+                int delimiterIndex = delimiterIndexes[fieldIndex];
+                _starts[fieldIndex] = fieldStart;
+                _lengths[fieldIndex] = delimiterIndex - fieldStart;
+                _materialized[fieldIndex] = null;
+                fieldStart = delimiterIndex + 1;
+            }
+
+            int finalFieldIndex = fieldCount - 1;
+            _starts[finalFieldIndex] = fieldStart;
+            _lengths[finalFieldIndex] = end - fieldStart;
+            _materialized[finalFieldIndex] = null;
+            _nextVisitIsUnescapedScratch = false;
+            FieldCount = fieldCount;
+        }
+
         public bool TryVisitEscapedField(
             int recordIndex,
             int fieldIndex,
@@ -305,8 +353,11 @@ internal static partial class CsvParser
 
         public void VisitFieldValue(int recordIndex, int fieldIndex, string value)
         {
-            EnsureCapacity(fieldIndex + 1);
-            FieldCount = Math.Max(FieldCount, fieldIndex + 1);
+            if ((uint)fieldIndex >= (uint)_starts.Length)
+            {
+                EnsureCapacity(fieldIndex + 1);
+            }
+            FieldCount = fieldIndex + 1;
             _starts[fieldIndex] = -1;
             _lengths[fieldIndex] = value.Length;
             _materialized[fieldIndex] = value;
@@ -348,6 +399,7 @@ internal static partial class CsvParser
                 : materialized.AsSpan();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal string GetString(int ordinal)
         {
             ValidateOrdinal(ordinal);
@@ -394,6 +446,7 @@ internal static partial class CsvParser
             return _lengths[ordinal] < 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ValidateOrdinal(int ordinal)
         {
             int maximum = SourceColumnCount > 0 ? SourceColumnCount : FieldCount;

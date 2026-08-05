@@ -22,6 +22,9 @@ internal sealed class CsvDataReader : DbDataReader
     private readonly IEnumerator<object?[]>? _rows;
     private readonly IEnumerator<IReadOnlyList<string>>? _stringRows;
     private readonly CsvDataReaderTextRowSource? _textRowSource;
+#if NET8_0_OR_GREATER
+    private readonly CsvParser.CsvStreamDataReaderRowSource? _streamTextRowSource;
+#endif
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
     private readonly IDisposable? _rowOwner;
@@ -96,6 +99,9 @@ internal sealed class CsvDataReader : DbDataReader
     {
         _columns = columns;
         _textRowSource = rows;
+#if NET8_0_OR_GREATER
+        _streamTextRowSource = rows as CsvParser.CsvStreamDataReaderRowSource;
+#endif
         _sourceColumnCount = sourceColumnCount;
         _stringRowOptions = options;
         _stringNullValue = options.NullValue;
@@ -431,6 +437,12 @@ internal sealed class CsvDataReader : DbDataReader
                 throw new InvalidOperationException("The reader is not positioned on a row.");
             }
 
+#if NET8_0_OR_GREATER
+            if (_streamTextRowSource is not null)
+            {
+                return _streamTextRowSource.GetString(ordinal);
+            }
+#endif
             return _textRowSource!.GetString(ordinal);
         }
 
@@ -637,7 +649,13 @@ internal sealed class CsvDataReader : DbDataReader
 
         if (_textRowSource is not null && !_hasBufferedRow)
         {
+#if NET8_0_OR_GREATER
+            _hasCurrentTextRow = _streamTextRowSource is not null
+                ? _streamTextRowSource.Read()
+                : _textRowSource.Read();
+#else
             _hasCurrentTextRow = _textRowSource.Read();
+#endif
             if (!_hasCurrentTextRow)
             {
                 _hasRows ??= false;

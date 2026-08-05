@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -285,6 +286,52 @@ public class CsvStreamingTests
         Assert.Equal(2, rows.Count);
         Assert.Equal(new[] { string.Empty, string.Empty }, rows[0]);
         Assert.Equal(new[] { "Alpha", "1" }, rows[1]);
+    }
+
+    [Fact]
+    public void ReadRowsReusable_DoesNotTreatCharactersAboveByteRangeAsByteMaxDelimiter()
+    {
+        var rows = new List<string[]>();
+        string value = new string('A', 16) + '\u0100' + new string('B', 16);
+        using var reader = new StringReader("Name\u00FFValue\n" + value + "\u00FF1\n");
+
+        CsvDocument.ReadRowsReusable(
+            reader,
+            (_, values) => rows.Add(values.ToArray()),
+            new CsvLoadOptions { Delimiter = '\u00FF' });
+
+        var row = Assert.Single(rows);
+        Assert.Equal(new[] { value, "1" }, row);
+    }
+
+    [Fact]
+    public void ReadRowsReusable_DoesNotTreatHighUnicodeAsNullDelimiter()
+    {
+        var rows = new List<string[]>();
+        string value = new string('A', 16) + '\u8000' + new string('B', 16);
+        using var reader = new StringReader("Name\0Value\n" + value + '\0' + "1\n");
+
+        CsvDocument.ReadRowsReusable(
+            reader,
+            (_, values) => rows.Add(values.ToArray()),
+            new CsvLoadOptions { Delimiter = '\0' });
+
+        var row = Assert.Single(rows);
+        Assert.Equal(new[] { value, "1" }, row);
+    }
+
+    [Fact]
+    public void OpenTextDataReader_DoesNotTreatCharactersAboveByteRangeAsByteMaxDelimiter()
+    {
+        string value = new string('A', 16) + '\u0100' + new string('B', 16);
+        using DbDataReader reader = CsvDocument.OpenTextDataReader(
+            "Name\u00FFValue\n" + value + "\u00FF1\n",
+            new CsvLoadOptions { Delimiter = '\u00FF' });
+
+        Assert.True(reader.Read());
+        Assert.Equal(value, reader.GetString(0));
+        Assert.Equal("1", reader.GetString(1));
+        Assert.False(reader.Read());
     }
 
     [Fact]

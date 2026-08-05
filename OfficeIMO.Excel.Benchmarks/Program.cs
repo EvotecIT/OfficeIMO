@@ -14,6 +14,76 @@ bool profileOfficeIMOXls = args.Length > 0 &&
     string.Equals(args[0], "--profile-markpflug65k-xls-officeimo", StringComparison.OrdinalIgnoreCase);
 bool profileSylvanXls = args.Length > 0 &&
     string.Equals(args[0], "--profile-markpflug65k-xls-sylvan", StringComparison.OrdinalIgnoreCase);
+bool comparePairedXlsb = args.Length > 0 &&
+    string.Equals(args[0], "--compare-markpflug65k-xlsb-paired", StringComparison.OrdinalIgnoreCase);
+bool comparePairedXls = args.Length > 0 &&
+    string.Equals(args[0], "--compare-markpflug65k-xls-paired", StringComparison.OrdinalIgnoreCase);
+
+if (comparePairedXlsb || comparePairedXls) {
+    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
+        ? parsedIterations
+        : 20;
+    if (iterations <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(iterations));
+    }
+    ApplyProcessAffinity(args, argumentIndex: 2);
+    const int warmupIterations = 10;
+    string affinity = args.Length > 2 ? args[2] : "unchanged";
+
+    Func<ExcelReadObservation> runOfficeIMO;
+    Func<ExcelReadObservation> runSylvan;
+    string format;
+    if (comparePairedXlsb) {
+        var benchmark = new MarkPflug65KXlsbBenchmarks();
+        benchmark.Setup();
+        runOfficeIMO = benchmark.OfficeIMO;
+        runSylvan = benchmark.Sylvan;
+        format = "XLSB";
+    } else {
+        var benchmark = new MarkPflug65KXlsBenchmarks();
+        benchmark.Setup();
+        runOfficeIMO = benchmark.OfficeIMO;
+        runSylvan = benchmark.Sylvan;
+        format = "XLS";
+    }
+    for (int index = 0; index < warmupIterations; index++) {
+        runOfficeIMO();
+        runSylvan();
+    }
+
+    var officeSamples = new double[iterations];
+    var sylvanSamples = new double[iterations];
+    var pairedRatios = new double[iterations];
+    for (int index = 0; index < iterations; index++) {
+        ExcelReadObservation officeObservation;
+        ExcelReadObservation sylvanObservation;
+        if ((index & 1) == 0) {
+            officeSamples[index] = MeasureMilliseconds(runOfficeIMO, out officeObservation);
+            sylvanSamples[index] = MeasureMilliseconds(runSylvan, out sylvanObservation);
+        } else {
+            sylvanSamples[index] = MeasureMilliseconds(runSylvan, out sylvanObservation);
+            officeSamples[index] = MeasureMilliseconds(runOfficeIMO, out officeObservation);
+        }
+
+        if (officeObservation != sylvanObservation) {
+            throw new InvalidDataException(
+                $"Paired {format} sample {index} produced different observations: OfficeIMO={officeObservation}; Sylvan={sylvanObservation}.");
+        }
+        pairedRatios[index] = officeSamples[index] / sylvanSamples[index];
+    }
+
+    double officeMedian = Median(officeSamples);
+    double sylvanMedian = Median(sylvanSamples);
+    double pairedRatioMedian = Median(pairedRatios);
+    double pairedRatioP25 = Percentile(pairedRatios, 0.25d);
+    double pairedRatioP75 = Percentile(pairedRatios, 0.75d);
+    Console.WriteLine(
+        $"Paired {format} comparison ({warmupIterations} warmups, {iterations} alternating samples, affinity {affinity}): " +
+        $"OfficeIMO median {officeMedian:F3} ms, Sylvan median {sylvanMedian:F3} ms, " +
+        $"ratio of medians {officeMedian / sylvanMedian:F4}, paired ratio median {pairedRatioMedian:F4} " +
+        $"(P25 {pairedRatioP25:F4}, P75 {pairedRatioP75:F4}).");
+    return;
+}
 
 if (profileOfficeIMOXlsb || profileSylvanXlsb || profileOfficeIMOXls || profileSylvanXls) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
@@ -22,6 +92,7 @@ if (profileOfficeIMOXlsb || profileSylvanXlsb || profileOfficeIMOXls || profileS
     if (iterations <= 0) {
         throw new ArgumentOutOfRangeException(nameof(iterations));
     }
+    ApplyProcessAffinity(args, argumentIndex: 2);
 
     bool isXlsb = profileOfficeIMOXlsb || profileSylvanXlsb;
     bool isOfficeIMO = profileOfficeIMOXlsb || profileOfficeIMOXls;
@@ -648,6 +719,53 @@ static string[] GetAntiCheatScenarios()
         "realworld-report-extra-column",
         "realworld-report-post-mutation"
     ];
+
+static double MeasureMilliseconds(
+    Func<ExcelReadObservation> operation,
+    out ExcelReadObservation observation) {
+    long started = System.Diagnostics.Stopwatch.GetTimestamp();
+    observation = operation();
+    return System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+}
+
+static void ApplyProcessAffinity(string[] arguments, int argumentIndex) {
+    if (arguments.Length <= argumentIndex
+        || !long.TryParse(arguments[argumentIndex], out long affinityMask)) {
+        return;
+    }
+    if (!OperatingSystem.IsWindows()) {
+        throw new PlatformNotSupportedException("Processor-affinity comparison is available only on Windows.");
+    }
+    if (affinityMask <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(affinityMask));
+    }
+
+    System.Diagnostics.Process.GetCurrentProcess().ProcessorAffinity = checked((nint)affinityMask);
+}
+
+static double Median(double[] samples) {
+    Array.Sort(samples);
+    int middle = samples.Length / 2;
+    return (samples.Length & 1) == 0
+        ? (samples[middle - 1] + samples[middle]) / 2d
+        : samples[middle];
+}
+
+static double Percentile(double[] samples, double percentile) {
+    if (samples.Length == 0) {
+        throw new ArgumentException("At least one sample is required.", nameof(samples));
+    }
+    if (percentile < 0d || percentile > 1d) {
+        throw new ArgumentOutOfRangeException(nameof(percentile));
+    }
+
+    Array.Sort(samples);
+    double position = (samples.Length - 1) * percentile;
+    int lower = (int)position;
+    int upper = Math.Min(lower + 1, samples.Length - 1);
+    double fraction = position - lower;
+    return samples[lower] + (samples[upper] - samples[lower]) * fraction;
+}
 
 internal sealed class ComparisonSuiteManifest {
     public DateTime GeneratedAtUtc { get; init; }

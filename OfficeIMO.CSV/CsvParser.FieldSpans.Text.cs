@@ -66,7 +66,7 @@ internal static partial class CsvParser
         char[]? scratch = null;
         var delimiterVector = System.Runtime.Intrinsics.Vector256<byte>.Zero;
         if (!trim &&
-            delimiter <= byte.MaxValue &&
+            CanUseAvx2PackedDelimiter(delimiter) &&
             System.Runtime.Intrinsics.X86.Avx2.IsSupported)
         {
             delimiterVector = System.Runtime.Intrinsics.Vector256.Create((byte)delimiter);
@@ -261,7 +261,7 @@ internal static partial class CsvParser
 
         if (useAvx2UnquotedFastPath &&
             !trim &&
-            delimiter <= byte.MaxValue &&
+            CanUseAvx2PackedDelimiter(delimiter) &&
             System.Runtime.Intrinsics.X86.Avx2.IsSupported &&
             !textMayContainQuote &&
             TryReadTextQuoteFreeRecordFieldSpansAvx2(
@@ -282,7 +282,7 @@ internal static partial class CsvParser
 
         if (useAvx2UnquotedFastPath &&
             !trim &&
-            delimiter <= byte.MaxValue &&
+            CanUseAvx2PackedDelimiter(delimiter) &&
             System.Runtime.Intrinsics.X86.Avx2.IsSupported &&
             TryReadTextUnquotedRecordFieldSpansAvx2(
                 text,
@@ -351,6 +351,9 @@ internal static partial class CsvParser
 
         return true;
     }
+
+    private static bool CanUseAvx2PackedDelimiter(char delimiter) =>
+        delimiter > byte.MinValue && delimiter < byte.MaxValue;
 
     private static bool TryReadTextUnquotedRecordFieldSpansAvx2<TVisitor>(
         ReadOnlySpan<char> text,

@@ -19,9 +19,11 @@ namespace OfficeIMO.Excel {
                     writer.Write(metadata!.SheetPropertiesXml);
                 }
 
-                writer.Write("<dimension ref=\"");
-                WriteEscaped(writer, GetWorksheetDimension(sheet));
-                writer.Write("\"/>");
+                if (sheet.Table.HasKnownRowCount) {
+                    writer.Write("<dimension ref=\"");
+                    WriteEscaped(writer, GetWorksheetDimension(sheet));
+                    writer.Write("\"/>");
+                }
                 if (!string.IsNullOrEmpty(metadata?.SheetViewsXml)) {
                     writer.Write(metadata!.SheetViewsXml);
                 }

@@ -1,12 +1,15 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
         private void StoreCellFast(XlsbRecordSlice record) {
-            byte[] bytes = record.Bytes;
-            int position = record.PayloadOffset;
+            StoreCellFast(record.Bytes, record.Type, record.PayloadOffset);
+        }
+
+        private void StoreCellFast(byte[] bytes, int recordType, int position) {
             int column = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(position, sizeof(int)));
             uint styleIndex = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(position + sizeof(int), sizeof(uint)))
                 & 0x00FFFFFFU;
@@ -18,7 +21,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     $"The XLSB row contains column {column} outside the schema established by its header or worksheet dimension.");
             }
 
-            switch (record.Type) {
+            switch (recordType) {
                 case BrtCellBlank:
                     _kinds[ordinal] = XlsbTabularValueKind.Empty;
                     break;
@@ -79,8 +82,42 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     _strings[ordinal] = BiffErrorValue.ToText(bytes[position]);
                     break;
                 default:
-                    throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
+                    throw new InvalidOperationException($"Unsupported XLSB cell record type {recordType}.");
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StoreValidatedRkCell(byte[] bytes, int position) {
+            ref byte payload = ref bytes[position];
+            int ordinal = Unsafe.ReadUnaligned<int>(ref payload) - _firstColumn;
+            uint styleIndex = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, sizeof(int)))
+                & 0x00FFFFFFU;
+            double number = BiffRkNumberReader.ReadRkNumber(
+                Unsafe.ReadUnaligned<uint>(
+                    ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))));
+            StoreNumber(ordinal, number, styleIndex);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StoreValidatedRealCell(byte[] bytes, int position) {
+            ref byte payload = ref bytes[position];
+            int ordinal = Unsafe.ReadUnaligned<int>(ref payload) - _firstColumn;
+            uint styleIndex = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, sizeof(int)))
+                & 0x00FFFFFFU;
+            double number = BitConverter.Int64BitsToDouble(
+                Unsafe.ReadUnaligned<long>(
+                    ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))));
+            StoreNumber(ordinal, number, styleIndex);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StoreValidatedSharedStringCell(byte[] bytes, int position) {
+            ref byte payload = ref bytes[position];
+            int ordinal = Unsafe.ReadUnaligned<int>(ref payload) - _firstColumn;
+            uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
+                ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
+            _kinds[ordinal] = XlsbTabularValueKind.Text;
+            _strings[ordinal] = _sharedStrings[(int)sharedStringIndex];
         }
 
         private static string ReadValidatedWideString(byte[] bytes, int position) {
@@ -92,9 +129,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 checked(characterCount * sizeof(char)));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StoreNumber(int ordinal, double number, uint styleIndex) {
             bool isDate = _options.TreatDatesUsingNumberFormat
-                && styleIndex < _dateStyles.Length
                 && _dateStyles[styleIndex];
             _kinds[ordinal] = isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number;
             _numbers[ordinal] = number;
